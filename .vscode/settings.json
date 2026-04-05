@@ -1,3 +1,13 @@
 {
-  "rust-analyzer.linkedProjects": ["packages/zeroclaw-core/Cargo.toml"]
+  "rust-analyzer.linkedProjects": ["packages/zeroclaw-core/Cargo.toml"],
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.profiles.osx": {
+    "zsh": {
+      "path": "/bin/zsh",
+      "args": ["-l"]
+    }
+  },
+  "terminal.integrated.env.osx": {
+    "PATH": "${env:HOME}/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+  }
 }
