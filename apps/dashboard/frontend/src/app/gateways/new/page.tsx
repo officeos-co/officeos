@@ -10,7 +10,7 @@ import { useAuth } from "@/auth/clerk";
 import { ApiError } from "@/api/mutator";
 import { useCreateGatewayApiV1GatewaysPost } from "@/api/generated/gateways/gateways";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
-import { GatewayForm } from "@/components/gateways/GatewayForm";
+import { GatewayForm, type GatewayType } from "@/components/gateways/GatewayForm";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
 import {
   DEFAULT_WORKSPACE_ROOT,
@@ -25,12 +25,14 @@ export default function NewGatewayPage() {
 
   const { isAdmin } = useOrganizationMembership(isSignedIn);
 
+  const [gatewayType, setGatewayType] = useState<GatewayType>("openclaw");
   const [name, setName] = useState("");
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [gatewayToken, setGatewayToken] = useState("");
   const [disableDevicePairing, setDisableDevicePairing] = useState(false);
   const [workspaceRoot, setWorkspaceRoot] = useState(DEFAULT_WORKSPACE_ROOT);
   const [allowInsecureTls, setAllowInsecureTls] = useState(false);
+  const [dockerImage, setDockerImage] = useState("");
 
   const [gatewayUrlError, setGatewayUrlError] = useState<string | null>(null);
   const [gatewayCheckStatus, setGatewayCheckStatus] =
@@ -57,19 +59,39 @@ export default function NewGatewayPage() {
   const isLoading =
     createMutation.isPending || gatewayCheckStatus === "checking";
 
-  const canSubmit =
-    Boolean(name.trim()) &&
-    Boolean(gatewayUrl.trim()) &&
-    Boolean(workspaceRoot.trim());
+  const isZeroClaw = gatewayType === "zeroclaw";
+
+  const canSubmit = isZeroClaw
+    ? Boolean(name.trim())
+    : Boolean(name.trim()) &&
+      Boolean(gatewayUrl.trim()) &&
+      Boolean(workspaceRoot.trim());
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isSignedIn) return;
 
     if (!name.trim()) {
-      setError("Gateway name is required.");
+      setError("Name is required.");
       return;
     }
+
+    if (isZeroClaw) {
+      // ZeroClaw: skip URL/workspace validation, just create
+      setError(null);
+      createMutation.mutate({
+        data: {
+          name: name.trim(),
+          type: "zeroclaw",
+          url: "",
+          workspace_root: "",
+          docker_image: dockerImage.trim() || null,
+        } as any,
+      });
+      return;
+    }
+
+    // OpenClaw: full validation flow
     const gatewayValidation = validateGatewayUrl(gatewayUrl);
     setGatewayUrlError(gatewayValidation);
     if (gatewayValidation) {
@@ -100,12 +122,13 @@ export default function NewGatewayPage() {
     createMutation.mutate({
       data: {
         name: name.trim(),
+        type: "openclaw",
         url: gatewayUrl.trim(),
         token: gatewayToken.trim() || null,
         disable_device_pairing: disableDevicePairing,
         workspace_root: workspaceRoot.trim(),
         allow_insecure_tls: allowInsecureTls,
-      },
+      } as any,
     });
   };
 
@@ -115,18 +138,24 @@ export default function NewGatewayPage() {
         message: "Sign in to create a gateway.",
         forceRedirectUrl: "/gateways/new",
       }}
-      title="Create gateway"
-      description="Configure an OpenClaw gateway for mission control."
+      title={isZeroClaw ? "Create ZeroClaw agent" : "Create gateway"}
+      description={
+        isZeroClaw
+          ? "Launch a ZeroClaw agent as a Docker container."
+          : "Configure an OpenClaw gateway for mission control."
+      }
       isAdmin={isAdmin}
       adminOnlyMessage="Only organization owners and admins can create gateways."
     >
       <GatewayForm
+        gatewayType={gatewayType}
         name={name}
         gatewayUrl={gatewayUrl}
         gatewayToken={gatewayToken}
         disableDevicePairing={disableDevicePairing}
         workspaceRoot={workspaceRoot}
         allowInsecureTls={allowInsecureTls}
+        dockerImage={dockerImage}
         gatewayUrlError={gatewayUrlError}
         gatewayCheckStatus={gatewayCheckStatus}
         gatewayCheckMessage={gatewayCheckMessage}
@@ -135,10 +164,17 @@ export default function NewGatewayPage() {
         canSubmit={canSubmit}
         workspaceRootPlaceholder={DEFAULT_WORKSPACE_ROOT}
         cancelLabel="Cancel"
-        submitLabel="Create gateway"
-        submitBusyLabel="Creating…"
+        submitLabel={isZeroClaw ? "Launch agent" : "Create gateway"}
+        submitBusyLabel={isZeroClaw ? "Launching…" : "Creating…"}
         onSubmit={handleSubmit}
         onCancel={() => router.push("/gateways")}
+        onGatewayTypeChange={(next) => {
+          setGatewayType(next);
+          setError(null);
+          setGatewayUrlError(null);
+          setGatewayCheckStatus("idle");
+          setGatewayCheckMessage(null);
+        }}
         onNameChange={setName}
         onGatewayUrlChange={(next) => {
           setGatewayUrl(next);
@@ -162,6 +198,7 @@ export default function NewGatewayPage() {
           setGatewayCheckStatus("idle");
           setGatewayCheckMessage(null);
         }}
+        onDockerImageChange={setDockerImage}
       />
     </DashboardPageLayout>
   );

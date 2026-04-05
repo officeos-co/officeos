@@ -97,6 +97,40 @@ export function GatewaysTable({
           }),
       },
       {
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => {
+          const gwType = (row.original as any).type ?? "openclaw";
+          const isZeroClaw = gwType === "zeroclaw";
+          const containerStatus = (row.original as any).container_status;
+          return (
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                  isZeroClaw
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-blue-50 text-blue-700"
+                }`}
+              >
+                {isZeroClaw ? "ZeroClaw" : "OpenClaw"}
+              </span>
+              {isZeroClaw && containerStatus && (
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    containerStatus === "running"
+                      ? "bg-green-500"
+                      : containerStatus === "stopped"
+                        ? "bg-slate-400"
+                        : "bg-red-500"
+                  }`}
+                  title={containerStatus}
+                />
+              )}
+            </div>
+          );
+        },
+      },
+      {
         accessorKey: "workspace_root",
         header: "Workspace root",
         cell: ({ row }) => (

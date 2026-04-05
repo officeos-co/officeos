@@ -15,7 +15,7 @@ import {
 } from "@/api/generated/gateways/gateways";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
 import type { GatewayUpdate } from "@/api/generated/model";
-import { GatewayForm } from "@/components/gateways/GatewayForm";
+import { GatewayForm, type GatewayType } from "@/components/gateways/GatewayForm";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
 import {
   DEFAULT_WORKSPACE_ROOT,
@@ -94,6 +94,9 @@ export default function EditGatewayPage() {
     workspaceRoot ?? loadedGateway?.workspace_root ?? DEFAULT_WORKSPACE_ROOT;
   const resolvedAllowInsecureTls =
     allowInsecureTls ?? loadedGateway?.allow_insecure_tls ?? false;
+  const resolvedGatewayType: GatewayType =
+    ((loadedGateway as any)?.type as GatewayType) ?? "openclaw";
+  const isZeroClaw = resolvedGatewayType === "zeroclaw";
 
   const isLoading =
     gatewayQuery.isLoading ||
@@ -101,19 +104,32 @@ export default function EditGatewayPage() {
     gatewayCheckStatus === "checking";
   const errorMessage = error ?? gatewayQuery.error?.message ?? null;
 
-  const canSubmit =
-    Boolean(resolvedName.trim()) &&
-    Boolean(resolvedGatewayUrl.trim()) &&
-    Boolean(resolvedWorkspaceRoot.trim());
+  const canSubmit = isZeroClaw
+    ? Boolean(resolvedName.trim())
+    : Boolean(resolvedName.trim()) &&
+      Boolean(resolvedGatewayUrl.trim()) &&
+      Boolean(resolvedWorkspaceRoot.trim());
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isSignedIn || !gatewayId) return;
 
     if (!resolvedName.trim()) {
-      setError("Gateway name is required.");
+      setError("Name is required.");
       return;
     }
+
+    if (isZeroClaw) {
+      // ZeroClaw: only name is editable
+      setError(null);
+      updateMutation.mutate({
+        gatewayId,
+        data: { name: resolvedName.trim() },
+      });
+      return;
+    }
+
+    // OpenClaw: full validation flow
     const gatewayValidation = validateGatewayUrl(resolvedGatewayUrl);
     setGatewayUrlError(gatewayValidation);
     if (gatewayValidation) {
@@ -170,12 +186,14 @@ export default function EditGatewayPage() {
       adminOnlyMessage="Only organization owners and admins can edit gateways."
     >
       <GatewayForm
+        gatewayType={resolvedGatewayType}
         name={resolvedName}
         gatewayUrl={resolvedGatewayUrl}
         gatewayToken={resolvedGatewayToken}
         disableDevicePairing={resolvedDisableDevicePairing}
         workspaceRoot={resolvedWorkspaceRoot}
         allowInsecureTls={resolvedAllowInsecureTls}
+        dockerImage=""
         gatewayUrlError={gatewayUrlError}
         gatewayCheckStatus={gatewayCheckStatus}
         gatewayCheckMessage={gatewayCheckMessage}
@@ -188,6 +206,7 @@ export default function EditGatewayPage() {
         submitBusyLabel="Saving…"
         onSubmit={handleSubmit}
         onCancel={() => router.push("/gateways")}
+        onGatewayTypeChange={() => {}}
         onNameChange={setName}
         onGatewayUrlChange={(next) => {
           setGatewayUrl(next);
@@ -211,6 +230,7 @@ export default function EditGatewayPage() {
           setGatewayCheckStatus("idle");
           setGatewayCheckMessage(null);
         }}
+        onDockerImageChange={() => {}}
       />
     </DashboardPageLayout>
   );
