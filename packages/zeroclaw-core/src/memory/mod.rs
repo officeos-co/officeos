@@ -10,6 +10,7 @@ pub mod hygiene;
 pub mod importance;
 pub mod lucid;
 pub mod markdown;
+pub mod obsidian;
 pub mod namespaced;
 pub mod none;
 pub mod policy;
@@ -33,6 +34,7 @@ pub use backend::{
 };
 pub use lucid::LucidMemory;
 pub use markdown::MarkdownMemory;
+pub use obsidian::ObsidianMemory;
 pub use namespaced::NamespacedMemory;
 pub use none::NoneMemory;
 #[allow(unused_imports)]
@@ -68,6 +70,10 @@ where
         }
         MemoryBackendKind::Qdrant | MemoryBackendKind::Markdown => {
             Ok(Box::new(MarkdownMemory::new(workspace_dir)))
+        }
+        MemoryBackendKind::Obsidian => {
+            tracing::info!("📓 Obsidian vault memory backend enabled");
+            Ok(Box::new(ObsidianMemory::new()))
         }
         MemoryBackendKind::None => Ok(Box::new(NoneMemory::new())),
         MemoryBackendKind::Unknown => {
