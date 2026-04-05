@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import col
 
 from app.api.deps import require_org_admin
@@ -26,12 +27,15 @@ from app.schemas.gateways import (
 from app.schemas.pagination import DefaultLimitOffsetPage
 from app.services.openclaw.admin_service import GatewayAdminLifecycleService
 from app.services.openclaw.session_service import GatewayTemplateSyncQuery
+from app.services.zeroclaw.docker_manager import DockerManager, DockerManagerError
 
 if TYPE_CHECKING:
     from fastapi_pagination.limit_offset import LimitOffsetPage
     from sqlmodel.ext.asyncio.session import AsyncSession
 
     from app.services.organizations import OrganizationContext
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/gateways", tags=["gateways"])
@@ -95,20 +99,59 @@ async def create_gateway(
     ctx: OrganizationContext = ORG_ADMIN_DEP,
 ) -> Gateway:
     """Create a gateway and provision or refresh its main agent."""
-    service = GatewayAdminLifecycleService(session)
-    await service.assert_gateway_runtime_compatible(
-        url=payload.url,
-        token=payload.token,
-        allow_insecure_tls=payload.allow_insecure_tls,
-        disable_device_pairing=payload.disable_device_pairing,
-    )
-    data = payload.model_dump()
     gateway_id = uuid4()
+    data = payload.model_dump()
     data["id"] = gateway_id
     data["organization_id"] = ctx.organization.id
+
+    if payload.type == "zeroclaw":
+        try:
+            docker = _get_docker_manager()
+            result = docker.create_container(
+                gateway_id=gateway_id,
+                name=payload.name,
+                org_id=ctx.organization.id,
+                image=payload.docker_image,
+            )
+            data["url"] = f"ws://localhost:{result.host_port}/ws/chat"
+            data["token"] = result.token
+            data["workspace_root"] = "/zeroclaw-data/workspace"
+            data["container_id"] = result.container_id
+            data["host_port"] = result.host_port
+            data["docker_image"] = payload.docker_image
+            data["container_status"] = "running"
+        except DockerManagerError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+    else:
+        service = GatewayAdminLifecycleService(session)
+        await service.assert_gateway_runtime_compatible(
+            url=payload.url,
+            token=payload.token,
+            allow_insecure_tls=payload.allow_insecure_tls,
+            disable_device_pairing=payload.disable_device_pairing,
+        )
+
     gateway = await crud.create(session, Gateway, **data)
-    await service.ensure_main_agent(gateway, auth, action="provision")
+
+    if payload.type != "zeroclaw":
+        service = GatewayAdminLifecycleService(session)
+        await service.ensure_main_agent(gateway, auth, action="provision")
+
     return gateway
+
+
+def _get_docker_manager() -> DockerManager:
+    """Get a DockerManager instance, attempting to connect to Docker."""
+    try:
+        import docker
+
+        client = docker.from_env()
+        return DockerManager(client=client)
+    except Exception as exc:
+        raise DockerManagerError(
+            "Docker daemon is not available. "
+            "Ensure Docker is running and the socket is accessible."
+        ) from exc
 
 
 @router.get("/{gateway_id}", response_model=GatewayRead)
@@ -141,6 +184,17 @@ async def update_gateway(
         organization_id=ctx.organization.id,
     )
     updates = payload.model_dump(exclude_unset=True)
+
+    # Block managed-field changes for ZeroClaw gateways
+    if gateway.type == "zeroclaw":
+        managed_fields = {"url", "token", "workspace_root"}
+        blocked = managed_fields & set(updates.keys())
+        if blocked:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Cannot modify managed fields on ZeroClaw gateway: {', '.join(sorted(blocked))}",
+            )
+
     if (
         "url" in updates
         or "token" in updates
@@ -164,7 +218,8 @@ async def update_gateway(
                 disable_device_pairing=next_disable_device_pairing,
             )
     await crud.patch(session, gateway, updates)
-    await service.ensure_main_agent(gateway, auth, action="update")
+    if gateway.type != "zeroclaw":
+        await service.ensure_main_agent(gateway, auth, action="update")
     return gateway
 
 
@@ -197,6 +252,20 @@ async def delete_gateway(
         gateway_id=gateway_id,
         organization_id=ctx.organization.id,
     )
+
+    # Stop and remove Docker container for ZeroClaw gateways
+    if gateway.type == "zeroclaw" and gateway.container_id:
+        try:
+            docker = _get_docker_manager()
+            docker.stop_container(gateway.container_id)
+            docker.remove_container(gateway.container_id)
+        except DockerManagerError:
+            logger.warning(
+                "Failed to clean up Docker container %s for gateway %s",
+                gateway.container_id,
+                gateway.id,
+            )
+
     main_agent = await service.find_main_agent(gateway)
     if main_agent is not None:
         await service.clear_agent_foreign_keys(agent_id=main_agent.id)
