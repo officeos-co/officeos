@@ -148,6 +148,20 @@ class KubernetesManager:
                             "limits": {"memory": "512Mi", "cpu": "2"},
                             "requests": {"memory": "64Mi", "cpu": "100m"},
                         },
+                        "livenessProbe": {
+                            "httpGet": {"path": "/health", "port": ZEROCLAW_PORT},
+                            "initialDelaySeconds": 30,
+                            "periodSeconds": 60,
+                            "timeoutSeconds": 10,
+                            "failureThreshold": 3,
+                        },
+                        "readinessProbe": {
+                            "httpGet": {"path": "/api/health", "port": ZEROCLAW_PORT},
+                            "initialDelaySeconds": 15,
+                            "periodSeconds": 10,
+                            "timeoutSeconds": 5,
+                            "failureThreshold": 3,
+                        },
                         "volumeMounts": [
                             {"name": "zeroclaw-data", "mountPath": "/zeroclaw-data"},
                         ],
