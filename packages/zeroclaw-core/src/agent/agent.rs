@@ -3,6 +3,7 @@ use crate::agent::dispatcher::{
 };
 use crate::agent::memory_loader::{DefaultMemoryLoader, MemoryLoader};
 use crate::agent::prompt::{PromptContext, SystemPromptBuilder};
+use crate::agent::vault_sync;
 use crate::config::Config;
 use crate::i18n::ToolDescriptions;
 use crate::memory::{self, Memory, MemoryCategory};
@@ -374,6 +375,22 @@ impl Agent {
             &config.autonomy,
             &config.workspace_dir,
         ));
+
+        // Vault sync: pull personality files from the agent's personal vault
+        // before the memory backend and prompt builder read from workspace_dir.
+        if let Ok(vault_db) = std::env::var("VAULT_USER_DATABASE") {
+            if !vault_db.trim().is_empty() {
+                let sync = vault_sync::VaultSync::new(&config.workspace_dir, vault_db.trim());
+                if sync.is_available() {
+                    let report = sync.sync_from_vault();
+                    tracing::info!("🔄 {}", report.summary());
+                } else {
+                    tracing::warn!(
+                        "vault sync: CouchDB unreachable — using cached personality files"
+                    );
+                }
+            }
+        }
 
         let memory: Arc<dyn Memory> = Arc::from(memory::create_memory_with_storage_and_routes(
             &config.memory,

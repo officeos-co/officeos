@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 const MAX_FILE_CHARS: usize = 20_000;
 
 /// Well-known personality files loaded from the workspace root.
-const PERSONALITY_FILES: &[&str] = &[
+pub const PERSONALITY_FILES: &[&str] = &[
     "SOUL.md",
     "IDENTITY.md",
     "USER.md",
