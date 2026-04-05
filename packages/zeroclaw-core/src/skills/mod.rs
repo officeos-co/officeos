@@ -43,6 +43,11 @@ pub struct Skill {
     pub tools: Vec<SkillTool>,
     #[serde(default)]
     pub prompts: Vec<String>,
+    /// Environment variable names to pass through to shell tool execution.
+    /// By default, skill shell tools run with a sanitized env (only PATH, HOME, etc.).
+    /// Variables listed here are additionally passed through from the host environment.
+    #[serde(default)]
+    pub env_passthrough: Vec<String>,
     #[serde(skip)]
     pub location: Option<PathBuf>,
 }
@@ -80,6 +85,9 @@ struct SkillMeta {
     author: Option<String>,
     #[serde(default)]
     tags: Vec<String>,
+    /// Environment variable names to pass through to shell tool execution.
+    #[serde(default)]
+    env_passthrough: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -544,6 +552,7 @@ fn load_skill_toml(path: &Path) -> Result<Skill> {
         tags: manifest.skill.tags,
         tools: manifest.tools,
         prompts: manifest.prompts,
+        env_passthrough: manifest.skill.env_passthrough,
         location: Some(path.to_path_buf()),
     })
 }
@@ -570,6 +579,7 @@ fn load_skill_md(path: &Path, dir: &Path) -> Result<Skill> {
         tags: parsed.meta.tags,
         tools: Vec::new(),
         prompts: vec![parsed.body],
+        env_passthrough: vec![],
         location: Some(path.to_path_buf()),
     })
 }
@@ -609,6 +619,7 @@ fn load_open_skill_md(path: &Path) -> Result<Skill> {
         tags: parsed.meta.tags,
         tools: Vec::new(),
         prompts: vec![parsed.body],
+        env_passthrough: vec![],
         location: Some(path.to_path_buf()),
     }))
 }
@@ -882,6 +893,7 @@ pub fn skills_to_tools(
                         &skill.name,
                         tool,
                         security.clone(),
+                        &skill.env_passthrough,
                     )));
                 }
                 "http" => {
@@ -1608,6 +1620,68 @@ command = "echo hello"
         assert_eq!(skills[0].name, "test-skill");
         assert_eq!(skills[0].tools.len(), 1);
         assert_eq!(skills[0].tools[0].name, "hello");
+        assert!(skills[0].env_passthrough.is_empty());
+    }
+
+    #[test]
+    fn load_skill_toml_with_env_passthrough() {
+        let dir = tempfile::tempdir().unwrap();
+        let skills_dir = dir.path().join("skills");
+        let skill_dir = skills_dir.join("vault");
+        fs::create_dir_all(&skill_dir).unwrap();
+
+        fs::write(
+            skill_dir.join("SKILL.toml"),
+            r#"
+[skill]
+name = "vault"
+description = "Knowledge vault"
+version = "1.0.0"
+env_passthrough = ["VAULT_HOST", "VAULT_PORT", "VAULT_DATABASE"]
+
+[[tools]]
+name = "read_note"
+description = "Read a note"
+kind = "shell"
+command = "vault read --file '{{path}}' --json"
+
+[tools.args]
+path = "Path to the note"
+"#,
+        )
+        .unwrap();
+
+        let skills = load_skills(dir.path());
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].name, "vault");
+        assert_eq!(
+            skills[0].env_passthrough,
+            vec!["VAULT_HOST", "VAULT_PORT", "VAULT_DATABASE"]
+        );
+        assert_eq!(skills[0].tools.len(), 1);
+        assert_eq!(skills[0].tools[0].name, "read_note");
+        assert!(skills[0].tools[0].args.contains_key("path"));
+    }
+
+    #[test]
+    fn load_skill_md_has_empty_env_passthrough() {
+        let dir = tempfile::tempdir().unwrap();
+        let skills_dir = dir.path().join("skills");
+        let skill_dir = skills_dir.join("simple");
+        fs::create_dir_all(&skill_dir).unwrap();
+
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "# Simple\nA simple skill.\n\nDo the thing.\n",
+        )
+        .unwrap();
+
+        let skills = load_skills(dir.path());
+        assert_eq!(skills.len(), 1);
+        assert!(
+            skills[0].env_passthrough.is_empty(),
+            "SKILL.md skills should have empty env_passthrough"
+        );
     }
 
     #[test]
@@ -1669,6 +1743,7 @@ command = "echo hello"
             tags: vec![],
             tools: vec![],
             prompts: vec!["Do the thing.".to_string()],
+            env_passthrough: vec![],
             location: None,
         }];
         let prompt = skills_to_prompt(&skills, Path::new("/tmp"));
@@ -1693,6 +1768,7 @@ command = "echo hello"
                 args: HashMap::new(),
             }],
             prompts: vec!["Do the thing.".to_string()],
+            env_passthrough: vec![],
             location: Some(PathBuf::from("/tmp/workspace/skills/test/SKILL.md")),
         }];
         let prompt = skills_to_prompt_with_mode(
@@ -1897,6 +1973,7 @@ description = "Bare minimum"
                 args: HashMap::new(),
             }],
             prompts: vec![],
+            env_passthrough: vec![],
             location: None,
         }];
         let prompt = skills_to_prompt(&skills, Path::new("/tmp"));
@@ -1918,6 +1995,7 @@ description = "Bare minimum"
             tags: vec![],
             tools: vec![],
             prompts: vec!["Use <tool> & check \"quotes\".".to_string()],
+            env_passthrough: vec![],
             location: None,
         }];
 

@@ -24,6 +24,8 @@ pub struct SkillShellTool {
     command_template: String,
     args: HashMap<String, String>,
     security: Arc<SecurityPolicy>,
+    /// Extra environment variable names to pass through from host to the shell process.
+    env_passthrough: Vec<String>,
 }
 
 impl SkillShellTool {
@@ -35,6 +37,7 @@ impl SkillShellTool {
         skill_name: &str,
         tool: &crate::skills::SkillTool,
         security: Arc<SecurityPolicy>,
+        env_passthrough: &[String],
     ) -> Self {
         Self {
             tool_name: format!("{}.{}", skill_name, tool.name),
@@ -42,6 +45,7 @@ impl SkillShellTool {
             command_template: tool.command.clone(),
             args: tool.args.clone(),
             security,
+            env_passthrough: env_passthrough.to_vec(),
         }
     }
 
@@ -152,6 +156,13 @@ impl Tool for SkillShellTool {
             }
         }
 
+        // Pass through skill-declared environment variables
+        for var in &self.env_passthrough {
+            if let Ok(val) = std::env::var(var) {
+                cmd.env(var, val);
+            }
+        }
+
         let result =
             tokio::time::timeout(Duration::from_secs(SKILL_SHELL_TIMEOUT_SECS), cmd.output()).await;
 
@@ -236,19 +247,19 @@ mod tests {
 
     #[test]
     fn skill_shell_tool_name_is_prefixed() {
-        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security());
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
         assert_eq!(tool.name(), "my_skill.run_lint");
     }
 
     #[test]
     fn skill_shell_tool_description() {
-        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security());
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
         assert_eq!(tool.description(), "Run the linter on a file");
     }
 
     #[test]
     fn skill_shell_tool_parameters_schema() {
-        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security());
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
         let schema = tool.parameters_schema();
 
         assert_eq!(schema["type"], "object");
@@ -264,7 +275,7 @@ mod tests {
 
     #[test]
     fn skill_shell_tool_substitute_args() {
-        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security());
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
         let result = tool.substitute_args(&serde_json::json!({
             "file": "src/main.rs",
             "format": "json"
@@ -274,7 +285,7 @@ mod tests {
 
     #[test]
     fn skill_shell_tool_substitute_missing_arg() {
-        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security());
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
         let result = tool.substitute_args(&serde_json::json!({"file": "test.rs"}));
         // Missing {{format}} placeholder stays in the command
         assert!(result.contains("{{format}}"));
@@ -290,7 +301,7 @@ mod tests {
             command: "echo hello".to_string(),
             args: HashMap::new(),
         };
-        let tool = SkillShellTool::new("s", &st, test_security());
+        let tool = SkillShellTool::new("s", &st, test_security(), &[]);
         let schema = tool.parameters_schema();
         assert_eq!(schema["type"], "object");
         assert!(schema["properties"].as_object().unwrap().is_empty());
@@ -306,7 +317,7 @@ mod tests {
             command: "echo hello-skill".to_string(),
             args: HashMap::new(),
         };
-        let tool = SkillShellTool::new("test", &st, test_security());
+        let tool = SkillShellTool::new("test", &st, test_security(), &[]);
         let result = tool.execute(serde_json::json!({})).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("hello-skill"));
@@ -314,10 +325,104 @@ mod tests {
 
     #[test]
     fn skill_shell_tool_spec_roundtrip() {
-        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security());
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
         let spec = tool.spec();
         assert_eq!(spec.name, "my_skill.run_lint");
         assert_eq!(spec.description, "Run the linter on a file");
         assert_eq!(spec.parameters["type"], "object");
+    }
+
+    #[test]
+    fn env_passthrough_is_stored() {
+        let passthrough = vec!["VAULT_HOST".to_string(), "VAULT_PORT".to_string()];
+        let tool = SkillShellTool::new(
+            "vault",
+            &sample_skill_tool(),
+            test_security(),
+            &passthrough,
+        );
+        assert_eq!(tool.env_passthrough, passthrough);
+    }
+
+    #[test]
+    fn empty_env_passthrough_is_default() {
+        let tool = SkillShellTool::new("my_skill", &sample_skill_tool(), test_security(), &[]);
+        assert!(tool.env_passthrough.is_empty());
+    }
+
+    /// Security policy that allows all commands (for env passthrough tests).
+    fn permissive_security() -> Arc<SecurityPolicy> {
+        Arc::new(SecurityPolicy {
+            autonomy: AutonomyLevel::Full,
+            workspace_dir: std::env::temp_dir(),
+            allowed_commands: vec!["*".into()],
+            block_high_risk_commands: false,
+            ..SecurityPolicy::default()
+        })
+    }
+
+    #[tokio::test]
+    async fn env_passthrough_vars_are_available_in_shell() {
+        // Set a test env var that will be passed through
+        // SAFETY: test-only, single-threaded test runner.
+        unsafe { std::env::set_var("ZEROCLAW_TEST_PASSTHROUGH", "vault_works") };
+
+        let st = SkillTool {
+            name: "print_env".to_string(),
+            description: "Print env var".to_string(),
+            kind: "shell".to_string(),
+            command: "printenv ZEROCLAW_TEST_PASSTHROUGH".to_string(),
+            args: HashMap::new(),
+        };
+        let passthrough = vec!["ZEROCLAW_TEST_PASSTHROUGH".to_string()];
+        let tool = SkillShellTool::new("test", &st, permissive_security(), &passthrough);
+        let result = tool.execute(serde_json::json!({})).await.unwrap();
+
+        // SAFETY: test-only, single-threaded test runner.
+        unsafe { std::env::remove_var("ZEROCLAW_TEST_PASSTHROUGH") };
+
+        assert!(
+            result.success,
+            "execute should succeed, error: {:?}",
+            result.error
+        );
+        assert!(
+            result.output.contains("vault_works"),
+            "env var should be visible in shell output, got: {}",
+            result.output
+        );
+    }
+
+    #[tokio::test]
+    async fn non_passthrough_vars_are_blocked() {
+        // Set a test env var that will NOT be in passthrough
+        // SAFETY: test-only, single-threaded test runner.
+        unsafe { std::env::set_var("ZEROCLAW_TEST_BLOCKED", "secret_value") };
+
+        let st = SkillTool {
+            name: "print_env".to_string(),
+            description: "Print env var".to_string(),
+            kind: "shell".to_string(),
+            // printenv returns exit code 1 when the var is not set; || true keeps it success
+            command: "printenv ZEROCLAW_TEST_BLOCKED || true".to_string(),
+            args: HashMap::new(),
+        };
+        // Empty passthrough — the var should NOT be available
+        let tool = SkillShellTool::new("test", &st, permissive_security(), &[]);
+        let result = tool.execute(serde_json::json!({})).await.unwrap();
+
+        // SAFETY: test-only, single-threaded test runner.
+        unsafe { std::env::remove_var("ZEROCLAW_TEST_BLOCKED") };
+
+        assert!(
+            result.success,
+            "execute should succeed, error: {:?}",
+            result.error
+        );
+        assert!(
+            !result.output.contains("secret_value"),
+            "non-passthrough env var should not be visible, got: {}",
+            result.output
+        );
     }
 }
