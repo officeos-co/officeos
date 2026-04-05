@@ -374,10 +374,6 @@ pub struct Config {
     #[serde(default)]
     pub node_transport: NodeTransportConfig,
 
-    /// Knowledge graph configuration (`[knowledge]`).
-    #[serde(default)]
-    pub knowledge: KnowledgeConfig,
-
     /// LinkedIn integration configuration (`[linkedin]`).
     #[serde(default)]
     pub linkedin: LinkedInConfig,
@@ -2908,7 +2904,6 @@ fn default_backup_include_dirs() -> Vec<String> {
         "config".into(),
         "memory".into(),
         "audit".into(),
-        "knowledge".into(),
     ]
 }
 
@@ -3133,51 +3128,6 @@ impl Default for GoogleWorkspaceConfig {
 }
 
 // ── Knowledge ───────────────────────────────────────────────────
-
-/// Knowledge graph configuration for capturing and reusing expertise.
-#[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct KnowledgeConfig {
-    /// Enable the knowledge graph tool. Default: false.
-    #[serde(default)]
-    pub enabled: bool,
-    /// Path to the knowledge graph SQLite database.
-    #[serde(default = "default_knowledge_db_path")]
-    pub db_path: String,
-    /// Maximum number of knowledge nodes. Default: 100000.
-    #[serde(default = "default_knowledge_max_nodes")]
-    pub max_nodes: usize,
-    /// Automatically capture knowledge from conversations. Default: false.
-    #[serde(default)]
-    pub auto_capture: bool,
-    /// Proactively suggest relevant knowledge on queries. Default: true.
-    #[serde(default = "default_true")]
-    pub suggest_on_query: bool,
-    /// Allow searching across workspaces (disabled by default for client data isolation).
-    #[serde(default)]
-    pub cross_workspace_search: bool,
-}
-
-fn default_knowledge_db_path() -> String {
-    "~/.zeroclaw/knowledge.db".into()
-}
-
-fn default_knowledge_max_nodes() -> usize {
-    100_000
-}
-
-impl Default for KnowledgeConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            db_path: default_knowledge_db_path(),
-            max_nodes: default_knowledge_max_nodes(),
-            auto_capture: false,
-            suggest_on_query: true,
-            cross_workspace_search: false,
-        }
-    }
-}
 
 // ── LinkedIn ────────────────────────────────────────────────────
 
@@ -8430,7 +8380,6 @@ impl Default for Config {
             notion: NotionConfig::default(),
             jira: JiraConfig::default(),
             node_transport: NodeTransportConfig::default(),
-            knowledge: KnowledgeConfig::default(),
             linkedin: LinkedInConfig::default(),
             image_gen: ImageGenConfig::default(),
             plugins: PluginsConfig::default(),
@@ -9801,15 +9750,6 @@ impl Config {
             validate_mcp_config(&self.mcp)?;
         }
 
-        // Knowledge graph
-        if self.knowledge.enabled {
-            if self.knowledge.max_nodes == 0 {
-                anyhow::bail!("knowledge.max_nodes must be greater than 0");
-            }
-            if self.knowledge.db_path.trim().is_empty() {
-                anyhow::bail!("knowledge.db_path must not be empty");
-            }
-        }
 
         // Google Workspace allowed_services validation
         let mut seen_gws_services = std::collections::HashSet::new();
@@ -11606,7 +11546,6 @@ auto_save = true
             notion: NotionConfig::default(),
             jira: JiraConfig::default(),
             node_transport: NodeTransportConfig::default(),
-            knowledge: KnowledgeConfig::default(),
             linkedin: LinkedInConfig::default(),
             image_gen: ImageGenConfig::default(),
             plugins: PluginsConfig::default(),
@@ -12136,7 +12075,6 @@ default_temperature = 0.7
             notion: NotionConfig::default(),
             jira: JiraConfig::default(),
             node_transport: NodeTransportConfig::default(),
-            knowledge: KnowledgeConfig::default(),
             linkedin: LinkedInConfig::default(),
             image_gen: ImageGenConfig::default(),
             plugins: PluginsConfig::default(),
