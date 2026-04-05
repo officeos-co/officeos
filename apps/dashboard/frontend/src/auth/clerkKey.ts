@@ -1,18 +1,15 @@
-// Shared Clerk publishable-key gating logic.
+// Legacy publishable-key gating logic.
 //
-// IMPORTANT: keep this file dependency-free (no `"use client"`, no React, no Clerk imports)
+// IMPORTANT: keep this file dependency-free (no `"use client"`, no React)
 // so it can be used from both client and server/edge entrypoints.
+// This is retained only for backward-compatible env-var checks during migration.
 
 export function isLikelyValidClerkPublishableKey(
   key: string | undefined,
 ): key is string {
   if (!key) return false;
 
-  // Clerk publishable keys look like: pk_test_... or pk_live_...
-  // In CI we want builds to stay secretless; if the key isn't present/valid,
-  // we skip Clerk entirely so `next build` can prerender.
-  //
-  // Note: this is a conservative heuristic (not an authoritative validation).
+  // Publishable keys looked like: pk_test_... or pk_live_...
   const m = /^pk_(test|live)_([A-Za-z0-9]+)$/.exec(key);
   if (!m) return false;
 

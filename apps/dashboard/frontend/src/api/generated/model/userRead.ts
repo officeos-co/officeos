@@ -9,8 +9,8 @@
  * Full user payload returned by API responses.
  */
 export interface UserRead {
-  /** External auth provider user identifier (Clerk). */
-  clerk_user_id: string;
+  /** External auth provider user identifier. */
+  external_id: string;
   /** Additional context used by the system for personalization. */
   context?: string | null;
   /** Primary email address for the user. */

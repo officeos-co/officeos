@@ -63,11 +63,11 @@ export default function OnboardingPage() {
   const errorMessage = error ?? loadError;
   const profile = meQuery.data?.status === 200 ? meQuery.data.data : null;
 
-  const clerkFallbackName =
-    user?.fullName ?? user?.firstName ?? user?.username ?? "";
+  const fallbackName =
+    user?.fullName ?? "";
   const resolvedName = name.trim()
     ? name
-    : (profile?.preferred_name ?? profile?.name ?? clerkFallbackName ?? "");
+    : (profile?.preferred_name ?? profile?.name ?? fallbackName ?? "");
   const resolvedTimezone = timezone.trim()
     ? timezone
     : (profile?.timezone ?? "");

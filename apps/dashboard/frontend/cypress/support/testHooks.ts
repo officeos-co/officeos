@@ -37,7 +37,7 @@ export function setupCommonPageTestHooks(
       statusCode: 200,
       body: {
         id: userId,
-        clerk_user_id: "local-auth-user",
+        external_id: "local-auth-user",
         email: userEmail,
         name: userName,
         preferred_name: userName,

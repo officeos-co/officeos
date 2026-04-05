@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useAuth, useUser } from "@/auth/clerk";
+import { clearSessionToken, useAuth, useUser } from "@/auth/clerk";
 import { useQueryClient } from "@tanstack/react-query";
 import { Globe, Mail, RotateCcw, Save, Trash2, User } from "lucide-react";
 
@@ -23,10 +23,6 @@ import { ConfirmActionDialog } from "@/components/ui/confirm-action-dialog";
 import { Input } from "@/components/ui/input";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { getSupportedTimezones } from "@/lib/timezones";
-
-type ClerkGlobal = {
-  signOut?: (options?: { redirectUrl?: string }) => Promise<void> | void;
-};
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -56,13 +52,13 @@ export default function SettingsPage() {
   const meQueryKey = getGetMeApiV1UsersMeGetQueryKey();
 
   const profile = meQuery.data?.status === 200 ? meQuery.data.data : null;
-  const clerkFallbackName =
-    user?.fullName ?? user?.firstName ?? user?.username ?? "";
+  const fallbackName =
+    user?.fullName ?? "";
   const displayEmail =
     profile?.email ?? user?.primaryEmailAddress?.emailAddress ?? "";
   const resolvedName = nameEdited
     ? name
-    : (profile?.name ?? profile?.preferred_name ?? clerkFallbackName);
+    : (profile?.name ?? profile?.preferred_name ?? fallbackName);
   const resolvedTimezone = timezoneEdited
     ? (timezone ?? "")
     : (profile?.timezone ?? "");
@@ -89,19 +85,9 @@ export default function SettingsPage() {
 
   const deleteAccountMutation = useDeleteMeApiV1UsersMeDelete<ApiError>({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: () => {
         setDeleteError(null);
-        if (typeof window !== "undefined") {
-          const clerk = (window as Window & { Clerk?: ClerkGlobal }).Clerk;
-          if (clerk?.signOut) {
-            try {
-              await clerk.signOut({ redirectUrl: "/sign-in" });
-              return;
-            } catch {
-              // Fall through to local redirect.
-            }
-          }
-        }
+        clearSessionToken();
         router.replace("/sign-in");
       },
       onError: (error) => {

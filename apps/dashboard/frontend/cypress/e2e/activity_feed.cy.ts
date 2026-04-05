@@ -42,7 +42,7 @@ describe("/activity feed", () => {
       statusCode: 200,
       body: {
         id: "u1",
-        clerk_user_id: "local-auth-user",
+        external_id: "local-auth-user",
         email: "local@example.com",
         name: "Local User",
         preferred_name: "Local User",

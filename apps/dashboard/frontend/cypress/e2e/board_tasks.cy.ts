@@ -71,7 +71,7 @@ describe("/boards/:id task board", () => {
       statusCode: 200,
       body: {
         id: "u1",
-        clerk_user_id: "clerk_u1",
+        external_id: "e2e_u1",
         email,
         name: "Jane Test",
         preferred_name: "Jane",

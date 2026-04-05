@@ -110,6 +110,11 @@ export function useAuth() {
   } as const;
 }
 
+// Always false — Clerk has been fully replaced by Google OAuth.
+export function isClerkEnabled(): boolean {
+  return false;
+}
+
 // Kept for compatibility — no-op wrapper (no external provider needed)
 export function ClerkProvider(props: { children: ReactNode; publishableKey?: string; afterSignOutUrl?: string }) {
   return <>{props.children}</>;

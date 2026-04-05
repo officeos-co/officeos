@@ -48,7 +48,7 @@ async def run() -> None:
         await session.refresh(board)
 
         user = User(
-            clerk_user_id=f"demo-{uuid4()}",
+            external_id=f"demo-{uuid4()}",
             email="demo@example.com",
             name="Demo Admin",
             is_super_admin=True,
