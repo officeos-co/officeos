@@ -27,7 +27,7 @@ from app.schemas.gateways import (
 from app.schemas.pagination import DefaultLimitOffsetPage
 from app.services.openclaw.admin_service import GatewayAdminLifecycleService
 from app.services.openclaw.session_service import GatewayTemplateSyncQuery
-from app.services.zeroclaw.docker_manager import DockerManager, DockerManagerError
+from app.services.zeroclaw.k8s_manager import K8sManagerError, KubernetesManager
 
 if TYPE_CHECKING:
     from fastapi_pagination.limit_offset import LimitOffsetPage
@@ -106,8 +106,8 @@ async def create_gateway(
 
     if payload.type == "zeroclaw":
         try:
-            docker = _get_docker_manager()
-            result = docker.create_container(
+            k8s = _get_k8s_manager()
+            result = k8s.create_container(
                 gateway_id=gateway_id,
                 name=payload.name,
                 org_id=ctx.organization.id,
@@ -116,14 +116,14 @@ async def create_gateway(
                 model=payload.model,
                 memory=payload.memory,
             )
-            data["url"] = f"ws://localhost:{result.host_port}/ws/chat"
+            data["url"] = k8s._service_url(gateway_id)
             data["token"] = result.token
             data["workspace_root"] = "/zeroclaw-data/workspace"
             data["container_id"] = result.container_id
             data["host_port"] = result.host_port
             data["docker_image"] = payload.docker_image
             data["container_status"] = "running"
-        except DockerManagerError as exc:
+        except K8sManagerError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
     else:
         service = GatewayAdminLifecycleService(session)
@@ -147,17 +147,18 @@ async def create_gateway(
     return gateway
 
 
-def _get_docker_manager() -> DockerManager:
-    """Get a DockerManager instance, attempting to connect to Docker."""
+def _get_k8s_manager() -> KubernetesManager:
+    """Get a KubernetesManager using in-cluster config."""
     try:
-        import docker
+        from kubernetes import client, config
 
-        client = docker.from_env()
-        return DockerManager(client=client)
+        config.load_incluster_config()
+        api = client.CoreV1Api()
+        return KubernetesManager(api=api)
     except Exception as exc:
-        raise DockerManagerError(
-            "Docker daemon is not available. "
-            "Ensure Docker is running and the socket is accessible."
+        raise K8sManagerError(
+            "Kubernetes API is not available. "
+            "Ensure the backend is running in-cluster with proper RBAC."
         ) from exc
 
 
@@ -260,15 +261,14 @@ async def delete_gateway(
         organization_id=ctx.organization.id,
     )
 
-    # Stop and remove Docker container for ZeroClaw gateways
+    # Delete K8s Pod + Service for ZeroClaw gateways
     if gateway.type == "zeroclaw" and gateway.container_id:
         try:
-            docker = _get_docker_manager()
-            docker.stop_container(gateway.container_id)
-            docker.remove_container(gateway.container_id)
-        except DockerManagerError:
+            k8s = _get_k8s_manager()
+            k8s.remove_container(gateway.container_id)
+        except K8sManagerError:
             logger.warning(
-                "Failed to clean up Docker container %s for gateway %s",
+                "Failed to clean up K8s resources for pod %s (gateway %s)",
                 gateway.container_id,
                 gateway.id,
             )

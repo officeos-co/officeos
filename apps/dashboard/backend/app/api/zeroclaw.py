@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api.deps import require_org_admin
 from app.db.session import get_session
 from app.services.openclaw.admin_service import GatewayAdminLifecycleService
-from app.services.zeroclaw.docker_manager import DockerManager, DockerManagerError
+from app.services.zeroclaw.k8s_manager import K8sManagerError, KubernetesManager
 
 if TYPE_CHECKING:
     from sqlmodel.ext.asyncio.session import AsyncSession
@@ -22,15 +22,16 @@ SESSION_DEP = Depends(get_session)
 ORG_ADMIN_DEP = Depends(require_org_admin)
 
 
-def _get_docker_manager() -> DockerManager:
+def _get_k8s_manager() -> KubernetesManager:
     try:
-        import docker
+        from kubernetes import client, config
 
-        client = docker.from_env()
-        return DockerManager(client=client)
+        config.load_incluster_config()
+        api = client.CoreV1Api()
+        return KubernetesManager(api=api)
     except Exception as exc:
-        raise DockerManagerError(
-            "Docker daemon is not available."
+        raise K8sManagerError(
+            "Kubernetes API is not available."
         ) from exc
 
 
@@ -63,14 +64,15 @@ async def start_container(
     if not gateway.container_id:
         raise HTTPException(status_code=404, detail="No container associated.")
     try:
-        docker = _get_docker_manager()
-        container = docker.client.containers.get(gateway.container_id)
-        container.start()
+        k8s = _get_k8s_manager()
+        # In K8s, "start" means ensure the pod exists. If it was deleted,
+        # restart recreates it via restartPolicy: Always.
+        k8s.restart_container(gateway.container_id)
         gateway.container_status = "running"
         session.add(gateway)
         await session.commit()
         return {"status": "started"}
-    except DockerManagerError as exc:
+    except K8sManagerError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
@@ -84,13 +86,13 @@ async def stop_container(
     if not gateway.container_id:
         raise HTTPException(status_code=404, detail="No container associated.")
     try:
-        docker = _get_docker_manager()
-        docker.stop_container(gateway.container_id)
+        k8s = _get_k8s_manager()
+        k8s.stop_container(gateway.container_id)
         gateway.container_status = "stopped"
         session.add(gateway)
         await session.commit()
         return {"status": "stopped"}
-    except DockerManagerError as exc:
+    except K8sManagerError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
@@ -104,13 +106,13 @@ async def restart_container(
     if not gateway.container_id:
         raise HTTPException(status_code=404, detail="No container associated.")
     try:
-        docker = _get_docker_manager()
-        docker.restart_container(gateway.container_id)
+        k8s = _get_k8s_manager()
+        k8s.restart_container(gateway.container_id)
         gateway.container_status = "running"
         session.add(gateway)
         await session.commit()
         return {"status": "restarted"}
-    except DockerManagerError as exc:
+    except K8sManagerError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
@@ -124,10 +126,10 @@ async def get_container_status(
     if not gateway.container_id:
         return {"status": "not_found", "health": None}
     try:
-        docker = _get_docker_manager()
-        status = docker.get_status(gateway.container_id)
+        k8s = _get_k8s_manager()
+        status = k8s.get_status(gateway.container_id)
         return {"status": status.status, "health": status.health}
-    except DockerManagerError:
+    except K8sManagerError:
         return {"status": "error", "health": None}
 
 
@@ -142,8 +144,8 @@ async def get_container_logs(
     if not gateway.container_id:
         return {"logs": ""}
     try:
-        docker = _get_docker_manager()
-        logs = docker.get_logs(gateway.container_id, tail=tail)
+        k8s = _get_k8s_manager()
+        logs = k8s.get_logs(gateway.container_id, tail=tail)
         return {"logs": logs}
-    except DockerManagerError:
+    except K8sManagerError:
         return {"logs": ""}

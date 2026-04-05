@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: zeroclaw-manager
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "create", "delete", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: zeroclaw-manager-binding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: dashboard-backend
+    namespace: default
+roleRef:
+  kind: Role
+  name: zeroclaw-manager
+  apiGroup: rbac.authorization.k8s.io

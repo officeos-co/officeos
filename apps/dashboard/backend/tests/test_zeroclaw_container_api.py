@@ -2,7 +2,7 @@
 """Tests for ZeroClaw container lifecycle API endpoints.
 
 These tests verify the container start/stop/restart/status/logs endpoints
-reject OpenClaw gateways and properly delegate to the Docker manager.
+reject OpenClaw gateways and properly delegate to the K8s manager.
 """
 
 from __future__ import annotations
@@ -13,10 +13,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.services.zeroclaw.docker_manager import (
+from app.services.zeroclaw.k8s_manager import (
     ContainerStatus,
-    DockerManager,
-    DockerManagerError,
+    K8sManagerError,
+    KubernetesManager,
 )
 
 
@@ -26,98 +26,84 @@ from app.services.zeroclaw.docker_manager import (
 
 
 @dataclass
-class _FakeContainer:
-    id: str = "abc123"
-    status: str = "running"
-    _started: bool = False
-    _stopped: bool = False
-    _restarted: bool = False
+class _FakePodStatus:
+    phase: str = "Running"
 
-    def start(self) -> None:
-        self._started = True
 
-    def stop(self) -> None:
-        self._stopped = True
+@dataclass
+class _FakePod:
+    status: _FakePodStatus = field(default_factory=_FakePodStatus)
 
-    def restart(self) -> None:
-        self._restarted = True
 
-    def reload(self) -> None:
+@dataclass
+class _FakeCoreV1Api:
+    deleted_pods: list[str] = field(default_factory=list)
+    _pods: dict[str, _FakePod] = field(default_factory=dict)
+    _logs: str = "log line 1\nlog line 2\n"
+
+    def delete_namespaced_pod(self, *, name: str, namespace: str) -> None:
+        self.deleted_pods.append(name)
+
+    def delete_namespaced_service(self, *, name: str, namespace: str) -> None:
         pass
 
-    def logs(self, tail: int = 100) -> bytes:
-        return b"log line 1\nlog line 2\n"
+    def delete_namespaced_persistent_volume_claim(
+        self, *, name: str, namespace: str
+    ) -> None:
+        pass
 
+    def read_namespaced_pod(self, *, name: str, namespace: str) -> _FakePod:
+        if name in self._pods:
+            return self._pods[name]
+        raise Exception(f"Pod {name} not found")
 
-@dataclass
-class _FakeContainers:
-    _containers: dict[str, _FakeContainer] = field(default_factory=dict)
-
-    def get(self, container_id: str) -> _FakeContainer:
-        if container_id in self._containers:
-            return self._containers[container_id]
-        raise Exception(f"Container {container_id} not found")
-
-    def list(self, **_kwargs: Any) -> list[_FakeContainer]:
-        return list(self._containers.values())
-
-
-@dataclass
-class _FakeDockerClient:
-    containers: _FakeContainers = field(default_factory=_FakeContainers)
+    def read_namespaced_pod_log(
+        self, *, name: str, namespace: str, tail_lines: int = 100
+    ) -> str:
+        return self._logs
 
 
 # ---------------------------------------------------------------------------
-# Container lifecycle tests via DockerManager
+# Container lifecycle tests via KubernetesManager
 # ---------------------------------------------------------------------------
 
 
 class TestContainerLifecycleViaManager:
-    """Test the Docker manager methods that the container API delegates to."""
+    """Test the K8s manager methods that the container API delegates to."""
 
-    def test_stop_calls_docker_stop(self) -> None:
-        container = _FakeContainer()
-        client = _FakeDockerClient(
-            containers=_FakeContainers(_containers={"abc123": container})
-        )
-        manager = DockerManager(client=client)
+    def test_stop_deletes_pod(self) -> None:
+        api = _FakeCoreV1Api()
+        manager = KubernetesManager(api=api)
 
-        result = manager.stop_container("abc123")
+        result = manager.stop_container("zeroclaw-abc")
 
         assert result is True
-        assert container._stopped is True
+        assert "zeroclaw-abc" in api.deleted_pods
 
-    def test_restart_calls_docker_restart(self) -> None:
-        container = _FakeContainer()
-        client = _FakeDockerClient(
-            containers=_FakeContainers(_containers={"abc123": container})
-        )
-        manager = DockerManager(client=client)
+    def test_restart_deletes_pod(self) -> None:
+        api = _FakeCoreV1Api()
+        manager = KubernetesManager(api=api)
 
-        result = manager.restart_container("abc123")
+        result = manager.restart_container("zeroclaw-abc")
 
         assert result is True
-        assert container._restarted is True
+        assert "zeroclaw-abc" in api.deleted_pods
 
     def test_get_status_returns_running(self) -> None:
-        container = _FakeContainer(status="running")
-        client = _FakeDockerClient(
-            containers=_FakeContainers(_containers={"abc123": container})
+        api = _FakeCoreV1Api(
+            _pods={"zeroclaw-abc": _FakePod(status=_FakePodStatus(phase="Running"))}
         )
-        manager = DockerManager(client=client)
+        manager = KubernetesManager(api=api)
 
-        status = manager.get_status("abc123")
+        status = manager.get_status("zeroclaw-abc")
 
         assert status.status == "running"
 
     def test_get_logs_returns_content(self) -> None:
-        container = _FakeContainer()
-        client = _FakeDockerClient(
-            containers=_FakeContainers(_containers={"abc123": container})
-        )
-        manager = DockerManager(client=client)
+        api = _FakeCoreV1Api(_logs="log line 1\nlog line 2")
+        manager = KubernetesManager(api=api)
 
-        logs = manager.get_logs("abc123", tail=50)
+        logs = manager.get_logs("zeroclaw-abc", tail=50)
 
         assert "log line" in logs
 
@@ -126,7 +112,6 @@ class TestContainerEndpointGuards:
     """Test that container operations are properly guarded."""
 
     def test_openclaw_gateway_type_check(self) -> None:
-        """Verify that we can distinguish gateway types for guard logic."""
         from app.models.gateways import Gateway
 
         oc_gw = Gateway(
@@ -141,30 +126,28 @@ class TestContainerEndpointGuards:
             id=uuid4(),
             organization_id=uuid4(),
             name="zc",
-            url="ws://localhost:43000/ws/chat",
+            url="ws://zeroclaw-abc.default.svc.cluster.local:42617/ws/chat",
             workspace_root="/zeroclaw-data/workspace",
             type="zeroclaw",
-            container_id="abc123",
+            container_id="zeroclaw-abc",
         )
 
         assert oc_gw.type != "zeroclaw"
         assert zc_gw.type == "zeroclaw"
 
-    def test_docker_unavailable_raises_on_create(
+    def test_k8s_unavailable_raises_on_create(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """DockerManager with no client raises on create (property access)."""
         monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test")
-        manager = DockerManager(client=None)
+        manager = KubernetesManager(api=None)
 
-        with pytest.raises(DockerManagerError, match="Docker daemon"):
+        with pytest.raises(K8sManagerError, match="Kubernetes API"):
             manager.create_container(
                 gateway_id=uuid4(),
                 name="test",
                 org_id=uuid4(),
             )
 
-    def test_docker_unavailable_returns_false_on_stop(self) -> None:
-        """Stop gracefully returns False when client is None (catches exception)."""
-        manager = DockerManager(client=None)
-        assert manager.stop_container("abc123") is False
+    def test_k8s_unavailable_returns_false_on_stop(self) -> None:
+        manager = KubernetesManager(api=None)
+        assert manager.stop_container("abc") is False
