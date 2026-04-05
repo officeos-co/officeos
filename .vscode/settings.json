@@ -1,0 +1,3 @@
+{
+  "rust-analyzer.linkedProjects": ["packages/zeroclaw-core/Cargo.toml"]
+}
