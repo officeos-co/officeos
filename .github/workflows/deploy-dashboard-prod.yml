@@ -2,18 +2,17 @@ name: Deploy Dashboard Prod
 
 on:
   push:
-    tags:
-      - "dashboard-v*"
+    branches:
+      - main
+    paths:
+      - "apps/dashboard/**"
+      - ".github/workflows/deploy-dashboard-prod.yml"
 
 jobs:
   build-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Determine tag
-        id: tag
-        run: echo "version=${GITHUB_REF#refs/tags/dashboard-}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v3
         with:
@@ -25,18 +24,12 @@ jobs:
           context: apps/dashboard
           file: apps/dashboard/backend/Dockerfile
           push: true
-          tags: |
-            harkro123/eaos-backend:${{ steps.tag.outputs.version }}
-            harkro123/eaos-backend:latest
+          tags: harkro123/eaos-backend:latest
 
   build-frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Determine tag
-        id: tag
-        run: echo "version=${GITHUB_REF#refs/tags/dashboard-}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v3
         with:
@@ -50,9 +43,7 @@ jobs:
           push: true
           build-args: |
             NEXT_PUBLIC_API_URL=https://dashboard.harrokrog.com
-          tags: |
-            harkro123/eaos-frontend:${{ steps.tag.outputs.version }}
-            harkro123/eaos-frontend:latest
+          tags: harkro123/eaos-frontend:latest
 
   deploy:
     needs: [build-backend, build-frontend]

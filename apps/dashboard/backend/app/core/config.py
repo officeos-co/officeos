@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     )
 
     environment: str = "dev"
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/openclaw_agency"
+    database_url: str = "postgresql+psycopg://eaos:eaos@REDACTED_MINIO_HOST_IP:5432/enterprise_agent_os"
 
     # Google OAuth
     google_client_id: str = ""
