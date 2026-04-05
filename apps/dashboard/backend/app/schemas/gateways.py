@@ -34,6 +34,8 @@ class GatewayCreate(GatewayBase):
     provider: str | None = None
     model: str | None = None
     memory: str | None = None
+    vault_database: str | None = None
+    vault_user_database: str | None = None
 
     @field_validator("token", mode="before")
     @classmethod

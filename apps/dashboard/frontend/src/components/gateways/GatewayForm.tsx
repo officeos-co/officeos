@@ -18,6 +18,8 @@ type GatewayFormProps = {
   provider: string;
   model: string;
   memory: string;
+  vaultDatabase: string;
+  vaultUserDatabase: string;
   gatewayUrlError: string | null;
   gatewayCheckStatus: GatewayCheckStatus;
   gatewayCheckMessage: string | null;
@@ -41,6 +43,8 @@ type GatewayFormProps = {
   onProviderChange: (next: string) => void;
   onModelChange: (next: string) => void;
   onMemoryChange: (next: string) => void;
+  onVaultDatabaseChange: (next: string) => void;
+  onVaultUserDatabaseChange: (next: string) => void;
 };
 
 export function GatewayForm({
@@ -55,6 +59,8 @@ export function GatewayForm({
   provider,
   model,
   memory,
+  vaultDatabase,
+  vaultUserDatabase,
   gatewayUrlError,
   gatewayCheckStatus,
   gatewayCheckMessage,
@@ -78,6 +84,8 @@ export function GatewayForm({
   onProviderChange,
   onModelChange,
   onMemoryChange,
+  onVaultDatabaseChange,
+  onVaultUserDatabaseChange,
 }: GatewayFormProps) {
   const isZeroClaw = gatewayType === "zeroclaw";
 
@@ -200,6 +208,37 @@ export function GatewayForm({
               />
               <p className="text-xs text-slate-500">
                 Leave empty for the default image.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900">
+                Org vault database
+              </label>
+              <Input
+                value={vaultDatabase}
+                onChange={(event) => onVaultDatabaseChange(event.target.value)}
+                placeholder="obsidian"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-slate-500">
+                CouchDB database name for the shared org vault.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900">
+                User vault database
+              </label>
+              <Input
+                value={vaultUserDatabase}
+                onChange={(event) => onVaultUserDatabaseChange(event.target.value)}
+                placeholder="obsidian-personal"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-slate-500">
+                Optional. Personal vault for this agent's owner.
               </p>
             </div>
           </div>

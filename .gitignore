@@ -1,0 +1,74 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ── Node / Next.js ───────────────────────────────────────────
+node_modules/
+.next/
+*.tsbuildinfo
+
+# ── Rust ─────────────────────────────────────────────────────
+/target
+**/target/
+!web/dist/.gitkeep
+
+# ── Databases ────────────────────────────────────────────────
+*.db
+*.db-journal
+
+# ── Environment & secrets ────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.secret_key
+*.key
+*.pem
+credentials.json
+
+# ── macOS ────────────────────────────────────────────────────
+.DS_Store
+._*
+
+# ── IDE ──────────────────────────────────────────────────────
+.idea/
+.runlogs/
+
+# ── Coverage ─────────────────────────────────────────────────
+lcov.info
+**/coverage/
+**/coverage.*
+**/.coverage
+
+# ── Docker ───────────────────────────────────────────────────
+docker-compose.override.yml
+playground/
+
+# ── ESP32 / firmware ─────────────────────────────────────────
+.embuild/
+
+# ── ZeroClaw runtime ─────────────────────────────────────────
+.zeroclaw/*
+rust_out
+web/dist/*
+
+# ── Claude Code ──────────────────────────────────────────────
+.claude/skills/*-workspace/
+.claude/worktrees/
+
+# ── Worktrees & backups ──────────────────────────────────────
+.worktrees/
+.wt-pr*/
+.local-state-backups/
+*.local-state-backup/
+
+# ── Wrangler ─────────────────────────────────────────────────
+.wrangler/
+
+# ── Dashboard-specific ───────────────────────────────────────
+apps/dashboard/backend/~/
+apps/dashboard/backend/app/services/openclaw/.device-keys

@@ -36,6 +36,8 @@ export default function NewGatewayPage() {
   const [provider, setProvider] = useState("openrouter");
   const [model, setModel] = useState("");
   const [memory, setMemory] = useState("sqlite");
+  const [vaultDatabase, setVaultDatabase] = useState("");
+  const [vaultUserDatabase, setVaultUserDatabase] = useState("");
 
   const [gatewayUrlError, setGatewayUrlError] = useState<string | null>(null);
   const [gatewayCheckStatus, setGatewayCheckStatus] =
@@ -92,6 +94,8 @@ export default function NewGatewayPage() {
           provider: provider,
           model: model.trim() || null,
           memory: memory,
+          vault_database: vaultDatabase.trim() || null,
+          vault_user_database: vaultUserDatabase.trim() || null,
         } as any,
       });
       return;
@@ -165,6 +169,8 @@ export default function NewGatewayPage() {
         provider={provider}
         model={model}
         memory={memory}
+        vaultDatabase={vaultDatabase}
+        vaultUserDatabase={vaultUserDatabase}
         gatewayUrlError={gatewayUrlError}
         gatewayCheckStatus={gatewayCheckStatus}
         gatewayCheckMessage={gatewayCheckMessage}
@@ -211,6 +217,8 @@ export default function NewGatewayPage() {
         onProviderChange={setProvider}
         onModelChange={setModel}
         onMemoryChange={setMemory}
+        onVaultDatabaseChange={setVaultDatabase}
+        onVaultUserDatabaseChange={setVaultUserDatabase}
       />
     </DashboardPageLayout>
   );

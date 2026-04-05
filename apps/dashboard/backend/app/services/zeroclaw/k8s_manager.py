@@ -67,6 +67,58 @@ class KubernetesManager:
         svc = self._service_name(gateway_id)
         return f"ws://{svc}.{self._namespace}.svc.cluster.local:{ZEROCLAW_PORT}/ws/chat"
 
+    def _build_vault_setup_cmd(self) -> str:
+        """Build the vault CLI install + config commands for the boot script.
+
+        Returns an empty string if vault env vars are not configured,
+        so agents without vault access skip this step.
+        """
+        vault_host = os.environ.get("ZEROCLAW_VAULT_HOST")
+        if not vault_host:
+            return ""
+
+        return (
+            "pip install --quiet obsidian-vault-cli && "
+            "vault config set vault.host $VAULT_HOST && "
+            "vault config set vault.port $VAULT_PORT && "
+            "vault config set vault.protocol $VAULT_PROTOCOL && "
+            "vault config set vault.database $VAULT_DATABASE && "
+            "vault config set vault.username $VAULT_USERNAME && "
+            "vault config set vault.password $VAULT_PASSWORD && "
+        )
+
+    def _build_env_vars(
+        self,
+        *,
+        api_key: str,
+        provider: str,
+        vault_database: str | None = None,
+        vault_user_database: str | None = None,
+    ) -> list[dict[str, str]]:
+        """Build the environment variable list for the pod container."""
+        env = [
+            {"name": "API_KEY", "value": api_key},
+            {"name": "PROVIDER", "value": provider},
+            {"name": "ZEROCLAW_GATEWAY_PORT", "value": str(ZEROCLAW_PORT)},
+            {"name": "ZEROCLAW_ALLOW_PUBLIC_BIND", "value": "true"},
+        ]
+
+        # Vault env vars (from dashboard-level config)
+        vault_host = os.environ.get("ZEROCLAW_VAULT_HOST")
+        if vault_host:
+            env.extend([
+                {"name": "VAULT_HOST", "value": vault_host},
+                {"name": "VAULT_PORT", "value": os.environ.get("ZEROCLAW_VAULT_PORT", "443")},
+                {"name": "VAULT_PROTOCOL", "value": os.environ.get("ZEROCLAW_VAULT_PROTOCOL", "https")},
+                {"name": "VAULT_USERNAME", "value": os.environ.get("ZEROCLAW_VAULT_USERNAME", "")},
+                {"name": "VAULT_PASSWORD", "value": os.environ.get("ZEROCLAW_VAULT_PASSWORD", "")},
+                {"name": "VAULT_DATABASE", "value": vault_database or ""},
+            ])
+            if vault_user_database:
+                env.append({"name": "VAULT_USER_DATABASE", "value": vault_user_database})
+
+        return env
+
     def create_container(
         self,
         *,
@@ -77,6 +129,8 @@ class KubernetesManager:
         provider: str | None = None,
         model: str | None = None,
         memory: str | None = None,
+        vault_database: str | None = None,
+        vault_user_database: str | None = None,
     ) -> ContainerResult:
         api_key = os.environ.get("ZEROCLAW_LLM_API_KEY")
         if not api_key:
@@ -93,7 +147,8 @@ class KubernetesManager:
         pvc_name = self._pvc_name(gateway_id)
         svc_name = self._service_name(gateway_id)
 
-        # Build boot command
+        # Build boot command: install vault CLI, configure it, then onboard + daemon
+        vault_setup = self._build_vault_setup_cmd()
         onboard_cmd = (
             f"zeroclaw onboard --quick"
             f" --api-key $API_KEY"
@@ -102,7 +157,7 @@ class KubernetesManager:
         )
         if model:
             onboard_cmd += f" --model {model}"
-        boot_command = f"{onboard_cmd} && zeroclaw daemon"
+        boot_command = f"{vault_setup}{onboard_cmd} && zeroclaw daemon"
 
         labels = {
             "app": "zeroclaw",
@@ -138,12 +193,12 @@ class KubernetesManager:
                         "image": docker_image,
                         "command": ["sh", "-c", boot_command],
                         "ports": [{"containerPort": ZEROCLAW_PORT}],
-                        "env": [
-                            {"name": "API_KEY", "value": api_key},
-                            {"name": "PROVIDER", "value": resolved_provider},
-                            {"name": "ZEROCLAW_GATEWAY_PORT", "value": str(ZEROCLAW_PORT)},
-                            {"name": "ZEROCLAW_ALLOW_PUBLIC_BIND", "value": "true"},
-                        ],
+                        "env": self._build_env_vars(
+                            api_key=api_key,
+                            provider=resolved_provider,
+                            vault_database=vault_database,
+                            vault_user_database=vault_user_database,
+                        ),
                         "resources": {
                             "limits": {"memory": "512Mi", "cpu": "2"},
                             "requests": {"memory": "64Mi", "cpu": "100m"},

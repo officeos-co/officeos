@@ -115,6 +115,8 @@ async def create_gateway(
                 provider=payload.provider,
                 model=payload.model,
                 memory=payload.memory,
+                vault_database=payload.vault_database,
+                vault_user_database=payload.vault_user_database,
             )
             data["url"] = k8s._service_url(gateway_id)
             data["token"] = result.token
@@ -135,7 +137,7 @@ async def create_gateway(
         )
 
     # Remove fields that exist on the schema but not on the Gateway model
-    for key in ("provider", "model", "memory"):
+    for key in ("provider", "model", "memory", "vault_database", "vault_user_database"):
         data.pop(key, None)
 
     gateway = await crud.create(session, Gateway, **data)

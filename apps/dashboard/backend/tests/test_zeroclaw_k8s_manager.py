@@ -107,6 +107,8 @@ def _create_with_defaults(
     provider=None,
     model=None,
     memory=None,
+    vault_database=None,
+    vault_user_database=None,
 ):
     return manager.create_container(
         gateway_id=gateway_id or _GW_ID,
@@ -116,6 +118,8 @@ def _create_with_defaults(
         provider=provider,
         model=model,
         memory=memory,
+        vault_database=vault_database,
+        vault_user_database=vault_user_database,
     )
 
 
@@ -426,6 +430,96 @@ class TestK8sUnavailable:
     def test_stop_returns_false(self) -> None:
         manager = KubernetesManager(api=None)
         assert manager.stop_container("abc") is False
+
+
+# ---------------------------------------------------------------------------
+# Service URL
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Vault Integration
+# ---------------------------------------------------------------------------
+
+
+class TestVaultIntegration:
+    def test_vault_env_vars_injected_when_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test")
+        monkeypatch.setenv("ZEROCLAW_VAULT_HOST", "couchdb.example.com")
+        monkeypatch.setenv("ZEROCLAW_VAULT_PORT", "443")
+        monkeypatch.setenv("ZEROCLAW_VAULT_PROTOCOL", "https")
+        monkeypatch.setenv("ZEROCLAW_VAULT_USERNAME", "admin")
+        monkeypatch.setenv("ZEROCLAW_VAULT_PASSWORD", "secret")
+        manager, api = _make_manager()
+
+        _create_with_defaults(manager, vault_database="org-vault")
+
+        container = api.created_pods[0]["body"]["spec"]["containers"][0]
+        env = {e["name"]: e["value"] for e in container["env"]}
+        assert env["VAULT_HOST"] == "couchdb.example.com"
+        assert env["VAULT_PORT"] == "443"
+        assert env["VAULT_PROTOCOL"] == "https"
+        assert env["VAULT_DATABASE"] == "org-vault"
+        assert env["VAULT_USERNAME"] == "admin"
+        assert env["VAULT_PASSWORD"] == "secret"
+
+    def test_vault_user_database_injected_when_provided(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test")
+        monkeypatch.setenv("ZEROCLAW_VAULT_HOST", "couchdb.example.com")
+        manager, api = _make_manager()
+
+        _create_with_defaults(
+            manager, vault_database="org-vault", vault_user_database="user-vault"
+        )
+
+        container = api.created_pods[0]["body"]["spec"]["containers"][0]
+        env = {e["name"]: e["value"] for e in container["env"]}
+        assert env["VAULT_USER_DATABASE"] == "user-vault"
+
+    def test_no_vault_env_vars_when_host_not_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test")
+        monkeypatch.delenv("ZEROCLAW_VAULT_HOST", raising=False)
+        manager, api = _make_manager()
+
+        _create_with_defaults(manager)
+
+        container = api.created_pods[0]["body"]["spec"]["containers"][0]
+        env_names = {e["name"] for e in container["env"]}
+        assert "VAULT_HOST" not in env_names
+        assert "VAULT_DATABASE" not in env_names
+
+    def test_boot_command_includes_vault_setup_when_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test")
+        monkeypatch.setenv("ZEROCLAW_VAULT_HOST", "couchdb.example.com")
+        manager, api = _make_manager()
+
+        _create_with_defaults(manager)
+
+        boot = api.created_pods[0]["body"]["spec"]["containers"][0]["command"][2]
+        assert "pip install" in boot
+        assert "obsidian-vault-cli" in boot
+        assert "vault config set" in boot
+
+    def test_boot_command_skips_vault_when_not_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test")
+        monkeypatch.delenv("ZEROCLAW_VAULT_HOST", raising=False)
+        manager, api = _make_manager()
+
+        _create_with_defaults(manager)
+
+        boot = api.created_pods[0]["body"]["spec"]["containers"][0]["command"][2]
+        assert "obsidian-vault-cli" not in boot
+        assert "vault config set" not in boot
 
 
 # ---------------------------------------------------------------------------

@@ -197,6 +197,8 @@ export default function EditGatewayPage() {
         provider="openrouter"
         model=""
         memory="sqlite"
+        vaultDatabase=""
+        vaultUserDatabase=""
         gatewayUrlError={gatewayUrlError}
         gatewayCheckStatus={gatewayCheckStatus}
         gatewayCheckMessage={gatewayCheckMessage}
@@ -237,6 +239,8 @@ export default function EditGatewayPage() {
         onProviderChange={() => {}}
         onModelChange={() => {}}
         onMemoryChange={() => {}}
+        onVaultDatabaseChange={() => {}}
+        onVaultUserDatabaseChange={() => {}}
       />
     </DashboardPageLayout>
   );
