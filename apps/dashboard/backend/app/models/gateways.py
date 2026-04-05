@@ -28,3 +28,10 @@ class Gateway(QueryModel, table=True):
     allow_insecure_tls: bool = Field(default=False)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+
+    # ZeroClaw cloud-native fields
+    type: str = Field(default="openclaw", index=True)
+    container_id: str | None = Field(default=None)
+    host_port: int | None = Field(default=None)
+    docker_image: str | None = Field(default=None)
+    container_status: str | None = Field(default=None)
