@@ -15,6 +15,9 @@ type GatewayFormProps = {
   workspaceRoot: string;
   allowInsecureTls: boolean;
   dockerImage: string;
+  provider: string;
+  model: string;
+  memory: string;
   gatewayUrlError: string | null;
   gatewayCheckStatus: GatewayCheckStatus;
   gatewayCheckMessage: string | null;
@@ -35,6 +38,9 @@ type GatewayFormProps = {
   onWorkspaceRootChange: (next: string) => void;
   onAllowInsecureTlsChange: (next: boolean) => void;
   onDockerImageChange: (next: string) => void;
+  onProviderChange: (next: string) => void;
+  onModelChange: (next: string) => void;
+  onMemoryChange: (next: string) => void;
 };
 
 export function GatewayForm({
@@ -46,6 +52,9 @@ export function GatewayForm({
   workspaceRoot,
   allowInsecureTls,
   dockerImage,
+  provider,
+  model,
+  memory,
   gatewayUrlError,
   gatewayCheckStatus,
   gatewayCheckMessage,
@@ -66,6 +75,9 @@ export function GatewayForm({
   onWorkspaceRootChange,
   onAllowInsecureTlsChange,
   onDockerImageChange,
+  onProviderChange,
+  onModelChange,
+  onMemoryChange,
 }: GatewayFormProps) {
   const isZeroClaw = gatewayType === "zeroclaw";
 
@@ -126,20 +138,72 @@ export function GatewayForm({
 
       {/* ZeroClaw-specific fields */}
       {isZeroClaw && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-900">
-            Docker image
-          </label>
-          <Input
-            value={dockerImage}
-            onChange={(event) => onDockerImageChange(event.target.value)}
-            placeholder="ghcr.io/zeroclaw-labs/zeroclaw:debian"
-            disabled={isLoading}
-          />
-          <p className="text-xs text-slate-500">
-            Leave empty to use the default image.
-          </p>
-        </div>
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900">
+                LLM Provider
+              </label>
+              <select
+                value={provider}
+                onChange={(event) => onProviderChange(event.target.value)}
+                disabled={isLoading}
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+              >
+                <option value="openrouter">OpenRouter</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="ollama">Ollama (local)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900">
+                Model
+              </label>
+              <Input
+                value={model}
+                onChange={(event) => onModelChange(event.target.value)}
+                placeholder="anthropic/claude-sonnet-4-20250514"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-slate-500">
+                Leave empty for the provider default.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900">
+                Memory backend
+              </label>
+              <select
+                value={memory}
+                onChange={(event) => onMemoryChange(event.target.value)}
+                disabled={isLoading}
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+              >
+                <option value="sqlite">SQLite</option>
+                <option value="markdown">Markdown</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900">
+                Docker image
+              </label>
+              <Input
+                value={dockerImage}
+                onChange={(event) => onDockerImageChange(event.target.value)}
+                placeholder="ghcr.io/zeroclaw-labs/zeroclaw:debian"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-slate-500">
+                Leave empty for the default image.
+              </p>
+            </div>
+          </div>
+        </>
       )}
 
       {/* OpenClaw-specific fields */}

@@ -112,6 +112,9 @@ async def create_gateway(
                 name=payload.name,
                 org_id=ctx.organization.id,
                 image=payload.docker_image,
+                provider=payload.provider,
+                model=payload.model,
+                memory=payload.memory,
             )
             data["url"] = f"ws://localhost:{result.host_port}/ws/chat"
             data["token"] = result.token
@@ -130,6 +133,10 @@ async def create_gateway(
             allow_insecure_tls=payload.allow_insecure_tls,
             disable_device_pairing=payload.disable_device_pairing,
         )
+
+    # Remove fields that exist on the schema but not on the Gateway model
+    for key in ("provider", "model", "memory"):
+        data.pop(key, None)
 
     gateway = await crud.create(session, Gateway, **data)
 

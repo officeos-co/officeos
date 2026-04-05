@@ -31,6 +31,9 @@ class GatewayCreate(GatewayBase):
 
     token: str | None = None
     docker_image: str | None = None
+    provider: str | None = None
+    model: str | None = None
+    memory: str | None = None
 
     @field_validator("token", mode="before")
     @classmethod

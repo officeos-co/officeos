@@ -194,6 +194,9 @@ export default function EditGatewayPage() {
         workspaceRoot={resolvedWorkspaceRoot}
         allowInsecureTls={resolvedAllowInsecureTls}
         dockerImage=""
+        provider="openrouter"
+        model=""
+        memory="sqlite"
         gatewayUrlError={gatewayUrlError}
         gatewayCheckStatus={gatewayCheckStatus}
         gatewayCheckMessage={gatewayCheckMessage}
@@ -231,6 +234,9 @@ export default function EditGatewayPage() {
           setGatewayCheckMessage(null);
         }}
         onDockerImageChange={() => {}}
+        onProviderChange={() => {}}
+        onModelChange={() => {}}
+        onMemoryChange={() => {}}
       />
     </DashboardPageLayout>
   );

@@ -108,6 +108,7 @@ def _create_with_defaults(
     image: str | None = None,
     provider: str | None = None,
     model: str | None = None,
+    memory: str | None = None,
 ) -> Any:
     return manager.create_container(
         gateway_id=gateway_id or _GW_ID,
@@ -116,6 +117,7 @@ def _create_with_defaults(
         image=image,
         provider=provider,
         model=model,
+        memory=memory,
     )
 
 
@@ -248,6 +250,77 @@ class TestContainerCreation:
 
         with pytest.raises(DockerManagerError, match="ZEROCLAW_LLM_API_KEY"):
             _create_with_defaults(manager)
+
+
+# ---------------------------------------------------------------------------
+# A1b. Boot Command (onboard --quick + daemon)
+# ---------------------------------------------------------------------------
+
+
+class TestBootCommand:
+    def test_command_runs_onboard_then_daemon(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test-key")
+        manager, client = _make_manager()
+
+        _create_with_defaults(manager)
+
+        call = client.containers.run_calls[0]
+        cmd = call["command"]
+        assert cmd[0] == "sh"
+        assert cmd[1] == "-c"
+        boot_script = cmd[2]
+        assert "zeroclaw onboard --quick" in boot_script
+        assert "zeroclaw daemon" in boot_script
+        assert "&&" in boot_script
+
+    def test_command_includes_api_key_provider_memory(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test-key")
+        manager, client = _make_manager()
+
+        _create_with_defaults(manager, provider="anthropic", memory="markdown")
+
+        boot_script = client.containers.run_calls[0]["command"][2]
+        assert "--api-key $API_KEY" in boot_script
+        assert "--provider anthropic" in boot_script
+        assert "--memory markdown" in boot_script
+
+    def test_command_includes_model_when_specified(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test-key")
+        manager, client = _make_manager()
+
+        _create_with_defaults(manager, model="anthropic/claude-sonnet-4-20250514")
+
+        boot_script = client.containers.run_calls[0]["command"][2]
+        assert "--model anthropic/claude-sonnet-4-20250514" in boot_script
+
+    def test_command_omits_model_when_not_specified(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test-key")
+        manager, client = _make_manager()
+
+        _create_with_defaults(manager)
+
+        boot_script = client.containers.run_calls[0]["command"][2]
+        assert "--model" not in boot_script
+
+    def test_command_uses_default_provider_and_memory(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("ZEROCLAW_LLM_API_KEY", "sk-test-key")
+        manager, client = _make_manager()
+
+        _create_with_defaults(manager)
+
+        boot_script = client.containers.run_calls[0]["command"][2]
+        assert "--provider openrouter" in boot_script
+        assert "--memory sqlite" in boot_script
 
 
 # ---------------------------------------------------------------------------

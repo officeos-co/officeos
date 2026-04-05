@@ -33,6 +33,9 @@ export default function NewGatewayPage() {
   const [workspaceRoot, setWorkspaceRoot] = useState(DEFAULT_WORKSPACE_ROOT);
   const [allowInsecureTls, setAllowInsecureTls] = useState(false);
   const [dockerImage, setDockerImage] = useState("");
+  const [provider, setProvider] = useState("openrouter");
+  const [model, setModel] = useState("");
+  const [memory, setMemory] = useState("sqlite");
 
   const [gatewayUrlError, setGatewayUrlError] = useState<string | null>(null);
   const [gatewayCheckStatus, setGatewayCheckStatus] =
@@ -86,6 +89,9 @@ export default function NewGatewayPage() {
           url: "",
           workspace_root: "",
           docker_image: dockerImage.trim() || null,
+          provider: provider,
+          model: model.trim() || null,
+          memory: memory,
         } as any,
       });
       return;
@@ -156,6 +162,9 @@ export default function NewGatewayPage() {
         workspaceRoot={workspaceRoot}
         allowInsecureTls={allowInsecureTls}
         dockerImage={dockerImage}
+        provider={provider}
+        model={model}
+        memory={memory}
         gatewayUrlError={gatewayUrlError}
         gatewayCheckStatus={gatewayCheckStatus}
         gatewayCheckMessage={gatewayCheckMessage}
@@ -199,6 +208,9 @@ export default function NewGatewayPage() {
           setGatewayCheckMessage(null);
         }}
         onDockerImageChange={setDockerImage}
+        onProviderChange={setProvider}
+        onModelChange={setModel}
+        onMemoryChange={setMemory}
       />
     </DashboardPageLayout>
   );

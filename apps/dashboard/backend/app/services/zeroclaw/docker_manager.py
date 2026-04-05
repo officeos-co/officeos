@@ -17,6 +17,8 @@ DEFAULT_PORT_RANGE_START = 43000
 DEFAULT_PORT_RANGE_END = 44000
 ZEROCLAW_INTERNAL_PORT = 42617
 MANAGED_BY_LABEL = "openclaw-mission-control"
+DEFAULT_PROVIDER = "openrouter"
+DEFAULT_MEMORY_BACKEND = "sqlite"
 
 
 class DockerManagerError(Exception):
@@ -61,6 +63,7 @@ class DockerManager:
         image: str | None = None,
         provider: str | None = None,
         model: str | None = None,
+        memory: str | None = None,
     ) -> ContainerResult:
         api_key = os.environ.get("ZEROCLAW_LLM_API_KEY")
         if not api_key:
@@ -72,15 +75,27 @@ class DockerManager:
         token = secrets.token_urlsafe(32)
         host_port = self._allocate_port()
 
+        resolved_provider = provider or DEFAULT_PROVIDER
+        resolved_memory = memory or DEFAULT_MEMORY_BACKEND
+
         environment = {
             "API_KEY": api_key,
-            "PROVIDER": provider or "openrouter",
+            "PROVIDER": resolved_provider,
             "ZEROCLAW_GATEWAY_PORT": str(ZEROCLAW_INTERNAL_PORT),
             "ZEROCLAW_ALLOW_PUBLIC_BIND": "true",
-            "ZEROCLAW_PAIRING_TOKEN": token,
         }
+
+        # Build the entrypoint command: onboard --quick first, then daemon
+        onboard_cmd = (
+            f"zeroclaw onboard --quick"
+            f" --api-key $API_KEY"
+            f" --provider {resolved_provider}"
+            f" --memory {resolved_memory}"
+        )
         if model:
-            environment["ZEROCLAW_DEFAULT_MODEL"] = model
+            onboard_cmd += f" --model {model}"
+
+        boot_command = f"{onboard_cmd} && zeroclaw daemon"
 
         labels = {
             "managed-by": MANAGED_BY_LABEL,
@@ -92,7 +107,7 @@ class DockerManager:
 
         container = self.client.containers.run(
             image=docker_image,
-            command=["daemon"],
+            command=["sh", "-c", boot_command],
             detach=True,
             name=f"zeroclaw-{str(gateway_id)[:8]}",
             environment=environment,
