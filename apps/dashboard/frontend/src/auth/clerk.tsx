@@ -1,102 +1,116 @@
 "use client";
 
-// NOTE: We intentionally keep this file very small and dependency-free.
-// It provides CI/secretless-build safe fallbacks for Clerk hooks/components.
+// Google OAuth session auth — replaces Clerk but keeps the same hook API
+// so all 50+ consumer files continue working without changes.
 
-import type { ReactNode, ComponentProps } from "react";
+import type { ReactNode } from "react";
 
-import {
-  ClerkProvider,
-  SignedIn as ClerkSignedIn,
-  SignedOut as ClerkSignedOut,
-  SignInButton as ClerkSignInButton,
-  SignOutButton as ClerkSignOutButton,
-  useAuth as clerkUseAuth,
-  useUser as clerkUseUser,
-} from "@clerk/nextjs";
+const TOKEN_KEY = "session_token";
 
-import { isLikelyValidClerkPublishableKey } from "@/auth/clerkKey";
-import { getLocalAuthToken, isLocalAuthMode } from "@/auth/localAuth";
-
-function hasLocalAuthToken(): boolean {
-  return Boolean(getLocalAuthToken());
+function getSessionToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
 }
 
-export function isClerkEnabled(): boolean {
-  // IMPORTANT: keep this in sync with AuthProvider; otherwise components like
-  // <SignedOut/> may render without a <ClerkProvider/> and crash during prerender.
-  if (isLocalAuthMode()) return false;
-  return isLikelyValidClerkPublishableKey(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-  );
+export function setSessionToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
 }
+
+export function clearSessionToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function isSignedIn(): boolean {
+  return Boolean(getSessionToken());
+}
+
+function parseTokenClaims(): { sub?: string; email?: string; name?: string } | null {
+  const token = getSessionToken();
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    return JSON.parse(atob(payload));
+  } catch {
+    return null;
+  }
+}
+
+// --- Public API (same shape as the old Clerk wrappers) ---
 
 export function SignedIn(props: { children: ReactNode }) {
-  if (isLocalAuthMode()) {
-    return hasLocalAuthToken() ? <>{props.children}</> : null;
-  }
-  if (!isClerkEnabled()) return null;
-  return <ClerkSignedIn>{props.children}</ClerkSignedIn>;
+  return isSignedIn() ? <>{props.children}</> : null;
 }
 
 export function SignedOut(props: { children: ReactNode }) {
-  if (isLocalAuthMode()) {
-    return hasLocalAuthToken() ? null : <>{props.children}</>;
-  }
-  if (!isClerkEnabled()) return <>{props.children}</>;
-  return <ClerkSignedOut>{props.children}</ClerkSignedOut>;
+  return isSignedIn() ? null : <>{props.children}</>;
 }
 
-// Keep the same prop surface as Clerk components so call sites don't need edits.
-export function SignInButton(props: ComponentProps<typeof ClerkSignInButton>) {
-  if (!isClerkEnabled()) return null;
-  return <ClerkSignInButton {...props} />;
+export function SignInButton(props: { children?: ReactNode }) {
+  const handleSignIn = async () => {
+    try {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL === "auto"
+          ? `${window.location.protocol}//${window.location.hostname}:8000`
+          : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      const resp = await fetch(`${baseUrl}/api/v1/auth/google/url`);
+      const data = await resp.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Failed to get Google auth URL:", err);
+    }
+  };
+
+  return (
+    <button onClick={handleSignIn}>
+      {props.children || "Sign in with Google"}
+    </button>
+  );
 }
 
-export function SignOutButton(
-  props: ComponentProps<typeof ClerkSignOutButton>,
-) {
-  if (!isClerkEnabled()) return null;
-  return <ClerkSignOutButton {...props} />;
+export function SignOutButton(props: { children?: ReactNode }) {
+  const handleSignOut = () => {
+    clearSessionToken();
+    window.location.href = "/";
+  };
+
+  return (
+    <button onClick={handleSignOut}>
+      {props.children || "Sign out"}
+    </button>
+  );
 }
 
 export function useUser() {
-  if (isLocalAuthMode()) {
-    return {
-      isLoaded: true,
-      isSignedIn: hasLocalAuthToken(),
-      user: null,
-    } as const;
-  }
-  if (!isClerkEnabled()) {
-    return { isLoaded: true, isSignedIn: false, user: null } as const;
-  }
-  return clerkUseUser();
+  const claims = parseTokenClaims();
+  return {
+    isLoaded: true,
+    isSignedIn: isSignedIn(),
+    user: claims
+      ? {
+          primaryEmailAddress: { emailAddress: claims.email },
+          fullName: claims.name,
+          imageUrl: null,
+        }
+      : null,
+  } as const;
 }
 
 export function useAuth() {
-  if (isLocalAuthMode()) {
-    const token = getLocalAuthToken();
-    return {
-      isLoaded: true,
-      isSignedIn: Boolean(token),
-      userId: token ? "local-user" : null,
-      sessionId: token ? "local-session" : null,
-      getToken: async () => token,
-    } as const;
-  }
-  if (!isClerkEnabled()) {
-    return {
-      isLoaded: true,
-      isSignedIn: false,
-      userId: null,
-      sessionId: null,
-      getToken: async () => null,
-    } as const;
-  }
-  return clerkUseAuth();
+  const token = getSessionToken();
+  const claims = parseTokenClaims();
+  return {
+    isLoaded: true,
+    isSignedIn: Boolean(token),
+    userId: claims?.sub ?? null,
+    sessionId: token ? "session" : null,
+    getToken: async () => token,
+  } as const;
 }
 
-// Re-export ClerkProvider for places that want to mount it, but strongly prefer
-// gating via isClerkEnabled() at call sites.
-export { ClerkProvider };
+// Kept for compatibility — no-op wrapper (no external provider needed)
+export function ClerkProvider(props: { children: ReactNode; publishableKey?: string; afterSignOutUrl?: string }) {
+  return <>{props.children}</>;
+}

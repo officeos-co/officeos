@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Tests should fail fast if auth-mode wiring breaks, but still need deterministic
-# defaults during import-time settings initialization, regardless of shell env.
-os.environ["AUTH_MODE"] = "local"
-os.environ["LOCAL_AUTH_TOKEN"] = "test-local-token-0123456789-0123456789-0123456789x"
+# Provide deterministic defaults for settings initialization during tests.
 os.environ["BASE_URL"] = "http://localhost:8000"
+os.environ["SESSION_SECRET"] = "test-session-secret-for-unit-tests-only-0123456789"
+os.environ["GOOGLE_CLIENT_ID"] = "test-client-id"
+os.environ["GOOGLE_CLIENT_SECRET"] = "test-client-secret"

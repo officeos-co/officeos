@@ -37,7 +37,7 @@ async def _get(client: AsyncClient, path: str) -> tuple[int, dict]:
 
 @pytest.mark.asyncio
 async def test_auth_bootstrap_returns_user_profile_when_authenticated() -> None:
-    user = User(clerk_user_id="user_123", email="user@example.com", name="User")
+    user = User(external_id="user_123", email="user@example.com", name="User")
     app = _build_test_app(auth_ctx=AuthContext(actor_type="user", user=user))
 
     async with AsyncClient(
@@ -47,7 +47,7 @@ async def test_auth_bootstrap_returns_user_profile_when_authenticated() -> None:
         status, payload = await _get(client, "/api/v1/auth/bootstrap")
 
     assert status == 200
-    assert payload["clerk_user_id"] == "user_123"
+    assert payload["external_id"] == "user_123"
     assert payload["email"] == "user@example.com"
     assert payload["name"] == "User"
     assert payload["id"]

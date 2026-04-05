@@ -169,7 +169,7 @@ def test_is_org_admin_owner_admin_member() -> None:
 async def test_ensure_member_for_user_returns_existing_membership(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    user = User(clerk_user_id="u1")
+    user = User(external_id="u1")
     existing = OrganizationMember(
         organization_id=uuid4(),
         user_id=user.id,
@@ -197,7 +197,7 @@ async def test_ensure_member_for_user_accepts_pending_invite(
         token="t",
         role="member",
     )
-    user = User(clerk_user_id="u1", email="a@example.com")
+    user = User(external_id="u1", email="a@example.com")
 
     async def _fake_get_active(_session: Any, _user: User) -> None:
         return None
@@ -237,7 +237,7 @@ async def test_ensure_member_for_user_accepts_pending_invite(
 async def test_ensure_member_for_user_creates_personal_org_and_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    user = User(clerk_user_id="u1", email=None)
+    user = User(external_id="u1", email=None)
 
     async def _fake_get_active(_session: Any, _user: User) -> None:
         return None
@@ -288,7 +288,7 @@ async def test_ensure_member_for_user_creates_personal_org_and_owner(
 async def test_ensure_member_for_user_skips_already_existing_default_pack_by_source_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    user = User(clerk_user_id="u1", email=None)
+    user = User(external_id="u1", email=None)
     existing_pack_source = "https://github.com/sickn33/antigravity-awesome-skills/"
 
     async def _fake_get_active(_session: Any, _user: User) -> None:
@@ -329,7 +329,7 @@ async def test_ensure_member_for_user_recovers_on_default_install_integrity_erro
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     org_id = uuid4()
-    user = User(clerk_user_id="u1", email=None, active_organization_id=org_id)
+    user = User(external_id="u1", email=None, active_organization_id=org_id)
     existing_member = OrganizationMember(
         organization_id=org_id,
         user_id=user.id,
@@ -378,7 +378,7 @@ async def test_ensure_member_for_user_recovers_on_default_install_integrity_erro
 async def test_ensure_member_for_user_reuses_existing_membership_after_lock(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    user = User(clerk_user_id="u1")
+    user = User(external_id="u1")
     org = Organization(id=uuid4(), name=organizations.DEFAULT_ORG_NAME)
     existing = OrganizationMember(
         organization_id=org.id,
@@ -489,7 +489,7 @@ async def test_has_board_access_uses_org_board_access_row_read_and_write() -> No
 async def test_require_board_access_raises_when_no_member(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    user = User(clerk_user_id="u1")
+    user = User(external_id="u1")
     board = Board(id=uuid4(), organization_id=uuid4(), name="b", slug="b")
 
     async def _fake_get_member(*_args: Any, **_kwargs: Any) -> None:

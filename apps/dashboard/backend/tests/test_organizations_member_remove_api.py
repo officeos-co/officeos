@@ -85,7 +85,7 @@ async def test_remove_org_member_deletes_member_access_and_member() -> None:
     )
     user = User(
         id=target_user_id,
-        clerk_user_id="target",
+        external_id="target",
         active_organization_id=org_id,
     )
     session = _FakeSession(

@@ -9,22 +9,10 @@ from urllib.parse import urlparse
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.auth_mode import AuthMode
 from app.core.rate_limit_backend import RateLimitBackend
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ENV_FILE = BACKEND_ROOT / ".env"
-LOCAL_AUTH_TOKEN_MIN_LENGTH = 50
-LOCAL_AUTH_TOKEN_PLACEHOLDERS = frozenset(
-    {
-        "change-me",
-        "changeme",
-        "replace-me",
-        "replace-with-strong-random-token",
-    },
-)
-
-
 class Settings(BaseSettings):
     """Typed runtime configuration sourced from environment variables."""
 
@@ -39,15 +27,14 @@ class Settings(BaseSettings):
     environment: str = "dev"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/openclaw_agency"
 
-    # Auth mode: "clerk" for Clerk JWT auth, "local" for shared bearer token auth.
-    auth_mode: AuthMode
-    local_auth_token: str = ""
+    # Google OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = ""
 
-    # Clerk auth (auth only; roles stored in DB)
-    clerk_secret_key: str = ""
-    clerk_api_url: str = "https://api.clerk.com"
-    clerk_verify_iat: bool = True
-    clerk_leeway: float = 10.0
+    # Session JWT
+    session_secret: str = ""
+    session_expiry_hours: int = 24
 
     cors_origins: str = ""
     base_url: str = ""
@@ -93,22 +80,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _defaults(self) -> Self:
-        if self.auth_mode == AuthMode.CLERK:
-            if not self.clerk_secret_key.strip():
-                raise ValueError(
-                    "CLERK_SECRET_KEY must be set and non-empty when AUTH_MODE=clerk.",
-                )
-        elif self.auth_mode == AuthMode.LOCAL:
-            token = self.local_auth_token.strip()
-            if (
-                not token
-                or len(token) < LOCAL_AUTH_TOKEN_MIN_LENGTH
-                or token.lower() in LOCAL_AUTH_TOKEN_PLACEHOLDERS
-            ):
-                raise ValueError(
-                    "LOCAL_AUTH_TOKEN must be at least 50 characters and non-placeholder when AUTH_MODE=local.",
-                )
-
         base_url = self.base_url.strip()
         if not base_url:
             raise ValueError("BASE_URL must be set and non-empty.")

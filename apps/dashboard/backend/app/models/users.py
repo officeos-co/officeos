@@ -15,7 +15,7 @@ class User(QueryModel, table=True):
     __tablename__ = "users"  # pyright: ignore[reportAssignmentType]
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    clerk_user_id: str = Field(index=True, unique=True)
+    external_id: str = Field(index=True, unique=True)
     email: str | None = Field(default=None, index=True)
     name: str | None = None
     preferred_name: str | None = None
