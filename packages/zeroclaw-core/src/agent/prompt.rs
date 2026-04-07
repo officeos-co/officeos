@@ -1,7 +1,6 @@
 use crate::agent::personality;
 use crate::config::IdentityConfig;
 use crate::i18n::ToolDescriptions;
-use crate::identity;
 use crate::security::AutonomyLevel;
 use crate::skills::Skill;
 use crate::tools::Tool;
@@ -94,28 +93,25 @@ impl PromptSection for IdentitySection {
     }
 
     fn build(&self, ctx: &PromptContext<'_>) -> Result<String> {
+        // Identity is sourced entirely from the per-agent Obsidian vault,
+        // which the dashboard backend materializes into the workspace
+        // directory via a mounted ConfigMap before the agent container
+        // starts. See Phase 3 in STRIP_DOWN.md. The boot path in agent.rs
+        // uses `personality::load_personality_strict` to fail loudly if any
+        // required file is missing; here we use the lenient loader because
+        // prompt building is a read-only rendering step and must stay
+        // resilient to partial test workspaces.
+        //
+        // The `identity_config` field on PromptContext is retained for
+        // backwards compatibility but is no longer consulted. It will be
+        // removed together with IdentityConfig itself in a follow-up commit.
+        let _ = ctx.identity_config;
+
         let mut prompt = String::from("## Project Context\n\n");
-        let mut has_aieos = false;
-        if let Some(config) = ctx.identity_config {
-            if identity::is_aieos_configured(config) {
-                if let Ok(Some(aieos)) = identity::load_aieos_identity(config, ctx.workspace_dir) {
-                    let rendered = identity::aieos_to_system_prompt(&aieos);
-                    if !rendered.is_empty() {
-                        prompt.push_str(&rendered);
-                        prompt.push_str("\n\n");
-                        has_aieos = true;
-                    }
-                }
-            }
-        }
+        prompt.push_str(
+            "The following workspace files define your identity, behavior, and context.\n\n",
+        );
 
-        if !has_aieos {
-            prompt.push_str(
-                "The following workspace files define your identity, behavior, and context.\n\n",
-            );
-        }
-
-        // Use the personality module for structured file loading.
         let profile = personality::load_personality(ctx.workspace_dir);
         prompt.push_str(&profile.render());
 

@@ -31,7 +31,10 @@
     }
 
     #[test]
-    fn identity_section_with_aieos_includes_workspace_files() {
+    fn identity_section_renders_workspace_files() {
+        // After Phase 3, IdentitySection reads directly from the workspace
+        // directory (mounted from the per-agent vault ConfigMap) without
+        // consulting identity_config. The AIEOS JSON path was removed.
         let workspace =
             std::env::temp_dir().join(format!("zeroclaw_prompt_test_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&workspace).unwrap();
@@ -41,12 +44,6 @@
         )
         .unwrap();
 
-        let identity_config = crate::config::IdentityConfig {
-            format: "aieos".into(),
-            aieos_path: None,
-            aieos_inline: Some(r#"{"identity":{"names":{"first":"Nova"}}}"#.into()),
-        };
-
         let tools: Vec<Box<dyn Tool>> = vec![];
         let ctx = PromptContext {
             workspace_dir: &workspace,
@@ -54,7 +51,7 @@
             tools: &tools,
             skills: &[],
             skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
-            identity_config: Some(&identity_config),
+            identity_config: None,
             dispatcher_instructions: "",
             tool_descriptions: None,
             security_summary: None,
@@ -65,12 +62,8 @@
         let output = section.build(&ctx).unwrap();
 
         assert!(
-            output.contains("Nova"),
-            "AIEOS identity should be present in prompt"
-        );
-        assert!(
             output.contains("AGENTS_MD_LOADED"),
-            "AGENTS.md content should be present even when AIEOS is configured"
+            "AGENTS.md content should be present in the rendered identity section"
         );
 
         let _ = std::fs::remove_dir_all(workspace);
