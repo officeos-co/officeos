@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/aardvark-sys"]
+members = ["."]
 resolver = "2"
 
 [package]
@@ -101,9 +101,6 @@ zip = { version = "8.1", default-features = false, features = ["deflate-flate2"]
 # Error handling
 anyhow = "1.0"
 thiserror = "2.0"
-
-# Aardvark I2C/SPI/GPIO USB adapter (Total Phase) — stub when SDK absent
-aardvark-sys = { path = "crates/aardvark-sys", version = "0.1.0" }
 
 # UUID generation
 uuid = { version = "1.22", default-features = false, features = ["v4", "std"] }
@@ -326,7 +323,6 @@ panic = "abort"
 
 [dev-dependencies]
 tempfile = "3.26"
-criterion = { version = "0.8", features = ["async_tokio"] }
 wiremock = "0.6"
 scopeguard = "1.2"
 rcgen = "0.13"
@@ -346,7 +342,3 @@ path = "tests/test_system.rs"
 [[test]]
 name = "live"
 path = "tests/test_live.rs"
-
-[[bench]]
-name = "agent_benchmarks"
-harness = false
