@@ -1,0 +1,353 @@
+    use super::*;
+    use crate::channels::traits::{ChannelMessage, SendMessage};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    struct MockChannel {
+        reaction_added: AtomicBool,
+        reaction_removed: AtomicBool,
+        last_channel_id: parking_lot::Mutex<Option<String>>,
+        fail_on_add: bool,
+    }
+
+    impl MockChannel {
+        fn new() -> Self {
+            Self {
+                reaction_added: AtomicBool::new(false),
+                reaction_removed: AtomicBool::new(false),
+                last_channel_id: parking_lot::Mutex::new(None),
+                fail_on_add: false,
+            }
+        }
+
+        fn failing() -> Self {
+            Self {
+                reaction_added: AtomicBool::new(false),
+                reaction_removed: AtomicBool::new(false),
+                last_channel_id: parking_lot::Mutex::new(None),
+                fail_on_add: true,
+            }
+        }
+    }
+
+    #[async_trait]
+    impl Channel for MockChannel {
+        fn name(&self) -> &str {
+            "mock"
+        }
+
+        async fn send(&self, _message: &SendMessage) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        async fn listen(
+            &self,
+            _tx: tokio::sync::mpsc::Sender<ChannelMessage>,
+        ) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        async fn add_reaction(
+            &self,
+            channel_id: &str,
+            _message_id: &str,
+            _emoji: &str,
+        ) -> anyhow::Result<()> {
+            if self.fail_on_add {
+                return Err(anyhow::anyhow!("API error: rate limited"));
+            }
+            *self.last_channel_id.lock() = Some(channel_id.to_string());
+            self.reaction_added.store(true, Ordering::SeqCst);
+            Ok(())
+        }
+
+        async fn remove_reaction(
+            &self,
+            channel_id: &str,
+            _message_id: &str,
+            _emoji: &str,
+        ) -> anyhow::Result<()> {
+            *self.last_channel_id.lock() = Some(channel_id.to_string());
+            self.reaction_removed.store(true, Ordering::SeqCst);
+            Ok(())
+        }
+    }
+
+    fn make_tool_with_channels(channels: Vec<(&str, Arc<dyn Channel>)>) -> ReactionTool {
+        let tool = ReactionTool::new(Arc::new(SecurityPolicy::default()));
+        let map: HashMap<String, Arc<dyn Channel>> = channels
+            .into_iter()
+            .map(|(name, ch)| (name.to_string(), ch))
+            .collect();
+        tool.populate(map);
+        tool
+    }
+
+    #[test]
+    fn tool_metadata() {
+        let tool = ReactionTool::new(Arc::new(SecurityPolicy::default()));
+        assert_eq!(tool.name(), "reaction");
+        assert!(!tool.description().is_empty());
+        let schema = tool.parameters_schema();
+        assert_eq!(schema["type"], "object");
+        assert!(schema["properties"]["channel"].is_object());
+        assert!(schema["properties"]["channel_id"].is_object());
+        assert!(schema["properties"]["message_id"].is_object());
+        assert!(schema["properties"]["emoji"].is_object());
+        assert!(schema["properties"]["action"].is_object());
+        let required = schema["required"].as_array().unwrap();
+        assert!(required.iter().any(|v| v == "channel"));
+        assert!(required.iter().any(|v| v == "channel_id"));
+        assert!(required.iter().any(|v| v == "message_id"));
+        assert!(required.iter().any(|v| v == "emoji"));
+        // action is optional (defaults to "add")
+        assert!(!required.iter().any(|v| v == "action"));
+    }
+
+    #[tokio::test]
+    async fn add_reaction_success() {
+        let mock: Arc<dyn Channel> = Arc::new(MockChannel::new());
+        let tool = make_tool_with_channels(vec![("discord", Arc::clone(&mock))]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "discord",
+                "channel_id": "ch_001",
+                "message_id": "msg_123",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+
+        assert!(result.success);
+        assert!(result.output.contains("added"));
+        assert!(result.error.is_none());
+    }
+
+    #[tokio::test]
+    async fn remove_reaction_success() {
+        let mock: Arc<dyn Channel> = Arc::new(MockChannel::new());
+        let tool = make_tool_with_channels(vec![("slack", Arc::clone(&mock))]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "slack",
+                "channel_id": "C0123SLACK",
+                "message_id": "msg_456",
+                "emoji": "\u{1F440}",
+                "action": "remove"
+            }))
+            .await
+            .unwrap();
+
+        assert!(result.success);
+        assert!(result.output.contains("removed"));
+    }
+
+    #[tokio::test]
+    async fn unknown_channel_returns_error() {
+        let tool = make_tool_with_channels(vec![(
+            "discord",
+            Arc::new(MockChannel::new()) as Arc<dyn Channel>,
+        )]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "nonexistent",
+                "channel_id": "ch_x",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+
+        assert!(!result.success);
+        let err = result.error.as_deref().unwrap();
+        assert!(err.contains("not found"));
+        assert!(err.contains("discord"));
+    }
+
+    #[tokio::test]
+    async fn invalid_action_returns_error() {
+        let tool = make_tool_with_channels(vec![(
+            "discord",
+            Arc::new(MockChannel::new()) as Arc<dyn Channel>,
+        )]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "discord",
+                "channel_id": "ch_001",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}",
+                "action": "toggle"
+            }))
+            .await
+            .unwrap();
+
+        assert!(!result.success);
+        assert!(result.error.as_deref().unwrap().contains("toggle"));
+    }
+
+    #[tokio::test]
+    async fn channel_error_propagated() {
+        let mock: Arc<dyn Channel> = Arc::new(MockChannel::failing());
+        let tool = make_tool_with_channels(vec![("discord", mock)]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "discord",
+                "channel_id": "ch_001",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+
+        assert!(!result.success);
+        assert!(result.error.as_deref().unwrap().contains("rate limited"));
+    }
+
+    #[tokio::test]
+    async fn missing_required_params() {
+        let tool = make_tool_with_channels(vec![(
+            "test",
+            Arc::new(MockChannel::new()) as Arc<dyn Channel>,
+        )]);
+
+        // Missing channel
+        let result = tool
+            .execute(json!({"channel_id": "c1", "message_id": "1", "emoji": "x"}))
+            .await;
+        assert!(result.is_err());
+
+        // Missing channel_id
+        let result = tool
+            .execute(json!({"channel": "test", "message_id": "1", "emoji": "x"}))
+            .await;
+        assert!(result.is_err());
+
+        // Missing message_id
+        let result = tool
+            .execute(json!({"channel": "a", "channel_id": "c1", "emoji": "x"}))
+            .await;
+        assert!(result.is_err());
+
+        // Missing emoji
+        let result = tool
+            .execute(json!({"channel": "a", "channel_id": "c1", "message_id": "1"}))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn empty_channels_returns_not_initialized() {
+        let tool = ReactionTool::new(Arc::new(SecurityPolicy::default()));
+        // No channels populated
+
+        let result = tool
+            .execute(json!({
+                "channel": "discord",
+                "channel_id": "ch_001",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+
+        assert!(!result.success);
+        assert!(result.error.as_deref().unwrap().contains("not initialized"));
+    }
+
+    #[tokio::test]
+    async fn default_action_is_add() {
+        let mock = Arc::new(MockChannel::new());
+        let mock_ch: Arc<dyn Channel> = Arc::clone(&mock) as Arc<dyn Channel>;
+        let tool = make_tool_with_channels(vec![("test", mock_ch)]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "test",
+                "channel_id": "ch_test",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+
+        assert!(result.success);
+        assert!(mock.reaction_added.load(Ordering::SeqCst));
+        assert!(!mock.reaction_removed.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn channel_id_passed_to_trait_not_channel_name() {
+        let mock = Arc::new(MockChannel::new());
+        let mock_ch: Arc<dyn Channel> = Arc::clone(&mock) as Arc<dyn Channel>;
+        let tool = make_tool_with_channels(vec![("discord", mock_ch)]);
+
+        let result = tool
+            .execute(json!({
+                "channel": "discord",
+                "channel_id": "123456789",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+
+        assert!(result.success);
+        // The trait must receive the platform channel_id, not the channel name
+        assert_eq!(
+            mock.last_channel_id.lock().as_deref(),
+            Some("123456789"),
+            "add_reaction must receive channel_id, not channel name"
+        );
+    }
+
+    #[tokio::test]
+    async fn channel_map_handle_allows_late_binding() {
+        let tool = ReactionTool::new(Arc::new(SecurityPolicy::default()));
+        let handle = tool.channel_map_handle();
+
+        // Initially empty — tool reports not initialized
+        let result = tool
+            .execute(json!({
+                "channel": "slack",
+                "channel_id": "C0123",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+        assert!(!result.success);
+
+        // Populate via the handle
+        {
+            let mut map = handle.write();
+            map.insert(
+                "slack".to_string(),
+                Arc::new(MockChannel::new()) as Arc<dyn Channel>,
+            );
+        }
+
+        // Now the tool can route to the channel
+        let result = tool
+            .execute(json!({
+                "channel": "slack",
+                "channel_id": "C0123",
+                "message_id": "msg_1",
+                "emoji": "\u{2705}"
+            }))
+            .await
+            .unwrap();
+        assert!(result.success);
+    }
+
+    #[test]
+    fn spec_matches_metadata() {
+        let tool = ReactionTool::new(Arc::new(SecurityPolicy::default()));
+        let spec = tool.spec();
+        assert_eq!(spec.name, "reaction");
+        assert_eq!(spec.description, tool.description());
+        assert!(spec.parameters["required"].is_array());
+    }
