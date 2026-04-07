@@ -55,7 +55,6 @@ pub(crate) mod heartbeat;
 pub mod hooks;
 pub mod i18n;
 pub(crate) mod identity;
-pub(crate) mod integrations;
 pub mod memory;
 pub(crate) mod migration;
 pub(crate) mod multimodal;
@@ -63,7 +62,6 @@ pub mod observability;
 pub mod providers;
 pub mod runtime;
 pub(crate) mod security;
-pub(crate) mod service;
 pub(crate) mod skills;
 pub mod tools;
 pub(crate) mod tunnel;
@@ -140,31 +138,6 @@ Examples:
     },
 }
 
-/// Service management subcommands
-#[derive(Subcommand, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum ServiceCommands {
-    /// Install daemon service unit for auto-start and restart
-    Install,
-    /// Start daemon service
-    Start,
-    /// Stop daemon service
-    Stop,
-    /// Restart daemon service to apply latest config
-    Restart,
-    /// Check daemon service status
-    Status,
-    /// Uninstall daemon service unit
-    Uninstall,
-    /// Tail daemon service logs
-    Logs {
-        /// Number of lines to show (default: 50)
-        #[arg(short = 'n', long, default_value = "50")]
-        lines: usize,
-        /// Follow log output (like tail -f)
-        #[arg(short, long)]
-        follow: bool,
-    },
-}
 
 /// Channel management subcommands
 #[derive(Subcommand, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -467,29 +440,3 @@ pub enum MemoryCommands {
     },
 }
 
-/// Integration subcommands
-#[derive(Subcommand, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum IntegrationCommands {
-    /// Show details about a specific integration
-    Info {
-        /// Integration name
-        name: String,
-    },
-}
-
-/// SOP management subcommands
-#[derive(Subcommand, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum SopCommands {
-    /// List loaded SOPs
-    List,
-    /// Validate SOP definitions
-    Validate {
-        /// SOP name to validate (all if omitted)
-        name: Option<String>,
-    },
-    /// Show details of an SOP
-    Show {
-        /// Name of the SOP to show
-        name: String,
-    },
-}

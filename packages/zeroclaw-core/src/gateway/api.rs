@@ -541,7 +541,7 @@ pub async fn handle_api_cron_settings_patch(
     .into_response()
 }
 
-/// GET /api/integrations — list all integrations with status
+/// GET /api/integrations — stub: integrations registry deleted in phase 2.7b
 pub async fn handle_api_integrations(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -549,27 +549,10 @@ pub async fn handle_api_integrations(
     if let Err(e) = require_auth(&state, &headers) {
         return e.into_response();
     }
-
-    let config = state.config.lock().clone();
-    let entries = crate::integrations::registry::all_integrations();
-
-    let integrations: Vec<serde_json::Value> = entries
-        .iter()
-        .map(|entry| {
-            let status = (entry.status_fn)(&config);
-            serde_json::json!({
-                "name": entry.name,
-                "description": entry.description,
-                "category": entry.category,
-                "status": status,
-            })
-        })
-        .collect();
-
-    Json(serde_json::json!({"integrations": integrations})).into_response()
+    Json(serde_json::json!({"integrations": []})).into_response()
 }
 
-/// GET /api/integrations/settings — return per-integration settings (enabled + category)
+/// GET /api/integrations/settings — stub: integrations registry deleted in phase 2.7b
 pub async fn handle_api_integrations_settings(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -577,25 +560,7 @@ pub async fn handle_api_integrations_settings(
     if let Err(e) = require_auth(&state, &headers) {
         return e.into_response();
     }
-
-    let config = state.config.lock().clone();
-    let entries = crate::integrations::registry::all_integrations();
-
-    let mut settings = serde_json::Map::new();
-    for entry in &entries {
-        let status = (entry.status_fn)(&config);
-        let enabled = matches!(status, crate::integrations::IntegrationStatus::Active);
-        settings.insert(
-            entry.name.to_string(),
-            serde_json::json!({
-                "enabled": enabled,
-                "category": entry.category,
-                "status": status,
-            }),
-        );
-    }
-
-    Json(serde_json::json!({"settings": settings})).into_response()
+    Json(serde_json::json!({"settings": {}})).into_response()
 }
 
 /// POST /api/doctor — run diagnostics
