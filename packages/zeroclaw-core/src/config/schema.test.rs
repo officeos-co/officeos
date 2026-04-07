@@ -436,7 +436,6 @@ auto_save = true
                 non_cli_excluded_tools: vec![],
                 shell_timeout_secs: default_shell_timeout_secs(),
             },
-            trust: TrustConfig::default(),
             backup: BackupConfig::default(),
             data_retention: DataRetentionConfig::default(),
             cloud_ops: CloudOpsConfig::default(),
@@ -519,7 +518,6 @@ auto_save = true
             microsoft365: Microsoft365Config::default(),
             secrets: SecretsConfig::default(),
             browser: BrowserConfig::default(),
-            browser_delegate: BrowserDelegateConfig::default(),
             http_request: HttpRequestConfig::default(),
             multimodal: MultimodalConfig::default(),
             media_pipeline: MediaPipelineConfig::default(),
@@ -533,12 +531,10 @@ auto_save = true
             agent: AgentConfig::default(),
             pacing: PacingConfig::default(),
             cost: CostConfig::default(),
-            peripherals: PeripheralsConfig::default(),
             delegate: DelegateToolConfig::default(),
             agents: HashMap::new(),
             swarms: HashMap::new(),
             hooks: HooksConfig::default(),
-            hardware: HardwareConfig::default(),
             transcription: TranscriptionConfig::default(),
             tts: TtsConfig::default(),
             mcp: McpConfig::default(),
@@ -551,13 +547,11 @@ auto_save = true
             image_gen: ImageGenConfig::default(),
             plugins: PluginsConfig::default(),
             locale: None,
-            verifiable_intent: VerifiableIntentConfig::default(),
             claude_code: ClaudeCodeConfig::default(),
             claude_code_runner: ClaudeCodeRunnerConfig::default(),
             codex_cli: CodexCliConfig::default(),
             gemini_cli: GeminiCliConfig::default(),
             opencode_cli: OpenCodeCliConfig::default(),
-            sop: SopConfig::default(),
             shell_tool: ShellToolConfig::default(),
         };
 
@@ -1021,7 +1015,6 @@ default_temperature = 0.7
             extra_headers: HashMap::new(),
             observability: ObservabilityConfig::default(),
             autonomy: AutonomyConfig::default(),
-            trust: TrustConfig::default(),
             backup: BackupConfig::default(),
             data_retention: DataRetentionConfig::default(),
             cloud_ops: CloudOpsConfig::default(),
@@ -1047,7 +1040,6 @@ default_temperature = 0.7
             microsoft365: Microsoft365Config::default(),
             secrets: SecretsConfig::default(),
             browser: BrowserConfig::default(),
-            browser_delegate: BrowserDelegateConfig::default(),
             http_request: HttpRequestConfig::default(),
             multimodal: MultimodalConfig::default(),
             media_pipeline: MediaPipelineConfig::default(),
@@ -1061,12 +1053,10 @@ default_temperature = 0.7
             agent: AgentConfig::default(),
             pacing: PacingConfig::default(),
             cost: CostConfig::default(),
-            peripherals: PeripheralsConfig::default(),
             delegate: DelegateToolConfig::default(),
             agents: HashMap::new(),
             swarms: HashMap::new(),
             hooks: HooksConfig::default(),
-            hardware: HardwareConfig::default(),
             transcription: TranscriptionConfig::default(),
             tts: TtsConfig::default(),
             mcp: McpConfig::default(),
@@ -1079,13 +1069,11 @@ default_temperature = 0.7
             image_gen: ImageGenConfig::default(),
             plugins: PluginsConfig::default(),
             locale: None,
-            verifiable_intent: VerifiableIntentConfig::default(),
             claude_code: ClaudeCodeConfig::default(),
             claude_code_runner: ClaudeCodeRunnerConfig::default(),
             codex_cli: CodexCliConfig::default(),
             gemini_cli: GeminiCliConfig::default(),
             opencode_cli: OpenCodeCliConfig::default(),
-            sop: SopConfig::default(),
             shell_tool: ShellToolConfig::default(),
         };
 
@@ -3744,42 +3732,6 @@ default_model = "persisted-profile"
     }
 
     // ── Peripherals config ───────────────────────────────────────
-
-    #[test]
-    async fn peripherals_config_default_disabled() {
-        let p = PeripheralsConfig::default();
-        assert!(!p.enabled);
-        assert!(p.boards.is_empty());
-    }
-
-    #[test]
-    async fn peripheral_board_config_defaults() {
-        let b = PeripheralBoardConfig::default();
-        assert!(b.board.is_empty());
-        assert_eq!(b.transport, "serial");
-        assert!(b.path.is_none());
-        assert_eq!(b.baud, 115_200);
-    }
-
-    #[test]
-    async fn peripherals_config_toml_roundtrip() {
-        let p = PeripheralsConfig {
-            enabled: true,
-            boards: vec![PeripheralBoardConfig {
-                board: "nucleo-f401re".into(),
-                transport: "serial".into(),
-                path: Some("/dev/ttyACM0".into()),
-                baud: 115_200,
-            }],
-            datasheet_dir: None,
-        };
-        let toml_str = toml::to_string(&p).unwrap();
-        let parsed: PeripheralsConfig = toml::from_str(&toml_str).unwrap();
-        assert!(parsed.enabled);
-        assert_eq!(parsed.boards.len(), 1);
-        assert_eq!(parsed.boards[0].board, "nucleo-f401re");
-        assert_eq!(parsed.boards[0].path.as_deref(), Some("/dev/ttyACM0"));
-    }
 
     #[test]
     async fn lark_config_serde() {

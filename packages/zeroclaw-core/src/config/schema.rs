@@ -13,21 +13,6 @@ use tokio::fs::File;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 
-/// Stubs for orphan configs from deleted modules (phase 2.6/2.7 strip-down).
-/// Fields are retained on Config for ABI compatibility but no longer wired
-/// to any code. Phase 4 will sweep these and remove the fields entirely.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct BrowserDelegateConfig {
-    #[serde(default)]
-    pub enabled: bool,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct TrustConfig {
-    #[serde(default)]
-    pub enabled: bool,
-}
-
 const SUPPORTED_PROXY_SERVICE_KEYS: &[&str] = &[
     "provider.anthropic",
     "provider.compatible",
@@ -143,10 +128,6 @@ pub struct Config {
     /// Autonomy and security policy configuration (`[autonomy]`).
     #[serde(default)]
     pub autonomy: AutonomyConfig,
-
-    /// Trust scoring and regression detection configuration (`[trust]`).
-    #[serde(default)]
-    pub trust: TrustConfig,
 
     /// Security subsystem configuration (`[security]`).
     #[serde(default)]
@@ -276,15 +257,6 @@ pub struct Config {
     ///   persistent SSO sessions. When empty, a fresh profile is used each invocation.
     /// - `allowed_domains` (`Vec<String>`, default `[]`) — allowlist of domains the browser
     ///   may navigate to. Empty means all non-blocked domains are permitted.
-    /// - `blocked_domains` (`Vec<String>`, default `[]`) — denylist of domains. Blocked
-    ///   domains take precedence over allowed domains.
-    /// - `task_timeout_secs` (`u64`, default `120`) — per-task timeout in seconds.
-    ///
-    /// Compatibility: additive and disabled by default; existing configs remain valid when omitted.
-    /// Rollback/migration: remove `[browser_delegate]` or keep `enabled = false` to disable.
-    #[serde(default, skip)]
-    pub browser_delegate: BrowserDelegateConfig,
-
     /// HTTP request tool configuration (`[http_request]`).
     #[serde(default)]
     pub http_request: HttpRequestConfig,
@@ -329,10 +301,6 @@ pub struct Config {
     #[serde(default)]
     pub cost: CostConfig,
 
-    /// Peripheral board configuration for hardware integration (`[peripherals]`).
-    #[serde(default)]
-    pub peripherals: PeripheralsConfig,
-
     /// Delegate tool global default configuration (`[delegate]`).
     #[serde(default)]
     pub delegate: DelegateToolConfig,
@@ -348,10 +316,6 @@ pub struct Config {
     /// Hooks configuration (lifecycle hooks and built-in hook toggles).
     #[serde(default)]
     pub hooks: HooksConfig,
-
-    /// Hardware configuration (wizard-driven physical world setup).
-    #[serde(default)]
-    pub hardware: HardwareConfig,
 
     /// Voice transcription configuration (Whisper API via Groq).
     #[serde(default)]
@@ -408,10 +372,6 @@ pub struct Config {
     #[serde(default)]
     pub locale: Option<String>,
 
-    /// Verifiable Intent (VI) credential verification and issuance (`[verifiable_intent]`).
-    #[serde(default)]
-    pub verifiable_intent: VerifiableIntentConfig,
-
     /// Claude Code tool configuration (`[claude_code]`).
     #[serde(default)]
     pub claude_code: ClaudeCodeConfig,
@@ -431,10 +391,6 @@ pub struct Config {
     /// OpenCode CLI tool configuration (`[opencode_cli]`).
     #[serde(default)]
     pub opencode_cli: OpenCodeCliConfig,
-
-    /// Standard Operating Procedures engine configuration (`[sop]`).
-    #[serde(default)]
-    pub sop: SopConfig,
 
     /// Shell tool configuration (`[shell_tool]`).
     #[serde(default)]
@@ -721,76 +677,6 @@ fn default_max_tool_iterations() -> usize {
     10
 }
 
-// ── Hardware Config (wizard-driven) ─────────────────────────────
-
-/// Hardware transport mode.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, JsonSchema)]
-pub enum HardwareTransport {
-    #[default]
-    None,
-    Native,
-    Serial,
-    Probe,
-}
-
-impl std::fmt::Display for HardwareTransport {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::None => write!(f, "none"),
-            Self::Native => write!(f, "native"),
-            Self::Serial => write!(f, "serial"),
-            Self::Probe => write!(f, "probe"),
-        }
-    }
-}
-
-/// Wizard-driven hardware configuration for physical world interaction.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct HardwareConfig {
-    /// Whether hardware access is enabled
-    #[serde(default)]
-    pub enabled: bool,
-    /// Transport mode
-    #[serde(default)]
-    pub transport: HardwareTransport,
-    /// Serial port path (e.g. "/dev/ttyACM0")
-    #[serde(default)]
-    pub serial_port: Option<String>,
-    /// Serial baud rate
-    #[serde(default = "default_baud_rate")]
-    pub baud_rate: u32,
-    /// Probe target chip (e.g. "STM32F401RE")
-    #[serde(default)]
-    pub probe_target: Option<String>,
-    /// Enable workspace datasheet RAG (index PDF schematics for AI pin lookups)
-    #[serde(default)]
-    pub workspace_datasheets: bool,
-}
-
-fn default_baud_rate() -> u32 {
-    115_200
-}
-
-impl HardwareConfig {
-    /// Return the active transport mode.
-    pub fn transport_mode(&self) -> HardwareTransport {
-        self.transport.clone()
-    }
-}
-
-impl Default for HardwareConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            transport: HardwareTransport::None,
-            serial_port: None,
-            baud_rate: default_baud_rate(),
-            probe_target: None,
-            workspace_datasheets: false,
-        }
-    }
-}
-
 // ── Transcription ────────────────────────────────────────────────
 
 fn default_transcription_api_url() -> String {
@@ -967,33 +853,6 @@ impl Default for McpConfig {
             enabled: false,
             deferred_loading: default_deferred_loading(),
             servers: Vec::new(),
-        }
-    }
-}
-
-/// Verifiable Intent (VI) credential verification and issuance (`[verifiable_intent]` section).
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct VerifiableIntentConfig {
-    /// Enable VI credential verification on commerce tool calls (default: false).
-    #[serde(default)]
-    pub enabled: bool,
-
-    /// Strictness mode for constraint evaluation: "strict" (fail-closed on unknown
-    /// constraint types) or "permissive" (skip unknown types with a warning).
-    /// Default: "strict".
-    #[serde(default = "default_vi_strictness")]
-    pub strictness: String,
-}
-
-fn default_vi_strictness() -> String {
-    "strict".to_owned()
-}
-
-impl Default for VerifiableIntentConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            strictness: default_vi_strictness(),
         }
     }
 }
@@ -1924,58 +1783,6 @@ fn get_default_pricing() -> std::collections::HashMap<String, ModelPricing> {
 }
 
 // ── Peripherals (hardware: STM32, RPi GPIO, etc.) ────────────────────────
-
-/// Peripheral board integration configuration (`[peripherals]` section).
-///
-/// Boards become agent tools when enabled.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct PeripheralsConfig {
-    /// Enable peripheral support (boards become agent tools)
-    #[serde(default)]
-    pub enabled: bool,
-    /// Board configurations (nucleo-f401re, rpi-gpio, etc.)
-    #[serde(default)]
-    pub boards: Vec<PeripheralBoardConfig>,
-    /// Path to datasheet docs (relative to workspace) for RAG retrieval.
-    /// Place .md/.txt files named by board (e.g. nucleo-f401re.md, rpi-gpio.md).
-    #[serde(default)]
-    pub datasheet_dir: Option<String>,
-}
-
-/// Configuration for a single peripheral board (e.g. STM32, RPi GPIO).
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct PeripheralBoardConfig {
-    /// Board type: "nucleo-f401re", "rpi-gpio", "esp32", etc.
-    pub board: String,
-    /// Transport: "serial", "native", "websocket"
-    #[serde(default = "default_peripheral_transport")]
-    pub transport: String,
-    /// Path for serial: "/dev/ttyACM0", "/dev/ttyUSB0"
-    #[serde(default)]
-    pub path: Option<String>,
-    /// Baud rate for serial (default: 115200)
-    #[serde(default = "default_peripheral_baud")]
-    pub baud: u32,
-}
-
-fn default_peripheral_transport() -> String {
-    "serial".into()
-}
-
-fn default_peripheral_baud() -> u32 {
-    115_200
-}
-
-impl Default for PeripheralBoardConfig {
-    fn default() -> Self {
-        Self {
-            board: String::new(),
-            transport: default_peripheral_transport(),
-            path: None,
-            baud: default_peripheral_baud(),
-        }
-    }
-}
 
 // ── Gateway security ─────────────────────────────────────────────
 
@@ -8283,7 +8090,6 @@ impl Default for Config {
             extra_headers: HashMap::new(),
             observability: ObservabilityConfig::default(),
             autonomy: AutonomyConfig::default(),
-            trust: TrustConfig::default(),
             backup: BackupConfig::default(),
             data_retention: DataRetentionConfig::default(),
             cloud_ops: CloudOpsConfig::default(),
@@ -8310,7 +8116,6 @@ impl Default for Config {
             microsoft365: Microsoft365Config::default(),
             secrets: SecretsConfig::default(),
             browser: BrowserConfig::default(),
-            browser_delegate: BrowserDelegateConfig::default(),
             http_request: HttpRequestConfig::default(),
             multimodal: MultimodalConfig::default(),
             media_pipeline: MediaPipelineConfig::default(),
@@ -8322,12 +8127,10 @@ impl Default for Config {
             google_workspace: GoogleWorkspaceConfig::default(),
             proxy: ProxyConfig::default(),
             cost: CostConfig::default(),
-            peripherals: PeripheralsConfig::default(),
             delegate: DelegateToolConfig::default(),
             agents: HashMap::new(),
             swarms: HashMap::new(),
             hooks: HooksConfig::default(),
-            hardware: HardwareConfig::default(),
             query_classification: QueryClassificationConfig::default(),
             transcription: TranscriptionConfig::default(),
             tts: TtsConfig::default(),
@@ -8341,13 +8144,11 @@ impl Default for Config {
             image_gen: ImageGenConfig::default(),
             plugins: PluginsConfig::default(),
             locale: None,
-            verifiable_intent: VerifiableIntentConfig::default(),
             claude_code: ClaudeCodeConfig::default(),
             claude_code_runner: ClaudeCodeRunnerConfig::default(),
             codex_cli: CodexCliConfig::default(),
             gemini_cli: GeminiCliConfig::default(),
             opencode_cli: OpenCodeCliConfig::default(),
-            sop: SopConfig::default(),
             shell_tool: ShellToolConfig::default(),
         }
     }
@@ -10795,71 +10596,6 @@ async fn sync_directory(path: &Path) -> Result<()> {
         Ok(())
     }
 }
-
-// ── SOP engine configuration ───────────────────────────────────
-
-/// Standard Operating Procedures engine configuration (`[sop]`).
-///
-/// The `default_execution_mode` field uses the `SopExecutionMode` type from
-/// `sop::types` (re-exported via `sop::SopExecutionMode`). To avoid circular
-/// module references, config stores it using the same enum definition.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct SopConfig {
-    /// Directory containing SOP definitions (subdirs with SOP.toml + SOP.md).
-    /// Falls back to `<workspace>/sops` when omitted.
-    #[serde(default)]
-    pub sops_dir: Option<String>,
-
-    /// Default execution mode for SOPs that omit `execution_mode`.
-    /// Values: `auto`, `supervised` (default), `step_by_step`,
-    /// `priority_based`, `deterministic`.
-    #[serde(default = "default_sop_execution_mode")]
-    pub default_execution_mode: String,
-
-    /// Maximum total concurrent SOP runs across all SOPs.
-    #[serde(default = "default_sop_max_concurrent_total")]
-    pub max_concurrent_total: usize,
-
-    /// Approval timeout in seconds. When a run waits for approval longer than
-    /// this, Critical/High-priority SOPs auto-approve; others stay waiting.
-    /// Set to 0 to disable timeout.
-    #[serde(default = "default_sop_approval_timeout_secs")]
-    pub approval_timeout_secs: u64,
-
-    /// Maximum number of finished runs kept in memory for status queries.
-    /// Oldest runs are evicted when over capacity. 0 = unlimited.
-    #[serde(default = "default_sop_max_finished_runs")]
-    pub max_finished_runs: usize,
-}
-
-fn default_sop_execution_mode() -> String {
-    "supervised".to_string()
-}
-
-fn default_sop_max_concurrent_total() -> usize {
-    4
-}
-
-fn default_sop_approval_timeout_secs() -> u64 {
-    300
-}
-
-fn default_sop_max_finished_runs() -> usize {
-    100
-}
-
-impl Default for SopConfig {
-    fn default() -> Self {
-        Self {
-            sops_dir: None,
-            default_execution_mode: default_sop_execution_mode(),
-            max_concurrent_total: default_sop_max_concurrent_total(),
-            approval_timeout_secs: default_sop_approval_timeout_secs(),
-            max_finished_runs: default_sop_max_finished_runs(),
-        }
-    }
-}
-
 
 #[cfg(test)]
 #[path = "schema.test.rs"]
