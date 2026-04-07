@@ -6,7 +6,6 @@ pub mod conflict;
 pub mod consolidation;
 pub mod decay;
 pub mod embeddings;
-pub mod hygiene;
 pub mod importance;
 pub mod obsidian;
 pub mod namespaced;
@@ -14,7 +13,6 @@ pub mod none;
 pub mod policy;
 pub mod response_cache;
 pub mod retrieval;
-pub mod snapshot;
 pub mod sqlite;
 pub mod traits;
 pub mod vector;
@@ -236,42 +234,7 @@ pub fn create_memory_with_storage_and_routes(
     api_key: Option<&str>,
 ) -> anyhow::Result<Box<dyn Memory>> {
     let backend_name = effective_memory_backend_name(&config.backend, storage_provider);
-    let backend_kind = classify_memory_backend(&backend_name);
     let resolved_embedding = resolve_embedding_config(config, embedding_routes, api_key);
-
-    // Best-effort memory hygiene/retention pass (throttled by state file).
-    if let Err(e) = hygiene::run_if_due(config, workspace_dir) {
-        tracing::warn!("memory hygiene skipped: {e}");
-    }
-
-    // If snapshot_on_hygiene is enabled, export core memories during hygiene.
-    if config.snapshot_enabled
-        && config.snapshot_on_hygiene
-        && matches!(backend_kind, MemoryBackendKind::Sqlite)
-    {
-        if let Err(e) = snapshot::export_snapshot(workspace_dir) {
-            tracing::warn!("memory snapshot skipped: {e}");
-        }
-    }
-
-    // Auto-hydration: if brain.db is missing but MEMORY_SNAPSHOT.md exists,
-    // restore the "soul" from the snapshot before creating the backend.
-    if config.auto_hydrate
-        && matches!(backend_kind, MemoryBackendKind::Sqlite)
-        && snapshot::should_hydrate(workspace_dir)
-    {
-        tracing::info!("🧬 Cold boot detected — hydrating from MEMORY_SNAPSHOT.md");
-        match snapshot::hydrate_from_snapshot(workspace_dir) {
-            Ok(count) => {
-                if count > 0 {
-                    tracing::info!("🧬 Hydrated {count} core memories from snapshot");
-                }
-            }
-            Err(e) => {
-                tracing::warn!("memory hydration failed: {e}");
-            }
-        }
-    }
 
     fn build_sqlite_memory(
         config: &MemoryConfig,
@@ -298,8 +261,6 @@ pub fn create_memory_with_storage_and_routes(
         )?;
         Ok(mem)
     }
-
-    let _ = backend_kind;
 
     create_memory_with_builders(
         &backend_name,

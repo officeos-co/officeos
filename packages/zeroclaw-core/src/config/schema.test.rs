@@ -297,10 +297,6 @@ default_temperature = 0.7
         let m = MemoryConfig::default();
         assert_eq!(m.backend, "sqlite");
         assert!(m.auto_save);
-        assert!(m.hygiene_enabled);
-        assert_eq!(m.archive_after_days, 7);
-        assert_eq!(m.purge_after_days, 30);
-        assert_eq!(m.conversation_retention_days, 30);
         assert!(m.sqlite_open_timeout_secs.is_none());
         assert_eq!(m.search_mode, SearchMode::Hybrid);
     }
@@ -593,10 +589,6 @@ default_temperature = 0.7
         assert_eq!(parsed.runtime.kind, "native");
         assert!(parsed.heartbeat.enabled);
         assert!(parsed.channels_config.cli);
-        assert!(parsed.memory.hygiene_enabled);
-        assert_eq!(parsed.memory.archive_after_days, 7);
-        assert_eq!(parsed.memory.purge_after_days, 30);
-        assert_eq!(parsed.memory.conversation_retention_days, 30);
         // provider_timeout_secs defaults to 120 when not specified
         assert_eq!(parsed.provider_timeout_secs, 120);
     }

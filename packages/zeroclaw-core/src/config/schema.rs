@@ -4554,18 +4554,6 @@ pub struct MemoryConfig {
     pub backend: String,
     /// Auto-save user-stated conversation input to memory (assistant output is excluded)
     pub auto_save: bool,
-    /// Run memory/session hygiene (archiving + retention cleanup)
-    #[serde(default = "default_hygiene_enabled")]
-    pub hygiene_enabled: bool,
-    /// Archive daily/session files older than this many days
-    #[serde(default = "default_archive_after_days")]
-    pub archive_after_days: u32,
-    /// Purge archived files older than this many days
-    #[serde(default = "default_purge_after_days")]
-    pub purge_after_days: u32,
-    /// For sqlite backend: prune conversation rows older than this many days
-    #[serde(default = "default_conversation_retention_days")]
-    pub conversation_retention_days: u32,
     /// Embedding provider: "none" | "openai" | "custom:URL"
     #[serde(default = "default_embedding_provider")]
     pub embedding_provider: String,
@@ -4609,17 +4597,6 @@ pub struct MemoryConfig {
     /// Max in-memory hot cache entries for the two-tier response cache (default: 256)
     #[serde(default = "default_response_cache_hot_entries")]
     pub response_cache_hot_entries: usize,
-
-    // ── Memory Snapshot (soul backup to Markdown) ─────────────
-    /// Enable periodic export of core memories to MEMORY_SNAPSHOT.md
-    #[serde(default)]
-    pub snapshot_enabled: bool,
-    /// Run snapshot during hygiene passes (heartbeat-driven)
-    #[serde(default)]
-    pub snapshot_on_hygiene: bool,
-    /// Auto-hydrate from MEMORY_SNAPSHOT.md when brain.db is missing
-    #[serde(default = "default_true")]
-    pub auto_hydrate: bool,
 
     // ── Retrieval Pipeline ─────────────────────────────────────
     /// Retrieval stages to execute in order. Valid: "cache", "fts", "vector".
@@ -4705,18 +4682,6 @@ fn default_audit_retention_days() -> u32 {
 fn default_embedding_provider() -> String {
     "none".into()
 }
-fn default_hygiene_enabled() -> bool {
-    true
-}
-fn default_archive_after_days() -> u32 {
-    7
-}
-fn default_purge_after_days() -> u32 {
-    30
-}
-fn default_conversation_retention_days() -> u32 {
-    30
-}
 fn default_embedding_model() -> String {
     "text-embedding-3-small".into()
 }
@@ -4754,10 +4719,6 @@ impl Default for MemoryConfig {
         Self {
             backend: "sqlite".into(),
             auto_save: true,
-            hygiene_enabled: default_hygiene_enabled(),
-            archive_after_days: default_archive_after_days(),
-            purge_after_days: default_purge_after_days(),
-            conversation_retention_days: default_conversation_retention_days(),
             embedding_provider: default_embedding_provider(),
             embedding_model: default_embedding_model(),
             embedding_dimensions: default_embedding_dims(),
@@ -4771,9 +4732,6 @@ impl Default for MemoryConfig {
             response_cache_ttl_minutes: default_response_cache_ttl(),
             response_cache_max_entries: default_response_cache_max(),
             response_cache_hot_entries: default_response_cache_hot_entries(),
-            snapshot_enabled: false,
-            snapshot_on_hygiene: false,
-            auto_hydrate: true,
             retrieval_stages: default_retrieval_stages(),
             rerank_enabled: false,
             rerank_threshold: default_rerank_threshold(),
