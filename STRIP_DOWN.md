@@ -16,8 +16,9 @@ A focused, multi-commit reduction of the inherited `zeroclaw-core` Rust crate fr
 - **Inline test files extracted to siblings**: 0 → **188**
 - **Tests passing**: build broken → **7,392 / 0 failing**
 - **Phase 3 (Obsidian vault as source of truth)**: complete — identity loader unified, `src/identity.rs` + `vault_sync.rs` deleted, per-agent CouchDB vault provisioning + K8s ConfigMap mount in dashboard backend.
+- **Phase 4 (orphan sweep)**: complete — 7 orphan config structs deleted, 14 dead Cargo features + ~17 deps deleted (Cargo.lock −6,000 lines), bare-metal `dist/`/`install.sh`/`setup.bat`/`flake.nix` deleted, `docs/hardware/` deleted.
 
-The strip-down phases 1–3 are complete. The codebase builds clean (`cargo check --tests`), every test target passes, and the production source is one third of its original size.
+The strip-down phases 1–4 are complete. The codebase builds clean (`cargo check --tests`), every test target passes, and the production source is one third of its original size.
 
 ### Architectural framing
 
@@ -32,11 +33,9 @@ Strip-down was guided by the **Office OS deployment model**:
 
 ### What's still left (not blocking — quality work)
 
-- **Phase 4 — orphan sweep**: dead config structs in `schema.rs` (`TunnelConfig`, `TrustConfig`, `SopConfig`, `VerifiableIntentConfig`, `BrowserDelegateConfig`, plus all tunnel sub-types), orphan Cargo features (`channel-matrix`), orphan dependencies (`matrix-sdk`, etc.), single-impl traits.
 - **Phase 5 — documentation pass**: 5-line module-doc comments on the surviving modules.
 - **Template sync retarget** (deferred from Phase 3): plumb `_seed_agent_vault` into the existing `POST /api/v1/gateways/{id}/templates/sync` flow so template updates propagate to the per-agent vault and ConfigMap of existing agents, not only on fresh create.
 - **Alembic head merge** (pre-existing): the dashboard backend has three unrelated Alembic heads. Phase 3's new migration chained from one of them without attempting a merge.
-- **Tiny loose ends in repo root**: `dist/` (AUR + Scoop), `install.sh`, `setup.bat`, `flake.nix/lock`, `docker-compose.yml`, `docs/hardware/`, `docs/browser-setup.md`.
 
 ---
 
@@ -389,7 +388,39 @@ After Phase 3, zeroclaw-core is a pure markdown reader. It does not create, sync
 
 - **Template sync endpoint not yet retargeted.** `POST /api/v1/gateways/{id}/templates/sync` still writes through the OpenClaw gateway control plane and does not re-seed the vault or refresh the ConfigMap. A follow-up commit should plumb `_seed_agent_vault` into `_sync_one_agent` so template updates propagate to existing agents. For now, vault provisioning only engages on fresh agent creation.
 - **Multi-head Alembic graph not merged.** The dashboard backend has three pre-existing Alembic heads from before Phase 3. Commit `fa7b7dc` chained its new migration off `b2c3d4e5f6a7` without attempting a merge. A future cleanup commit should merge all the heads.
-- **Orphan configs in schema.rs.** `TunnelConfig`, `TrustConfig`, `SopConfig`, `VerifiableIntentConfig`, `BrowserDelegateConfig` remain as orphans in the config schema (flagged in Phase 2). Phase 4 will sweep these.
+
+---
+
+## Phase 4 — Orphan sweep
+
+Phase 4 removed the scaffolding Phase 2 had to leave behind: dead config structs, dead Cargo features, dead dependencies, and repo-root loose ends. Pure deletion work — no architectural change, no new code.
+
+### Summary
+
+- **7 orphan config structs deleted**: `BrowserDelegateConfig`, `TrustConfig`, `SopConfig`, `VerifiableIntentConfig`, `HardwareConfig` (+ `HardwareTransport` enum), `PeripheralsConfig` (+ `PeripheralBoardConfig`), and `TunnelConfig` with all 7 tunnel sub-types (`Cloudflare`, `Tailscale`, `Ngrok`, `OpenVpn`, `Pinggy`, `Custom`).
+- **14 dead Cargo features deleted**: `channel-nostr`, `channel-matrix`, `channel-lark`, `channel-feishu`, `voice-wake`, `hardware`, `peripheral-rpi`, `browser-native` (+ `fantoccini` alias), `sandbox-bubblewrap`, `probe`, `whatsapp-web`, `plugins-wasm`, `webauthn`, plus the orphan `runtime-wasm` cfg that was never even in Cargo.toml.
+- **~17 dead dependencies deleted** from Cargo.toml: `matrix-sdk`, `nostr-sdk`, `prost`, `cpal`, `extism`, `fantoccini`, `probe-rs`, `wa-rs` + 5 sub-crates, `qrcode`, `serde-big-array`, `tokio-serial`, `nusb`, `rppal`. Cargo.lock shrunk by ~6,000 lines of transitive deps.
+- **2 orphan source files deleted**: `src/gateway/api_plugins.rs` (plugins-wasm), `src/runtime/wasm.rs` (runtime-wasm).
+- **Gateway bare-metal security warning deleted**: the `is_public_bind(host) && config.tunnel.provider == "none"` warning in `run_gateway` was the only live reader of `TunnelConfig`. Office OS is K8s-deployed, so the concern is obsolete.
+- **Repo-root loose ends deleted**: `dist/aur/`, `dist/scoop/`, `install.sh`, `setup.bat`, `flake.nix`, `flake.lock`, `docker-compose.yml`, `docs/hardware/` (8 files), `docs/browser-setup.md`.
+- **MemoryLoader trait retained** with a design-note docstring after the Phase 4 trait collapse sweep found it has a second implementor (`StaticMemoryLoader` in `tests/support/helpers.rs`) used by 3 integration tests as a deterministic mock. All other traits in the crate are genuinely multi-impl; no trait collapse was needed.
+
+### Per-commit recap (Phase 4)
+
+| #   | Commit    | Title                                                                            |
+| --- | --------- | -------------------------------------------------------------------------------- |
+| 1   | `1e11a04` | delete 6 orphan config structs (−312 LOC)                                         |
+| 2   | `13d93d8` | delete TunnelConfig + all sub-types (−221 LOC)                                    |
+| 3   | `34fbd64` | delete 14 dead Cargo features + deps (−5,908 LOC net, mostly Cargo.lock)          |
+| 4   | `a9c7089` | retain MemoryLoader trait with design note                                        |
+| 5   | `c8fa6d6` | delete repo-root loose ends (dist, install.sh, setup.bat, flake, docker-compose, docs/hardware, docs/browser-setup.md) |
+| 6   | (this)    | STRIP_DOWN.md Phase 4 entry                                                       |
+
+### Process notes (Phase 4 specific)
+
+- **Parallel subagents for mechanical deletions worked well.** Commit 3 used 3 parallel subagents with disjoint file lists to strip `#[cfg(feature = "X")]` blocks for dead features across 15+ files. Zero merge conflicts because each subagent had a precise file list.
+- **Research subagents found the scope cleanly.** Before any edits, 3 parallel Explore agents mapped (a) orphan config structs with file:line references, (b) dead features + their gated code locations, (c) single-impl trait candidates. The maps made the execution phase near-mechanical.
+- **"Test implementations don't count" is too broad.** The trait collapse research agent followed that heuristic and missed `StaticMemoryLoader` in `tests/support/helpers.rs`. A better rule: test implementations count when they're in `tests/support/` (shared across multiple integration tests) but don't count when they're in a `#[cfg(test)]` mod inline next to the trait itself.
 
 ---
 
