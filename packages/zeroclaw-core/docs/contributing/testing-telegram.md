@@ -100,18 +100,17 @@ Pass Rate:     100%
 
 ### Step 2: Configure Telegram (if not done)
 
-```bash
-# Guided setup
-zeroclaw onboard
+Edit the config file directly (the `zeroclaw onboard` wizard was deleted in the strip-down):
 
-# Or channels-only setup
-zeroclaw onboard --channels-only
+```toml
+# ~/.zeroclaw/config.toml (local dev) or the mounted config for K8s agents
+
+[channels_config.telegram]
+bot_token = "<TOKEN_FROM_@BotFather>"
+allowed_users = ["<YOUR_TELEGRAM_USER_ID>"]
 ```
 
-When prompted:
-1. Select **Telegram** channel
-2. Enter your **bot token** from @BotFather
-3. Enter your **Telegram user ID** or username
+For K8s-deployed agents, channel config comes from the dashboard backend's provisioning flow — see the dashboard backend docs.
 
 ### Step 3: Verify Health
 
@@ -210,10 +209,9 @@ cargo update
 ```bash
 # Check config
 cat ~/.zeroclaw/config.toml | grep -A 5 telegram
-
-# Reconfigure
-zeroclaw onboard --channels-only
 ```
+
+If the token is missing, edit `config.toml` directly under `[channels_config.telegram]` — the interactive `zeroclaw onboard` wizard was deleted during the strip-down.
 
 ### Issue: Health check fails
 

@@ -1,35 +1,79 @@
 # Resource Limits for ZeroClaw
 
-> ⚠️ **Status: Proposal / Roadmap**
+> **Status: Operational guidance + roadmap.**
 >
-> This document describes proposed approaches and may include hypothetical commands or config.
-> For current runtime behavior, see [config-reference.md](../reference/api/config-reference.md), [operations-runbook.md](operations-runbook.md), and [troubleshooting.md](troubleshooting.md).
+> Pod-level limits described below are the supported path today. Rust-side
+> in-process limits are proposals. For current runtime behavior, see
+> [config-reference.md](../reference/api/config-reference.md),
+> [operations-runbook.md](./operations-runbook.md), and
+> [troubleshooting.md](./troubleshooting.md).
 
 ## Problem
-ZeroClaw has rate limiting (20 actions/hour) but no resource caps. A runaway agent could:
+
+ZeroClaw has rate limiting (20 actions/hour) but no in-process resource
+caps. A runaway agent could:
+
 - Exhaust available memory
 - Spin CPU at 100%
-- Fill disk with logs/output
+- Fill the PVC with logs/output
+
+Because agents now run as Kubernetes pods, the pragmatic first line of
+defense is pod-level resources and quotas, not custom Rust allocators.
 
 ---
 
-## Proposed Solutions
+## Pod-Level Limits (Recommended)
 
-### Option 1: cgroups v2 (Linux, Recommended)
-Automatically create a cgroup for zeroclaw with limits.
+Set `resources.requests` and `resources.limits` on the agent pod spec.
+The dashboard backend's `K8sManager` is the component that writes these
+fields — adjust its defaults there, not by hand on live pods.
 
-```bash
-# Create systemd service with limits
-[Service]
-MemoryMax=512M
-CPUQuota=100%
-IOReadBandwidthMax=/dev/sda 10M
-IOWriteBandwidthMax=/dev/sda 10M
-TasksMax=100
+Example baseline for a single agent:
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "512Mi"
+    ephemeral-storage: "1Gi"
 ```
 
-### Option 2: tokio::task::deadlock detection
-Prevent task starvation.
+PVC size (for the per-agent sqlite memory file) should be small by
+default (e.g. 1–2 GiB) and grown only when memory-heavy agents need it.
+
+## Namespace Quotas
+
+For multi-agent deployments, enforce a `ResourceQuota` on the agent
+namespace so one runaway pod cannot starve the rest:
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: zeroclaw-agents
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "32"
+    limits.memory: "64Gi"
+    persistentvolumeclaims: "50"
+```
+
+Pair with a `LimitRange` to force every pod to declare requests/limits.
+
+---
+
+## In-Process Limits (Proposals)
+
+These are not implemented yet. They remain on the roadmap for cases
+where pod-level limits are not fine-grained enough (per-command CPU
+budget, per-tool memory cap).
+
+### Option 1: per-command CPU timeout
 
 ```rust
 use tokio::time::{timeout, Duration};
@@ -37,51 +81,26 @@ use tokio::time::{timeout, Duration};
 pub async fn execute_with_timeout<F, T>(
     fut: F,
     cpu_time_limit: Duration,
-    memory_limit: usize,
 ) -> Result<T>
 where
     F: Future<Output = Result<T>>,
 {
-    // CPU timeout
     timeout(cpu_time_limit, fut).await?
 }
 ```
 
-### Option 3: Memory monitoring
-Track heap usage and kill if over limit.
+### Option 2: heap accounting via a custom global allocator
 
-```rust
-use std::alloc::{GlobalAlloc, Layout, System};
-
-struct LimitedAllocator<A> {
-    inner: A,
-    max_bytes: usize,
-    used: std::sync::atomic::AtomicUsize,
-}
-
-unsafe impl<A: GlobalAlloc> GlobalAlloc for LimitedAllocator<A> {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let current = self.used.fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
-        if current + layout.size() > self.max_bytes {
-            std::process::abort();
-        }
-        self.inner.alloc(layout)
-    }
-}
-```
+Track heap usage and abort if over a configured limit. Intrusive and
+platform-sensitive; use only if pod limits are insufficient.
 
 ---
 
-## Config Schema
+## Proposed Config Schema
 
 ```toml
 [resources]
-# Memory limits (in MB)
-max_memory_mb = 512
-max_memory_per_command_mb = 128
-
 # CPU limits
-max_cpu_percent = 50
 max_cpu_time_seconds = 60
 
 # Disk I/O limits
@@ -99,7 +118,7 @@ max_open_files = 100
 
 | Phase | Feature | Effort | Impact |
 |-------|---------|--------|--------|
-| **P0** | Memory monitoring + kill | Low | High |
-| **P1** | CPU timeout per command | Low | High |
-| **P2** | cgroups integration (Linux) | Medium | Very High |
-| **P3** | Disk I/O limits | Medium | Medium |
+| **P0** | Pod `resources.limits` + namespace `ResourceQuota` | Low | High |
+| **P1** | Per-command CPU timeout in core | Low | High |
+| **P2** | Heap accounting allocator | Medium | Medium |
+| **P3** | Per-tool disk I/O caps | Medium | Medium |

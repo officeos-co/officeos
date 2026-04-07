@@ -1,35 +1,38 @@
-# Getting Started Docs
+# Setup Guides
 
-For first-time setup and quick orientation.
+These are the small setup guides that still apply to `zeroclaw-core`. The bulk of setup (agent provisioning, K8s pod spec, vault creation, dashboard UI) lives in the dashboard backend docs, not here.
 
-## Start Path
+## Agent provisioning
 
-1. Main overview and quick start: [../../README.md](../../README.md)
-2. One-click setup and dual bootstrap mode: [one-click-bootstrap.md](one-click-bootstrap.md)
-3. Update or uninstall on macOS: [macos-update-uninstall.md](macos-update-uninstall.md)
-4. Find commands by tasks: [../reference/cli/commands-reference.md](../reference/cli/commands-reference.md)
-5. Register MCP servers: [mcp-setup.md](mcp-setup.md)
+Agent lifecycle is managed by the dashboard backend (`apps/dashboard/backend/`). To create a new agent:
 
-## Choose Your Path
+1. Use the dashboard UI or `POST /api/v1/agents`.
+2. The backend provisions a per-agent Obsidian vault, seeds it with template `.md` files, creates a Kubernetes `Pod` + `Service` + `ConfigMap` + `PVC`, and returns the agent ID.
+3. The agent pod boots, reads its personality files from the mounted ConfigMap at `/vault-workspace`, and starts `zeroclaw daemon`.
 
-| Scenario | Command |
-|----------|---------|
-| I have an API key, want fastest setup | `zeroclaw onboard --api-key sk-... --provider openrouter` |
-| I want guided prompts | `zeroclaw onboard` |
-| Config exists, just fix channels | `zeroclaw onboard --channels-only` |
-| Config exists, I intentionally want full overwrite | `zeroclaw onboard --force` |
-| Using subscription auth | See [Subscription Auth](../../README.md#subscription-auth-openai-codex--claude-code) |
+See [`../reference/identity-vault.md`](../reference/identity-vault.md) for the full vault architecture.
 
-## Onboarding and Validation
+## Guides in this directory
 
-- Quick onboarding: `zeroclaw onboard --api-key "sk-..." --provider openrouter`
-- Guided onboarding: `zeroclaw onboard`
-- Existing config protection: reruns require explicit confirmation (or `--force` in non-interactive flows)
-- Ollama cloud models (`:cloud`) require a remote `api_url` and API key (for example `api_url = "https://ollama.com"`).
-- Validate environment: `zeroclaw status` + `zeroclaw doctor`
+- [`mcp-setup.md`](mcp-setup.md) — register an MCP server for the agent's tool surface (stdio, SSE, HTTP transports).
+- [`zai-glm-setup.md`](zai-glm-setup.md) — configure the Z.AI / GLM provider via the `compatible` wrapper.
 
-## Next
+## What's not here anymore
 
-- Runtime operations: [../ops/README.md](../ops/README.md)
-- Reference catalogs: [../reference/README.md](../reference/README.md)
-- macOS lifecycle tasks: [macos-update-uninstall.md](macos-update-uninstall.md)
+Deleted during the strip-down (Phases 2–4):
+
+- `one-click-bootstrap.md` — referenced deleted `install.sh`.
+- `windows-setup.md` — Windows bare-metal installation is no longer supported.
+- `macos-update-uninstall.md` — referenced deleted `install.sh` and `zeroclaw service` commands.
+- `mattermost-setup.md`, `nextcloud-talk-setup.md` — channels were deleted in Phase 2.4.
+
+## Validating a running agent
+
+Once a pod is running, validate it from within the pod (via `kubectl exec`) or the dashboard:
+
+```bash
+zeroclaw status       # current config summary + component health
+zeroclaw doctor       # deeper diagnostic probes
+```
+
+Both commands read the mounted config and report on identity, memory, providers, and channels. See [`../reference/cli/commands-reference.md`](../reference/cli/commands-reference.md).

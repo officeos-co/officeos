@@ -16,17 +16,7 @@ If you need a custom base URL, see [`../contributing/custom-providers.md`](../co
 
 ## Setup
 
-### Quick Start
-
-```bash
-zeroclaw onboard \
-  --provider "zai" \
-  --api-key "YOUR_ZAI_API_KEY"
-```
-
-### Manual Configuration
-
-Edit `~/.zeroclaw/config.toml`:
+Edit the agent's `config.toml` (for K8s-deployed agents this is mounted from the dashboard backend's provisioning step; for local development it is `~/.zeroclaw/config.toml`):
 
 ```toml
 api_key = "YOUR_ZAI_API_KEY"
@@ -35,11 +25,13 @@ default_model = "glm-5"
 default_temperature = 0.7
 ```
 
+`zai` is an alias resolved by the `compatible` provider wrapper — see [`../reference/api/providers-reference.md`](../reference/api/providers-reference.md) for the full alias list.
+
 ## Available Models
 
 | Model | Description |
 |-------|-------------|
-| `glm-5` | Default in onboarding; strongest reasoning |
+| `glm-5` | Strongest reasoning |
 | `glm-4.7` | Strong general-purpose quality |
 | `glm-4.6` | Balanced baseline |
 | `glm-4.5-air` | Lower-latency option |

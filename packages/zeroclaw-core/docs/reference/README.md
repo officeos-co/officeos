@@ -1,6 +1,6 @@
 # Reference Catalogs
 
-Structured reference index for commands, providers, channels, config, and integration guides.
+Structured reference index for commands, providers, channels, and config.
 
 ## Core References
 
@@ -9,15 +9,18 @@ Structured reference index for commands, providers, channels, config, and integr
 - Channel setup + allowlists: [api/channels-reference.md](api/channels-reference.md)
 - Config defaults and keys: [api/config-reference.md](api/config-reference.md)
 
-## Provider & Integration Extensions
-
-- Custom provider endpoints: [../contributing/custom-providers.md](../contributing/custom-providers.md)
-- Z.AI / GLM provider onboarding: [../setup-guides/zai-glm-setup.md](../setup-guides/zai-glm-setup.md)
-- Nextcloud Talk bot integration: [../setup-guides/nextcloud-talk-setup.md](../setup-guides/nextcloud-talk-setup.md)
-- LangGraph-based integration patterns: [../contributing/langgraph-integration.md](../contributing/langgraph-integration.md)
-
 ## Usage
 
-Use this collection when you need precise CLI/config details or provider integration patterns rather than step-by-step tutorials.
+Use this collection when you need precise CLI/config details or provider
+integration patterns rather than step-by-step tutorials.
 
-When adding a new reference/integration doc, make sure it is linked in both [../SUMMARY.md](../SUMMARY.md) and [../maintainers/docs-inventory.md](../maintainers/docs-inventory.md).
+The ground truth for this reference is the source tree under `src/`:
+
+- `src/main.rs` — CLI command surface
+- `src/providers/mod.rs` — provider factory and aliases
+- `src/channels/` — channel implementations
+- `src/config/schema.rs` — full `Config` struct and defaults
+- `src/tools/mod.rs` — `all_tools_with_runtime()` tool registry
+
+If a doc here disagrees with the source, the source wins — please open a
+docs fix.

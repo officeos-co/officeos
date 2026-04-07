@@ -187,7 +187,7 @@ Expected behavior:
 ### 8.2 Add one more proxied service
 
 ```json
-{"action":"set","scope":"services","services":["provider.openai","tool.http_request","channel.slack"]}
+{"action":"set","scope":"services","services":["provider.openai","tool.http_request","channel.telegram"]}
 {"action":"get"}
 ```
 
@@ -216,8 +216,8 @@ Expected behavior:
 
 ## 10. Related Docs
 
-- [README.md](./README.md) — Documentation index and taxonomy.
-- [network-deployment.md](./network-deployment.md) — end-to-end network deployment and tunnel topology guidance.
+- [README.md](./README.md) — ops docs index.
+- [operations-runbook.md](./operations-runbook.md) — day-2 ops for K8s-hosted agents.
 - [resource-limits.md](./resource-limits.md) — runtime safety limits for network/tool execution contexts.
 
 ---

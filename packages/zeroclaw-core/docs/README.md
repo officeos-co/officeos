@@ -1,91 +1,54 @@
-# ZeroClaw Documentation Hub
+# zeroclaw-core Documentation
 
-This page is the primary entry point for the documentation system.
+`zeroclaw-core` is a Rust library crate: the agent runtime that powers Office OS agent pods. It is consumed by the Python dashboard backend in `apps/dashboard/backend/`, which provisions agent pods on Kubernetes. There is no bare-metal installation path.
 
-Last refreshed: **February 21, 2026**.
+If you're looking for **how to run an agent**, start with the dashboard backend docs, not here. The docs in this directory describe the zeroclaw-core runtime, its configuration surface, its extension points, and how to contribute.
 
-Localized hubs:
-[العربية](README.ar.md) · [বাংলা](README.bn.md) · [Čeština](README.cs.md) · [Dansk](README.da.md) · [Deutsch](README.de.md) · [Ελληνικά](README.el.md) · [Español](README.es.md) · [Suomi](README.fi.md) · [Français](README.fr.md) · [עברית](README.he.md) · [हिन्दी](README.hi.md) · [Magyar](README.hu.md) · [Bahasa Indonesia](README.id.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Norsk Bokmål](README.nb.md) · [Nederlands](README.nl.md) · [Polski](README.pl.md) · [Português](README.pt.md) · [Română](README.ro.md) · [Русский](README.ru.md) · [Svenska](README.sv.md) · [ไทย](README.th.md) · [Tagalog](README.tl.md) · [Türkçe](README.tr.md) · [Українська](README.uk.md) · [اردو](README.ur.md) · [Tiếng Việt](README.vi.md) · [简体中文](README.zh-CN.md).
-
-## Start Here
+## Quick navigation
 
 | I want to… | Read this |
-|---|---|
-| Install and run ZeroClaw quickly | [README.md (Quick Start)](../README.md#quick-start) |
-| Bootstrap in one command | [one-click-bootstrap.md](setup-guides/one-click-bootstrap.md) |
-| Update or uninstall on macOS | [macos-update-uninstall.md](setup-guides/macos-update-uninstall.md) |
-| Find commands by task | [commands-reference.md](reference/cli/commands-reference.md) |
-| Check config defaults and keys quickly | [config-reference.md](reference/api/config-reference.md) |
-| Configure custom providers/endpoints | [custom-providers.md](contributing/custom-providers.md) |
-| Configure Z.AI / GLM provider | [zai-glm-setup.md](setup-guides/zai-glm-setup.md) |
-| Use LangGraph integration patterns | [langgraph-integration.md](contributing/langgraph-integration.md) |
-| Operate runtime (day-2 runbook) | [operations-runbook.md](ops/operations-runbook.md) |
-| Troubleshoot install/runtime/channel issues | [troubleshooting.md](ops/troubleshooting.md) |
-| Run Matrix encrypted-room setup and diagnostics | [matrix-e2ee-guide.md](security/matrix-e2ee-guide.md) |
-| Browse docs by category | [SUMMARY.md](SUMMARY.md) |
-| See project PR/issue docs snapshot | [project-triage-snapshot-2026-02-18.md](maintainers/project-triage-snapshot-2026-02-18.md) |
+| --- | --- |
+| Understand the post-strip-down architecture | [`STRIP_DOWN.md`](../../../STRIP_DOWN.md) (at repo root) |
+| Look up a CLI subcommand | [`reference/cli/commands-reference.md`](reference/cli/commands-reference.md) |
+| Look up a config key | [`reference/api/config-reference.md`](reference/api/config-reference.md) |
+| Look up a provider ID or alias | [`reference/api/providers-reference.md`](reference/api/providers-reference.md) |
+| Look up a channel config | [`reference/api/channels-reference.md`](reference/api/channels-reference.md) |
+| Understand the per-agent Obsidian vault (identity source of truth) | [`reference/identity-vault.md`](reference/identity-vault.md) |
+| Read the planned centralized memory service | [`reference/memory-future.md`](reference/memory-future.md) |
+| Operate a running agent pod (day-2) | [`ops/operations-runbook.md`](ops/operations-runbook.md) |
+| Diagnose a failing agent pod | [`ops/troubleshooting.md`](ops/troubleshooting.md) |
+| Add a new provider, channel, or tool | [`contributing/change-playbooks.md`](contributing/change-playbooks.md) |
+| Open a PR against zeroclaw-core | [`contributing/pr-workflow.md`](contributing/pr-workflow.md) |
+| Understand CI | [`contributing/ci-map.md`](contributing/ci-map.md) |
+| Read security design proposals | [`security/README.md`](security/README.md) |
 
-## Quick Decision Tree (10 seconds)
+## Collections
 
-- Need first-time setup or install? → [setup-guides/README.md](setup-guides/README.md)
-- Need exact CLI/config keys? → [reference/README.md](reference/README.md)
-- Need production/service operations? → [ops/README.md](ops/README.md)
-- Seeing failures or regressions? → [troubleshooting.md](ops/troubleshooting.md)
-- Working on security hardening or roadmap? → [security/README.md](security/README.md)
-- Working with boards/peripherals? → [hardware/README.md](hardware/README.md)
-- Contributing/reviewing/CI workflow? → [contributing/README.md](contributing/README.md)
-- Want the full map? → [SUMMARY.md](SUMMARY.md)
+- **Setup guides** — [`setup-guides/`](setup-guides/README.md): MCP server registration, Z.AI/GLM provider setup. Bare-metal install, Homebrew, Windows, and macOS update/uninstall guides were deleted — Office OS is K8s-only.
+- **Reference catalogs** — [`reference/`](reference/README.md): authoritative CLI, config, provider, channel, and identity-vault docs.
+- **Operations** — [`ops/`](ops/README.md): day-2 runbook, troubleshooting, resource limits, proxy playbook. All oriented at K8s-deployed agent pods.
+- **Security** — [`security/README.md`](security/README.md): sandboxing, audit-logging, threat model. **Design proposals**, not always current behaviour.
+- **Contributing** — [`contributing/`](contributing/README.md): PR discipline, extension points, testing.
+- **Architecture** — [`architecture/`](architecture/): ADRs.
+- **Maintainers** — [`maintainers/`](maintainers/README.md): repo governance and trademark.
 
-## Collections (Recommended)
+## Not in these docs
 
-- Getting started: [setup-guides/README.md](setup-guides/README.md)
-- Reference catalogs: [reference/README.md](reference/README.md)
-- Operations & deployment: [ops/README.md](ops/README.md)
-- Security docs: [security/README.md](security/README.md)
-- Hardware/peripherals: [hardware/README.md](hardware/README.md)
-- Contributing/CI: [contributing/README.md](contributing/README.md)
-- Project snapshots: [maintainers/README.md](maintainers/README.md)
+The following topics used to live here but have been deleted along with the subsystems they described:
 
-## By Audience
+- **Bare-metal install** (`install.sh`, `setup.bat`, `flake.nix`, Docker Compose, Homebrew formula, Scoop, AUR) — Office OS is K8s-only.
+- **Peripherals / hardware** (STM32, RPi GPIO, Arduino, ESP32, datasheet RAG) — Phase 2.2–2.3 deletion.
+- **Tunnels** (Cloudflare, ngrok, Tailscale, Pinggy, OpenVPN) — Phase 4 deletion. The pod is exposed via K8s Service/Ingress.
+- **Deleted channels** (Matrix, Discord, Slack, WhatsApp, Signal, Nostr, 38 others) — only Telegram + webhook remain.
+- **Deleted providers** (Gemini, Bedrock, Copilot, Azure OpenAI, Claude Code, OpenAI Codex, Telnyx) — only anthropic, openai, ollama, openrouter, reliable, router, and the `compatible` wrapper remain.
+- **SOP engine, Verifiable Intent, Trust scoring, Plugins (WASM), Voice wake, WebAuthn** — all deleted in Phase 2/4.
+- **AIEOS JSON identity** — Phase 3 made markdown-only identity the source of truth; AIEOS was deleted.
+- **Interactive onboard wizard** (`zeroclaw onboard`) — deleted Phase 2.3. Agent provisioning is handled by the dashboard backend.
 
-### Users / Operators
+See [`STRIP_DOWN.md`](../../../STRIP_DOWN.md) for the complete strip-down record.
 
-- [commands-reference.md](reference/cli/commands-reference.md) — command lookup by workflow
-- [providers-reference.md](reference/api/providers-reference.md) — provider IDs, aliases, credential env vars
-- [channels-reference.md](reference/api/channels-reference.md) — channel capabilities and setup paths
-- [matrix-e2ee-guide.md](security/matrix-e2ee-guide.md) — Matrix encrypted-room (E2EE) setup and no-response diagnostics
-- [config-reference.md](reference/api/config-reference.md) — high-signal config keys and secure defaults
-- [custom-providers.md](contributing/custom-providers.md) — custom provider/base URL integration templates
-- [zai-glm-setup.md](setup-guides/zai-glm-setup.md) — Z.AI/GLM setup and endpoint matrix
-- [langgraph-integration.md](contributing/langgraph-integration.md) — fallback integration for model/tool-calling edge cases
-- [operations-runbook.md](ops/operations-runbook.md) — day-2 runtime operations and rollback flow
-- [troubleshooting.md](ops/troubleshooting.md) — common failure signatures and recovery steps
+## Contributing to these docs
 
-### Contributors / Maintainers
+Every doc in this directory should describe **current behaviour**, not historical state or aspirational design. Security proposals and the memory-future spec are the only exceptions, and they're clearly labelled.
 
-- [../CONTRIBUTING.md](../CONTRIBUTING.md)
-- [pr-workflow.md](contributing/pr-workflow.md)
-- [reviewer-playbook.md](contributing/reviewer-playbook.md)
-- [ci-map.md](contributing/ci-map.md)
-- [actions-source-policy.md](contributing/actions-source-policy.md)
-
-### Security / Reliability
-
-> Note: this area includes proposal/roadmap docs. For current behavior, start with [config-reference.md](reference/api/config-reference.md), [operations-runbook.md](ops/operations-runbook.md), and [troubleshooting.md](ops/troubleshooting.md).
-
-- [security/README.md](security/README.md)
-- [agnostic-security.md](security/agnostic-security.md)
-- [frictionless-security.md](security/frictionless-security.md)
-- [sandboxing.md](security/sandboxing.md)
-- [audit-logging.md](security/audit-logging.md)
-- [resource-limits.md](ops/resource-limits.md)
-- [security-roadmap.md](security/security-roadmap.md)
-
-## System Navigation & Governance
-
-- Unified TOC: [SUMMARY.md](SUMMARY.md)
-- Docs structure map (language/part/function): [structure/README.md](maintainers/structure-README.md)
-- Documentation inventory/classification: [docs-inventory.md](maintainers/docs-inventory.md)
-- i18n docs index: [i18n/README.md](i18n/README.md)
-- i18n coverage map: [i18n-coverage.md](maintainers/i18n-coverage.md)
-- Project triage snapshot: [project-triage-snapshot-2026-02-18.md](maintainers/project-triage-snapshot-2026-02-18.md)
+When you change the surviving surface (add a provider, change a config key, add a CLI command), update the corresponding reference doc in the same PR. See [`contributing/docs-contract.md`](contributing/docs-contract.md).

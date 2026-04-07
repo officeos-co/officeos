@@ -1,154 +1,60 @@
 # Custom Provider Configuration
 
-ZeroClaw supports custom API endpoints for both OpenAI-compatible and Anthropic-compatible providers.
+ZeroClaw supports custom OpenAI-compatible endpoints through the `compatible` provider wrapper in `src/providers/compatible.rs`. Direct first-class providers are limited to `anthropic`, `openai`, `ollama`, `openrouter`, `reliable`, and `router`.
 
-## Provider Types
+The `compatible` wrapper covers roughly thirty community endpoints, including: groq, mistral, xai, deepseek, together, fireworks, cohere, perplexity, lm_studio, llama.cpp, z.ai, glm, minimax, qwen, and similar OpenAI-compatible services.
 
-### OpenAI-Compatible Endpoints (`custom:`)
+## When to Use Which Provider
 
-For services that implement the OpenAI API format:
+- **First-class direct providers** (`anthropic`, `openai`, `ollama`, `openrouter`): use the provider ID directly.
+- **Any OpenAI-compatible endpoint**: use `compatible` with a named endpoint or an explicit base URL.
+- **Reliability wrapping / routing**: use `reliable` or `router` to compose the above.
 
-```toml
-default_provider = "custom:https://your-api.com"
-api_key = "your-api-key"
-default_model = "your-model-name"
-```
-
-### Anthropic-Compatible Endpoints (`anthropic-custom:`)
-
-For services that implement the Anthropic API format:
-
-```toml
-default_provider = "anthropic-custom:https://your-api.com"
-api_key = "your-api-key"
-default_model = "your-model-name"
-```
-
-## Configuration Methods
-
-### Config File
+## Config File
 
 Edit `~/.zeroclaw/config.toml`:
 
 ```toml
 api_key = "your-api-key"
-default_provider = "anthropic-custom:https://api.example.com"
-default_model = "claude-sonnet-4-6"
+default_provider = "compatible:groq"
+default_model = "llama-3.1-70b-versatile"
 ```
 
-### Environment Variables
+Or point at an arbitrary OpenAI-compatible base URL:
 
-For `custom:` and `anthropic-custom:` providers, use the generic key env vars:
+```toml
+default_provider = "compatible"
+api_url = "https://your-api.example.com/v1"
+api_key = "your-api-key"
+default_model = "your-model-name"
+```
+
+## Environment Variables
 
 ```bash
-export API_KEY="your-api-key"
-# or: export ZEROCLAW_API_KEY="your-api-key"
+export ZEROCLAW_API_KEY="your-api-key"
 zeroclaw agent
 ```
 
-## llama.cpp Server (Recommended Local Setup)
+## Local OpenAI-Compatible Servers
 
-ZeroClaw includes a first-class local provider for `llama-server`:
+Any local server that speaks the OpenAI chat completions API (llama.cpp's `llama-server`, LM Studio, vLLM, SGLang, etc.) can be used through `compatible` by pointing `api_url` at its `/v1` endpoint.
 
-- Provider ID: `llamacpp` (alias: `llama.cpp`)
-- Default endpoint: `http://localhost:8080/v1`
-- API key is optional unless `llama-server` is started with `--api-key`
-
-Start a local server (example):
-
-```bash
-llama-server -hf ggml-org/gpt-oss-20b-GGUF --jinja -c 133000 --host 127.0.0.1 --port 8033
-```
-
-Then configure ZeroClaw:
+Example for a local `llama-server`:
 
 ```toml
-default_provider = "llamacpp"
-api_url = "http://127.0.0.1:8033/v1"
-default_model = "ggml-org/gpt-oss-20b-GGUF"
+default_provider = "compatible"
+api_url = "http://127.0.0.1:8080/v1"
+default_model = "your-local-model"
 default_temperature = 0.7
 ```
 
-Quick validation:
-
-```bash
-zeroclaw models refresh --provider llamacpp
-zeroclaw agent -m "hello"
-```
-
-You do not need to export `ZEROCLAW_API_KEY=dummy` for this flow.
-
-## SGLang Server
-
-ZeroClaw includes a first-class local provider for [SGLang](https://github.com/sgl-project/sglang):
-
-- Provider ID: `sglang`
-- Default endpoint: `http://localhost:30000/v1`
-- API key is optional unless the server requires authentication
-
-Start a local server (example):
-
-```bash
-python -m sglang.launch_server --model meta-llama/Llama-3.1-8B-Instruct --port 30000
-```
-
-Then configure ZeroClaw:
-
-```toml
-default_provider = "sglang"
-default_model = "meta-llama/Llama-3.1-8B-Instruct"
-default_temperature = 0.7
-```
-
-Quick validation:
-
-```bash
-zeroclaw models refresh --provider sglang
-zeroclaw agent -m "hello"
-```
-
-You do not need to export `ZEROCLAW_API_KEY=dummy` for this flow.
-
-## vLLM Server
-
-ZeroClaw includes a first-class local provider for [vLLM](https://docs.vllm.ai/):
-
-- Provider ID: `vllm`
-- Default endpoint: `http://localhost:8000/v1`
-- API key is optional unless the server requires authentication
-
-Start a local server (example):
-
-```bash
-vllm serve meta-llama/Llama-3.1-8B-Instruct
-```
-
-Then configure ZeroClaw:
-
-```toml
-default_provider = "vllm"
-default_model = "meta-llama/Llama-3.1-8B-Instruct"
-default_temperature = 0.7
-```
-
-Quick validation:
-
-```bash
-zeroclaw models refresh --provider vllm
-zeroclaw agent -m "hello"
-```
-
-You do not need to export `ZEROCLAW_API_KEY=dummy` for this flow.
+API keys are optional for local servers unless the server was started with authentication enabled.
 
 ## Testing Configuration
 
-Verify your custom endpoint:
-
 ```bash
-# Interactive mode
 zeroclaw agent
-
-# Single message test
 zeroclaw agent -m "test message"
 ```
 
@@ -156,51 +62,51 @@ zeroclaw agent -m "test message"
 
 ### Authentication Errors
 
-- Verify API key is correct
-- Check endpoint URL format (must include `http://` or `https://`)
-- Ensure endpoint is accessible from your network
+- Verify the API key is correct.
+- Check the endpoint URL format (must include `http://` or `https://`).
+- Ensure the endpoint is reachable from your network.
 
 ### Model Not Found
 
-- Confirm model name matches provider's available models
-- Check provider documentation for exact model identifiers
-- Ensure endpoint and model family match. Some custom gateways only expose a subset of models.
-- Verify available models from the same endpoint and key you configured:
+- Confirm the model name matches the endpoint's available models.
+- Verify available models from the same endpoint and key:
 
 ```bash
-curl -sS https://your-api.com/models \
-  -H "Authorization: Bearer $API_KEY"
+curl -sS https://your-api.example.com/v1/models \
+  -H "Authorization: Bearer $ZEROCLAW_API_KEY"
 ```
 
-- If the gateway does not implement `/models`, send a minimal chat request and inspect the provider's returned model error text.
+- If the gateway does not implement `/models`, send a minimal chat request and inspect the returned error text.
 
 ### Connection Issues
 
-- Test endpoint accessibility: `curl -I https://your-api.com`
-- Verify firewall/proxy settings
-- Check provider status page
+- Test endpoint accessibility: `curl -I https://your-api.example.com`
+- Verify firewall/proxy settings.
+- Check the provider status page.
 
 ## Examples
 
-### Local LLM Server (Generic Custom Endpoint)
+### Named Community Endpoint
 
 ```toml
-default_provider = "custom:http://localhost:8080/v1"
-api_key = "your-api-key-if-required"
-default_model = "local-model"
+default_provider = "compatible:deepseek"
+api_key = "your-deepseek-key"
+default_model = "deepseek-chat"
 ```
 
 ### Corporate Proxy
 
 ```toml
-default_provider = "anthropic-custom:https://llm-proxy.corp.example.com"
+default_provider = "compatible"
+api_url = "https://llm-proxy.corp.example.com/v1"
 api_key = "internal-token"
+default_model = "gpt-4"
 ```
 
-### Cloud Provider Gateway
+### Local LLM Server
 
 ```toml
-default_provider = "custom:https://gateway.cloud-provider.com/v1"
-api_key = "gateway-api-key"
-default_model = "gpt-4"
+default_provider = "compatible"
+api_url = "http://localhost:8080/v1"
+default_model = "local-model"
 ```

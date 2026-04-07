@@ -262,28 +262,15 @@ impl Default for SandboxBackend {
 
 ---
 
-## User Experience Comparison
+## Outcome summary
 
-### Before (Current)
-```bash
-$ zeroclaw onboard
-[1/9] Workspace Setup...
-[2/9] AI Provider...
-...
-[9/9] Workspace Files...
-✓ Security: Supervised | workspace-scoped
+When this proposal lands, `zeroclaw doctor` / `zeroclaw status` should surface sandbox state inline:
+
 ```
-
-### After (With Frictionless Security)
-```bash
-$ zeroclaw onboard
-[1/9] Workspace Setup...
-[2/9] AI Provider...
-...
-[9/9] Workspace Files...
 ✓ Security: Supervised | workspace-scoped | Landlock sandbox ✓
-# ↑ Just one extra word, silent auto-detection!
 ```
+
+Silent auto-detection at agent boot — no extra configuration steps. (The old `zeroclaw onboard` wizard that this section originally described was deleted in the Phase 2.3 strip-down; the security proposal itself still applies.)
 
 ---
 

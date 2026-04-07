@@ -1,112 +1,80 @@
 # ZeroClaw Commands Reference
 
-This reference is derived from the current CLI surface (`zeroclaw --help`).
-
-Last verified: **March 26, 2026**.
+This reference is derived from the `Commands` enum in `src/main.rs`.
+If a flag or subcommand disagrees with `zeroclaw --help`, the binary is
+the source of truth — please open a docs fix.
 
 ## Top-Level Commands
 
-| Command | Purpose |
-|---|---|
-| `onboard` | Initialize workspace/config quickly or interactively |
-| `agent` | Run interactive chat or single-message mode |
-| `gateway` | Start webhook and WhatsApp HTTP gateway |
-| `acp` | Start ACP (Agent Control Protocol) server over stdio |
-| `daemon` | Start supervised runtime (gateway + channels + optional heartbeat/scheduler) |
-| `service` | Manage user-level OS service lifecycle |
-| `doctor` | Run diagnostics and freshness checks |
-| `status` | Print current configuration and system summary |
-| `estop` | Engage/resume emergency stop levels and inspect estop state |
-| `cron` | Manage scheduled tasks |
-| `models` | Refresh provider model catalogs |
-| `providers` | List provider IDs, aliases, and active provider |
-| `channel` | Manage channels and channel health checks |
-| `integrations` | Inspect integration details |
-| `skills` | List/install/remove skills |
-| `migrate` | Import from external runtimes (currently OpenClaw) |
-| `config` | Export machine-readable config schema |
+| Command       | Purpose |
+|---------------|---------|
+| `agent`       | Run interactive chat or single-message mode |
+| `gateway`     | Start/manage the webhook/websocket gateway |
+| `daemon`      | Start the supervised runtime (gateway + channels + heartbeat + scheduler) |
+| `doctor`      | Diagnostics and runtime trace queries |
+| `status`      | Print current configuration and system summary |
+| `estop`       | Engage/resume emergency-stop levels and inspect estop state |
+| `cron`        | Manage scheduled tasks |
+| `providers`   | List supported AI providers |
+| `channel`     | Manage channels (list/start/doctor/bind/add/remove) |
+| `skills`      | List/audit/install/remove skills |
+| `migrate`     | Import data from other agent runtimes |
+| `auth`        | Manage provider subscription auth profiles |
+| `memory`      | List/get/stats/clear agent memory entries |
+| `config`      | Export machine-readable config schema |
+| `update`      | Check for and apply ZeroClaw updates |
+| `self-test`   | Run diagnostic self-tests |
 | `completions` | Generate shell completion scripts to stdout |
-| `hardware` | Discover and introspect USB hardware |
-| `peripheral` | Configure and flash peripherals |
+| `desktop`     | Launch or install the companion desktop app |
 
 ## Command Groups
-
-### `onboard`
-
-- `zeroclaw onboard`
-- `zeroclaw onboard --channels-only`
-- `zeroclaw onboard --force`
-- `zeroclaw onboard --reinit`
-- `zeroclaw onboard --api-key <KEY> --provider <ID> --memory <sqlite|lucid|markdown|none>`
-- `zeroclaw onboard --api-key <KEY> --provider <ID> --model <MODEL_ID> --memory <sqlite|lucid|markdown|none>`
-- `zeroclaw onboard --api-key <KEY> --provider <ID> --model <MODEL_ID> --memory <sqlite|lucid|markdown|none> --force`
-
-`onboard` safety behavior:
-
-- If `config.toml` already exists, onboarding offers two modes:
-  - Full onboarding (overwrite `config.toml`)
-  - Provider-only update (update provider/model/API key while preserving existing channels, tunnel, memory, hooks, and other settings)
-- In non-interactive environments, existing `config.toml` causes a safe refusal unless `--force` is passed.
-- Use `zeroclaw onboard --channels-only` when you only need to rotate channel tokens/allowlists.
-- Use `zeroclaw onboard --reinit` to start fresh. This backs up your existing config directory with a timestamp suffix and creates a new configuration from scratch.
 
 ### `agent`
 
 - `zeroclaw agent`
 - `zeroclaw agent -m "Hello"`
 - `zeroclaw agent --provider <ID> --model <MODEL> --temperature <0.0-2.0>`
-- `zeroclaw agent --peripheral <board:path>`
+- `zeroclaw agent --session-state-file <PATH>`
 
-Tip:
-
-- In interactive chat, you can ask for route changes in natural language (for example “conversation uses kimi, coding uses gpt-5.3-codex”); the assistant can persist this via tool `model_routing_config`.
-
-### `acp`
-
-- `zeroclaw acp`
-- `zeroclaw acp --max-sessions <N>`
-- `zeroclaw acp --session-timeout <SECONDS>`
-
-Start the ACP (Agent Control Protocol) server for IDE and tool integration.
-
-- Uses JSON-RPC 2.0 over stdin/stdout
-- Supports methods: `initialize`, `session/new`, `session/prompt`, `session/stop`
-- Streams agent reasoning, tool calls, and content in real-time as notifications
-- Default max sessions: 10
-- Default session timeout: 3600 seconds (1 hour)
+Interactive by default; use `-m/--message` for single-shot queries.
 
 ### `gateway` / `daemon`
 
-- `zeroclaw gateway [--host <HOST>] [--port <PORT>]`
+- `zeroclaw gateway [start|restart|get-paircode|...]`
 - `zeroclaw daemon [--host <HOST>] [--port <PORT>]`
+
+`daemon` launches the full runtime: gateway server, all configured
+channels, heartbeat monitor, and the cron scheduler.
+
+### `doctor`
+
+- `zeroclaw doctor`
+- `zeroclaw doctor traces [--limit <N>] [--event <TYPE>] [--contains <TEXT>]`
+- `zeroclaw doctor traces --id <TRACE_ID>`
+
+`doctor traces` reads runtime tool/model diagnostics from
+`observability.runtime_trace_path`.
+
+### `status`
+
+- `zeroclaw status`
+- `zeroclaw status --format exit-code` — exits `0` if healthy, `1`
+  otherwise. Intended for Docker `HEALTHCHECK`.
 
 ### `estop`
 
 - `zeroclaw estop` (engage `kill-all`)
 - `zeroclaw estop --level network-kill`
-- `zeroclaw estop --level domain-block --domain "*.chase.com" [--domain "*.paypal.com"]`
-- `zeroclaw estop --level tool-freeze --tool shell [--tool browser]`
+- `zeroclaw estop --level domain-block --domain "*.chase.com"`
+- `zeroclaw estop --level tool-freeze --tool shell --tool browser`
 - `zeroclaw estop status`
-- `zeroclaw estop resume`
-- `zeroclaw estop resume --network`
-- `zeroclaw estop resume --domain "*.chase.com"`
-- `zeroclaw estop resume --tool shell`
-- `zeroclaw estop resume --otp <123456>`
+- `zeroclaw estop resume [--network] [--domain <pat>] [--tool <name>] [--otp <code>]`
 
 Notes:
 
-- `estop` commands require `[security.estop].enabled = true`.
-- When `[security.estop].require_otp_to_resume = true`, `resume` requires OTP validation.
-- OTP prompt appears automatically if `--otp` is omitted.
-
-### `service`
-
-- `zeroclaw service install`
-- `zeroclaw service start`
-- `zeroclaw service stop`
-- `zeroclaw service restart`
-- `zeroclaw service status`
-- `zeroclaw service uninstall`
+- `estop` requires `[security.estop].enabled = true`.
+- When `[security.estop].require_otp_to_resume = true`, `resume`
+  prompts for OTP if `--otp` is omitted.
 
 ### `cron`
 
@@ -118,28 +86,19 @@ Notes:
 - `zeroclaw cron remove <id>`
 - `zeroclaw cron pause <id>`
 - `zeroclaw cron resume <id>`
+- `zeroclaw cron update <id> [--expression <expr>] [--tz <tz>]`
 
 Notes:
 
-- Mutating schedule/cron actions require `cron.enabled = true`.
-- Shell command payloads for schedule creation (`create` / `add` / `once`) are validated by security command policy before job persistence.
+- Mutating schedule actions require `cron.enabled = true`.
+- Shell command payloads are validated by security command policy
+  before job persistence.
 
-### `models`
+### `providers`
 
-- `zeroclaw models refresh`
-- `zeroclaw models refresh --provider <ID>`
-- `zeroclaw models refresh --force`
+- `zeroclaw providers`
 
-`models refresh` currently supports live catalog refresh for provider IDs: `openrouter`, `openai`, `anthropic`, `groq`, `mistral`, `deepseek`, `xai`, `together-ai`, `gemini`, `ollama`, `llamacpp`, `sglang`, `vllm`, `astrai`, `venice`, `fireworks`, `cohere`, `moonshot`, `glm`, `zai`, `qwen`, and `nvidia`.
-
-### `doctor`
-
-- `zeroclaw doctor`
-- `zeroclaw doctor models [--provider <ID>] [--use-cache]`
-- `zeroclaw doctor traces [--limit <N>] [--event <TYPE>] [--contains <TEXT>]`
-- `zeroclaw doctor traces --id <TRACE_ID>`
-
-`doctor traces` reads runtime tool/model diagnostics from `observability.runtime_trace_path`.
+Lists supported provider IDs and the active provider from config.
 
 ### `channel`
 
@@ -149,27 +108,20 @@ Notes:
 - `zeroclaw channel bind-telegram <IDENTITY>`
 - `zeroclaw channel add <type> <json>`
 - `zeroclaw channel remove <name>`
+- `zeroclaw channel send <text> --channel-id <id> --recipient <id>`
 
-Runtime in-chat commands (Telegram/Discord while channel server is running):
+Runtime in-chat commands available while `channel start` or `daemon` is
+running:
 
-- `/models`
-- `/models <provider>`
-- `/model`
-- `/model <model-id>`
-- `/new`
+- `/models` — show available providers and current selection
+- `/models <provider>` — switch provider for this sender session
+- `/model` — show current model
+- `/model <model-id>` — switch model for this sender session
+- `/new` — clear the sender's conversation history
 
-Channel runtime also watches `config.toml` and hot-applies updates to:
-- `default_provider`
-- `default_model`
-- `default_temperature`
-- `api_key` / `api_url` (for the default provider)
-- `reliability.*` provider retry settings
-
-`add/remove` currently route you back to managed setup/manual config paths (not full declarative mutators yet).
-
-### `integrations`
-
-- `zeroclaw integrations info <name>`
+`channel start` hot-applies updates to `default_provider`,
+`default_model`, `default_temperature`, `api_key`, `api_url`, and
+`reliability.*` from `config.toml` on the next inbound message.
 
 ### `skills`
 
@@ -178,27 +130,55 @@ Channel runtime also watches `config.toml` and hot-applies updates to:
 - `zeroclaw skills install <source>`
 - `zeroclaw skills remove <name>`
 
-`<source>` accepts git remotes (`https://...`, `http://...`, `ssh://...`, and `git@host:owner/repo.git`) or a local filesystem path.
-
-`skills install` always runs a built-in static security audit before the skill is accepted. The audit blocks:
-- symlinks inside the skill package
-- script-like files (`.sh`, `.bash`, `.zsh`, `.ps1`, `.bat`, `.cmd`)
-- high-risk command snippets (for example pipe-to-shell payloads)
-- markdown links that escape the skill root, point to remote markdown, or target script files
-
-Use `skills audit` to manually validate a candidate skill directory (or an installed skill by name) before sharing it.
-
-Skill manifests (`SKILL.toml`) support `prompts` and `[[tools]]`; both are injected into the agent system prompt at runtime, so the model can follow skill instructions without manually reading skill files.
+`<source>` accepts git remotes (`https://...`, `http://...`,
+`ssh://...`, `git@host:owner/repo.git`) or a local filesystem path.
+`skills install` always runs a built-in static security audit before
+accepting a skill.
 
 ### `migrate`
 
 - `zeroclaw migrate openclaw [--source <path>] [--dry-run]`
 
+### `auth`
+
+- `zeroclaw auth login --provider <id> [--profile <name>] [--device-code] [--import <path>]`
+- `zeroclaw auth paste-redirect --provider <id> [--profile <name>] [--input <url_or_code>]`
+- `zeroclaw auth paste-token --provider <id> [--profile <name>] [--token <t>] [--auth-kind <k>]`
+- `zeroclaw auth setup-token --provider <id> [--profile <name>]`
+- `zeroclaw auth refresh --provider <id> [--profile <id>]`
+- `zeroclaw auth logout --provider <id> [--profile <name>]`
+- `zeroclaw auth use --provider <id> --profile <name>`
+- `zeroclaw auth list`
+- `zeroclaw auth status`
+
+### `memory`
+
+- `zeroclaw memory stats`
+- `zeroclaw memory list [--category <c>] [--session <s>] [--limit <n>] [--offset <n>]`
+- `zeroclaw memory get <key>`
+- `zeroclaw memory clear [--category <c>] --yes`
+
 ### `config`
 
 - `zeroclaw config schema`
 
-`config schema` prints a JSON Schema (draft 2020-12) for the full `config.toml` contract to stdout.
+Prints a JSON Schema (draft 2020-12) for the full `config.toml`
+contract to stdout.
+
+### `update`
+
+- `zeroclaw update [--check] [--force] [--version <version>]`
+
+Downloads and installs the latest release with a 6-phase pipeline:
+preflight, download, backup, validate, swap, smoke test. Automatic
+rollback on failure.
+
+### `self-test`
+
+- `zeroclaw self-test`
+- `zeroclaw self-test --quick`
+
+`--quick` skips network-dependent checks for faster offline validation.
 
 ### `completions`
 
@@ -208,21 +188,18 @@ Skill manifests (`SKILL.toml`) support `prompts` and `[[tools]]`; both are injec
 - `zeroclaw completions powershell`
 - `zeroclaw completions elvish`
 
-`completions` is stdout-only by design so scripts can be sourced directly without log/warning contamination.
+`completions` is stdout-only by design so scripts can be sourced
+directly without log/warning contamination.
 
-### `hardware`
+### `desktop`
 
-- `zeroclaw hardware discover`
-- `zeroclaw hardware introspect <path>`
-- `zeroclaw hardware info [--chip <chip_name>]`
+- `zeroclaw desktop` — launch the companion menu-bar app
+- `zeroclaw desktop --install` — download and install the companion app
 
-### `peripheral`
+## Global Flags
 
-- `zeroclaw peripheral list`
-- `zeroclaw peripheral add <board> <path>`
-- `zeroclaw peripheral flash [--port <serial_port>]`
-- `zeroclaw peripheral setup-uno-q [--host <ip_or_host>]`
-- `zeroclaw peripheral flash-nucleo`
+- `--config-dir <PATH>` — override the config directory for this
+  invocation (applies to every subcommand).
 
 ## Validation Tip
 

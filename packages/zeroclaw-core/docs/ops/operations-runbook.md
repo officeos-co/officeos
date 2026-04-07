@@ -1,186 +1,157 @@
 # ZeroClaw Operations Runbook
 
-This runbook is for operators who maintain availability, security posture, and incident response.
+Day-2 operations guide for ZeroClaw agents running as Kubernetes pods.
 
-Last verified: **February 18, 2026**.
+## Deployment Context
+
+In production, ZeroClaw agents are provisioned and supervised by the
+dashboard backend (`apps/dashboard/backend`). Each agent is:
+
+- a **Pod** running `zeroclaw daemon` as its main command
+- a **Service** exposing the gateway port
+- a **ConfigMap** holding the agent's identity vault files
+  (`SOUL.md`, `IDENTITY.md`, `AGENTS.md`, etc.) mounted at `/vault-workspace`
+- a **PVC** holding the per-agent sqlite memory file
+
+Pod lifecycle (create / restart / delete) is driven by the backend's
+`K8sManager` (`app/services/zeroclaw/k8s_manager.py`). Operators should
+prefer backend-mediated actions over `kubectl` surgery except during
+incident response.
+
+For identity vault structure, see
+[../reference/identity-vault.md](../reference/identity-vault.md).
 
 ## Scope
 
-Use this document for day-2 operations:
+Use this document for:
 
-- starting and supervising runtime
+- starting and supervising agent pods
 - health checks and diagnostics
 - safe rollout and rollback
 - incident triage and recovery
-
-For first-time installation, start from [one-click-bootstrap.md](../setup-guides/one-click-bootstrap.md).
 
 ## Runtime Modes
 
 | Mode | Command | When to use |
 |---|---|---|
-| Foreground runtime | `zeroclaw daemon` | local debugging, short-lived sessions |
-| Foreground gateway only | `zeroclaw gateway` | webhook endpoint testing |
-| User service | `zeroclaw service install && zeroclaw service start` | persistent operator-managed runtime |
-| Docker / Podman | `docker compose up -d` | containerized deployment |
+| Agent daemon | `zeroclaw daemon` | default pod entrypoint — long-running agent loop |
+| Gateway only | `zeroclaw gateway start` | debugging webhook / WebSocket surface |
+| One-shot agent | `zeroclaw agent -m "…"` | scripted single-turn invocations |
 
-## Docker / Podman Runtime
+## Local Development Mode (non-production)
 
-If you installed via `./install.sh --docker`, the container exits after onboarding. To run
-ZeroClaw as a long-lived container, use the repository `docker-compose.yml` or start a
-container manually against the persisted data directory.
-
-### Recommended: docker-compose
+For debugging changes locally, you can run the binary directly against a
+workspace directory — no Kubernetes required. This is **not** a
+supported production deployment path.
 
 ```bash
-# Start (detached, auto-restarts on reboot)
-docker compose up -d
+# Build
+cargo build --release
 
-# Stop
-docker compose down
+# Point at a local workspace dir containing identity files
+export ZEROCLAW_WORKSPACE="$PWD/.zeroclaw-dev/workspace"
+mkdir -p "$ZEROCLAW_WORKSPACE"
 
-# Restart
-docker compose up -d
+# Run the daemon in the foreground
+./target/release/zeroclaw daemon
 ```
 
-Replace `docker` with `podman` if using Podman.
-
-### Manual container lifecycle
-
-```bash
-# Start a new container from the bootstrap image
-docker run -d --name zeroclaw \
-  --restart unless-stopped \
-  -v "$PWD/.zeroclaw-docker/.zeroclaw:/zeroclaw-data/.zeroclaw" \
-  -v "$PWD/.zeroclaw-docker/workspace:/zeroclaw-data/workspace" \
-  -e HOME=/zeroclaw-data \
-  -e ZEROCLAW_WORKSPACE=/zeroclaw-data/workspace \
-  -p 42617:42617 \
-  zeroclaw-bootstrap:local \
-  gateway
-
-# Stop (preserves config and workspace)
-docker stop zeroclaw
-
-# Restart a stopped container
-docker start zeroclaw
-
-# View logs
-docker logs -f zeroclaw
-
-# Health check
-docker exec zeroclaw zeroclaw status
-```
-
-For Podman, add `--userns keep-id --user "$(id -u):$(id -g)"` and append `:Z` to volume mounts.
-
-### Key detail: do not re-run install.sh to restart
-
-Re-running `install.sh --docker` rebuilds the image and re-runs onboarding. To simply
-restart, use `docker start`, `docker compose up -d`, or `podman start`.
-
-For full setup instructions, see [one-click-bootstrap.md](../setup-guides/one-click-bootstrap.md#stopping-and-restarting-a-dockerpodman-container).
+A container image can also be run directly for reproducible local
+debugging — mount a workspace directory and expose the gateway port. Do
+not use this for production; the dashboard backend owns pod lifecycle.
 
 ## Baseline Operator Checklist
 
-1. Validate configuration:
+Run inside the agent pod (e.g. via `kubectl exec …`):
 
 ```bash
 zeroclaw status
-```
-
-2. Verify diagnostics:
-
-```bash
 zeroclaw doctor
-zeroclaw channel doctor
 ```
 
-3. Start runtime:
-
-```bash
-zeroclaw daemon
-```
-
-4. For persistent user session service:
-
-```bash
-zeroclaw service install
-zeroclaw service start
-zeroclaw service status
-```
+The daemon itself is started automatically as the pod's main process, so
+you normally don't run `zeroclaw daemon` by hand — restart the pod
+instead.
 
 ## Health and State Signals
 
-| Signal | Command / File | Expected |
+| Signal | Source | Expected |
 |---|---|---|
 | Config validity | `zeroclaw doctor` | no critical errors |
-| Channel connectivity | `zeroclaw channel doctor` | configured channels healthy |
 | Runtime summary | `zeroclaw status` | expected provider/model/channels |
-| Daemon heartbeat/state | `~/.zeroclaw/daemon_state.json` | file updates periodically |
+| Gateway liveness | `GET /health` on the pod's gateway port | 200 OK |
+| Metrics | `GET /metrics` on the pod's gateway port | Prometheus scrape target |
+| Pod state | `kubectl get pod <agent>` | `Running`, recent `READY` |
 
 ## Logs and Diagnostics
 
-### macOS / Windows (service wrapper logs)
-
-- `~/.zeroclaw/logs/daemon.stdout.log`
-- `~/.zeroclaw/logs/daemon.stderr.log`
-
-### Linux (systemd user service)
+Agent stdout/stderr are captured by Kubernetes:
 
 ```bash
-journalctl --user -u zeroclaw.service -f
+kubectl logs -f <agent-pod>
+kubectl logs --previous <agent-pod>   # last crash
+```
+
+For deeper inspection, exec into the pod:
+
+```bash
+kubectl exec -it <agent-pod> -- zeroclaw status
+kubectl exec -it <agent-pod> -- zeroclaw doctor
 ```
 
 ## Incident Triage Flow (Fast Path)
 
-1. Snapshot system state:
+1. Snapshot state:
 
 ```bash
-zeroclaw status
-zeroclaw doctor
-zeroclaw channel doctor
+kubectl get pod <agent-pod> -o wide
+kubectl logs --tail=200 <agent-pod>
+kubectl exec <agent-pod> -- zeroclaw status
+kubectl exec <agent-pod> -- zeroclaw doctor
 ```
 
-2. Check service state:
+2. Hit the gateway health endpoint:
 
 ```bash
-zeroclaw service status
+kubectl exec <agent-pod> -- curl -sf http://127.0.0.1:<gateway-port>/health
 ```
 
-3. If service is unhealthy, restart cleanly:
+3. If the pod is unhealthy, restart it:
 
 ```bash
-zeroclaw service stop
-zeroclaw service start
+kubectl delete pod <agent-pod>   # controller recreates
 ```
 
-4. If channels still fail, verify allowlists and credentials in `~/.zeroclaw/config.toml`.
+4. If provider or channel calls still fail, verify credentials and
+   allowlists in the agent's config (managed through the dashboard
+   backend) and check outbound network reachability from the pod.
 
-5. If gateway is involved, verify bind/auth settings (`[gateway]`) and local reachability.
+5. If the gateway is involved, verify bind/auth settings (`[gateway]`)
+   and that the backing Service routes traffic correctly.
 
 ## Safe Change Procedure
 
 Before applying config changes:
 
-1. backup `~/.zeroclaw/config.toml`
+1. snapshot the current agent config via the dashboard backend
 2. apply one logical change at a time
-3. run `zeroclaw doctor`
-4. restart daemon/service
-5. verify with `status` + `channel doctor`
+3. roll the agent pod
+4. run `zeroclaw doctor` inside the new pod
+5. verify with `status` and `/health`
 
 ## Rollback Procedure
 
 If a rollout regresses behavior:
 
-1. restore previous `config.toml`
-2. restart runtime (`daemon` or `service`)
-3. confirm recovery via `doctor` and channel health checks
-4. document incident root cause and mitigation
+1. restore the previous agent config through the dashboard backend
+2. roll the pod
+3. confirm recovery via `doctor` and `/health`
+4. document root cause and mitigation
 
 ## Related Docs
 
-- [one-click-bootstrap.md](../setup-guides/one-click-bootstrap.md)
 - [troubleshooting.md](./troubleshooting.md)
+- [resource-limits.md](./resource-limits.md)
+- [proxy-agent-playbook.md](./proxy-agent-playbook.md)
 - [config-reference.md](../reference/api/config-reference.md)
-- [commands-reference.md](../reference/cli/commands-reference.md)
+- [identity-vault.md](../reference/identity-vault.md)

@@ -49,13 +49,9 @@ cargo test --test live -- --ignored
 # Filter within a level
 cargo test --test integration agent
 
-# Full CI validation
-./dev/ci.sh all
-
-# Level-specific CI commands
-./dev/ci.sh test-component
-./dev/ci.sh test-integration
-./dev/ci.sh test-system
+# Lint + format checks
+cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
 ```
 
 ## How to Add a New Test
