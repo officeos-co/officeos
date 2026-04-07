@@ -37,7 +37,7 @@ use anyhow::{Context, Result, bail};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use dialoguer::Password;
 use serde::{Deserialize, Serialize};
-use std::io::{IsTerminal, Write};
+use std::io::Write;
 use std::path::PathBuf;
 use tracing::{info, warn};
 use tracing_subscriber::{EnvFilter, fmt};
@@ -49,7 +49,6 @@ fn parse_temperature(s: &str) -> std::result::Result<f64, String> {
 
 fn print_no_command_help() -> Result<()> {
     println!("No command provided.");
-    println!("Try `zeroclaw onboard` to initialize your workspace.");
     println!();
 
     let mut cmd = Cli::command();
@@ -77,16 +76,12 @@ mod auth;
 mod channels;
 mod cli_input;
 mod commands;
-mod rag {
-    pub use zeroclaw::rag::*;
-}
 mod config;
 mod cost;
 mod cron;
 mod daemon;
 mod doctor;
 mod gateway;
-mod hardware;
 mod health;
 mod heartbeat;
 mod hooks;
@@ -97,7 +92,6 @@ mod memory;
 mod migration;
 mod multimodal;
 mod observability;
-mod onboard;
 #[cfg(feature = "plugins-wasm")]
 mod plugins;
 mod providers;
@@ -109,7 +103,6 @@ mod skills;
 mod sop;
 mod tools;
 mod trust;
-mod tui;
 mod tunnel;
 mod util;
 mod verifiable_intent;
@@ -118,7 +111,7 @@ use config::Config;
 
 // Re-export so binary modules can use crate::<CommandEnum> while keeping a single source of truth.
 pub use zeroclaw::{
-    ChannelCommands, CronCommands, GatewayCommands, HardwareCommands, IntegrationCommands,
+    ChannelCommands, CronCommands, GatewayCommands, IntegrationCommands,
     MigrateCommands, ServiceCommands, SkillCommands, SopCommands,
 };
 
@@ -164,43 +157,6 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Initialize your workspace and configuration
-    Onboard {
-        /// Overwrite existing config without confirmation
-        #[arg(long)]
-        force: bool,
-
-        /// Reinitialize from scratch (backup and reset all configuration)
-        #[arg(long)]
-        reinit: bool,
-
-        /// Reconfigure channels only (fast repair flow)
-        #[arg(long)]
-        channels_only: bool,
-
-        /// API key for provider configuration
-        #[arg(long)]
-        api_key: Option<String>,
-
-        /// Provider name (used in quick mode, default: openrouter)
-        #[arg(long)]
-        provider: Option<String>,
-        /// Model ID override (used in quick mode)
-        #[arg(long)]
-        model: Option<String>,
-        /// Memory backend (sqlite, lucid, markdown, none) - used in quick mode, default: sqlite
-        #[arg(long)]
-        memory: Option<String>,
-
-        /// Skip interactive prompts and use quick setup with defaults
-        #[arg(long)]
-        quick: bool,
-
-        /// Use the ratatui-based TUI onboarding wizard
-        #[arg(long)]
-        tui: bool,
-    },
-
     /// Start the AI agent loop
     #[command(long_about = "\
 Start the AI agent loop.
@@ -376,12 +332,6 @@ Examples:
         cron_command: CronCommands,
     },
 
-    /// Manage provider model catalogs
-    Models {
-        #[command(subcommand)]
-        model_command: ModelCommands,
-    },
-
     /// List supported AI providers
     Providers,
 
@@ -427,23 +377,6 @@ Examples:
     Auth {
         #[command(subcommand)]
         auth_command: AuthCommands,
-    },
-
-    /// Discover and introspect USB hardware
-    #[command(long_about = "\
-Discover and introspect USB hardware.
-
-Enumerate connected USB devices, identify known development boards \
-(STM32 Nucleo, Arduino, ESP32), and retrieve chip information via \
-probe-rs / ST-Link.
-
-Examples:
-  zeroclaw hardware discover
-  zeroclaw hardware introspect /dev/ttyACM0
-  zeroclaw hardware info --chip STM32F401RETx")]
-    Hardware {
-        #[command(subcommand)]
-        hardware_command: zeroclaw::HardwareCommands,
     },
 
     /// Manage agent memory (list, get, stats, clear)
@@ -707,48 +640,7 @@ enum AuthCommands {
 }
 
 #[derive(Subcommand, Debug)]
-enum ModelCommands {
-    /// Refresh and cache provider models
-    Refresh {
-        /// Provider name (defaults to configured default provider)
-        #[arg(long)]
-        provider: Option<String>,
-
-        /// Refresh all providers that support live model discovery
-        #[arg(long)]
-        all: bool,
-
-        /// Force live refresh and ignore fresh cache
-        #[arg(long)]
-        force: bool,
-    },
-    /// List cached models for a provider
-    List {
-        /// Provider name (defaults to configured default provider)
-        #[arg(long)]
-        provider: Option<String>,
-    },
-    /// Set the default model in config
-    Set {
-        /// Model name to set as default
-        model: String,
-    },
-    /// Show current model configuration and cache status
-    Status,
-}
-
-#[derive(Subcommand, Debug)]
 enum DoctorCommands {
-    /// Probe model catalogs across providers and report availability
-    Models {
-        /// Probe a specific provider only (default: all known providers)
-        #[arg(long)]
-        provider: Option<String>,
-
-        /// Prefer cached catalogs when available (skip forced live refresh)
-        #[arg(long)]
-        use_cache: bool,
-    },
     /// Query runtime trace events (tool diagnostics and model replies)
     Traces {
         /// Show a specific trace event by id
@@ -837,143 +729,6 @@ async fn main() -> Result<()> {
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    // Onboard auto-detects the environment: if stdin/stdout are a TTY and no
-    // provider flags were given, it runs the full interactive wizard; otherwise
-    // it runs the quick (scriptable) setup.  Use --quick to force quick setup,
-    // or set ZEROCLAW_INTERACTIVE=1 to force interactive mode when TTY
-    // detection fails.  This means `curl … | bash` and
-    // `zeroclaw onboard --api-key …` both take the fast path, while a bare
-    // `zeroclaw onboard` in a terminal launches the wizard.
-    if let Commands::Onboard {
-        force,
-        reinit,
-        channels_only,
-        api_key,
-        provider,
-        model,
-        memory,
-        quick,
-        tui: use_tui,
-    } = &cli.command
-    {
-        let force = *force;
-        let reinit = *reinit;
-        let channels_only = *channels_only;
-        let api_key = api_key.clone();
-        let provider = provider.clone();
-        let model = model.clone();
-        let memory = memory.clone();
-        let quick = *quick;
-        let use_tui = *use_tui;
-
-        if reinit && channels_only {
-            bail!("--reinit and --channels-only cannot be used together");
-        }
-        if channels_only
-            && (api_key.is_some() || provider.is_some() || model.is_some() || memory.is_some())
-        {
-            bail!("--channels-only does not accept --api-key, --provider, --model, or --memory");
-        }
-        if channels_only && force {
-            bail!("--channels-only does not accept --force");
-        }
-        if quick && channels_only {
-            bail!("--quick and --channels-only cannot be used together");
-        }
-
-        // Handle --reinit: backup and reset configuration
-        if reinit {
-            let (zeroclaw_dir, _) =
-                crate::config::schema::resolve_runtime_dirs_for_onboarding().await?;
-
-            if zeroclaw_dir.exists() {
-                let timestamp = chrono::Local::now().format("%Y%m%d%H%M%S");
-                let backup_dir = format!("{}.backup.{}", zeroclaw_dir.display(), timestamp);
-
-                println!("⚠️  Reinitializing ZeroClaw configuration...");
-                println!("   Current config directory: {}", zeroclaw_dir.display());
-                println!(
-                    "   This will back up your existing config to: {}",
-                    backup_dir
-                );
-                println!();
-                print!("Continue? [y/N] ");
-                std::io::stdout()
-                    .flush()
-                    .context("Failed to flush stdout")?;
-
-                let mut answer = String::new();
-                std::io::stdin().read_line(&mut answer)?;
-                if !answer.trim().eq_ignore_ascii_case("y") {
-                    println!("Aborted.");
-                    return Ok(());
-                }
-                println!();
-
-                // Rename existing directory as backup
-                tokio::fs::rename(&zeroclaw_dir, &backup_dir)
-                    .await
-                    .with_context(|| {
-                        format!("Failed to backup existing config to {}", backup_dir)
-                    })?;
-
-                println!("   Backup created successfully.");
-                println!("   Starting fresh initialization...\n");
-            }
-        }
-
-        // Auto-detect: run the interactive wizard when in a TTY with no
-        // provider flags, quick setup otherwise (scriptable path).
-        let has_provider_flags =
-            api_key.is_some() || provider.is_some() || model.is_some() || memory.is_some();
-        let is_tty = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
-        let env_interactive = std::env::var("ZEROCLAW_INTERACTIVE").as_deref() == Ok("1");
-
-        // TUI onboarding mode (ratatui-based)
-        if use_tui {
-            Box::pin(tui::run_tui_onboarding()).await?;
-            return Ok(());
-        }
-
-        let config = if channels_only {
-            Box::pin(onboard::run_channels_repair_wizard()).await
-        } else if quick || has_provider_flags {
-            Box::pin(onboard::run_quick_setup(
-                api_key.as_deref(),
-                provider.as_deref(),
-                model.as_deref(),
-                memory.as_deref(),
-                force,
-            ))
-            .await
-        } else if is_tty || env_interactive {
-            Box::pin(onboard::run_wizard(force)).await
-        } else {
-            Box::pin(onboard::run_quick_setup(
-                api_key.as_deref(),
-                provider.as_deref(),
-                model.as_deref(),
-                memory.as_deref(),
-                force,
-            ))
-            .await
-        }?;
-
-        if config.gateway.require_pairing {
-            println!();
-            println!("  Pairing is enabled. A one-time pairing code will be");
-            println!("  displayed when the gateway starts.");
-            println!("  Dashboard: http://127.0.0.1:{}", config.gateway.port);
-            println!();
-        }
-
-        // Auto-start channels if user said yes during wizard
-        if std::env::var("ZEROCLAW_AUTOSTART_CHANNELS").as_deref() == Ok("1") {
-            Box::pin(channels::start_channels(config)).await?;
-        }
-        return Ok(());
-    }
-
     // All other commands need config loaded first
     let mut config = Box::pin(Config::load_or_init()).await?;
     config.apply_env_overrides();
@@ -993,7 +748,7 @@ async fn main() -> Result<()> {
     }
 
     match cli.command {
-        Commands::Onboard { .. } | Commands::Completions { .. } => unreachable!(),
+        Commands::Completions { .. } => unreachable!(),
 
         Commands::Agent {
             message,
@@ -1301,30 +1056,6 @@ async fn main() -> Result<()> {
 
         Commands::Cron { cron_command } => cron::handle_command(cron_command, &config),
 
-        Commands::Models { model_command } => match model_command {
-            ModelCommands::Refresh {
-                provider,
-                all,
-                force,
-            } => {
-                if all {
-                    if provider.is_some() {
-                        bail!("`models refresh --all` cannot be combined with --provider");
-                    }
-                    onboard::run_models_refresh_all(&config, force).await
-                } else {
-                    onboard::run_models_refresh(&config, provider.as_deref(), force).await
-                }
-            }
-            ModelCommands::List { provider } => {
-                onboard::run_models_list(&config, provider.as_deref()).await
-            }
-            ModelCommands::Set { model } => {
-                Box::pin(onboard::run_models_set(&config, &model)).await
-            }
-            ModelCommands::Status => onboard::run_models_status(&config).await,
-        },
-
         Commands::Providers => {
             let providers = providers::list_providers();
             let current = config
@@ -1367,10 +1098,6 @@ async fn main() -> Result<()> {
         }
 
         Commands::Doctor { doctor_command } => match doctor_command {
-            Some(DoctorCommands::Models {
-                provider,
-                use_cache,
-            }) => doctor::run_models(&config, provider.as_deref(), use_cache).await,
             Some(DoctorCommands::Traces {
                 id,
                 event,
@@ -1407,10 +1134,6 @@ async fn main() -> Result<()> {
         }
 
         Commands::Auth { auth_command } => handle_auth_command(auth_command, &config).await,
-
-        Commands::Hardware { hardware_command } => {
-            hardware::handle_command(hardware_command.clone(), &config)
-        }
 
         Commands::Desktop {
             install: do_install,
@@ -2589,57 +2312,6 @@ mod tests {
     }
 
     #[test]
-    fn onboard_help_includes_model_flag() {
-        let cmd = Cli::command();
-        let onboard = cmd
-            .get_subcommands()
-            .find(|subcommand| subcommand.get_name() == "onboard")
-            .expect("onboard subcommand must exist");
-
-        let has_model_flag = onboard
-            .get_arguments()
-            .any(|arg| arg.get_id().as_str() == "model" && arg.get_long() == Some("model"));
-
-        assert!(
-            has_model_flag,
-            "onboard help should include --model for quick setup overrides"
-        );
-    }
-
-    #[test]
-    fn onboard_cli_accepts_model_provider_and_api_key_in_quick_mode() {
-        let cli = Cli::try_parse_from([
-            "zeroclaw",
-            "onboard",
-            "--provider",
-            "openrouter",
-            "--model",
-            "custom-model-946",
-            "--api-key",
-            "sk-issue946",
-        ])
-        .expect("quick onboard invocation should parse");
-
-        match cli.command {
-            Commands::Onboard {
-                force,
-                channels_only,
-                api_key,
-                provider,
-                model,
-                ..
-            } => {
-                assert!(!force);
-                assert!(!channels_only);
-                assert_eq!(provider.as_deref(), Some("openrouter"));
-                assert_eq!(model.as_deref(), Some("custom-model-946"));
-                assert_eq!(api_key.as_deref(), Some("sk-issue946"));
-            }
-            other => panic!("expected onboard command, got {other:?}"),
-        }
-    }
-
-    #[test]
     fn completions_cli_parses_supported_shells() {
         for shell in ["bash", "fish", "zsh", "powershell", "elvish"] {
             let cli = Cli::try_parse_from(["zeroclaw", "completions", shell])
@@ -2661,55 +2333,6 @@ mod tests {
             script.contains("zeroclaw"),
             "completion script should reference binary name"
         );
-    }
-
-    #[test]
-    fn onboard_cli_accepts_force_flag() {
-        let cli = Cli::try_parse_from(["zeroclaw", "onboard", "--force"])
-            .expect("onboard --force should parse");
-
-        match cli.command {
-            Commands::Onboard { force, .. } => assert!(force),
-            other => panic!("expected onboard command, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn onboard_cli_rejects_removed_interactive_flag() {
-        // --interactive was removed; onboard auto-detects TTY instead.
-        assert!(Cli::try_parse_from(["zeroclaw", "onboard", "--interactive"]).is_err());
-    }
-
-    #[test]
-    fn onboard_cli_parses_quick_flag() {
-        let cli = Cli::try_parse_from(["zeroclaw", "onboard", "--quick"])
-            .expect("onboard --quick should parse");
-
-        match cli.command {
-            Commands::Onboard { quick, .. } => assert!(quick),
-            other => panic!("expected onboard command, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn onboard_cli_quick_and_channels_only_conflict() {
-        // --quick and --channels-only should both parse at the CLI level
-        // (the conflict is checked at runtime), but we verify both flags parse.
-        let cli = Cli::try_parse_from(["zeroclaw", "onboard", "--quick", "--channels-only"]);
-        assert!(
-            cli.is_ok(),
-            "--quick --channels-only should parse at CLI level"
-        );
-    }
-
-    #[test]
-    fn onboard_cli_bare_parses() {
-        let cli = Cli::try_parse_from(["zeroclaw", "onboard"]).expect("bare onboard should parse");
-
-        match cli.command {
-            Commands::Onboard { .. } => {}
-            other => panic!("expected onboard command, got {other:?}"),
-        }
     }
 
     #[test]
