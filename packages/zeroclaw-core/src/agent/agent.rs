@@ -1,9 +1,9 @@
+use crate::agent::personality;
 use crate::agent::dispatcher::{
     NativeToolDispatcher, ParsedToolCall, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
 };
 use crate::agent::memory_loader::{DefaultMemoryLoader, MemoryLoader};
 use crate::agent::prompt::{PromptContext, SystemPromptBuilder};
-use crate::agent::vault_sync;
 use crate::config::Config;
 use crate::i18n::ToolDescriptions;
 use crate::memory::{self, Memory, MemoryCategory};
@@ -367,21 +367,21 @@ impl Agent {
             &config.workspace_dir,
         ));
 
-        // Vault sync: pull personality files from the agent's personal vault
-        // before the memory backend and prompt builder read from workspace_dir.
-        if let Ok(vault_db) = std::env::var("VAULT_USER_DATABASE") {
-            if !vault_db.trim().is_empty() {
-                let sync = vault_sync::VaultSync::new(&config.workspace_dir, vault_db.trim());
-                if sync.is_available() {
-                    let report = sync.sync_from_vault();
-                    tracing::info!("🔄 {}", report.summary());
-                } else {
-                    tracing::warn!(
-                        "vault sync: CouchDB unreachable — using cached personality files"
-                    );
-                }
-            }
-        }
+        // Phase 3: the per-agent Obsidian vault is materialized into
+        // workspace_dir by the dashboard backend (as a K8s ConfigMap
+        // mounted at /vault-workspace) before this container starts.
+        // Verify that the required personality files are present and
+        // non-empty; if anything is missing, fail loudly so the pod
+        // enters CrashLoopBackOff and the error surfaces via the
+        // dashboard's existing K8sManager.get_status() chain.
+        personality::load_personality_strict(&config.workspace_dir).map_err(|e| {
+            anyhow::anyhow!(
+                "Agent boot failed: required personality files missing or empty \
+                 in workspace {:?}. The dashboard backend must seed the per-agent \
+                 vault before the pod starts. Details: {e}",
+                config.workspace_dir
+            )
+        })?;
 
         let memory: Arc<dyn Memory> = Arc::from(memory::create_memory_with_storage_and_routes(
             &config.memory,

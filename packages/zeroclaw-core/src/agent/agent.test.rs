@@ -289,6 +289,17 @@
         let tmp = TempDir::new().expect("temp dir");
         let workspace_dir = tmp.path().join("workspace");
         std::fs::create_dir_all(&workspace_dir).unwrap();
+        // Seed the required personality files that the Phase 3 strict
+        // loader expects during agent boot. In production these are
+        // mounted into the pod as a K8s ConfigMap by the dashboard
+        // backend; in tests we write them inline.
+        for (name, content) in [
+            ("SOUL.md", "Test soul."),
+            ("IDENTITY.md", "Test identity."),
+            ("AGENTS.md", "Test agents."),
+        ] {
+            std::fs::write(workspace_dir.join(name), content).unwrap();
+        }
 
         let mut config = crate::config::Config::default();
         config.workspace_dir = workspace_dir;
