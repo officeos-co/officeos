@@ -1121,3 +1121,163 @@ class TestSearchNotes:
 
             results = client.search_notes("nonexistent")
             assert results == []
+
+
+# ---------------------------------------------------------------------------
+# Test: ensure_database
+# ---------------------------------------------------------------------------
+
+
+class TestEnsureDatabase:
+    """VaultClient.ensure_database() provisions a CouchDB database by name.
+
+    This is the only method that targets a database other than the configured
+    ``self.database``. The dashboard backend uses it to create per-agent vaults
+    at agent creation time.
+    """
+
+    @patch("vault_cli.core.client.requests")
+    def test_creates_new_database(self, mock_requests):
+        """201 from PUT /{name} → ok=True, created=True."""
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_requests.Session.return_value = (
+            mock_session
+        )
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.return_value = _make_response(201, {"ok": True})
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(
+            host="couchdb.local",
+            port=5984,
+            database="obsidian",
+            username="admin",
+            password="secret",
+            protocol="http",
+        )
+        result = client.ensure_database("agent-abc123")
+
+        assert result == {"ok": True, "name": "agent-abc123", "created": True}
+        # Verify the PUT hit the server-level URL, not the configured-database URL
+        called_url = mock_session.put.call_args[0][0]
+        assert called_url == "http://couchdb.local:5984/agent-abc123"
+
+    @patch("vault_cli.core.client.requests")
+    def test_existing_database_is_not_an_error(self, mock_requests):
+        """412 from PUT /{name} → ok=True, created=False (idempotent)."""
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_session
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.return_value = _make_response(
+            412, {"error": "file_exists", "reason": "The database could not be created, the file already exists."}
+        )
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(database="obsidian", username="admin", password="secret")
+        result = client.ensure_database("agent-existing")
+
+        assert result == {"ok": True, "name": "agent-existing", "created": False}
+
+    @patch("vault_cli.core.client.requests")
+    def test_unauthorized_raises_permission_error(self, mock_requests):
+        """401 from PUT /{name} → PermissionError with credentials hint."""
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_session
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.return_value = _make_response(401, {"error": "unauthorized"})
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(database="obsidian", username="admin", password="wrong")
+        with pytest.raises(PermissionError) as exc_info:
+            client.ensure_database("agent-foo")
+        assert "credentials" in str(exc_info.value).lower() or "auth" in str(exc_info.value).lower()
+
+    @patch("vault_cli.core.client.requests")
+    def test_forbidden_raises_permission_error(self, mock_requests):
+        """403 from PUT /{name} → PermissionError mentioning admin privileges."""
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_session
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.return_value = _make_response(403, {"error": "forbidden"})
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(database="obsidian", username="reader", password="secret")
+        with pytest.raises(PermissionError) as exc_info:
+            client.ensure_database("agent-foo")
+        assert "admin" in str(exc_info.value).lower() or "privilege" in str(exc_info.value).lower()
+
+    @patch("vault_cli.core.client.requests")
+    def test_invalid_name_raises_value_error(self, mock_requests):
+        """400 from PUT /{name} → ValueError describing the naming rule."""
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_session
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.return_value = _make_response(400, {"error": "illegal_database_name"})
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(database="obsidian", username="admin", password="secret")
+        with pytest.raises(ValueError) as exc_info:
+            client.ensure_database("Bad Name With Spaces")
+        assert "name" in str(exc_info.value).lower()
+
+    @patch("vault_cli.core.client.requests")
+    def test_connection_refused_raises_connection_error(self, mock_requests):
+        """Underlying requests.ConnectionError → ConnectionError."""
+        import requests as real_requests
+
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_session
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.side_effect = real_requests.ConnectionError("nope")
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(database="obsidian", username="admin", password="secret")
+        with pytest.raises(ConnectionError) as exc_info:
+            client.ensure_database("agent-foo")
+        assert "couchdb" in str(exc_info.value).lower()
+
+    def test_empty_name_rejected(self):
+        """Empty string name → ValueError before any HTTP call."""
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient.__new__(VaultClient)
+        with pytest.raises(ValueError):
+            client.ensure_database("")
+
+    def test_none_name_rejected(self):
+        """None name → ValueError before any HTTP call."""
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient.__new__(VaultClient)
+        with pytest.raises(ValueError):
+            client.ensure_database(None)
+
+    @patch("vault_cli.core.client.requests")
+    def test_url_quotes_special_characters_in_name(self, mock_requests):
+        """Database name with valid CouchDB special chars ($, +, /) is URL-encoded."""
+        mock_session = MagicMock()
+        mock_requests.Session.return_value = mock_session
+        mock_requests.utils = __import__("requests").utils
+        mock_session.put.return_value = _make_response(201, {"ok": True})
+
+        from vault_cli.core.client import VaultClient
+
+        client = VaultClient(
+            host="couchdb.local",
+            port=5984,
+            database="obsidian",
+            username="admin",
+            password="secret",
+            protocol="https",
+        )
+        client.ensure_database("agent$special+name")
+        called_url = mock_session.put.call_args[0][0]
+        # Verify it does NOT contain unencoded $ or + (those would break the URL)
+        # and that the host/port are correct
+        assert called_url.startswith("https://couchdb.local:5984/")

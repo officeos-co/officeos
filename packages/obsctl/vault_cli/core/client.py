@@ -92,6 +92,64 @@ class VaultClient:
         return {"ok": True}
 
     # ------------------------------------------------------------------
+    # Database administration
+    # ------------------------------------------------------------------
+
+    def ensure_database(self, name):
+        """Ensure a CouchDB database with the given name exists.
+
+        Issues ``PUT /{name}`` against the CouchDB server. CouchDB returns
+        201 if the database was created and 412 if it already exists; both
+        are treated as success here. Other status codes raise.
+
+        Returns a dict ``{"ok": True, "name": name, "created": bool}``
+        where ``created`` is True if this call created the database and
+        False if it already existed.
+
+        This is the only place obsctl talks to a CouchDB resource that is
+        not the configured ``self.database``. It is intentionally narrow:
+        the dashboard backend uses it to provision per-agent vaults at
+        agent creation time.
+        """
+        if not name or not isinstance(name, str):
+            raise ValueError("ensure_database: name must be a non-empty string")
+
+        server_url = f"{self.protocol}://{self.host}:{self.port}"
+        db_url = f"{server_url}/{requests.utils.quote(name, safe='')}"
+
+        try:
+            resp = self.session.put(db_url)
+        except Exception as e:
+            raise ConnectionError(
+                f"CouchDB unavailable while creating database '{name}' "
+                f"— is the server running? (Connection refused)"
+            ) from e
+
+        if resp.status_code == 201:
+            return {"ok": True, "name": name, "created": True}
+        if resp.status_code == 412:
+            # File already exists — not an error for ensure_*
+            return {"ok": True, "name": name, "created": False}
+        if resp.status_code == 401:
+            raise PermissionError(
+                f"CouchDB authentication failed while creating database '{name}' "
+                f"— check credentials in config"
+            )
+        if resp.status_code == 403:
+            raise PermissionError(
+                f"CouchDB rejected database creation for '{name}' "
+                f"— the configured user lacks server-admin privileges"
+            )
+        if resp.status_code == 400:
+            raise ValueError(
+                f"CouchDB rejected database name '{name}' as invalid "
+                f"(must start with a-z, may contain a-z 0-9 _ $ ( ) + - /)"
+            )
+
+        resp.raise_for_status()
+        return {"ok": True, "name": name, "created": True}
+
+    # ------------------------------------------------------------------
     # CRUD
     # ------------------------------------------------------------------
 
