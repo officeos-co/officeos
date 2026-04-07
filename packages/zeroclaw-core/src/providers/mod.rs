@@ -17,21 +17,12 @@
 //! in [`create_provider_with_url`]. See `AGENTS.md` §7.1 for the full change playbook.
 
 pub mod anthropic;
-pub mod azure_openai;
-pub mod bedrock;
-pub mod claude_code;
 pub mod compatible;
-pub mod copilot;
-pub mod gemini;
-pub mod gemini_cli;
-pub mod kilocli;
 pub mod ollama;
 pub mod openai;
-pub mod openai_codex;
 pub mod openrouter;
 pub mod reliable;
 pub mod router;
-pub mod telnyx;
 pub mod traits;
 
 #[allow(unused_imports)]
@@ -40,7 +31,6 @@ pub use traits::{
     ToolCall, ToolResultMessage,
 };
 
-use crate::auth::AuthService;
 use compatible::{AuthStyle, OpenAiCompatibleProvider};
 use reliable::ReliableProvider;
 use serde::Deserialize;
@@ -1054,12 +1044,7 @@ pub fn create_provider_with_options(
     api_key: Option<&str>,
     options: &ProviderRuntimeOptions,
 ) -> anyhow::Result<Box<dyn Provider>> {
-    match name {
-        "openai-codex" | "openai_codex" | "codex" => Ok(Box::new(
-            openai_codex::OpenAiCodexProvider::new(options, api_key)?,
-        )),
-        _ => create_provider_with_url_and_options(name, api_key, None, options),
-    }
+    create_provider_with_url_and_options(name, api_key, None, options)
 }
 
 /// Factory: create the right provider from config with optional custom base URL
@@ -1139,18 +1124,6 @@ fn create_provider_with_url_and_options(
     }
 
     match name {
-        "openai-codex" | "openai_codex" | "codex" => {
-            let mut codex_options = options.clone();
-            codex_options.provider_api_url = api_url
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(ToString::to_string)
-                .or_else(|| options.provider_api_url.clone());
-            Ok(Box::new(openai_codex::OpenAiCodexProvider::new(
-                &codex_options,
-                key,
-            )?))
-        }
         // ── Primary providers (custom implementations) ───────
         "openrouter" => Ok(Box::new(
             openrouter::OpenRouterProvider::new(key, options.provider_timeout_secs)
@@ -1182,22 +1155,6 @@ fn create_provider_with_url_and_options(
                 options.reasoning_enabled,
             )))
         }
-        "gemini" | "google" | "google-gemini" => {
-            let state_dir = options.zeroclaw_dir.clone().unwrap_or_else(|| {
-                directories::UserDirs::new().map_or_else(
-                    || PathBuf::from(".zeroclaw"),
-                    |dirs| dirs.home_dir().join(".zeroclaw"),
-                )
-            });
-            let auth_service = AuthService::new(&state_dir, options.secrets_encrypt);
-            Ok(Box::new(gemini::GeminiProvider::new_with_auth(
-                key,
-                auth_service,
-                options.auth_profile_override.clone(),
-            )))
-        }
-        "telnyx" => Ok(Box::new(telnyx::TelnyxProvider::new(key))),
-
         // ── OpenAI-compatible providers ──────────────────────
         "venice" => Ok(compat(
             OpenAiCompatibleProvider::new(
@@ -1275,30 +1232,6 @@ fn create_provider_with_url_and_options(
                 AuthStyle::Bearer,
             ),
         )),
-        "azure_openai" | "azure-openai" | "azure" => {
-            let resource = std::env::var("AZURE_OPENAI_RESOURCE")
-                .unwrap_or_else(|_| "my-resource".to_string());
-            let deployment =
-                std::env::var("AZURE_OPENAI_DEPLOYMENT").unwrap_or_else(|_| "gpt-4o".to_string());
-            let api_version = std::env::var("AZURE_OPENAI_API_VERSION").ok();
-            Ok(Box::new(azure_openai::AzureOpenAiProvider::new(
-                key,
-                &resource,
-                &deployment,
-                api_version.as_deref(),
-            )))
-        }
-        "bedrock" | "aws-bedrock" => {
-            let mut p = if let Some(api_key) = key {
-                bedrock::BedrockProvider::with_bearer_token(api_key)
-            } else {
-                bedrock::BedrockProvider::new()
-            };
-            if let Some(mt) = options.provider_max_tokens {
-                p = p.with_max_tokens(mt);
-            }
-            Ok(Box::new(p))
-        }
         name if is_qwen_oauth_alias(name) => {
             let base_url = api_url
                 .map(str::trim)
@@ -1412,10 +1345,6 @@ fn create_provider_with_url_and_options(
             key,
             AuthStyle::Bearer,
         ))),
-        "copilot" | "github-copilot" => Ok(Box::new(copilot::CopilotProvider::new(key))),
-        "claude-code" => Ok(Box::new(claude_code::ClaudeCodeProvider::new())),
-        "gemini-cli" => Ok(Box::new(gemini_cli::GeminiCliProvider::new())),
-        "kilocli" | "kilo" => Ok(Box::new(kilocli::KiloCliProvider::new())),
         "lmstudio" | "lm-studio" => {
             let lm_studio_key = key
                 .map(str::trim)
