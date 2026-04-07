@@ -51,7 +51,6 @@ pub struct Agent {
     model_name: String,
     temperature: f64,
     workspace_dir: std::path::PathBuf,
-    identity_config: crate::config::IdentityConfig,
     skills: Vec<crate::skills::Skill>,
     skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
     auto_save: bool,
@@ -86,7 +85,6 @@ pub struct AgentBuilder {
     model_name: Option<String>,
     temperature: Option<f64>,
     workspace_dir: Option<std::path::PathBuf>,
-    identity_config: Option<crate::config::IdentityConfig>,
     skills: Option<Vec<crate::skills::Skill>>,
     skills_prompt_mode: Option<crate::config::SkillsPromptInjectionMode>,
     auto_save: Option<bool>,
@@ -116,7 +114,6 @@ impl AgentBuilder {
             model_name: None,
             temperature: None,
             workspace_dir: None,
-            identity_config: None,
             skills: None,
             skills_prompt_mode: None,
             auto_save: None,
@@ -185,11 +182,6 @@ impl AgentBuilder {
 
     pub fn workspace_dir(mut self, workspace_dir: std::path::PathBuf) -> Self {
         self.workspace_dir = Some(workspace_dir);
-        self
-    }
-
-    pub fn identity_config(mut self, identity_config: crate::config::IdentityConfig) -> Self {
-        self.identity_config = Some(identity_config);
         self
     }
 
@@ -309,7 +301,6 @@ impl AgentBuilder {
             workspace_dir: self
                 .workspace_dir
                 .unwrap_or_else(|| std::path::PathBuf::from(".")),
-            identity_config: self.identity_config.unwrap_or_default(),
             skills: self.skills.unwrap_or_default(),
             skills_prompt_mode: self.skills_prompt_mode.unwrap_or_default(),
             auto_save: self.auto_save.unwrap_or(false),
@@ -563,7 +554,6 @@ impl Agent {
             .classification_config(config.query_classification.clone())
             .available_hints(available_hints)
             .route_model_by_hint(route_model_by_hint)
-            .identity_config(config.identity.clone())
             .skills(crate::skills::load_skills_with_config(
                 &config.workspace_dir,
                 config,
@@ -611,7 +601,6 @@ impl Agent {
             tools: &self.tools,
             skills: &self.skills,
             skills_prompt_mode: self.skills_prompt_mode,
-            identity_config: Some(&self.identity_config),
             dispatcher_instructions: &instructions,
             tool_descriptions: self.tool_descriptions.as_ref(),
             security_summary: self.security_summary.clone(),

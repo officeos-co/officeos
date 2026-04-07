@@ -3973,7 +3973,6 @@ Let me check the result."#;
             "test-model",
             &tool_summaries,
             &[],  // no skills
-            None, // no identity config
             None, // no bootstrap_max_chars
             true, // native_tools
             crate::config::SkillsPromptInjectionMode::Full,

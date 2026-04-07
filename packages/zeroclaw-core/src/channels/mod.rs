@@ -3680,8 +3680,9 @@ fn load_openclaw_bootstrap_files(
 /// 6. Date & Time — timezone for cache stability
 /// 7. Runtime — host, OS, model
 ///
-/// When `identity_config` is set to AIEOS format, the bootstrap files section
-/// is replaced with the AIEOS identity data loaded from file or inline JSON.
+/// Phase 3: identity content is sourced entirely from the markdown files
+/// in `workspace_dir`, which the dashboard backend mounts as a K8s
+/// ConfigMap before the agent container starts.
 ///
 /// Daily memory files (`memory/*.md`) are NOT injected — they are accessed
 /// on-demand via `memory_recall` / `memory_search` tools.
@@ -3690,7 +3691,6 @@ pub fn build_system_prompt(
     model_name: &str,
     tools: &[(&str, &str)],
     skills: &[crate::skills::Skill],
-    identity_config: Option<&crate::config::IdentityConfig>,
     bootstrap_max_chars: Option<usize>,
 ) -> String {
     build_system_prompt_with_mode(
@@ -3698,7 +3698,6 @@ pub fn build_system_prompt(
         model_name,
         tools,
         skills,
-        identity_config,
         bootstrap_max_chars,
         false,
         crate::config::SkillsPromptInjectionMode::Full,
@@ -3711,7 +3710,6 @@ pub fn build_system_prompt_with_mode(
     model_name: &str,
     tools: &[(&str, &str)],
     skills: &[crate::skills::Skill],
-    identity_config: Option<&crate::config::IdentityConfig>,
     bootstrap_max_chars: Option<usize>,
     native_tools: bool,
     skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
@@ -3726,7 +3724,6 @@ pub fn build_system_prompt_with_mode(
         model_name,
         tools,
         skills,
-        identity_config,
         bootstrap_max_chars,
         Some(&autonomy_cfg),
         native_tools,
@@ -3742,7 +3739,6 @@ pub fn build_system_prompt_with_mode_and_autonomy(
     model_name: &str,
     tools: &[(&str, &str)],
     skills: &[crate::skills::Skill],
-    identity_config: Option<&crate::config::IdentityConfig>,
     bootstrap_max_chars: Option<usize>,
     autonomy_config: Option<&crate::config::AutonomyConfig>,
     native_tools: bool,
@@ -3875,13 +3871,7 @@ pub fn build_system_prompt_with_mode_and_autonomy(
     // ── 5. Bootstrap files (injected into context) ──────────────
     // Phase 3: identity is sourced entirely from the per-agent Obsidian
     // vault, which is mounted at workspace_dir as a K8s ConfigMap by the
-    // dashboard backend before the pod starts. No AIEOS branch, no
-    // identity_config consultation — just load the markdown files.
-    //
-    // `identity_config` is retained on the parameter list for backwards
-    // compatibility and will be removed together with IdentityConfig in a
-    // follow-up commit.
-    let _ = identity_config;
+    // dashboard backend before the pod starts.
     prompt.push_str("## Project Context\n\n");
     let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
     load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars);
@@ -4647,7 +4637,6 @@ pub async fn start_channels(config: Config) -> Result<()> {
         &model,
         &tool_descs,
         &skills,
-        Some(&config.identity),
         bootstrap_max_chars,
         Some(&config.autonomy),
         native_tools,

@@ -1049,7 +1049,6 @@ impl DelegateTool {
             tools: sub_tools,
             skills: &skills,
             skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
-            identity_config: None,
             dispatcher_instructions: "",
             tool_descriptions: None,
             security_summary: None,

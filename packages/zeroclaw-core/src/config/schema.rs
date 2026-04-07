@@ -325,10 +325,6 @@ pub struct Config {
     #[serde(default)]
     pub proxy: ProxyConfig,
 
-    /// Identity format configuration: OpenClaw or AIEOS (`[identity]`).
-    #[serde(default)]
-    pub identity: IdentityConfig,
-
     /// Cost tracking and budget enforcement configuration (`[cost]`).
     #[serde(default)]
     pub cost: CostConfig,
@@ -1739,38 +1735,6 @@ impl Default for MediaPipelineConfig {
             transcribe_audio: true,
             describe_images: true,
             summarize_video: true,
-        }
-    }
-}
-
-// ── Identity (AIEOS / OpenClaw format) ──────────────────────────
-
-/// Identity format configuration (`[identity]` section).
-///
-/// Supports `"openclaw"` (default) or `"aieos"` identity documents.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct IdentityConfig {
-    /// Identity format: "openclaw" (default) or "aieos"
-    #[serde(default = "default_identity_format")]
-    pub format: String,
-    /// Path to AIEOS JSON file (relative to workspace)
-    #[serde(default)]
-    pub aieos_path: Option<String>,
-    /// Inline AIEOS JSON (alternative to file path)
-    #[serde(default)]
-    pub aieos_inline: Option<String>,
-}
-
-fn default_identity_format() -> String {
-    "openclaw".into()
-}
-
-impl Default for IdentityConfig {
-    fn default() -> Self {
-        Self {
-            format: default_identity_format(),
-            aieos_path: None,
-            aieos_inline: None,
         }
     }
 }
@@ -8357,7 +8321,6 @@ impl Default for Config {
             project_intel: ProjectIntelConfig::default(),
             google_workspace: GoogleWorkspaceConfig::default(),
             proxy: ProxyConfig::default(),
-            identity: IdentityConfig::default(),
             cost: CostConfig::default(),
             peripherals: PeripheralsConfig::default(),
             delegate: DelegateToolConfig::default(),
@@ -8837,45 +8800,6 @@ fn read_codex_openai_api_key() -> Option<String> {
         .map(ToString::to_string)
 }
 
-/// Ensure that essential bootstrap files exist in the workspace directory.
-///
-/// When the workspace is created outside of `zeroclaw onboard` (e.g., non-tty
-/// daemon/cron sessions), these files would otherwise be missing. This function
-/// creates sensible defaults that allow the agent to operate with a basic identity.
-async fn ensure_bootstrap_files(workspace_dir: &Path) -> Result<()> {
-    let defaults: &[(&str, &str)] = &[
-        (
-            "IDENTITY.md",
-            "# IDENTITY.md — Who Am I?\n\n\
-             I am ZeroClaw, an autonomous AI agent.\n\n\
-             ## Traits\n\
-             - Helpful, precise, and safety-conscious\n\
-             - I prioritize clarity and correctness\n",
-        ),
-        (
-            "SOUL.md",
-            "# SOUL.md — Who You Are\n\n\
-             You are ZeroClaw, an autonomous AI agent.\n\n\
-             ## Core Principles\n\
-             - Be helpful and accurate\n\
-             - Respect user intent and boundaries\n\
-             - Ask before taking destructive actions\n\
-             - Prefer safe, reversible operations\n",
-        ),
-    ];
-
-    for (filename, content) in defaults {
-        let path = workspace_dir.join(filename);
-        if !path.exists() {
-            fs::write(&path, content)
-                .await
-                .with_context(|| format!("Failed to create default {filename} in workspace"))?;
-        }
-    }
-
-    Ok(())
-}
-
 impl Config {
     pub async fn load_or_init() -> Result<Self> {
         let (default_zeroclaw_dir, default_workspace_dir) = default_config_and_workspace_dirs()?;
@@ -8892,7 +8816,11 @@ impl Config {
             .await
             .context("Failed to create workspace directory")?;
 
-        ensure_bootstrap_files(&workspace_dir).await?;
+        // Phase 3: the agent no longer bootstraps its own personality
+        // files. The per-agent Obsidian vault is provisioned by the
+        // dashboard backend and mounted as a K8s ConfigMap before the
+        // container starts. If required files are missing, the boot
+        // path fails loudly via load_personality_strict.
 
         if config_path.exists() {
             // Warn if config file is world-readable (may contain API keys)

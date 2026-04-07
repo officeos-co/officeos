@@ -532,7 +532,6 @@ auto_save = true
             proxy: ProxyConfig::default(),
             agent: AgentConfig::default(),
             pacing: PacingConfig::default(),
-            identity: IdentityConfig::default(),
             cost: CostConfig::default(),
             peripherals: PeripheralsConfig::default(),
             delegate: DelegateToolConfig::default(),
@@ -1061,7 +1060,6 @@ default_temperature = 0.7
             proxy: ProxyConfig::default(),
             agent: AgentConfig::default(),
             pacing: PacingConfig::default(),
-            identity: IdentityConfig::default(),
             cost: CostConfig::default(),
             peripherals: PeripheralsConfig::default(),
             delegate: DelegateToolConfig::default(),
@@ -4908,47 +4906,10 @@ require_otp_to_resume = true
         );
     }
 
-    // ── Bootstrap files ─────────────────────────────────────
-
-    #[tokio::test]
-    async fn ensure_bootstrap_files_creates_missing_files() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        let ws = tmp.path().join("workspace");
-        let _: () = tokio::fs::create_dir_all(&ws).await.unwrap();
-
-        ensure_bootstrap_files(&ws).await.unwrap();
-
-        let soul: String = tokio::fs::read_to_string(ws.join("SOUL.md")).await.unwrap();
-        let identity: String = tokio::fs::read_to_string(ws.join("IDENTITY.md"))
-            .await
-            .unwrap();
-        assert!(soul.contains("SOUL.md"));
-        assert!(identity.contains("IDENTITY.md"));
-    }
-
-    #[tokio::test]
-    async fn ensure_bootstrap_files_does_not_overwrite_existing() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        let ws = tmp.path().join("workspace");
-        let _: () = tokio::fs::create_dir_all(&ws).await.unwrap();
-
-        let custom = "# My custom SOUL";
-        let _: () = tokio::fs::write(ws.join("SOUL.md"), custom).await.unwrap();
-
-        ensure_bootstrap_files(&ws).await.unwrap();
-
-        let soul: String = tokio::fs::read_to_string(ws.join("SOUL.md")).await.unwrap();
-        assert_eq!(
-            soul, custom,
-            "ensure_bootstrap_files must not overwrite existing files"
-        );
-
-        // IDENTITY.md should still be created since it was missing
-        let identity: String = tokio::fs::read_to_string(ws.join("IDENTITY.md"))
-            .await
-            .unwrap();
-        assert!(identity.contains("IDENTITY.md"));
-    }
+    // ensure_bootstrap_files() was deleted in Phase 3. The dashboard
+    // backend (apps/dashboard/backend) now owns vault provisioning and
+    // seeds the per-agent Obsidian vault with the initial markdown files
+    // before the agent container starts. See STRIP_DOWN.md Phase 3.
 
     // ── PacingConfig serde defaults ─────────────────────────────
 

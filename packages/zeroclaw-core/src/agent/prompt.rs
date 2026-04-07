@@ -1,5 +1,4 @@
 use crate::agent::personality;
-use crate::config::IdentityConfig;
 use crate::i18n::ToolDescriptions;
 use crate::security::AutonomyLevel;
 use crate::skills::Skill;
@@ -15,7 +14,6 @@ pub struct PromptContext<'a> {
     pub tools: &'a [Box<dyn Tool>],
     pub skills: &'a [Skill],
     pub skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
-    pub identity_config: Option<&'a IdentityConfig>,
     pub dispatcher_instructions: &'a str,
     /// Locale-aware tool descriptions. When present, tool descriptions in
     /// prompts are resolved from the locale file instead of hardcoded values.
@@ -101,12 +99,6 @@ impl PromptSection for IdentitySection {
         // required file is missing; here we use the lenient loader because
         // prompt building is a read-only rendering step and must stay
         // resilient to partial test workspaces.
-        //
-        // The `identity_config` field on PromptContext is retained for
-        // backwards compatibility but is no longer consulted. It will be
-        // removed together with IdentityConfig itself in a follow-up commit.
-        let _ = ctx.identity_config;
-
         let mut prompt = String::from("## Project Context\n\n");
         prompt.push_str(
             "The following workspace files define your identity, behavior, and context.\n\n",
