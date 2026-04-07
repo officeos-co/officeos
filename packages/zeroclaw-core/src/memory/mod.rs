@@ -1,3 +1,11 @@
+//! Memory subsystem.
+//!
+//! Post-Phase-4 backend choices: only `sqlite` (default), `obsidian`,
+//! and `none` remain. Historical backends (lucid, qdrant, markdown) and
+//! the audit/policy/hygiene/snapshot decorators were removed as orphan
+//! code. See `docs/reference/memory-future.md` for the planned sqlite
+//! removal.
+
 pub mod backend;
 pub mod chunker;
 pub mod cli;
