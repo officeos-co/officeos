@@ -294,22 +294,33 @@ Phase 3 was originally scoped as "resolve the `personality.rs` / `identity.rs` l
 
 ### Summary
 
-| Metric                                     | Before                              | After                                                               | Δ                                |
-| ------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------- | -------------------------------- |
-| Identity format paths                      | 2 (OpenClaw markdown + AIEOS JSON)  | **1** (markdown only)                                               | −1                               |
-| `src/identity.rs`                          | 987 lines                           | **deleted**                                                         | −987                             |
-| `src/agent/vault_sync.rs`                  | 262 lines                           | **deleted**                                                         | −262                             |
-| `IdentityConfig` struct                    | 3 fields + 3 default sites          | **deleted**                                                         | full removal                     |
-| `identity_config` plumbing                 | threaded through Prompt, Channels, Agent, loop_  | **deleted**                                               | 43 ref sites cleaned             |
-| `ensure_bootstrap_files()`                 | writes default SOUL/IDENTITY        | **deleted**                                                         | agent no longer bootstraps files |
-| Boot gate for missing files                | (none)                              | **`personality::load_personality_strict`**                          | strict enforcement               |
-| Per-agent vault DB                         | (none)                              | **CouchDB database per agent, `agent-{uuid}`**                      | 1:1 vault:agent                  |
-| Vault ConfigMap in K8s                     | (none)                              | **`eaos-agent-{uuid}-vault` mounted at `/vault-workspace`**         | pod-mount cache                  |
-| `obsctl.VaultClient.ensure_database`       | (did not exist)                     | **new Python API method**                                           | +65 LOC + 9 tests                |
-| Dashboard backend `vault_database` column  | (did not exist)                     | **new column + Alembic migration**                                  | new schema field                 |
-| Rendered personality files in pod boot     | `pip install obsidian-vault-cli`, `vault pull`, `zeroclaw onboard` | **K8s ConfigMap mount** | zero boot-time CLI work          |
-| Tests added                                | —                                   | **56 new Phase 3 backend tests**                                    | all green                        |
-| zeroclaw-core LOC deleted in Phase 3       | —                                   | **~2,300 lines**                                                    |                                  |
+| Metric                       | Before      | After         |
+| ---------------------------- | ----------- | ------------- |
+| Identity format paths        | 2           | **1**         |
+| zeroclaw-core LOC (phase 3)  | baseline    | **−2,300**    |
+| Boot gate                    | none        | **strict**    |
+| Per-agent vault DB           | none        | **1:1**       |
+| Phase 3 tests (backend)      | —           | **+56 green** |
+
+Deletions in zeroclaw-core:
+
+- **`src/identity.rs`** — 987 lines, the AIEOS JSON loader and its 8-section normalizers.
+- **`src/agent/vault_sync.rs`** — 262 lines, the boot-time obsctl pull.
+- **`IdentityConfig` struct** — 3 fields (`format`, `aieos_path`, `aieos_inline`) + its `identity` field on `Config` + 3 default sites.
+- **`identity_config` plumbing** — 43 reference sites across `PromptContext`, `AgentCoreBuilder`, `build_system_prompt` wrappers, and every test fixture.
+- **`ensure_bootstrap_files()`** — the workspace auto-seeder. Agent no longer writes files.
+
+Additions:
+
+- **`personality::load_personality_strict`** — new loader with `PersonalityError`, wired into `AgentCore::create_from_config` as the boot gate.
+- **`obsctl.VaultClient.ensure_database`** — new Python API method (+65 LOC, 9 tests).
+- **Per-agent CouchDB database** `agent-{uuid}`, provisioned by the dashboard backend at agent creation time.
+- **Per-agent K8s ConfigMap** `eaos-agent-{uuid}-vault`, mounted read-only at `/vault-workspace`.
+- **`Agent.vault_database` column** + Alembic migration in the dashboard backend.
+- **`vault_provisioning.py`** and **`vault_configmap.py`** helper modules in `apps/dashboard/backend`.
+- **Lockstep write path** in `AgentLifecycleService._seed_agent_vault`: one rendered dict → CouchDB + ConfigMap.
+
+Pod boot sequence simplified: no more `pip install obsidian-vault-cli`, no more `vault config set` block, no more `zeroclaw onboard --quick`. The boot command is now just `zeroclaw daemon`; the K8s API guarantees the workspace files are present before the container starts.
 
 After Phase 3, zeroclaw-core is a pure markdown reader. It does not create, sync, or write identity files. The dashboard backend (`apps/dashboard/backend`) owns every write path.
 
