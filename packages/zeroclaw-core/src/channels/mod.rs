@@ -41,7 +41,6 @@ use crate::agent::loop_::{
 };
 use crate::approval::ApprovalManager;
 use crate::config::Config;
-use crate::identity;
 use crate::memory::{self, Memory};
 use crate::observability::traits::{ObserverEvent, ObserverMetric};
 use crate::observability::{self, Observer, runtime_trace};
@@ -3874,45 +3873,18 @@ pub fn build_system_prompt_with_mode_and_autonomy(
     );
 
     // ── 5. Bootstrap files (injected into context) ──────────────
+    // Phase 3: identity is sourced entirely from the per-agent Obsidian
+    // vault, which is mounted at workspace_dir as a K8s ConfigMap by the
+    // dashboard backend before the pod starts. No AIEOS branch, no
+    // identity_config consultation — just load the markdown files.
+    //
+    // `identity_config` is retained on the parameter list for backwards
+    // compatibility and will be removed together with IdentityConfig in a
+    // follow-up commit.
+    let _ = identity_config;
     prompt.push_str("## Project Context\n\n");
-
-    // Check if AIEOS identity is configured
-    if let Some(config) = identity_config {
-        if identity::is_aieos_configured(config) {
-            // Load AIEOS identity
-            match identity::load_aieos_identity(config, workspace_dir) {
-                Ok(Some(aieos_identity)) => {
-                    let aieos_prompt = identity::aieos_to_system_prompt(&aieos_identity);
-                    if !aieos_prompt.is_empty() {
-                        prompt.push_str(&aieos_prompt);
-                        prompt.push_str("\n\n");
-                    }
-                }
-                Ok(None) => {
-                    // No AIEOS identity loaded (shouldn't happen if is_aieos_configured returned true)
-                    // Fall back to OpenClaw bootstrap files
-                    let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-                    load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars);
-                }
-                Err(e) => {
-                    // Log error but don't fail - fall back to OpenClaw
-                    eprintln!(
-                        "Warning: Failed to load AIEOS identity: {e}. Using OpenClaw format."
-                    );
-                    let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-                    load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars);
-                }
-            }
-        } else {
-            // OpenClaw format
-            let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-            load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars);
-        }
-    } else {
-        // No identity config - use OpenClaw format
-        let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-        load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars);
-    }
+    let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
+    load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars);
 
     // ── 6. Date & Time ──────────────────────────────────────────
     let now = chrono::Local::now();
