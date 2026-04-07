@@ -942,12 +942,6 @@ fn mask_sensitive_fields(config: &crate::config::Config) -> crate::config::Confi
     mask_optional_secret(&mut masked.web_search.brave_api_key);
     mask_optional_secret(&mut masked.storage.provider.config.db_url);
     mask_optional_secret(&mut masked.memory.qdrant.api_key);
-    if let Some(cloudflare) = masked.tunnel.cloudflare.as_mut() {
-        mask_required_secret(&mut cloudflare.token);
-    }
-    if let Some(ngrok) = masked.tunnel.ngrok.as_mut() {
-        mask_required_secret(&mut ngrok.auth_token);
-    }
 
     for agent in masked.agents.values_mut() {
         mask_optional_secret(&mut agent.api_key);
@@ -1053,18 +1047,6 @@ fn restore_masked_sensitive_fields(
         &mut incoming.memory.qdrant.api_key,
         &current.memory.qdrant.api_key,
     );
-    if let (Some(incoming_tunnel), Some(current_tunnel)) = (
-        incoming.tunnel.cloudflare.as_mut(),
-        current.tunnel.cloudflare.as_ref(),
-    ) {
-        restore_required_secret(&mut incoming_tunnel.token, &current_tunnel.token);
-    }
-    if let (Some(incoming_tunnel), Some(current_tunnel)) = (
-        incoming.tunnel.ngrok.as_mut(),
-        current.tunnel.ngrok.as_ref(),
-    ) {
-        restore_required_secret(&mut incoming_tunnel.auth_token, &current_tunnel.auth_token);
-    }
 
     for (name, agent) in &mut incoming.agents {
         if let Some(current_agent) = current.agents.get(name) {

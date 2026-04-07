@@ -129,9 +129,6 @@
         cfg.api_key = Some("sk-live-123".to_string());
         cfg.reliability.api_keys = vec!["rk-1".to_string(), "rk-2".to_string()];
         cfg.gateway.paired_tokens = vec!["pair-token-1".to_string()];
-        cfg.tunnel.cloudflare = Some(crate::config::schema::CloudflareTunnelConfig {
-            token: "cf-token".to_string(),
-        });
         cfg.memory.qdrant.api_key = Some("qdrant-key".to_string());
         cfg.channels_config.wati = Some(crate::config::schema::WatiConfig {
             api_token: "wati-token".to_string(),
@@ -177,10 +174,6 @@
         assert_eq!(
             parsed.gateway.paired_tokens,
             vec![MASKED_SECRET.to_string()]
-        );
-        assert_eq!(
-            parsed.tunnel.cloudflare.as_ref().map(|v| v.token.as_str()),
-            Some(MASKED_SECRET)
         );
         assert_eq!(
             parsed
@@ -239,13 +232,6 @@
         current.api_key = Some("real-key".to_string());
         current.reliability.api_keys = vec!["r1".to_string(), "r2".to_string()];
         current.gateway.paired_tokens = vec!["pair-1".to_string(), "pair-2".to_string()];
-        current.tunnel.cloudflare = Some(crate::config::schema::CloudflareTunnelConfig {
-            token: "cf-token-real".to_string(),
-        });
-        current.tunnel.ngrok = Some(crate::config::schema::NgrokTunnelConfig {
-            auth_token: "ngrok-token-real".to_string(),
-            domain: None,
-        });
         current.memory.qdrant.api_key = Some("qdrant-real".to_string());
         current.channels_config.wati = Some(crate::config::schema::WatiConfig {
             api_token: "wati-real".to_string(),
@@ -300,12 +286,6 @@
         // Simulate UI changing only one key and keeping the first masked.
         incoming.reliability.api_keys = vec![MASKED_SECRET.to_string(), "r2-new".to_string()];
         incoming.gateway.paired_tokens = vec![MASKED_SECRET.to_string(), "pair-2-new".to_string()];
-        if let Some(cloudflare) = incoming.tunnel.cloudflare.as_mut() {
-            cloudflare.token = MASKED_SECRET.to_string();
-        }
-        if let Some(ngrok) = incoming.tunnel.ngrok.as_mut() {
-            ngrok.auth_token = MASKED_SECRET.to_string();
-        }
         incoming.memory.qdrant.api_key = Some(MASKED_SECRET.to_string());
         if let Some(wati) = incoming.channels_config.wati.as_mut() {
             wati.api_token = MASKED_SECRET.to_string();
@@ -331,22 +311,6 @@
         assert_eq!(
             hydrated.gateway.paired_tokens,
             vec!["pair-1".to_string(), "pair-2-new".to_string()]
-        );
-        assert_eq!(
-            hydrated
-                .tunnel
-                .cloudflare
-                .as_ref()
-                .map(|v| v.token.as_str()),
-            Some("cf-token-real")
-        );
-        assert_eq!(
-            hydrated
-                .tunnel
-                .ngrok
-                .as_ref()
-                .map(|v| v.auth_token.as_str()),
-            Some("ngrok-token-real")
         );
         assert_eq!(
             hydrated.memory.qdrant.api_key.as_deref(),

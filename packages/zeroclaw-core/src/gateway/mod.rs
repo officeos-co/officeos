@@ -31,7 +31,7 @@ use crate::memory::{self, Memory, MemoryCategory};
 use crate::providers::{self, ChatMessage, Provider};
 use crate::runtime;
 use crate::security::SecurityPolicy;
-use crate::security::pairing::{PairingGuard, constant_time_eq, is_public_bind};
+use crate::security::pairing::{PairingGuard, constant_time_eq};
 use crate::tools;
 use crate::tools::canvas::CanvasStore;
 use crate::tools::traits::ToolSpec;
@@ -354,16 +354,11 @@ pub async fn run_gateway(
     config: Config,
     external_event_tx: Option<tokio::sync::broadcast::Sender<serde_json::Value>>,
 ) -> Result<()> {
-    // ── Security: warn on public bind without tunnel or explicit opt-in ──
-    if is_public_bind(host) && config.tunnel.provider == "none" && !config.gateway.allow_public_bind
-    {
-        tracing::warn!(
-            "⚠️  Binding to {host} — gateway will be exposed to all network interfaces.\n\
-             Suggestion: use --host 127.0.0.1 (default), configure a tunnel, or set\n\
-             [gateway] allow_public_bind = true in config.toml to silence this warning.\n\n\
-             Docker/VM: if you are running inside a container or VM, this is expected."
-        );
-    }
+    // Phase 4: the old public-bind warning was bare-metal-only and
+    // relied on config.tunnel.provider. Office OS is K8s-deployed, so
+    // the pod's service account and Ingress handle external exposure —
+    // there is no "tunnel vs raw bind" concern to warn about.
+    let _ = host;
     let config_state = Arc::new(Mutex::new(config.clone()));
 
     // ── Hooks ──────────────────────────────────────────────────────

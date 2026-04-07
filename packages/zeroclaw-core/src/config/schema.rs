@@ -218,10 +218,6 @@ pub struct Config {
     #[serde(default)]
     pub storage: StorageConfig,
 
-    /// Tunnel configuration for exposing the gateway publicly (`[tunnel]`).
-    #[serde(default)]
-    pub tunnel: TunnelConfig,
-
     /// Gateway server configuration: host, port, pairing, rate limits (`[gateway]`).
     #[serde(default)]
     pub gateway: GatewayConfig,
@@ -5682,129 +5678,6 @@ impl Default for CronConfig {
     }
 }
 
-// ── Tunnel ──────────────────────────────────────────────────────
-
-/// Tunnel configuration for exposing the gateway publicly (`[tunnel]` section).
-///
-/// Supported providers: `"none"` (default), `"cloudflare"`, `"tailscale"`, `"ngrok"`, `"openvpn"`, `"pinggy"`, `"custom"`.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct TunnelConfig {
-    /// Tunnel provider: `"none"`, `"cloudflare"`, `"tailscale"`, `"ngrok"`, `"openvpn"`, `"pinggy"`, or `"custom"`. Default: `"none"`.
-    pub provider: String,
-
-    /// Cloudflare Tunnel configuration (used when `provider = "cloudflare"`).
-    #[serde(default)]
-    pub cloudflare: Option<CloudflareTunnelConfig>,
-
-    /// Tailscale Funnel/Serve configuration (used when `provider = "tailscale"`).
-    #[serde(default)]
-    pub tailscale: Option<TailscaleTunnelConfig>,
-
-    /// ngrok tunnel configuration (used when `provider = "ngrok"`).
-    #[serde(default)]
-    pub ngrok: Option<NgrokTunnelConfig>,
-
-    /// OpenVPN tunnel configuration (used when `provider = "openvpn"`).
-    #[serde(default)]
-    pub openvpn: Option<OpenVpnTunnelConfig>,
-
-    /// Custom tunnel command configuration (used when `provider = "custom"`).
-    #[serde(default)]
-    pub custom: Option<CustomTunnelConfig>,
-
-    /// Pinggy tunnel configuration (used when `provider = "pinggy"`).
-    #[serde(default)]
-    pub pinggy: Option<PinggyTunnelConfig>,
-}
-
-impl Default for TunnelConfig {
-    fn default() -> Self {
-        Self {
-            provider: "none".into(),
-            cloudflare: None,
-            tailscale: None,
-            ngrok: None,
-            openvpn: None,
-            custom: None,
-            pinggy: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct CloudflareTunnelConfig {
-    /// Cloudflare Tunnel token (from Zero Trust dashboard)
-    pub token: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct TailscaleTunnelConfig {
-    /// Use Tailscale Funnel (public internet) vs Serve (tailnet only)
-    #[serde(default)]
-    pub funnel: bool,
-    /// Optional hostname override
-    pub hostname: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct NgrokTunnelConfig {
-    /// ngrok auth token
-    pub auth_token: String,
-    /// Optional custom domain
-    pub domain: Option<String>,
-}
-
-/// OpenVPN tunnel configuration (`[tunnel.openvpn]`).
-///
-/// Required when `tunnel.provider = "openvpn"`. Omitting this section entirely
-/// preserves previous behavior. Setting `tunnel.provider = "none"` (or removing
-/// the `[tunnel.openvpn]` block) cleanly reverts to no-tunnel mode.
-///
-/// Defaults: `connect_timeout_secs = 30`.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct OpenVpnTunnelConfig {
-    /// Path to `.ovpn` configuration file (must not be empty).
-    pub config_file: String,
-    /// Optional path to auth credentials file (`--auth-user-pass`).
-    #[serde(default)]
-    pub auth_file: Option<String>,
-    /// Advertised address once VPN is connected (e.g., `"10.8.0.2:42617"`).
-    /// When omitted the tunnel falls back to `http://{local_host}:{local_port}`.
-    #[serde(default)]
-    pub advertise_address: Option<String>,
-    /// Connection timeout in seconds (default: 30, must be > 0).
-    #[serde(default = "default_openvpn_timeout")]
-    pub connect_timeout_secs: u64,
-    /// Extra openvpn CLI arguments forwarded verbatim.
-    #[serde(default)]
-    pub extra_args: Vec<String>,
-}
-
-fn default_openvpn_timeout() -> u64 {
-    30
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct PinggyTunnelConfig {
-    /// Pinggy access token (optional — free tier works without one).
-    #[serde(default)]
-    pub token: Option<String>,
-    /// Server region: `"us"` (USA), `"eu"` (Europe), `"ap"` (Asia), `"br"` (South America), `"au"` (Australia), or omit for auto.
-    #[serde(default)]
-    pub region: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct CustomTunnelConfig {
-    /// Command template to start the tunnel. Use {port} and {host} placeholders.
-    /// Example: "bore local {port} --to bore.pub"
-    pub start_command: String,
-    /// Optional URL to check tunnel health
-    pub health_url: Option<String>,
-    /// Optional regex to extract public URL from command stdout
-    pub url_pattern: Option<String>,
-}
-
 // ── Channels ─────────────────────────────────────────────────────
 
 struct ConfigWrapper<T: ChannelConfig>(std::marker::PhantomData<T>);
@@ -8110,7 +7983,6 @@ impl Default for Config {
             channels_config: ChannelsConfig::default(),
             memory: MemoryConfig::default(),
             storage: StorageConfig::default(),
-            tunnel: TunnelConfig::default(),
             gateway: GatewayConfig::default(),
             composio: ComposioConfig::default(),
             microsoft365: Microsoft365Config::default(),
@@ -8705,9 +8577,6 @@ impl Config {
                 &mut config.composio.api_key,
                 "config.composio.api_key",
             )?;
-            if let Some(ref mut pinggy) = config.tunnel.pinggy {
-                decrypt_optional_secret(&store, &mut pinggy.token, "config.tunnel.pinggy.token")?;
-            }
             decrypt_optional_secret(
                 &store,
                 &mut config.microsoft365.client_secret,
@@ -9157,20 +9026,6 @@ impl Config {
     /// Called after TOML deserialization and env-override application to catch
     /// obviously invalid values early instead of failing at arbitrary runtime points.
     pub fn validate(&self) -> Result<()> {
-        // Tunnel — OpenVPN
-        if self.tunnel.provider.trim() == "openvpn" {
-            let openvpn = self.tunnel.openvpn.as_ref().ok_or_else(|| {
-                anyhow::anyhow!("tunnel.provider='openvpn' requires [tunnel.openvpn]")
-            })?;
-
-            if openvpn.config_file.trim().is_empty() {
-                anyhow::bail!("tunnel.openvpn.config_file must not be empty");
-            }
-            if openvpn.connect_timeout_secs == 0 {
-                anyhow::bail!("tunnel.openvpn.connect_timeout_secs must be greater than 0");
-            }
-        }
-
         // Gateway
         if self.gateway.host.trim().is_empty() {
             anyhow::bail!("gateway.host must not be empty");
@@ -9624,18 +9479,6 @@ impl Config {
             }
             if self.notion.result_property.trim().is_empty() {
                 anyhow::bail!("notion.result_property must not be empty");
-            }
-        }
-
-        // Pinggy tunnel region — validate allowed values (case-insensitive, auto-lowercased at runtime).
-        if let Some(ref pinggy) = self.tunnel.pinggy {
-            if let Some(ref region) = pinggy.region {
-                let r = region.trim().to_ascii_lowercase();
-                if !r.is_empty() && !matches!(r.as_str(), "us" | "eu" | "ap" | "br" | "au") {
-                    anyhow::bail!(
-                        "tunnel.pinggy.region must be one of: us, eu, ap, br, au (or omitted for auto)"
-                    );
-                }
             }
         }
 
@@ -10144,9 +9987,6 @@ impl Config {
             &mut config_to_save.composio.api_key,
             "config.composio.api_key",
         )?;
-        if let Some(ref mut pinggy) = config_to_save.tunnel.pinggy {
-            encrypt_optional_secret(&store, &mut pinggy.token, "config.tunnel.pinggy.token")?;
-        }
         encrypt_optional_secret(
             &store,
             &mut config_to_save.microsoft365.client_secret,
