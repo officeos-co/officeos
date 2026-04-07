@@ -17,7 +17,7 @@ pub use schema::{
     ImageProviderFluxConfig, ImageProviderImagenConfig, ImageProviderStabilityConfig, JiraConfig,
     LarkConfig, LinkEnricherConfig, LinkedInConfig, LinkedInContentConfig,
     LinkedInImageConfig, LocalWhisperConfig, MatrixConfig, McpConfig, McpServerConfig,
-    McpTransport, MediaPipelineConfig, MemoryConfig, MemoryPolicyConfig, Microsoft365Config,
+    McpTransport, MediaPipelineConfig, MemoryConfig, Microsoft365Config,
     ModelRouteConfig, MqttConfig, MultimodalConfig, NextcloudTalkConfig, NodeTransportConfig,
     NodesConfig, NotionConfig, ObservabilityConfig, OpenAiSttConfig, OpenAiTtsConfig,
     OpenCodeCliConfig, OtpConfig, OtpMethod, PacingConfig,

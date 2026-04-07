@@ -1,4 +1,3 @@
-pub mod audit;
 pub mod backend;
 pub mod chunker;
 pub mod cli;
@@ -10,18 +9,12 @@ pub mod importance;
 pub mod obsidian;
 pub mod namespaced;
 pub mod none;
-pub mod policy;
 pub mod response_cache;
 pub mod retrieval;
 pub mod sqlite;
 pub mod traits;
 pub mod vector;
 
-#[cfg(test)]
-mod battle_tests;
-
-#[allow(unused_imports)]
-pub use audit::AuditedMemory;
 #[allow(unused_imports)]
 pub use backend::{
     MemoryBackendKind, MemoryBackendProfile, classify_memory_backend, default_memory_backend_key,
@@ -30,8 +23,6 @@ pub use backend::{
 pub use obsidian::ObsidianMemory;
 pub use namespaced::NamespacedMemory;
 pub use none::NoneMemory;
-#[allow(unused_imports)]
-pub use policy::PolicyEnforcer;
 pub use response_cache::ResponseCache;
 #[allow(unused_imports)]
 pub use retrieval::{RetrievalConfig, RetrievalPipeline};

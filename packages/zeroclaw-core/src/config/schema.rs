@@ -4622,42 +4622,12 @@ pub struct MemoryConfig {
     #[serde(default = "default_conflict_threshold")]
     pub conflict_threshold: f64,
 
-    // ── Audit Trail ─────────────────────────────────────────────
-    /// Enable audit logging of memory operations.
-    #[serde(default)]
-    pub audit_enabled: bool,
-    /// Retention period for audit entries in days (default: 30).
-    #[serde(default = "default_audit_retention_days")]
-    pub audit_retention_days: u32,
-
-    // ── Policy Engine ───────────────────────────────────────────
-    /// Memory policy configuration.
-    #[serde(default)]
-    pub policy: MemoryPolicyConfig,
-
     // ── SQLite backend options ─────────────────────────────────
     /// For sqlite backend: max seconds to wait when opening the DB (e.g. file locked).
     /// None = wait indefinitely (default). Recommended max: 300.
     #[serde(default)]
     pub sqlite_open_timeout_secs: Option<u64>,
 
-}
-
-/// Memory policy configuration (`[memory.policy]` section).
-#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
-pub struct MemoryPolicyConfig {
-    /// Maximum entries per namespace (0 = unlimited).
-    #[serde(default)]
-    pub max_entries_per_namespace: usize,
-    /// Maximum entries per category (0 = unlimited).
-    #[serde(default)]
-    pub max_entries_per_category: usize,
-    /// Retention days by category (overrides global). Keys: "core", "daily", "conversation".
-    #[serde(default)]
-    pub retention_days_by_category: std::collections::HashMap<String, u32>,
-    /// Namespaces that are read-only (writes are rejected).
-    #[serde(default)]
-    pub read_only_namespaces: Vec<String>,
 }
 
 fn default_retrieval_stages() -> Vec<String> {
@@ -4675,10 +4645,6 @@ fn default_namespace() -> String {
 fn default_conflict_threshold() -> f64 {
     0.85
 }
-fn default_audit_retention_days() -> u32 {
-    30
-}
-
 fn default_embedding_provider() -> String {
     "none".into()
 }
@@ -4738,9 +4704,6 @@ impl Default for MemoryConfig {
             fts_early_return_score: default_fts_early_return_score(),
             default_namespace: default_namespace(),
             conflict_threshold: default_conflict_threshold(),
-            audit_enabled: false,
-            audit_retention_days: default_audit_retention_days(),
-            policy: MemoryPolicyConfig::default(),
             sqlite_open_timeout_secs: None,
         }
     }
