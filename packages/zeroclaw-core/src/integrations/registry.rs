@@ -712,18 +712,6 @@ pub fn all_integrations() -> Vec<IntegrationEntry> {
             category: IntegrationCategory::Social,
             status_fn: |_| IntegrationStatus::ComingSoon,
         },
-        IntegrationEntry {
-            name: "Email",
-            description: "IMAP/SMTP email channel",
-            category: IntegrationCategory::Social,
-            status_fn: |c| {
-                if c.channels_config.email.is_some() {
-                    IntegrationStatus::Active
-                } else {
-                    IntegrationStatus::Available
-                }
-            },
-        },
         // ── Platforms ───────────────────────────────────────────
         IntegrationEntry {
             name: "macOS",

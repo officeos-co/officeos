@@ -6074,10 +6074,7 @@ pub struct ChannelsConfig {
     pub wati: Option<WatiConfig>,
     /// Nextcloud Talk bot channel configuration.
     pub nextcloud_talk: Option<NextcloudTalkConfig>,
-    /// Email channel configuration.
-    pub email: Option<crate::channels::email_channel::EmailConfig>,
-    /// Gmail Pub/Sub push notification channel configuration.
-    pub gmail_push: Option<crate::channels::gmail_push::GmailPushConfig>,
+    // [stripped] email and gmail_push channel configs removed in phase 2.4
     /// IRC channel configuration.
     pub irc: Option<IrcConfig>,
     /// Lark channel configuration.
@@ -6096,14 +6093,12 @@ pub struct ChannelsConfig {
     pub mochat: Option<MochatConfig>,
     #[cfg(feature = "channel-nostr")]
     pub nostr: Option<NostrConfig>,
-    /// ClawdTalk voice channel configuration.
-    pub clawdtalk: Option<crate::channels::ClawdTalkConfig>,
+    // [stripped] clawdtalk channel config removed in phase 2.4
     /// Reddit channel configuration (OAuth2 bot).
     pub reddit: Option<RedditConfig>,
     /// Bluesky channel configuration (AT Protocol).
     pub bluesky: Option<BlueskyConfig>,
-    /// Voice call channel configuration (Twilio/Telnyx/Plivo).
-    pub voice_call: Option<crate::channels::voice_call::VoiceCallConfig>,
+    // [stripped] voice_call channel config removed in phase 2.4
     /// Voice wake word detection channel configuration.
     #[cfg(feature = "voice-wake")]
     pub voice_wake: Option<VoiceWakeConfig>,
@@ -6193,14 +6188,6 @@ impl ChannelsConfig {
                 self.nextcloud_talk.is_some(),
             ),
             (
-                Box::new(ConfigWrapper::new(self.email.as_ref())),
-                self.email.is_some(),
-            ),
-            (
-                Box::new(ConfigWrapper::new(self.gmail_push.as_ref())),
-                self.gmail_push.is_some(),
-            ),
-            (
                 Box::new(ConfigWrapper::new(self.irc.as_ref())),
                 self.irc.is_some()
             ),
@@ -6228,10 +6215,6 @@ impl ChannelsConfig {
             (
                 Box::new(ConfigWrapper::new(self.nostr.as_ref())),
                 self.nostr.is_some(),
-            ),
-            (
-                Box::new(ConfigWrapper::new(self.clawdtalk.as_ref())),
-                self.clawdtalk.is_some(),
             ),
             (
                 Box::new(ConfigWrapper::new(self.reddit.as_ref())),
@@ -6288,8 +6271,6 @@ impl Default for ChannelsConfig {
             linq: None,
             wati: None,
             nextcloud_talk: None,
-            email: None,
-            gmail_push: None,
             irc: None,
             lark: None,
             feishu: None,
@@ -6300,11 +6281,9 @@ impl Default for ChannelsConfig {
             mochat: None,
             #[cfg(feature = "channel-nostr")]
             nostr: None,
-            clawdtalk: None,
             mqtt: None,
             reddit: None,
             bluesky: None,
-            voice_call: None,
             #[cfg(feature = "voice-wake")]
             voice_wake: None,
             message_timeout_secs: default_channel_message_timeout_secs(),
@@ -9190,20 +9169,6 @@ impl Config {
                     "config.channels_config.nextcloud_talk.webhook_secret",
                 )?;
             }
-            if let Some(ref mut em) = config.channels_config.email {
-                decrypt_secret(
-                    &store,
-                    &mut em.password,
-                    "config.channels_config.email.password",
-                )?;
-            }
-            if let Some(ref mut gp) = config.channels_config.gmail_push {
-                decrypt_secret(
-                    &store,
-                    &mut gp.oauth_token,
-                    "config.channels_config.gmail_push.oauth_token",
-                )?;
-            }
             if let Some(ref mut irc) = config.channels_config.irc {
                 decrypt_optional_secret(
                     &store,
@@ -9281,18 +9246,6 @@ impl Config {
                     &store,
                     &mut wh.secret,
                     "config.channels_config.webhook.secret",
-                )?;
-            }
-            if let Some(ref mut ct) = config.channels_config.clawdtalk {
-                decrypt_secret(
-                    &store,
-                    &mut ct.api_key,
-                    "config.channels_config.clawdtalk.api_key",
-                )?;
-                decrypt_optional_secret(
-                    &store,
-                    &mut ct.webhook_secret,
-                    "config.channels_config.clawdtalk.webhook_secret",
                 )?;
             }
 
@@ -10655,20 +10608,6 @@ impl Config {
                 "config.channels_config.nextcloud_talk.webhook_secret",
             )?;
         }
-        if let Some(ref mut em) = config_to_save.channels_config.email {
-            encrypt_secret(
-                &store,
-                &mut em.password,
-                "config.channels_config.email.password",
-            )?;
-        }
-        if let Some(ref mut gp) = config_to_save.channels_config.gmail_push {
-            encrypt_secret(
-                &store,
-                &mut gp.oauth_token,
-                "config.channels_config.gmail_push.oauth_token",
-            )?;
-        }
         if let Some(ref mut irc) = config_to_save.channels_config.irc {
             encrypt_optional_secret(
                 &store,
@@ -10746,18 +10685,6 @@ impl Config {
                 &store,
                 &mut wh.secret,
                 "config.channels_config.webhook.secret",
-            )?;
-        }
-        if let Some(ref mut ct) = config_to_save.channels_config.clawdtalk {
-            encrypt_secret(
-                &store,
-                &mut ct.api_key,
-                "config.channels_config.clawdtalk.api_key",
-            )?;
-            encrypt_optional_secret(
-                &store,
-                &mut ct.webhook_secret,
-                "config.channels_config.clawdtalk.webhook_secret",
             )?;
         }
 
@@ -11482,8 +11409,6 @@ auto_save = true
                 linq: None,
                 wati: None,
                 nextcloud_talk: None,
-                email: None,
-                gmail_push: None,
                 irc: None,
                 lark: None,
                 feishu: None,
@@ -11494,10 +11419,8 @@ auto_save = true
                 mochat: None,
                 #[cfg(feature = "channel-nostr")]
                 nostr: None,
-                clawdtalk: None,
                 reddit: None,
                 bluesky: None,
-                voice_call: None,
                 #[cfg(feature = "voice-wake")]
                 voice_wake: None,
                 mqtt: None,
@@ -12520,8 +12443,6 @@ allowed_users = ["@ops:matrix.org"]
             linq: None,
             wati: None,
             nextcloud_talk: None,
-            email: None,
-            gmail_push: None,
             irc: None,
             lark: None,
             feishu: None,
@@ -12532,10 +12453,8 @@ allowed_users = ["@ops:matrix.org"]
             mochat: None,
             #[cfg(feature = "channel-nostr")]
             nostr: None,
-            clawdtalk: None,
             reddit: None,
             bluesky: None,
-            voice_call: None,
             #[cfg(feature = "voice-wake")]
             voice_wake: None,
             mqtt: None,
@@ -12894,8 +12813,6 @@ channel_ids = ["C123", "D456"]
             linq: None,
             wati: None,
             nextcloud_talk: None,
-            email: None,
-            gmail_push: None,
             irc: None,
             lark: None,
             feishu: None,
@@ -12906,10 +12823,8 @@ channel_ids = ["C123", "D456"]
             mochat: None,
             #[cfg(feature = "channel-nostr")]
             nostr: None,
-            clawdtalk: None,
             reddit: None,
             bluesky: None,
-            voice_call: None,
             #[cfg(feature = "voice-wake")]
             voice_wake: None,
             mqtt: None,

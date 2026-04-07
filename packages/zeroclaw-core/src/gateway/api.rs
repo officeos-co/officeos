@@ -1056,13 +1056,6 @@ fn mask_sensitive_fields(config: &crate::config::Config) -> crate::config::Confi
     if let Some(nostr) = masked.channels_config.nostr.as_mut() {
         mask_required_secret(&mut nostr.private_key);
     }
-    if let Some(clawdtalk) = masked.channels_config.clawdtalk.as_mut() {
-        mask_required_secret(&mut clawdtalk.api_key);
-        mask_optional_secret(&mut clawdtalk.webhook_secret);
-    }
-    if let Some(email) = masked.channels_config.email.as_mut() {
-        mask_required_secret(&mut email.password);
-    }
     mask_optional_secret(&mut masked.transcription.api_key);
     masked
 }
@@ -1237,19 +1230,6 @@ fn restore_masked_sensitive_fields(
         current.channels_config.nostr.as_ref(),
     ) {
         restore_required_secret(&mut incoming_ch.private_key, &current_ch.private_key);
-    }
-    if let (Some(incoming_ch), Some(current_ch)) = (
-        incoming.channels_config.clawdtalk.as_mut(),
-        current.channels_config.clawdtalk.as_ref(),
-    ) {
-        restore_required_secret(&mut incoming_ch.api_key, &current_ch.api_key);
-        restore_optional_secret(&mut incoming_ch.webhook_secret, &current_ch.webhook_secret);
-    }
-    if let (Some(incoming_ch), Some(current_ch)) = (
-        incoming.channels_config.email.as_mut(),
-        current.channels_config.email.as_ref(),
-    ) {
-        restore_required_secret(&mut incoming_ch.password, &current_ch.password);
     }
     restore_optional_secret(
         &mut incoming.transcription.api_key,
@@ -1696,21 +1676,6 @@ mod tests {
             port: None,
             proxy_url: None,
         });
-        cfg.channels_config.email = Some(crate::channels::email_channel::EmailConfig {
-            imap_host: "imap.example.com".to_string(),
-            imap_port: 993,
-            imap_folder: "INBOX".to_string(),
-            smtp_host: "smtp.example.com".to_string(),
-            smtp_port: 465,
-            smtp_tls: true,
-            username: "agent@example.com".to_string(),
-            password: "email-password-secret".to_string(),
-            from_address: "agent@example.com".to_string(),
-            idle_timeout_secs: 1740,
-            allowed_senders: vec!["*".to_string()],
-            default_subject: "ZeroClaw Message".to_string(),
-            max_attachment_bytes: 25 * 1024 * 1024,
-        });
         cfg.model_routes = vec![crate::config::schema::ModelRouteConfig {
             hint: "reasoning".to_string(),
             provider: "openrouter".to_string(),
@@ -1832,21 +1797,6 @@ mod tests {
             receive_mode: crate::config::schema::LarkReceiveMode::Websocket,
             port: None,
             proxy_url: None,
-        });
-        current.channels_config.email = Some(crate::channels::email_channel::EmailConfig {
-            imap_host: "imap.example.com".to_string(),
-            imap_port: 993,
-            imap_folder: "INBOX".to_string(),
-            smtp_host: "smtp.example.com".to_string(),
-            smtp_port: 465,
-            smtp_tls: true,
-            username: "agent@example.com".to_string(),
-            password: "email-password-real".to_string(),
-            from_address: "agent@example.com".to_string(),
-            idle_timeout_secs: 1740,
-            allowed_senders: vec!["*".to_string()],
-            default_subject: "ZeroClaw Message".to_string(),
-            max_attachment_bytes: 25 * 1024 * 1024,
         });
         current.model_routes = vec![
             crate::config::schema::ModelRouteConfig {

@@ -888,21 +888,8 @@ fn has_supervised_channels(config: &Config) -> bool {
         .any(|(_, ok)| *ok)
 }
 
-async fn run_mqtt_sop_listener(config: &crate::config::MqttConfig) -> Result<()> {
-    use crate::config::SopConfig;
-    use crate::memory::NoneMemory;
-    use crate::sop::{SopAuditLogger, SopEngine};
-    use std::sync::{Arc, Mutex};
-
-    // Initialize SOP engine
-    let engine = Arc::new(Mutex::new(SopEngine::new(SopConfig::default())));
-
-    // Initialize SOP audit logger with NoneMemory (MQTT listener is headless)
-    let audit = Arc::new(SopAuditLogger::new(Arc::new(NoneMemory)));
-
-    // Validate MQTT config and run the listener
-    config.validate()?;
-    crate::channels::mqtt::run_mqtt_sop_listener(config, engine, audit).await
+async fn run_mqtt_sop_listener(_config: &crate::config::MqttConfig) -> Result<()> {
+    anyhow::bail!("MQTT SOP listener removed in phase 2.4 strip-down")
 }
 
 #[cfg(test)]
