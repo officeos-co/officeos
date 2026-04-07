@@ -86,7 +86,6 @@ mod health;
 mod heartbeat;
 mod hooks;
 mod i18n;
-mod identity;
 mod memory;
 mod migration;
 mod multimodal;

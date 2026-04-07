@@ -54,7 +54,6 @@ pub(crate) mod health;
 pub(crate) mod heartbeat;
 pub mod hooks;
 pub mod i18n;
-pub(crate) mod identity;
 pub mod memory;
 pub(crate) mod migration;
 pub(crate) mod multimodal;
