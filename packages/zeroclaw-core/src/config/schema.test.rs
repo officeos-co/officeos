@@ -495,12 +495,8 @@ auto_save = true
                 qq: None,
                 twitter: None,
                 mochat: None,
-                #[cfg(feature = "channel-nostr")]
-                nostr: None,
                 reddit: None,
                 bluesky: None,
-                #[cfg(feature = "voice-wake")]
-                voice_wake: None,
                 mqtt: None,
                 message_timeout_secs: 300,
                 ack_reactions: true,
@@ -1514,12 +1510,8 @@ allowed_users = ["@ops:matrix.org"]
             qq: None,
             twitter: None,
             mochat: None,
-            #[cfg(feature = "channel-nostr")]
-            nostr: None,
             reddit: None,
             bluesky: None,
-            #[cfg(feature = "voice-wake")]
-            voice_wake: None,
             mqtt: None,
             message_timeout_secs: 300,
             ack_reactions: true,
@@ -1884,12 +1876,8 @@ channel_ids = ["C123", "D456"]
             qq: None,
             twitter: None,
             mochat: None,
-            #[cfg(feature = "channel-nostr")]
-            nostr: None,
             reddit: None,
             bluesky: None,
-            #[cfg(feature = "voice-wake")]
-            voice_wake: None,
             mqtt: None,
             message_timeout_secs: 300,
             ack_reactions: true,

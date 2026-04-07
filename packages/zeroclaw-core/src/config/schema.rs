@@ -5750,17 +5750,12 @@ pub struct ChannelsConfig {
     pub twitter: Option<TwitterConfig>,
     /// Mochat customer service channel configuration.
     pub mochat: Option<MochatConfig>,
-    #[cfg(feature = "channel-nostr")]
-    pub nostr: Option<NostrConfig>,
     // [stripped] clawdtalk channel config removed in phase 2.4
     /// Reddit channel configuration (OAuth2 bot).
     pub reddit: Option<RedditConfig>,
     /// Bluesky channel configuration (AT Protocol).
     pub bluesky: Option<BlueskyConfig>,
     // [stripped] voice_call channel config removed in phase 2.4
-    /// Voice wake word detection channel configuration.
-    #[cfg(feature = "voice-wake")]
-    pub voice_wake: Option<VoiceWakeConfig>,
     /// MQTT channel configuration (SOP listener).
     pub mqtt: Option<MqttConfig>,
     /// Base timeout in seconds for processing a single channel message (LLM + tools).
@@ -5870,11 +5865,6 @@ impl ChannelsConfig {
                 Box::new(ConfigWrapper::new(self.qq.as_ref())),
                 self.qq.is_some()
             ),
-            #[cfg(feature = "channel-nostr")]
-            (
-                Box::new(ConfigWrapper::new(self.nostr.as_ref())),
-                self.nostr.is_some(),
-            ),
             (
                 Box::new(ConfigWrapper::new(self.reddit.as_ref())),
                 self.reddit.is_some(),
@@ -5882,11 +5872,6 @@ impl ChannelsConfig {
             (
                 Box::new(ConfigWrapper::new(self.bluesky.as_ref())),
                 self.bluesky.is_some(),
-            ),
-            #[cfg(feature = "voice-wake")]
-            (
-                Box::new(ConfigWrapper::new(self.voice_wake.as_ref())),
-                self.voice_wake.is_some(),
             ),
             (
                 Box::new(ConfigWrapper::new(self.mqtt.as_ref())),
@@ -5938,13 +5923,9 @@ impl Default for ChannelsConfig {
             qq: None,
             twitter: None,
             mochat: None,
-            #[cfg(feature = "channel-nostr")]
-            nostr: None,
             mqtt: None,
             reddit: None,
             bluesky: None,
-            #[cfg(feature = "voice-wake")]
-            voice_wake: None,
             message_timeout_secs: default_channel_message_timeout_secs(),
             ack_reactions: true,
             show_tool_calls: false,
@@ -7474,108 +7455,6 @@ impl ChannelConfig for BlueskyConfig {
     }
 }
 
-/// Voice wake word detection channel configuration.
-///
-/// Listens on the default microphone for a configurable wake word,
-/// then captures the following utterance and transcribes it via the
-/// existing transcription API.
-#[cfg(feature = "voice-wake")]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct VoiceWakeConfig {
-    /// Wake word phrase to listen for (case-insensitive substring match).
-    /// Default: `"hey zeroclaw"`.
-    #[serde(default = "default_voice_wake_word")]
-    pub wake_word: String,
-    /// Silence timeout in milliseconds — how long to wait after the last
-    /// energy spike before finalizing a capture window. Default: `2000`.
-    #[serde(default = "default_voice_wake_silence_timeout_ms")]
-    pub silence_timeout_ms: u32,
-    /// RMS energy threshold for voice activity detection. Samples below
-    /// this level are treated as silence. Default: `0.01`.
-    #[serde(default = "default_voice_wake_energy_threshold")]
-    pub energy_threshold: f32,
-    /// Maximum capture duration in seconds before forcing transcription.
-    /// Default: `30`.
-    #[serde(default = "default_voice_wake_max_capture_secs")]
-    pub max_capture_secs: u32,
-}
-
-#[cfg(feature = "voice-wake")]
-fn default_voice_wake_word() -> String {
-    "hey zeroclaw".into()
-}
-
-#[cfg(feature = "voice-wake")]
-fn default_voice_wake_silence_timeout_ms() -> u32 {
-    2000
-}
-
-#[cfg(feature = "voice-wake")]
-fn default_voice_wake_energy_threshold() -> f32 {
-    0.01
-}
-
-#[cfg(feature = "voice-wake")]
-fn default_voice_wake_max_capture_secs() -> u32 {
-    30
-}
-
-#[cfg(feature = "voice-wake")]
-impl Default for VoiceWakeConfig {
-    fn default() -> Self {
-        Self {
-            wake_word: default_voice_wake_word(),
-            silence_timeout_ms: default_voice_wake_silence_timeout_ms(),
-            energy_threshold: default_voice_wake_energy_threshold(),
-            max_capture_secs: default_voice_wake_max_capture_secs(),
-        }
-    }
-}
-
-#[cfg(feature = "voice-wake")]
-impl ChannelConfig for VoiceWakeConfig {
-    fn name() -> &'static str {
-        "VoiceWake"
-    }
-    fn desc() -> &'static str {
-        "voice wake word detection"
-    }
-}
-
-/// Nostr channel configuration (NIP-04 + NIP-17 private messages)
-#[cfg(feature = "channel-nostr")]
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct NostrConfig {
-    /// Private key in hex or nsec bech32 format
-    pub private_key: String,
-    /// Relay URLs (wss://). Defaults to popular public relays if omitted.
-    #[serde(default = "default_nostr_relays")]
-    pub relays: Vec<String>,
-    /// Allowed sender public keys (hex or npub). Empty = deny all, "*" = allow all
-    #[serde(default)]
-    pub allowed_pubkeys: Vec<String>,
-}
-
-#[cfg(feature = "channel-nostr")]
-impl ChannelConfig for NostrConfig {
-    fn name() -> &'static str {
-        "Nostr"
-    }
-    fn desc() -> &'static str {
-        "Nostr DMs"
-    }
-}
-
-#[cfg(feature = "channel-nostr")]
-pub fn default_nostr_relays() -> Vec<String> {
-    vec![
-        "wss://relay.damus.io".to_string(),
-        "wss://nos.lol".to_string(),
-        "wss://relay.primal.net".to_string(),
-        "wss://relay.snort.social".to_string(),
-    ]
-}
-
 // -- Notion --
 
 /// Notion integration configuration (`[notion]`).
@@ -8662,14 +8541,6 @@ impl Config {
                 )?;
             }
 
-            #[cfg(feature = "channel-nostr")]
-            if let Some(ref mut ns) = config.channels_config.nostr {
-                decrypt_secret(
-                    &store,
-                    &mut ns.private_key,
-                    "config.channels_config.nostr.private_key",
-                )?;
-            }
             if let Some(ref mut fs) = config.channels_config.feishu {
                 decrypt_secret(
                     &store,
@@ -10072,14 +9943,6 @@ impl Config {
             )?;
         }
 
-        #[cfg(feature = "channel-nostr")]
-        if let Some(ref mut ns) = config_to_save.channels_config.nostr {
-            encrypt_secret(
-                &store,
-                &mut ns.private_key,
-                "config.channels_config.nostr.private_key",
-            )?;
-        }
         if let Some(ref mut fs) = config_to_save.channels_config.feishu {
             encrypt_secret(
                 &store,

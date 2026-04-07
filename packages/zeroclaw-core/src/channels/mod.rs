@@ -4160,16 +4160,6 @@ pub(crate) async fn handle_command(command: crate::ChannelCommands, config: &Con
                     config.notion.enabled && !config.notion.database_id.trim().is_empty();
                 println!("  {} Notion", if notion_configured { "✅" } else { "❌" });
             }
-            if !cfg!(feature = "channel-matrix") {
-                println!(
-                    "  ℹ️ Matrix channel support is disabled in this build (enable `channel-matrix`)."
-                );
-            }
-            if !cfg!(feature = "channel-lark") {
-                println!(
-                    "  ℹ️ Lark/Feishu channel support is disabled in this build (enable `channel-lark`)."
-                );
-            }
             println!("\nTo start channels: zeroclaw channel start");
             println!("To check health:    zeroclaw channel doctor");
             println!("To configure:      zeroclaw onboard");
@@ -4317,16 +4307,6 @@ fn collect_configured_channels(
 pub async fn doctor_channels(config: Config) -> Result<()> {
     #[allow(unused_mut)]
     let mut channels = collect_configured_channels(&config, "health check");
-
-    #[cfg(feature = "channel-nostr")]
-    if let Some(ref ns) = config.channels_config.nostr {
-        channels.push(ConfiguredChannel {
-            display_name: "Nostr",
-            channel: Arc::new(
-                NostrChannel::new(&ns.private_key, ns.relays.clone(), &ns.allowed_pubkeys).await?,
-            ),
-        });
-    }
 
     if channels.is_empty() {
         println!("No real-time channels configured. Run `zeroclaw onboard` first.");
@@ -4676,12 +4656,6 @@ pub async fn start_channels(config: Config) -> Result<()> {
             .map(|configured| configured.channel)
             .collect();
 
-    #[cfg(feature = "channel-nostr")]
-    if let Some(ref ns) = config.channels_config.nostr {
-        channels.push(Arc::new(
-            NostrChannel::new(&ns.private_key, ns.relays.clone(), &ns.allowed_pubkeys).await?,
-        ));
-    }
     if channels.is_empty() {
         println!("No channels configured. Run `zeroclaw onboard` to set up channels.");
         return Ok(());

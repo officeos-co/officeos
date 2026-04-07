@@ -1009,10 +1009,6 @@ fn mask_sensitive_fields(config: &crate::config::Config) -> crate::config::Confi
     if let Some(qq) = masked.channels_config.qq.as_mut() {
         mask_required_secret(&mut qq.app_secret);
     }
-    #[cfg(feature = "channel-nostr")]
-    if let Some(nostr) = masked.channels_config.nostr.as_mut() {
-        mask_required_secret(&mut nostr.private_key);
-    }
     mask_optional_secret(&mut masked.transcription.api_key);
     masked
 }
@@ -1168,13 +1164,6 @@ fn restore_masked_sensitive_fields(
         current.channels_config.qq.as_ref(),
     ) {
         restore_required_secret(&mut incoming_ch.app_secret, &current_ch.app_secret);
-    }
-    #[cfg(feature = "channel-nostr")]
-    if let (Some(incoming_ch), Some(current_ch)) = (
-        incoming.channels_config.nostr.as_mut(),
-        current.channels_config.nostr.as_ref(),
-    ) {
-        restore_required_secret(&mut incoming_ch.private_key, &current_ch.private_key);
     }
     restore_optional_secret(
         &mut incoming.transcription.api_key,

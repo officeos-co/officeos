@@ -80,8 +80,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let response = handle_metrics(State(state)).await.into_response();
@@ -143,8 +141,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let response = handle_metrics(State(state)).await.into_response();
@@ -512,8 +508,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let mut headers = HeaderMap::new();
@@ -583,8 +577,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let headers = HeaderMap::new();
@@ -666,8 +658,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let response = handle_webhook(
@@ -721,8 +711,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let mut headers = HeaderMap::new();
@@ -781,8 +769,6 @@
             device_registry: None,
             pending_pairings: None,
             canvas_store: CanvasStore::new(),
-            #[cfg(feature = "webauthn")]
-            webauthn: None,
         };
 
         let mut headers = HeaderMap::new();

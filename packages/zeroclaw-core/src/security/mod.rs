@@ -19,8 +19,6 @@
 //! change guidelines.
 
 pub mod audit;
-#[cfg(feature = "sandbox-bubblewrap")]
-pub mod bubblewrap;
 pub mod detect;
 pub mod docker;
 
@@ -44,8 +42,6 @@ pub mod seatbelt;
 pub mod secrets;
 pub mod traits;
 pub mod vulnerability;
-#[cfg(feature = "webauthn")]
-pub mod webauthn;
 pub mod workspace_boundary;
 
 #[allow(unused_imports)]

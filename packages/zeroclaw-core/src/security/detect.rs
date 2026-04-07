@@ -43,15 +43,6 @@ pub fn create_sandbox(config: &SecurityConfig) -> Arc<dyn Sandbox> {
             Arc::new(super::traits::NoopSandbox)
         }
         SandboxBackend::Bubblewrap => {
-            #[cfg(feature = "sandbox-bubblewrap")]
-            {
-                #[cfg(any(target_os = "linux", target_os = "macos"))]
-                {
-                    if let Ok(sandbox) = super::bubblewrap::BubblewrapSandbox::new() {
-                        return Arc::new(sandbox);
-                    }
-                }
-            }
             tracing::warn!(
                 "Bubblewrap requested but not available, falling back to application-layer"
             );
@@ -105,15 +96,6 @@ fn detect_best_sandbox() -> Arc<dyn Sandbox> {
 
     #[cfg(target_os = "macos")]
     {
-        // Try Bubblewrap on macOS
-        #[cfg(feature = "sandbox-bubblewrap")]
-        {
-            if let Ok(sandbox) = super::bubblewrap::BubblewrapSandbox::probe() {
-                tracing::info!("Bubblewrap sandbox enabled");
-                return Arc::new(sandbox);
-            }
-        }
-
         // Try sandbox-exec (Seatbelt) — built into macOS
         if let Ok(sandbox) = super::seatbelt::SeatbeltSandbox::probe() {
             tracing::info!("macOS sandbox-exec (Seatbelt) enabled");
