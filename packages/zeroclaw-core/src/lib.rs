@@ -64,7 +64,6 @@ pub(crate) mod multimodal;
 pub mod nodes;
 pub mod observability;
 pub(crate) mod onboard;
-pub mod peripherals;
 pub mod providers;
 pub mod rag;
 pub mod routines;
@@ -530,57 +529,6 @@ Examples:
         #[arg(long, default_value = "STM32F401RETx")]
         chip: String,
     },
-}
-
-/// Peripheral (hardware) management subcommands
-#[derive(Subcommand, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PeripheralCommands {
-    /// List configured peripherals
-    List,
-    /// Add a peripheral (board path, e.g. nucleo-f401re /dev/ttyACM0)
-    #[command(long_about = "\
-Add a peripheral by board type and transport path.
-
-Registers a hardware board so the agent can use its tools (GPIO, \
-sensors, actuators). Use 'native' as path for local GPIO on \
-single-board computers like Raspberry Pi.
-
-Supported boards: nucleo-f401re, rpi-gpio, esp32, arduino-uno.
-
-Examples:
-  zeroclaw peripheral add nucleo-f401re /dev/ttyACM0
-  zeroclaw peripheral add rpi-gpio native
-  zeroclaw peripheral add esp32 /dev/ttyUSB0")]
-    Add {
-        /// Board type (nucleo-f401re, rpi-gpio, esp32)
-        board: String,
-        /// Path for serial transport (/dev/ttyACM0) or "native" for local GPIO
-        path: String,
-    },
-    /// Flash ZeroClaw firmware to Arduino (creates .ino, installs arduino-cli if needed, uploads)
-    #[command(long_about = "\
-Flash ZeroClaw firmware to an Arduino board.
-
-Generates the .ino sketch, installs arduino-cli if it is not \
-already available, compiles, and uploads the firmware.
-
-Examples:
-  zeroclaw peripheral flash
-  zeroclaw peripheral flash --port /dev/cu.usbmodem12345
-  zeroclaw peripheral flash -p COM3")]
-    Flash {
-        /// Serial port (e.g. /dev/cu.usbmodem12345). If omitted, uses first arduino-uno from config.
-        #[arg(short, long)]
-        port: Option<String>,
-    },
-    /// Setup Arduino Uno Q Bridge app (deploy GPIO bridge for agent control)
-    SetupUnoQ {
-        /// Uno Q IP (e.g. 192.168.0.48). If omitted, assumes running ON the Uno Q.
-        #[arg(long)]
-        host: Option<String>,
-    },
-    /// Flash ZeroClaw firmware to Nucleo-F401RE (builds + probe-rs run)
-    FlashNucleo,
 }
 
 /// SOP management subcommands

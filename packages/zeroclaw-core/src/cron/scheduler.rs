@@ -310,7 +310,6 @@ async fn run_agent_job(
                 None,
                 model_override,
                 config.default_temperature,
-                vec![],
                 false,
                 None,
                 job.allowed_tools.clone(),

@@ -98,7 +98,6 @@ mod migration;
 mod multimodal;
 mod observability;
 mod onboard;
-mod peripherals;
 #[cfg(feature = "plugins-wasm")]
 mod plugins;
 mod providers;
@@ -120,7 +119,7 @@ use config::Config;
 // Re-export so binary modules can use crate::<CommandEnum> while keeping a single source of truth.
 pub use zeroclaw::{
     ChannelCommands, CronCommands, GatewayCommands, HardwareCommands, IntegrationCommands,
-    MigrateCommands, PeripheralCommands, ServiceCommands, SkillCommands, SopCommands,
+    MigrateCommands, ServiceCommands, SkillCommands, SopCommands,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -212,8 +211,7 @@ Use --message for single-shot queries without entering interactive mode.
 Examples:
   zeroclaw agent                              # interactive session
   zeroclaw agent -m \"Summarize today's logs\"  # single message
-  zeroclaw agent -p anthropic --model claude-sonnet-4-20250514
-  zeroclaw agent --peripheral nucleo-f401re:/dev/ttyACM0")]
+  zeroclaw agent -p anthropic --model claude-sonnet-4-20250514")]
     Agent {
         /// Single message mode (don't enter interactive mode)
         #[arg(short, long)]
@@ -234,10 +232,6 @@ Examples:
         /// Temperature (0.0 - 2.0, defaults to config default_temperature)
         #[arg(short, long, value_parser = parse_temperature)]
         temperature: Option<f64>,
-
-        /// Attach a peripheral (board:path, e.g. nucleo-f401re:/dev/ttyACM0)
-        #[arg(long)]
-        peripheral: Vec<String>,
     },
 
     /// Start/manage the gateway server (webhooks, websockets)
@@ -450,25 +444,6 @@ Examples:
     Hardware {
         #[command(subcommand)]
         hardware_command: zeroclaw::HardwareCommands,
-    },
-
-    /// Manage hardware peripherals (STM32, RPi GPIO, etc.)
-    #[command(long_about = "\
-Manage hardware peripherals.
-
-Add, list, flash, and configure hardware boards that expose tools \
-to the agent (GPIO, sensors, actuators). Supported boards: \
-nucleo-f401re, rpi-gpio, esp32, arduino-uno.
-
-Examples:
-  zeroclaw peripheral list
-  zeroclaw peripheral add nucleo-f401re /dev/ttyACM0
-  zeroclaw peripheral add rpi-gpio native
-  zeroclaw peripheral flash --port /dev/cu.usbmodem12345
-  zeroclaw peripheral flash-nucleo")]
-    Peripheral {
-        #[command(subcommand)]
-        peripheral_command: zeroclaw::PeripheralCommands,
     },
 
     /// Manage agent memory (list, get, stats, clear)
@@ -1026,7 +1001,6 @@ async fn main() -> Result<()> {
             provider,
             model,
             temperature,
-            peripheral,
         } => {
             let final_temperature = temperature.unwrap_or(config.default_temperature);
 
@@ -1036,7 +1010,6 @@ async fn main() -> Result<()> {
                 provider,
                 model,
                 final_temperature,
-                peripheral,
                 true,
                 session_state_file,
                 None,
@@ -1316,18 +1289,6 @@ async fn main() -> Result<()> {
                     }
                 );
             }
-            println!();
-            println!("Peripherals:");
-            println!(
-                "  Enabled:   {}",
-                if config.peripherals.enabled {
-                    "yes"
-                } else {
-                    "no"
-                }
-            );
-            println!("  Boards:    {}", config.peripherals.boards.len());
-
             Ok(())
         }
 
@@ -1449,14 +1410,6 @@ async fn main() -> Result<()> {
 
         Commands::Hardware { hardware_command } => {
             hardware::handle_command(hardware_command.clone(), &config)
-        }
-
-        Commands::Peripheral { peripheral_command } => {
-            Box::pin(peripherals::handle_command(
-                peripheral_command.clone(),
-                &config,
-            ))
-            .await
         }
 
         Commands::Desktop {

@@ -3467,7 +3467,6 @@ pub async fn run(
     provider_override: Option<String>,
     model_override: Option<String>,
     temperature: f64,
-    peripheral_overrides: Vec<String>,
     interactive: bool,
     session_state_file: Option<PathBuf>,
     allowed_tools: Option<Vec<String>>,
@@ -3492,15 +3491,7 @@ pub async fn run(
     )?);
     tracing::info!(backend = mem.name(), "Memory initialized");
 
-    // ── Peripherals (merge peripheral tools into registry) ─
-    if !peripheral_overrides.is_empty() {
-        tracing::info!(
-            peripherals = ?peripheral_overrides,
-            "Peripheral overrides from CLI (config boards take precedence)"
-        );
-    }
-
-    // ── Tools (including memory tools and peripherals) ────────────
+    // ── Tools ────────────
     let (composio_key, composio_entity_id) = if config.composio.enabled {
         (
             config.composio.api_key.as_deref(),
@@ -3532,13 +3523,6 @@ pub async fn run(
         &config,
         None,
     );
-
-    let peripheral_tools: Vec<Box<dyn Tool>> =
-        crate::peripherals::create_peripheral_tools(&config.peripherals).await?;
-    if !peripheral_tools.is_empty() {
-        tracing::info!(count = peripheral_tools.len(), "Peripheral tools added");
-        tools_registry.extend(peripheral_tools);
-    }
 
     // ── Capability-based tool access control ─────────────────────
     // When `allowed_tools` is `Some(list)`, restrict the tool registry to only
@@ -4504,10 +4488,6 @@ pub async fn process_message(
         &config,
         None,
     );
-    let peripheral_tools: Vec<Box<dyn Tool>> =
-        crate::peripherals::create_peripheral_tools(&config.peripherals).await?;
-    tools_registry.extend(peripheral_tools);
-
     // ── Wire MCP tools (non-fatal) — process_message path ────────
     // NOTE: Same ordering contract as the CLI path above — MCP tools must be
     // injected after filter_primary_agent_tools_or_fail (or equivalent built-in
