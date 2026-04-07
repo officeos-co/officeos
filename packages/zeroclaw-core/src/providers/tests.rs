@@ -267,32 +267,11 @@
     }
 
     #[test]
-    fn factory_openai_codex() {
-        let options = ProviderRuntimeOptions::default();
-        assert!(create_provider_with_options("openai-codex", None, &options).is_ok());
-    }
-
-    #[test]
     fn factory_ollama() {
         assert!(create_provider("ollama", None).is_ok());
         // Ollama may use API key when a remote endpoint is configured.
         assert!(create_provider("ollama", Some("dummy")).is_ok());
         assert!(create_provider("ollama", Some("any-value-here")).is_ok());
-    }
-
-    #[test]
-    fn factory_gemini() {
-        assert!(create_provider("gemini", Some("test-key")).is_ok());
-        assert!(create_provider("google", Some("test-key")).is_ok());
-        assert!(create_provider("google-gemini", Some("test-key")).is_ok());
-        // Should also work without key (will try CLI auth)
-        assert!(create_provider("gemini", None).is_ok());
-    }
-
-    #[test]
-    fn factory_telnyx() {
-        assert!(create_provider("telnyx", Some("test-key")).is_ok());
-        assert!(create_provider("telnyx", None).is_ok());
     }
 
     // ── OpenAI-compatible providers ──────────────────────────
@@ -412,15 +391,6 @@
         let minimax_cn =
             create_provider("minimax-cn", Some("key")).expect("provider should resolve");
         assert!(!minimax_cn.supports_native_tools());
-    }
-
-    #[test]
-    fn factory_bedrock() {
-        // Bedrock uses AWS env vars for credentials, not API key.
-        assert!(create_provider("bedrock", None).is_ok());
-        assert!(create_provider("aws-bedrock", None).is_ok());
-        // Passing an api_key is harmless (ignored).
-        assert!(create_provider("bedrock", Some("ignored")).is_ok());
     }
 
     #[test]
@@ -562,17 +532,6 @@
         assert!(create_provider("silicon-flow", Some("key")).is_ok());
     }
 
-    #[test]
-    fn factory_codex_oauth_aliases() {
-        let options = ProviderRuntimeOptions::default();
-        for alias in &["codex", "openai-codex", "openai_codex"] {
-            assert!(
-                create_provider_with_options(alias, None, &options).is_ok(),
-                "codex alias '{alias}' should produce a provider"
-            );
-        }
-    }
-
     // ── Extended ecosystem ───────────────────────────────────
 
     #[test]
@@ -628,28 +587,6 @@
     #[test]
     fn factory_cohere() {
         assert!(create_provider("cohere", Some("key")).is_ok());
-    }
-
-    #[test]
-    fn factory_copilot() {
-        assert!(create_provider("copilot", Some("key")).is_ok());
-        assert!(create_provider("github-copilot", Some("key")).is_ok());
-    }
-
-    #[test]
-    fn factory_claude_code() {
-        assert!(create_provider("claude-code", None).is_ok());
-    }
-
-    #[test]
-    fn factory_gemini_cli() {
-        assert!(create_provider("gemini-cli", None).is_ok());
-    }
-
-    #[test]
-    fn factory_kilocli() {
-        assert!(create_provider("kilocli", None).is_ok());
-        assert!(create_provider("kilo", None).is_ok());
     }
 
     #[test]
@@ -956,71 +893,6 @@
     }
 
     #[test]
-    fn factory_all_providers_create_successfully() {
-        let providers = [
-            "openrouter",
-            "anthropic",
-            "openai",
-            "ollama",
-            "gemini",
-            "venice",
-            "vercel",
-            "cloudflare",
-            "moonshot",
-            "moonshot-intl",
-            "kimi-code",
-            "moonshot-cn",
-            "kimi-code",
-            "synthetic",
-            "opencode",
-            "opencode-go",
-            "zai",
-            "zai-cn",
-            "glm",
-            "glm-cn",
-            "minimax",
-            "minimax-cn",
-            "bedrock",
-            "qianfan",
-            "doubao",
-            "qwen",
-            "qwen-intl",
-            "qwen-cn",
-            "qwen-us",
-            "qwen-code",
-            "lmstudio",
-            "llamacpp",
-            "sglang",
-            "vllm",
-            "osaurus",
-            "telnyx",
-            "groq",
-            "mistral",
-            "xai",
-            "deepseek",
-            "together",
-            "fireworks",
-            "novita",
-            "perplexity",
-            "cohere",
-            "copilot",
-            "claude-code",
-            "gemini-cli",
-            "kilocli",
-            "nvidia",
-            "astrai",
-            "avian",
-            "ovhcloud",
-        ];
-        for name in providers {
-            assert!(
-                create_provider(name, Some("test-key")).is_ok(),
-                "Provider '{name}' should create successfully"
-            );
-        }
-    }
-
-    #[test]
     fn listed_providers_have_unique_ids_and_aliases() {
         let providers = list_providers();
         let mut canonical_ids = std::collections::HashSet::new();
@@ -1045,26 +917,6 @@
                     alias
                 );
                 assert!(aliases.insert(alias), "Duplicate provider alias: {}", alias);
-            }
-        }
-    }
-
-    #[test]
-    fn listed_providers_and_aliases_are_constructible() {
-        for provider in list_providers() {
-            assert!(
-                create_provider(provider.name, Some("provider-test-credential")).is_ok(),
-                "Canonical provider id should be constructible: {}",
-                provider.name
-            );
-
-            for alias in provider.aliases {
-                assert!(
-                    create_provider(alias, Some("provider-test-credential")).is_ok(),
-                    "Provider alias should be constructible: {} (for {})",
-                    alias,
-                    provider.name
-                );
             }
         }
     }

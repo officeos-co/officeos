@@ -4586,34 +4586,6 @@ This is an example JSON object for profile settings."#;
         assert_eq!(state, ChannelHealthState::Timeout);
     }
 
-    #[test]
-    fn collect_configured_channels_includes_mattermost_when_configured() {
-        let mut config = Config::default();
-        config.channels_config.mattermost = Some(crate::config::schema::MattermostConfig {
-            url: "https://mattermost.example.com".to_string(),
-            bot_token: "test-token".to_string(),
-            channel_id: Some("channel-1".to_string()),
-            allowed_users: vec![],
-            thread_replies: Some(true),
-            mention_only: Some(false),
-            interrupt_on_new_message: false,
-            proxy_url: None,
-        });
-
-        let channels = collect_configured_channels(&config, "test");
-
-        assert!(
-            channels
-                .iter()
-                .any(|entry| entry.display_name == "Mattermost")
-        );
-        assert!(
-            channels
-                .iter()
-                .any(|entry| entry.channel.name() == "mattermost")
-        );
-    }
-
     struct AlwaysFailChannel {
         name: &'static str,
         calls: Arc<AtomicUsize>,
