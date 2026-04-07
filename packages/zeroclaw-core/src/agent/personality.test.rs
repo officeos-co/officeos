@@ -117,3 +117,194 @@
         assert!(!profile.missing.is_empty());
         let _ = std::fs::remove_dir_all(ws);
     }
+
+    // ────────────────────────────────────────────────────────────────────
+    // load_personality_strict — Phase 3 boot path
+    // ────────────────────────────────────────────────────────────────────
+
+    fn all_required<'a>(extra: &[(&'a str, &'a str)]) -> Vec<(&'a str, &'a str)> {
+        let mut files: Vec<(&'a str, &'a str)> = vec![
+            ("SOUL.md", "I am the agent's soul."),
+            ("IDENTITY.md", "Name: Nova"),
+            ("AGENTS.md", "Coordinate with the orchestrator."),
+        ];
+        files.extend_from_slice(extra);
+        files
+    }
+
+    #[test]
+    fn strict_loads_when_all_required_files_present() {
+        let ws = setup_workspace(&all_required(&[]));
+
+        let profile = load_personality_strict(&ws).expect("strict load should succeed");
+        assert_eq!(profile.files.len(), 3);
+        assert!(profile.get("SOUL.md").is_some());
+        assert!(profile.get("IDENTITY.md").is_some());
+        assert!(profile.get("AGENTS.md").is_some());
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_includes_optional_files_when_present() {
+        let ws = setup_workspace(&all_required(&[
+            ("USER.md", "User: harrokrog"),
+            ("HEARTBEAT.md", "Beat regularly."),
+        ]));
+
+        let profile = load_personality_strict(&ws).expect("strict load should succeed");
+        assert!(profile.get("USER.md").is_some());
+        assert!(profile.get("HEARTBEAT.md").is_some());
+        assert_eq!(profile.files.len(), 5);
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_records_optional_missing_in_profile() {
+        let ws = setup_workspace(&all_required(&[]));
+
+        let profile = load_personality_strict(&ws).expect("strict load should succeed");
+        // The optional files (USER.md, TOOLS.md, HEARTBEAT.md, BOOTSTRAP.md, MEMORY.md)
+        // are absent and should be tracked in `missing`.
+        for optional in &[
+            "USER.md",
+            "TOOLS.md",
+            "HEARTBEAT.md",
+            "BOOTSTRAP.md",
+            "MEMORY.md",
+        ] {
+            assert!(
+                profile.missing.contains(&optional.to_string()),
+                "expected {optional} in missing list"
+            );
+        }
+        // Required files must NOT appear in the missing list.
+        for required in REQUIRED_PERSONALITY_FILES {
+            assert!(
+                !profile.missing.contains(&required.to_string()),
+                "{required} should not be in missing list"
+            );
+        }
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_fails_when_soul_md_missing() {
+        let ws = setup_workspace(&[
+            ("IDENTITY.md", "Name: Nova"),
+            ("AGENTS.md", "Coordinate with the orchestrator."),
+        ]);
+
+        let err = load_personality_strict(&ws).unwrap_err();
+        match err {
+            PersonalityError::Missing(name) => assert_eq!(name, "SOUL.md"),
+            other => panic!("expected Missing(SOUL.md), got {other:?}"),
+        }
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_fails_when_identity_md_missing() {
+        let ws = setup_workspace(&[
+            ("SOUL.md", "I am the agent's soul."),
+            ("AGENTS.md", "Coordinate with the orchestrator."),
+        ]);
+
+        let err = load_personality_strict(&ws).unwrap_err();
+        match err {
+            PersonalityError::Missing(name) => assert_eq!(name, "IDENTITY.md"),
+            other => panic!("expected Missing(IDENTITY.md), got {other:?}"),
+        }
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_fails_when_agents_md_missing() {
+        let ws = setup_workspace(&[
+            ("SOUL.md", "I am the agent's soul."),
+            ("IDENTITY.md", "Name: Nova"),
+        ]);
+
+        let err = load_personality_strict(&ws).unwrap_err();
+        match err {
+            PersonalityError::Missing(name) => assert_eq!(name, "AGENTS.md"),
+            other => panic!("expected Missing(AGENTS.md), got {other:?}"),
+        }
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_fails_when_required_file_is_empty() {
+        let ws = setup_workspace(&[
+            ("SOUL.md", "   \n\t  "),
+            ("IDENTITY.md", "Name: Nova"),
+            ("AGENTS.md", "Coordinate."),
+        ]);
+
+        let err = load_personality_strict(&ws).unwrap_err();
+        match err {
+            PersonalityError::Empty(name) => assert_eq!(name, "SOUL.md"),
+            other => panic!("expected Empty(SOUL.md), got {other:?}"),
+        }
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_fails_with_empty_workspace() {
+        let ws = setup_workspace(&[]);
+
+        let err = load_personality_strict(&ws).unwrap_err();
+        // First required file checked is SOUL.md.
+        match err {
+            PersonalityError::Missing(name) => assert_eq!(name, "SOUL.md"),
+            other => panic!("expected Missing(SOUL.md), got {other:?}"),
+        }
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn strict_optional_empty_files_become_missing_not_error() {
+        // USER.md is optional; an empty USER.md should not abort the boot.
+        let ws = setup_workspace(&[
+            ("SOUL.md", "soul"),
+            ("IDENTITY.md", "ident"),
+            ("AGENTS.md", "agents"),
+            ("USER.md", "   "),
+        ]);
+
+        let profile = load_personality_strict(&ws).expect("strict load should succeed");
+        assert!(profile.missing.contains(&"USER.md".to_string()));
+        // The required files are still loaded.
+        assert_eq!(profile.files.len(), 3);
+
+        let _ = std::fs::remove_dir_all(ws);
+    }
+
+    #[test]
+    fn personality_error_display_messages_are_descriptive() {
+        let missing = PersonalityError::Missing("SOUL.md".into());
+        assert!(format!("{missing}").contains("SOUL.md"));
+        assert!(format!("{missing}").contains("missing"));
+
+        let empty = PersonalityError::Empty("IDENTITY.md".into());
+        assert!(format!("{empty}").contains("IDENTITY.md"));
+        assert!(format!("{empty}").contains("empty"));
+    }
+
+    #[test]
+    fn required_files_subset_of_personality_files() {
+        // Sanity check: every required file must also be in the full roster.
+        for required in REQUIRED_PERSONALITY_FILES {
+            assert!(
+                PERSONALITY_FILES.contains(required),
+                "{required} is required but not in PERSONALITY_FILES"
+            );
+        }
+    }
