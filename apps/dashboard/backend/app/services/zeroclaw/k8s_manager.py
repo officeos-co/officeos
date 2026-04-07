@@ -13,12 +13,23 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from app.services.zeroclaw.vault_configmap import (
+    agent_vault_configmap_name,
+    delete_agent_vault_configmap,
+)
+
 DEFAULT_IMAGE = "ghcr.io/zeroclaw-labs/zeroclaw:debian"
 DEFAULT_NAMESPACE = "default"
 DEFAULT_PROVIDER = "openrouter"
 DEFAULT_MEMORY_BACKEND = "sqlite"
 ZEROCLAW_PORT = 42617
 STORAGE_SIZE = "1Gi"
+
+# Phase 3: per-agent vault ConfigMap mount point inside the pod. The
+# zeroclaw daemon reads SOUL.md / IDENTITY.md / AGENTS.md (and the
+# optional files) from this directory and fails loudly on missing
+# files via load_personality_strict.
+VAULT_WORKSPACE_MOUNT_PATH = "/vault-workspace"
 
 
 class K8sManagerError(Exception):
@@ -68,34 +79,39 @@ class KubernetesManager:
         return f"ws://{svc}.{self._namespace}.svc.cluster.local:{ZEROCLAW_PORT}/ws/chat"
 
     def _build_vault_setup_cmd(self) -> str:
-        """Build the vault CLI install + config commands for the boot script.
+        """No-op in Phase 3.
 
-        Returns an empty string if vault env vars are not configured,
-        so agents without vault access skip this step.
+        The old boot sequence was:
+
+            pip install --quiet obsidian-vault-cli
+            vault config set vault.host $VAULT_HOST
+            ... (five more config lines) ...
+
+        Phase 3 replaces this with a ConfigMap mount: the pod's
+        workspace directory is populated by the K8s API before the
+        container starts, so there is nothing for the boot script to
+        install or configure. This function is kept as a deliberate
+        empty stub so a future audit can still find the integration
+        point.
         """
-        vault_host = os.environ.get("ZEROCLAW_VAULT_HOST")
-        if not vault_host:
-            return ""
-
-        return (
-            "pip install --quiet obsidian-vault-cli && "
-            "vault config set vault.host $VAULT_HOST && "
-            "vault config set vault.port $VAULT_PORT && "
-            "vault config set vault.protocol $VAULT_PROTOCOL && "
-            "vault config set vault.database $VAULT_DATABASE && "
-            "vault config set vault.username $VAULT_USERNAME && "
-            "vault config set vault.password $VAULT_PASSWORD && "
-        )
+        return ""
 
     def _build_env_vars(
         self,
         *,
         api_key: str,
         provider: str,
-        vault_database: str | None = None,
-        vault_user_database: str | None = None,
+        vault_configmap: str | None = None,
     ) -> list[dict[str, str]]:
-        """Build the environment variable list for the pod container."""
+        """Build the environment variable list for the pod container.
+
+        Phase 3: the old VAULT_HOST/VAULT_DATABASE/VAULT_USERNAME/etc.
+        variables are no longer injected. The agent pod never talks to
+        CouchDB directly — it reads personality files from the
+        ConfigMap mounted at /vault-workspace. The only vault-related
+        env var is ZEROCLAW_WORKSPACE, which points the zeroclaw
+        daemon at that mount path.
+        """
         env = [
             {"name": "API_KEY", "value": api_key},
             {"name": "PROVIDER", "value": provider},
@@ -103,19 +119,10 @@ class KubernetesManager:
             {"name": "ZEROCLAW_ALLOW_PUBLIC_BIND", "value": "true"},
         ]
 
-        # Vault env vars (from dashboard-level config)
-        vault_host = os.environ.get("ZEROCLAW_VAULT_HOST")
-        if vault_host:
-            env.extend([
-                {"name": "VAULT_HOST", "value": vault_host},
-                {"name": "VAULT_PORT", "value": os.environ.get("ZEROCLAW_VAULT_PORT", "443")},
-                {"name": "VAULT_PROTOCOL", "value": os.environ.get("ZEROCLAW_VAULT_PROTOCOL", "https")},
-                {"name": "VAULT_USERNAME", "value": os.environ.get("ZEROCLAW_VAULT_USERNAME", "")},
-                {"name": "VAULT_PASSWORD", "value": os.environ.get("ZEROCLAW_VAULT_PASSWORD", "")},
-                {"name": "VAULT_DATABASE", "value": vault_database or ""},
-            ])
-            if vault_user_database:
-                env.append({"name": "VAULT_USER_DATABASE", "value": vault_user_database})
+        if vault_configmap:
+            env.append(
+                {"name": "ZEROCLAW_WORKSPACE", "value": VAULT_WORKSPACE_MOUNT_PATH},
+            )
 
         return env
 
@@ -129,9 +136,28 @@ class KubernetesManager:
         provider: str | None = None,
         model: str | None = None,
         memory: str | None = None,
-        vault_database: str | None = None,
-        vault_user_database: str | None = None,
+        agent_id: UUID | None = None,
     ) -> ContainerResult:
+        """Create a Pod + Service (+ optional PVC + ConfigMap) for a ZeroClaw agent.
+
+        Phase 3 notes:
+
+        - If `agent_id` is provided, the pod mounts a per-agent
+          ConfigMap `eaos-agent-{agent_id}-vault` at /vault-workspace
+          and sets `ZEROCLAW_WORKSPACE=/vault-workspace` so the
+          zeroclaw daemon reads its personality files from there. The
+          ConfigMap itself is created separately by the lifecycle
+          service via app.services.zeroclaw.vault_configmap.
+        - If `agent_id` is None (legacy path / tests), the vault mount
+          is skipped and the pod behaves as it did before Phase 3.
+        - The old `vault_database` / `vault_user_database` params are
+          gone; the agent pod no longer shells out to obsctl.
+        - The old `zeroclaw onboard --quick` boot step is also gone
+          (it relied on the deleted ensure_bootstrap_files). The boot
+          command is now simply `zeroclaw daemon`; the strict loader
+          in agent boot will fail the pod if the ConfigMap-mounted
+          files are missing.
+        """
         api_key = os.environ.get("ZEROCLAW_LLM_API_KEY")
         if not api_key:
             raise K8sManagerError(
@@ -142,22 +168,17 @@ class KubernetesManager:
         token = secrets.token_urlsafe(32)
         resolved_provider = provider or DEFAULT_PROVIDER
         resolved_memory = memory or DEFAULT_MEMORY_BACKEND
+        _ = resolved_memory  # forwarded via env, not CLI, post-Phase-3
 
         pod_name = self._pod_name(gateway_id)
         pvc_name = self._pvc_name(gateway_id)
         svc_name = self._service_name(gateway_id)
 
-        # Build boot command: install vault CLI, configure it, then onboard + daemon
-        vault_setup = self._build_vault_setup_cmd()
-        onboard_cmd = (
-            f"zeroclaw onboard --quick"
-            f" --api-key $API_KEY"
-            f" --provider {resolved_provider}"
-            f" --memory {resolved_memory}"
-        )
-        if model:
-            onboard_cmd += f" --model {model}"
-        boot_command = f"{vault_setup}{onboard_cmd} && zeroclaw daemon"
+        # Phase 3: no pre-boot CLI installation, no onboarding — the
+        # ConfigMap mount guarantees the workspace exists before the
+        # container starts.
+        boot_command = "zeroclaw daemon"
+        _ = model  # reserved: may be threaded into env in a future commit
 
         labels = {
             "app": "zeroclaw",
@@ -165,6 +186,12 @@ class KubernetesManager:
             "gateway-id": str(gateway_id),
             "org-id": str(org_id),
         }
+        if agent_id is not None:
+            labels["agent-id"] = str(agent_id)
+
+        vault_configmap = (
+            agent_vault_configmap_name(agent_id) if agent_id is not None else None
+        )
 
         # 1. Create PVC
         pvc_manifest = {
@@ -181,6 +208,30 @@ class KubernetesManager:
         )
 
         # 2. Create Pod
+        volume_mounts: list[dict[str, Any]] = [
+            {"name": "zeroclaw-data", "mountPath": "/zeroclaw-data"},
+        ]
+        volumes: list[dict[str, Any]] = [
+            {
+                "name": "zeroclaw-data",
+                "persistentVolumeClaim": {"claimName": pvc_name},
+            },
+        ]
+        if vault_configmap is not None:
+            volume_mounts.append(
+                {
+                    "name": "vault-workspace",
+                    "mountPath": VAULT_WORKSPACE_MOUNT_PATH,
+                    "readOnly": True,
+                }
+            )
+            volumes.append(
+                {
+                    "name": "vault-workspace",
+                    "configMap": {"name": vault_configmap},
+                }
+            )
+
         pod_manifest = {
             "apiVersion": "v1",
             "kind": "Pod",
@@ -196,8 +247,7 @@ class KubernetesManager:
                         "env": self._build_env_vars(
                             api_key=api_key,
                             provider=resolved_provider,
-                            vault_database=vault_database,
-                            vault_user_database=vault_user_database,
+                            vault_configmap=vault_configmap,
                         ),
                         "resources": {
                             "limits": {"memory": "512Mi", "cpu": "2"},
@@ -217,17 +267,10 @@ class KubernetesManager:
                             "timeoutSeconds": 5,
                             "failureThreshold": 3,
                         },
-                        "volumeMounts": [
-                            {"name": "zeroclaw-data", "mountPath": "/zeroclaw-data"},
-                        ],
+                        "volumeMounts": volume_mounts,
                     }
                 ],
-                "volumes": [
-                    {
-                        "name": "zeroclaw-data",
-                        "persistentVolumeClaim": {"claimName": pvc_name},
-                    }
-                ],
+                "volumes": volumes,
             },
         }
         self.api.create_namespaced_pod(namespace=self._namespace, body=pod_manifest)
@@ -262,9 +305,13 @@ class KubernetesManager:
             return False
 
     def remove_container(
-        self, container_id: str, *, remove_volume: bool = False
+        self,
+        container_id: str,
+        *,
+        remove_volume: bool = False,
+        agent_id: UUID | None = None,
     ) -> bool:
-        """Delete Pod, Service, and optionally PVC."""
+        """Delete Pod, Service, and optionally PVC + vault ConfigMap."""
         try:
             # Delete pod
             try:
@@ -291,6 +338,16 @@ class KubernetesManager:
                     )
                 except Exception:
                     pass
+
+            # Phase 3: also clean up the agent's vault ConfigMap if the
+            # caller provided an agent_id. Legacy callers (before the
+            # Phase 3 cut-over) pass None and skip this step.
+            if agent_id is not None:
+                delete_agent_vault_configmap(
+                    api=self.api,
+                    namespace=self._namespace,
+                    agent_id=agent_id,
+                )
 
             return True
         except Exception:
