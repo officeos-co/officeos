@@ -731,30 +731,8 @@ fn check_environment(items: &mut Vec<DiagItem>) {
     check_command_available("curl", &["--version"], cat, items);
 }
 
-fn check_cli_tools(items: &mut Vec<DiagItem>) {
-    let cat = "cli-tools";
-
-    let discovered = crate::tools::cli_discovery::discover_cli_tools(&[], &[]);
-
-    if discovered.is_empty() {
-        items.push(DiagItem::warn(cat, "No CLI tools found in PATH"));
-    } else {
-        for cli in &discovered {
-            let version_info = cli
-                .version
-                .as_deref()
-                .map(|v| truncate_for_display(v, COMMAND_VERSION_PREVIEW_CHARS))
-                .unwrap_or_else(|| "unknown version".to_string());
-            items.push(DiagItem::ok(
-                cat,
-                format!("{} ({}) — {}", cli.name, cli.category, version_info),
-            ));
-        }
-        items.push(DiagItem::ok(
-            cat,
-            format!("{} CLI tools discovered", discovered.len()),
-        ));
-    }
+fn check_cli_tools(_items: &mut Vec<DiagItem>) {
+    // CLI discovery removed in phase 2.6 strip-down (cli_discovery tool deleted).
 }
 
 fn check_command_available(cmd: &str, args: &[&str], cat: &'static str, items: &mut Vec<DiagItem>) {

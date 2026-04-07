@@ -13,6 +13,15 @@ use tokio::fs::File;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 
+/// Stub for the deleted browser_delegate tool config (phase 2.6 strip-down).
+/// Field is retained on Config for ABI compatibility but is no longer wired
+/// to any tool. Phase 4 will sweep this and remove the field entirely.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct BrowserDelegateConfig {
+    #[serde(default)]
+    pub enabled: bool,
+}
+
 const SUPPORTED_PROXY_SERVICE_KEYS: &[&str] = &[
     "provider.anthropic",
     "provider.compatible",
@@ -267,8 +276,8 @@ pub struct Config {
     ///
     /// Compatibility: additive and disabled by default; existing configs remain valid when omitted.
     /// Rollback/migration: remove `[browser_delegate]` or keep `enabled = false` to disable.
-    #[serde(default)]
-    pub browser_delegate: crate::tools::browser_delegate::BrowserDelegateConfig,
+    #[serde(default, skip)]
+    pub browser_delegate: BrowserDelegateConfig,
 
     /// HTTP request tool configuration (`[http_request]`).
     #[serde(default)]
@@ -8331,7 +8340,7 @@ impl Default for Config {
             microsoft365: Microsoft365Config::default(),
             secrets: SecretsConfig::default(),
             browser: BrowserConfig::default(),
-            browser_delegate: crate::tools::browser_delegate::BrowserDelegateConfig::default(),
+            browser_delegate: BrowserDelegateConfig::default(),
             http_request: HttpRequestConfig::default(),
             multimodal: MultimodalConfig::default(),
             media_pipeline: MediaPipelineConfig::default(),
@@ -11440,7 +11449,7 @@ auto_save = true
             microsoft365: Microsoft365Config::default(),
             secrets: SecretsConfig::default(),
             browser: BrowserConfig::default(),
-            browser_delegate: crate::tools::browser_delegate::BrowserDelegateConfig::default(),
+            browser_delegate: BrowserDelegateConfig::default(),
             http_request: HttpRequestConfig::default(),
             multimodal: MultimodalConfig::default(),
             media_pipeline: MediaPipelineConfig::default(),
@@ -11969,7 +11978,7 @@ default_temperature = 0.7
             microsoft365: Microsoft365Config::default(),
             secrets: SecretsConfig::default(),
             browser: BrowserConfig::default(),
-            browser_delegate: crate::tools::browser_delegate::BrowserDelegateConfig::default(),
+            browser_delegate: BrowserDelegateConfig::default(),
             http_request: HttpRequestConfig::default(),
             multimodal: MultimodalConfig::default(),
             media_pipeline: MediaPipelineConfig::default(),
