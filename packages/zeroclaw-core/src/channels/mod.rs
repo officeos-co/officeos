@@ -1,18 +1,36 @@
-//! Channel subsystem for messaging platform integrations.
+//! Channel factory and `run_channels` dispatcher for messaging-platform ingress/egress.
 //!
-//! This module provides the multi-channel messaging infrastructure that connects
-//! ZeroClaw to external platforms. Each channel implements the [`Channel`] trait
-//! defined in [`traits`], which provides a uniform interface for sending messages,
-//! listening for incoming messages, health checking, and typing indicators.
+//! This module is the wiring layer that connects external messaging platforms to
+//! the agent. Post-Phase 2.4 there are exactly three channels:
+//! [`telegram::TelegramChannel`], [`webhook::WebhookChannel`], and the internal
+//! [`cli::CliChannel`]. All other historical channels (matrix, discord, slack,
+//! whatsapp, nostr, mqtt, lark, ...) have been removed and must not be referenced.
 //!
-//! Channels are instantiated by [`start_channels`] based on the runtime configuration.
-//! The subsystem manages per-sender conversation history, concurrent message processing
-//! with configurable parallelism, and exponential-backoff reconnection for resilience.
+//! The factory exposes three boot-time entry points: `build_channel_by_id` constructs
+//! a single concrete channel from its `channel_id` plus the runtime
+//! [`Config`](crate::config::Config); `collect_configured_channels` enumerates every
+//! channel the config has enabled; and `start_channels` spawns one background task
+//! per enabled channel that drives [`Channel::listen`], forwarding inbound traffic
+//! through an `mpsc::Sender<ChannelMessage>` into the agent dispatcher. Outbound
+//! replies flow the other way via [`Channel::send`].
 //!
-//! # Extension
+//! The legacy helpers `build_system_prompt`, `build_system_prompt_with_mode`, and
+//! `build_system_prompt_with_mode_and_autonomy` produce a simplified prompt used
+//! by a few channel-internal flows; the main agent path uses
+//! [`SystemPromptBuilder`](crate::agent::system_prompt::SystemPromptBuilder) instead.
+//! Shared channel infrastructure (debounce, session tracking, stall watchdog,
+//! transcription, TTS, media pipeline, link enricher) lives in the sibling modules
+//! listed below.
 //!
-//! To add a new channel, implement [`Channel`] in a new submodule and wire it into
-//! [`start_channels`]. See `AGENTS.md` §7.2 for the full change playbook.
+//! ## Key types
+//! - [`Channel`] — the per-platform trait (re-exported from [`traits`])
+//! - `start_channels` — boot-time fan-out into per-channel tasks
+//! - `build_channel_by_id` — single-channel constructor used by tests and the gateway
+//!
+//! ## Related
+//! - `src/channels/traits.rs` — the [`Channel`] trait + message types
+//! - `src/agent/mod.rs` — consumes the inbound `mpsc<ChannelMessage>` stream
+//! - `src/gateway/mod.rs` — alternate ingress that also dispatches over `Channel::send`
 
 pub mod cli;
 pub mod debounce;

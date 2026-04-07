@@ -1,3 +1,37 @@
+//! Composable system-prompt assembly via [`PromptSection`] objects.
+//!
+//! System prompts in zeroclaw-core are not a single template string. They are
+//! built by composing `Box<dyn PromptSection>` instances, where each section
+//! owns a slice of the final prompt and renders itself from a shared
+//! [`PromptContext`]. This makes prompts extensible (tests and downstream
+//! crates can `add_section(Box::new(MySection))`) and keeps section logic
+//! local to its own type.
+//!
+//! [`SystemPromptBuilder::with_defaults`] (line 43) returns a builder
+//! pre-loaded with the 9 default sections that ship with the runtime, in
+//! order: `DateTimeSection`, `IdentitySection`, `ToolHonestySection`,
+//! `ToolsSection`, `SafetySection`, `SkillsSection`, `WorkspaceSection`,
+//! `RuntimeSection`, `ChannelMediaSection`. Sections that produce empty
+//! output are silently dropped from the final prompt.
+//!
+//! The system prompt is rebuilt **every turn** by `Agent::turn`, so sections
+//! must be cheap and resilient. In particular, [`IdentitySection`] uses the
+//! **lenient** `personality::load_personality()` loader — the **strict** gate
+//! runs only once at boot in `Agent::from_config`. This split ensures a
+//! missing personality file fails fast at startup but never crashes a
+//! mid-conversation turn.
+//!
+//! ## Key types
+//! - [`SystemPromptBuilder`] — composes sections into a final prompt string.
+//! - [`PromptSection`] — trait each section implements.
+//! - [`PromptContext`] — per-turn inputs (workspace, model, tools, skills,
+//!   dispatcher instructions, security summary, autonomy level).
+//!
+//! ## Related
+//! - `src/agent/agent.rs` — calls `build()` once per turn.
+//! - `src/agent/personality.rs` — strict vs lenient personality loaders.
+//! - `docs/architecture/overview.md` — the big picture.
+
 use crate::agent::personality;
 use crate::i18n::ToolDescriptions;
 use crate::security::AutonomyLevel;

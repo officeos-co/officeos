@@ -1,19 +1,41 @@
-//! Tool subsystem for agent-callable capabilities.
+//! Tool factory — assembles the `Vec<Box<dyn Tool>>` every Agent runs with.
 //!
-//! This module implements the tool execution surface exposed to the LLM during
-//! agentic loops. Each tool implements the [`Tool`] trait defined in [`traits`],
-//! which requires a name, description, JSON parameter schema, and an async
-//! `execute` method returning a structured [`ToolResult`].
+//! This module is the central registration point for the ~30 core tools that
+//! ship post-Phase-2.6. The main entry point is
+//! [`all_tools_with_runtime`], which takes a `&Config` plus a runtime handle
+//! and returns the boxed tool list passed into [`Agent`](crate::agent::Agent)
+//! at construction time. Each tool is built from config so feature flags,
+//! security policy, and runtime adapters are wired in once at boot.
 //!
-//! Tools are assembled into registries by [`default_tools`] (shell, file read/write)
-//! and [`all_tools`] (full set including memory, browser, cron, HTTP, delegation,
-//! and optional integrations). Security policy enforcement is injected via
-//! [`SecurityPolicy`](crate::security::SecurityPolicy) at construction time.
+//! ## Categories
 //!
-//! # Extension
+//! - **Filesystem:** `file_read`, `file_write`, `file_edit`, `file_append`,
+//!   `glob_search`, `content_search`.
+//! - **Memory:** `memory_store`, `memory_recall`, `memory_export`,
+//!   `memory_forget`, `memory_purge`.
+//! - **Web:** `http_request`, `web_fetch`, `web_search_tool`.
+//! - **MCP & skills:** `mcp_*`, `skill_*`, `read_skill`.
+//! - **Agent control:** `canvas`, `sessions_*`, `poll`, `reaction`,
+//!   `ask_user`, `escalate`, `delegate`, `tool_search`.
+//! - **Shell:** the gated shell executor.
 //!
-//! To add a new tool, implement [`Tool`] in a new submodule and register it in
-//! [`all_tools_with_runtime`]. See `AGENTS.md` §7.3 for the full change playbook.
+//! MCP tools are **discovered dynamically** at boot — when an MCP server is
+//! registered in config, its advertised tools are added to the returned
+//! registry as additional `Box<dyn Tool>` entries. This happens once during
+//! factory construction; the agent itself sees no difference between native
+//! and MCP-sourced tools.
+//!
+//! ## Key types
+//! - [`Tool`] — the trait every tool implements (`name`, `description`,
+//!   `parameters_schema`, async `execute`). Defined in [`traits`].
+//! - [`ToolResult`](traits::ToolResult) — structured tool output.
+//! - [`ToolSpec`] — the LLM-facing description sent to providers.
+//!
+//! ## Related
+//! - `src/tools/traits.rs` — the [`Tool`] trait itself.
+//! - `src/agent/tool_execution.rs` — runtime dispatch + policy enforcement.
+//! - `src/agent/dispatcher.rs` — formats tool specs for the active provider.
+//! - `docs/contributing/change-playbooks.md` §7.3 — adding a new tool.
 
 pub mod ask_user;
 pub mod canvas;

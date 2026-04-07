@@ -1,3 +1,37 @@
+//! The [`Channel`] trait — uniform contract for messaging-platform integrations.
+//!
+//! This file defines the abstraction every messaging channel implements so the
+//! agent can ingest user messages and emit replies without knowing which platform
+//! (Telegram, generic webhook, CLI) is on the other end. The trait itself is
+//! declared at line 95; the surrounding [`ChannelMessage`] (inbound) and
+//! [`SendMessage`] (outbound) structs are the wire types that cross the boundary.
+//!
+//! A channel has two halves. [`Channel::listen`] is long-running: the
+//! implementation polls, long-polls, or holds a websocket open against its
+//! upstream platform and forwards each incoming message through the
+//! `mpsc::Sender<ChannelMessage>` it was given at startup. [`Channel::send`] is
+//! the reverse path — the gateway and agent call it to deliver the final
+//! response back to the user. [`Channel::health_check`] is polled periodically
+//! by the supervisor for liveness reporting, and [`Channel::name`] returns the
+//! stable identifier used in logs and config.
+//!
+//! Optional methods enable richer UX where the platform supports it.
+//! `supports_draft_updates` / `send_draft` / `update_draft` provide progressive
+//! message editing (e.g. Telegram's edit-message API for streaming token output),
+//! and `start_typing` / `stop_typing` show platform-specific typing indicators
+//! while the agent is computing a response. Channels that do not support these
+//! features simply inherit the no-op default implementations.
+//!
+//! ## Key types
+//! - [`Channel`] — the trait itself (line 95)
+//! - [`ChannelMessage`] — inbound message envelope
+//! - [`SendMessage`] — outbound message envelope
+//!
+//! ## Related
+//! - `src/channels/mod.rs` — factory + `start_channels` dispatcher
+//! - `src/agent/mod.rs` — consumer of the inbound `mpsc<ChannelMessage>`
+//! - `src/gateway/mod.rs` — alternate ingress that also calls `Channel::send`
+
 use async_trait::async_trait;
 use tokio_util::sync::CancellationToken;
 

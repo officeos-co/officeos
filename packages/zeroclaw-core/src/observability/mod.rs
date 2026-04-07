@@ -1,3 +1,38 @@
+//! Observability subsystem index — events, observers, and pluggable backends.
+//!
+//! This module re-exports the [`Observer`] trait, the [`ObserverEvent`] enum,
+//! [`MultiObserver`], and the concrete backends ([`NoopObserver`],
+//! [`LogObserver`], [`VerboseObserver`], [`PrometheusObserver`],
+//! [`OtelObserver`], `DoraObserver`, `RuntimeTraceObserver`). It also exposes
+//! the [`create_observer`] factory used by the agent at boot.
+//!
+//! The agent holds an `Arc<dyn Observer>` and calls
+//! `observer.record_event(&event)` at every notable point in the lifecycle:
+//! turn start/end, tool call start/end, provider call start/end, cache
+//! hits/misses, memory operations, and channel ingress/egress. Backends are
+//! responsible for their own buffering, batching, and export — the agent just
+//! fires the event and moves on.
+//!
+//! [`MultiObserver`] composes multiple backends so events fan out to all
+//! enabled observers simultaneously (e.g. Log + Prometheus + Otel). Two
+//! backends are feature-gated: `observability-prometheus` (default,
+//! Prometheus counters/gauges served at `/metrics`) and `observability-otel`
+//! (OTLP trace + metrics export). `RuntimeTraceObserver` writes structured
+//! event traces to disk for offline analysis via `zeroclaw doctor traces`,
+//! and `DoraObserver` aggregates events into DORA metrics (deployment
+//! frequency, lead time, MTTR, change failure rate).
+//!
+//! ## Key types
+//! - [`Observer`] — trait every backend implements
+//! - [`ObserverEvent`] — enum of all lifecycle events
+//! - [`MultiObserver`] — fan-out composer
+//! - [`create_observer`] — factory used at agent boot
+//!
+//! ## Related
+//! - `src/observability/traits.rs` — trait + event enum definitions
+//! - `src/agent/mod.rs` — main call sites for `record_event`
+//! - `src/observability/dora.rs` — DORA metric aggregation
+
 pub mod dora;
 pub mod log;
 pub mod multi;

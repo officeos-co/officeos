@@ -1,3 +1,36 @@
+//! Autonomy levels and the boot-time-compiled `SecurityPolicy`.
+//!
+//! This file defines [`AutonomyLevel`] (line 11) and [`SecurityPolicy`]
+//! (line 174), the two types that govern what the agent is allowed to do at
+//! runtime. They are compiled once at `Agent::from_config` time and then
+//! borrowed by every tool execution for approval decisions.
+//!
+//! [`AutonomyLevel`] is a three-state enum: `Supervised` (every
+//! non-allowlisted tool requires approval), `Semi` (mix of auto and
+//! ask-first), and `Full` (no interactive approval required). The level also
+//! controls how the prompt builder's `SafetySection` is rendered — Full mode
+//! omits "ask before acting" instructions so the LLM doesn't waste tokens
+//! deliberating about permission it already has.
+//!
+//! [`SecurityPolicy`] holds `workspace_only: bool`, `allowed_roots`,
+//! `blocked_paths`, `allowed_commands`, `always_ask`, `auto_approve`, and
+//! `level`. [`DomainMatcher`] handles glob/regex matching for HTTP requests
+//! used by the `http_request` and `web_fetch` tools.
+//! [`SecurityPolicy::summary_for_prompt`] produces the pre-rendered string
+//! that `SafetySection` embeds in the system prompt — this is how the model
+//! learns what constraints it's operating under.
+//!
+//! ## Key types
+//! - [`AutonomyLevel`] — Supervised / Semi / Full
+//! - [`SecurityPolicy`] — workspace, command, and approval rules
+//! - [`DomainMatcher`] — HTTP host allow/deny matching
+//!
+//! ## Related
+//! - `src/security/mod.rs` — re-exports + module overview
+//! - `src/security/traits.rs` — `Sandbox` trait used alongside the policy
+//! - `src/agent/mod.rs` — `Agent::from_config` compiles the policy
+//! - `src/agent/prompt/safety.rs` — `SafetySection` consumes `summary_for_prompt`
+
 use parking_lot::Mutex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

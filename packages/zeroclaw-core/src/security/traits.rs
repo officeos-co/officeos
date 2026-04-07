@@ -1,10 +1,31 @@
-//! Sandbox trait for pluggable OS-level isolation.
+//! The [`Sandbox`] trait — pluggable OS-level isolation around tool execution.
 //!
-//! This module defines the [`Sandbox`] trait, which abstracts OS-level process
-//! isolation backends. Implementations wrap shell commands with platform-specific
-//! sandboxing (e.g., seccomp, AppArmor, namespaces) to limit the blast radius
-//! of tool execution. The agent runtime selects and applies a sandbox backend
-//! before executing any shell command.
+//! This file defines the [`Sandbox`] trait at line 22. It is a small trait
+//! with `pre_execute` / `post_execute` hooks that run around every
+//! `Tool::execute` call so OS-level isolation can be applied without the tool
+//! itself having to know which backend is in use.
+//!
+//! Implementors include [`NoopSandbox`] (the default fallback),
+//! `LandlockSandbox` on Linux when the `sandbox-landlock` feature is enabled,
+//! and `SeatbeltSandbox` on macOS (experimental). The agent holds an
+//! `Arc<dyn Sandbox>` so the same instance is shared across all tool
+//! executions and tokio tasks for the lifetime of the process.
+//!
+//! Sandbox selection happens at boot via `create_sandbox(config)` in
+//! [`crate::security::detect`], which inspects the host OS and the active
+//! cargo features to pick the strongest backend available. Adding a new
+//! backend means implementing this trait in a new submodule and registering
+//! it in `detect::create_sandbox`.
+//!
+//! ## Key types
+//! - [`Sandbox`] — pre/post execution isolation hooks
+//! - [`NoopSandbox`] — no-op fallback used when nothing better is available
+//!
+//! ## Related
+//! - `src/security/detect.rs` — `create_sandbox` factory
+//! - `src/security/landlock.rs` — Linux Landlock backend
+//! - `src/security/seatbelt.rs` — macOS Seatbelt backend
+//! - `src/tools/traits.rs` — `Tool::execute`, the call site wrapped by the sandbox
 
 use async_trait::async_trait;
 use std::process::Command;

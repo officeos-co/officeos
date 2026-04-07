@@ -1,20 +1,42 @@
-//! Provider subsystem for model inference backends.
+//! Provider factory — constructs the LLM backend used by the agent.
 //!
-//! This module implements the factory pattern for AI model providers. Each provider
-//! implements the [`Provider`] trait defined in [`traits`], and is registered in the
-//! factory function [`create_provider`] by its canonical string key (e.g., `"openai"`,
-//! `"anthropic"`, `"ollama"`, `"gemini"`). Provider aliases are resolved internally
-//! so that user-facing keys remain stable.
+//! This module is the single entry point for turning a textual provider name (plus
+//! API key, optional base URL, and runtime [`Config`](crate::config::Config)) into
+//! a ready-to-use `Box<dyn Provider>`. It is invoked once at agent boot from the
+//! runtime startup path, and the resulting provider is then handed to every
+//! per-turn `Agent::turn` / `Agent::turn_streamed` call.
 //!
-//! The subsystem supports resilient multi-provider configurations through the
-//! [`ReliableProvider`](reliable::ReliableProvider) wrapper, which handles fallback
-//! chains and automatic retry. Model routing across providers is available via
-//! [`create_routed_provider`].
+//! Post-Phase 2.5 there are six direct providers: [`anthropic::AnthropicProvider`],
+//! [`openai::OpenAiProvider`], [`ollama::OllamaProvider`], and
+//! [`openrouter::OpenRouterProvider`], plus two transparent wrappers:
+//! [`reliable::ReliableProvider`] (key rotation, retries, failover chain) and
+//! [`router::RouterProvider`] (hint-based per-model routing). A seventh
+//! "pseudo-provider" [`compatible::OpenAiCompatibleProvider`] handles ~30
+//! community OpenAI-compatible endpoints — groq, mistral, xai, deepseek, together,
+//! fireworks, cohere, perplexity, lm_studio, llama.cpp, z.ai (alias `zai`), glm,
+//! minimax, qwen, and arbitrary `custom:<url>` targets.
 //!
-//! # Extension
+//! The typical production composition is `router(reliable(concrete))`: routed
+//! per-model selection wraps resilience which wraps the actual API client. The
+//! factory builds this chain in [`create_provider_with_url`] (line 1051): it
+//! parses `name` as a concrete ID, an alias, or a `custom:<url>` prefix, looks
+//! up OAuth credentials via [`AuthService`](crate::security::auth::AuthService)
+//! when applicable, conditionally wraps with [`reliable::ReliableProvider`] when
+//! reliability is configured, and finally wraps with [`router::RouterProvider`]
+//! when `model_routes` is non-empty.
 //!
-//! To add a new provider, implement [`Provider`] in a new submodule and register it
-//! in [`create_provider_with_url`]. See `AGENTS.md` §7.1 for the full change playbook.
+//! ## Key types
+//! - [`Provider`] — the trait every backend implements
+//! - [`create_provider_with_url`] — main factory entry point (line 1051)
+//! - [`reliable::ReliableProvider`] — resilience wrapper
+//! - [`router::RouterProvider`] — model-routing wrapper
+//!
+//! ## Related
+//! - `src/providers/traits.rs` — the [`Provider`] trait definition
+//! - `src/agent/mod.rs` — consumer of the constructed provider
+//! - `docs/reference/providers.md` — supported backends and aliases
+
+
 
 pub mod anthropic;
 pub mod compatible;

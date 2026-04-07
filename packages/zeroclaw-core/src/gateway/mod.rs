@@ -1,11 +1,41 @@
-//! Axum-based HTTP gateway with proper HTTP/1.1 compliance, body limits, and timeouts.
+//! HTTP + WebSocket gateway — the agent's network surface.
 //!
-//! This module replaces the raw TCP implementation with axum for:
-//! - Proper HTTP/1.1 parsing and compliance
-//! - Content-Length validation (handled by hyper)
-//! - Request body size limits (64KB max)
-//! - Request timeouts (30s) to prevent slow-loris attacks
-//! - Header sanitization (handled by axum/hyper)
+//! This module builds the axum router that exposes ZeroClaw to the outside
+//! world. The single entry point is `run_gateway(host, port, config, event_tx)`
+//! at line 344: it constructs the shared [`AppState`], spawns the configured
+//! channels, mounts every route group, and serves traffic until shutdown.
+//!
+//! Route groups: `/pair` (pairing flow), `/api/v1/*` (REST — status, doctor,
+//! skills, memory, config, webhook), `/webhook` (untyped JSON ingress, handled
+//! by `handle_webhook` at line 1068), `/ws/chat` (WebSocket streaming turn that
+//! drives [`Agent::turn_streamed`](crate::agent::Agent)), `/health` + `/metrics`,
+//! and the optional `/ws/nodes` mesh endpoint.
+//!
+//! [`AppState`] is the shared state every handler closes over: an
+//! `Arc<Mutex<Agent>>`, `Arc<Mutex<Config>>`, `Arc<dyn Provider>`,
+//! `Arc<dyn Memory>`, `Arc<dyn Observer>`, `Arc<Vec<Box<dyn Tool>>>`,
+//! `Arc<PairingGuard>`, `Arc<GatewayRateLimiter>`, plus broadcast and shutdown
+//! channels. There is exactly one `Arc<Mutex<Agent>>` per pod, so at most one
+//! turn is active at a time; the bounded FIFO in
+//! [`session_queue`] provides backpressure for concurrent callers.
+//! Bearer-token routes are protected by [`auth_rate_limit::GatewayRateLimiter`]
+//! and the [`PairingGuard`](crate::security::pairing::PairingGuard).
+//!
+//! Post-Phase 2/4 the historical `webauthn`, `plugins-wasm`, and `tunnel`
+//! submodules have all been deleted: Office OS is now exposed via Kubernetes
+//! Service/Ingress rather than per-process tunnels, and these names must not be
+//! referenced.
+//!
+//! ## Key types
+//! - `run_gateway` — entry point (line 344)
+//! - `AppState` — shared per-request state
+//! - `handle_webhook` — webhook ingress handler (line 1068)
+//!
+//! ## Related
+//! - `src/gateway/session_queue.rs` — bounded FIFO + backpressure
+//! - `src/gateway/auth_rate_limit.rs` — bearer-token rate limiting
+//! - `src/security/pairing.rs` — `PairingGuard`
+//! - `src/agent/mod.rs` — the `Agent::turn_streamed` consumer of `/ws/chat`
 
 pub mod api;
 pub mod api_pairing;

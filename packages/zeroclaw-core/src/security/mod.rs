@@ -1,22 +1,39 @@
-//! Security subsystem for policy enforcement, sandboxing, and secret management.
+//! Security subsystem index — policy, sandboxing, pairing, and secret storage.
 //!
-//! This module provides the security infrastructure for ZeroClaw. The core type
-//! [`SecurityPolicy`] defines autonomy levels, workspace boundaries, and
-//! access-control rules that are enforced across the tool and runtime subsystems.
-//! [`PairingGuard`] implements device pairing for channel authentication, and
-//! [`SecretStore`] handles encrypted credential storage.
+//! This module is the entry point for everything safety-related in ZeroClaw. It
+//! re-exports [`SecurityPolicy`], [`AutonomyLevel`], [`DomainMatcher`], the
+//! [`Sandbox`] trait, [`SecretStore`], [`PairingGuard`], and the
+//! [`create_sandbox`] factory so the rest of the agent can pull them from a
+//! single namespace.
 //!
-//! OS-level isolation is provided through the [`Sandbox`] trait defined in
-//! [`traits`], with pluggable backends including Docker, Firejail, Bubblewrap,
-//! and Landlock. The [`create_sandbox`] function selects the best available
-//! backend at runtime. An [`AuditLogger`] records security-relevant events for
-//! forensic review.
+//! A `SecurityPolicy` is compiled from config at agent boot. It holds the
+//! autonomy level, allowed/blocked filesystem roots, command allowlists, and
+//! the auto-approval / always-ask lists that gate every tool invocation.
+//! Sandboxing is per-tool-execution: [`create_sandbox`] picks a
+//! `Box<dyn Sandbox>` based on OS + feature flags — `LandlockSandbox` on Linux
+//! with the `sandbox-landlock` feature, `SeatbeltSandbox` on macOS, and
+//! [`NoopSandbox`] otherwise.
 //!
-//! # Extension
+//! [`PairingGuard`] handles first-time device auth: it generates a pairing
+//! code on startup, accepts the first POST to `/pair` carrying a matching
+//! `X-Pairing-Code` header, and issues a bearer token. [`SecretStore`]
+//! encrypts sensitive config fields (API keys) with ChaCha20-Poly1305 and is
+//! invoked from `Config::load_or_init` and `save_to_path`. [`IamPolicy`]
+//! provides a more granular permission model for multi-user setups (currently
+//! underused).
 //!
-//! To add a new sandbox backend, implement [`Sandbox`] in a new submodule and
-//! register it in [`detect::create_sandbox`]. See `AGENTS.md` §7.5 for security
-//! change guidelines.
+//! ## Key types
+//! - [`SecurityPolicy`] — boot-time-compiled policy borrowed by every tool call
+//! - [`AutonomyLevel`] — Supervised / Semi / Full autonomy mode
+//! - [`Sandbox`] — pluggable OS-level isolation trait
+//! - [`PairingGuard`] — first-run device pairing flow
+//! - [`SecretStore`] — encrypted credential storage
+//!
+//! ## Related
+//! - `src/security/policy.rs` — `SecurityPolicy` + `AutonomyLevel` definitions
+//! - `src/security/detect.rs` — `create_sandbox` backend selection
+//! - `src/security/pairing.rs` — pairing flow + bearer token issuance
+//! - `src/agent/mod.rs` — where the policy is borrowed by the orchestration loop
 
 pub mod audit;
 pub mod detect;

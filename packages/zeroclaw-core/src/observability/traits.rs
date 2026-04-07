@@ -1,3 +1,40 @@
+//! The [`Observer`] trait and the [`ObserverEvent`] enum.
+//!
+//! This file defines [`ObserverEvent`] at line 10 and the [`Observer`] trait
+//! at line 156. Together they form the contract every observability backend
+//! in ZeroClaw implements.
+//!
+//! [`ObserverEvent`] is an enum covering every notable agent event. Concrete
+//! variants include `TurnStarted`, `TurnEnded`, `ToolCallStarted`,
+//! `ToolCallFinished`, `ProviderCallStarted`, `ProviderCallFinished`,
+//! `CacheHit`, `CacheMiss`, `MemoryStored`, `MemoryRecalled`,
+//! `ChannelMessageReceived`, and `ChannelMessageSent`. Variants carry just
+//! enough context for tracing and diagnostics without leaking sensitive
+//! prompt or response content.
+//!
+//! The [`Observer`] trait exposes `record_event(&self, event: &ObserverEvent)`
+//! plus span start/end hooks for distributed tracing. It is bounded
+//! `Send + Sync + 'static` so the agent can store it in `Arc<dyn Observer>`
+//! and share it across threads and tokio tasks. Every implementor is
+//! responsible for its own buffering, batching, and export — the agent just
+//! fires events and moves on, so a slow backend never blocks the orchestration
+//! loop. Events are structured and cheap to clone/copy, eliminating event
+//! loss on slow consumers.
+//!
+//! Call sites are spread across the codebase: see `Agent::turn`,
+//! `Agent::execute_tools`, `AnthropicProvider::chat`, `SqliteMemory::store`,
+//! and `TelegramChannel::send` for representative emit points. Almost every
+//! subsystem fires at least one event.
+//!
+//! ## Key types
+//! - [`ObserverEvent`] — every lifecycle event the agent emits
+//! - [`Observer`] — trait implemented by all backends
+//!
+//! ## Related
+//! - `src/observability/mod.rs` — module index, factory, re-exports
+//! - `src/observability/multi.rs` — `MultiObserver` fan-out
+//! - `src/agent/mod.rs` — main `record_event` call sites
+
 use std::time::Duration;
 
 /// Discrete events emitted by the agent runtime for observability.

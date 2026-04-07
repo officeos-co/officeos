@@ -1,3 +1,40 @@
+//! The [`Provider`] trait — the contract every LLM backend must satisfy.
+//!
+//! This file defines the abstraction the rest of the agent uses to talk to a
+//! language model, regardless of which vendor (Anthropic, OpenAI, Ollama,
+//! OpenRouter, or any OpenAI-compatible endpoint) actually serves the request.
+//! The trait itself is declared at line 308; the surrounding types
+//! ([`ChatMessage`], [`ChatRequest`], [`ChatResponse`], [`ConversationMessage`],
+//! [`ToolCall`]) are the wire-shape primitives passed across that boundary.
+//!
+//! At agent boot, the factory in `src/providers/mod.rs` produces a
+//! `Box<dyn Provider>` and the agent immediately calls
+//! [`Provider::capabilities`] to learn what the backend supports — native tool
+//! calling, streaming, image inputs, JSON mode — and uses that
+//! [`ProviderCapabilities`] result to pick the right
+//! [`ToolDispatcher`](crate::agent::tool_dispatcher) variant. On every turn the
+//! agent then calls [`Provider::convert_tools`] (which returns a
+//! [`ToolsPayload`] enum: either provider-native tool schemas or a
+//! `PromptGuided` fallback that injects tool docs into the system prompt) and
+//! finally [`Provider::chat`] / [`Provider::chat_with_history`] for the actual
+//! inference call.
+//!
+//! Default trait method bodies provide sensible fallbacks so a new provider
+//! only needs to override [`Provider::chat_with_system`] and [`Provider::chat`];
+//! the higher-level convenience methods ([`Provider::simple_chat`],
+//! [`Provider::chat_with_history`]) are derived automatically.
+//!
+//! ## Key types
+//! - [`Provider`] — the trait itself (line 308)
+//! - [`ProviderCapabilities`] — declared backend features
+//! - [`ToolsPayload`] — native-vs-prompt-guided tool encoding
+//! - [`ChatMessage`], [`ChatRequest`], [`ChatResponse`], [`ConversationMessage`]
+//!
+//! ## Related
+//! - `src/providers/mod.rs` — factory that constructs `Box<dyn Provider>`
+//! - `src/agent/tool_dispatcher.rs` — picks native vs prompt-guided dispatch
+//! - `src/tools/traits.rs` — the [`ToolSpec`] type fed into `convert_tools`
+
 use crate::tools::ToolSpec;
 use async_trait::async_trait;
 use futures_util::{StreamExt, stream};

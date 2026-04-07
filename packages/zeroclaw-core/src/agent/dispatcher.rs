@@ -1,3 +1,36 @@
+//! Provider-format translation layer for tool calls and history.
+//!
+//! The [`ToolDispatcher`] trait (line 21) is the seam between
+//! zeroclaw-core's internal `ConversationMessage` history format and whatever
+//! wire format the active provider expects. It is selected once at boot in
+//! `Agent::from_config` based on the provider's advertised `capabilities()`,
+//! and used on every turn to (a) format outgoing tool specs + history into
+//! provider messages, and (b) parse the provider's response back into
+//! [`ParsedToolCall`]s plus assistant text.
+//!
+//! Two implementations ship in this file:
+//!
+//! - [`XmlToolDispatcher`] (line 30) — used when the provider has no native
+//!   tool calling. Tool specs are injected as text in the system prompt; the
+//!   LLM wraps calls in `<tool_call>{...}</tool_call>` tags; this dispatcher
+//!   parses them back out. Also strips `<think>...</think>` reasoning blocks
+//!   so they never reach the user transcript.
+//! - [`NativeToolDispatcher`] (line 171) — used for providers with native
+//!   tool calling (Anthropic, OpenAI, Gemini, Ollama with `tools=true`). Tool
+//!   specs are sent alongside each request and responses contain structured
+//!   `tool_calls` arrays.
+//!
+//! ## Key types
+//! - [`ToolDispatcher`] — the trait (`parse_response`, `format_results`,
+//!   `prompt_instructions`, `to_provider_messages`, `should_send_tool_specs`).
+//! - [`ParsedToolCall`] — a tool invocation extracted from a response.
+//! - [`ToolExecutionResult`] — the result fed back to the next turn.
+//!
+//! ## Related
+//! - `src/agent/agent.rs` — selects and drives the dispatcher each turn.
+//! - `src/providers/traits.rs` — `Provider::capabilities()` drives selection.
+//! - `docs/architecture/overview.md` — the big picture.
+
 use crate::providers::{ChatMessage, ChatResponse, ConversationMessage, ToolResultMessage};
 use crate::tools::{Tool, ToolSpec};
 use serde_json::Value;

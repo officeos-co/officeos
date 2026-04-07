@@ -1,10 +1,39 @@
-//! Memory subsystem.
+//! Memory factory — selects and builds the `Box<dyn Memory>` for an Agent.
 //!
-//! Post-Phase-4 backend choices: only `sqlite` (default), `obsidian`,
-//! and `none` remain. Historical backends (lucid, qdrant, markdown) and
-//! the audit/policy/hygiene/snapshot decorators were removed as orphan
-//! code. See `docs/reference/memory-future.md` for the planned sqlite
-//! removal.
+//! The main entry point is `create_memory_with_storage_and_routes`, which
+//! reads `config.memory` and dispatches via
+//! [`backend::classify_memory_backend`] to one of the three surviving
+//! backends. The returned `Box<dyn Memory>` is what every
+//! [`Agent`](crate::agent::Agent) reads from and writes to during a turn.
+//!
+//! ## Backends (post Phase 4)
+//!
+//! - [`sqlite::SqliteMemory`] — the default. Hybrid retrieval (FTS + vector)
+//!   layered by `retrieval.rs`, which wraps the raw backend with cache, FTS,
+//!   and vector stages. This is the only backend with the full retrieval
+//!   pipeline today.
+//! - [`obsidian::ObsidianMemory`] — opt-in. Writes notes to a CouchDB-backed
+//!   vault via `obsctl` and is intended for human-readable, syncable memory.
+//! - [`none::NoneMemory`] — no-op stub used for tests and stateless agents.
+//!
+//! Historical backends (lucid, qdrant, markdown) and the
+//! audit/policy/hygiene/snapshot decorators were removed as orphan code.
+//!
+//! [`namespaced::NamespacedMemory`] is a decorator that wraps any `Memory`
+//! to add namespace isolation. It is used by `src/tools/delegate.rs` to give
+//! delegated sub-agents their own private memory namespace within the same
+//! underlying backend.
+//!
+//! ## Key types
+//! - [`traits::Memory`] — the trait every backend implements.
+//! - [`backend::classify_memory_backend`] — config → backend kind.
+//! - [`namespaced::NamespacedMemory`] — namespace-isolating decorator.
+//!
+//! ## Related
+//! - `src/memory/retrieval.rs` — hybrid retrieval pipeline (SQLite only).
+//! - `src/tools/delegate.rs` — uses `NamespacedMemory` for sub-agents.
+//! - `docs/reference/memory-future.md` — planned move to a centralized
+//!   `RemoteMemory` service replacing SQLite.
 
 pub mod backend;
 pub mod chunker;

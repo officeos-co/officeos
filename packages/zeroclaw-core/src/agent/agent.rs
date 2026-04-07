@@ -1,3 +1,44 @@
+//! The `Agent` struct and its builder — the heart of the runtime.
+//!
+//! This file (~1300 lines) defines [`Agent`], the central object every
+//! conversation turn runs against. An `Agent` owns the live state of a running
+//! agent: provider, memory, tools, dispatcher, observer, memory_loader,
+//! conversation `history`, loaded skills, and the merged [`Config`]. Every
+//! channel, gateway, and CLI entry point eventually funnels user input through
+//! a single `Agent` instance.
+//!
+//! ## Lifecycle
+//!
+//! - **Boot:** [`Agent::from_config`] (line 360) is the production constructor
+//!   used by `src/daemon/mod.rs::run`. It calls
+//!   `personality::load_personality_strict` as the Phase 3 boot gate — if
+//!   required personality files are missing, the process fails fast here
+//!   rather than degrading silently at turn time.
+//! - **Per turn:** [`Agent::turn`] (line 738) runs one full LLM loop, looping
+//!   up to `config.max_tool_iterations` times through the inner tool-call
+//!   pass. [`Agent::turn_streamed`] is the streaming variant that emits
+//!   [`TurnEvent`]s over an mpsc channel.
+//! - **Per tool call:** `execute_tools(calls)` delegates to
+//!   `src/agent/tool_execution.rs`, which enforces security policy and
+//!   dispatches to the matching [`Tool`].
+//!
+//! When `temperature == 0.0`, the response cache is consulted before each
+//! provider call so identical prompts short-circuit the network round-trip.
+//! The `AgentBuilder` pattern lets tests assemble agents with mock providers,
+//! tools, and memory without going through `from_config`.
+//!
+//! ## Key types
+//! - [`Agent`] — the running agent; owns provider, memory, tools, history.
+//! - [`AgentBuilder`] — builder used by tests to inject mocks.
+//! - [`TurnEvent`] — streamed events from `turn_streamed`.
+//!
+//! ## Related
+//! - `src/agent/dispatcher.rs` — provider message format translation.
+//! - `src/agent/prompt.rs` — system prompt assembly (rebuilt every turn).
+//! - `src/agent/tool_execution.rs` — tool dispatch + policy enforcement.
+//! - `src/daemon/mod.rs` — the production boot path that calls `from_config`.
+//! - `docs/architecture/overview.md` — the big picture.
+
 use crate::agent::personality;
 use crate::agent::dispatcher::{
     NativeToolDispatcher, ParsedToolCall, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
