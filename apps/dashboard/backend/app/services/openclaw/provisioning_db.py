@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -85,6 +86,7 @@ from app.services.openclaw.vault_provisioning import (
     provision_agent_vault,
     vault_provisioning_enabled,
 )
+from app.services.zeroclaw.vault_configmap import apply_agent_vault_configmap
 from app.services.openclaw.shared import GatewayAgentIdentity
 from app.services.organizations import (
     OrganizationContext,
@@ -1604,12 +1606,22 @@ class AgentLifecycleService(OpenClawDBService):
         auth_token: str,
         user: User | None,
     ) -> None:
-        """Phase 3: provision a per-agent Obsidian vault.
+        """Phase 3: provision a per-agent Obsidian vault + K8s ConfigMap.
 
-        Skipped when the dashboard has no vault credentials configured
-        (dev/test environments without a CouchDB). On success, sets
-        `agent.vault_database` so the k8s_manager can mount the
-        corresponding ConfigMap at pod creation time.
+        This is the "vault and ConfigMap stay in lockstep" seam: the
+        same rendered file set is written to both the per-agent
+        CouchDB database (source of truth) and the Kubernetes
+        ConfigMap that the agent pod mounts at /vault-workspace.
+
+        The function is a no-op when the dashboard has no vault
+        credentials configured (dev/test environments without a
+        CouchDB). It also gracefully skips the ConfigMap step when
+        the process does not have in-cluster K8s credentials — that
+        branch exists so local `pytest` runs don't need a kubernetes
+        client wired up.
+
+        On success, sets `agent.vault_database` so the k8s_manager can
+        resolve the ConfigMap name at pod creation time.
         """
         if not vault_provisioning_enabled():
             return
@@ -1623,12 +1635,6 @@ class AgentLifecycleService(OpenClawDBService):
                 user=user,
             )
         except ValueError as exc:
-            # No workspace_root on the gateway — vault provisioning still
-            # wants to run because the vault is independent of the
-            # workspace_path field, but _build_context requires it. In
-            # Phase 3 this should be unreachable for ZeroClaw gateways
-            # once we stop pushing OpenClaw workspace files, but for now
-            # we skip gracefully rather than failing agent creation.
             self.logger.warning(
                 "agent.vault.skip agent_id=%s reason=%s",
                 agent.id,
@@ -1643,31 +1649,99 @@ class AgentLifecycleService(OpenClawDBService):
             include_bootstrap=True,
         )
 
-        result = provision_agent_vault(
+        # ── CouchDB vault (source of truth) ─────────────────────────
+        vault_result = provision_agent_vault(
             agent_id=agent.id,
             rendered_files=rendered,
         )
 
-        if result.error:
+        if vault_result.error:
             self.logger.warning(
                 "agent.vault.error agent_id=%s database=%s error=%s",
                 agent.id,
-                result.database,
-                result.error,
+                vault_result.database,
+                vault_result.error,
             )
             return
 
-        agent.vault_database = result.database
+        agent.vault_database = vault_result.database
         self.session.add(agent)
         await self.session.commit()
         await self.session.refresh(agent)
         self.logger.info(
             "agent.vault.provisioned agent_id=%s database=%s created=%s files=%d",
             agent.id,
-            result.database,
-            result.created,
-            len(result.files_written),
+            vault_result.database,
+            vault_result.created,
+            len(vault_result.files_written),
         )
+
+        # ── K8s ConfigMap (pod mount cache) ─────────────────────────
+        # Only engages when the dashboard backend is running inside a
+        # K8s cluster with a service account. Outside K8s (local dev,
+        # unit tests) we skip silently — the vault write above is
+        # still the source of truth and the next time the dashboard
+        # runs in-cluster it will reconcile.
+        api = self._k8s_api_or_none()
+        if api is None:
+            self.logger.debug(
+                "agent.configmap.skip agent_id=%s reason=no in-cluster k8s api",
+                agent.id,
+            )
+            return
+
+        cm_result = apply_agent_vault_configmap(
+            api=api,
+            namespace=self._k8s_namespace(),
+            agent_id=agent.id,
+            rendered_files=rendered,
+            labels={
+                "gateway-id": str(gateway.id),
+                "org-id": str(gateway.organization_id) if hasattr(gateway, "organization_id") else "",
+            },
+        )
+
+        if cm_result.error:
+            self.logger.warning(
+                "agent.configmap.error agent_id=%s name=%s error=%s",
+                agent.id,
+                cm_result.name,
+                cm_result.error,
+            )
+            return
+
+        self.logger.info(
+            "agent.configmap.applied agent_id=%s name=%s action=%s keys=%d",
+            agent.id,
+            cm_result.name,
+            cm_result.action,
+            len(cm_result.keys),
+        )
+
+    @staticmethod
+    def _k8s_api_or_none() -> Any | None:
+        """Lazy in-cluster K8s client. Returns None outside a pod.
+
+        Kept as a staticmethod so tests can patch it cleanly with
+        `patch.object(AgentLifecycleService, "_k8s_api_or_none", ...)`.
+        """
+        try:
+            from kubernetes import client, config
+
+            config.load_incluster_config()
+            return client.CoreV1Api()
+        except Exception:
+            return None
+
+    @staticmethod
+    def _k8s_namespace() -> str:
+        """Namespace for agent ConfigMaps.
+
+        Reads from the `POD_NAMESPACE` env var (set by the downward
+        API in the dashboard backend's own pod spec) and falls back
+        to `default`.
+        """
+        return os.environ.get("POD_NAMESPACE", "default")
 
     async def get_agent(
         self,
