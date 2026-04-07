@@ -48,6 +48,7 @@ from app.schemas.gateways import GatewayTemplatesSyncError, GatewayTemplatesSync
 from app.services.activity_log import record_activity
 from app.services.openclaw.constants import (
     _TOOLS_KV_RE,
+    DEFAULT_GATEWAY_FILES,
     DEFAULT_HEARTBEAT_CONFIG,
     OFFLINE_AFTER,
 )
@@ -77,6 +78,12 @@ from app.services.openclaw.policies import OpenClawAuthorizationPolicy
 from app.services.openclaw.provisioning import (
     OpenClawGatewayControlPlane,
     OpenClawGatewayProvisioner,
+    _build_context as _build_provisioning_context,
+    _render_agent_files as _render_provisioning_agent_files,
+)
+from app.services.openclaw.vault_provisioning import (
+    provision_agent_vault,
+    vault_provisioning_enabled,
 )
 from app.services.openclaw.shared import GatewayAgentIdentity
 from app.services.organizations import (
@@ -1570,6 +1577,13 @@ class AgentLifecycleService(OpenClawDBService):
             requested_name=requested_name,
         )
         agent, raw_token = await self.persist_new_agent(data=data)
+        await self._seed_agent_vault(
+            agent=agent,
+            board=board,
+            gateway=gateway,
+            auth_token=raw_token,
+            user=actor.user if actor.actor_type == "user" else None,
+        )
         await self.provision_new_agent(
             agent=agent,
             board=board,
@@ -1580,6 +1594,80 @@ class AgentLifecycleService(OpenClawDBService):
         )
         self.logger.info("agent.create.success agent_id=%s board_id=%s", agent.id, board.id)
         return self.to_agent_read(self.with_computed_status(agent))
+
+    async def _seed_agent_vault(
+        self,
+        *,
+        agent: Agent,
+        board: Board,
+        gateway: Gateway,
+        auth_token: str,
+        user: User | None,
+    ) -> None:
+        """Phase 3: provision a per-agent Obsidian vault.
+
+        Skipped when the dashboard has no vault credentials configured
+        (dev/test environments without a CouchDB). On success, sets
+        `agent.vault_database` so the k8s_manager can mount the
+        corresponding ConfigMap at pod creation time.
+        """
+        if not vault_provisioning_enabled():
+            return
+
+        try:
+            context = _build_provisioning_context(
+                agent=agent,
+                board=board,
+                gateway=gateway,
+                auth_token=auth_token,
+                user=user,
+            )
+        except ValueError as exc:
+            # No workspace_root on the gateway — vault provisioning still
+            # wants to run because the vault is independent of the
+            # workspace_path field, but _build_context requires it. In
+            # Phase 3 this should be unreachable for ZeroClaw gateways
+            # once we stop pushing OpenClaw workspace files, but for now
+            # we skip gracefully rather than failing agent creation.
+            self.logger.warning(
+                "agent.vault.skip agent_id=%s reason=%s",
+                agent.id,
+                exc,
+            )
+            return
+
+        rendered = _render_provisioning_agent_files(
+            context,
+            agent,
+            set(DEFAULT_GATEWAY_FILES),
+            include_bootstrap=True,
+        )
+
+        result = provision_agent_vault(
+            agent_id=agent.id,
+            rendered_files=rendered,
+        )
+
+        if result.error:
+            self.logger.warning(
+                "agent.vault.error agent_id=%s database=%s error=%s",
+                agent.id,
+                result.database,
+                result.error,
+            )
+            return
+
+        agent.vault_database = result.database
+        self.session.add(agent)
+        await self.session.commit()
+        await self.session.refresh(agent)
+        self.logger.info(
+            "agent.vault.provisioned agent_id=%s database=%s created=%s files=%d",
+            agent.id,
+            result.database,
+            result.created,
+            len(result.files_written),
+        )
 
     async def get_agent(
         self,
