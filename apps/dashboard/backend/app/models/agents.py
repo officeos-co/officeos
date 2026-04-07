@@ -48,6 +48,14 @@ class Agent(QueryModel, table=True):
     last_wake_sent_at: datetime | None = Field(default=None)
     checkin_deadline_at: datetime | None = Field(default=None)
     last_provision_error: str | None = Field(default=None, sa_column=Column(Text))
+    # Phase 3 (Obsidian vault as source of truth): name of the CouchDB
+    # database that holds this agent's Obsidian vault. Provisioned by
+    # AgentLifecycleService on agent creation via obsctl's VaultClient.
+    # The rendered personality markdown (SOUL.md, IDENTITY.md, AGENTS.md,
+    # ...) is written here and also mirrored into a K8s ConfigMap that is
+    # mounted at /vault-workspace in the agent pod. Null for legacy
+    # agents created before the Phase 3 cut-over.
+    vault_database: str | None = Field(default=None, index=True)
     is_board_lead: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
