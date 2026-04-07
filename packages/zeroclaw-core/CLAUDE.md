@@ -10,13 +10,7 @@ cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
-Full pre-PR validation (recommended):
-
-```bash
-./dev/ci.sh all
-```
-
-Docs-only changes: run markdown lint and link-integrity checks. If touching bootstrap scripts: `bash -n install.sh`.
+Docs-only changes: run markdown lint and link-integrity checks.
 
 ## Project Snapshot
 
