@@ -1549,14 +1549,6 @@ mod tests {
             rate_limiter: Arc::new(GatewayRateLimiter::new(100, 100, 100)),
             auth_limiter: Arc::new(crate::gateway::auth_rate_limit::AuthRateLimiter::new()),
             idempotency_store: Arc::new(IdempotencyStore::new(Duration::from_secs(300), 1000)),
-            whatsapp: None,
-            whatsapp_app_secret: None,
-            linq: None,
-            linq_signing_secret: None,
-            nextcloud_talk: None,
-            nextcloud_talk_webhook_secret: None,
-            wati: None,
-            gmail_push: None,
             observer: Arc::new(crate::observability::NoopObserver),
             tools_registry: Arc::new(Vec::new()),
             cost_tracker: None,
@@ -1693,14 +1685,6 @@ mod tests {
                 .and_then(|v| v.api_key.as_deref()),
             Some(MASKED_SECRET)
         );
-        assert_eq!(
-            parsed
-                .channels_config
-                .email
-                .as_ref()
-                .map(|v| v.password.as_str()),
-            Some(MASKED_SECRET)
-        );
     }
 
     #[test]
@@ -1787,9 +1771,6 @@ mod tests {
             feishu.encrypt_key = Some(MASKED_SECRET.to_string());
             feishu.verification_token = Some("feishu-verify-new".to_string());
         }
-        if let Some(email) = incoming.channels_config.email.as_mut() {
-            email.password = MASKED_SECRET.to_string();
-        }
         incoming.model_routes[1].api_key = Some("route-model-key-2-new".to_string());
         incoming.embedding_routes[1].api_key = Some("route-embed-key-2-new".to_string());
 
@@ -1874,14 +1855,6 @@ mod tests {
         assert_eq!(
             hydrated.embedding_routes[1].api_key.as_deref(),
             Some("route-embed-key-2-new")
-        );
-        assert_eq!(
-            hydrated
-                .channels_config
-                .email
-                .as_ref()
-                .map(|v| v.password.as_str()),
-            Some("email-password-real")
         );
     }
 

@@ -19,7 +19,6 @@ pub use store::{
 };
 pub use types::{
     CronJob, CronJobPatch, CronRun, DeliveryConfig, JobType, Schedule, SessionTarget,
-    deserialize_maybe_stringified,
 };
 
 /// Validate a shell command against the full security policy (allowlist + risk gate).
