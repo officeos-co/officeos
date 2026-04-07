@@ -4,21 +4,20 @@ A focused, multi-commit reduction of the inherited `zeroclaw-core` Rust crate fr
 
 ## Summary
 
-| Metric                                                     | Before                 | After                                                                                                                                                       | Δ                                                                                |
-| ---------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| **`src/*.rs` total LOC**                                   | ~292,000               | ~165,000                                                                                                                                                    | **−127,000 (−44%)**                                                              |
-| **`src/*.rs` production-only** (excluding extracted tests) | ~292,000               | **~97,200**                                                                                                                                                 | **−194,800 (−67%)**                                                              |
-| **Channels**                                               | 45                     | **2** (telegram, webhook)                                                                                                                                   | −43                                                                              |
-| **Providers**                                              | 17                     | **6 + compatible wrapper** (anthropic, openai, ollama, openrouter, reliable, router)                                                                        | −10                                                                              |
-| **Tools**                                                  | ~92                    | **~30** (shell, file*\*, glob_search, content_search, memory*_, http*request, web*_, mcp*\*, skill*_, canvas, sessions\__, ask_user, escalate, delegate, …) | ~−57                                                                             |
-| **Workspace members**                                      | 3                      | **1**                                                                                                                                                       | −2                                                                               |
-| **Top-level dirs deleted**                                 | —                      | 8                                                                                                                                                           | apps/, benches/, crates/, dev/, fuzz/, scripts/, src/tunnel/, src/peripherals/ … |
-| **Dockerfiles**                                            | 4                      | **1**                                                                                                                                                       | −3                                                                               |
-| **Locale files** (`tool_descriptions/`)                    | 31                     | **1** (en)                                                                                                                                                  | −30                                                                              |
-| **Inline test files extracted to siblings**                | 0                      | **188**                                                                                                                                                     | sibling `.test.rs` / `tests.rs` pattern                                          |
-| **Tests passing**                                          | unknown (build broken) | **7,392 / 0 failing**                                                                                                                                       | verified                                                                         |
+- **`src/*.rs` total LOC**: ~292,000 → ~165,000 (**−127,000, −44%**)
+- **Production-only LOC** (excluding extracted tests): ~292,000 → **~97,200** (**−194,800, −67%**)
+- **Channels**: 45 → **2** (telegram, webhook)
+- **Providers**: 17 → **6 + compatible wrapper** (anthropic, openai, ollama, openrouter, reliable, router)
+- **Tools**: ~92 → **~30** (shell, file*\*, glob_search, content_search, memory*_, http*request, web*_, mcp*\*, skill*_, canvas, sessions\__, ask_user, escalate, delegate, …)
+- **Workspace members**: 3 → **1**
+- **Top-level dirs deleted**: 8 (apps/, benches/, crates/, dev/, fuzz/, scripts/, src/tunnel/, src/peripherals/, …)
+- **Dockerfiles**: 4 → **1**
+- **Locale files** (`tool_descriptions/`): 31 → **1** (en)
+- **Inline test files extracted to siblings**: 0 → **188**
+- **Tests passing**: build broken → **7,392 / 0 failing**
+- **Phase 3 (Obsidian vault as source of truth)**: complete — identity loader unified, `src/identity.rs` + `vault_sync.rs` deleted, per-agent CouchDB vault provisioning + K8s ConfigMap mount in dashboard backend.
 
-The deletion-focused work is complete. The codebase builds clean (`cargo check --tests`), every test target passes, and the production source is one third of its original size.
+The strip-down phases 1–3 are complete. The codebase builds clean (`cargo check --tests`), every test target passes, and the production source is one third of its original size.
 
 ### Architectural framing
 
@@ -34,8 +33,9 @@ Strip-down was guided by the **Office OS deployment model**:
 ### What's still left (not blocking — quality work)
 
 - **Phase 4 — orphan sweep**: dead config structs in `schema.rs` (`TunnelConfig`, `TrustConfig`, `SopConfig`, `VerifiableIntentConfig`, `BrowserDelegateConfig`, plus all tunnel sub-types), orphan Cargo features (`channel-matrix`), orphan dependencies (`matrix-sdk`, etc.), single-impl traits.
-- **Phase 3 — personality/identity unification**: resolve the legacy `personality.rs` / `identity.rs` split, adopt AIEOS-from-config, delete the markdown personality loader.
 - **Phase 5 — documentation pass**: 5-line module-doc comments on the surviving modules.
+- **Template sync retarget** (deferred from Phase 3): plumb `_seed_agent_vault` into the existing `POST /api/v1/gateways/{id}/templates/sync` flow so template updates propagate to the per-agent vault and ConfigMap of existing agents, not only on fresh create.
+- **Alembic head merge** (pre-existing): the dashboard backend has three unrelated Alembic heads. Phase 3's new migration chained from one of them without attempting a merge.
 - **Tiny loose ends in repo root**: `dist/` (AUR + Scoop), `install.sh`, `setup.bat`, `flake.nix/lock`, `docker-compose.yml`, `docs/hardware/`, `docs/browser-setup.md`.
 
 ---
@@ -294,13 +294,11 @@ Phase 3 was originally scoped as "resolve the `personality.rs` / `identity.rs` l
 
 ### Summary
 
-| Metric                       | Before      | After         |
-| ---------------------------- | ----------- | ------------- |
-| Identity format paths        | 2           | **1**         |
-| zeroclaw-core LOC (phase 3)  | baseline    | **−2,300**    |
-| Boot gate                    | none        | **strict**    |
-| Per-agent vault DB           | none        | **1:1**       |
-| Phase 3 tests (backend)      | —           | **+56 green** |
+- Identity formats: **2 → 1** (markdown only)
+- zeroclaw-core LOC in phase 3: **−2,300**
+- Boot gate: **none → strict** (`load_personality_strict`)
+- Per-agent vault DB: **none → 1:1** (CouchDB per agent)
+- Phase 3 backend tests: **+56 green**
 
 Deletions in zeroclaw-core:
 
@@ -326,21 +324,21 @@ After Phase 3, zeroclaw-core is a pure markdown reader. It does not create, sync
 
 ### Per-commit recap (Phase 3)
 
-| #   | Commit    | Title                                                                                               | Repo               |
-| --- | --------- | --------------------------------------------------------------------------------------------------- | ------------------ |
-| 1   | `3f79da1` | feat(obsctl): add VaultClient.ensure_database()                                                     | packages/obsctl    |
-| 2   | `c044e22` | feat(zeroclaw-core): add personality::load_personality_strict + PersonalityError                    | zeroclaw-core      |
-| 3   | `78850af` | refactor(zeroclaw-core): remove AIEOS branch from prompt.rs IdentitySection                          | zeroclaw-core      |
-| 4   | `60343eb` | refactor(zeroclaw-core): remove AIEOS branch from channels::build_system_prompt                      | zeroclaw-core      |
-| 5   | `e6ad012` | chore(zeroclaw-core): delete src/identity.rs — AIEOS JSON loader                                    | zeroclaw-core      |
-| 6   | `9475ff5` | chore(zeroclaw-core): delete IdentityConfig + ensure_bootstrap_files                                | zeroclaw-core      |
-| 7   | `9334b42` | chore(zeroclaw-core): delete vault_sync.rs + wire load_personality_strict in agent boot             | zeroclaw-core      |
-| 8   | `fa7b7dc` | feat(dashboard-backend): add Agent.vault_database column + migration                                | dashboard/backend  |
-| 9   | `30f2ae5` | feat(dashboard-backend): provision per-agent Obsidian vault on agent create                         | dashboard/backend  |
-| 10  | `62fe0da` | feat(dashboard-backend): ConfigMap-mounted vault workspace in k8s_manager                           | dashboard/backend  |
-| 11  | `386dcee` | feat(dashboard-backend): lockstep vault + ConfigMap in AgentLifecycleService                        | dashboard/backend  |
-| 12  | `b3fd5d6` | docs(zeroclaw-core): identity-vault reference                                                        | zeroclaw-core      |
-| 13  | (this)    | docs(zeroclaw-core): STRIP_DOWN.md Phase 3 entry                                                    | zeroclaw-core      |
+| #   | Commit    | Title                                                                                   | Repo              |
+| --- | --------- | --------------------------------------------------------------------------------------- | ----------------- |
+| 1   | `3f79da1` | feat(obsctl): add VaultClient.ensure_database()                                         | packages/obsctl   |
+| 2   | `c044e22` | feat(zeroclaw-core): add personality::load_personality_strict + PersonalityError        | zeroclaw-core     |
+| 3   | `78850af` | refactor(zeroclaw-core): remove AIEOS branch from prompt.rs IdentitySection             | zeroclaw-core     |
+| 4   | `60343eb` | refactor(zeroclaw-core): remove AIEOS branch from channels::build_system_prompt         | zeroclaw-core     |
+| 5   | `e6ad012` | chore(zeroclaw-core): delete src/identity.rs — AIEOS JSON loader                        | zeroclaw-core     |
+| 6   | `9475ff5` | chore(zeroclaw-core): delete IdentityConfig + ensure_bootstrap_files                    | zeroclaw-core     |
+| 7   | `9334b42` | chore(zeroclaw-core): delete vault_sync.rs + wire load_personality_strict in agent boot | zeroclaw-core     |
+| 8   | `fa7b7dc` | feat(dashboard-backend): add Agent.vault_database column + migration                    | dashboard/backend |
+| 9   | `30f2ae5` | feat(dashboard-backend): provision per-agent Obsidian vault on agent create             | dashboard/backend |
+| 10  | `62fe0da` | feat(dashboard-backend): ConfigMap-mounted vault workspace in k8s_manager               | dashboard/backend |
+| 11  | `386dcee` | feat(dashboard-backend): lockstep vault + ConfigMap in AgentLifecycleService            | dashboard/backend |
+| 12  | `b3fd5d6` | docs(zeroclaw-core): identity-vault reference                                           | zeroclaw-core     |
+| 13  | (this)    | docs(zeroclaw-core): STRIP_DOWN.md Phase 3 entry                                        | zeroclaw-core     |
 
 ### Architecture
 
