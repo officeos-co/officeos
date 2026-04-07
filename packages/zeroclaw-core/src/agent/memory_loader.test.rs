@@ -1,5 +1,6 @@
     use super::*;
     use crate::memory::{Memory, MemoryCategory, MemoryEntry};
+    use async_trait::async_trait;
     use std::sync::Arc;
 
     struct MockMemory;

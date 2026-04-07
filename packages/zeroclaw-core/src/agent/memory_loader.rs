@@ -2,6 +2,15 @@ use crate::memory::{self, Memory, decay};
 use async_trait::async_trait;
 use std::fmt::Write;
 
+/// Produces a memory-context block for the system prompt given the
+/// current user message.
+///
+/// Phase 4 note: this trait has a single production implementor
+/// (`DefaultMemoryLoader`) but is retained because `tests/support`
+/// defines a second `StaticMemoryLoader` impl used by the integration
+/// tests as a deterministic mock. Collapsing the trait would require
+/// either deleting those tests or re-introducing a hidden "mock mode"
+/// field on the concrete struct; neither is an improvement.
 #[async_trait]
 pub trait MemoryLoader: Send + Sync {
     async fn load_context(
