@@ -64,7 +64,6 @@ pub mod runtime;
 pub(crate) mod security;
 pub(crate) mod skills;
 pub mod tools;
-pub(crate) mod tunnel;
 pub(crate) mod util;
 
 #[cfg(feature = "plugins-wasm")]

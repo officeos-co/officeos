@@ -583,29 +583,8 @@ pub async fn run_gateway(
         .as_deref()
         .filter(|p| !p.is_empty());
 
-    // ── Tunnel ────────────────────────────────────────────────
-    let tunnel = crate::tunnel::create_tunnel(&config.tunnel)?;
-    let mut tunnel_url: Option<String> = None;
-
-    if let Some(ref tun) = tunnel {
-        println!("🔗 Starting {} tunnel...", tun.name());
-        match tun.start(host, actual_port).await {
-            Ok(url) => {
-                println!("🌐 Tunnel active: {url}");
-                tunnel_url = Some(url);
-            }
-            Err(e) => {
-                println!("⚠️  Tunnel failed to start: {e}");
-                println!("   Falling back to local-only mode.");
-            }
-        }
-    }
-
     let pfx = path_prefix.unwrap_or("");
     println!("🦀 ZeroClaw Gateway listening on http://{display_addr}{pfx}");
-    if let Some(ref url) = tunnel_url {
-        println!("  🌐 Public URL: {url}");
-    }
     println!("  🌐 Web Dashboard: http://{display_addr}{pfx}/");
     if let Some(code) = pairing.pairing_code() {
         println!();
