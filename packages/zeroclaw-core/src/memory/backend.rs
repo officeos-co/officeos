@@ -1,9 +1,6 @@
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum MemoryBackendKind {
     Sqlite,
-    Lucid,
-    Qdrant,
-    Markdown,
     Obsidian,
     None,
     Unknown,
@@ -29,33 +26,6 @@ const SQLITE_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     optional_dependency: false,
 };
 
-const LUCID_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
-    key: "lucid",
-    label: "Lucid Memory bridge — sync with local lucid-memory CLI, keep SQLite fallback",
-    auto_save_default: true,
-    uses_sqlite_hygiene: true,
-    sqlite_based: true,
-    optional_dependency: true,
-};
-
-const MARKDOWN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
-    key: "markdown",
-    label: "Markdown Files — simple, human-readable, no dependencies",
-    auto_save_default: true,
-    uses_sqlite_hygiene: false,
-    sqlite_based: false,
-    optional_dependency: false,
-};
-
-const QDRANT_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
-    key: "qdrant",
-    label: "Qdrant — vector database for semantic search via [memory.qdrant]",
-    auto_save_default: true,
-    uses_sqlite_hygiene: false,
-    sqlite_based: false,
-    optional_dependency: false,
-};
-
 const NONE_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     key: "none",
     label: "None — disable persistent memory",
@@ -74,10 +44,18 @@ const CUSTOM_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     optional_dependency: false,
 };
 
-const SELECTABLE_MEMORY_BACKENDS: [MemoryBackendProfile; 4] = [
+const OBSIDIAN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
+    key: "obsidian",
+    label: "Obsidian Vault — CouchDB-backed via obsctl, Obsidian-compatible notes",
+    auto_save_default: true,
+    uses_sqlite_hygiene: false,
+    sqlite_based: false,
+    optional_dependency: true,
+};
+
+const SELECTABLE_MEMORY_BACKENDS: [MemoryBackendProfile; 3] = [
     SQLITE_PROFILE,
-    LUCID_PROFILE,
-    MARKDOWN_PROFILE,
+    OBSIDIAN_PROFILE,
     NONE_PROFILE,
 ];
 
@@ -92,30 +70,15 @@ pub fn default_memory_backend_key() -> &'static str {
 pub fn classify_memory_backend(backend: &str) -> MemoryBackendKind {
     match backend {
         "sqlite" => MemoryBackendKind::Sqlite,
-        "lucid" => MemoryBackendKind::Lucid,
-        "qdrant" => MemoryBackendKind::Qdrant,
-        "markdown" => MemoryBackendKind::Markdown,
         "obsidian" => MemoryBackendKind::Obsidian,
         "none" => MemoryBackendKind::None,
         _ => MemoryBackendKind::Unknown,
     }
 }
 
-const OBSIDIAN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
-    key: "obsidian",
-    label: "Obsidian Vault — CouchDB-backed via obsctl, Obsidian-compatible notes",
-    auto_save_default: true,
-    uses_sqlite_hygiene: false,
-    sqlite_based: false,
-    optional_dependency: true,
-};
-
 pub fn memory_backend_profile(backend: &str) -> MemoryBackendProfile {
     match classify_memory_backend(backend) {
         MemoryBackendKind::Sqlite => SQLITE_PROFILE,
-        MemoryBackendKind::Lucid => LUCID_PROFILE,
-        MemoryBackendKind::Qdrant => QDRANT_PROFILE,
-        MemoryBackendKind::Markdown => MARKDOWN_PROFILE,
         MemoryBackendKind::Obsidian => OBSIDIAN_PROFILE,
         MemoryBackendKind::None => NONE_PROFILE,
         MemoryBackendKind::Unknown => CUSTOM_PROFILE,

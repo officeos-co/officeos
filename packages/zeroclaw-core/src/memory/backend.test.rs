@@ -3,10 +3,9 @@
     #[test]
     fn classify_known_backends() {
         assert_eq!(classify_memory_backend("sqlite"), MemoryBackendKind::Sqlite);
-        assert_eq!(classify_memory_backend("lucid"), MemoryBackendKind::Lucid);
         assert_eq!(
-            classify_memory_backend("markdown"),
-            MemoryBackendKind::Markdown
+            classify_memory_backend("obsidian"),
+            MemoryBackendKind::Obsidian
         );
         assert_eq!(classify_memory_backend("none"), MemoryBackendKind::None);
     }
@@ -19,19 +18,10 @@
     #[test]
     fn selectable_backends_are_ordered_for_onboarding() {
         let backends = selectable_memory_backends();
-        assert_eq!(backends.len(), 4);
+        assert_eq!(backends.len(), 3);
         assert_eq!(backends[0].key, "sqlite");
-        assert_eq!(backends[1].key, "lucid");
-        assert_eq!(backends[2].key, "markdown");
-        assert_eq!(backends[3].key, "none");
-    }
-
-    #[test]
-    fn lucid_profile_is_sqlite_based_optional_backend() {
-        let profile = memory_backend_profile("lucid");
-        assert!(profile.sqlite_based);
-        assert!(profile.optional_dependency);
-        assert!(profile.uses_sqlite_hygiene);
+        assert_eq!(backends[1].key, "obsidian");
+        assert_eq!(backends[2].key, "none");
     }
 
     #[test]

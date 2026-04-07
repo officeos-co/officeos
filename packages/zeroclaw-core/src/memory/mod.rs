@@ -8,13 +8,10 @@ pub mod decay;
 pub mod embeddings;
 pub mod hygiene;
 pub mod importance;
-pub mod lucid;
-pub mod markdown;
 pub mod obsidian;
 pub mod namespaced;
 pub mod none;
 pub mod policy;
-pub mod qdrant;
 pub mod response_cache;
 pub mod retrieval;
 pub mod snapshot;
@@ -32,14 +29,11 @@ pub use backend::{
     MemoryBackendKind, MemoryBackendProfile, classify_memory_backend, default_memory_backend_key,
     memory_backend_profile, selectable_memory_backends,
 };
-pub use lucid::LucidMemory;
-pub use markdown::MarkdownMemory;
 pub use obsidian::ObsidianMemory;
 pub use namespaced::NamespacedMemory;
 pub use none::NoneMemory;
 #[allow(unused_imports)]
 pub use policy::PolicyEnforcer;
-pub use qdrant::QdrantMemory;
 pub use response_cache::ResponseCache;
 #[allow(unused_imports)]
 pub use retrieval::{RetrievalConfig, RetrievalPipeline};
@@ -49,13 +43,12 @@ pub use traits::Memory;
 pub use traits::{ExportFilter, MemoryCategory, MemoryEntry, ProceduralMessage};
 
 use crate::config::{EmbeddingRouteConfig, MemoryConfig, StorageProviderConfig};
-use anyhow::Context;
 use std::path::Path;
 use std::sync::Arc;
 
 fn create_memory_with_builders<F>(
     backend_name: &str,
-    workspace_dir: &Path,
+    _workspace_dir: &Path,
     mut sqlite_builder: F,
     unknown_context: &str,
 ) -> anyhow::Result<Box<dyn Memory>>
@@ -64,13 +57,6 @@ where
 {
     match classify_memory_backend(backend_name) {
         MemoryBackendKind::Sqlite => Ok(Box::new(sqlite_builder()?)),
-        MemoryBackendKind::Lucid => {
-            let local = sqlite_builder()?;
-            Ok(Box::new(LucidMemory::new(workspace_dir, local)))
-        }
-        MemoryBackendKind::Qdrant | MemoryBackendKind::Markdown => {
-            Ok(Box::new(MarkdownMemory::new(workspace_dir)))
-        }
         MemoryBackendKind::Obsidian => {
             tracing::info!("📓 Obsidian vault memory backend enabled");
             Ok(Box::new(ObsidianMemory::new()))
@@ -78,9 +64,9 @@ where
         MemoryBackendKind::None => Ok(Box::new(NoneMemory::new())),
         MemoryBackendKind::Unknown => {
             tracing::warn!(
-                "Unknown memory backend '{backend_name}'{unknown_context}, falling back to markdown"
+                "Unknown memory backend '{backend_name}'{unknown_context}, disabling persistent memory"
             );
-            Ok(Box::new(MarkdownMemory::new(workspace_dir)))
+            Ok(Box::new(NoneMemory::new()))
         }
     }
 }
@@ -261,10 +247,7 @@ pub fn create_memory_with_storage_and_routes(
     // If snapshot_on_hygiene is enabled, export core memories during hygiene.
     if config.snapshot_enabled
         && config.snapshot_on_hygiene
-        && matches!(
-            backend_kind,
-            MemoryBackendKind::Sqlite | MemoryBackendKind::Lucid
-        )
+        && matches!(backend_kind, MemoryBackendKind::Sqlite)
     {
         if let Err(e) = snapshot::export_snapshot(workspace_dir) {
             tracing::warn!("memory snapshot skipped: {e}");
@@ -274,10 +257,7 @@ pub fn create_memory_with_storage_and_routes(
     // Auto-hydration: if brain.db is missing but MEMORY_SNAPSHOT.md exists,
     // restore the "soul" from the snapshot before creating the backend.
     if config.auto_hydrate
-        && matches!(
-            backend_kind,
-            MemoryBackendKind::Sqlite | MemoryBackendKind::Lucid
-        )
+        && matches!(backend_kind, MemoryBackendKind::Sqlite)
         && snapshot::should_hydrate(workspace_dir)
     {
         tracing::info!("🧬 Cold boot detected — hydrating from MEMORY_SNAPSHOT.md");
@@ -319,46 +299,7 @@ pub fn create_memory_with_storage_and_routes(
         Ok(mem)
     }
 
-    if matches!(backend_kind, MemoryBackendKind::Qdrant) {
-        let url = config
-            .qdrant
-            .url
-            .clone()
-            .filter(|s| !s.trim().is_empty())
-            .or_else(|| std::env::var("QDRANT_URL").ok())
-            .filter(|s| !s.trim().is_empty())
-            .context(
-                "Qdrant memory backend requires url in [memory.qdrant] or QDRANT_URL env var",
-            )?;
-        let collection = std::env::var("QDRANT_COLLECTION")
-            .ok()
-            .filter(|s| !s.trim().is_empty())
-            .unwrap_or_else(|| config.qdrant.collection.clone());
-        let qdrant_api_key = config
-            .qdrant
-            .api_key
-            .clone()
-            .or_else(|| std::env::var("QDRANT_API_KEY").ok())
-            .filter(|s| !s.trim().is_empty());
-        let embedder: Arc<dyn embeddings::EmbeddingProvider> =
-            Arc::from(embeddings::create_embedding_provider(
-                &resolved_embedding.provider,
-                resolved_embedding.api_key.as_deref(),
-                &resolved_embedding.model,
-                resolved_embedding.dimensions,
-            ));
-        tracing::info!(
-            "📦 Qdrant memory backend configured (url: {}, collection: {})",
-            url,
-            collection
-        );
-        return Ok(Box::new(QdrantMemory::new_lazy(
-            &url,
-            &collection,
-            qdrant_api_key,
-            embedder,
-        )));
-    }
+    let _ = backend_kind;
 
     create_memory_with_builders(
         &backend_name,
@@ -374,7 +315,7 @@ pub fn create_memory_for_migration(
 ) -> anyhow::Result<Box<dyn Memory>> {
     if matches!(classify_memory_backend(backend), MemoryBackendKind::None) {
         anyhow::bail!(
-            "memory backend 'none' disables persistence; choose sqlite, lucid, or markdown before migration"
+            "memory backend 'none' disables persistence; choose sqlite or obsidian before migration"
         );
     }
 

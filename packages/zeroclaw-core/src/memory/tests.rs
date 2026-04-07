@@ -40,28 +40,6 @@
     }
 
     #[test]
-    fn factory_markdown() {
-        let tmp = TempDir::new().unwrap();
-        let cfg = MemoryConfig {
-            backend: "markdown".into(),
-            ..MemoryConfig::default()
-        };
-        let mem = create_memory(&cfg, tmp.path(), None).unwrap();
-        assert_eq!(mem.name(), "markdown");
-    }
-
-    #[test]
-    fn factory_lucid() {
-        let tmp = TempDir::new().unwrap();
-        let cfg = MemoryConfig {
-            backend: "lucid".into(),
-            ..MemoryConfig::default()
-        };
-        let mem = create_memory(&cfg, tmp.path(), None).unwrap();
-        assert_eq!(mem.name(), "lucid");
-    }
-
-    #[test]
     fn factory_none_uses_noop_memory() {
         let tmp = TempDir::new().unwrap();
         let cfg = MemoryConfig {
@@ -73,21 +51,14 @@
     }
 
     #[test]
-    fn factory_unknown_falls_back_to_markdown() {
+    fn factory_unknown_falls_back_to_none() {
         let tmp = TempDir::new().unwrap();
         let cfg = MemoryConfig {
             backend: "redis".into(),
             ..MemoryConfig::default()
         };
         let mem = create_memory(&cfg, tmp.path(), None).unwrap();
-        assert_eq!(mem.name(), "markdown");
-    }
-
-    #[test]
-    fn migration_factory_lucid() {
-        let tmp = TempDir::new().unwrap();
-        let mem = create_memory_for_migration("lucid", tmp.path()).unwrap();
-        assert_eq!(mem.name(), "lucid");
+        assert_eq!(mem.name(), "none");
     }
 
     #[test]
@@ -102,13 +73,13 @@
     #[test]
     fn effective_backend_name_prefers_storage_override() {
         let storage = StorageProviderConfig {
-            provider: "qdrant".into(),
+            provider: "obsidian".into(),
             ..StorageProviderConfig::default()
         };
 
         assert_eq!(
             effective_memory_backend_name("sqlite", Some(&storage)),
-            "qdrant"
+            "obsidian"
         );
     }
 

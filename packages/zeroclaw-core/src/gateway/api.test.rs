@@ -127,7 +127,6 @@
         cfg.api_key = Some("sk-live-123".to_string());
         cfg.reliability.api_keys = vec!["rk-1".to_string(), "rk-2".to_string()];
         cfg.gateway.paired_tokens = vec!["pair-token-1".to_string()];
-        cfg.memory.qdrant.api_key = Some("qdrant-key".to_string());
         cfg.channels_config.wati = Some(crate::config::schema::WatiConfig {
             api_token: "wati-token".to_string(),
             api_url: "https://live-mt-server.wati.io".to_string(),
@@ -181,7 +180,6 @@
                 .map(|v| v.api_token.as_str()),
             Some(MASKED_SECRET)
         );
-        assert_eq!(parsed.memory.qdrant.api_key.as_deref(), Some(MASKED_SECRET));
         assert_eq!(
             parsed
                 .channels_config
@@ -230,7 +228,6 @@
         current.api_key = Some("real-key".to_string());
         current.reliability.api_keys = vec!["r1".to_string(), "r2".to_string()];
         current.gateway.paired_tokens = vec!["pair-1".to_string(), "pair-2".to_string()];
-        current.memory.qdrant.api_key = Some("qdrant-real".to_string());
         current.channels_config.wati = Some(crate::config::schema::WatiConfig {
             api_token: "wati-real".to_string(),
             api_url: "https://live-mt-server.wati.io".to_string(),
@@ -284,7 +281,6 @@
         // Simulate UI changing only one key and keeping the first masked.
         incoming.reliability.api_keys = vec![MASKED_SECRET.to_string(), "r2-new".to_string()];
         incoming.gateway.paired_tokens = vec![MASKED_SECRET.to_string(), "pair-2-new".to_string()];
-        incoming.memory.qdrant.api_key = Some(MASKED_SECRET.to_string());
         if let Some(wati) = incoming.channels_config.wati.as_mut() {
             wati.api_token = MASKED_SECRET.to_string();
         }
@@ -309,10 +305,6 @@
         assert_eq!(
             hydrated.gateway.paired_tokens,
             vec!["pair-1".to_string(), "pair-2-new".to_string()]
-        );
-        assert_eq!(
-            hydrated.memory.qdrant.api_key.as_deref(),
-            Some("qdrant-real")
         );
         assert_eq!(
             hydrated

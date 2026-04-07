@@ -941,7 +941,6 @@ fn mask_sensitive_fields(config: &crate::config::Config) -> crate::config::Confi
     mask_optional_secret(&mut masked.browser.computer_use.api_key);
     mask_optional_secret(&mut masked.web_search.brave_api_key);
     mask_optional_secret(&mut masked.storage.provider.config.db_url);
-    mask_optional_secret(&mut masked.memory.qdrant.api_key);
 
     for agent in masked.agents.values_mut() {
         mask_optional_secret(&mut agent.api_key);
@@ -1038,10 +1037,6 @@ fn restore_masked_sensitive_fields(
     restore_optional_secret(
         &mut incoming.storage.provider.config.db_url,
         &current.storage.provider.config.db_url,
-    );
-    restore_optional_secret(
-        &mut incoming.memory.qdrant.api_key,
-        &current.memory.qdrant.api_key,
     );
 
     for (name, agent) in &mut incoming.agents {
