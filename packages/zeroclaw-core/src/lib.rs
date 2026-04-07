@@ -50,7 +50,6 @@ pub mod cron;
 pub(crate) mod daemon;
 pub(crate) mod doctor;
 pub mod gateway;
-pub mod hands;
 pub(crate) mod health;
 pub(crate) mod heartbeat;
 pub mod hooks;
@@ -60,20 +59,15 @@ pub(crate) mod integrations;
 pub mod memory;
 pub(crate) mod migration;
 pub(crate) mod multimodal;
-pub mod nodes;
 pub mod observability;
 pub mod providers;
-pub mod routines;
 pub mod runtime;
 pub(crate) mod security;
 pub(crate) mod service;
 pub(crate) mod skills;
-pub mod sop;
 pub mod tools;
-pub(crate) mod trust;
 pub(crate) mod tunnel;
 pub(crate) mod util;
-pub mod verifiable_intent;
 
 #[cfg(feature = "plugins-wasm")]
 pub mod plugins;

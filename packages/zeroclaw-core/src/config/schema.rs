@@ -13,11 +13,17 @@ use tokio::fs::File;
 use tokio::fs::{self, OpenOptions};
 use tokio::io::AsyncWriteExt;
 
-/// Stub for the deleted browser_delegate tool config (phase 2.6 strip-down).
-/// Field is retained on Config for ABI compatibility but is no longer wired
-/// to any tool. Phase 4 will sweep this and remove the field entirely.
+/// Stubs for orphan configs from deleted modules (phase 2.6/2.7 strip-down).
+/// Fields are retained on Config for ABI compatibility but no longer wired
+/// to any code. Phase 4 will sweep these and remove the fields entirely.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct BrowserDelegateConfig {
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TrustConfig {
     #[serde(default)]
     pub enabled: bool,
 }
@@ -140,7 +146,7 @@ pub struct Config {
 
     /// Trust scoring and regression detection configuration (`[trust]`).
     #[serde(default)]
-    pub trust: crate::trust::TrustConfig,
+    pub trust: TrustConfig,
 
     /// Security subsystem configuration (`[security]`).
     #[serde(default)]
@@ -8313,7 +8319,7 @@ impl Default for Config {
             extra_headers: HashMap::new(),
             observability: ObservabilityConfig::default(),
             autonomy: AutonomyConfig::default(),
-            trust: crate::trust::TrustConfig::default(),
+            trust: TrustConfig::default(),
             backup: BackupConfig::default(),
             data_retention: DataRetentionConfig::default(),
             cloud_ops: CloudOpsConfig::default(),
@@ -11366,7 +11372,7 @@ auto_save = true
                 non_cli_excluded_tools: vec![],
                 shell_timeout_secs: default_shell_timeout_secs(),
             },
-            trust: crate::trust::TrustConfig::default(),
+            trust: TrustConfig::default(),
             backup: BackupConfig::default(),
             data_retention: DataRetentionConfig::default(),
             cloud_ops: CloudOpsConfig::default(),
@@ -11952,7 +11958,7 @@ default_temperature = 0.7
             extra_headers: HashMap::new(),
             observability: ObservabilityConfig::default(),
             autonomy: AutonomyConfig::default(),
-            trust: crate::trust::TrustConfig::default(),
+            trust: TrustConfig::default(),
             backup: BackupConfig::default(),
             data_retention: DataRetentionConfig::default(),
             cloud_ops: CloudOpsConfig::default(),
