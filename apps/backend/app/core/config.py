@@ -39,6 +39,7 @@ class EnvironmentProfile:
 
     base_url: str
     cors_origins: str
+    google_redirect_uri: str
 
 
 # Canonical profile table. Single source of truth for all env-specific
@@ -48,14 +49,17 @@ PROFILES: dict[str, EnvironmentProfile] = {
     "dev": EnvironmentProfile(
         base_url="http://localhost:8000",
         cors_origins="http://localhost:3000",
+        google_redirect_uri="http://localhost:3000/auth/callback",
     ),
     "staging": EnvironmentProfile(
         base_url="https://staging.dashboard.harrokrog.com",
         cors_origins="https://staging.dashboard.harrokrog.com",
+        google_redirect_uri="https://staging.dashboard.harrokrog.com/auth/callback",
     ),
     "production": EnvironmentProfile(
         base_url="https://dashboard.harrokrog.com",
         cors_origins="https://dashboard.harrokrog.com",
+        google_redirect_uri="https://dashboard.harrokrog.com/auth/callback",
     ),
 }
 class Settings(BaseSettings):
@@ -137,6 +141,7 @@ class Settings(BaseSettings):
             )
         self.base_url = profile.base_url
         self.cors_origins = profile.cors_origins
+        self.google_redirect_uri = profile.google_redirect_uri
 
         parsed_base_url = urlparse(self.base_url)
         if parsed_base_url.scheme not in {"http", "https"} or not parsed_base_url.netloc:

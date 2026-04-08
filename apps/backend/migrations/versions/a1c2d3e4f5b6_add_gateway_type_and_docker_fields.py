@@ -1,9 +1,12 @@
 """Add gateway type discriminator and Docker container fields.
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: a1c2d3e4f5b6
 Revises: fa6e83f8d9a1
 Create Date: 2026-04-05 00:00:00.000000
 
+NOTE: this file previously collided with `a1b2c3d4e5f6_add_webhook_secret.py`
+on the same revision ID — Alembic treated it as a phantom head. Renamed
+to `a1c2d3e4f5b6` and chained via the `f7a8b9c0d1e2` merge migration.
 """
 
 from __future__ import annotations
@@ -12,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "a1b2c3d4e5f6"
+revision = "a1c2d3e4f5b6"
 down_revision = "fa6e83f8d9a1"
 branch_labels = None
 depends_on = None

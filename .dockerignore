@@ -1,0 +1,51 @@
+# Keep the backend/webhook-worker build context (repo root) small.
+# Only the paths the Dockerfile actually COPYs matter; everything
+# else here just speeds up `docker build` and avoids leaking secrets.
+
+**/.git
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.next
+**/target
+**/.DS_Store
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/coverage
+**/coverage.xml
+**/coverage.json
+**/.tox
+
+# Never ship secret material or local state
+**/.env.local
+**/.env.*.local
+**/.secret_key
+**/*.pem
+**/credentials.json
+
+# Build artifacts
+**/dist
+**/build
+**/*.egg-info
+
+# IDE / editor noise
+**/.idea
+**/.vscode
+**/.claude
+
+# Runtime state
+**/.zeroclaw
+**/rust_out
+**/web/dist
+**/.worktrees
+**/.wt-pr*
+**/.wrangler
+**/.runlogs
+
+# Other repo apps we don't need inside the backend image
+apps/dashboard/node_modules
+apps/dashboard/.next

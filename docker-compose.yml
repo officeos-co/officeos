@@ -44,7 +44,10 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
+      # Context is the repo root because backend pyproject.toml pulls
+      # in `packages/obsctl` via an editable sibling-path install.
+      context: .
+      dockerfile: apps/backend/Dockerfile
     environment:
       # Single switch: dev | staging | production. Flip this to point
       # the local compose backend at a different hardcoded URL bundle
@@ -79,7 +82,8 @@ services:
 
   webhook-worker:
     build:
-      context: ./apps/backend
+      context: .
+      dockerfile: apps/backend/Dockerfile
     command: ["python", "scripts/rq-docker", "worker"]
     depends_on:
       redis:

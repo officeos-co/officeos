@@ -7,10 +7,11 @@ Handles the server-side of the Google OAuth flow:
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import httpx
+
+from app.core.config import settings
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -21,13 +22,18 @@ class GoogleAuthError(Exception):
 
 
 def _get_google_config() -> tuple[str, str, str]:
-    """Return (client_id, client_secret, redirect_uri) from env vars."""
-    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
-    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-    redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI", "")
+    """Return (client_id, client_secret, redirect_uri).
+
+    client_id/client_secret come from `apps/backend/.env` (baked into
+    the image, shared across all environments). redirect_uri is
+    selected per-environment from `PROFILES` in `app.core.config`.
+    """
+    client_id = settings.google_client_id
+    client_secret = settings.google_client_secret
+    redirect_uri = settings.google_redirect_uri
     if not client_id or not client_secret:
         raise GoogleAuthError(
-            "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set."
+            "google_client_id and google_client_secret must be set in .env",
         )
     return client_id, client_secret, redirect_uri
 
