@@ -45,7 +45,16 @@ export function SignedOut(props: { children: ReactNode }) {
   return isSignedIn() ? null : <>{props.children}</>;
 }
 
-export function SignInButton(props: { children?: ReactNode }) {
+export function SignInButton(props: {
+  children?: ReactNode;
+  // Clerk-compat props accepted (and ignored) so callers can stay source-compatible
+  // with Clerk's real SignInButton without conditional rendering.
+  mode?: "modal" | "redirect";
+  forceRedirectUrl?: string;
+  signUpForceRedirectUrl?: string;
+  fallbackRedirectUrl?: string;
+  signUpFallbackRedirectUrl?: string;
+}) {
   const handleSignIn = async () => {
     try {
       const baseUrl =
@@ -90,6 +99,7 @@ export function useUser() {
     isSignedIn: isSignedIn(),
     user: claims
       ? {
+          id: claims.sub ?? claims.email ?? "local-user",
           primaryEmailAddress: { emailAddress: claims.email },
           fullName: claims.name,
           imageUrl: null,
