@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { useAuth } from "@/auth/clerk";
+import { getSessionToken, useAuth } from "@/auth/clerk";
 import { useQueryClient } from "@tanstack/react-query";
 import { AgentsTable } from "@/components/agents/AgentsTable";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
@@ -176,19 +176,39 @@ export default function GatewayDetailPage() {
             {gatewayId ? (
               <Button
                 variant="outline"
-                onClick={() => {
-                  // The backend reverse-proxies the zeroclaw pod's
-                  // embedded web dashboard under this URL. The pod
-                  // is told its own path prefix via
-                  // `ZEROCLAW_PATH_PREFIX`, so the SPA boots with
-                  // `window.__ZEROCLAW_BASE__` set and all its
-                  // internal fetches route back through here.
-                  const base = getApiBaseUrl();
-                  window.open(
-                    `${base}/api/gateways/${gatewayId}/ui/`,
-                    "_blank",
-                    "noopener,noreferrer",
-                  );
+                onClick={async () => {
+                  // The UI proxy requires a short-lived gateway-scoped
+                  // JWT. Mint it with the user's normal dashboard
+                  // session bearer, pass it in the URL query string
+                  // (the proxy promotes it to a Path-scoped cookie on
+                  // the first request so the SPA's internal fetches
+                  // inherit auth automatically).
+                  try {
+                    const base = getApiBaseUrl();
+                    const token = getSessionToken();
+                    const mintResp = await fetch(
+                      `${base}/api/gateways/${gatewayId}/ui-token`,
+                      {
+                        method: "POST",
+                        headers: token
+                          ? { Authorization: `Bearer ${token}` }
+                          : {},
+                      },
+                    );
+                    if (!mintResp.ok) {
+                      throw new Error(
+                        `Failed to mint UI token: ${mintResp.status}`,
+                      );
+                    }
+                    const { token: uiToken } = await mintResp.json();
+                    window.open(
+                      `${base}/api/gateways/${gatewayId}/ui/?t=${encodeURIComponent(uiToken)}`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  } catch (err) {
+                    console.error("Open agent dashboard failed:", err);
+                  }
                 }}
               >
                 Open agent dashboard

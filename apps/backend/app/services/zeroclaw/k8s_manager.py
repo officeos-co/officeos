@@ -211,6 +211,15 @@ class KubernetesManager:
         pvc_name = self._pvc_name(gateway_id)
         svc_name = self._service_name(gateway_id)
 
+        # The zeroclaw gateway is mounted under ZEROCLAW_PATH_PREFIX so
+        # the embedded SPA can be reverse-proxied by the EAOS backend.
+        # That means `/health` and `/api/health` are no longer at the
+        # root — kubelet probes must include the prefix too, otherwise
+        # every probe gets a 404.
+        path_prefix = f"/api/gateways/{gateway_id}/ui"
+        liveness_path = f"{path_prefix}/health"
+        readiness_path = f"{path_prefix}/api/health"
+
         # Phase 3: no pre-boot CLI installation, no onboarding — the
         # ConfigMap mount guarantees the workspace exists before the
         # container starts.
@@ -286,7 +295,7 @@ class KubernetesManager:
                             provider=resolved_provider,
                             skill_gateway_url=skill_gateway_url,
                             skill_gateway_token=skill_gateway_token,
-                            path_prefix=f"/api/gateways/{gateway_id}/ui",
+                            path_prefix=path_prefix,
                             vault_configmap=vault_configmap,
                         ),
                         "resources": {
@@ -294,14 +303,14 @@ class KubernetesManager:
                             "requests": {"memory": "64Mi", "cpu": "100m"},
                         },
                         "livenessProbe": {
-                            "httpGet": {"path": "/health", "port": ZEROCLAW_PORT},
+                            "httpGet": {"path": liveness_path, "port": ZEROCLAW_PORT},
                             "initialDelaySeconds": 30,
                             "periodSeconds": 60,
                             "timeoutSeconds": 10,
                             "failureThreshold": 3,
                         },
                         "readinessProbe": {
-                            "httpGet": {"path": "/api/health", "port": ZEROCLAW_PORT},
+                            "httpGet": {"path": readiness_path, "port": ZEROCLAW_PORT},
                             "initialDelaySeconds": 15,
                             "periodSeconds": 10,
                             "timeoutSeconds": 5,

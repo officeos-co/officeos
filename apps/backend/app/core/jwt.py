@@ -67,3 +67,52 @@ def verify_session_token(token: str) -> dict:
         raise SessionTokenError("Session token has expired.") from exc
     except jwt.InvalidTokenError as exc:
         raise SessionTokenError(f"Invalid session token: {exc}") from exc
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Gateway UI proxy tokens
+#
+# Short-lived JWTs that authorize browser access to the agent-dashboard
+# reverse-proxy at `/api/gateways/<id>/ui/*`. Scoped to a single
+# gateway_id so a leaked token can't reach any other agent. Issued by
+# the dashboard user after a normal auth check, passed via `?t=...` on
+# the initial page load, then promoted to a `Path`-scoped cookie by
+# the proxy so subsequent SPA fetches inherit the same auth.
+# ─────────────────────────────────────────────────────────────────────
+
+UI_TOKEN_TYPE = "gw-ui"
+UI_TOKEN_TTL_MINUTES = 30
+
+
+def create_gateway_ui_token(*, gateway_id: str, user_id: str) -> str:
+    """Issue a 30-minute JWT authorizing UI access to one gateway."""
+    secret = _secret()
+    now = datetime.now(timezone.utc)
+    payload = {
+        "typ": UI_TOKEN_TYPE,
+        "sub": user_id,
+        "gw": gateway_id,
+        "iat": now,
+        "exp": now + timedelta(minutes=UI_TOKEN_TTL_MINUTES),
+    }
+    return jwt.encode(payload, secret, algorithm=ALGORITHM)
+
+
+def verify_gateway_ui_token(token: str, *, expected_gateway_id: str) -> dict:
+    """Verify a gateway-UI token and ensure it was minted for this gateway.
+
+    Rejects tokens of other types, expired tokens, and tokens minted
+    for a different `gateway_id`.
+    """
+    secret = _secret()
+    try:
+        claims = jwt.decode(token, secret, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError as exc:
+        raise SessionTokenError("UI token has expired.") from exc
+    except jwt.InvalidTokenError as exc:
+        raise SessionTokenError(f"Invalid UI token: {exc}") from exc
+    if claims.get("typ") != UI_TOKEN_TYPE:
+        raise SessionTokenError("Token is not a gateway-UI token.")
+    if claims.get("gw") != expected_gateway_id:
+        raise SessionTokenError("UI token was issued for a different gateway.")
+    return claims

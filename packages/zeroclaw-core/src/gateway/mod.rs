@@ -619,9 +619,14 @@ pub async fn run_gateway(
         println!("  ⚠️  Pairing: DISABLED (all requests accepted)");
         println!();
     }
+    let api_auth_note = if pairing.require_pairing() {
+        "(bearer token required)"
+    } else {
+        "(unauthenticated — pairing disabled)"
+    };
     println!("  POST {pfx}/pair      — pair a new client (X-Pairing-Code header)");
     println!("  POST {pfx}/webhook   — {{\"message\": \"your prompt\"}}");
-    println!("  GET  {pfx}/api/*     — REST API (bearer token required)");
+    println!("  GET  {pfx}/api/*     — REST API {api_auth_note}");
     println!("  GET  {pfx}/ws/chat   — WebSocket agent chat");
     if config.nodes.enabled {
         println!("  GET  {pfx}/ws/nodes  — WebSocket node discovery");
