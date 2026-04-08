@@ -22,13 +22,18 @@ node_modules/
 *.db-journal
 
 # ── Environment & secrets ────────────────────────────────────
-.env
+# NOTE: apps/backend/.env and apps/dashboard/.env ARE committed on purpose —
+# services are self-contained and bake their config into the image.
 .env.local
 .env.*.local
 .secret_key
 *.key
 *.pem
 credentials.json
+
+# Dashboard-specific backend dirs
+apps/dashboard/backend/~/
+apps/dashboard/backend/app/services/openclaw/.device-keys
 
 # ── macOS ────────────────────────────────────────────────────
 .DS_Store
@@ -69,6 +74,3 @@ web/dist/*
 # ── Wrangler ─────────────────────────────────────────────────
 .wrangler/
 
-# ── Dashboard-specific ───────────────────────────────────────
-apps/dashboard/backend/~/
-apps/dashboard/backend/app/services/openclaw/.device-keys

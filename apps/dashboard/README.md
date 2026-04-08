@@ -1,182 +1,178 @@
-# OpenClaw Mission Control
+# Mission Control Frontend (`frontend/`)
 
-[![CI](https://github.com/abhi1693/openclaw-mission-control/actions/workflows/ci.yml/badge.svg)](https://github.com/abhi1693/openclaw-mission-control/actions/workflows/ci.yml) ![Static Badge](https://img.shields.io/badge/Join-Slack-active?style=flat&color=blue&link=https%3A%2F%2Fjoin.slack.com%2Ft%2Foc-mission-control%2Fshared_invite%2Fzt-3qpcm57xh-AI9C~smc3MDBVzEhvwf7gg)
+This package is the **Next.js** web UI for OpenClaw Mission Control.
 
-OpenClaw Mission Control is the centralized operations and governance platform for running OpenClaw across teams and organizations, with unified visibility, approval controls, and gateway-aware orchestration.
-It gives operators a single interface for work orchestration, agent and gateway management, approval-driven governance, and API-backed automation.
+- Talks to the Mission Control **backend** over HTTP (typically `http://localhost:8000`).
+- Uses **React Query** for data fetching.
+- Supports two auth modes:
+  - **local** shared bearer token mode (self-host default)
+  - **clerk** mode
 
-<img width="1896" height="869" alt="Mission Control dashboard" src="https://github.com/user-attachments/assets/49a3c823-6aaf-4c56-8328-fb1485ee940f" />
-<img width="1896" height="858" alt="image" src="https://github.com/user-attachments/assets/2bfee13a-3dab-4f4a-9135-e47bb6949dcf" />
-<img width="1890" height="865" alt="image" src="https://github.com/user-attachments/assets/84c2e867-5dc7-4a36-9290-e29179d2a659" />
-<img width="1912" height="881" alt="image" src="https://github.com/user-attachments/assets/3bbd825c-9969-4bbf-bf31-987f9168f370" />
-<img width="1902" height="878" alt="image" src="https://github.com/user-attachments/assets/eea09632-60e4-4d6d-9e6e-bdfa0ac97630" />
+## Prerequisites
 
-## Platform overview
+- Node.js (recommend **18+**) and npm
+- Backend running locally (see `../backend/README.md` if present) **or** run the stack via Docker Compose from repo root.
 
-Mission Control is designed to be the day-to-day operations surface for OpenClaw.
-Instead of splitting work across multiple tools, teams can plan, execute, review, and audit activity in one system.
+## Local development
 
-Core operational areas:
-
-- Work orchestration: manage organizations, board groups, boards, tasks, and tags.
-- Agent operations: create, inspect, and manage agent lifecycle from a unified control surface.
-- Governance and approvals: route sensitive actions through explicit approval flows.
-- Gateway management: connect and operate gateway integrations for distributed environments.
-- Activity visibility: review a timeline of system actions for faster debugging and accountability.
-- API-first model: support both web workflows and automation clients from the same platform.
-
-## Use cases
-
-- Multi-team agent operations: run multiple boards and board groups across organizations from a single control plane.
-- Human-in-the-loop execution: require approvals before sensitive actions and keep decision trails attached to work.
-- Distributed runtime control: connect gateways and operate remote execution environments without changing operator workflow.
-- Audit and incident review: use activity history to reconstruct what happened, when it happened, and who initiated it.
-- API-backed process integration: connect internal workflows and automation clients to the same operational model used in the UI.
-
-## What makes Mission Control different
-
-- Operations-first design: built for running agent work reliably, not just creating tasks.
-- Governance built in: approvals, auth modes, and clear control boundaries are first-class.
-- Gateway-aware orchestration: built to operate both local and connected runtime environments.
-- Unified UI and API model: operators and automation act on the same objects and lifecycle.
-- Team-scale structure: organizations, board groups, boards, tasks, tags, and users in one system of record.
-
-## Who it is for
-
-- Platform teams running OpenClaw in self-hosted or internal environments.
-- Operations and engineering teams that need clear approval and auditability controls.
-- Organizations that want API-accessible operations without losing a usable web UI.
-
-## Get started in minutes
-
-### Option A: One-command production-style bootstrap
-
-If you haven't cloned the repo yet, you can run the installer in one line:
+From `frontend/`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/abhi1693/openclaw-mission-control/master/install.sh | bash
+npm install
+
+# set env vars (see below)
+cp .env.example .env.local
+
+npm run dev
 ```
 
-This clones the repository into `./openclaw-mission-control` if no local checkout is found in your current directory.
+Open http://localhost:3000.
 
-If you already cloned the repo:
+### LAN development
+
+To bind Next dev server to all interfaces:
 
 ```bash
-./install.sh
+npm run dev:lan
 ```
 
-The installer is interactive and will:
+## Environment variables
 
-- Ask for deployment mode (`docker` or `local`).
-- Install missing system dependencies when possible.
-- Generate and configure environment files.
-- Bootstrap and start the selected deployment mode.
+The frontend reads configuration from standard Next.js env files (`.env.local`, `.env`, etc.).
 
-Installer support matrix: [`docs/installer-support.md`](./docs/installer-support.md)
+### Required
 
-### Option B: Manual setup
+#### `NEXT_PUBLIC_API_URL`
 
-### Prerequisites
+Base URL of the backend API (or `auto`).
 
-- **Supported platforms**: Linux and macOS. On macOS, Docker mode requires [Docker Desktop](https://www.docker.com/products/docker-desktop/); local mode requires [Homebrew](https://brew.sh) and Node.js 22+.
-- Docker Engine
-- Docker Compose v2 (`docker compose`)
+- Default: `auto` (resolved in browser as `http(s)://<current-host>:8000`)
+- Used by the generated API client and helpers (see `src/lib/api-base.ts` and `src/api/mutator.ts`).
 
-### 1. Configure environment
+Example:
+
+```env
+NEXT_PUBLIC_API_URL=auto
+```
+
+### Authentication mode
+
+Set `NEXT_PUBLIC_AUTH_MODE` to one of:
+
+- `local` (default for self-host)
+- `clerk`
+
+For `local` mode:
+
+- users enter the token in the local login screen
+- requests use that token as `Authorization: Bearer ...`
+
+For `clerk` mode, configure:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- optional `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`
+- optional `NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL`
+
+## How the frontend talks to the backend
+
+### API base URL
+
+The client builds URLs using `NEXT_PUBLIC_API_URL` (normalized to remove trailing slashes).
+
+### Generated API client (Orval + React Query)
+
+We generate a typed client from the backend OpenAPI schema using **Orval**:
+
+- Config: `orval.config.ts`
+- Output: `src/api/generated/*`
+- Script: `npm run api:gen`
+
+By default, Orval reads:
+
+- `ORVAL_INPUT` (if set), otherwise
+- `http://127.0.0.1:8000/openapi.json`
+
+Example:
 
 ```bash
-cp .env.example .env
+# from frontend/
+ORVAL_INPUT=http://localhost:8000/openapi.json npm run api:gen
 ```
 
-Before startup:
+### Auth header / Clerk token injection
 
-- Set `LOCAL_AUTH_TOKEN` to a non-placeholder value (minimum 50 characters) when `AUTH_MODE=local`.
-- Ensure `BASE_URL` matches the public backend origin if you are not using `http://localhost:8000`.
-- `NEXT_PUBLIC_API_URL=auto` (default) resolves to `http(s)://<current-host>:8000`.
-  - Set an explicit URL when your API is behind a reverse proxy or non-default port.
+All Orval-generated requests go through the custom mutator (`src/api/mutator.ts`).
+It will:
 
-### 2. Start Mission Control
+- set `Content-Type: application/json` when there is a body and you didn’t specify a content type
+- add `Authorization: Bearer <token>` automatically from local mode token or Clerk session
+- parse errors into an `ApiError` with status + parsed response body
+
+## Mobile / responsive UI validation
+
+When changing UI intended to be mobile-ready, validate in Chrome (or similar) using the device toolbar at common widths (e.g. **320px**, **375px**, **768px**).
+
+Quick checklist:
+
+- No horizontal scroll
+- Primary actions reachable without precision taps
+- Focus rings visible when tabbing
+- Modals/popovers not clipped
+
+## Common commands
+
+From `frontend/`:
 
 ```bash
-docker compose -f compose.yml --env-file .env up -d --build
+npm run dev        # start dev server
+npm run build      # production build
+npm run start      # run the built app
+npm run lint       # eslint
+npm run test       # vitest (with coverage)
+npm run test:watch # watch mode
+npm run api:gen    # regenerate typed API client via Orval
 ```
 
-If you are iterating on the UI in Docker and want automatic frontend rebuilds on
-source changes, run:
+## Docker
+
+There is a `frontend/Dockerfile` used by the root `compose.yml`.
+
+If you’re working on self-hosting, prefer running compose from the repo root so the backend/db are aligned with the documented ports/env.
+
+## Troubleshooting
+
+### `NEXT_PUBLIC_API_URL` and remote hosts
+
+If unset or set to `auto`, the client uses `http(s)://<current-host>:8000`.
+If your backend is on a different host/port, set `NEXT_PUBLIC_API_URL` explicitly.
+
+Fix:
 
 ```bash
-docker compose -f compose.yml --env-file .env up --build --watch
+cp .env.example .env.local
+# then edit .env.local if your backend URL differs
 ```
+
+### Frontend loads, but API calls fail (CORS / network errors)
+
+- Confirm backend is up: http://localhost:8000/healthz
+- Confirm `NEXT_PUBLIC_API_URL` points to the correct host/port.
+- If accessing from another device (LAN), use a reachable backend URL (not `localhost`).
+
+### Wrong auth mode UI
+
+- Ensure `NEXT_PUBLIC_AUTH_MODE` matches backend `AUTH_MODE`.
+- For local mode, set `NEXT_PUBLIC_AUTH_MODE=local`.
+- For Clerk mode, set `NEXT_PUBLIC_AUTH_MODE=clerk` and a real Clerk publishable key.
+
+### Dev server blocked by origin restrictions
+
+`next.config.ts` sets `allowedDevOrigins` for dev proxy safety.
+
+If you see repeated proxy errors (often `ECONNRESET`), make sure your dev server hostname and browser URL match (e.g. `localhost` vs `127.0.0.1`), and that your origin is included in `allowedDevOrigins`.
 
 Notes:
 
-- Compose Watch requires Docker Compose **2.22.0+**.
-- You can also run watch separately after startup:
-
-```bash
-docker compose -f compose.yml --env-file .env up -d --build
-docker compose -f compose.yml --env-file .env watch
-```
-
-After pulling new changes, rebuild and recreate all services:
-
-```bash
-docker compose -f compose.yml --env-file .env up -d --build --force-recreate
-```
-
-For a fully clean rebuild (no cached build layers):
-
-```bash
-docker compose -f compose.yml --env-file .env build --no-cache --pull
-docker compose -f compose.yml --env-file .env up -d --force-recreate
-```
-
-### 3. Open the application
-
-- Mission Control UI: http://localhost:3000
-- Backend health: http://localhost:8000/healthz
-
-### 4. Stop the stack
-
-```bash
-docker compose -f compose.yml --env-file .env down
-```
-
-## Authentication
-
-Mission Control supports two authentication modes:
-
-- `local`: shared bearer token mode (default for self-hosted use)
-- `clerk`: Clerk JWT mode
-
-Environment templates:
-
-- Root: [`.env.example`](./.env.example)
-- Backend: [`backend/.env.example`](./backend/.env.example)
-- Frontend: [`frontend/.env.example`](./frontend/.env.example)
-
-## Documentation
-
-Complete guides for deployment, production, troubleshooting, and testing are in [`/docs`](./docs/).
-
-## Project status
-
-Mission Control is under active development.
-
-- Features and APIs may change between releases.
-- Validate and harden your configuration before production use.
-
-## Contributing
-
-Issues and pull requests are welcome.
-
-- [Contributing guide](./CONTRIBUTING.md)
-- [Open issues](https://github.com/abhi1693/openclaw-mission-control/issues)
-
-## License
-
-This project is licensed under the MIT License. See [`LICENSE`](./LICENSE).
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=abhi1693/openclaw-mission-control&type=date&legend=top-left)](https://www.star-history.com/#abhi1693/openclaw-mission-control&type=date&legend=top-left)
+- Local dev should work via `http://localhost:3000` and `http://127.0.0.1:3000`.
+- LAN dev should work via the configured LAN IP (e.g. `http://192.168.1.101:3000`) **only** if you bind the dev server to all interfaces (`npm run dev:lan`).
+- If you bind Next to `127.0.0.1` only, remote LAN clients won’t connect.

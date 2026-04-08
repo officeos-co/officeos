@@ -1,9 +1,0 @@
-node_modules
-.next
-coverage
-cypress/screenshots
-cypress/videos
-npm-debug.log*
-.env
-.env.*
-.git

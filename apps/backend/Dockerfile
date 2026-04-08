@@ -19,9 +19,8 @@ ENV PATH="/root/.local/bin:${PATH}"
 # --- deps layer ---
 FROM base AS deps
 
-# Copy only dependency metadata first for better build caching
-# NOTE: compose builds backend with repo-root context, so files live under /backend.
-COPY backend/pyproject.toml backend/uv.lock ./
+# Build context is apps/backend/ — paths are relative to it.
+COPY pyproject.toml uv.lock ./
 
 # Create venv and sync deps (including runtime)
 RUN uv sync --frozen --no-dev
@@ -39,17 +38,14 @@ COPY --from=deps --chown=appuser:appgroup /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:${PATH}"
 
 # Copy app source
-COPY --chown=appuser:appgroup backend/migrations ./migrations
-COPY --chown=appuser:appgroup backend/alembic.ini ./alembic.ini
-COPY --chown=appuser:appgroup backend/app ./app
-
-# Copy provisioning templates.
-# In-repo these live at `backend/templates/`; runtime path is `/app/templates`.
-COPY --chown=appuser:appgroup backend/templates ./templates
-
-# Copy worker scripts.
-# In-repo these live at `scripts/`; runtime path is `/app/scripts`.
+COPY --chown=appuser:appgroup migrations ./migrations
+COPY --chown=appuser:appgroup alembic.ini ./alembic.ini
+COPY --chown=appuser:appgroup app ./app
+COPY --chown=appuser:appgroup templates ./templates
 COPY --chown=appuser:appgroup scripts ./scripts
+
+# Bake the .env into the image — services are self-contained, no runtime env injection.
+COPY --chown=appuser:appgroup .env ./.env
 
 USER appuser
 

@@ -1,4 +1,4 @@
-name: Deploy Dashboard Prod
+name: Deploy Backend Prod
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 concurrency:
-  group: deploy-dashboard-prod
+  group: deploy-backend-prod
   cancel-in-progress: false
 
 jobs:
@@ -29,14 +29,14 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: apps/dashboard
-          file: apps/dashboard/Dockerfile
+          context: apps/backend
+          file: apps/backend/Dockerfile
           push: true
           tags: |
-            harkro123/eaos-frontend:latest
-            harkro123/eaos-frontend:${{ steps.meta.outputs.sha }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,scope=frontend,mode=max
+            harkro123/eaos-backend:latest
+            harkro123/eaos-backend:${{ steps.meta.outputs.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
 
   deploy:
     needs: build
@@ -49,12 +49,12 @@ jobs:
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Roll dashboard deployment
+      - name: Roll backend deployment
         run: |
           kubectl config set-cluster nova --server=https://tailscale-operator.tail82aae1.ts.net:443 --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
-          kubectl set image deployment/eaos-frontend-prod \
-            frontend=harkro123/eaos-frontend:${{ needs.build.outputs.sha }}
-          kubectl rollout status deployment/eaos-frontend-prod --timeout=180s
+          kubectl set image deployment/eaos-backend-prod \
+            backend=harkro123/eaos-backend:${{ needs.build.outputs.sha }}
+          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
