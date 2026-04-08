@@ -18,7 +18,12 @@ from app.services.zeroclaw.vault_configmap import (
     delete_agent_vault_configmap,
 )
 
-DEFAULT_IMAGE = "ghcr.io/zeroclaw-labs/zeroclaw:debian"
+# Built from packages/zeroclaw-core in this repo by
+# .github/workflows/build-zeroclaw-image.yml. Upstream
+# `ghcr.io/zeroclaw-labs/zeroclaw:debian` is frozen on an old commit
+# and doesn't have our Skill Gateway / public-bind / pairing-disable
+# env vars wired in — DO NOT fall back to it.
+DEFAULT_IMAGE = "harkro123/zeroclaw:latest"
 DEFAULT_NAMESPACE = "default"
 DEFAULT_PROVIDER = "openrouter"
 DEFAULT_MEMORY_BACKEND = "sqlite"
