@@ -45,6 +45,13 @@ services:
   backend:
     build:
       context: ./apps/backend
+    environment:
+      # Single switch: dev | staging | production. Flip this to point
+      # the local compose backend at a different hardcoded URL bundle
+      # (see app/core/config.py::PROFILES). The baked .env default is
+      # `production`; compose overrides to `staging` so local runs hit
+      # staging URLs by default.
+      ENVIRONMENT: dev
     depends_on:
       db:
         condition: service_healthy
@@ -54,6 +61,13 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      # Host kubeconfig — the backend falls back to
+      # `load_kube_config()` when not running in-cluster, so agent
+      # provisioning can talk to the real remote cluster from a
+      # local compose stack. Safe to leave absent; the fallback
+      # just returns None and the ConfigMap step no-ops.
+      - ~/.kube/config:/home/appuser/.kube/config:ro
 
   dashboard:
     build:

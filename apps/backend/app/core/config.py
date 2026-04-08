@@ -1,7 +1,21 @@
-"""Application settings and environment configuration loading."""
+"""Application settings and environment configuration loading.
+
+The backend runs in exactly one of three modes, selected by the
+`ENVIRONMENT` variable:
+
+    dev         local development, everything on localhost
+    staging     pre-prod, points at staging.dashboard.harrokrog.com
+    production  live deployment, points at dashboard.harrokrog.com
+
+URLs are **hardcoded** in the `PROFILES` dict below (not read from
+env or .env), so switching environments is a single-variable flip in
+compose / the k8s deployment. The only thing `.env` or compose
+actually sets is `ENVIRONMENT=<mode>`.
+"""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 from urllib.parse import urlparse
@@ -13,6 +27,37 @@ from app.core.rate_limit_backend import RateLimitBackend
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ENV_FILE = BACKEND_ROOT / ".env"
+
+
+@dataclass(frozen=True)
+class EnvironmentProfile:
+    """Hardcoded per-environment URL/config bundle.
+
+    Add a new key to `PROFILES` and set `ENVIRONMENT=<key>` to switch
+    between them — no `.env` edits required.
+    """
+
+    base_url: str
+    cors_origins: str
+
+
+# Canonical profile table. Single source of truth for all env-specific
+# URLs. Do NOT move these values into `.env` — the whole point of this
+# module is that they're baked into the image and selected by flag.
+PROFILES: dict[str, EnvironmentProfile] = {
+    "dev": EnvironmentProfile(
+        base_url="http://localhost:8000",
+        cors_origins="http://localhost:3000",
+    ),
+    "staging": EnvironmentProfile(
+        base_url="https://staging.dashboard.harrokrog.com",
+        cors_origins="https://staging.dashboard.harrokrog.com",
+    ),
+    "production": EnvironmentProfile(
+        base_url="https://dashboard.harrokrog.com",
+        cors_origins="https://dashboard.harrokrog.com",
+    ),
+}
 class Settings(BaseSettings):
     """Typed runtime configuration sourced from environment variables."""
 
@@ -80,15 +125,26 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _defaults(self) -> Self:
-        base_url = self.base_url.strip()
-        if not base_url:
-            raise ValueError("BASE_URL must be set and non-empty.")
-        parsed_base_url = urlparse(base_url)
+        # Apply the hardcoded per-environment profile. `ENVIRONMENT`
+        # is the only variable that needs to change between dev /
+        # staging / production — everything else falls out of the
+        # `PROFILES` table above.
+        profile = PROFILES.get(self.environment.strip().lower())
+        if profile is None:
+            raise ValueError(
+                f"Unknown ENVIRONMENT={self.environment!r}. "
+                f"Valid: {sorted(PROFILES)}.",
+            )
+        self.base_url = profile.base_url
+        self.cors_origins = profile.cors_origins
+
+        parsed_base_url = urlparse(self.base_url)
         if parsed_base_url.scheme not in {"http", "https"} or not parsed_base_url.netloc:
             raise ValueError(
-                "BASE_URL must be an absolute http(s) URL (e.g. http://localhost:8000).",
+                "base_url from profile must be an absolute http(s) URL "
+                f"(got {self.base_url!r}).",
             )
-        self.base_url = base_url.rstrip("/")
+        self.base_url = self.base_url.rstrip("/")
 
         # Rate-limit: fall back to rq_redis_url if using redis backend
         # with no explicit rate-limit URL. If both are blank, fail fast

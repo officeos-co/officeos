@@ -1765,15 +1765,33 @@ class AgentLifecycleService(OpenClawDBService):
 
     @staticmethod
     def _k8s_api_or_none() -> Any | None:
-        """Lazy in-cluster K8s client. Returns None outside a pod.
+        """Lazy K8s client. Tries in-cluster first, then ~/.kube/config.
+
+        Resolution order:
+          1. `load_incluster_config()` — set when the backend runs as a
+             k8s pod with a service account mounted at
+             `/var/run/secrets/kubernetes.io/serviceaccount/`.
+          2. `load_kube_config()` — reads `$KUBECONFIG` or
+             `~/.kube/config`. This is the path that makes
+             `docker compose up` work against a real remote cluster:
+             mount the host's kubeconfig into the backend container.
+          3. Return None if neither succeeds, so tests and fully
+             offline dev environments stay fast and silent.
 
         Kept as a staticmethod so tests can patch it cleanly with
         `patch.object(AgentLifecycleService, "_k8s_api_or_none", ...)`.
         """
         try:
             from kubernetes import client, config
-
+        except Exception:
+            return None
+        try:
             config.load_incluster_config()
+            return client.CoreV1Api()
+        except Exception:
+            pass
+        try:
+            config.load_kube_config()
             return client.CoreV1Api()
         except Exception:
             return None

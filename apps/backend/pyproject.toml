@@ -29,6 +29,7 @@ dependencies = [
     "cryptography==45.0.7",
     "pyjwt==2.9.0",
     "httpx==0.28.1",
+    "kubernetes==31.0.0",
     # Phase 3: the dashboard backend imports VaultClient directly to
     # provision per-agent Obsidian vaults. Sourced from the sibling
     # monorepo package so local obsctl edits are picked up without a
