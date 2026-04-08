@@ -57,8 +57,15 @@ PROFILES: dict[str, EnvironmentProfile] = {
         google_redirect_uri="https://staging.dashboard.harrokrog.com/auth/callback",
     ),
     "production": EnvironmentProfile(
-        base_url="https://dashboard.harrokrog.com",
+        # Backend's public URL (what the dashboard's JS calls and what
+        # gets baked into agent config.toml as the Skill Gateway URL).
+        base_url="https://api.harrokrog.com",
+        # Which browser origin may call the backend (same-origin with
+        # the dashboard). The Google OAuth callback runs in the
+        # dashboard page, so CORS needs the dashboard host.
         cors_origins="https://dashboard.harrokrog.com",
+        # Google redirects the browser back to the dashboard (which
+        # then POSTs the `code` to the backend at api.harrokrog.com).
         google_redirect_uri="https://dashboard.harrokrog.com/auth/callback",
     ),
 }
