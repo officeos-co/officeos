@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmActionDialog } from "@/components/ui/confirm-action-dialog";
 
 import { ApiError } from "@/api/mutator";
+import { getApiBaseUrl } from "@/lib/api-base";
 import {
   type listBoardsApiV1BoardsGetResponse,
   useListBoardsApiV1BoardsGet,
@@ -172,6 +173,27 @@ export default function GatewayDetailPage() {
             <Button variant="outline" onClick={() => router.push("/gateways")}>
               Back to gateways
             </Button>
+            {gatewayId ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // The backend reverse-proxies the zeroclaw pod's
+                  // embedded web dashboard under this URL. The pod
+                  // is told its own path prefix via
+                  // `ZEROCLAW_PATH_PREFIX`, so the SPA boots with
+                  // `window.__ZEROCLAW_BASE__` set and all its
+                  // internal fetches route back through here.
+                  const base = getApiBaseUrl();
+                  window.open(
+                    `${base}/api/gateways/${gatewayId}/ui/`,
+                    "_blank",
+                    "noopener,noreferrer",
+                  );
+                }}
+              >
+                Open agent dashboard
+              </Button>
+            ) : null}
             {isAdmin && gatewayId ? (
               <Button
                 onClick={() => router.push(`/gateways/${gatewayId}/edit`)}

@@ -108,6 +108,7 @@ class KubernetesManager:
         provider: str,
         skill_gateway_url: str,
         skill_gateway_token: str,
+        path_prefix: str,
         vault_configmap: str | None = None,
     ) -> list[dict[str, str]]:
         """Build the environment variable list for the pod container.
@@ -130,6 +131,11 @@ class KubernetesManager:
             {"name": "API_KEY", "value": api_key},
             {"name": "PROVIDER", "value": provider},
             {"name": "ZEROCLAW_GATEWAY_PORT", "value": str(ZEROCLAW_PORT)},
+            # Bind on all interfaces so the k8s Service can reach
+            # the pod. `allow_public_bind` is a dead flag in our
+            # stripped-down fork — only `gateway.host` actually
+            # drives the bind address (see main.rs::Commands::Daemon).
+            {"name": "ZEROCLAW_GATEWAY_HOST", "value": "0.0.0.0"},
             {"name": "ZEROCLAW_ALLOW_PUBLIC_BIND", "value": "true"},
             # Disable the one-time pairing code — the dashboard backend
             # is the only client and authenticates via bearer tokens.
@@ -142,6 +148,12 @@ class KubernetesManager:
             },
             # Sensible TTL so newly-installed skills appear in-flight.
             {"name": "ZEROCLAW_SKILLS_BACKEND_REFRESH_SECONDS", "value": "30"},
+            # Mount the embedded web dashboard under a reverse-proxy
+            # path so the EAOS dashboard can iframe / link to it via
+            # `https://api.harrokrog.com/api/gateways/<id>/ui/*`. The
+            # SPA reads `window.__ZEROCLAW_BASE__` at runtime so
+            # relative asset URLs + API calls resolve under the prefix.
+            {"name": "ZEROCLAW_PATH_PREFIX", "value": path_prefix},
         ]
 
         if vault_configmap:
@@ -274,6 +286,7 @@ class KubernetesManager:
                             provider=resolved_provider,
                             skill_gateway_url=skill_gateway_url,
                             skill_gateway_token=skill_gateway_token,
+                            path_prefix=f"/api/gateways/{gateway_id}/ui",
                             vault_configmap=vault_configmap,
                         ),
                         "resources": {

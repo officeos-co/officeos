@@ -9539,6 +9539,19 @@ impl Config {
             self.gateway.require_pairing = val == "1" || val.eq_ignore_ascii_case("true");
         }
 
+        // Path prefix: ZEROCLAW_PATH_PREFIX
+        // Set to something like `/api/gateways/<id>/ui` when the
+        // agent's web dashboard is served behind a reverse proxy
+        // (e.g. the EAOS backend proxying per-gateway). The SPA
+        // reads `window.__ZEROCLAW_BASE__` at runtime so asset
+        // paths and API calls resolve under this prefix.
+        if let Ok(val) = std::env::var("ZEROCLAW_PATH_PREFIX") {
+            let trimmed = val.trim().trim_end_matches('/');
+            if !trimmed.is_empty() {
+                self.gateway.path_prefix = Some(trimmed.to_string());
+            }
+        }
+
         // Temperature: ZEROCLAW_TEMPERATURE
         if let Ok(temp_str) = std::env::var("ZEROCLAW_TEMPERATURE") {
             match temp_str.parse::<f64>() {
