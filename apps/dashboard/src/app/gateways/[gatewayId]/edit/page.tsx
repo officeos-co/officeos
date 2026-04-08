@@ -186,61 +186,20 @@ export default function EditGatewayPage() {
       adminOnlyMessage="Only organization owners and admins can edit gateways."
     >
       <GatewayForm
-        gatewayType={resolvedGatewayType}
         name={resolvedName}
-        gatewayUrl={resolvedGatewayUrl}
-        gatewayToken={resolvedGatewayToken}
-        disableDevicePairing={resolvedDisableDevicePairing}
-        workspaceRoot={resolvedWorkspaceRoot}
-        allowInsecureTls={resolvedAllowInsecureTls}
-        dockerImage=""
         provider="openrouter"
         model=""
-        memory="sqlite"
-        vaultDatabase=""
-        vaultUserDatabase=""
-        gatewayUrlError={gatewayUrlError}
-        gatewayCheckStatus={gatewayCheckStatus}
-        gatewayCheckMessage={gatewayCheckMessage}
         errorMessage={errorMessage}
         isLoading={isLoading}
         canSubmit={canSubmit}
-        workspaceRootPlaceholder={DEFAULT_WORKSPACE_ROOT}
         cancelLabel="Back"
         submitLabel="Save changes"
         submitBusyLabel="Saving…"
         onSubmit={handleSubmit}
         onCancel={() => router.push("/gateways")}
-        onGatewayTypeChange={() => {}}
         onNameChange={setName}
-        onGatewayUrlChange={(next) => {
-          setGatewayUrl(next);
-          setGatewayUrlError(null);
-          setGatewayCheckStatus("idle");
-          setGatewayCheckMessage(null);
-        }}
-        onGatewayTokenChange={(next) => {
-          setGatewayToken(next);
-          setGatewayCheckStatus("idle");
-          setGatewayCheckMessage(null);
-        }}
-        onDisableDevicePairingChange={(next) => {
-          setDisableDevicePairing(next);
-          setGatewayCheckStatus("idle");
-          setGatewayCheckMessage(null);
-        }}
-        onWorkspaceRootChange={setWorkspaceRoot}
-        onAllowInsecureTlsChange={(next) => {
-          setAllowInsecureTls(next);
-          setGatewayCheckStatus("idle");
-          setGatewayCheckMessage(null);
-        }}
-        onDockerImageChange={() => {}}
         onProviderChange={() => {}}
         onModelChange={() => {}}
-        onMemoryChange={() => {}}
-        onVaultDatabaseChange={() => {}}
-        onVaultUserDatabaseChange={() => {}}
       />
     </DashboardPageLayout>
   );

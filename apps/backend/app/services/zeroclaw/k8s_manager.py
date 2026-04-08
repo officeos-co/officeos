@@ -132,10 +132,10 @@ class KubernetesManager:
         gateway_id: UUID,
         name: str,
         org_id: UUID,
+        llm_api_key: str,
         image: str | None = None,
         provider: str | None = None,
         model: str | None = None,
-        memory: str | None = None,
         agent_id: UUID | None = None,
     ) -> ContainerResult:
         """Create a Pod + Service (+ optional PVC + ConfigMap) for a ZeroClaw agent.
@@ -158,17 +158,15 @@ class KubernetesManager:
           in agent boot will fail the pod if the ConfigMap-mounted
           files are missing.
         """
-        api_key = os.environ.get("ZEROCLAW_LLM_API_KEY")
-        if not api_key:
-            raise K8sManagerError(
-                "ZEROCLAW_LLM_API_KEY environment variable is required."
-            )
-
+        # llm_api_key is allowed to be empty for providers that don't
+        # use one (e.g. Ollama). The API route validates that required
+        # providers have a key before getting here.
+        api_key = (llm_api_key or "").strip()
         docker_image = image or DEFAULT_IMAGE
         token = secrets.token_urlsafe(32)
         resolved_provider = provider or DEFAULT_PROVIDER
-        resolved_memory = memory or DEFAULT_MEMORY_BACKEND
-        _ = resolved_memory  # forwarded via env, not CLI, post-Phase-3
+        # Memory backend is hardcoded to the graph-memory implementation;
+        # no knob is exposed to the caller.
 
         pod_name = self._pod_name(gateway_id)
         pvc_name = self._pvc_name(gateway_id)

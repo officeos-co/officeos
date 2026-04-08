@@ -11,6 +11,7 @@ from sqlmodel import col
 
 from app.api.deps import require_org_admin
 from app.core.auth import AuthContext, get_auth_context
+from app.core.time import utcnow
 from app.db import crud
 from app.db.pagination import paginate
 from app.db.session import get_session
@@ -103,63 +104,107 @@ async def create_gateway(
     data["id"] = gateway_id
     data["organization_id"] = ctx.organization.id
 
-    if payload.type == "zeroclaw":
-        try:
-            k8s = _get_k8s_manager()
-            result = k8s.create_container(
-                gateway_id=gateway_id,
-                name=payload.name,
-                org_id=ctx.organization.id,
-                image=payload.docker_image,
-                provider=payload.provider,
-                model=payload.model,
-                memory=payload.memory,
-                vault_database=payload.vault_database,
-                vault_user_database=payload.vault_user_database,
-            )
-            data["url"] = k8s._service_url(gateway_id)
-            data["token"] = result.token
-            data["workspace_root"] = "/zeroclaw-data/workspace"
-            data["container_id"] = result.container_id
-            data["host_port"] = result.host_port
-            data["docker_image"] = payload.docker_image
-            data["container_status"] = "running"
-        except K8sManagerError as exc:
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
-    else:
-        service = GatewayAdminLifecycleService(session)
-        await service.assert_gateway_runtime_compatible(
-            url=payload.url,
-            token=payload.token,
-            allow_insecure_tls=payload.allow_insecure_tls,
-            disable_device_pairing=payload.disable_device_pairing,
+    # OpenClaw (external gateway) support was removed — this endpoint
+    # only creates ZeroClaw agents. Reject anything else explicitly so
+    # stale clients see a clear error instead of a silent no-op.
+    if payload.type != "zeroclaw":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported gateway type: {payload.type!r}. "
+                "Only 'zeroclaw' is supported."
+            ),
         )
 
+    # Resolve the API key from the provider_credentials table by
+    # provider name. The user configures keys once in Settings →
+    # Providers; the form no longer accepts them inline.
+    from app.api.providers import PROVIDERS as _PROVIDERS_CATALOG
+    from app.api.providers import resolve_provider_api_key
+
+    resolved_provider = (payload.provider or "openrouter").strip() or "openrouter"
+    provider_def = next(
+        (p for p in _PROVIDERS_CATALOG if p.name == resolved_provider), None
+    )
+    if provider_def is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unknown provider {resolved_provider!r}. Pick one of: "
+                + ", ".join(p.name for p in _PROVIDERS_CATALOG)
+            ),
+        )
+
+    stored_key = await resolve_provider_api_key(
+        provider=resolved_provider,
+        organization_id=ctx.organization.id,
+        session=session,
+    )
+    if provider_def.requires_key and not (stored_key or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No API key configured for {provider_def.title}. "
+                f"Add one in Settings → Providers, then try again."
+            ),
+        )
+    effective_key = (stored_key or "").strip()
+
+    try:
+        k8s = _get_k8s_manager()
+        result = k8s.create_container(
+            gateway_id=gateway_id,
+            name=payload.name,
+            org_id=ctx.organization.id,
+            llm_api_key=effective_key,
+            provider=payload.provider,
+            model=payload.model,
+        )
+        data["url"] = k8s._service_url(gateway_id)
+        data["token"] = result.token
+        data["workspace_root"] = "/zeroclaw-data/workspace"
+        data["container_id"] = result.container_id
+        data["host_port"] = result.host_port
+        data["container_status"] = "running"
+    except K8sManagerError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
     # Remove fields that exist on the schema but not on the Gateway model
-    for key in ("provider", "model", "memory", "vault_database", "vault_user_database"):
+    for key in ("provider", "model", "docker_image", "llm_api_key"):
         data.pop(key, None)
 
     gateway = await crud.create(session, Gateway, **data)
-
-    if payload.type != "zeroclaw":
-        service = GatewayAdminLifecycleService(session)
-        await service.ensure_main_agent(gateway, auth, action="provision")
-
     return gateway
 
 
 def _get_k8s_manager() -> KubernetesManager:
-    """Get a KubernetesManager using in-cluster config."""
+    """Get a KubernetesManager.
+
+    Resolution order:
+      1. `load_incluster_config()` when running as a k8s pod
+      2. `load_kube_config()` when running in docker compose / locally
+         with `~/.kube/config` available (mounted into the backend
+         container in docker-compose.yml)
+    """
     try:
         from kubernetes import client, config
-
-        config.load_incluster_config()
-        api = client.CoreV1Api()
-        return KubernetesManager(api=api)
     except Exception as exc:
         raise K8sManagerError(
-            "Kubernetes API is not available. "
-            "Ensure the backend is running in-cluster with proper RBAC."
+            "The `kubernetes` python package is not installed.",
+        ) from exc
+    try:
+        config.load_incluster_config()
+        return KubernetesManager(api=client.CoreV1Api())
+    except Exception:
+        pass
+    try:
+        config.load_kube_config()
+        return KubernetesManager(api=client.CoreV1Api())
+    except Exception as exc:
+        raise K8sManagerError(
+            "Kubernetes API is not reachable. Either run the backend "
+            "in-cluster, or mount a valid ~/.kube/config into the "
+            "container (see docker-compose.yml)."
         ) from exc
 
 

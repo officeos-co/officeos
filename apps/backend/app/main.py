@@ -27,6 +27,7 @@ from app.api.zeroclaw import router as zeroclaw_router
 from app.api.metrics import router as metrics_router
 from app.api.organizations import router as organizations_router
 from app.api.agents_me import router as agents_me_router
+from app.api.providers import router as providers_router
 from app.api.skills_management import router as skills_management_router
 from app.api.vault_browser import router as vault_browser_router
 from app.skills import build_agent_skills_router, build_skills_router
@@ -558,6 +559,8 @@ api_v1.include_router(agents_me_router)
 api_v1.include_router(build_agent_skills_router())
 # Read-only vault browser (operator-facing).
 api_v1.include_router(vault_browser_router)
+# Per-provider LLM API keys (Settings → Providers).
+api_v1.include_router(providers_router)
 api_v1.include_router(board_groups_router)
 api_v1.include_router(board_group_memory_router)
 api_v1.include_router(boards_router)

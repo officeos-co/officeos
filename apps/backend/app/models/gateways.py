@@ -29,8 +29,10 @@ class Gateway(QueryModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
-    # ZeroClaw cloud-native fields
-    type: str = Field(default="openclaw", index=True)
+    # ZeroClaw cloud-native fields. `type` is kept on the row for
+    # migration-safety with existing data, but new gateways are always
+    # `zeroclaw`; the create endpoint rejects anything else.
+    type: str = Field(default="zeroclaw", index=True)
     container_id: str | None = Field(default=None)
     host_port: int | None = Field(default=None)
     docker_image: str | None = Field(default=None)
