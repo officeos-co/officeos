@@ -55,6 +55,19 @@ services:
       # `production`; compose overrides to `staging` so local runs hit
       # staging URLs by default.
       ENVIRONMENT: dev
+      # Where the dispatcher goes looking for an agent pod. In compose
+      # the backend runs in its own network namespace, so `localhost`
+      # isn't the Docker host. `host.docker.internal` resolves to the
+      # host, where a `kubectl port-forward` can bridge back to the
+      # nova pod (for dev/debugging). In a real in-cluster deploy,
+      # UNSET this so the dispatcher falls back to the gateway's
+      # cluster.local URL instead.
+      ZEROCLAW_AGENT_HOST: host.docker.internal
+    extra_hosts:
+      # On Linux Docker Engine, `host.docker.internal` doesn't exist
+      # by default — this explicit alias makes it resolve to the
+      # container host. Docker Desktop (Mac/Windows) ignores this.
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy

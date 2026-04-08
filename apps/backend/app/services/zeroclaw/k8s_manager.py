@@ -101,6 +101,8 @@ class KubernetesManager:
         *,
         api_key: str,
         provider: str,
+        skill_gateway_url: str,
+        skill_gateway_token: str,
         vault_configmap: str | None = None,
     ) -> list[dict[str, str]]:
         """Build the environment variable list for the pod container.
@@ -111,12 +113,30 @@ class KubernetesManager:
         ConfigMap mounted at /vault-workspace. The only vault-related
         env var is ZEROCLAW_WORKSPACE, which points the zeroclaw
         daemon at that mount path.
+
+        Skill Gateway wiring: `ZEROCLAW_SKILLS_BACKEND_URL` +
+        `ZEROCLAW_SKILLS_BACKEND_TOKEN` let the Rust runtime's
+        `CapabilityCache` reach the dashboard backend's
+        `/api/agents/me/capabilities` endpoint at the start of every
+        turn. These are read by `apply_env_overrides` in
+        `src/config/schema.rs`.
         """
         env = [
             {"name": "API_KEY", "value": api_key},
             {"name": "PROVIDER", "value": provider},
             {"name": "ZEROCLAW_GATEWAY_PORT", "value": str(ZEROCLAW_PORT)},
             {"name": "ZEROCLAW_ALLOW_PUBLIC_BIND", "value": "true"},
+            # Disable the one-time pairing code — the dashboard backend
+            # is the only client and authenticates via bearer tokens.
+            {"name": "ZEROCLAW_REQUIRE_PAIRING", "value": "false"},
+            # Point the runtime's capability refresh at the backend.
+            {"name": "ZEROCLAW_SKILLS_BACKEND_URL", "value": skill_gateway_url},
+            {
+                "name": "ZEROCLAW_SKILLS_BACKEND_TOKEN",
+                "value": skill_gateway_token,
+            },
+            # Sensible TTL so newly-installed skills appear in-flight.
+            {"name": "ZEROCLAW_SKILLS_BACKEND_REFRESH_SECONDS", "value": "30"},
         ]
 
         if vault_configmap:
@@ -133,6 +153,8 @@ class KubernetesManager:
         name: str,
         org_id: UUID,
         llm_api_key: str,
+        skill_gateway_url: str,
+        skill_gateway_token: str,
         image: str | None = None,
         provider: str | None = None,
         model: str | None = None,
@@ -245,6 +267,8 @@ class KubernetesManager:
                         "env": self._build_env_vars(
                             api_key=api_key,
                             provider=resolved_provider,
+                            skill_gateway_url=skill_gateway_url,
+                            skill_gateway_token=skill_gateway_token,
                             vault_configmap=vault_configmap,
                         ),
                         "resources": {

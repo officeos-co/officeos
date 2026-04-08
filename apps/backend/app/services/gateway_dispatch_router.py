@@ -7,6 +7,7 @@ RPC client.
 
 from __future__ import annotations
 
+import os
 from typing import Any, AsyncIterator
 
 from app.services.zeroclaw import zeroclaw_rpc
@@ -118,13 +119,33 @@ async def dispatch_send_message(
 
 
 def _zeroclaw_host_port(gateway: Any) -> tuple[str, int]:
-    """Extract host and port for a ZeroClaw gateway."""
-    if gateway.host_port:
-        return "localhost", gateway.host_port
-    # Fallback: parse from url if host_port not set
-    from urllib.parse import urlparse
+    """Extract host and port for a ZeroClaw gateway.
 
-    parsed = urlparse(gateway.url)
-    host = parsed.hostname or "localhost"
-    port = parsed.port or 42617
-    return host, port
+    Host resolution order (first non-empty wins):
+
+    1. ``$ZEROCLAW_AGENT_HOST`` — explicit override for dev setups
+       where the backend runs in docker-compose and needs to reach
+       a `kubectl port-forward` session on the Docker host. In that
+       case set it to ``host.docker.internal``. Compose already sets
+       this via `docker-compose.yml`.
+    2. The hostname portion of ``gateway.url`` — only useful when the
+       backend runs in the same cluster as the agent pod, so that
+       `eaos-gateway-<id>.default.svc.cluster.local` resolves.
+    3. ``localhost`` as the last-resort default, which only works
+       when backend and agent are in the same network namespace.
+    """
+
+    override = os.environ.get("ZEROCLAW_AGENT_HOST", "").strip()
+    port = gateway.host_port or 42617
+
+    if override:
+        return override, port
+
+    if gateway.url:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(gateway.url)
+        if parsed.hostname:
+            return parsed.hostname, parsed.port or port
+
+    return "localhost", port

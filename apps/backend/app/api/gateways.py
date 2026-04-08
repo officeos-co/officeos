@@ -11,6 +11,7 @@ from sqlmodel import col
 
 from app.api.deps import require_org_admin
 from app.core.auth import AuthContext, get_auth_context
+from app.core.config import settings
 from app.core.time import utcnow
 from app.db import crud
 from app.db.pagination import paginate
@@ -152,6 +153,13 @@ async def create_gateway(
 
     try:
         k8s = _get_k8s_manager()
+        # Mint the gateway's bearer token up-front so it can also be
+        # injected as the skill-gateway bearer the pod uses when
+        # calling back to /api/agents/me/capabilities.
+        import secrets as _secrets
+
+        gateway_token = _secrets.token_urlsafe(32)
+
         result = k8s.create_container(
             gateway_id=gateway_id,
             name=payload.name,
@@ -159,9 +167,11 @@ async def create_gateway(
             llm_api_key=effective_key,
             provider=payload.provider,
             model=payload.model,
+            skill_gateway_url=settings.base_url,
+            skill_gateway_token=gateway_token,
         )
         data["url"] = k8s._service_url(gateway_id)
-        data["token"] = result.token
+        data["token"] = gateway_token
         data["workspace_root"] = "/zeroclaw-data/workspace"
         data["container_id"] = result.container_id
         data["host_port"] = result.host_port
