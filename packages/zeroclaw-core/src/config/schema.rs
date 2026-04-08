@@ -1420,6 +1420,25 @@ pub struct SkillsConfig {
     /// Automatic skill self-improvement after successful skill usage.
     #[serde(default)]
     pub skill_improvement: SkillImprovementConfig,
+    /// Base URL of the EAOS backend (e.g. `https://dashboard.harrokrog.com`).
+    /// When set, the agent pulls its live capability list from
+    /// `{backend_url}/api/v1/capabilities` at the start of every turn
+    /// instead of loading on-disk skills. Leave unset for local/disk mode.
+    #[serde(default)]
+    pub backend_url: Option<String>,
+    /// Bearer token sent with backend requests. For v1 this is the
+    /// per-org agent service-account token.
+    #[serde(default)]
+    pub backend_token: Option<String>,
+    /// Minimum seconds between backend capability refreshes.
+    /// The agent will skip the HTTP call on consecutive turns inside
+    /// this window and reuse the cached tool list.
+    #[serde(default = "default_backend_refresh_seconds")]
+    pub backend_refresh_seconds: u64,
+}
+
+fn default_backend_refresh_seconds() -> u64 {
+    30
 }
 
 /// Autonomous skill creation configuration (`[skills.skill_creation]` section).

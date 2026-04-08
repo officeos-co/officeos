@@ -112,6 +112,11 @@ pub struct Agent {
     /// When MCP deferred loading is enabled, tools are activated via `tool_search`
     /// and stored here for lookup during tool execution.
     activated_tools: Option<Arc<std::sync::Mutex<crate::tools::ActivatedToolSet>>>,
+    /// Backend-capability cache. When `config.skills.backend_url` is set
+    /// the agent pulls its live tool list from
+    /// `{backend_url}/api/v1/capabilities` at the start of every turn
+    /// and swaps `self.tools` / `self.tool_specs` on changes.
+    capability_cache: Option<tokio::sync::Mutex<crate::skills::live::CapabilityCache>>,
 }
 
 pub struct AgentBuilder {
@@ -139,6 +144,7 @@ pub struct AgentBuilder {
     security_summary: Option<String>,
     autonomy_level: Option<crate::security::AutonomyLevel>,
     activated_tools: Option<Arc<std::sync::Mutex<crate::tools::ActivatedToolSet>>>,
+    capability_cache: Option<crate::skills::live::CapabilityCache>,
 }
 
 impl AgentBuilder {
@@ -168,7 +174,16 @@ impl AgentBuilder {
             security_summary: None,
             autonomy_level: None,
             activated_tools: None,
+            capability_cache: None,
         }
+    }
+
+    pub fn capability_cache(
+        mut self,
+        cache: crate::skills::live::CapabilityCache,
+    ) -> Self {
+        self.capability_cache = Some(cache);
+        self
     }
 
     pub fn provider(mut self, provider: Box<dyn Provider>) -> Self {
@@ -313,6 +328,10 @@ impl AgentBuilder {
         }
         let tool_specs = tools.iter().map(|tool| tool.spec()).collect();
 
+        // The capability cache, if any, is constructed in `Agent::from_config`
+        // where the full `Config` (and thus `config.skills`) is available.
+        let capability_cache = self.capability_cache.map(tokio::sync::Mutex::new);
+
         Ok(Agent {
             provider: self
                 .provider
@@ -358,6 +377,7 @@ impl AgentBuilder {
                 .autonomy_level
                 .unwrap_or(crate::security::AutonomyLevel::Supervised),
             activated_tools: self.activated_tools,
+            capability_cache,
         })
     }
 }
@@ -576,7 +596,7 @@ impl Agent {
             None
         };
 
-        Agent::builder()
+        let builder = Agent::builder()
             .provider(provider)
             .tools(tools)
             .memory(memory)
@@ -603,8 +623,66 @@ impl Agent {
             .auto_save(config.memory.auto_save)
             .security_summary(Some(security.prompt_summary()))
             .autonomy_level(config.autonomy.level)
-            .activated_tools(activated_tools)
-            .build()
+            .activated_tools(activated_tools);
+
+        // If `[skills] backend_url` is set, build a live-refresh cache.
+        // The cache is consulted at the start of every `turn()` and swaps
+        // the agent's tool set when the backend reports a changed list.
+        let builder = if let Some(backend_url) = config
+            .skills
+            .backend_url
+            .as_ref()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+        {
+            builder.capability_cache(crate::skills::live::CapabilityCache::new(
+                backend_url,
+                config.skills.backend_token.clone(),
+                config.skills.backend_refresh_seconds,
+            ))
+        } else {
+            builder
+        };
+
+        builder.build()
+    }
+
+    /// Pull the live capability list from the backend and swap tool set
+    /// + tool specs if anything changed. Fails open: any error is logged
+    /// and the previously cached tools are reused, so a flaky backend
+    /// cannot take a running agent offline.
+    async fn refresh_backend_capabilities(&mut self) {
+        let Some(cache) = self.capability_cache.as_ref() else {
+            return;
+        };
+        let refresh_result = {
+            let mut guard = cache.lock().await;
+            guard.refresh().await
+        };
+        match refresh_result {
+            Ok(Some(refreshed)) => {
+                self.tools = refreshed.tools;
+                self.tool_specs = refreshed.specs;
+                // Drop the existing system prompt so the next turn
+                // rebuilds it with the new tool list.
+                if let Some(ConversationMessage::Chat(chat)) = self.history.first() {
+                    if chat.role == "system" {
+                        self.history.remove(0);
+                    }
+                }
+                tracing::info!(
+                    tool_count = self.tools.len(),
+                    "backend capabilities refreshed"
+                );
+            }
+            Ok(None) => {}
+            Err(err) => {
+                tracing::warn!(
+                    error = %err,
+                    "backend capability refresh failed; reusing cached tools"
+                );
+            }
+        }
     }
 
     fn trim_history(&mut self) {
@@ -777,6 +855,12 @@ impl Agent {
     }
 
     pub async fn turn(&mut self, user_message: &str) -> Result<String> {
+        // Pull the live capability list from the backend before building
+        // the system prompt. When the backend returns a changed set we
+        // swap `tools`/`tool_specs` and reset `history[0]` so the next
+        // prompt rebuild picks up the new tool list.
+        self.refresh_backend_capabilities().await;
+
         if self.history.is_empty() {
             let system_prompt = self.build_system_prompt()?;
             self.history

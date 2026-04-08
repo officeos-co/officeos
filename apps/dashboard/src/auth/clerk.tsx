@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 const TOKEN_KEY = "session_token";
 
-function getSessionToken(): string | null {
+export function getSessionToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
 }
