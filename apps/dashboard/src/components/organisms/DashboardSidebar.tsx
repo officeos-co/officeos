@@ -185,6 +185,18 @@ export function DashboardSidebar() {
                     <Store className="h-4 w-4" />
                     Skills
                   </Link>
+                  <Link
+                    href="/vault"
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-700 transition",
+                      pathname.startsWith("/vault")
+                        ? "bg-blue-100 text-blue-800 font-medium"
+                        : "hover:bg-slate-100",
+                    )}
+                  >
+                    <Boxes className="h-4 w-4" />
+                    Vault
+                  </Link>
                 </div>
               </>
             ) : null}

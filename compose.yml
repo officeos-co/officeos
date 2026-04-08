@@ -2,8 +2,11 @@ name: enterprise-agent-os
 
 services:
   db:
-    build:
-      context: ./apps/db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: enterprise_agent_os
+      POSTGRES_USER: eaos
+      POSTGRES_PASSWORD: eaos
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -24,6 +27,21 @@ services:
       timeout: 3s
       retries: 5
 
+  couchdb:
+    image: couchdb:3
+    environment:
+      COUCHDB_USER: eaos
+      COUCHDB_PASSWORD: eaos
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    ports:
+      - "127.0.0.1:5984:5984"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   backend:
     build:
       context: ./apps/backend
@@ -31,6 +49,8 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      couchdb:
         condition: service_healthy
     ports:
       - "8000:8000"
@@ -56,3 +76,4 @@ services:
 
 volumes:
   postgres_data:
+  couchdb_data:
