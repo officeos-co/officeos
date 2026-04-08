@@ -114,7 +114,7 @@ pub struct Agent {
     activated_tools: Option<Arc<std::sync::Mutex<crate::tools::ActivatedToolSet>>>,
     /// Backend-capability cache. When `config.skills.backend_url` is set
     /// the agent pulls its live tool list from
-    /// `{backend_url}/api/v1/capabilities` at the start of every turn
+    /// `{backend_url}/api/capabilities` at the start of every turn
     /// and swaps `self.tools` / `self.tool_specs` on changes.
     capability_cache: Option<tokio::sync::Mutex<crate::skills::live::CapabilityCache>>,
 }

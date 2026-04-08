@@ -1,6 +1,6 @@
 # API reference (notes + conventions)
 
-Mission Control exposes a JSON HTTP API (FastAPI) under `/api/v1/*`.
+Mission Control exposes a JSON HTTP API (FastAPI) under `/api/*`.
 
 - Default backend base URL (local): `http://localhost:8000`
 - Health endpoints:
@@ -17,7 +17,7 @@ Mission Control exposes a JSON HTTP API (FastAPI) under `/api/v1/*`.
 
 ## API versioning
 
-- Current prefix: `/api/v1`
+- Current prefix: `/api`
 - Backwards compatibility is **best-effort** while the project is under active development.
 
 ## Authentication
@@ -152,7 +152,7 @@ curl -f http://localhost:8000/healthz
 ### Agent heartbeat check-in
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/agent/heartbeat \
+curl -s -X POST http://localhost:8000/api/agent/heartbeat \
   -H "X-Agent-Token: $AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"Tessa","board_id":"<board-id>","status":"online"}'
@@ -161,7 +161,7 @@ curl -s -X POST http://localhost:8000/api/v1/agent/heartbeat \
 ### List tasks for a board
 
 ```bash
-curl -s "http://localhost:8000/api/v1/agent/boards/<board-id>/tasks?status=inbox&limit=10" \
+curl -s "http://localhost:8000/api/agent/boards/<board-id>/tasks?status=inbox&limit=10" \
   -H "X-Agent-Token: $AUTH_TOKEN"
 ```
 

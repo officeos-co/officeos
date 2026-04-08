@@ -79,8 +79,8 @@ export const getListBoardGroupsApiV1BoardGroupsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/board-groups?${stringifiedParams}`
-    : `/api/v1/board-groups`;
+    ? `/api/board-groups?${stringifiedParams}`
+    : `/api/board-groups`;
 };
 
 export const listBoardGroupsApiV1BoardGroupsGet = async (
@@ -99,7 +99,7 @@ export const listBoardGroupsApiV1BoardGroupsGet = async (
 export const getListBoardGroupsApiV1BoardGroupsGetQueryKey = (
   params?: ListBoardGroupsApiV1BoardGroupsGetParams,
 ) => {
-  return [`/api/v1/board-groups`, ...(params ? [params] : [])] as const;
+  return [`/api/board-groups`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBoardGroupsApiV1BoardGroupsGetQueryOptions = <
@@ -278,7 +278,7 @@ export type createBoardGroupApiV1BoardGroupsPostResponse =
   | createBoardGroupApiV1BoardGroupsPostResponseError;
 
 export const getCreateBoardGroupApiV1BoardGroupsPostUrl = () => {
-  return `/api/v1/board-groups`;
+  return `/api/board-groups`;
 };
 
 export const createBoardGroupApiV1BoardGroupsPost = async (
@@ -399,7 +399,7 @@ export type deleteBoardGroupApiV1BoardGroupsGroupIdDeleteResponse =
 export const getDeleteBoardGroupApiV1BoardGroupsGroupIdDeleteUrl = (
   groupId: string,
 ) => {
-  return `/api/v1/board-groups/${groupId}`;
+  return `/api/board-groups/${groupId}`;
 };
 
 export const deleteBoardGroupApiV1BoardGroupsGroupIdDelete = async (
@@ -522,7 +522,7 @@ export type getBoardGroupApiV1BoardGroupsGroupIdGetResponse =
 export const getGetBoardGroupApiV1BoardGroupsGroupIdGetUrl = (
   groupId: string,
 ) => {
-  return `/api/v1/board-groups/${groupId}`;
+  return `/api/board-groups/${groupId}`;
 };
 
 export const getBoardGroupApiV1BoardGroupsGroupIdGet = async (
@@ -541,7 +541,7 @@ export const getBoardGroupApiV1BoardGroupsGroupIdGet = async (
 export const getGetBoardGroupApiV1BoardGroupsGroupIdGetQueryKey = (
   groupId: string,
 ) => {
-  return [`/api/v1/board-groups/${groupId}`] as const;
+  return [`/api/board-groups/${groupId}`] as const;
 };
 
 export const getGetBoardGroupApiV1BoardGroupsGroupIdGetQueryOptions = <
@@ -731,7 +731,7 @@ export type updateBoardGroupApiV1BoardGroupsGroupIdPatchResponse =
 export const getUpdateBoardGroupApiV1BoardGroupsGroupIdPatchUrl = (
   groupId: string,
 ) => {
-  return `/api/v1/board-groups/${groupId}`;
+  return `/api/board-groups/${groupId}`;
 };
 
 export const updateBoardGroupApiV1BoardGroupsGroupIdPatch = async (
@@ -861,7 +861,7 @@ export type applyBoardGroupHeartbeatApiV1BoardGroupsGroupIdHeartbeatPostResponse
 
 export const getApplyBoardGroupHeartbeatApiV1BoardGroupsGroupIdHeartbeatPostUrl =
   (groupId: string) => {
-    return `/api/v1/board-groups/${groupId}/heartbeat`;
+    return `/api/board-groups/${groupId}/heartbeat`;
   };
 
 export const applyBoardGroupHeartbeatApiV1BoardGroupsGroupIdHeartbeatPost =
@@ -1032,8 +1032,8 @@ export const getGetBoardGroupSnapshotApiV1BoardGroupsGroupIdSnapshotGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/board-groups/${groupId}/snapshot?${stringifiedParams}`
-    : `/api/v1/board-groups/${groupId}/snapshot`;
+    ? `/api/board-groups/${groupId}/snapshot?${stringifiedParams}`
+    : `/api/board-groups/${groupId}/snapshot`;
 };
 
 export const getBoardGroupSnapshotApiV1BoardGroupsGroupIdSnapshotGet = async (
@@ -1059,7 +1059,7 @@ export const getGetBoardGroupSnapshotApiV1BoardGroupsGroupIdSnapshotGetQueryKey 
     params?: GetBoardGroupSnapshotApiV1BoardGroupsGroupIdSnapshotGetParams,
   ) => {
     return [
-      `/api/v1/board-groups/${groupId}/snapshot`,
+      `/api/board-groups/${groupId}/snapshot`,
       ...(params ? [params] : []),
     ] as const;
   };

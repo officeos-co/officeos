@@ -80,8 +80,8 @@ export const getListBoardWebhooksApiV1BoardsBoardIdWebhooksGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/webhooks?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/webhooks`;
+    ? `/api/boards/${boardId}/webhooks?${stringifiedParams}`
+    : `/api/boards/${boardId}/webhooks`;
 };
 
 export const listBoardWebhooksApiV1BoardsBoardIdWebhooksGet = async (
@@ -103,7 +103,7 @@ export const getListBoardWebhooksApiV1BoardsBoardIdWebhooksGetQueryKey = (
   params?: ListBoardWebhooksApiV1BoardsBoardIdWebhooksGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/webhooks`,
+    `/api/boards/${boardId}/webhooks`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -331,7 +331,7 @@ export type createBoardWebhookApiV1BoardsBoardIdWebhooksPostResponse =
 export const getCreateBoardWebhookApiV1BoardsBoardIdWebhooksPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/webhooks`;
+  return `/api/boards/${boardId}/webhooks`;
 };
 
 export const createBoardWebhookApiV1BoardsBoardIdWebhooksPost = async (
@@ -467,7 +467,7 @@ export type deleteBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdDeleteResponse 
 
 export const getDeleteBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdDeleteUrl =
   (boardId: string, webhookId: string) => {
-    return `/api/v1/boards/${boardId}/webhooks/${webhookId}`;
+    return `/api/boards/${boardId}/webhooks/${webhookId}`;
   };
 
 export const deleteBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdDelete =
@@ -623,7 +623,7 @@ export const getGetBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdGetUrl = (
   boardId: string,
   webhookId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/webhooks/${webhookId}`;
+  return `/api/boards/${boardId}/webhooks/${webhookId}`;
 };
 
 export const getBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdGet = async (
@@ -645,7 +645,7 @@ export const getBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdGet = async (
 
 export const getGetBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdGetQueryKey =
   (boardId: string, webhookId: string) => {
-    return [`/api/v1/boards/${boardId}/webhooks/${webhookId}`] as const;
+    return [`/api/boards/${boardId}/webhooks/${webhookId}`] as const;
   };
 
 export const getGetBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdGetQueryOptions =
@@ -901,7 +901,7 @@ export type updateBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdPatchResponse =
 
 export const getUpdateBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdPatchUrl =
   (boardId: string, webhookId: string) => {
-    return `/api/v1/boards/${boardId}/webhooks/${webhookId}`;
+    return `/api/boards/${boardId}/webhooks/${webhookId}`;
   };
 
 export const updateBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdPatch =
@@ -1064,7 +1064,7 @@ export const getIngestBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdPostUrl = (
   boardId: string,
   webhookId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/webhooks/${webhookId}`;
+  return `/api/boards/${boardId}/webhooks/${webhookId}`;
 };
 
 export const ingestBoardWebhookApiV1BoardsBoardIdWebhooksWebhookIdPost = async (
@@ -1236,8 +1236,8 @@ export const getListBoardWebhookPayloadsApiV1BoardsBoardIdWebhooksWebhookIdPaylo
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/boards/${boardId}/webhooks/${webhookId}/payloads?${stringifiedParams}`
-      : `/api/v1/boards/${boardId}/webhooks/${webhookId}/payloads`;
+      ? `/api/boards/${boardId}/webhooks/${webhookId}/payloads?${stringifiedParams}`
+      : `/api/boards/${boardId}/webhooks/${webhookId}/payloads`;
   };
 
 export const listBoardWebhookPayloadsApiV1BoardsBoardIdWebhooksWebhookIdPayloadsGet =
@@ -1267,7 +1267,7 @@ export const getListBoardWebhookPayloadsApiV1BoardsBoardIdWebhooksWebhookIdPaylo
     params?: ListBoardWebhookPayloadsApiV1BoardsBoardIdWebhooksWebhookIdPayloadsGetParams,
   ) => {
     return [
-      `/api/v1/boards/${boardId}/webhooks/${webhookId}/payloads`,
+      `/api/boards/${boardId}/webhooks/${webhookId}/payloads`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -1552,7 +1552,7 @@ export type getBoardWebhookPayloadApiV1BoardsBoardIdWebhooksWebhookIdPayloadsPay
 
 export const getGetBoardWebhookPayloadApiV1BoardsBoardIdWebhooksWebhookIdPayloadsPayloadIdGetUrl =
   (boardId: string, webhookId: string, payloadId: string) => {
-    return `/api/v1/boards/${boardId}/webhooks/${webhookId}/payloads/${payloadId}`;
+    return `/api/boards/${boardId}/webhooks/${webhookId}/payloads/${payloadId}`;
   };
 
 export const getBoardWebhookPayloadApiV1BoardsBoardIdWebhooksWebhookIdPayloadsPayloadIdGet =
@@ -1578,7 +1578,7 @@ export const getBoardWebhookPayloadApiV1BoardsBoardIdWebhooksWebhookIdPayloadsPa
 export const getGetBoardWebhookPayloadApiV1BoardsBoardIdWebhooksWebhookIdPayloadsPayloadIdGetQueryKey =
   (boardId: string, webhookId: string, payloadId: string) => {
     return [
-      `/api/v1/boards/${boardId}/webhooks/${webhookId}/payloads/${payloadId}`,
+      `/api/boards/${boardId}/webhooks/${webhookId}/payloads/${payloadId}`,
     ] as const;
   };
 

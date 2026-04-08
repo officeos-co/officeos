@@ -3,7 +3,7 @@
 import { setupCommonPageTestHooks } from "../support/testHooks";
 
 describe("/boards", () => {
-  const apiBase = "**/api/v1";
+  const apiBase = "**/api";
   const email = "local-auth-user@example.com";
 
   setupCommonPageTestHooks(apiBase);

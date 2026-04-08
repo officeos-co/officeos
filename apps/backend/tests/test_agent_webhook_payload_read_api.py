@@ -33,7 +33,7 @@ async def _make_engine() -> AsyncEngine:
 
 def _build_test_app(session_maker: async_sessionmaker[AsyncSession]) -> FastAPI:
     app = FastAPI()
-    api_v1 = APIRouter(prefix="/api/v1")
+    api_v1 = APIRouter(prefix="/api")
     api_v1.include_router(agent_router)
     app.include_router(api_v1)
 
@@ -135,7 +135,7 @@ async def test_agent_can_fetch_webhook_payload() -> None:
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
-                f"/api/v1/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
+                f"/api/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
                 headers={"X-Agent-Token": token},
             )
 
@@ -163,7 +163,7 @@ async def test_agent_payload_read_rejects_invalid_token() -> None:
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
-                f"/api/v1/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
+                f"/api/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
                 headers={"X-Agent-Token": "invalid"},
             )
 
@@ -190,7 +190,7 @@ async def test_agent_payload_read_truncates_json_preview_with_ellipsis() -> None
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
-                f"/api/v1/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
+                f"/api/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
                 headers={"X-Agent-Token": token},
                 params={"max_chars": max_chars},
             )
@@ -215,7 +215,7 @@ async def test_agent_payload_read_truncates_string_preview_without_json_quoting(
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
-                f"/api/v1/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
+                f"/api/agent/boards/{board.id}/webhooks/{webhook.id}/payloads/{payload.id}",
                 headers={"X-Agent-Token": token},
                 params={"max_chars": 4},
             )
@@ -277,7 +277,7 @@ async def test_agent_payload_read_rejects_cross_board_access() -> None:
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
-                f"/api/v1/agent/boards/{other_board.id}/webhooks/{other_webhook.id}/payloads/{other_payload.id}",
+                f"/api/agent/boards/{other_board.id}/webhooks/{other_webhook.id}/payloads/{other_payload.id}",
                 headers={"X-Agent-Token": token},
             )
 

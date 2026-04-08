@@ -3,12 +3,6 @@ service-account JSON credential.
 
 Auth: paste a service-account key JSON (the entire file contents) in
 the dashboard. Stored under `credentials->>'service_account_json'`.
-
-The route hits the raw Google REST APIs and signs each call with a
-short-lived bearer token minted from the service-account key. No
-google-api-python-client dependency — it's one JWT + one token
-exchange + one REST call, cleaner to do by hand than to pull in 40 MB
-of SDK.
 """
 
 from __future__ import annotations
@@ -22,7 +16,6 @@ import httpx
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from app.skills._deps import require_credentials
 from app.skills._manifest import CredentialField, LlmTool, SkillManifest
 
 DRIVE_API = "https://www.googleapis.com/drive/v3"
@@ -82,8 +75,6 @@ MANIFEST = SkillManifest(
     ],
 )
 
-router = APIRouter(tags=["skill:google"])
-
 
 class DriveSearchBody(BaseModel):
     query: str
@@ -99,11 +90,6 @@ def _b64url(data: bytes) -> str:
 
 
 async def _access_token(sa_json: dict[str, Any], scopes: list[str]) -> str:
-    """Mint a short-lived OAuth access token from a service-account key."""
-
-    # Import lazily: `cryptography` is in the backend venv but we still keep
-    # the import close to where it's used so the cold import path of
-    # app.skills stays small.
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding
 
@@ -165,7 +151,9 @@ def _parse_sa(creds: dict[str, Any]) -> dict[str, Any]:
         ) from exc
 
 
-async def _call_google(method: str, url: str, token: str, params: dict[str, Any] | None = None) -> Any:
+async def _call_google(
+    method: str, url: str, token: str, params: dict[str, Any] | None = None
+) -> Any:
     async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.request(
             method,
@@ -181,16 +169,9 @@ async def _call_google(method: str, url: str, token: str, params: dict[str, Any]
     return resp.json()
 
 
-@router.post("/drive_search")
-async def drive_search(
-    body: DriveSearchBody,
-    creds: dict[str, Any] = require_credentials("google"),
-) -> dict[str, Any]:
+async def drive_search(body: DriveSearchBody, creds: dict[str, Any]) -> dict[str, Any]:
     sa = _parse_sa(creds)
-    token = await _access_token(
-        sa, scopes=["https://www.googleapis.com/auth/drive.readonly"]
-    )
-    # Escape the query for the Drive q syntax.
+    token = await _access_token(sa, scopes=["https://www.googleapis.com/auth/drive.readonly"])
     q_escaped = body.query.replace("'", "\\'")
     data = await _call_google(
         "GET",
@@ -205,10 +186,8 @@ async def drive_search(
     return {"files": data.get("files", [])}
 
 
-@router.post("/calendar_upcoming")
 async def calendar_upcoming(
-    body: CalendarUpcomingBody,
-    creds: dict[str, Any] = require_credentials("google"),
+    body: CalendarUpcomingBody, creds: dict[str, Any]
 ) -> dict[str, Any]:
     sa = _parse_sa(creds)
     token = await _access_token(
@@ -243,3 +222,17 @@ async def calendar_upcoming(
             for e in data.get("items", [])
         ]
     }
+
+
+def register(router: APIRouter, creds_dep) -> None:
+    @router.post("/drive_search")
+    async def _drive_search(
+        body: DriveSearchBody, creds: dict[str, Any] = creds_dep
+    ) -> dict[str, Any]:
+        return await drive_search(body, creds)
+
+    @router.post("/calendar_upcoming")
+    async def _calendar_upcoming(
+        body: CalendarUpcomingBody, creds: dict[str, Any] = creds_dep
+    ) -> dict[str, Any]:
+        return await calendar_upcoming(body, creds)

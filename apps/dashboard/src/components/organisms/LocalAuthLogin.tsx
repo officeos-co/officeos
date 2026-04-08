@@ -21,7 +21,7 @@ async function validateLocalToken(token: string): Promise<string | null> {
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/v1/users/me`, {
+    response = await fetch(`${baseUrl}/api/users/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

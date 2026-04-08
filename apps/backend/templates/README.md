@@ -40,7 +40,7 @@ Defined in `backend/app/services/openclaw/provisioning.py` (`_template_env()`):
 
 ### API
 
-`POST /api/v1/gateways/{gateway_id}/templates/sync`
+`POST /api/gateways/{gateway_id}/templates/sync`
 
 - Router: `backend/app/api/gateways.py` (`sync_gateway_templates`)
 - Service: `backend/app/services/openclaw/provisioning_db.py`

@@ -4,7 +4,7 @@ This directory contains the **Mission Control backend API** (FastAPI + SQLModel)
 
 - Default API base URL: http://localhost:8000
 - Health endpoints: `/healthz`, `/readyz`
-- API routes: `/api/v1/*`
+- API routes: `/api/*`
 
 ## Requirements
 

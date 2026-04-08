@@ -71,8 +71,8 @@ export const getListActivityApiV1ActivityGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/activity?${stringifiedParams}`
-    : `/api/v1/activity`;
+    ? `/api/activity?${stringifiedParams}`
+    : `/api/activity`;
 };
 
 export const listActivityApiV1ActivityGet = async (
@@ -91,7 +91,7 @@ export const listActivityApiV1ActivityGet = async (
 export const getListActivityApiV1ActivityGetQueryKey = (
   params?: ListActivityApiV1ActivityGetParams,
 ) => {
-  return [`/api/v1/activity`, ...(params ? [params] : [])] as const;
+  return [`/api/activity`, ...(params ? [params] : [])] as const;
 };
 
 export const getListActivityApiV1ActivityGetQueryOptions = <
@@ -282,8 +282,8 @@ export const getListTaskCommentFeedApiV1ActivityTaskCommentsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/activity/task-comments?${stringifiedParams}`
-    : `/api/v1/activity/task-comments`;
+    ? `/api/activity/task-comments?${stringifiedParams}`
+    : `/api/activity/task-comments`;
 };
 
 export const listTaskCommentFeedApiV1ActivityTaskCommentsGet = async (
@@ -303,7 +303,7 @@ export const getListTaskCommentFeedApiV1ActivityTaskCommentsGetQueryKey = (
   params?: ListTaskCommentFeedApiV1ActivityTaskCommentsGetParams,
 ) => {
   return [
-    `/api/v1/activity/task-comments`,
+    `/api/activity/task-comments`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -533,8 +533,8 @@ export const getStreamTaskCommentFeedApiV1ActivityTaskCommentsStreamGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/activity/task-comments/stream?${stringifiedParams}`
-    : `/api/v1/activity/task-comments/stream`;
+    ? `/api/activity/task-comments/stream?${stringifiedParams}`
+    : `/api/activity/task-comments/stream`;
 };
 
 export const streamTaskCommentFeedApiV1ActivityTaskCommentsStreamGet = async (
@@ -553,7 +553,7 @@ export const streamTaskCommentFeedApiV1ActivityTaskCommentsStreamGet = async (
 export const getStreamTaskCommentFeedApiV1ActivityTaskCommentsStreamGetQueryKey =
   (params?: StreamTaskCommentFeedApiV1ActivityTaskCommentsStreamGetParams) => {
     return [
-      `/api/v1/activity/task-comments/stream`,
+      `/api/activity/task-comments/stream`,
       ...(params ? [params] : []),
     ] as const;
   };

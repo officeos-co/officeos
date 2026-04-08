@@ -280,7 +280,7 @@ async def _notify_group_target(
         f"From: {context.actor_name}\n\n"
         f"{context.snippet}\n\n"
         "Reply via group chat (shared across linked boards):\n"
-        f"POST {context.base_url}/api/v1/boards/{board.id}/group-memory\n"
+        f"POST {context.base_url}/api/boards/{board.id}/group-memory\n"
         'Body: {"content":"...","tags":["chat"]}'
     )
     error = await context.dispatch.try_send_agent_message(

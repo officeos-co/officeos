@@ -46,7 +46,7 @@ export type bootstrapUserApiV1AuthBootstrapPostResponse =
   | bootstrapUserApiV1AuthBootstrapPostResponseError;
 
 export const getBootstrapUserApiV1AuthBootstrapPostUrl = () => {
-  return `/api/v1/auth/bootstrap`;
+  return `/api/auth/bootstrap`;
 };
 
 export const bootstrapUserApiV1AuthBootstrapPost = async (

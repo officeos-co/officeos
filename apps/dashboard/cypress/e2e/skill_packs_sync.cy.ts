@@ -3,7 +3,7 @@
 import { setupCommonPageTestHooks } from "../support/testHooks";
 
 describe("Skill packs", () => {
-  const apiBase = "**/api/v1";
+  const apiBase = "**/api";
 
   setupCommonPageTestHooks(apiBase);
 

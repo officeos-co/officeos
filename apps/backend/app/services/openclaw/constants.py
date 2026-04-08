@@ -65,6 +65,10 @@ DEFAULT_GATEWAY_FILES = frozenset(
         "USER.md",
         "HEARTBEAT.md",
         "MEMORY.md",
+        # Runtime TOML config carrying the Skill Gateway backend URL +
+        # agent bearer token. Generated fresh on every agent provision
+        # by `_render_skill_gateway_config_toml` in provisioning_db.py.
+        "config.toml",
     },
 )
 

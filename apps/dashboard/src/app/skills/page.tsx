@@ -1,6 +1,6 @@
 "use client";
 
-// Global skills page — v1 demo, talks to /api/v1/skills_v2.
+// Global skills page — v1 demo, talks to /api/skills.
 //
 // Intentionally bypasses the generated orval client: this is a fresh
 // backend module and we want the page to work without a codegen roundtrip.
@@ -66,7 +66,7 @@ export default function SkillsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api<{ skills: SkillState[] }>("/api/v1/skills_v2");
+      const data = await api<{ skills: SkillState[] }>("/api/skills");
       setSkills(data.skills);
     } catch (e) {
       setError((e as Error).message);
@@ -82,7 +82,7 @@ export default function SkillsPage() {
   const toggleInstall = async (skill: SkillState) => {
     try {
       const action = skill.installed ? "uninstall" : "install";
-      await api(`/api/v1/skills_v2/${skill.name}/${action}`, { method: "POST" });
+      await api(`/api/skills/${skill.name}/${action}`, { method: "POST" });
       await reload();
     } catch (e) {
       setError((e as Error).message);
@@ -197,7 +197,7 @@ function CredentialsForm({
     e.preventDefault();
     setSaving(true);
     try {
-      await api(`/api/v1/skills_v2/${skill.name}/credentials`, {
+      await api(`/api/skills/${skill.name}/credentials`, {
         method: "PUT",
         body: JSON.stringify({ credentials: values }),
       });

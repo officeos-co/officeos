@@ -82,8 +82,8 @@ export const getListTasksApiV1BoardsBoardIdTasksGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/tasks?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/tasks`;
+    ? `/api/boards/${boardId}/tasks?${stringifiedParams}`
+    : `/api/boards/${boardId}/tasks`;
 };
 
 export const listTasksApiV1BoardsBoardIdTasksGet = async (
@@ -105,7 +105,7 @@ export const getListTasksApiV1BoardsBoardIdTasksGetQueryKey = (
   params?: ListTasksApiV1BoardsBoardIdTasksGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/tasks`,
+    `/api/boards/${boardId}/tasks`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -309,7 +309,7 @@ export type createTaskApiV1BoardsBoardIdTasksPostResponse =
 export const getCreateTaskApiV1BoardsBoardIdTasksPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/tasks`;
+  return `/api/boards/${boardId}/tasks`;
 };
 
 export const createTaskApiV1BoardsBoardIdTasksPost = async (
@@ -444,8 +444,8 @@ export const getStreamTasksApiV1BoardsBoardIdTasksStreamGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/tasks/stream?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/tasks/stream`;
+    ? `/api/boards/${boardId}/tasks/stream?${stringifiedParams}`
+    : `/api/boards/${boardId}/tasks/stream`;
 };
 
 export const streamTasksApiV1BoardsBoardIdTasksStreamGet = async (
@@ -467,7 +467,7 @@ export const getStreamTasksApiV1BoardsBoardIdTasksStreamGetQueryKey = (
   params?: StreamTasksApiV1BoardsBoardIdTasksStreamGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/tasks/stream`,
+    `/api/boards/${boardId}/tasks/stream`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -686,7 +686,7 @@ export const getDeleteTaskApiV1BoardsBoardIdTasksTaskIdDeleteUrl = (
   boardId: string,
   taskId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/tasks/${taskId}`;
+  return `/api/boards/${boardId}/tasks/${taskId}`;
 };
 
 export const deleteTaskApiV1BoardsBoardIdTasksTaskIdDelete = async (
@@ -819,7 +819,7 @@ export const getUpdateTaskApiV1BoardsBoardIdTasksTaskIdPatchUrl = (
   boardId: string,
   taskId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/tasks/${taskId}`;
+  return `/api/boards/${boardId}/tasks/${taskId}`;
 };
 
 export const updateTaskApiV1BoardsBoardIdTasksTaskIdPatch = async (
@@ -965,8 +965,8 @@ export const getListTaskCommentsApiV1BoardsBoardIdTasksTaskIdCommentsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/tasks/${taskId}/comments?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/tasks/${taskId}/comments`;
+    ? `/api/boards/${boardId}/tasks/${taskId}/comments?${stringifiedParams}`
+    : `/api/boards/${boardId}/tasks/${taskId}/comments`;
 };
 
 export const listTaskCommentsApiV1BoardsBoardIdTasksTaskIdCommentsGet = async (
@@ -995,7 +995,7 @@ export const getListTaskCommentsApiV1BoardsBoardIdTasksTaskIdCommentsGetQueryKey
     params?: ListTaskCommentsApiV1BoardsBoardIdTasksTaskIdCommentsGetParams,
   ) => {
     return [
-      `/api/v1/boards/${boardId}/tasks/${taskId}/comments`,
+      `/api/boards/${boardId}/tasks/${taskId}/comments`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -1271,7 +1271,7 @@ export type createTaskCommentApiV1BoardsBoardIdTasksTaskIdCommentsPostResponse =
 
 export const getCreateTaskCommentApiV1BoardsBoardIdTasksTaskIdCommentsPostUrl =
   (boardId: string, taskId: string) => {
-    return `/api/v1/boards/${boardId}/tasks/${taskId}/comments`;
+    return `/api/boards/${boardId}/tasks/${taskId}/comments`;
   };
 
 export const createTaskCommentApiV1BoardsBoardIdTasksTaskIdCommentsPost =

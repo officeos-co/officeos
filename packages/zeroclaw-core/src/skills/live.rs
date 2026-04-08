@@ -4,8 +4,8 @@
 //! Flow:
 //!   1. On the first turn (or after the refresh TTL expires) the agent
 //!      calls `CapabilityCache::refresh()`.
-//!   2. `refresh()` GETs `{backend_url}/api/v1/capabilities` with the
-//!      configured bearer token.
+//!   2. `refresh()` GETs `{backend_url}/api/agents/me/capabilities` with
+//!      the configured bearer token.
 //!   3. Each returned tool is materialized as a `BackendSkillTool` that
 //!      POSTs to the concrete backend route when the LLM invokes it.
 //!   4. If the resolved list differs from the previous refresh (hashed
@@ -36,8 +36,9 @@ pub struct BackendCapability {
     pub name: String,
     pub description: String,
     pub parameters: serde_json::Value,
-    /// Path fragment like `/api/v1/skills/notion/search`. The agent joins
-    /// this with `backend_url` to form the concrete POST target.
+    /// Path fragment like `/api/agents/me/skills/notion/search`. The
+    /// agent joins this with `backend_url` to form the concrete POST
+    /// target.
     pub route: String,
 }
 
@@ -107,7 +108,9 @@ impl CapabilityCache {
             .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
             .build()?;
 
-        let url = format!("{}/api/v1/capabilities", self.backend_url);
+        // Agents authenticate with X-Agent-Token / bearer, so hit the
+        // agent-scoped capabilities endpoint (not the user-scoped /api/capabilities).
+        let url = format!("{}/api/agents/me/capabilities", self.backend_url);
         let mut req = client.get(&url);
         if let Some(token) = &self.backend_token {
             req = req.bearer_auth(token);

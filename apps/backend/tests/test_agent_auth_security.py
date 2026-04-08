@@ -35,7 +35,7 @@ async def test_optional_agent_auth_rate_limits_bearer_agent_token(
     request = SimpleNamespace(
         headers={"Authorization": "Bearer agent-secret"},
         client=SimpleNamespace(host="203.0.113.10"),
-        url=SimpleNamespace(path="/api/v1/tasks/task-1"),
+        url=SimpleNamespace(path="/api/tasks/task-1"),
         method="POST",
     )
 
@@ -95,7 +95,7 @@ async def test_required_agent_auth_invalid_token_logs_short_prefix_only(
     request = SimpleNamespace(
         headers={"X-Agent-Token": "invalid-agent-token"},
         client=SimpleNamespace(host="203.0.113.30"),
-        url=SimpleNamespace(path="/api/v1/agent/boards"),
+        url=SimpleNamespace(path="/api/agent/boards"),
         method="POST",
     )
 
@@ -121,7 +121,7 @@ async def test_required_agent_auth_invalid_token_logs_short_prefix_only(
     assert logged == [
         (
             "agent auth invalid token path=%s token_prefix=%s",
-            ("/api/v1/agent/boards", "invali"),
+            ("/api/agent/boards", "invali"),
         )
     ]
 
@@ -135,7 +135,7 @@ async def test_optional_agent_auth_invalid_token_logs_short_prefix_only(
     request = SimpleNamespace(
         headers={"Authorization": "Bearer invalid-agent-token"},
         client=SimpleNamespace(host="203.0.113.40"),
-        url=SimpleNamespace(path="/api/v1/tasks/task-2"),
+        url=SimpleNamespace(path="/api/tasks/task-2"),
         method="POST",
     )
 
@@ -160,6 +160,6 @@ async def test_optional_agent_auth_invalid_token_logs_short_prefix_only(
     assert logged == [
         (
             "agent auth optional invalid token path=%s token_prefix=%s",
-            ("/api/v1/tasks/task-2", "invali"),
+            ("/api/tasks/task-2", "invali"),
         )
     ]

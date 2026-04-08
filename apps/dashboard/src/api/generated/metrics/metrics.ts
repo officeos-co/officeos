@@ -68,8 +68,8 @@ export const getDashboardMetricsApiV1MetricsDashboardGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/metrics/dashboard?${stringifiedParams}`
-    : `/api/v1/metrics/dashboard`;
+    ? `/api/metrics/dashboard?${stringifiedParams}`
+    : `/api/metrics/dashboard`;
 };
 
 export const dashboardMetricsApiV1MetricsDashboardGet = async (
@@ -88,7 +88,7 @@ export const dashboardMetricsApiV1MetricsDashboardGet = async (
 export const getDashboardMetricsApiV1MetricsDashboardGetQueryKey = (
   params?: DashboardMetricsApiV1MetricsDashboardGetParams,
 ) => {
-  return [`/api/v1/metrics/dashboard`, ...(params ? [params] : [])] as const;
+  return [`/api/metrics/dashboard`, ...(params ? [params] : [])] as const;
 };
 
 export const getDashboardMetricsApiV1MetricsDashboardGetQueryOptions = <

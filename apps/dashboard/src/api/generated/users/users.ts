@@ -48,7 +48,7 @@ export type deleteMeApiV1UsersMeDeleteResponse =
   deleteMeApiV1UsersMeDeleteResponseSuccess;
 
 export const getDeleteMeApiV1UsersMeDeleteUrl = () => {
-  return `/api/v1/users/me`;
+  return `/api/users/me`;
 };
 
 export const deleteMeApiV1UsersMeDelete = async (
@@ -149,7 +149,7 @@ export type getMeApiV1UsersMeGetResponseSuccess =
 export type getMeApiV1UsersMeGetResponse = getMeApiV1UsersMeGetResponseSuccess;
 
 export const getGetMeApiV1UsersMeGetUrl = () => {
-  return `/api/v1/users/me`;
+  return `/api/users/me`;
 };
 
 export const getMeApiV1UsersMeGet = async (
@@ -165,7 +165,7 @@ export const getMeApiV1UsersMeGet = async (
 };
 
 export const getGetMeApiV1UsersMeGetQueryKey = () => {
-  return [`/api/v1/users/me`] as const;
+  return [`/api/users/me`] as const;
 };
 
 export const getGetMeApiV1UsersMeGetQueryOptions = <
@@ -331,7 +331,7 @@ export type updateMeApiV1UsersMePatchResponse =
   | updateMeApiV1UsersMePatchResponseError;
 
 export const getUpdateMeApiV1UsersMePatchUrl = () => {
-  return `/api/v1/users/me`;
+  return `/api/users/me`;
 };
 
 export const updateMeApiV1UsersMePatch = async (

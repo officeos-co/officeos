@@ -203,7 +203,7 @@ async def _notify_chat_targets(
             f"From: {actor_name}\n\n"
             f"{snippet}\n\n"
             "Reply via board chat:\n"
-            f"POST {base_url}/api/v1/agent/boards/{board.id}/memory\n"
+            f"POST {base_url}/api/agent/boards/{board.id}/memory\n"
             'Body: {"content":"...","tags":["chat"]}'
         )
         error = await dispatch.try_send_agent_message(

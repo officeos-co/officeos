@@ -157,12 +157,7 @@ export function UserMenu({
               { href: "/activity", label: "Activity", icon: Activity },
               { href: "/agents", label: "Agents", icon: Bot },
               { href: "/gateways", label: "Gateways", icon: Server },
-              {
-                href: "/skills/marketplace",
-                label: "Skills marketplace",
-                icon: Store,
-              },
-              { href: "/skills/packs", label: "Skill packs", icon: Boxes },
+              { href: "/skills", label: "Skills", icon: Store },
               { href: "/settings", label: "Settings", icon: Settings },
             ] as const
           ).map((item) => (

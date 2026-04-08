@@ -71,7 +71,7 @@ export type createOrganizationApiV1OrganizationsPostResponse =
   | createOrganizationApiV1OrganizationsPostResponseError;
 
 export const getCreateOrganizationApiV1OrganizationsPostUrl = () => {
-  return `/api/v1/organizations`;
+  return `/api/organizations`;
 };
 
 export const createOrganizationApiV1OrganizationsPost = async (
@@ -192,7 +192,7 @@ export type acceptOrgInviteApiV1OrganizationsInvitesAcceptPostResponse =
   | acceptOrgInviteApiV1OrganizationsInvitesAcceptPostResponseError;
 
 export const getAcceptOrgInviteApiV1OrganizationsInvitesAcceptPostUrl = () => {
-  return `/api/v1/organizations/invites/accept`;
+  return `/api/organizations/invites/accept`;
 };
 
 export const acceptOrgInviteApiV1OrganizationsInvitesAcceptPost = async (
@@ -317,7 +317,7 @@ export type deleteMyOrgApiV1OrganizationsMeDeleteResponse =
   deleteMyOrgApiV1OrganizationsMeDeleteResponseSuccess;
 
 export const getDeleteMyOrgApiV1OrganizationsMeDeleteUrl = () => {
-  return `/api/v1/organizations/me`;
+  return `/api/organizations/me`;
 };
 
 export const deleteMyOrgApiV1OrganizationsMeDelete = async (
@@ -419,7 +419,7 @@ export type getMyOrgApiV1OrganizationsMeGetResponse =
   getMyOrgApiV1OrganizationsMeGetResponseSuccess;
 
 export const getGetMyOrgApiV1OrganizationsMeGetUrl = () => {
-  return `/api/v1/organizations/me`;
+  return `/api/organizations/me`;
 };
 
 export const getMyOrgApiV1OrganizationsMeGet = async (
@@ -435,7 +435,7 @@ export const getMyOrgApiV1OrganizationsMeGet = async (
 };
 
 export const getGetMyOrgApiV1OrganizationsMeGetQueryKey = () => {
-  return [`/api/v1/organizations/me`] as const;
+  return [`/api/organizations/me`] as const;
 };
 
 export const getGetMyOrgApiV1OrganizationsMeGetQueryOptions = <
@@ -603,7 +603,7 @@ export type setActiveOrgApiV1OrganizationsMeActivePatchResponse =
   | setActiveOrgApiV1OrganizationsMeActivePatchResponseError;
 
 export const getSetActiveOrgApiV1OrganizationsMeActivePatchUrl = () => {
-  return `/api/v1/organizations/me/active`;
+  return `/api/organizations/me/active`;
 };
 
 export const setActiveOrgApiV1OrganizationsMeActivePatch = async (
@@ -737,8 +737,8 @@ export const getListOrgInvitesApiV1OrganizationsMeInvitesGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/organizations/me/invites?${stringifiedParams}`
-    : `/api/v1/organizations/me/invites`;
+    ? `/api/organizations/me/invites?${stringifiedParams}`
+    : `/api/organizations/me/invites`;
 };
 
 export const listOrgInvitesApiV1OrganizationsMeInvitesGet = async (
@@ -758,7 +758,7 @@ export const getListOrgInvitesApiV1OrganizationsMeInvitesGetQueryKey = (
   params?: ListOrgInvitesApiV1OrganizationsMeInvitesGetParams,
 ) => {
   return [
-    `/api/v1/organizations/me/invites`,
+    `/api/organizations/me/invites`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -973,7 +973,7 @@ export type createOrgInviteApiV1OrganizationsMeInvitesPostResponse =
   | createOrgInviteApiV1OrganizationsMeInvitesPostResponseError;
 
 export const getCreateOrgInviteApiV1OrganizationsMeInvitesPostUrl = () => {
-  return `/api/v1/organizations/me/invites`;
+  return `/api/organizations/me/invites`;
 };
 
 export const createOrgInviteApiV1OrganizationsMeInvitesPost = async (
@@ -1105,7 +1105,7 @@ export type revokeOrgInviteApiV1OrganizationsMeInvitesInviteIdDeleteResponse =
 export const getRevokeOrgInviteApiV1OrganizationsMeInvitesInviteIdDeleteUrl = (
   inviteId: string,
 ) => {
-  return `/api/v1/organizations/me/invites/${inviteId}`;
+  return `/api/organizations/me/invites/${inviteId}`;
 };
 
 export const revokeOrgInviteApiV1OrganizationsMeInvitesInviteIdDelete = async (
@@ -1239,7 +1239,7 @@ export type listMyOrganizationsApiV1OrganizationsMeListGetResponse =
   listMyOrganizationsApiV1OrganizationsMeListGetResponseSuccess;
 
 export const getListMyOrganizationsApiV1OrganizationsMeListGetUrl = () => {
-  return `/api/v1/organizations/me/list`;
+  return `/api/organizations/me/list`;
 };
 
 export const listMyOrganizationsApiV1OrganizationsMeListGet = async (
@@ -1255,7 +1255,7 @@ export const listMyOrganizationsApiV1OrganizationsMeListGet = async (
 };
 
 export const getListMyOrganizationsApiV1OrganizationsMeListGetQueryKey = () => {
-  return [`/api/v1/organizations/me/list`] as const;
+  return [`/api/organizations/me/list`] as const;
 };
 
 export const getListMyOrganizationsApiV1OrganizationsMeListGetQueryOptions = <
@@ -1446,7 +1446,7 @@ export type getMyMembershipApiV1OrganizationsMeMemberGetResponse =
   getMyMembershipApiV1OrganizationsMeMemberGetResponseSuccess;
 
 export const getGetMyMembershipApiV1OrganizationsMeMemberGetUrl = () => {
-  return `/api/v1/organizations/me/member`;
+  return `/api/organizations/me/member`;
 };
 
 export const getMyMembershipApiV1OrganizationsMeMemberGet = async (
@@ -1462,7 +1462,7 @@ export const getMyMembershipApiV1OrganizationsMeMemberGet = async (
 };
 
 export const getGetMyMembershipApiV1OrganizationsMeMemberGetQueryKey = () => {
-  return [`/api/v1/organizations/me/member`] as const;
+  return [`/api/organizations/me/member`] as const;
 };
 
 export const getGetMyMembershipApiV1OrganizationsMeMemberGetQueryOptions = <
@@ -1672,8 +1672,8 @@ export const getListOrgMembersApiV1OrganizationsMeMembersGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/organizations/me/members?${stringifiedParams}`
-    : `/api/v1/organizations/me/members`;
+    ? `/api/organizations/me/members?${stringifiedParams}`
+    : `/api/organizations/me/members`;
 };
 
 export const listOrgMembersApiV1OrganizationsMeMembersGet = async (
@@ -1693,7 +1693,7 @@ export const getListOrgMembersApiV1OrganizationsMeMembersGetQueryKey = (
   params?: ListOrgMembersApiV1OrganizationsMeMembersGetParams,
 ) => {
   return [
-    `/api/v1/organizations/me/members`,
+    `/api/organizations/me/members`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -1912,7 +1912,7 @@ export type removeOrgMemberApiV1OrganizationsMeMembersMemberIdDeleteResponse =
 export const getRemoveOrgMemberApiV1OrganizationsMeMembersMemberIdDeleteUrl = (
   memberId: string,
 ) => {
-  return `/api/v1/organizations/me/members/${memberId}`;
+  return `/api/organizations/me/members/${memberId}`;
 };
 
 export const removeOrgMemberApiV1OrganizationsMeMembersMemberIdDelete = async (
@@ -2059,7 +2059,7 @@ export type getOrgMemberApiV1OrganizationsMeMembersMemberIdGetResponse =
 export const getGetOrgMemberApiV1OrganizationsMeMembersMemberIdGetUrl = (
   memberId: string,
 ) => {
-  return `/api/v1/organizations/me/members/${memberId}`;
+  return `/api/organizations/me/members/${memberId}`;
 };
 
 export const getOrgMemberApiV1OrganizationsMeMembersMemberIdGet = async (
@@ -2078,7 +2078,7 @@ export const getOrgMemberApiV1OrganizationsMeMembersMemberIdGet = async (
 export const getGetOrgMemberApiV1OrganizationsMeMembersMemberIdGetQueryKey = (
   memberId: string,
 ) => {
-  return [`/api/v1/organizations/me/members/${memberId}`] as const;
+  return [`/api/organizations/me/members/${memberId}`] as const;
 };
 
 export const getGetOrgMemberApiV1OrganizationsMeMembersMemberIdGetQueryOptions =
@@ -2317,7 +2317,7 @@ export type updateOrgMemberApiV1OrganizationsMeMembersMemberIdPatchResponse =
 export const getUpdateOrgMemberApiV1OrganizationsMeMembersMemberIdPatchUrl = (
   memberId: string,
 ) => {
-  return `/api/v1/organizations/me/members/${memberId}`;
+  return `/api/organizations/me/members/${memberId}`;
 };
 
 export const updateOrgMemberApiV1OrganizationsMeMembersMemberIdPatch = async (
@@ -2467,7 +2467,7 @@ export type updateMemberAccessApiV1OrganizationsMeMembersMemberIdAccessPutRespon
 
 export const getUpdateMemberAccessApiV1OrganizationsMeMembersMemberIdAccessPutUrl =
   (memberId: string) => {
-    return `/api/v1/organizations/me/members/${memberId}/access`;
+    return `/api/organizations/me/members/${memberId}/access`;
   };
 
 export const updateMemberAccessApiV1OrganizationsMeMembersMemberIdAccessPut =

@@ -5,7 +5,7 @@
 //! at line 344: it constructs the shared [`AppState`], spawns the configured
 //! channels, mounts every route group, and serves traffic until shutdown.
 //!
-//! Route groups: `/pair` (pairing flow), `/api/v1/*` (REST — status, doctor,
+//! Route groups: `/pair` (pairing flow), `/api/*` (REST — status, doctor,
 //! skills, memory, config, webhook), `/webhook` (untyped JSON ingress, handled
 //! by `handle_webhook` at line 1068), `/ws/chat` (WebSocket streaming turn that
 //! drives [`Agent::turn_streamed`](crate::agent::Agent)), `/health` + `/metrics`,

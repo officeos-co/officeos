@@ -75,8 +75,8 @@ export const getListBoardMemoryApiV1BoardsBoardIdMemoryGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/memory?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/memory`;
+    ? `/api/boards/${boardId}/memory?${stringifiedParams}`
+    : `/api/boards/${boardId}/memory`;
 };
 
 export const listBoardMemoryApiV1BoardsBoardIdMemoryGet = async (
@@ -98,7 +98,7 @@ export const getListBoardMemoryApiV1BoardsBoardIdMemoryGetQueryKey = (
   params?: ListBoardMemoryApiV1BoardsBoardIdMemoryGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/memory`,
+    `/api/boards/${boardId}/memory`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -311,7 +311,7 @@ export type createBoardMemoryApiV1BoardsBoardIdMemoryPostResponse =
 export const getCreateBoardMemoryApiV1BoardsBoardIdMemoryPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/memory`;
+  return `/api/boards/${boardId}/memory`;
 };
 
 export const createBoardMemoryApiV1BoardsBoardIdMemoryPost = async (
@@ -451,8 +451,8 @@ export const getStreamBoardMemoryApiV1BoardsBoardIdMemoryStreamGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/memory/stream?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/memory/stream`;
+    ? `/api/boards/${boardId}/memory/stream?${stringifiedParams}`
+    : `/api/boards/${boardId}/memory/stream`;
 };
 
 export const streamBoardMemoryApiV1BoardsBoardIdMemoryStreamGet = async (
@@ -474,7 +474,7 @@ export const getStreamBoardMemoryApiV1BoardsBoardIdMemoryStreamGetQueryKey = (
   params?: StreamBoardMemoryApiV1BoardsBoardIdMemoryStreamGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/memory/stream`,
+    `/api/boards/${boardId}/memory/stream`,
     ...(params ? [params] : []),
   ] as const;
 };

@@ -88,8 +88,8 @@ export const getListGatewaysApiV1GatewaysGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/gateways?${stringifiedParams}`
-    : `/api/v1/gateways`;
+    ? `/api/gateways?${stringifiedParams}`
+    : `/api/gateways`;
 };
 
 export const listGatewaysApiV1GatewaysGet = async (
@@ -108,7 +108,7 @@ export const listGatewaysApiV1GatewaysGet = async (
 export const getListGatewaysApiV1GatewaysGetQueryKey = (
   params?: ListGatewaysApiV1GatewaysGetParams,
 ) => {
-  return [`/api/v1/gateways`, ...(params ? [params] : [])] as const;
+  return [`/api/gateways`, ...(params ? [params] : [])] as const;
 };
 
 export const getListGatewaysApiV1GatewaysGetQueryOptions = <
@@ -286,7 +286,7 @@ export type createGatewayApiV1GatewaysPostResponse =
   | createGatewayApiV1GatewaysPostResponseError;
 
 export const getCreateGatewayApiV1GatewaysPostUrl = () => {
-  return `/api/v1/gateways`;
+  return `/api/gateways`;
 };
 
 export const createGatewayApiV1GatewaysPost = async (
@@ -393,7 +393,7 @@ export type gatewayCommandsApiV1GatewaysCommandsGetResponse =
   gatewayCommandsApiV1GatewaysCommandsGetResponseSuccess;
 
 export const getGatewayCommandsApiV1GatewaysCommandsGetUrl = () => {
-  return `/api/v1/gateways/commands`;
+  return `/api/gateways/commands`;
 };
 
 export const gatewayCommandsApiV1GatewaysCommandsGet = async (
@@ -409,7 +409,7 @@ export const gatewayCommandsApiV1GatewaysCommandsGet = async (
 };
 
 export const getGatewayCommandsApiV1GatewaysCommandsGetQueryKey = () => {
-  return [`/api/v1/gateways/commands`] as const;
+  return [`/api/gateways/commands`] as const;
 };
 
 export const getGatewayCommandsApiV1GatewaysCommandsGetQueryOptions = <
@@ -592,8 +592,8 @@ export const getListGatewaySessionsApiV1GatewaysSessionsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/gateways/sessions?${stringifiedParams}`
-    : `/api/v1/gateways/sessions`;
+    ? `/api/gateways/sessions?${stringifiedParams}`
+    : `/api/gateways/sessions`;
 };
 
 export const listGatewaySessionsApiV1GatewaysSessionsGet = async (
@@ -612,7 +612,7 @@ export const listGatewaySessionsApiV1GatewaysSessionsGet = async (
 export const getListGatewaySessionsApiV1GatewaysSessionsGetQueryKey = (
   params?: ListGatewaySessionsApiV1GatewaysSessionsGetParams,
 ) => {
-  return [`/api/v1/gateways/sessions`, ...(params ? [params] : [])] as const;
+  return [`/api/gateways/sessions`, ...(params ? [params] : [])] as const;
 };
 
 export const getListGatewaySessionsApiV1GatewaysSessionsGetQueryOptions = <
@@ -826,8 +826,8 @@ export const getGetGatewaySessionApiV1GatewaysSessionsSessionIdGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/gateways/sessions/${sessionId}?${stringifiedParams}`
-    : `/api/v1/gateways/sessions/${sessionId}`;
+    ? `/api/gateways/sessions/${sessionId}?${stringifiedParams}`
+    : `/api/gateways/sessions/${sessionId}`;
 };
 
 export const getGatewaySessionApiV1GatewaysSessionsSessionIdGet = async (
@@ -849,7 +849,7 @@ export const getGetGatewaySessionApiV1GatewaysSessionsSessionIdGetQueryKey = (
   params?: GetGatewaySessionApiV1GatewaysSessionsSessionIdGetParams,
 ) => {
   return [
-    `/api/v1/gateways/sessions/${sessionId}`,
+    `/api/gateways/sessions/${sessionId}`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -1111,8 +1111,8 @@ export const getGetSessionHistoryApiV1GatewaysSessionsSessionIdHistoryGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/gateways/sessions/${sessionId}/history?${stringifiedParams}`
-    : `/api/v1/gateways/sessions/${sessionId}/history`;
+    ? `/api/gateways/sessions/${sessionId}/history?${stringifiedParams}`
+    : `/api/gateways/sessions/${sessionId}/history`;
 };
 
 export const getSessionHistoryApiV1GatewaysSessionsSessionIdHistoryGet = async (
@@ -1138,7 +1138,7 @@ export const getGetSessionHistoryApiV1GatewaysSessionsSessionIdHistoryGetQueryKe
     params?: GetSessionHistoryApiV1GatewaysSessionsSessionIdHistoryGetParams,
   ) => {
     return [
-      `/api/v1/gateways/sessions/${sessionId}/history`,
+      `/api/gateways/sessions/${sessionId}/history`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -1424,8 +1424,8 @@ export const getSendGatewaySessionMessageApiV1GatewaysSessionsSessionIdMessagePo
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/gateways/sessions/${sessionId}/message?${stringifiedParams}`
-      : `/api/v1/gateways/sessions/${sessionId}/message`;
+      ? `/api/gateways/sessions/${sessionId}/message?${stringifiedParams}`
+      : `/api/gateways/sessions/${sessionId}/message`;
   };
 
 export const sendGatewaySessionMessageApiV1GatewaysSessionsSessionIdMessagePost =
@@ -1614,8 +1614,8 @@ export const getGatewaysStatusApiV1GatewaysStatusGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/gateways/status?${stringifiedParams}`
-    : `/api/v1/gateways/status`;
+    ? `/api/gateways/status?${stringifiedParams}`
+    : `/api/gateways/status`;
 };
 
 export const gatewaysStatusApiV1GatewaysStatusGet = async (
@@ -1634,7 +1634,7 @@ export const gatewaysStatusApiV1GatewaysStatusGet = async (
 export const getGatewaysStatusApiV1GatewaysStatusGetQueryKey = (
   params?: GatewaysStatusApiV1GatewaysStatusGetParams,
 ) => {
-  return [`/api/v1/gateways/status`, ...(params ? [params] : [])] as const;
+  return [`/api/gateways/status`, ...(params ? [params] : [])] as const;
 };
 
 export const getGatewaysStatusApiV1GatewaysStatusGetQueryOptions = <
@@ -1816,7 +1816,7 @@ export type deleteGatewayApiV1GatewaysGatewayIdDeleteResponse =
 export const getDeleteGatewayApiV1GatewaysGatewayIdDeleteUrl = (
   gatewayId: string,
 ) => {
-  return `/api/v1/gateways/${gatewayId}`;
+  return `/api/gateways/${gatewayId}`;
 };
 
 export const deleteGatewayApiV1GatewaysGatewayIdDelete = async (
@@ -1936,7 +1936,7 @@ export type getGatewayApiV1GatewaysGatewayIdGetResponse =
 export const getGetGatewayApiV1GatewaysGatewayIdGetUrl = (
   gatewayId: string,
 ) => {
-  return `/api/v1/gateways/${gatewayId}`;
+  return `/api/gateways/${gatewayId}`;
 };
 
 export const getGatewayApiV1GatewaysGatewayIdGet = async (
@@ -1955,7 +1955,7 @@ export const getGatewayApiV1GatewaysGatewayIdGet = async (
 export const getGetGatewayApiV1GatewaysGatewayIdGetQueryKey = (
   gatewayId: string,
 ) => {
-  return [`/api/v1/gateways/${gatewayId}`] as const;
+  return [`/api/gateways/${gatewayId}`] as const;
 };
 
 export const getGetGatewayApiV1GatewaysGatewayIdGetQueryOptions = <
@@ -2144,7 +2144,7 @@ export type updateGatewayApiV1GatewaysGatewayIdPatchResponse =
 export const getUpdateGatewayApiV1GatewaysGatewayIdPatchUrl = (
   gatewayId: string,
 ) => {
-  return `/api/v1/gateways/${gatewayId}`;
+  return `/api/gateways/${gatewayId}`;
 };
 
 export const updateGatewayApiV1GatewaysGatewayIdPatch = async (
@@ -2291,8 +2291,8 @@ export const getSyncGatewayTemplatesApiV1GatewaysGatewayIdTemplatesSyncPostUrl =
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/gateways/${gatewayId}/templates/sync?${stringifiedParams}`
-      : `/api/v1/gateways/${gatewayId}/templates/sync`;
+      ? `/api/gateways/${gatewayId}/templates/sync?${stringifiedParams}`
+      : `/api/gateways/${gatewayId}/templates/sync`;
   };
 
 export const syncGatewayTemplatesApiV1GatewaysGatewayIdTemplatesSyncPost =

@@ -80,7 +80,7 @@ const QWEN_INTL_BASE_URL: &str = "https://dashscope-intl.aliyuncs.com/compatible
 const QWEN_US_BASE_URL: &str = "https://dashscope-us.aliyuncs.com/compatible-mode/v1";
 const QWEN_OAUTH_BASE_FALLBACK_URL: &str = QWEN_CN_BASE_URL;
 const BAILIAN_BASE_URL: &str = "https://coding.dashscope.aliyuncs.com/v1";
-const QWEN_OAUTH_TOKEN_ENDPOINT: &str = "https://chat.qwen.ai/api/v1/oauth2/token";
+const QWEN_OAUTH_TOKEN_ENDPOINT: &str = "https://chat.qwen.ai/api/oauth2/token";
 const QWEN_OAUTH_PLACEHOLDER: &str = "qwen-oauth";
 const QWEN_OAUTH_TOKEN_ENV: &str = "QWEN_OAUTH_TOKEN";
 const QWEN_OAUTH_REFRESH_TOKEN_ENV: &str = "QWEN_OAUTH_REFRESH_TOKEN";
@@ -1556,7 +1556,7 @@ fn create_provider_with_url_and_options(
             let base_url = api_url
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
-                .unwrap_or("https://llama3-1-405b.lepton.run/api/v1");
+                .unwrap_or("https://llama3-1-405b.lepton.run/api");
             Ok(compat(OpenAiCompatibleProvider::new(
                 "Lepton AI",
                 base_url,

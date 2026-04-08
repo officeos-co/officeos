@@ -75,8 +75,8 @@ export const getListTagsApiV1TagsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/tags?${stringifiedParams}`
-    : `/api/v1/tags`;
+    ? `/api/tags?${stringifiedParams}`
+    : `/api/tags`;
 };
 
 export const listTagsApiV1TagsGet = async (
@@ -95,7 +95,7 @@ export const listTagsApiV1TagsGet = async (
 export const getListTagsApiV1TagsGetQueryKey = (
   params?: ListTagsApiV1TagsGetParams,
 ) => {
-  return [`/api/v1/tags`, ...(params ? [params] : [])] as const;
+  return [`/api/tags`, ...(params ? [params] : [])] as const;
 };
 
 export const getListTagsApiV1TagsGetQueryOptions = <
@@ -270,7 +270,7 @@ export type createTagApiV1TagsPostResponse =
   | createTagApiV1TagsPostResponseError;
 
 export const getCreateTagApiV1TagsPostUrl = () => {
-  return `/api/v1/tags`;
+  return `/api/tags`;
 };
 
 export const createTagApiV1TagsPost = async (
@@ -388,7 +388,7 @@ export type deleteTagApiV1TagsTagIdDeleteResponse =
   | deleteTagApiV1TagsTagIdDeleteResponseError;
 
 export const getDeleteTagApiV1TagsTagIdDeleteUrl = (tagId: string) => {
-  return `/api/v1/tags/${tagId}`;
+  return `/api/tags/${tagId}`;
 };
 
 export const deleteTagApiV1TagsTagIdDelete = async (
@@ -504,7 +504,7 @@ export type getTagApiV1TagsTagIdGetResponse =
   | getTagApiV1TagsTagIdGetResponseError;
 
 export const getGetTagApiV1TagsTagIdGetUrl = (tagId: string) => {
-  return `/api/v1/tags/${tagId}`;
+  return `/api/tags/${tagId}`;
 };
 
 export const getTagApiV1TagsTagIdGet = async (
@@ -521,7 +521,7 @@ export const getTagApiV1TagsTagIdGet = async (
 };
 
 export const getGetTagApiV1TagsTagIdGetQueryKey = (tagId: string) => {
-  return [`/api/v1/tags/${tagId}`] as const;
+  return [`/api/tags/${tagId}`] as const;
 };
 
 export const getGetTagApiV1TagsTagIdGetQueryOptions = <
@@ -701,7 +701,7 @@ export type updateTagApiV1TagsTagIdPatchResponse =
   | updateTagApiV1TagsTagIdPatchResponseError;
 
 export const getUpdateTagApiV1TagsTagIdPatchUrl = (tagId: string) => {
-  return `/api/v1/tags/${tagId}`;
+  return `/api/tags/${tagId}`;
 };
 
 export const updateTagApiV1TagsTagIdPatch = async (

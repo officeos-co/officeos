@@ -51,7 +51,7 @@ export type listOrgCustomFieldsApiV1OrganizationsMeCustomFieldsGetResponse =
 
 export const getListOrgCustomFieldsApiV1OrganizationsMeCustomFieldsGetUrl =
   () => {
-    return `/api/v1/organizations/me/custom-fields`;
+    return `/api/organizations/me/custom-fields`;
   };
 
 export const listOrgCustomFieldsApiV1OrganizationsMeCustomFieldsGet = async (
@@ -68,7 +68,7 @@ export const listOrgCustomFieldsApiV1OrganizationsMeCustomFieldsGet = async (
 
 export const getListOrgCustomFieldsApiV1OrganizationsMeCustomFieldsGetQueryKey =
   () => {
-    return [`/api/v1/organizations/me/custom-fields`] as const;
+    return [`/api/organizations/me/custom-fields`] as const;
   };
 
 export const getListOrgCustomFieldsApiV1OrganizationsMeCustomFieldsGetQueryOptions =
@@ -305,7 +305,7 @@ export type createOrgCustomFieldApiV1OrganizationsMeCustomFieldsPostResponse =
 
 export const getCreateOrgCustomFieldApiV1OrganizationsMeCustomFieldsPostUrl =
   () => {
-    return `/api/v1/organizations/me/custom-fields`;
+    return `/api/organizations/me/custom-fields`;
   };
 
 export const createOrgCustomFieldApiV1OrganizationsMeCustomFieldsPost = async (
@@ -457,7 +457,7 @@ export type deleteOrgCustomFieldApiV1OrganizationsMeCustomFieldsTaskCustomFieldD
 
 export const getDeleteOrgCustomFieldApiV1OrganizationsMeCustomFieldsTaskCustomFieldDefinitionIdDeleteUrl =
   (taskCustomFieldDefinitionId: string) => {
-    return `/api/v1/organizations/me/custom-fields/${taskCustomFieldDefinitionId}`;
+    return `/api/organizations/me/custom-fields/${taskCustomFieldDefinitionId}`;
   };
 
 export const deleteOrgCustomFieldApiV1OrganizationsMeCustomFieldsTaskCustomFieldDefinitionIdDelete =
@@ -609,7 +609,7 @@ export type updateOrgCustomFieldApiV1OrganizationsMeCustomFieldsTaskCustomFieldD
 
 export const getUpdateOrgCustomFieldApiV1OrganizationsMeCustomFieldsTaskCustomFieldDefinitionIdPatchUrl =
   (taskCustomFieldDefinitionId: string) => {
-    return `/api/v1/organizations/me/custom-fields/${taskCustomFieldDefinitionId}`;
+    return `/api/organizations/me/custom-fields/${taskCustomFieldDefinitionId}`;
   };
 
 export const updateOrgCustomFieldApiV1OrganizationsMeCustomFieldsTaskCustomFieldDefinitionIdPatch =

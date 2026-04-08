@@ -21,7 +21,6 @@ from app.models.organization_invite_board_access import OrganizationInviteBoardA
 from app.models.organization_invites import OrganizationInvite
 from app.models.organization_members import OrganizationMember
 from app.models.organizations import Organization
-from app.models.skills import SkillPack
 from app.models.users import User
 
 if TYPE_CHECKING:
@@ -37,28 +36,6 @@ if TYPE_CHECKING:
 DEFAULT_ORG_NAME = "Personal"
 
 
-def _normalize_skill_pack_source_url(source_url: str) -> str:
-    """Normalize pack source URL so duplicates with trivial formatting differences match."""
-    normalized = str(source_url).strip().rstrip("/")
-    if normalized.endswith(".git"):
-        return normalized[: -len(".git")]
-    return normalized
-
-
-DEFAULT_INSTALLER_SKILL_PACKS = (
-    (
-        "sickn33/antigravity-awesome-skills",
-        "antigravity-awesome-skills",
-        "The Ultimate Collection of 800+ Agentic Skills for Claude Code/Antigravity/Cursor. "
-        "Battle-tested, high-performance skills for AI agents including official skills from "
-        "Anthropic and Vercel.",
-    ),
-    (
-        "BrianRWagner/ai-marketing-skills",
-        "ai-marketing-skills",
-        "Marketing frameworks that AI actually executes. Use for Claude Code, OpenClaw, etc.",
-    ),
-)
 ADMIN_ROLES = {"owner", "admin"}
 ROLE_RANK = {"member": 0, "admin": 1, "owner": 2}
 
@@ -237,42 +214,6 @@ async def accept_invite(
     return member
 
 
-def _get_default_skill_pack_records(org_id: UUID, now: "datetime") -> list[SkillPack]:
-    """Build default installer skill pack rows for a new organization."""
-    source_base = "https://github.com"
-    seen_urls: set[str] = set()
-    records: list[SkillPack] = []
-    for repo, name, description in DEFAULT_INSTALLER_SKILL_PACKS:
-        source_url = _normalize_skill_pack_source_url(f"{source_base}/{repo}")
-        if source_url in seen_urls:
-            continue
-        seen_urls.add(source_url)
-        records.append(
-            SkillPack(
-                organization_id=org_id,
-                name=name,
-                description=description,
-                source_url=source_url,
-                created_at=now,
-                updated_at=now,
-            ),
-        )
-    return records
-
-
-async def _fetch_existing_default_pack_sources(
-    session: AsyncSession,
-    org_id: UUID,
-) -> set[str]:
-    """Return existing default skill pack URLs for the organization."""
-    if not isinstance(session, AsyncSession):
-        return set()
-    return {
-        _normalize_skill_pack_source_url(row.source_url)
-        for row in await SkillPack.objects.filter_by(organization_id=org_id).all(session)
-    }
-
-
 async def ensure_member_for_user(
     session: AsyncSession,
     user: User,
@@ -314,12 +255,6 @@ async def ensure_member_for_user(
         created_at=now,
         updated_at=now,
     )
-    default_skill_packs = _get_default_skill_pack_records(org_id=org_id, now=now)
-    existing_pack_urls = await _fetch_existing_default_pack_sources(session, org_id)
-    normalized_existing_pack_urls = {
-        _normalize_skill_pack_source_url(existing_pack_source)
-        for existing_pack_source in existing_pack_urls
-    }
     user.active_organization_id = org_id
     session.add(user)
     session.add(member)
@@ -336,18 +271,6 @@ async def ensure_member_for_user(
             await session.commit()
         await session.refresh(existing_member)
         return existing_member
-
-    for pack in default_skill_packs:
-        normalized_source_url = _normalize_skill_pack_source_url(pack.source_url)
-        if normalized_source_url in normalized_existing_pack_urls:
-            continue
-        session.add(pack)
-        try:
-            await session.commit()
-        except IntegrityError:
-            await session.rollback()
-            normalized_existing_pack_urls.add(normalized_source_url)
-            continue
 
     await session.refresh(member)
     return member

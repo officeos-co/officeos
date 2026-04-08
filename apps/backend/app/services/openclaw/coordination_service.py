@@ -107,7 +107,7 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
             f"{correlation_line}\n"
             f"{content.strip()}\n\n"
             "Reply to the gateway agent by writing a NON-chat memory item on this board:\n"
-            f"POST {base_url}/api/v1/agent/boards/{board.id}/memory\n"
+            f"POST {base_url}/api/agent/boards/{board.id}/memory\n"
             f'Body: {{"content":"...","tags":{tags_json},"source":"{source}"}}\n'
             "Do NOT reply in OpenClaw chat."
         )
@@ -455,7 +455,7 @@ class GatewayCoordinationService(AbstractGatewayMessagingService):
             "board chat as a fallback.\n\n"
             "When you receive the answer, reply in Mission Control by writing a "
             "NON-chat memory item on this board:\n"
-            f"POST {base_url}/api/v1/agent/boards/{board.id}/memory\n"
+            f"POST {base_url}/api/agent/boards/{board.id}/memory\n"
             f'Body: {{"content":"<answer>","tags":{tags_json},"source":"{reply_source}"}}\n'
             "Do NOT reply in OpenClaw chat."
         )

@@ -41,11 +41,11 @@ jq -r '
 
 ## Heartbeat checklist
 1) Check in immediately:
-- Use the `agent-main` heartbeat endpoint (`POST /api/v1/agent/heartbeat`).
+- Use the `agent-main` heartbeat endpoint (`POST /api/agent/heartbeat`).
 - Startup check-in example:
 
 ```bash
-curl -s -X POST "{{ base_url }}/api/v1/agent/heartbeat" \
+curl -s -X POST "{{ base_url }}/api/agent/heartbeat" \
   -H "X-Agent-Token: {{ auth_token }}"
 ```
 
@@ -139,8 +139,8 @@ jq -r '
 1) Confirm `BASE_URL`, `AUTH_TOKEN`, and `BOARD_ID` from `TOOLS.md` match this workspace.
 2) Verify API access:
 - `GET {{ base_url }}/healthz`
-- `GET {{ base_url }}/api/v1/agent/boards`
-- `GET {{ base_url }}/api/v1/agent/boards/{{ board_id }}/tasks`
+- `GET {{ base_url }}/api/agent/boards`
+- `GET {{ base_url }}/api/agent/boards/{{ board_id }}/tasks`
 3) If any check fails, stop and retry next heartbeat.
 
 ## Shared Context Pull

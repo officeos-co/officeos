@@ -1,6 +1,6 @@
 //! Tool backed by a backend skill route.
 //!
-//! Each entry returned by the EAOS backend's `GET /api/v1/capabilities`
+//! Each entry returned by the EAOS backend's `GET /api/capabilities`
 //! endpoint is converted into one `BackendSkillTool`. Calling the tool
 //! POSTs the LLM-provided arguments as the JSON body to
 //! `{backend_url}{route}` with the configured bearer token.
@@ -21,7 +21,7 @@ pub struct BackendSkillTool {
     tool_description: String,
     parameters: serde_json::Value,
     /// Absolute URL built from `backend_url` + the route fragment returned
-    /// by `/api/v1/capabilities` (e.g. `https://.../api/v1/skills/notion/search`).
+    /// by `/api/capabilities` (e.g. `https://.../api/skills/notion/search`).
     url: String,
     bearer_token: Option<String>,
 }

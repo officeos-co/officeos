@@ -25,7 +25,7 @@ const OPEN_SKILLS_SYNC_INTERVAL_SECS: u64 = 60 * 60 * 24 * 7;
 // ─── ClawhHub / OpenClaw registry installers ───────────────────────────────
 const CLAWHUB_DOMAIN: &str = "clawhub.ai";
 const CLAWHUB_WWW_DOMAIN: &str = "www.clawhub.ai";
-const CLAWHUB_DOWNLOAD_API: &str = "https://clawhub.ai/api/v1/download";
+const CLAWHUB_DOWNLOAD_API: &str = "https://clawhub.ai/api/download";
 const MAX_CLAWHUB_ZIP_BYTES: u64 = 50 * 1024 * 1024; // 50 MiB
 
 /// A skill is a user-defined or community-built capability.
@@ -2059,19 +2059,19 @@ description = "Bare minimum"
     fn clawhub_download_url_building() {
         assert_eq!(
             clawhub_download_url("https://clawhub.ai/steipete/gog").unwrap(),
-            "https://clawhub.ai/api/v1/download?slug=steipete/gog"
+            "https://clawhub.ai/api/download?slug=steipete/gog"
         );
         assert_eq!(
             clawhub_download_url("https://www.clawhub.ai/steipete/gog").unwrap(),
-            "https://clawhub.ai/api/v1/download?slug=steipete/gog"
+            "https://clawhub.ai/api/download?slug=steipete/gog"
         );
         assert_eq!(
             clawhub_download_url("https://clawhub.ai/gog").unwrap(),
-            "https://clawhub.ai/api/v1/download?slug=gog"
+            "https://clawhub.ai/api/download?slug=gog"
         );
         assert_eq!(
             clawhub_download_url("clawhub:gog").unwrap(),
-            "https://clawhub.ai/api/v1/download?slug=gog"
+            "https://clawhub.ai/api/download?slug=gog"
         );
     }
 

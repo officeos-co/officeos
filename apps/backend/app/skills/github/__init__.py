@@ -12,7 +12,6 @@ import httpx
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from app.skills._deps import require_credentials
 from app.skills._manifest import CredentialField, LlmTool, SkillManifest
 
 GITHUB_API = "https://api.github.com"
@@ -88,8 +87,6 @@ MANIFEST = SkillManifest(
     ],
 )
 
-router = APIRouter(tags=["skill:github"])
-
 
 class ListReposBody(BaseModel):
     visibility: str = "all"
@@ -122,11 +119,7 @@ async def _call_gh(
     return resp.json()
 
 
-@router.post("/list_repos")
-async def list_repos(
-    body: ListReposBody,
-    creds: dict[str, Any] = require_credentials("github"),
-) -> dict[str, Any]:
+async def list_repos(body: ListReposBody, creds: dict[str, Any]) -> dict[str, Any]:
     data = await _call_gh(
         "GET",
         "/user/repos",
@@ -147,18 +140,13 @@ async def list_repos(
     }
 
 
-@router.post("/list_issues")
-async def list_issues(
-    body: RepoBody,
-    creds: dict[str, Any] = require_credentials("github"),
-) -> dict[str, Any]:
+async def list_issues(body: RepoBody, creds: dict[str, Any]) -> dict[str, Any]:
     data = await _call_gh(
         "GET",
         f"/repos/{body.owner}/{body.repo}/issues",
         token=str(creds["token"]),
         params={"state": body.state},
     )
-    # The /issues endpoint also returns PRs; filter them out.
     issues = [i for i in data if "pull_request" not in i]
     return {
         "issues": [
@@ -174,11 +162,7 @@ async def list_issues(
     }
 
 
-@router.post("/list_prs")
-async def list_prs(
-    body: RepoBody,
-    creds: dict[str, Any] = require_credentials("github"),
-) -> dict[str, Any]:
+async def list_prs(body: RepoBody, creds: dict[str, Any]) -> dict[str, Any]:
     data = await _call_gh(
         "GET",
         f"/repos/{body.owner}/{body.repo}/pulls",
@@ -198,3 +182,23 @@ async def list_prs(
             for pr in data
         ]
     }
+
+
+def register(router: APIRouter, creds_dep) -> None:
+    @router.post("/list_repos")
+    async def _list_repos(
+        body: ListReposBody, creds: dict[str, Any] = creds_dep
+    ) -> dict[str, Any]:
+        return await list_repos(body, creds)
+
+    @router.post("/list_issues")
+    async def _list_issues(
+        body: RepoBody, creds: dict[str, Any] = creds_dep
+    ) -> dict[str, Any]:
+        return await list_issues(body, creds)
+
+    @router.post("/list_prs")
+    async def _list_prs(
+        body: RepoBody, creds: dict[str, Any] = creds_dep
+    ) -> dict[str, Any]:
+        return await list_prs(body, creds)

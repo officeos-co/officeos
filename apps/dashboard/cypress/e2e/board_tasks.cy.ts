@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 describe("/boards/:id task board", () => {
-  const apiBase = "**/api/v1";
+  const apiBase = "**/api";
   const email = "local-auth-user@example.com";
 
   const originalDefaultCommandTimeout = Cypress.config("defaultCommandTimeout");

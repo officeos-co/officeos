@@ -2,6 +2,11 @@
 
 Auth: single API key (Internal Integration Token), pasted in the
 dashboard. Stored in `skill_credentials.credentials->>'api_key'`.
+
+Handlers are pure async functions taking `(body, creds)`. Routes are
+registered via `register(router, creds_dep)` so the same handlers can
+be wired once for user auth (`/api/skills/notion/...`) and once for
+agent auth (`/api/agents/me/skills/notion/...`).
 """
 
 from __future__ import annotations
@@ -12,15 +17,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from app.skills._deps import require_credentials
-
-# Deferred import of manifest types to avoid a circular import at package load
-# time (`app.skills.__init__` imports this module).
-from app.skills._manifest import (  # noqa: E402  (import after fastapi for style)
-    CredentialField,
-    LlmTool,
-    SkillManifest,
-)
+from app.skills._manifest import CredentialField, LlmTool, SkillManifest
 
 NOTION_API = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -75,8 +72,6 @@ MANIFEST = SkillManifest(
     ],
 )
 
-router = APIRouter(tags=["skill:notion"])
-
 
 class SearchBody(BaseModel):
     query: str
@@ -99,7 +94,9 @@ async def _call_notion(
         "Content-Type": "application/json",
     }
     async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.request(method, f"{NOTION_API}{path}", headers=headers, json=json)
+        resp = await client.request(
+            method, f"{NOTION_API}{path}", headers=headers, json=json
+        )
     if resp.status_code >= 400:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -108,11 +105,7 @@ async def _call_notion(
     return resp.json()
 
 
-@router.post("/search")
-async def search(
-    body: SearchBody,
-    creds: dict[str, Any] = require_credentials("notion"),
-) -> dict[str, Any]:
+async def search(body: SearchBody, creds: dict[str, Any]) -> dict[str, Any]:
     data = await _call_notion(
         "POST",
         "/search",
@@ -139,11 +132,7 @@ async def search(
     return {"results": results}
 
 
-@router.post("/read_page")
-async def read_page(
-    body: ReadPageBody,
-    creds: dict[str, Any] = require_credentials("notion"),
-) -> dict[str, Any]:
+async def read_page(body: ReadPageBody, creds: dict[str, Any]) -> dict[str, Any]:
     data = await _call_notion(
         "GET",
         f"/blocks/{body.page_id}/children?page_size=100",
@@ -158,3 +147,17 @@ async def read_page(
         if text:
             lines.append(text)
     return {"page_id": body.page_id, "text": "\n".join(lines)}
+
+
+def register(router: APIRouter, creds_dep) -> None:
+    """Wire the pure handlers onto a FastAPI router with a credentials dep."""
+
+    @router.post("/search")
+    async def _search(body: SearchBody, creds: dict[str, Any] = creds_dep) -> dict[str, Any]:
+        return await search(body, creds)
+
+    @router.post("/read_page")
+    async def _read_page(
+        body: ReadPageBody, creds: dict[str, Any] = creds_dep
+    ) -> dict[str, Any]:
+        return await read_page(body, creds)

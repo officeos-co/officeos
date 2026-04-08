@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 describe("/activity feed", () => {
-  const apiBase = "**/api/v1";
+  const apiBase = "**/api";
 
   const originalDefaultCommandTimeout = Cypress.config("defaultCommandTimeout");
 
@@ -100,7 +100,7 @@ describe("/activity feed", () => {
   it("happy path: renders task comment cards", () => {
     stubBoardBootstrap();
 
-    cy.intercept("GET", "**/api/v1/activity**", {
+    cy.intercept("GET", "**/api/activity**", {
       statusCode: 200,
       body: {
         items: [
@@ -135,7 +135,7 @@ describe("/activity feed", () => {
   it("empty state: shows waiting message when no items", () => {
     stubBoardBootstrap();
 
-    cy.intercept("GET", "**/api/v1/activity**", {
+    cy.intercept("GET", "**/api/activity**", {
       statusCode: 200,
       body: { items: [] },
     }).as("activityList");
@@ -153,7 +153,7 @@ describe("/activity feed", () => {
   it("error state: shows failure UI when API errors", () => {
     stubBoardBootstrap();
 
-    cy.intercept("GET", "**/api/v1/activity**", {
+    cy.intercept("GET", "**/api/activity**", {
       statusCode: 500,
       body: { detail: "boom" },
     }).as("activityList");

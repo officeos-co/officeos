@@ -27,6 +27,8 @@ dependencies = [
     "redis==6.3.0",
     "rq==2.6.0",
     "cryptography==45.0.7",
+    "pyjwt==2.9.0",
+    "httpx==0.28.1",
     # Phase 3: the dashboard backend imports VaultClient directly to
     # provision per-agent Obsidian vaults. Sourced from the sibling
     # monorepo package so local obsctl edits are picked up without a
@@ -35,7 +37,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-obsidian-vault-cli = { path = "../../../packages/obsctl", editable = true }
+obsidian-vault-cli = { path = "../../packages/obsctl", editable = true }
 
 [project.optional-dependencies]
 dev = [

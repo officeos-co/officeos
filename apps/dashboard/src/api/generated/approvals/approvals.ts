@@ -76,8 +76,8 @@ export const getListApprovalsApiV1BoardsBoardIdApprovalsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/approvals?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/approvals`;
+    ? `/api/boards/${boardId}/approvals?${stringifiedParams}`
+    : `/api/boards/${boardId}/approvals`;
 };
 
 export const listApprovalsApiV1BoardsBoardIdApprovalsGet = async (
@@ -99,7 +99,7 @@ export const getListApprovalsApiV1BoardsBoardIdApprovalsGetQueryKey = (
   params?: ListApprovalsApiV1BoardsBoardIdApprovalsGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/approvals`,
+    `/api/boards/${boardId}/approvals`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -317,7 +317,7 @@ export type createApprovalApiV1BoardsBoardIdApprovalsPostResponse =
 export const getCreateApprovalApiV1BoardsBoardIdApprovalsPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/approvals`;
+  return `/api/boards/${boardId}/approvals`;
 };
 
 export const createApprovalApiV1BoardsBoardIdApprovalsPost = async (
@@ -457,8 +457,8 @@ export const getStreamApprovalsApiV1BoardsBoardIdApprovalsStreamGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/approvals/stream?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/approvals/stream`;
+    ? `/api/boards/${boardId}/approvals/stream?${stringifiedParams}`
+    : `/api/boards/${boardId}/approvals/stream`;
 };
 
 export const streamApprovalsApiV1BoardsBoardIdApprovalsStreamGet = async (
@@ -480,7 +480,7 @@ export const getStreamApprovalsApiV1BoardsBoardIdApprovalsStreamGetQueryKey = (
   params?: StreamApprovalsApiV1BoardsBoardIdApprovalsStreamGetParams,
 ) => {
   return [
-    `/api/v1/boards/${boardId}/approvals/stream`,
+    `/api/boards/${boardId}/approvals/stream`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -731,7 +731,7 @@ export const getUpdateApprovalApiV1BoardsBoardIdApprovalsApprovalIdPatchUrl = (
   boardId: string,
   approvalId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/approvals/${approvalId}`;
+  return `/api/boards/${boardId}/approvals/${approvalId}`;
 };
 
 export const updateApprovalApiV1BoardsBoardIdApprovalsApprovalIdPatch = async (

@@ -99,7 +99,7 @@ export function OrgSwitcher() {
           setOrgError(null);
           setCreateOpen(false);
           queryClient.invalidateQueries({
-            queryKey: ["/api/v1/organizations/me/list"],
+            queryKey: ["/api/organizations/me/list"],
           });
           if (typeof window !== "undefined") {
             announceOrgSwitch("new");

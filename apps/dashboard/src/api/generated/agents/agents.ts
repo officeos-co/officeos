@@ -79,8 +79,8 @@ export const getListAgentsApiV1AgentsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agents?${stringifiedParams}`
-    : `/api/v1/agents`;
+    ? `/api/agents?${stringifiedParams}`
+    : `/api/agents`;
 };
 
 export const listAgentsApiV1AgentsGet = async (
@@ -99,7 +99,7 @@ export const listAgentsApiV1AgentsGet = async (
 export const getListAgentsApiV1AgentsGetQueryKey = (
   params?: ListAgentsApiV1AgentsGetParams,
 ) => {
-  return [`/api/v1/agents`, ...(params ? [params] : [])] as const;
+  return [`/api/agents`, ...(params ? [params] : [])] as const;
 };
 
 export const getListAgentsApiV1AgentsGetQueryOptions = <
@@ -274,7 +274,7 @@ export type createAgentApiV1AgentsPostResponse =
   | createAgentApiV1AgentsPostResponseError;
 
 export const getCreateAgentApiV1AgentsPostUrl = () => {
-  return `/api/v1/agents`;
+  return `/api/agents`;
 };
 
 export const createAgentApiV1AgentsPost = async (
@@ -392,7 +392,7 @@ export type heartbeatOrCreateAgentApiV1AgentsHeartbeatPostResponse =
   | heartbeatOrCreateAgentApiV1AgentsHeartbeatPostResponseError;
 
 export const getHeartbeatOrCreateAgentApiV1AgentsHeartbeatPostUrl = () => {
-  return `/api/v1/agents/heartbeat`;
+  return `/api/agents/heartbeat`;
 };
 
 export const heartbeatOrCreateAgentApiV1AgentsHeartbeatPost = async (
@@ -533,8 +533,8 @@ export const getStreamAgentsApiV1AgentsStreamGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agents/stream?${stringifiedParams}`
-    : `/api/v1/agents/stream`;
+    ? `/api/agents/stream?${stringifiedParams}`
+    : `/api/agents/stream`;
 };
 
 export const streamAgentsApiV1AgentsStreamGet = async (
@@ -553,7 +553,7 @@ export const streamAgentsApiV1AgentsStreamGet = async (
 export const getStreamAgentsApiV1AgentsStreamGetQueryKey = (
   params?: StreamAgentsApiV1AgentsStreamGetParams,
 ) => {
-  return [`/api/v1/agents/stream`, ...(params ? [params] : [])] as const;
+  return [`/api/agents/stream`, ...(params ? [params] : [])] as const;
 };
 
 export const getStreamAgentsApiV1AgentsStreamGetQueryOptions = <
@@ -732,7 +732,7 @@ export type deleteAgentApiV1AgentsAgentIdDeleteResponse =
   | deleteAgentApiV1AgentsAgentIdDeleteResponseError;
 
 export const getDeleteAgentApiV1AgentsAgentIdDeleteUrl = (agentId: string) => {
-  return `/api/v1/agents/${agentId}`;
+  return `/api/agents/${agentId}`;
 };
 
 export const deleteAgentApiV1AgentsAgentIdDelete = async (
@@ -849,7 +849,7 @@ export type getAgentApiV1AgentsAgentIdGetResponse =
   | getAgentApiV1AgentsAgentIdGetResponseError;
 
 export const getGetAgentApiV1AgentsAgentIdGetUrl = (agentId: string) => {
-  return `/api/v1/agents/${agentId}`;
+  return `/api/agents/${agentId}`;
 };
 
 export const getAgentApiV1AgentsAgentIdGet = async (
@@ -866,7 +866,7 @@ export const getAgentApiV1AgentsAgentIdGet = async (
 };
 
 export const getGetAgentApiV1AgentsAgentIdGetQueryKey = (agentId: string) => {
-  return [`/api/v1/agents/${agentId}`] as const;
+  return [`/api/agents/${agentId}`] as const;
 };
 
 export const getGetAgentApiV1AgentsAgentIdGetQueryOptions = <
@@ -1063,8 +1063,8 @@ export const getUpdateAgentApiV1AgentsAgentIdPatchUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agents/${agentId}?${stringifiedParams}`
-    : `/api/v1/agents/${agentId}`;
+    ? `/api/agents/${agentId}?${stringifiedParams}`
+    : `/api/agents/${agentId}`;
 };
 
 export const updateAgentApiV1AgentsAgentIdPatch = async (
@@ -1212,7 +1212,7 @@ export type heartbeatAgentApiV1AgentsAgentIdHeartbeatPostResponse =
 export const getHeartbeatAgentApiV1AgentsAgentIdHeartbeatPostUrl = (
   agentId: string,
 ) => {
-  return `/api/v1/agents/${agentId}/heartbeat`;
+  return `/api/agents/${agentId}/heartbeat`;
 };
 
 export const heartbeatAgentApiV1AgentsAgentIdHeartbeatPost = async (

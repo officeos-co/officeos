@@ -1422,7 +1422,7 @@ pub struct SkillsConfig {
     pub skill_improvement: SkillImprovementConfig,
     /// Base URL of the EAOS backend (e.g. `https://dashboard.harrokrog.com`).
     /// When set, the agent pulls its live capability list from
-    /// `{backend_url}/api/v1/capabilities` at the start of every turn
+    /// `{backend_url}/api/capabilities` at the start of every turn
     /// instead of loading on-disk skills. Leave unset for local/disk mode.
     #[serde(default)]
     pub backend_url: Option<String>,
@@ -9482,6 +9482,32 @@ impl Config {
                     tracing::warn!(
                         "Ignoring invalid ZEROCLAW_SKILLS_PROMPT_MODE (valid: full|compact)"
                     );
+                }
+            }
+        }
+
+        // Skill Gateway backend URL: ZEROCLAW_SKILLS_BACKEND_URL
+        //   When set, Agent::turn refreshes its tool list from
+        //   `{url}/api/agents/me/capabilities` at the start of every turn.
+        if let Ok(url) = std::env::var("ZEROCLAW_SKILLS_BACKEND_URL") {
+            let trimmed = url.trim();
+            if !trimmed.is_empty() {
+                self.skills.backend_url = Some(trimmed.to_string());
+            }
+        }
+        // Bearer token sent with the above refresh call + every skill
+        // execution POST. Minted per-agent at provisioning time.
+        if let Ok(token) = std::env::var("ZEROCLAW_SKILLS_BACKEND_TOKEN") {
+            let trimmed = token.trim();
+            if !trimmed.is_empty() {
+                self.skills.backend_token = Some(trimmed.to_string());
+            }
+        }
+        // Minimum seconds between capability refreshes.
+        if let Ok(raw) = std::env::var("ZEROCLAW_SKILLS_BACKEND_REFRESH_SECONDS") {
+            if let Ok(parsed) = raw.trim().parse::<u64>() {
+                if parsed > 0 {
+                    self.skills.backend_refresh_seconds = parsed;
                 }
             }
         }

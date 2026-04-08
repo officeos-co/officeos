@@ -121,7 +121,7 @@ async def test_request_id_middleware_logs_trace_start_and_debug_completion() -> 
     request_scope = {
         "type": "http",
         "method": "GET",
-        "path": "/api/v1/auth/bootstrap",
+        "path": "/api/auth/bootstrap",
         "client": ("127.0.0.1", 5454),
         "headers": [],
     }
@@ -145,7 +145,7 @@ async def test_request_id_middleware_logs_trace_start_and_debug_completion() -> 
 
     assert start.levelname == "TRACE"
     assert getattr(start, "method", None) == "GET"
-    assert getattr(start, "path", None) == "/api/v1/auth/bootstrap"
+    assert getattr(start, "path", None) == "/api/auth/bootstrap"
 
     assert complete.levelname == "DEBUG"
     assert getattr(complete, "status_code", None) == 200
@@ -168,7 +168,7 @@ async def test_request_id_middleware_logs_error_for_5xx_completion() -> None:
     request_scope = {
         "type": "http",
         "method": "POST",
-        "path": "/api/v1/tasks",
+        "path": "/api/tasks",
         "client": ("127.0.0.1", 5454),
         "headers": [],
     }
@@ -209,7 +209,7 @@ async def test_request_id_middleware_enriches_in_request_logs_with_route_context
     request_scope = {
         "type": "http",
         "method": "PUT",
-        "path": "/api/v1/boards/abc",
+        "path": "/api/boards/abc",
         "client": ("127.0.0.1", 5454),
         "headers": [],
     }
@@ -226,4 +226,4 @@ async def test_request_id_middleware_enriches_in_request_logs_with_route_context
     record = next(item for item in capture.records if item.getMessage() == "inside.request.handler")
     assert isinstance(getattr(record, "request_id", None), str) and getattr(record, "request_id")
     assert getattr(record, "method", None) == "PUT"
-    assert getattr(record, "path", None) == "/api/v1/boards/abc"
+    assert getattr(record, "path", None) == "/api/boards/abc"

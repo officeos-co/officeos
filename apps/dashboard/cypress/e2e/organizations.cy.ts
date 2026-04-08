@@ -1,5 +1,5 @@
 describe("Organizations (PR #61)", () => {
-  const apiBase = "**/api/v1";
+  const apiBase = "**/api";
 
   function stubOrganizationApis() {
     cy.intercept("GET", `${apiBase}/users/me*`, {

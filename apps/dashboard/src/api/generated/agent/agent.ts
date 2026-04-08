@@ -110,8 +110,8 @@ export const getListAgentsApiV1AgentAgentsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agent/agents?${stringifiedParams}`
-    : `/api/v1/agent/agents`;
+    ? `/api/agent/agents?${stringifiedParams}`
+    : `/api/agent/agents`;
 };
 
 export const listAgentsApiV1AgentAgentsGet = async (
@@ -130,7 +130,7 @@ export const listAgentsApiV1AgentAgentsGet = async (
 export const getListAgentsApiV1AgentAgentsGetQueryKey = (
   params?: ListAgentsApiV1AgentAgentsGetParams,
 ) => {
-  return [`/api/v1/agent/agents`, ...(params ? [params] : [])] as const;
+  return [`/api/agent/agents`, ...(params ? [params] : [])] as const;
 };
 
 export const getListAgentsApiV1AgentAgentsGetQueryOptions = <
@@ -323,7 +323,7 @@ export type agentLeadCreateAgentResponse =
   | agentLeadCreateAgentResponseError;
 
 export const getAgentLeadCreateAgentUrl = () => {
-  return `/api/v1/agent/agents`;
+  return `/api/agent/agents`;
 };
 
 export const agentLeadCreateAgent = async (
@@ -456,8 +456,8 @@ export const getListBoardsApiV1AgentBoardsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agent/boards?${stringifiedParams}`
-    : `/api/v1/agent/boards`;
+    ? `/api/agent/boards?${stringifiedParams}`
+    : `/api/agent/boards`;
 };
 
 export const listBoardsApiV1AgentBoardsGet = async (
@@ -476,7 +476,7 @@ export const listBoardsApiV1AgentBoardsGet = async (
 export const getListBoardsApiV1AgentBoardsGetQueryKey = (
   params?: ListBoardsApiV1AgentBoardsGetParams,
 ) => {
-  return [`/api/v1/agent/boards`, ...(params ? [params] : [])] as const;
+  return [`/api/agent/boards`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBoardsApiV1AgentBoardsGetQueryOptions = <
@@ -656,7 +656,7 @@ export type getBoardApiV1AgentBoardsBoardIdGetResponse =
   | getBoardApiV1AgentBoardsBoardIdGetResponseError;
 
 export const getGetBoardApiV1AgentBoardsBoardIdGetUrl = (boardId: string) => {
-  return `/api/v1/agent/boards/${boardId}`;
+  return `/api/agent/boards/${boardId}`;
 };
 
 export const getBoardApiV1AgentBoardsBoardIdGet = async (
@@ -675,7 +675,7 @@ export const getBoardApiV1AgentBoardsBoardIdGet = async (
 export const getGetBoardApiV1AgentBoardsBoardIdGetQueryKey = (
   boardId: string,
 ) => {
-  return [`/api/v1/agent/boards/${boardId}`] as const;
+  return [`/api/agent/boards/${boardId}`] as const;
 };
 
 export const getGetBoardApiV1AgentBoardsBoardIdGetQueryOptions = <
@@ -877,7 +877,7 @@ export const getAgentLeadDeleteBoardAgentUrl = (
   boardId: string,
   agentId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/agents/${agentId}`;
+  return `/api/agent/boards/${boardId}/agents/${agentId}`;
 };
 
 export const agentLeadDeleteBoardAgent = async (
@@ -1017,7 +1017,7 @@ export type agentLeadNudgeAgentResponse =
   | agentLeadNudgeAgentResponseError;
 
 export const getAgentLeadNudgeAgentUrl = (boardId: string, agentId: string) => {
-  return `/api/v1/agent/boards/${boardId}/agents/${agentId}/nudge`;
+  return `/api/agent/boards/${boardId}/agents/${agentId}/nudge`;
 };
 
 export const agentLeadNudgeAgent = async (
@@ -1144,7 +1144,7 @@ export const getGetAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGetUrl = (
   boardId: string,
   agentId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/agents/${agentId}/soul`;
+  return `/api/agent/boards/${boardId}/agents/${agentId}/soul`;
 };
 
 export const getAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGet = async (
@@ -1166,7 +1166,7 @@ export const getAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGet = async (
 
 export const getGetAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGetQueryKey =
   (boardId: string, agentId: string) => {
-    return [`/api/v1/agent/boards/${boardId}/agents/${agentId}/soul`] as const;
+    return [`/api/agent/boards/${boardId}/agents/${agentId}/soul`] as const;
   };
 
 export const getGetAgentSoulApiV1AgentBoardsBoardIdAgentsAgentIdSoulGetQueryOptions =
@@ -1447,7 +1447,7 @@ export const getAgentLeadUpdateAgentSoulUrl = (
   boardId: string,
   agentId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/agents/${agentId}/soul`;
+  return `/api/agent/boards/${boardId}/agents/${agentId}/soul`;
 };
 
 export const agentLeadUpdateAgentSoul = async (
@@ -1583,8 +1583,8 @@ export const getListApprovalsApiV1AgentBoardsBoardIdApprovalsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agent/boards/${boardId}/approvals?${stringifiedParams}`
-    : `/api/v1/agent/boards/${boardId}/approvals`;
+    ? `/api/agent/boards/${boardId}/approvals?${stringifiedParams}`
+    : `/api/agent/boards/${boardId}/approvals`;
 };
 
 export const listApprovalsApiV1AgentBoardsBoardIdApprovalsGet = async (
@@ -1606,7 +1606,7 @@ export const getListApprovalsApiV1AgentBoardsBoardIdApprovalsGetQueryKey = (
   params?: ListApprovalsApiV1AgentBoardsBoardIdApprovalsGetParams,
 ) => {
   return [
-    `/api/v1/agent/boards/${boardId}/approvals`,
+    `/api/agent/boards/${boardId}/approvals`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -1841,7 +1841,7 @@ export type createApprovalApiV1AgentBoardsBoardIdApprovalsPostResponse =
 export const getCreateApprovalApiV1AgentBoardsBoardIdApprovalsPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/approvals`;
+  return `/api/agent/boards/${boardId}/approvals`;
 };
 
 export const createApprovalApiV1AgentBoardsBoardIdApprovalsPost = async (
@@ -2000,7 +2000,7 @@ export type agentLeadAskUserViaGatewayMainResponse =
   | agentLeadAskUserViaGatewayMainResponseError;
 
 export const getAgentLeadAskUserViaGatewayMainUrl = (boardId: string) => {
-  return `/api/v1/agent/boards/${boardId}/gateway/main/ask-user`;
+  return `/api/agent/boards/${boardId}/gateway/main/ask-user`;
 };
 
 export const agentLeadAskUserViaGatewayMain = async (
@@ -2138,8 +2138,8 @@ export const getListBoardMemoryApiV1AgentBoardsBoardIdMemoryGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agent/boards/${boardId}/memory?${stringifiedParams}`
-    : `/api/v1/agent/boards/${boardId}/memory`;
+    ? `/api/agent/boards/${boardId}/memory?${stringifiedParams}`
+    : `/api/agent/boards/${boardId}/memory`;
 };
 
 export const listBoardMemoryApiV1AgentBoardsBoardIdMemoryGet = async (
@@ -2161,7 +2161,7 @@ export const getListBoardMemoryApiV1AgentBoardsBoardIdMemoryGetQueryKey = (
   params?: ListBoardMemoryApiV1AgentBoardsBoardIdMemoryGetParams,
 ) => {
   return [
-    `/api/v1/agent/boards/${boardId}/memory`,
+    `/api/agent/boards/${boardId}/memory`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -2391,7 +2391,7 @@ export type createBoardMemoryApiV1AgentBoardsBoardIdMemoryPostResponse =
 export const getCreateBoardMemoryApiV1AgentBoardsBoardIdMemoryPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/memory`;
+  return `/api/agent/boards/${boardId}/memory`;
 };
 
 export const createBoardMemoryApiV1AgentBoardsBoardIdMemoryPost = async (
@@ -2533,7 +2533,7 @@ export type updateOnboardingApiV1AgentBoardsBoardIdOnboardingPostResponse =
 export const getUpdateOnboardingApiV1AgentBoardsBoardIdOnboardingPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/onboarding`;
+  return `/api/agent/boards/${boardId}/onboarding`;
 };
 
 export const updateOnboardingApiV1AgentBoardsBoardIdOnboardingPost = async (
@@ -2697,7 +2697,7 @@ export type listTagsApiV1AgentBoardsBoardIdTagsGetResponse =
 export const getListTagsApiV1AgentBoardsBoardIdTagsGetUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/tags`;
+  return `/api/agent/boards/${boardId}/tags`;
 };
 
 export const listTagsApiV1AgentBoardsBoardIdTagsGet = async (
@@ -2716,7 +2716,7 @@ export const listTagsApiV1AgentBoardsBoardIdTagsGet = async (
 export const getListTagsApiV1AgentBoardsBoardIdTagsGetQueryKey = (
   boardId: string,
 ) => {
-  return [`/api/v1/agent/boards/${boardId}/tags`] as const;
+  return [`/api/agent/boards/${boardId}/tags`] as const;
 };
 
 export const getListTagsApiV1AgentBoardsBoardIdTagsGetQueryOptions = <
@@ -2922,8 +2922,8 @@ export const getListTasksApiV1AgentBoardsBoardIdTasksGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/agent/boards/${boardId}/tasks?${stringifiedParams}`
-    : `/api/v1/agent/boards/${boardId}/tasks`;
+    ? `/api/agent/boards/${boardId}/tasks?${stringifiedParams}`
+    : `/api/agent/boards/${boardId}/tasks`;
 };
 
 export const listTasksApiV1AgentBoardsBoardIdTasksGet = async (
@@ -2945,7 +2945,7 @@ export const getListTasksApiV1AgentBoardsBoardIdTasksGetQueryKey = (
   params?: ListTasksApiV1AgentBoardsBoardIdTasksGetParams,
 ) => {
   return [
-    `/api/v1/agent/boards/${boardId}/tasks`,
+    `/api/agent/boards/${boardId}/tasks`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -3163,7 +3163,7 @@ export type agentLeadCreateTaskResponse =
   | agentLeadCreateTaskResponseError;
 
 export const getAgentLeadCreateTaskUrl = (boardId: string) => {
-  return `/api/v1/agent/boards/${boardId}/tasks`;
+  return `/api/agent/boards/${boardId}/tasks`;
 };
 
 export const agentLeadCreateTask = async (
@@ -3287,7 +3287,7 @@ export const getDeleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDeleteUrl = (
   boardId: string,
   taskId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/tasks/${taskId}`;
+  return `/api/agent/boards/${boardId}/tasks/${taskId}`;
 };
 
 export const deleteTaskApiV1AgentBoardsBoardIdTasksTaskIdDelete = async (
@@ -3427,7 +3427,7 @@ export const getUpdateTaskApiV1AgentBoardsBoardIdTasksTaskIdPatchUrl = (
   boardId: string,
   taskId: string,
 ) => {
-  return `/api/v1/agent/boards/${boardId}/tasks/${taskId}`;
+  return `/api/agent/boards/${boardId}/tasks/${taskId}`;
 };
 
 export const updateTaskApiV1AgentBoardsBoardIdTasksTaskIdPatch = async (
@@ -3589,8 +3589,8 @@ export const getListTaskCommentsApiV1AgentBoardsBoardIdTasksTaskIdCommentsGetUrl
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/agent/boards/${boardId}/tasks/${taskId}/comments?${stringifiedParams}`
-      : `/api/v1/agent/boards/${boardId}/tasks/${taskId}/comments`;
+      ? `/api/agent/boards/${boardId}/tasks/${taskId}/comments?${stringifiedParams}`
+      : `/api/agent/boards/${boardId}/tasks/${taskId}/comments`;
   };
 
 export const listTaskCommentsApiV1AgentBoardsBoardIdTasksTaskIdCommentsGet =
@@ -3620,7 +3620,7 @@ export const getListTaskCommentsApiV1AgentBoardsBoardIdTasksTaskIdCommentsGetQue
     params?: ListTaskCommentsApiV1AgentBoardsBoardIdTasksTaskIdCommentsGetParams,
   ) => {
     return [
-      `/api/v1/agent/boards/${boardId}/tasks/${taskId}/comments`,
+      `/api/agent/boards/${boardId}/tasks/${taskId}/comments`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -3907,7 +3907,7 @@ export type createTaskCommentApiV1AgentBoardsBoardIdTasksTaskIdCommentsPostRespo
 
 export const getCreateTaskCommentApiV1AgentBoardsBoardIdTasksTaskIdCommentsPostUrl =
   (boardId: string, taskId: string) => {
-    return `/api/v1/agent/boards/${boardId}/tasks/${taskId}/comments`;
+    return `/api/agent/boards/${boardId}/tasks/${taskId}/comments`;
   };
 
 export const createTaskCommentApiV1AgentBoardsBoardIdTasksTaskIdCommentsPost =
@@ -4084,7 +4084,7 @@ export type agentMainMessageBoardLeadResponse =
   | agentMainMessageBoardLeadResponseError;
 
 export const getAgentMainMessageBoardLeadUrl = (boardId: string) => {
-  return `/api/v1/agent/gateway/boards/${boardId}/lead/message`;
+  return `/api/agent/gateway/boards/${boardId}/lead/message`;
 };
 
 export const agentMainMessageBoardLead = async (
@@ -4224,7 +4224,7 @@ export type agentMainBroadcastLeadMessageResponse =
   | agentMainBroadcastLeadMessageResponseError;
 
 export const getAgentMainBroadcastLeadMessageUrl = () => {
-  return `/api/v1/agent/gateway/leads/broadcast`;
+  return `/api/agent/gateway/leads/broadcast`;
 };
 
 export const agentMainBroadcastLeadMessage = async (
@@ -4345,7 +4345,7 @@ export type agentHealthzApiV1AgentHealthzGetResponse =
   | agentHealthzApiV1AgentHealthzGetResponseError;
 
 export const getAgentHealthzApiV1AgentHealthzGetUrl = () => {
-  return `/api/v1/agent/healthz`;
+  return `/api/agent/healthz`;
 };
 
 export const agentHealthzApiV1AgentHealthzGet = async (
@@ -4361,7 +4361,7 @@ export const agentHealthzApiV1AgentHealthzGet = async (
 };
 
 export const getAgentHealthzApiV1AgentHealthzGetQueryKey = () => {
-  return [`/api/v1/agent/healthz`] as const;
+  return [`/api/agent/healthz`] as const;
 };
 
 export const getAgentHealthzApiV1AgentHealthzGetQueryOptions = <
@@ -4531,7 +4531,7 @@ export type agentHeartbeatApiV1AgentHeartbeatPostResponse =
   | agentHeartbeatApiV1AgentHeartbeatPostResponseError;
 
 export const getAgentHeartbeatApiV1AgentHeartbeatPostUrl = () => {
-  return `/api/v1/agent/heartbeat`;
+  return `/api/agent/heartbeat`;
 };
 
 export const agentHeartbeatApiV1AgentHeartbeatPost = async (

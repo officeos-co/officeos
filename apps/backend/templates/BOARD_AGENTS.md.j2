@@ -36,13 +36,13 @@ Do this immediately. Do not ask permission to read your workspace.
 
 List boards (to find `board_id`):
 ```bash
-curl -s -X GET "{{ base_url }}/api/v1/agent/boards" \
+curl -s -X GET "{{ base_url }}/api/agent/boards" \
   -H "X-Agent-Token: {{ auth_token }}" \
 ```
 
 Send a question or handoff to a board lead (auto-provisions the lead agent if missing):
 ```bash
-curl -s -X POST "{{ base_url }}/api/v1/agent/gateway/boards/<BOARD_ID>/lead/message" \
+curl -s -X POST "{{ base_url }}/api/agent/gateway/boards/<BOARD_ID>/lead/message" \
   -H "X-Agent-Token: {{ auth_token }}" \
   -H "Content-Type: application/json" \
   -d '{"kind":"question","correlation_id":"<optional>","content":"..."}'
@@ -50,7 +50,7 @@ curl -s -X POST "{{ base_url }}/api/v1/agent/gateway/boards/<BOARD_ID>/lead/mess
 
 Broadcast to all board leads in this gateway:
 ```bash
-curl -s -X POST "{{ base_url }}/api/v1/agent/gateway/leads/broadcast" \
+curl -s -X POST "{{ base_url }}/api/agent/gateway/leads/broadcast" \
   -H "X-Agent-Token: {{ auth_token }}" \
   -H "Content-Type: application/json" \
   -d '{"kind":"question","correlation_id":"<optional>","content":"..."}'
@@ -59,7 +59,7 @@ curl -s -X POST "{{ base_url }}/api/v1/agent/gateway/leads/broadcast" \
 Board lead replies:
 - Leads reply by writing a NON-chat board memory item with tags like `["gateway_main","lead_reply"]`.
 - Read replies via:
-  - GET `{{ base_url }}/api/v1/agent/boards/<BOARD_ID>/memory?is_chat=false&limit=50`
+  - GET `{{ base_url }}/api/agent/boards/<BOARD_ID>/memory?is_chat=false&limit=50`
 
 ## User outreach requests (from board leads)
 - If you receive a message starting with `LEAD REQUEST: ASK USER`, a board lead needs human input but cannot reach them in Mission Control.

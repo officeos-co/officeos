@@ -69,8 +69,8 @@ export const getSearchApiV1SoulsDirectorySearchGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/souls-directory/search?${stringifiedParams}`
-    : `/api/v1/souls-directory/search`;
+    ? `/api/souls-directory/search?${stringifiedParams}`
+    : `/api/souls-directory/search`;
 };
 
 export const searchApiV1SoulsDirectorySearchGet = async (
@@ -90,7 +90,7 @@ export const getSearchApiV1SoulsDirectorySearchGetQueryKey = (
   params?: SearchApiV1SoulsDirectorySearchGetParams,
 ) => {
   return [
-    `/api/v1/souls-directory/search`,
+    `/api/souls-directory/search`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -274,7 +274,7 @@ export const getGetMarkdownApiV1SoulsDirectoryHandleSlugGetUrl = (
   handle: string,
   slug: string,
 ) => {
-  return `/api/v1/souls-directory/${handle}/${slug}`;
+  return `/api/souls-directory/${handle}/${slug}`;
 };
 
 export const getMarkdownApiV1SoulsDirectoryHandleSlugGet = async (
@@ -295,7 +295,7 @@ export const getGetMarkdownApiV1SoulsDirectoryHandleSlugGetQueryKey = (
   handle: string,
   slug: string,
 ) => {
-  return [`/api/v1/souls-directory/${handle}/${slug}`] as const;
+  return [`/api/souls-directory/${handle}/${slug}`] as const;
 };
 
 export const getGetMarkdownApiV1SoulsDirectoryHandleSlugGetQueryOptions = <
@@ -512,7 +512,7 @@ export const getGetMarkdownApiV1SoulsDirectoryHandleSlugMdGetUrl = (
   handle: string,
   slug: string,
 ) => {
-  return `/api/v1/souls-directory/${handle}/${slug}.md`;
+  return `/api/souls-directory/${handle}/${slug}.md`;
 };
 
 export const getMarkdownApiV1SoulsDirectoryHandleSlugMdGet = async (
@@ -533,7 +533,7 @@ export const getGetMarkdownApiV1SoulsDirectoryHandleSlugMdGetQueryKey = (
   handle: string,
   slug: string,
 ) => {
-  return [`/api/v1/souls-directory/${handle}/${slug}.md`] as const;
+  return [`/api/souls-directory/${handle}/${slug}.md`] as const;
 };
 
 export const getGetMarkdownApiV1SoulsDirectoryHandleSlugMdGetQueryOptions = <

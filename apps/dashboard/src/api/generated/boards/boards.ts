@@ -78,8 +78,8 @@ export const getListBoardsApiV1BoardsGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards?${stringifiedParams}`
-    : `/api/v1/boards`;
+    ? `/api/boards?${stringifiedParams}`
+    : `/api/boards`;
 };
 
 export const listBoardsApiV1BoardsGet = async (
@@ -98,7 +98,7 @@ export const listBoardsApiV1BoardsGet = async (
 export const getListBoardsApiV1BoardsGetQueryKey = (
   params?: ListBoardsApiV1BoardsGetParams,
 ) => {
-  return [`/api/v1/boards`, ...(params ? [params] : [])] as const;
+  return [`/api/boards`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBoardsApiV1BoardsGetQueryOptions = <
@@ -273,7 +273,7 @@ export type createBoardApiV1BoardsPostResponse =
   | createBoardApiV1BoardsPostResponseError;
 
 export const getCreateBoardApiV1BoardsPostUrl = () => {
-  return `/api/v1/boards`;
+  return `/api/boards`;
 };
 
 export const createBoardApiV1BoardsPost = async (
@@ -391,7 +391,7 @@ export type deleteBoardApiV1BoardsBoardIdDeleteResponse =
   | deleteBoardApiV1BoardsBoardIdDeleteResponseError;
 
 export const getDeleteBoardApiV1BoardsBoardIdDeleteUrl = (boardId: string) => {
-  return `/api/v1/boards/${boardId}`;
+  return `/api/boards/${boardId}`;
 };
 
 export const deleteBoardApiV1BoardsBoardIdDelete = async (
@@ -508,7 +508,7 @@ export type getBoardApiV1BoardsBoardIdGetResponse =
   | getBoardApiV1BoardsBoardIdGetResponseError;
 
 export const getGetBoardApiV1BoardsBoardIdGetUrl = (boardId: string) => {
-  return `/api/v1/boards/${boardId}`;
+  return `/api/boards/${boardId}`;
 };
 
 export const getBoardApiV1BoardsBoardIdGet = async (
@@ -525,7 +525,7 @@ export const getBoardApiV1BoardsBoardIdGet = async (
 };
 
 export const getGetBoardApiV1BoardsBoardIdGetQueryKey = (boardId: string) => {
-  return [`/api/v1/boards/${boardId}`] as const;
+  return [`/api/boards/${boardId}`] as const;
 };
 
 export const getGetBoardApiV1BoardsBoardIdGetQueryOptions = <
@@ -708,7 +708,7 @@ export type updateBoardApiV1BoardsBoardIdPatchResponse =
   | updateBoardApiV1BoardsBoardIdPatchResponseError;
 
 export const getUpdateBoardApiV1BoardsBoardIdPatchUrl = (boardId: string) => {
-  return `/api/v1/boards/${boardId}`;
+  return `/api/boards/${boardId}`;
 };
 
 export const updateBoardApiV1BoardsBoardIdPatch = async (
@@ -846,8 +846,8 @@ export const getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/boards/${boardId}/group-snapshot?${stringifiedParams}`
-    : `/api/v1/boards/${boardId}/group-snapshot`;
+    ? `/api/boards/${boardId}/group-snapshot?${stringifiedParams}`
+    : `/api/boards/${boardId}/group-snapshot`;
 };
 
 export const getBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGet = async (
@@ -873,7 +873,7 @@ export const getGetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetQueryKey 
     params?: GetBoardGroupSnapshotApiV1BoardsBoardIdGroupSnapshotGetParams,
   ) => {
     return [
-      `/api/v1/boards/${boardId}/group-snapshot`,
+      `/api/boards/${boardId}/group-snapshot`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -1135,7 +1135,7 @@ export type getBoardSnapshotApiV1BoardsBoardIdSnapshotGetResponse =
 export const getGetBoardSnapshotApiV1BoardsBoardIdSnapshotGetUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/snapshot`;
+  return `/api/boards/${boardId}/snapshot`;
 };
 
 export const getBoardSnapshotApiV1BoardsBoardIdSnapshotGet = async (
@@ -1154,7 +1154,7 @@ export const getBoardSnapshotApiV1BoardsBoardIdSnapshotGet = async (
 export const getGetBoardSnapshotApiV1BoardsBoardIdSnapshotGetQueryKey = (
   boardId: string,
 ) => {
-  return [`/api/v1/boards/${boardId}/snapshot`] as const;
+  return [`/api/boards/${boardId}/snapshot`] as const;
 };
 
 export const getGetBoardSnapshotApiV1BoardsBoardIdSnapshotGetQueryOptions = <

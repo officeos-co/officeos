@@ -117,7 +117,7 @@ To re-sync:
 **Via API (curl):**
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/gateways/GATEWAY_ID/templates/sync?rotate_tokens=true" \
+curl -X POST "http://localhost:8000/api/gateways/GATEWAY_ID/templates/sync?rotate_tokens=true" \
   -H "Authorization: Bearer YOUR_LOCAL_AUTH_TOKEN"
 ```
 

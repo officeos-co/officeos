@@ -258,15 +258,15 @@ async def start_onboarding(
         f"Mission Control base URL: {base_url}\n"
         "Use the AUTH_TOKEN from USER.md or TOOLS.md and pass it as X-Agent-Token.\n"
         "Onboarding response endpoint:\n"
-        f"POST {base_url}/api/v1/agent/boards/{board.id}/onboarding\n"
+        f"POST {base_url}/api/agent/boards/{board.id}/onboarding\n"
         "QUESTION example (send JSON body exactly as shown):\n"
-        f'curl -s -X POST "{base_url}/api/v1/agent/boards/{board.id}/onboarding" '
+        f'curl -s -X POST "{base_url}/api/agent/boards/{board.id}/onboarding" '
         '-H "X-Agent-Token: $AUTH_TOKEN" '
         '-H "Content-Type: application/json" '
         '-d \'{"question":"...","options":[{"id":"1","label":"..."},'
         '{"id":"2","label":"..."}]}\'\n'
         "COMPLETION example (send JSON body exactly as shown):\n"
-        f'curl -s -X POST "{base_url}/api/v1/agent/boards/{board.id}/onboarding" '
+        f'curl -s -X POST "{base_url}/api/agent/boards/{board.id}/onboarding" '
         '-H "X-Agent-Token: $AUTH_TOKEN" '
         '-H "Content-Type: application/json" '
         '-d \'{"status":"complete","board_type":"goal","objective":"...",'

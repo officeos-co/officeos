@@ -77,8 +77,8 @@ export const getListBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryGetUrl = (
   const stringifiedParams = normalizedParams.toString();
 
   return stringifiedParams.length > 0
-    ? `/api/v1/board-groups/${groupId}/memory?${stringifiedParams}`
-    : `/api/v1/board-groups/${groupId}/memory`;
+    ? `/api/board-groups/${groupId}/memory?${stringifiedParams}`
+    : `/api/board-groups/${groupId}/memory`;
 };
 
 export const listBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryGet = async (
@@ -100,7 +100,7 @@ export const getListBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryGetQueryKey = (
   params?: ListBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryGetParams,
 ) => {
   return [
-    `/api/v1/board-groups/${groupId}/memory`,
+    `/api/board-groups/${groupId}/memory`,
     ...(params ? [params] : []),
   ] as const;
 };
@@ -360,7 +360,7 @@ export type createBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryPostResponse =
 export const getCreateBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryPostUrl = (
   groupId: string,
 ) => {
-  return `/api/v1/board-groups/${groupId}/memory`;
+  return `/api/board-groups/${groupId}/memory`;
 };
 
 export const createBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryPost = async (
@@ -527,8 +527,8 @@ export const getStreamBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryStreamGetUrl 
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/board-groups/${groupId}/memory/stream?${stringifiedParams}`
-      : `/api/v1/board-groups/${groupId}/memory/stream`;
+      ? `/api/board-groups/${groupId}/memory/stream?${stringifiedParams}`
+      : `/api/board-groups/${groupId}/memory/stream`;
   };
 
 export const streamBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryStreamGet =
@@ -555,7 +555,7 @@ export const getStreamBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryStreamGetQuer
     params?: StreamBoardGroupMemoryApiV1BoardGroupsGroupIdMemoryStreamGetParams,
   ) => {
     return [
-      `/api/v1/board-groups/${groupId}/memory/stream`,
+      `/api/board-groups/${groupId}/memory/stream`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -851,8 +851,8 @@ export const getListBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryGetUrl 
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/boards/${boardId}/group-memory?${stringifiedParams}`
-      : `/api/v1/boards/${boardId}/group-memory`;
+      ? `/api/boards/${boardId}/group-memory?${stringifiedParams}`
+      : `/api/boards/${boardId}/group-memory`;
   };
 
 export const listBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryGet =
@@ -879,7 +879,7 @@ export const getListBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryGetQuer
     params?: ListBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryGetParams,
   ) => {
     return [
-      `/api/v1/boards/${boardId}/group-memory`,
+      `/api/boards/${boardId}/group-memory`,
       ...(params ? [params] : []),
     ] as const;
   };
@@ -1159,7 +1159,7 @@ export type createBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryPostRespo
 
 export const getCreateBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryPostUrl =
   (boardId: string) => {
-    return `/api/v1/boards/${boardId}/group-memory`;
+    return `/api/boards/${boardId}/group-memory`;
   };
 
 export const createBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryPost =
@@ -1333,8 +1333,8 @@ export const getStreamBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryStrea
     const stringifiedParams = normalizedParams.toString();
 
     return stringifiedParams.length > 0
-      ? `/api/v1/boards/${boardId}/group-memory/stream?${stringifiedParams}`
-      : `/api/v1/boards/${boardId}/group-memory/stream`;
+      ? `/api/boards/${boardId}/group-memory/stream?${stringifiedParams}`
+      : `/api/boards/${boardId}/group-memory/stream`;
   };
 
 export const streamBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryStreamGet =
@@ -1361,7 +1361,7 @@ export const getStreamBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryStrea
     params?: StreamBoardGroupMemoryForBoardApiV1BoardsBoardIdGroupMemoryStreamGetParams,
   ) => {
     return [
-      `/api/v1/boards/${boardId}/group-memory/stream`,
+      `/api/boards/${boardId}/group-memory/stream`,
       ...(params ? [params] : []),
     ] as const;
   };

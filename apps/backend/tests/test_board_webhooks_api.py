@@ -37,7 +37,7 @@ def _build_test_app(
     session_maker: async_sessionmaker[AsyncSession],
 ) -> FastAPI:
     app = FastAPI()
-    api_v1 = APIRouter(prefix="/api/v1")
+    api_v1 = APIRouter(prefix="/api")
     api_v1.include_router(board_webhooks_router)
     app.include_router(api_v1)
 
@@ -176,7 +176,7 @@ async def test_ingest_board_webhook_stores_payload_and_enqueues_for_lead_dispatc
             base_url="http://testserver",
         ) as client:
             response = await client.post(
-                f"/api/v1/boards/{board.id}/webhooks/{webhook.id}",
+                f"/api/boards/{board.id}/webhooks/{webhook.id}",
                 json={"event": "deploy", "service": "api"},
                 headers={"X-Signature": "sha256=abc123"},
             )
@@ -262,7 +262,7 @@ async def test_ingest_board_webhook_rejects_disabled_endpoint(
             base_url="http://testserver",
         ) as client:
             response = await client.post(
-                f"/api/v1/boards/{board.id}/webhooks/{webhook.id}",
+                f"/api/boards/{board.id}/webhooks/{webhook.id}",
                 json={"event": "deploy"},
             )
 

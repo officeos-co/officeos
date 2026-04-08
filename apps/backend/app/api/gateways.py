@@ -16,7 +16,6 @@ from app.db.pagination import paginate
 from app.db.session import get_session
 from app.models.agents import Agent
 from app.models.gateways import Gateway
-from app.models.skills import GatewayInstalledSkill
 from app.schemas.common import OkResponse
 from app.schemas.gateways import (
     GatewayCreate,
@@ -289,15 +288,6 @@ async def delete_gateway(
             continue
         await service.clear_agent_foreign_keys(agent_id=agent.id)
         await session.delete(agent)
-
-    # NOTE: The migration declares `ondelete="CASCADE"` for gateway_installed_skills.gateway_id,
-    # but some backends/test environments (e.g. SQLite without FK pragma) may not
-    # enforce cascades. Delete rows explicitly to guarantee cleanup semantics.
-    installed_skills = await GatewayInstalledSkill.objects.filter_by(
-        gateway_id=gateway.id,
-    ).all(session)
-    for installed_skill in installed_skills:
-        await session.delete(installed_skill)
 
     await session.delete(gateway)
     await session.commit()

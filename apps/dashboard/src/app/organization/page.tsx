@@ -482,7 +482,7 @@ export default function OrganizationPage() {
   >({
     mutationFn: async () =>
       customFetch<{ data: unknown; status: number; headers: Headers }>(
-        "/api/v1/organizations/me",
+        "/api/organizations/me",
         { method: "DELETE" },
       ),
     onSuccess: async () => {
@@ -502,7 +502,7 @@ export default function OrganizationPage() {
   >({
     mutationFn: async ({ memberId }) =>
       customFetch<{ data: unknown; status: number; headers: Headers }>(
-        `/api/v1/organizations/me/members/${memberId}`,
+        `/api/organizations/me/members/${memberId}`,
         { method: "DELETE" },
       ),
     onSuccess: async () => {

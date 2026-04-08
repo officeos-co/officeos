@@ -18,7 +18,7 @@ from app.models.users import User
 
 def _build_test_app(*, auth_ctx: AuthContext) -> FastAPI:
     app = FastAPI()
-    api_v1 = APIRouter(prefix="/api/v1")
+    api_v1 = APIRouter(prefix="/api")
     api_v1.include_router(auth_router)
     app.include_router(api_v1)
 
@@ -44,7 +44,7 @@ async def test_auth_bootstrap_returns_user_profile_when_authenticated() -> None:
         transport=ASGITransport(app=app),
         base_url="http://testserver",
     ) as client:
-        status, payload = await _get(client, "/api/v1/auth/bootstrap")
+        status, payload = await _get(client, "/api/auth/bootstrap")
 
     assert status == 200
     assert payload["external_id"] == "user_123"
@@ -61,7 +61,7 @@ async def test_auth_bootstrap_rejects_requests_without_user_context() -> None:
         transport=ASGITransport(app=app),
         base_url="http://testserver",
     ) as client:
-        status, payload = await _get(client, "/api/v1/auth/bootstrap")
+        status, payload = await _get(client, "/api/auth/bootstrap")
 
     assert status == 401
     assert payload == {"detail": "Unauthorized"}
@@ -81,7 +81,7 @@ async def test_auth_bootstrap_rejects_non_user_actor_type() -> None:
         transport=ASGITransport(app=app),
         base_url="http://testserver",
     ) as client:
-        status, payload = await _get(client, "/api/v1/auth/bootstrap")
+        status, payload = await _get(client, "/api/auth/bootstrap")
 
     assert status == 401
     assert payload == {"detail": "Unauthorized"}

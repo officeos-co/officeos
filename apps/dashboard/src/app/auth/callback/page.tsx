@@ -21,7 +21,7 @@ export default function AuthCallbackPage() {
     const exchangeCode = async () => {
       try {
         const baseUrl = getApiBaseUrl();
-        const resp = await fetch(`${baseUrl}/api/v1/auth/google/callback`, {
+        const resp = await fetch(`${baseUrl}/api/auth/google/callback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code }),

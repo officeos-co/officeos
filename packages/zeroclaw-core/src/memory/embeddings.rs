@@ -175,7 +175,7 @@ pub fn create_embedding_provider(
         "openrouter" => {
             let key = api_key.unwrap_or("");
             Box::new(OpenAiEmbedding::new(
-                "https://openrouter.ai/api/v1",
+                "https://openrouter.ai/api",
                 key,
                 model,
                 dims,

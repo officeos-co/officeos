@@ -111,14 +111,14 @@
     #[test]
     fn embeddings_url_openrouter() {
         let p = OpenAiEmbedding::new(
-            "https://openrouter.ai/api/v1",
+            "https://openrouter.ai/api",
             "key",
             "openai/text-embedding-3-small",
             1536,
         );
         assert_eq!(
             p.embeddings_url(),
-            "https://openrouter.ai/api/v1/embeddings"
+            "https://openrouter.ai/api/embeddings"
         );
     }
 

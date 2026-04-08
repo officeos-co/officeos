@@ -62,7 +62,7 @@ export function SignInButton(props: {
           ? `${window.location.protocol}//${window.location.hostname}:8000`
           : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      const resp = await fetch(`${baseUrl}/api/v1/auth/google/url`);
+      const resp = await fetch(`${baseUrl}/api/auth/google/url`);
       const data = await resp.json();
       if (data.url) {
         window.location.href = data.url;

@@ -377,7 +377,7 @@ impl Provider for OpenRouterProvider {
         // This prevents the first real chat request from timing out on cold start.
         if let Some(credential) = self.credential.as_ref() {
             self.http_client()
-                .get("https://openrouter.ai/api/v1/auth/key")
+                .get("https://openrouter.ai/api/auth/key")
                 .header("Authorization", format!("Bearer {credential}"))
                 .send()
                 .await?
@@ -419,7 +419,7 @@ impl Provider for OpenRouterProvider {
 
         let response = self
             .http_client()
-            .post("https://openrouter.ai/api/v1/chat/completions")
+            .post("https://openrouter.ai/api/chat/completions")
             .header("Authorization", format!("Bearer {credential}"))
             .header("HTTP-Referer", "https://github.com/zeroclaw-labs/zeroclaw")
             .header("X-Title", "ZeroClaw")
@@ -469,7 +469,7 @@ impl Provider for OpenRouterProvider {
 
         let response = self
             .http_client()
-            .post("https://openrouter.ai/api/v1/chat/completions")
+            .post("https://openrouter.ai/api/chat/completions")
             .header("Authorization", format!("Bearer {credential}"))
             .header("HTTP-Referer", "https://github.com/zeroclaw-labs/zeroclaw")
             .header("X-Title", "ZeroClaw")
@@ -517,7 +517,7 @@ impl Provider for OpenRouterProvider {
 
         let response = self
             .http_client()
-            .post("https://openrouter.ai/api/v1/chat/completions")
+            .post("https://openrouter.ai/api/chat/completions")
             .header("Authorization", format!("Bearer {credential}"))
             .header("HTTP-Referer", "https://github.com/zeroclaw-labs/zeroclaw")
             .header("X-Title", "ZeroClaw")
@@ -608,7 +608,7 @@ impl Provider for OpenRouterProvider {
 
         let response = self
             .http_client()
-            .post("https://openrouter.ai/api/v1/chat/completions")
+            .post("https://openrouter.ai/api/chat/completions")
             .header("Authorization", format!("Bearer {credential}"))
             .header("HTTP-Referer", "https://github.com/zeroclaw-labs/zeroclaw")
             .header("X-Title", "ZeroClaw")

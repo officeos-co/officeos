@@ -65,7 +65,7 @@ export type getOnboardingApiV1BoardsBoardIdOnboardingGetResponse =
 export const getGetOnboardingApiV1BoardsBoardIdOnboardingGetUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/onboarding`;
+  return `/api/boards/${boardId}/onboarding`;
 };
 
 export const getOnboardingApiV1BoardsBoardIdOnboardingGet = async (
@@ -84,7 +84,7 @@ export const getOnboardingApiV1BoardsBoardIdOnboardingGet = async (
 export const getGetOnboardingApiV1BoardsBoardIdOnboardingGetQueryKey = (
   boardId: string,
 ) => {
-  return [`/api/v1/boards/${boardId}/onboarding`] as const;
+  return [`/api/boards/${boardId}/onboarding`] as const;
 };
 
 export const getGetOnboardingApiV1BoardsBoardIdOnboardingGetQueryOptions = <
@@ -305,7 +305,7 @@ export type agentOnboardingUpdateApiV1BoardsBoardIdOnboardingAgentPostResponse =
 
 export const getAgentOnboardingUpdateApiV1BoardsBoardIdOnboardingAgentPostUrl =
   (boardId: string) => {
-    return `/api/v1/boards/${boardId}/onboarding/agent`;
+    return `/api/boards/${boardId}/onboarding/agent`;
   };
 
 export const agentOnboardingUpdateApiV1BoardsBoardIdOnboardingAgentPost =
@@ -481,7 +481,7 @@ export type answerOnboardingApiV1BoardsBoardIdOnboardingAnswerPostResponse =
 export const getAnswerOnboardingApiV1BoardsBoardIdOnboardingAnswerPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/onboarding/answer`;
+  return `/api/boards/${boardId}/onboarding/answer`;
 };
 
 export const answerOnboardingApiV1BoardsBoardIdOnboardingAnswerPost = async (
@@ -631,7 +631,7 @@ export type confirmOnboardingApiV1BoardsBoardIdOnboardingConfirmPostResponse =
 export const getConfirmOnboardingApiV1BoardsBoardIdOnboardingConfirmPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/onboarding/confirm`;
+  return `/api/boards/${boardId}/onboarding/confirm`;
 };
 
 export const confirmOnboardingApiV1BoardsBoardIdOnboardingConfirmPost = async (
@@ -783,7 +783,7 @@ export type startOnboardingApiV1BoardsBoardIdOnboardingStartPostResponse =
 export const getStartOnboardingApiV1BoardsBoardIdOnboardingStartPostUrl = (
   boardId: string,
 ) => {
-  return `/api/v1/boards/${boardId}/onboarding/start`;
+  return `/api/boards/${boardId}/onboarding/start`;
 };
 
 export const startOnboardingApiV1BoardsBoardIdOnboardingStartPost = async (

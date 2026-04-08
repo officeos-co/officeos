@@ -26,9 +26,9 @@ from app.api.gateways import router as gateways_router
 from app.api.zeroclaw import router as zeroclaw_router
 from app.api.metrics import router as metrics_router
 from app.api.organizations import router as organizations_router
-from app.api.skills_marketplace import router as skills_marketplace_router
-from app.api.skills_v2 import router as skills_v2_router
-from app.skills import build_skills_router
+from app.api.agents_me import router as agents_me_router
+from app.api.skills_management import router as skills_management_router
+from app.skills import build_agent_skills_router, build_skills_router
 from app.api.souls_directory import router as souls_directory_router
 from app.api.tags import router as tags_router
 from app.api.task_custom_fields import router as task_custom_fields_router
@@ -321,7 +321,7 @@ def _inject_json_content_example(
 def _build_operation_summary(*, method: str, path: str) -> str:
     """Build a readable summary when an operation does not define one."""
     prefix = _METHOD_SUMMARY_PREFIX.get(method.lower(), "Handle")
-    path_without_prefix = path.removeprefix("/api/v1/")
+    path_without_prefix = path.removeprefix("/api/")
     parts = [
         part.replace("-", " ")
         for part in path_without_prefix.split("/")
@@ -539,7 +539,7 @@ def readyz() -> HealthStatusResponse:
     return HealthStatusResponse(ok=True)
 
 
-api_v1 = APIRouter(prefix="/api/v1")
+api_v1 = APIRouter(prefix="/api")
 api_v1.include_router(auth_router)
 api_v1.include_router(agent_router)
 api_v1.include_router(agents_router)
@@ -550,9 +550,11 @@ api_v1.include_router(zeroclaw_router)
 api_v1.include_router(metrics_router)
 api_v1.include_router(organizations_router)
 api_v1.include_router(souls_directory_router)
-api_v1.include_router(skills_marketplace_router)
-api_v1.include_router(skills_v2_router)
+api_v1.include_router(skills_management_router)
 api_v1.include_router(build_skills_router())
+# Agent-auth (X-Agent-Token) mirror of the skills surface.
+api_v1.include_router(agents_me_router)
+api_v1.include_router(build_agent_skills_router())
 api_v1.include_router(board_groups_router)
 api_v1.include_router(board_group_memory_router)
 api_v1.include_router(boards_router)

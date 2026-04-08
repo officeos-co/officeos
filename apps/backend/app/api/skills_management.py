@@ -1,18 +1,22 @@
-"""Skill management API (v2) — global-per-org skill install + credential config.
+"""Skill management API — global-per-org skill install + credential config.
 
-Replaces nothing: lives alongside the existing `skills_marketplace.py` which
-deals with git-based skill packs. This module is the one the dashboard
-Skills page talks to.
+The single source of truth for the dashboard's Skills page and for the
+`/capabilities` endpoint that running agents poll each turn.
 
-Endpoints (all under `/api/v1/skills_v2` to avoid collision with the older
-marketplace router):
+Endpoints:
 
-    GET  /skills_v2              list catalog + per-org install state
-    GET  /skills_v2/{name}       single skill detail (manifest + state)
-    POST /skills_v2/{name}/install
-    POST /skills_v2/{name}/uninstall
-    PUT  /skills_v2/{name}/credentials   { credentials: {...} }
+    GET  /skills                 list catalog + per-org install state
+    GET  /skills/{name}          single skill detail (manifest + state)
+    POST /skills/{name}/install
+    POST /skills/{name}/uninstall
+    PUT  /skills/{name}/credentials   { credentials: {...} }
     GET  /capabilities           resolved LLM tools for the org (agent-facing)
+
+The per-skill *execution* routes (e.g. `POST /skills/notion/search`) are
+mounted by `app.skills.build_skills_router()` on the same `/skills`
+prefix. That's intentional: management verbs live at reserved suffixes
+(`install`, `uninstall`, `credentials`) that cannot collide with skill
+action names.
 """
 
 from __future__ import annotations
@@ -31,7 +35,7 @@ from app.models.skill_credentials import SkillCredential
 from app.services.organizations import OrganizationContext
 from app.skills import SKILLS
 
-router = APIRouter(tags=["skills_v2"])
+router = APIRouter(tags=["skills"])
 
 
 # ---------- response shapes ----------
@@ -127,7 +131,7 @@ async def _upsert(
 # ---------- routes ----------
 
 
-@router.get("/skills_v2", response_model=SkillListResponse)
+@router.get("/skills", response_model=SkillListResponse)
 async def list_skills(
     ctx: OrganizationContext = ORG_MEMBER_DEP,
     session: AsyncSession = SESSION_DEP,
@@ -139,7 +143,7 @@ async def list_skills(
     return SkillListResponse(skills=items)
 
 
-@router.get("/skills_v2/{name}", response_model=SkillStateRead)
+@router.get("/skills/{name}", response_model=SkillStateRead)
 async def get_skill(
     name: str,
     ctx: OrganizationContext = ORG_MEMBER_DEP,
@@ -150,7 +154,7 @@ async def get_skill(
     return _to_read(manifest, state)
 
 
-@router.post("/skills_v2/{name}/install", response_model=SkillStateRead)
+@router.post("/skills/{name}/install", response_model=SkillStateRead)
 async def install_skill(
     name: str,
     ctx: OrganizationContext = ORG_MEMBER_DEP,
@@ -161,7 +165,7 @@ async def install_skill(
     return _to_read(manifest, row)
 
 
-@router.post("/skills_v2/{name}/uninstall", response_model=SkillStateRead)
+@router.post("/skills/{name}/uninstall", response_model=SkillStateRead)
 async def uninstall_skill(
     name: str,
     ctx: OrganizationContext = ORG_MEMBER_DEP,
@@ -172,7 +176,7 @@ async def uninstall_skill(
     return _to_read(manifest, row)
 
 
-@router.put("/skills_v2/{name}/credentials", response_model=SkillStateRead)
+@router.put("/skills/{name}/credentials", response_model=SkillStateRead)
 async def put_credentials(
     name: str,
     body: CredentialsPut,
@@ -218,9 +222,9 @@ async def get_capabilities(
                     "description": t.description,
                     "parameters": t.parameters,
                     # The route the agent (or eaos CLI) should POST to.
-                    # Format: /api/v1/skills/{skill}/{action}
+                    # Format: /api/skills/{skill}/{action}
                     # Convention: LLM tool name = "{skill}.{action}"
-                    "route": f"/api/v1/skills/{name}/{t.name.split('.', 1)[1]}",
+                    "route": f"/api/skills/{name}/{t.name.split('.', 1)[1]}",
                 },
             )
     return CapabilitiesResponse(tools=tools)

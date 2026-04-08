@@ -1,6 +1,6 @@
 describe("Local auth login", () => {
   it("user with local auth token can access protected route", () => {
-    cy.intercept("GET", "**/api/v1/users/me*", {
+    cy.intercept("GET", "**/api/users/me*", {
       statusCode: 200,
       body: {
         id: "u1",
@@ -12,7 +12,7 @@ describe("Local auth login", () => {
       },
     }).as("usersMe");
 
-    cy.intercept("GET", "**/api/v1/organizations/me/list*", {
+    cy.intercept("GET", "**/api/organizations/me/list*", {
       statusCode: 200,
       body: [
         {
@@ -24,19 +24,19 @@ describe("Local auth login", () => {
       ],
     }).as("orgsList");
 
-    cy.intercept("GET", "**/api/v1/organizations/me/member*", {
+    cy.intercept("GET", "**/api/organizations/me/member*", {
       statusCode: 200,
       body: { organization_id: "org1", role: "owner" },
     }).as("orgMeMember");
 
-    cy.intercept("GET", "**/api/v1/boards*", {
+    cy.intercept("GET", "**/api/boards*", {
       statusCode: 200,
       body: {
         items: [{ id: "b1", name: "Testing", updated_at: "2026-02-07T00:00:00Z" }],
       },
     }).as("boardsList");
 
-    cy.intercept("GET", "**/api/v1/boards/b1/snapshot*", {
+    cy.intercept("GET", "**/api/boards/b1/snapshot*", {
       statusCode: 200,
       body: { tasks: [], agents: [], approvals: [], chat_messages: [] },
     }).as("boardSnapshot");
