@@ -27,8 +27,10 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          # Repo root — the Dockerfile references `packages/zeroclaw-core`.
-          context: .
+          # The Dockerfile copies Cargo.toml, src/, web/, etc. without
+          # any `packages/zeroclaw-core/` prefix — so the context has
+          # to be that directory, not the repo root.
+          context: packages/zeroclaw-core
           file: packages/zeroclaw-core/Dockerfile
           push: true
           tags: |

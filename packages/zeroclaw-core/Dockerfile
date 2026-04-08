@@ -1,130 +1,78 @@
 # syntax=docker/dockerfile:1.7
+#
+# ZeroClaw agent runtime image — Rust binary compiled from this
+# workspace's source. Matches the stripped-down post-refactor layout
+# (no crates/robot-kit, no benches, no channel-lark/whatsapp-web
+# features) and is what `k8s_manager.py::DEFAULT_IMAGE` now pulls.
+#
+# Build context MUST be this directory (`packages/zeroclaw-core/`),
+# not the repo root — the COPY paths are all relative to here.
 
-# ── Stage 0: Frontend build ─────────────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# Stage 0: Web dashboard build
+# `rust-embed` at src/gateway/static_files.rs bakes `web/dist/` into
+# the binary at compile time. The directory is gitignored, so CI
+# must rebuild it from `web/` before the Rust build starts.
+# ──────────────────────────────────────────────────────────────
 FROM node:22-alpine AS web-builder
 WORKDIR /web
 COPY web/package.json web/package-lock.json* ./
 RUN npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
-COPY web/ .
+COPY web/ ./
 RUN npm run build
 
-# Dockerfile.debian — Shell-equipped variant of the ZeroClaw container.
-#
-# The default Dockerfile produces a distroless "release" image with no shell,
-# which is ideal for minimal attack surface but prevents the agent from using
-# shell-based tools (pwd, ls, git, curl, etc.).
-#
-# This variant uses debian:bookworm-slim as the runtime base and ships
-# essential CLI tools so the agent can operate as a full coding assistant.
-#
-# Build:
-#   docker build -f Dockerfile.debian -t zeroclaw:debian .
-#
-# Or with docker compose:
-#   docker compose -f docker-compose.yml -f docker-compose.debian.yml up
-
-# ── Stage 1: Build (match runtime glibc baseline) ───────────
-FROM rust:1.94-bookworm AS builder
+# ──────────────────────────────────────────────────────────────
+# Stage 1: Rust build
+# ──────────────────────────────────────────────────────────────
+FROM rust:1.94-slim-bookworm AS builder
 
 WORKDIR /app
-ARG ZEROCLAW_CARGO_FEATURES="channel-lark,whatsapp-web"
 
-# Install build dependencies
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y \
-        pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+     build-essential \
+     pkg-config \
+     ca-certificates \
+     git \
+  && rm -rf /var/lib/apt/lists/*
 
-# 1. Copy manifests to cache dependencies
-COPY Cargo.toml Cargo.lock ./
-# Include every workspace member: Cargo.lock is generated for the full workspace.
-# Previously we used sed to drop `crates/robot-kit`, which made the manifest disagree
-# with the lockfile and caused `cargo --locked` to fail (Cargo refused to rewrite the lock).
-COPY crates/robot-kit/ crates/robot-kit/
-# Create dummy targets declared in Cargo.toml so manifest parsing succeeds.
-RUN mkdir -p src benches \
-    && echo "fn main() {}" > src/main.rs \
-    && echo "" > src/lib.rs \
-    && echo "fn main() {}" > benches/agent_benchmarks.rs
-RUN --mount=type=cache,id=zeroclaw-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
-    --mount=type=cache,id=zeroclaw-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=zeroclaw-target,target=/app/target,sharing=locked \
-    if [ -n "$ZEROCLAW_CARGO_FEATURES" ]; then \
-      cargo build --release --locked --features "$ZEROCLAW_CARGO_FEATURES"; \
-    else \
-      cargo build --release --locked; \
-    fi
-RUN rm -rf src benches
+# Copy the Rust workspace. `web/dist/` comes from the web-builder
+# stage so rust-embed's compile-time file inclusion resolves.
+COPY Cargo.toml Cargo.lock build.rs ./
+COPY src ./src
+COPY tool_descriptions ./tool_descriptions
+COPY skills ./skills
+COPY --from=web-builder /web/dist ./web/dist
 
-# 2. Copy only build-relevant source paths (avoid cache-busting on docs/tests/scripts)
-COPY src/ src/
-COPY benches/ benches/
-COPY --from=web-builder /web/dist web/dist
-RUN touch src/main.rs
-RUN --mount=type=cache,id=zeroclaw-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
-    --mount=type=cache,id=zeroclaw-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=zeroclaw-target,target=/app/target,sharing=locked \
-    if [ -n "$ZEROCLAW_CARGO_FEATURES" ]; then \
-      cargo build --release --locked --features "$ZEROCLAW_CARGO_FEATURES"; \
-    else \
-      cargo build --release --locked; \
-    fi && \
-    cp target/release/zeroclaw /app/zeroclaw && \
-    strip /app/zeroclaw
-RUN size=$(stat -c%s /app/zeroclaw) && \
-    if [ "$size" -lt 1000000 ]; then echo "ERROR: binary too small (${size} bytes), likely dummy build artifact" && exit 1; fi
+# Release build with the default feature set (observability-prometheus,
+# skill-creation). The workspace has exactly one binary target.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target,sharing=locked \
+    cargo build --release --locked --bin zeroclaw \
+ && cp target/release/zeroclaw /usr/local/bin/zeroclaw
 
-# Prepare runtime directory structure and default config inline (no extra stage)
-RUN mkdir -p /zeroclaw-data/.zeroclaw /zeroclaw-data/workspace && \
-    printf '%s\n' \
-        'workspace_dir = "/zeroclaw-data/workspace"' \
-        'config_path = "/zeroclaw-data/.zeroclaw/config.toml"' \
-        'api_key = ""' \
-        'default_provider = "openrouter"' \
-        'default_model = "anthropic/claude-sonnet-4-20250514"' \
-        'default_temperature = 0.7' \
-        '' \
-        '[gateway]' \
-        'port = 42617' \
-        'host = "[::]"' \
-        'allow_public_bind = true' \
-        '' \
-        '[autonomy]' \
-        'level = "supervised"' \
-        'auto_approve = ["file_read", "file_write", "file_edit", "memory_recall", "memory_store", "web_search_tool", "web_fetch", "calculator", "glob_search", "content_search", "image_info", "weather", "git_operations"]' \
-        > /zeroclaw-data/.zeroclaw/config.toml && \
-    chown -R 65534:65534 /zeroclaw-data
-
-# ── Stage 2: Runtime (Debian with shell) ─────────────────────
+# ──────────────────────────────────────────────────────────────
+# Stage 2: Runtime
+# ──────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime
 
-# Install essential tools for agent shell operations
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        bash \
-        ca-certificates \
-        curl \
-        git \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+     ca-certificates \
+     curl \
+     bash \
+     git \
+  && rm -rf /var/lib/apt/lists/* \
+  && groupadd --system zeroclaw \
+  && useradd --system --gid zeroclaw --create-home zeroclaw \
+  && mkdir -p /zeroclaw-data /vault-workspace \
+  && chown -R zeroclaw:zeroclaw /zeroclaw-data /vault-workspace
 
-COPY --from=builder /app/zeroclaw /usr/local/bin/zeroclaw
-COPY --from=builder /zeroclaw-data /zeroclaw-data
+COPY --from=builder --chown=zeroclaw:zeroclaw /usr/local/bin/zeroclaw /usr/local/bin/zeroclaw
 
-# Environment setup
-# Ensure UTF-8 locale so CJK / multibyte input is handled correctly
-ENV LANG=C.UTF-8
-ENV ZEROCLAW_WORKSPACE=/zeroclaw-data/workspace
-ENV HOME=/zeroclaw-data
-# Default provider and model are set in config.toml, not here,
-# so config file edits are not silently overridden
-ENV ZEROCLAW_GATEWAY_PORT=42617
+USER zeroclaw
+WORKDIR /home/zeroclaw
 
-# API_KEY must be provided at runtime!
-
-WORKDIR /zeroclaw-data
-USER 65534:65534
 EXPOSE 42617
-HEALTHCHECK --interval=60s --timeout=10s --retries=3 --start-period=10s \
-    CMD ["zeroclaw", "status", "--format=exit-code"]
-ENTRYPOINT ["zeroclaw"]
-CMD ["daemon"]
+
+CMD ["zeroclaw", "daemon"]
