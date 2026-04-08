@@ -29,7 +29,7 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: apps/backend
+          context: .
           file: apps/backend/Dockerfile
           push: true
           tags: |
@@ -42,6 +42,13 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout KubernetesConfig
+        uses: actions/checkout@v4
+        with:
+          repository: HarKro753/KubernetesConfig
+          token: ${{ secrets.GH_PAT }}
+          path: k8s-config
+
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
@@ -49,12 +56,11 @@ jobs:
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Roll backend deployment
+      - name: Deploy backend via deploy.sh
+        working-directory: k8s-config
         run: |
           kubectl config set-cluster nova --server=https://tailscale-operator.tail82aae1.ts.net:443 --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
-          kubectl set image deployment/eaos-backend-prod \
-            backend=harkro123/eaos-backend:${{ needs.build.outputs.sha }}
-          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
+          ./deploy.sh eaos-backend
