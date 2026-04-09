@@ -7,8 +7,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
 {
     private const int ZeroclawPort = 42617;
     private const string StorageSize = "1Gi";
-    private const string VaultMountPath = "/vault-workspace";
-    private const string VaultVolumeName = "vault-workspace";
+    private const string WorkspacePath = "/zeroclaw-data";
 
     private readonly IKubernetes _k8s;
     private readonly ILogger<KubernetesAgentDeployer> _logger;
@@ -82,16 +81,11 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         {
             env.Add(new V1EnvVar("ZEROCLAW_MODEL", model));
         }
-        env.Add(new V1EnvVar("ZEROCLAW_WORKSPACE", VaultMountPath));
-
-        var couchUrl = _couch.Url.TrimEnd('/');
-        var couchUser = _couch.User;
-        var couchPass = _couch.Password;
-        var dbName = CouchDbVaultClient.DbName(agentId);
-        var vaultFiles = new[] { "SOUL.md", "IDENTITY.md", "AGENTS.md" };
-        var fetchLines = string.Join(" && ", vaultFiles.Select(f =>
-            $"curl -sSf -u {couchUser}:{couchPass} {couchUrl}/{dbName}/{f} | jq -r .content > {VaultMountPath}/{f}"));
-        var initScript = $"set -eu; {fetchLines}";
+        env.Add(new V1EnvVar("ZEROCLAW_WORKSPACE", WorkspacePath));
+        env.Add(new V1EnvVar("ZEROCLAW_VAULT_URL", _couch.Url.TrimEnd('/')));
+        env.Add(new V1EnvVar("ZEROCLAW_VAULT_DB", CouchDbVaultClient.DbName(agentId)));
+        env.Add(new V1EnvVar("ZEROCLAW_VAULT_USER", _couch.User));
+        env.Add(new V1EnvVar("ZEROCLAW_VAULT_PASSWORD", _couch.Password));
 
         var podManifest = new V1Pod
         {
@@ -99,19 +93,6 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
             Spec = new V1PodSpec
             {
                 RestartPolicy = "Always",
-                InitContainers = new[]
-                {
-                    new V1Container
-                    {
-                        Name = "vault-fetch",
-                        Image = "alpine/curl:8.10.0",
-                        Command = new[] { "sh", "-c", $"apk add --no-cache jq >/dev/null && {initScript}" },
-                        VolumeMounts = new[]
-                        {
-                            new V1VolumeMount(VaultMountPath, VaultVolumeName),
-                        },
-                    },
-                },
                 Containers = new[]
                 {
                     new V1Container
@@ -136,8 +117,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
                         },
                         VolumeMounts = new[]
                         {
-                            new V1VolumeMount("/zeroclaw-data", "zeroclaw-data"),
-                            new V1VolumeMount(VaultMountPath, VaultVolumeName) { ReadOnlyProperty = true },
+                            new V1VolumeMount(WorkspacePath, "zeroclaw-data"),
                         },
                     },
                 },
@@ -147,11 +127,6 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
                     {
                         Name = "zeroclaw-data",
                         PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvc),
-                    },
-                    new V1Volume
-                    {
-                        Name = VaultVolumeName,
-                        EmptyDir = new V1EmptyDirVolumeSource(),
                     },
                 },
             },

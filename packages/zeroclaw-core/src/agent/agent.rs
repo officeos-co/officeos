@@ -40,6 +40,7 @@
 //! - `docs/architecture/overview.md` — the big picture.
 
 use crate::agent::personality;
+use crate::agent::vault_bootstrap;
 use crate::agent::dispatcher::{
     NativeToolDispatcher, ParsedToolCall, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
 };
@@ -428,13 +429,23 @@ impl Agent {
             &config.workspace_dir,
         ));
 
-        // Phase 3: the per-agent Obsidian vault is materialized into
-        // workspace_dir by the dashboard backend (as a K8s ConfigMap
-        // mounted at /vault-workspace) before this container starts.
-        // Verify that the required personality files are present and
-        // non-empty; if anything is missing, fail loudly so the pod
-        // enters CrashLoopBackOff and the error surfaces via the
-        // dashboard's existing K8sManager.get_status() chain.
+        // Phase 3: the per-agent vault lives in CouchDB. On boot the
+        // agent hydrates its own workspace from CouchDB (with PVC-backed
+        // caching) via `vault_bootstrap::hydrate`. If the ZEROCLAW_VAULT_*
+        // env vars are unset, hydration is a no-op and the workspace is
+        // assumed to be managed externally (local dev / tests). After
+        // hydration the strict personality loader runs and fails loudly
+        // if required files are still missing — that error surfaces via
+        // pod CrashLoopBackOff and the dashboard's status chain.
+        vault_bootstrap::hydrate(&config.workspace_dir)
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(
+                    "Agent boot failed: vault bootstrap into workspace {:?} failed. {e}",
+                    config.workspace_dir
+                )
+            })?;
+
         personality::load_personality_strict(&config.workspace_dir).map_err(|e| {
             anyhow::anyhow!(
                 "Agent boot failed: required personality files missing or empty \
