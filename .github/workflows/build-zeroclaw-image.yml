@@ -36,8 +36,10 @@ jobs:
           context: packages/zeroclaw-core
           file: packages/zeroclaw-core/Dockerfile
           push: true
+          # Phase 1 pin: only push :<sha>, not :latest. v1 prod stays on the
+          # last pre-extraction image until v2 reaches parity. Restore :latest
+          # in Phase 2 once v2 is ready to serve live agents.
           tags: |
-            harkro123/zeroclaw:latest
             harkro123/zeroclaw:${{ steps.meta.outputs.sha }}
           cache-from: type=gha,scope=zeroclaw
           cache-to: type=gha,scope=zeroclaw,mode=max
