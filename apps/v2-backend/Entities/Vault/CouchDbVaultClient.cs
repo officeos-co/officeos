@@ -42,7 +42,7 @@ public sealed class CouchDbVaultClient : IVaultClient
             }
         }
 
-        var files = VaultPersonalityTemplate.Render(agentName, provider, model);
+        var files = VaultPersonalityTemplate.Render(agentId, agentName, provider, model);
         foreach (var (name, content) in files)
         {
             await PutDocumentAsync(db, name, content, ct);
