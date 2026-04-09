@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const backendUrl =
   process.env.NODE_ENV === "production"
-    ? "http://eaos-backend-prod:8000"
+    ? "https://api.harrokrog.com"
     : "http://localhost:5080";
 
 const nextConfig: NextConfig = {
