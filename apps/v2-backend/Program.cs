@@ -2,6 +2,7 @@ using EnterpriseAgentOs.Api.Database;
 using EnterpriseAgentOs.Api.Entities.Agents;
 using EnterpriseAgentOs.Api.Entities.Providers;
 using EnterpriseAgentOs.Api.Entities.Skills;
+using EnterpriseAgentOs.Api.Properties;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<EaosDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=eaos.db"));
+    options.UseSqlite(ValueManager.GetValue<string>("ConnectionString")));
 
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAgentService, AgentService>();
@@ -28,7 +29,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(ValueManager.GetValue<string>("FrontendOrigin"))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
