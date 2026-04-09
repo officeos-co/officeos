@@ -799,20 +799,20 @@ export default function DashboardPage() {
   ];
 
   const gatewayRows: SummaryRow[] = [
-    { label: "Gateway status", value: gatewayStatusLabel, tone: gatewayStatusTone },
-    { label: "Configured gateways", value: formatCount(gatewayTargets.length) },
+    { label: "Agent status", value: gatewayStatusLabel, tone: gatewayStatusTone },
+    { label: "Configured agents", value: formatCount(gatewayTargets.length) },
     {
-      label: "Connected gateways",
+      label: "Connected agents",
       value: formatCount(gatewayConnectedCount),
       tone: gatewayConnectedCount > 0 ? "success" : "default",
     },
     {
-      label: "Unavailable gateways",
+      label: "Unavailable agents",
       value: formatCount(gatewayUnavailableCount),
       tone: gatewayUnavailableCount > 0 ? "danger" : "default",
     },
     {
-      label: "Gateways with issues",
+      label: "Agents with issues",
       value: formatCount(gatewayHealthErrorCount + gatewayDisconnectedCount),
       tone: gatewayHealthErrorCount + gatewayDisconnectedCount > 0 ? "warning" : "success",
     },
@@ -951,7 +951,7 @@ export default function DashboardPage() {
                 rows={throughputRows}
               />
               <InfoBlock
-                title="Gateway Health"
+                title="Agent Health"
                 badge={{
                   text: gatewayStatusLabel,
                   tone: gatewayBadgeTone,
@@ -1026,7 +1026,7 @@ export default function DashboardPage() {
                 <div className="max-h-[310px] space-y-2 overflow-x-hidden overflow-y-auto pr-1">
                   {!hasConfiguredGateways ? (
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
-                      No gateways are configured for any board yet.
+                      No agents are configured for any board yet.
                     </div>
                   ) : gatewayStatusesQuery.isLoading ? (
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
@@ -1036,9 +1036,9 @@ export default function DashboardPage() {
                     <>
                       {gatewayUnavailableCount > 0 ? (
                         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                          {formatCount(gatewayUnavailableCount)} gateway
+                          {formatCount(gatewayUnavailableCount)} agent
                           {gatewayUnavailableCount === 1 ? "" : "s"} unavailable; showing sessions
-                          from reachable gateways.
+                          from reachable agents.
                         </div>
                       ) : null}
                       {sessionSummaries.map((session) => (
@@ -1074,7 +1074,7 @@ export default function DashboardPage() {
                     </>
                   ) : gatewayUnavailableCount === gatewayTargets.length ? (
                     <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700">
-                      Session data is unavailable for all configured gateways.
+                      Session data is unavailable for all configured agents.
                     </div>
                   ) : (
                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">

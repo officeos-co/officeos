@@ -125,7 +125,7 @@ export default function NewBoardPage() {
       return;
     }
     if (!resolvedGatewayId) {
-      setError("Select a gateway before creating a board.");
+      setError("Select an agent before creating a board.");
       return;
     }
     const trimmedDescription = description.trim();
@@ -178,16 +178,16 @@ export default function NewBoardPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-900">
-                Gateway <span className="text-red-500">*</span>
+                Agent <span className="text-red-500">*</span>
               </label>
               <SearchableSelect
-                ariaLabel="Select gateway"
+                ariaLabel="Select agent"
                 value={displayGatewayId}
                 onValueChange={setGatewayId}
                 options={gatewayOptions}
-                placeholder="Select gateway"
-                searchPlaceholder="Search gateways..."
-                emptyMessage="No gateways found."
+                placeholder="Select agent"
+                searchPlaceholder="Search agents..."
+                emptyMessage="No agents found."
                 triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 contentClassName="rounded-xl border border-slate-200 shadow-lg"
                 itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
@@ -236,12 +236,12 @@ export default function NewBoardPage() {
         {gateways.length === 0 ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             <p>
-              No gateways available. Create one in{" "}
+              No agents available. Create one in{" "}
               <Link
-                href="/gateways"
+                href="/agents"
                 className="font-medium text-blue-600 hover:text-blue-700"
               >
-                Gateways
+                Agents
               </Link>{" "}
               to continue.
             </p>

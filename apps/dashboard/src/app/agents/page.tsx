@@ -3,61 +3,45 @@
 export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { useAuth } from "@/auth/clerk";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { AgentsTable } from "@/components/agents/AgentsTable";
+import { GatewaysTable } from "@/components/gateways/GatewaysTable";
 import { DashboardPageLayout } from "@/components/templates/DashboardPageLayout";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { ConfirmActionDialog } from "@/components/ui/confirm-action-dialog";
 
 import { ApiError } from "@/api/mutator";
 import {
-  type listAgentsApiV1AgentsGetResponse,
-  getListAgentsApiV1AgentsGetQueryKey,
-  useDeleteAgentApiV1AgentsAgentIdDelete,
-  useListAgentsApiV1AgentsGet,
-} from "@/api/generated/agents/agents";
-import {
-  type listBoardsApiV1BoardsGetResponse,
-  getListBoardsApiV1BoardsGetQueryKey,
-  useListBoardsApiV1BoardsGet,
-} from "@/api/generated/boards/boards";
-import { type AgentRead } from "@/api/generated/model";
+  type listGatewaysApiV1GatewaysGetResponse,
+  getListGatewaysApiV1GatewaysGetQueryKey,
+  useDeleteGatewayApiV1GatewaysGatewayIdDelete,
+  useListGatewaysApiV1GatewaysGet,
+} from "@/api/generated/gateways/gateways";
 import { createOptimisticListDeleteMutation } from "@/lib/list-delete";
 import { useOrganizationMembership } from "@/lib/use-organization-membership";
+import type { GatewayRead } from "@/api/generated/model";
 import { useUrlSorting } from "@/lib/use-url-sorting";
 
-const AGENT_SORTABLE_COLUMNS = [
-  "name",
-  "status",
-  "openclaw_session_id",
-  "board_id",
-  "last_seen_at",
-  "updated_at",
-];
+const GATEWAY_SORTABLE_COLUMNS = ["name", "workspace_root", "updated_at"];
 
 export default function AgentsPage() {
   const { isSignedIn } = useAuth();
   const queryClient = useQueryClient();
-  const router = useRouter();
-
-  const { isAdmin } = useOrganizationMembership(isSignedIn);
   const { sorting, onSortingChange } = useUrlSorting({
-    allowedColumnIds: AGENT_SORTABLE_COLUMNS,
+    allowedColumnIds: GATEWAY_SORTABLE_COLUMNS,
     defaultSorting: [{ id: "name", desc: false }],
-    paramPrefix: "agents",
+    paramPrefix: "gateways",
   });
 
-  const [deleteTarget, setDeleteTarget] = useState<AgentRead | null>(null);
+  const { isAdmin } = useOrganizationMembership(isSignedIn);
+  const [deleteTarget, setDeleteTarget] = useState<GatewayRead | null>(null);
 
-  const boardsKey = getListBoardsApiV1BoardsGetQueryKey();
-  const agentsKey = getListAgentsApiV1AgentsGetQueryKey();
-
-  const boardsQuery = useListBoardsApiV1BoardsGet<
-    listBoardsApiV1BoardsGetResponse,
+  const gatewaysKey = getListGatewaysApiV1GatewaysGetQueryKey();
+  const gatewaysQuery = useListGatewaysApiV1GatewaysGet<
+    listGatewaysApiV1GatewaysGetResponse,
     ApiError
   >(undefined, {
     query: {
@@ -67,50 +51,32 @@ export default function AgentsPage() {
     },
   });
 
-  const agentsQuery = useListAgentsApiV1AgentsGet<
-    listAgentsApiV1AgentsGetResponse,
-    ApiError
-  >(undefined, {
-    query: {
-      enabled: Boolean(isSignedIn && isAdmin),
-      refetchInterval: 15_000,
-      refetchOnMount: "always",
-    },
-  });
-
-  const boards = useMemo(
+  const gateways = useMemo(
     () =>
-      boardsQuery.data?.status === 200
-        ? (boardsQuery.data.data.items ?? [])
+      gatewaysQuery.data?.status === 200
+        ? (gatewaysQuery.data.data.items ?? [])
         : [],
-    [boardsQuery.data],
-  );
-  const agents = useMemo(
-    () =>
-      agentsQuery.data?.status === 200
-        ? (agentsQuery.data.data.items ?? [])
-        : [],
-    [agentsQuery.data],
+    [gatewaysQuery.data],
   );
 
-  const deleteMutation = useDeleteAgentApiV1AgentsAgentIdDelete<
+  const deleteMutation = useDeleteGatewayApiV1GatewaysGatewayIdDelete<
     ApiError,
-    { previous?: listAgentsApiV1AgentsGetResponse }
+    { previous?: listGatewaysApiV1GatewaysGetResponse }
   >(
     {
       mutation: createOptimisticListDeleteMutation<
-        AgentRead,
-        listAgentsApiV1AgentsGetResponse,
-        { agentId: string }
+        GatewayRead,
+        listGatewaysApiV1GatewaysGetResponse,
+        { gatewayId: string }
       >({
         queryClient,
-        queryKey: agentsKey,
-        getItemId: (agent) => agent.id,
-        getDeleteId: ({ agentId }) => agentId,
+        queryKey: gatewaysKey,
+        getItemId: (gateway) => gateway.id,
+        getDeleteId: ({ gatewayId }) => gatewayId,
         onSuccess: () => {
           setDeleteTarget(null);
         },
-        invalidateQueryKeys: [agentsKey, boardsKey],
+        invalidateQueryKeys: [gatewaysKey],
       }),
     },
     queryClient,
@@ -118,7 +84,7 @@ export default function AgentsPage() {
 
   const handleDelete = () => {
     if (!deleteTarget) return;
-    deleteMutation.mutate({ agentId: deleteTarget.id });
+    deleteMutation.mutate({ gatewayId: deleteTarget.id });
   };
 
   return (
@@ -127,15 +93,20 @@ export default function AgentsPage() {
         signedOut={{
           message: "Sign in to view agents.",
           forceRedirectUrl: "/agents",
-          signUpForceRedirectUrl: "/agents",
         }}
         title="Agents"
-        description={`${agents.length} agent${agents.length === 1 ? "" : "s"} total.`}
+        description="Create and manage your ZeroClaw agents"
         headerActions={
-          agents.length > 0 ? (
-            <Button onClick={() => router.push("/agents/new")}>
-              New agent
-            </Button>
+          isAdmin && gateways.length > 0 ? (
+            <Link
+              href="/agents/new"
+              className={buttonVariants({
+                size: "md",
+                variant: "primary",
+              })}
+            >
+              Create agent
+            </Link>
           ) : null
         }
         isAdmin={isAdmin}
@@ -143,10 +114,9 @@ export default function AgentsPage() {
         stickyHeader
       >
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <AgentsTable
-            agents={agents}
-            boards={boards}
-            isLoading={agentsQuery.isLoading}
+          <GatewaysTable
+            gateways={gateways}
+            isLoading={gatewaysQuery.isLoading}
             sorting={sorting}
             onSortingChange={onSortingChange}
             showActions
@@ -155,35 +125,33 @@ export default function AgentsPage() {
             emptyState={{
               title: "No agents yet",
               description:
-                "Create your first agent to start executing tasks on this board.",
+                "Create your first agent to start chatting and automating work.",
               actionHref: "/agents/new",
               actionLabel: "Create your first agent",
             }}
           />
         </div>
 
-        {agentsQuery.error ? (
+        {gatewaysQuery.error ? (
           <p className="mt-4 text-sm text-red-500">
-            {agentsQuery.error.message}
+            {gatewaysQuery.error.message}
           </p>
         ) : null}
       </DashboardPageLayout>
 
       <ConfirmActionDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null);
-          }
-        }}
-        ariaLabel="Delete agent"
-        title="Delete agent"
+        open={Boolean(deleteTarget)}
+        onOpenChange={() => setDeleteTarget(null)}
+        title="Delete agent?"
         description={
           <>
-            This will remove {deleteTarget?.name}. This action cannot be undone.
+            This removes the agent and its pod. Boards referencing it will need
+            a new agent assigned.
           </>
         }
         errorMessage={deleteMutation.error?.message}
+        errorStyle="text"
+        cancelVariant="ghost"
         onConfirm={handleDelete}
         isConfirming={deleteMutation.isPending}
       />

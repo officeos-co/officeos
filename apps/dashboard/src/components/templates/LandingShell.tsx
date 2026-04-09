@@ -33,7 +33,7 @@ export function LandingShell({ children }: { children: ReactNode }) {
             <Link href="#capabilities">Capabilities</Link>
             <Link href="/boards">Boards</Link>
             <Link href="/activity">Activity</Link>
-            <Link href="/gateways">Gateways</Link>
+            <Link href="/agents">Agents</Link>
           </div>
 
           <div className="nav-cta">
@@ -107,7 +107,6 @@ export function LandingShell({ children }: { children: ReactNode }) {
           <div className="footer-column">
             <h4>Platform</h4>
             <div className="footer-links">
-              <Link href="/gateways">Gateways</Link>
               <Link href="/agents">Agents</Link>
               <Link href="/dashboard">Dashboard</Link>
             </div>

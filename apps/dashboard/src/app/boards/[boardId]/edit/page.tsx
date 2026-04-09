@@ -620,7 +620,7 @@ export default function EditBoardPage() {
     }
     const resolvedGatewayId = displayGatewayId;
     if (!resolvedGatewayId) {
-      setError("Select a gateway before saving.");
+      setError("Select an agent before saving.");
       return;
     }
     const trimmedDescription = resolvedDescription.trim();
@@ -762,7 +762,7 @@ export default function EditBoardPage() {
           signUpForceRedirectUrl: `/boards/${boardId}/edit`,
         }}
         title="Edit board"
-        description="Update board settings and gateway."
+        description="Update board settings and agent."
         isAdmin={isAdmin}
         adminOnlyMessage="Only organization owners and admins can edit board settings."
         mainRef={mainRef}
@@ -808,16 +808,16 @@ export default function EditBoardPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-900">
-                  Gateway <span className="text-red-500">*</span>
+                  Agent <span className="text-red-500">*</span>
                 </label>
                 <SearchableSelect
-                  ariaLabel="Select gateway"
+                  ariaLabel="Select agent"
                   value={displayGatewayId}
                   onValueChange={setGatewayId}
                   options={gatewayOptions}
-                  placeholder="Select gateway"
-                  searchPlaceholder="Search gateways..."
-                  emptyMessage="No gateways found."
+                  placeholder="Select agent"
+                  searchPlaceholder="Search agents..."
+                  emptyMessage="No agents found."
                   triggerClassName="w-full h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   contentClassName="rounded-xl border border-slate-200 shadow-lg"
                   itemClassName="px-4 py-3 text-sm text-slate-700 data-[selected=true]:bg-slate-50 data-[selected=true]:text-slate-900"
@@ -1140,7 +1140,7 @@ export default function EditBoardPage() {
             {gateways.length === 0 ? (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                 <p>
-                  No gateways available. Create one in Gateways to continue.
+                  No agents available. Create one in Agents to continue.
                 </p>
               </div>
             ) : null}

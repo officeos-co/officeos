@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'packages/zeroclaw-core/**'
+      - '.github/workflows/build-zeroclaw-image.yml'
 
 concurrency:
   group: build-zeroclaw-image

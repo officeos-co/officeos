@@ -88,10 +88,10 @@ export function GatewaysTable({
     const baseColumns: ColumnDef<GatewayRead>[] = [
       {
         accessorKey: "name",
-        header: "Gateway",
+        header: "Agent",
         cell: ({ row }) =>
           linkifyCell({
-            href: `/gateways/${row.original.id}`,
+            href: `/agents/${row.original.id}`,
             label: row.original.name,
             subtitle: truncate(row.original.url, 36),
           }),
@@ -173,7 +173,7 @@ export function GatewaysTable({
       rowActions={
         showActions
           ? {
-              getEditHref: (gateway) => `/gateways/${gateway.id}/edit`,
+              getEditHref: (gateway) => `/agents/${gateway.id}/edit`,
               onDelete,
             }
           : undefined

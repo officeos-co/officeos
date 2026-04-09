@@ -25,8 +25,6 @@ can't reach any other, because `verify_gateway_ui_token` rejects
 mismatched `gw` claims.
 
 Caveats:
-- WebSocket upgrade (`/ws/chat`) is not yet proxied. This only covers
-  HTTP request/response. Chat streaming needs a separate WS route.
 - Request/response bodies are buffered, not streamed. Fine for static
   assets + JSON API calls; rethink if the agent dashboard ever serves
   multi-MB downloads.
@@ -37,9 +35,13 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+import asyncio
+
 import httpx
-from fastapi import APIRouter, HTTPException, Request, Response
+import websockets
+from fastapi import APIRouter, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi import status as http_status
+from websockets.exceptions import ConnectionClosed
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -252,6 +254,8 @@ async def proxy_gateway_ui(
         media_type=upstream.headers.get("content-type"),
     )
 
+    # (ws route defined below)
+
     # Promote a valid ?t= into a Path-scoped cookie so the SPA's
     # subsequent fetches inherit auth automatically.
     if token_from_query:
@@ -266,3 +270,134 @@ async def proxy_gateway_ui(
         )
 
     return response
+
+
+# ─── websocket proxy ────────────────────────────────────────────────
+#
+# The zeroclaw SPA opens `{base}{path_prefix}/ws/chat?token=...&session_id=...`
+# for live chat, and `{base}{path_prefix}/ws/canvas/{id}` for the
+# canvas collaboration feature. We bridge both with a single catch-all
+# route that forwards frames in both directions.
+#
+# Auth: browsers cannot set headers on `new WebSocket(...)`, so we
+# read the `gateway_ui_session` cookie (set by the HTTP proxy on the
+# SPA's first load) — or, as a fallback, accept `?t=<jwt>` on the WS
+# URL. The upstream pod has `require_pairing=false` so we strip any
+# `token=...` query param the SPA adds from its own localStorage; the
+# pod would reject it anyway.
+
+
+def _authorize_ws(websocket: WebSocket, gateway_id: UUID) -> str | None:
+    """Return the validated token (query or cookie) or None if unauth."""
+    token = websocket.query_params.get("t", "").strip() or None
+    if token:
+        try:
+            verify_gateway_ui_token(token, expected_gateway_id=str(gateway_id))
+            return token
+        except SessionTokenError:
+            return None
+
+    cookie = websocket.cookies.get(_UI_COOKIE_NAME)
+    if cookie:
+        try:
+            verify_gateway_ui_token(cookie, expected_gateway_id=str(gateway_id))
+            return cookie
+        except SessionTokenError:
+            return None
+    return None
+
+
+@router.websocket("/gateways/{gateway_id}/ui/ws/{sub_path:path}")
+async def proxy_gateway_ui_ws(
+    websocket: WebSocket,
+    gateway_id: UUID,
+    sub_path: str,
+    session: AsyncSession = SESSION_DEP,
+) -> None:
+    """Bridge a WebSocket between the browser and the agent pod."""
+    if not _authorize_ws(websocket, gateway_id):
+        await websocket.close(code=4401)  # application-level "unauthorized"
+        return
+
+    gateway = await Gateway.objects.by_id(gateway_id).first(session)
+    if gateway is None:
+        await websocket.close(code=4404)
+        return
+
+    host, port = _zeroclaw_host_port(gateway)
+
+    # Rebuild the upstream URL using the same path prefix the agent
+    # expects, stripping our own `t=` auth param.
+    upstream_path = f"/api/gateways/{gateway_id}/ui/ws/{sub_path}"
+    forward_query_items = [
+        (k, v) for k, v in websocket.query_params.multi_items() if k != "t"
+    ]
+    if forward_query_items:
+        from urllib.parse import urlencode
+
+        upstream_url = f"ws://{host}:{port}{upstream_path}?{urlencode(forward_query_items)}"
+    else:
+        upstream_url = f"ws://{host}:{port}{upstream_path}"
+
+    # Forward the Sec-WebSocket-Protocol subprotocols the browser
+    # requested (the zeroclaw SPA always sends `zeroclaw.v1`).
+    requested_subprotocols = websocket.headers.get("sec-websocket-protocol", "")
+    subprotocols: list[str] = [
+        s.strip() for s in requested_subprotocols.split(",") if s.strip()
+    ]
+
+    try:
+        upstream_ws = await websockets.connect(
+            upstream_url,
+            subprotocols=subprotocols or None,
+            open_timeout=10,
+            max_size=None,
+        )
+    except Exception as exc:
+        # Accept first so the client sees a clean close frame.
+        await websocket.accept()
+        await websocket.close(code=1011, reason=f"agent unreachable: {exc}"[:120])
+        return
+
+    # Accept with the same subprotocol the upstream negotiated so the
+    # browser's `ws.protocol` matches what the SPA expects.
+    negotiated = upstream_ws.subprotocol
+    await websocket.accept(subprotocol=negotiated)
+
+    async def client_to_upstream() -> None:
+        try:
+            while True:
+                msg = await websocket.receive()
+                if msg["type"] == "websocket.disconnect":
+                    return
+                if (data := msg.get("text")) is not None:
+                    await upstream_ws.send(data)
+                elif (data := msg.get("bytes")) is not None:
+                    await upstream_ws.send(data)
+        except (WebSocketDisconnect, ConnectionClosed):
+            return
+
+    async def upstream_to_client() -> None:
+        try:
+            async for frame in upstream_ws:
+                if isinstance(frame, str):
+                    await websocket.send_text(frame)
+                else:
+                    await websocket.send_bytes(frame)
+        except ConnectionClosed:
+            return
+
+    task_c = asyncio.create_task(client_to_upstream())
+    task_u = asyncio.create_task(upstream_to_client())
+    try:
+        done, pending = await asyncio.wait(
+            {task_c, task_u}, return_when=asyncio.FIRST_COMPLETED
+        )
+        for t in pending:
+            t.cancel()
+    finally:
+        await upstream_ws.close()
+        try:
+            await websocket.close()
+        except RuntimeError:
+            pass

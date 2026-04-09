@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   LogOut,
   Plus,
-  Server,
   Settings,
   Store,
   Trello,
@@ -156,7 +155,6 @@ export function UserMenu({
               { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
               { href: "/activity", label: "Activity", icon: Activity },
               { href: "/agents", label: "Agents", icon: Bot },
-              { href: "/gateways", label: "Gateways", icon: Server },
               { href: "/skills", label: "Skills", icon: Store },
               { href: "/settings", label: "Settings", icon: Settings },
             ] as const
