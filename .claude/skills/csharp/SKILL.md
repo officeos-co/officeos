@@ -14,10 +14,10 @@ Your coding practice is test driven development: if the feature is testable befo
   - Models/ (Database models/DTOs for data transfer)
 - Entities/
   - {DomainName}/ (Organized by domain, e.g., Users/, Orders/, Products/)
-    - Repositories/ (Repository implementations)
-    - Models/ (Domain-specific models)
-    - Services/ (Domain services)
-    - Interfaces/ (Contracts for the domain)
+    - all entity files live flat in this folder — no nested Models/, Services/,
+      Repositories/, Interfaces/ subdirectories. File names carry the role
+      (FooRecord, FooDto, IFooRepository, FooRepository, FooService,
+      FoosController, etc.).
 - Properties/
   - Configuration files (appsettings.json, launchSettings.json)
 - Program.cs (Dependency injection and application configuration)

@@ -1,7 +1,6 @@
-using EnterpriseAgentOs.Api.Entities.Providers.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Providers.Models;
+using EnterpriseAgentOs.Api.Entities.Providers;
 
-namespace EnterpriseAgentOs.Api.Entities.Providers.Services;
+namespace EnterpriseAgentOs.Api.Entities.Providers;
 
 public sealed class ProviderService : IProviderService
 {

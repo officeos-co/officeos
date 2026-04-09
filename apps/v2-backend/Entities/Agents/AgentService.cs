@@ -1,7 +1,6 @@
-using EnterpriseAgentOs.Api.Entities.Agents.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Agents.Models;
+using EnterpriseAgentOs.Api.Entities.Agents;
 
-namespace EnterpriseAgentOs.Api.Entities.Agents.Services;
+namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed class AgentService : IAgentService
 {

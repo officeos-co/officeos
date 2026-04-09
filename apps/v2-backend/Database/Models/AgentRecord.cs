@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EnterpriseAgentOs.Api.Entities.Agents.Models;
+namespace EnterpriseAgentOs.Api.Database.Models;
 
 public sealed class AgentRecord
 {

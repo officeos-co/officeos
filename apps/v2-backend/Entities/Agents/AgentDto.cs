@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Entities.Agents.Models;
+namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed record AgentDto(
     Guid Id,

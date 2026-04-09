@@ -1,7 +1,6 @@
-using EnterpriseAgentOs.Api.Entities.Skills.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Skills.Models;
+using EnterpriseAgentOs.Api.Entities.Skills;
 
-namespace EnterpriseAgentOs.Api.Entities.Skills.Services;
+namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class SkillService : ISkillService
 {

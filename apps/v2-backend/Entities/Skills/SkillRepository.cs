@@ -1,9 +1,8 @@
 using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Skills.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Skills.Models;
+using EnterpriseAgentOs.Api.Entities.Skills;
 using Microsoft.EntityFrameworkCore;
 
-namespace EnterpriseAgentOs.Api.Entities.Skills.Repositories;
+namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class SkillRepository : ISkillRepository
 {

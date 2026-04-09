@@ -1,5 +1,4 @@
-using EnterpriseAgentOs.Api.Entities.Providers.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Providers.Models;
+using EnterpriseAgentOs.Api.Entities.Providers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnterpriseAgentOs.Api.Entities.Providers;

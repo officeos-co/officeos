@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Entities.Providers.Models;
+namespace EnterpriseAgentOs.Api.Database.Models;
 
 public sealed class ProviderRecord
 {

@@ -1,5 +1,4 @@
-using EnterpriseAgentOs.Api.Entities.Agents.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Agents.Models;
+using EnterpriseAgentOs.Api.Entities.Agents;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnterpriseAgentOs.Api.Entities.Agents;

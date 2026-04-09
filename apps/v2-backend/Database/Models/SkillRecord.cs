@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Entities.Skills.Models;
+namespace EnterpriseAgentOs.Api.Database.Models;
 
 public sealed class SkillRecord
 {

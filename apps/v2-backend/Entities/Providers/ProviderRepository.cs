@@ -1,9 +1,8 @@
 using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Providers.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Providers.Models;
+using EnterpriseAgentOs.Api.Entities.Providers;
 using Microsoft.EntityFrameworkCore;
 
-namespace EnterpriseAgentOs.Api.Entities.Providers.Repositories;
+namespace EnterpriseAgentOs.Api.Entities.Providers;
 
 public sealed class ProviderRepository : IProviderRepository
 {

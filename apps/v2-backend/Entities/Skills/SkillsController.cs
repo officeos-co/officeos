@@ -1,5 +1,4 @@
-using EnterpriseAgentOs.Api.Entities.Skills.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Skills.Models;
+using EnterpriseAgentOs.Api.Entities.Skills;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;

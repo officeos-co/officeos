@@ -1,9 +1,8 @@
 using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Agents.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Agents.Models;
+using EnterpriseAgentOs.Api.Entities.Agents;
 using Microsoft.EntityFrameworkCore;
 
-namespace EnterpriseAgentOs.Api.Entities.Agents.Repositories;
+namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed class AgentRepository : IAgentRepository
 {

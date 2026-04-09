@@ -1,6 +1,6 @@
-using EnterpriseAgentOs.Api.Entities.Providers.Models;
+using EnterpriseAgentOs.Api.Entities.Providers;
 
-namespace EnterpriseAgentOs.Api.Entities.Providers.Interfaces;
+namespace EnterpriseAgentOs.Api.Entities.Providers;
 
 public interface IProviderRepository
 {

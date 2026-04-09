@@ -1,14 +1,7 @@
 using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Agents.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Agents.Repositories;
-using EnterpriseAgentOs.Api.Entities.Agents.Services;
-using EnterpriseAgentOs.Api.Entities.Providers.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Providers.Models;
-using EnterpriseAgentOs.Api.Entities.Providers.Repositories;
-using EnterpriseAgentOs.Api.Entities.Providers.Services;
-using EnterpriseAgentOs.Api.Entities.Skills.Interfaces;
-using EnterpriseAgentOs.Api.Entities.Skills.Repositories;
-using EnterpriseAgentOs.Api.Entities.Skills.Services;
+using EnterpriseAgentOs.Api.Entities.Agents;
+using EnterpriseAgentOs.Api.Entities.Providers;
+using EnterpriseAgentOs.Api.Entities.Skills;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
