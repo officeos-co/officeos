@@ -379,7 +379,6 @@ impl Tool for CanvasTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "canvas.test.rs"]
 mod tests;

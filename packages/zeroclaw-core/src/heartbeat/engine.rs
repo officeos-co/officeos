@@ -405,7 +405,6 @@ impl HeartbeatEngine {
     }
 }
 
-
 #[cfg(test)]
 #[path = "engine.test.rs"]
 mod tests;

@@ -169,7 +169,6 @@ fn load_locale_file(locale: &str, search_dirs: &[PathBuf]) -> HashMap<String, St
     HashMap::new()
 }
 
-
 #[cfg(test)]
 #[path = "i18n.test.rs"]
 mod tests;

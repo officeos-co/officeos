@@ -57,7 +57,6 @@ pub fn weighted_final_score(hybrid_score: f64, importance: f64, recency_decay: f
     hybrid_score * 0.7 + importance * 0.2 + recency_decay * 0.1
 }
 
-
 #[cfg(test)]
 #[path = "importance.test.rs"]
 mod tests;

@@ -70,7 +70,6 @@ pub enum MaybeSet<T> {
     Null,
 }
 
-
 #[cfg(test)]
 #[path = "util.test.rs"]
 mod tests;

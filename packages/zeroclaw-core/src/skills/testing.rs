@@ -300,7 +300,6 @@ fn truncate_output(s: &str, max: usize) -> String {
     }
 }
 
-
 #[cfg(test)]
 #[path = "testing.test.rs"]
 mod tests;

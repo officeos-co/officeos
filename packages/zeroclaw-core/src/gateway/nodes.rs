@@ -389,7 +389,6 @@ async fn handle_node_socket(socket: WebSocket, registry: Arc<NodeRegistry>) {
     send_task.abort();
 }
 
-
 #[cfg(test)]
 #[path = "nodes.test.rs"]
 mod tests;

@@ -508,7 +508,6 @@ fn clear_refresh_backoff(profile_id: &str) {
     }
 }
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

@@ -191,7 +191,6 @@ impl ToolSearchTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "tool_search.test.rs"]
 mod tests;

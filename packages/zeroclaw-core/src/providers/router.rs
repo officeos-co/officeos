@@ -315,7 +315,6 @@ impl Provider for RouterProvider {
     }
 }
 
-
 #[cfg(test)]
 #[path = "router.test.rs"]
 mod tests;

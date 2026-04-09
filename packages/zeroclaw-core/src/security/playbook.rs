@@ -325,7 +325,6 @@ pub fn builtin_playbooks() -> Vec<Playbook> {
     ]
 }
 
-
 #[cfg(test)]
 #[path = "playbook.test.rs"]
 mod tests;

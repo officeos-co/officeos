@@ -337,7 +337,6 @@ impl HookHandler for WebhookAuditHook {
     }
 }
 
-
 #[cfg(test)]
 #[path = "webhook_audit.test.rs"]
 mod tests;

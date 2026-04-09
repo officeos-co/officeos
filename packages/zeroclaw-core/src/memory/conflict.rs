@@ -106,7 +106,6 @@ pub fn find_text_conflicts(
         .collect()
 }
 
-
 #[cfg(test)]
 #[path = "conflict.test.rs"]
 mod tests;

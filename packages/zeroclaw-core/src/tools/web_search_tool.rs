@@ -434,7 +434,6 @@ impl Tool for WebSearchTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "web_search_tool.test.rs"]
 mod tests;

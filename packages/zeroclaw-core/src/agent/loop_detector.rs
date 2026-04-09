@@ -315,7 +315,6 @@ impl LoopDetector {
     }
 }
 
-
 #[cfg(test)]
 #[path = "loop_detector.test.rs"]
 mod tests;

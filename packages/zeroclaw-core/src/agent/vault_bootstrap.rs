@@ -56,9 +56,7 @@ pub enum VaultBootstrapError {
         source: std::io::Error,
     },
 
-    #[error(
-        "vault unreachable at {url} after {attempts} attempts: {source}"
-    )]
+    #[error("vault unreachable at {url} after {attempts} attempts: {source}")]
     Unreachable {
         url: String,
         attempts: u32,
@@ -104,8 +102,8 @@ fn load_config() -> Result<Option<VaultConfig>, VaultBootstrapError> {
     match (url, db, user, password) {
         (None, None, None, None) => Ok(None),
         (Some(url), Some(db), Some(user), Some(password)) => {
-            let token = base64::engine::general_purpose::STANDARD
-                .encode(format!("{user}:{password}"));
+            let token =
+                base64::engine::general_purpose::STANDARD.encode(format!("{user}:{password}"));
             Ok(Some(VaultConfig {
                 url: url.trim_end_matches('/').to_string(),
                 db,
@@ -136,9 +134,7 @@ fn cache_is_valid(workspace_dir: &Path) -> bool {
 /// previous boot or freshly fetched).
 pub async fn hydrate(workspace_dir: &Path) -> Result<(), VaultBootstrapError> {
     let Some(config) = load_config()? else {
-        tracing::info!(
-            "vault bootstrap: no ZEROCLAW_VAULT_* env vars set, skipping"
-        );
+        tracing::info!("vault bootstrap: no ZEROCLAW_VAULT_* env vars set, skipping");
         return Ok(());
     };
 
@@ -174,15 +170,17 @@ pub async fn hydrate(workspace_dir: &Path) -> Result<(), VaultBootstrapError> {
         match fetch_doc(&client, &config, name).await {
             Ok(Some(content)) => {
                 let path = workspace_dir.join(name);
-                std::fs::write(&path, content).map_err(|source| {
-                    VaultBootstrapError::Io { path, source }
-                })?;
+                std::fs::write(&path, content)
+                    .map_err(|source| VaultBootstrapError::Io { path, source })?;
             }
             Ok(None) => {
                 if required {
                     return Err(VaultBootstrapError::DocMissing(name.to_string()));
                 }
-                tracing::debug!("vault bootstrap: optional file {} not present, skipping", name);
+                tracing::debug!(
+                    "vault bootstrap: optional file {} not present, skipping",
+                    name
+                );
             }
             Err(err) => {
                 if required {
@@ -222,26 +220,28 @@ async fn fetch_doc(
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    let body = resp.text().await.map_err(|source| {
-                        VaultBootstrapError::Unreachable {
-                            url: url.clone(),
-                            attempts: attempt,
-                            source,
-                        }
-                    })?;
+                    let body =
+                        resp.text()
+                            .await
+                            .map_err(|source| VaultBootstrapError::Unreachable {
+                                url: url.clone(),
+                                attempts: attempt,
+                                source,
+                            })?;
                     let value: Value = serde_json::from_str(&body).map_err(|e| {
                         VaultBootstrapError::DocMalformed {
                             name: name.to_string(),
                             reason: format!("invalid JSON: {e}"),
                         }
                     })?;
-                    let content = value
-                        .get("content")
-                        .and_then(|v| v.as_str())
-                        .ok_or_else(|| VaultBootstrapError::DocMalformed {
-                            name: name.to_string(),
-                            reason: "missing string field `content`".to_string(),
-                        })?;
+                    let content =
+                        value
+                            .get("content")
+                            .and_then(|v| v.as_str())
+                            .ok_or_else(|| VaultBootstrapError::DocMalformed {
+                                name: name.to_string(),
+                                reason: "missing string field `content`".to_string(),
+                            })?;
                     return Ok(Some(content.to_string()));
                 }
 

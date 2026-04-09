@@ -513,7 +513,6 @@ impl Observer for PrometheusObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "prometheus.test.rs"]
 mod tests;

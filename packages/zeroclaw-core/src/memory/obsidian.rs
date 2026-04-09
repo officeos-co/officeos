@@ -67,7 +67,13 @@ impl ObsidianMemory {
         // Sanitize key for filesystem safety
         let safe_key: String = key
             .chars()
-            .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
             .collect();
         format!("memory/{cat_dir}/{safe_key}.md")
     }
@@ -95,7 +101,15 @@ impl ObsidianMemory {
     /// Write a note to the vault via CLI. Returns Ok(()) on success.
     fn write_to_vault(path: &str, content: &str) -> anyhow::Result<()> {
         let output = std::process::Command::new("vault")
-            .args(["write", "--path", path, "--content", content, "--force", "--yes"])
+            .args([
+                "write",
+                "--path",
+                path,
+                "--content",
+                content,
+                "--force",
+                "--yes",
+            ])
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .output()?;
@@ -121,7 +135,10 @@ impl ObsidianMemory {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let parsed: serde_json::Value = serde_json::from_str(&stdout)?;
-        Ok(parsed.get("content").and_then(|v| v.as_str()).map(String::from))
+        Ok(parsed
+            .get("content")
+            .and_then(|v| v.as_str())
+            .map(String::from))
     }
 
     /// Search the vault via CLI.
@@ -449,7 +466,6 @@ fn parse_note_content(content: &str) -> (String, Option<String>, MemoryCategory)
 fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
 }
-
 
 #[cfg(test)]
 #[path = "obsidian.test.rs"]

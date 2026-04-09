@@ -202,7 +202,6 @@ fn strip_trailing_comments(content: &str) -> String {
     lines[..end].join("\n")
 }
 
-
 #[cfg(test)]
 #[path = "improver.test.rs"]
 mod tests;

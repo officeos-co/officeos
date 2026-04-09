@@ -547,7 +547,6 @@ async fn process_chat_message(
     }
 }
 
-
 #[cfg(test)]
 #[path = "ws.test.rs"]
 mod tests;

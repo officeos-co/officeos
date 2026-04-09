@@ -1,5 +1,4 @@
 use crate::config::traits::ChannelConfig;
-use crate::providers::{is_glm_alias, is_zai_alias};
 use crate::security::{AutonomyLevel, DomainMatcher};
 use anyhow::{Context, Result};
 use directories::UserDirs;
@@ -2701,11 +2700,7 @@ fn default_backup_max_keep() -> usize {
 }
 
 fn default_backup_include_dirs() -> Vec<String> {
-    vec![
-        "config".into(),
-        "memory".into(),
-        "audit".into(),
-    ]
+    vec!["config".into(), "memory".into(), "audit".into()]
 }
 
 fn default_backup_destination_dir() -> String {
@@ -4646,7 +4641,6 @@ pub struct MemoryConfig {
     /// None = wait indefinitely (default). Recommended max: 300.
     #[serde(default)]
     pub sqlite_open_timeout_secs: Option<u64>,
-
 }
 
 fn default_retrieval_stages() -> Vec<String> {
@@ -7734,8 +7728,15 @@ impl Default for Config {
             api_key: None,
             api_url: None,
             api_path: None,
-            default_provider: Some("openrouter".to_string()),
-            default_model: Some("anthropic/claude-sonnet-4.6".to_string()),
+            // No compiled-in defaults for provider/model — these MUST be
+            // supplied via config file or env vars (ZEROCLAW_PROVIDER +
+            // ZEROCLAW_MODEL / PROVIDER + MODEL). `Agent::from_config`
+            // refuses to boot if either is None. This avoids the footgun
+            // where a pod running with PROVIDER=openai and no MODEL env
+            // would silently route through the compiled-in Anthropic
+            // default and 400 on every request.
+            default_provider: None,
+            default_model: None,
             model_providers: HashMap::new(),
             default_temperature: default_temperature(),
             provider_timeout_secs: default_provider_timeout_secs(),
@@ -9074,7 +9075,6 @@ impl Config {
             validate_mcp_config(&self.mcp)?;
         }
 
-
         // Google Workspace allowed_services validation
         let mut seen_gws_services = std::collections::HashSet::new();
         for (i, service) in self.google_workspace.allowed_services.iter().enumerate() {
@@ -9352,58 +9352,29 @@ impl Config {
         Ok(())
     }
 
-    /// Apply environment variable overrides to config
+    /// Apply environment variable overrides to config.
+    ///
+    /// Phase 3: only the `ZEROCLAW_*` prefixed names are honored. Legacy
+    /// short names (`API_KEY`, `PROVIDER`, `MODEL`, `MODEL_PROVIDER`,
+    /// `ZEROCLAW_MODEL_PROVIDER`, `GLM_API_KEY`, `ZAI_API_KEY`) were
+    /// removed — callers (dashboard backend / operators) must use the
+    /// canonical names. This avoids ambiguity when multiple legacy
+    /// aliases collide and makes the contract with the backend's
+    /// `KubernetesAgentDeployer` explicit.
     pub fn apply_env_overrides(&mut self) {
-        // API Key: ZEROCLAW_API_KEY or API_KEY (generic)
-        if let Ok(key) = std::env::var("ZEROCLAW_API_KEY").or_else(|_| std::env::var("API_KEY")) {
+        if let Ok(key) = std::env::var("ZEROCLAW_API_KEY") {
             if !key.is_empty() {
                 self.api_key = Some(key);
             }
         }
-        // API Key: GLM_API_KEY overrides when provider is a GLM/Zhipu variant.
-        if self.default_provider.as_deref().is_some_and(is_glm_alias) {
-            if let Ok(key) = std::env::var("GLM_API_KEY") {
-                if !key.is_empty() {
-                    self.api_key = Some(key);
-                }
-            }
-        }
 
-        // API Key: ZAI_API_KEY overrides when provider is a Z.AI variant.
-        if self.default_provider.as_deref().is_some_and(is_zai_alias) {
-            if let Ok(key) = std::env::var("ZAI_API_KEY") {
-                if !key.is_empty() {
-                    self.api_key = Some(key);
-                }
-            }
-        }
-
-        // Provider override precedence:
-        // 1) ZEROCLAW_PROVIDER always wins when set.
-        // 2) ZEROCLAW_MODEL_PROVIDER/MODEL_PROVIDER (Codex app-server style).
-        // 3) Legacy PROVIDER is honored only when config still uses default provider.
         if let Ok(provider) = std::env::var("ZEROCLAW_PROVIDER") {
             if !provider.is_empty() {
                 self.default_provider = Some(provider);
             }
-        } else if let Ok(provider) =
-            std::env::var("ZEROCLAW_MODEL_PROVIDER").or_else(|_| std::env::var("MODEL_PROVIDER"))
-        {
-            if !provider.is_empty() {
-                self.default_provider = Some(provider);
-            }
-        } else if let Ok(provider) = std::env::var("PROVIDER") {
-            let should_apply_legacy_provider =
-                self.default_provider.as_deref().map_or(true, |configured| {
-                    configured.trim().eq_ignore_ascii_case("openrouter")
-                });
-            if should_apply_legacy_provider && !provider.is_empty() {
-                self.default_provider = Some(provider);
-            }
         }
 
-        // Model: ZEROCLAW_MODEL or MODEL
-        if let Ok(model) = std::env::var("ZEROCLAW_MODEL").or_else(|_| std::env::var("MODEL")) {
+        if let Ok(model) = std::env::var("ZEROCLAW_MODEL") {
             if !model.is_empty() {
                 self.default_model = Some(model);
             }

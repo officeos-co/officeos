@@ -3013,7 +3013,6 @@ Ensure only one `zeroclaw` process is using this bot token."
     }
 }
 
-
 #[cfg(test)]
 #[path = "telegram.test.rs"]
 mod tests;

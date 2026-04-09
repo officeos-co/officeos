@@ -154,7 +154,6 @@ impl Default for AuthRateLimiter {
     }
 }
 
-
 #[cfg(test)]
 #[path = "auth_rate_limit.test.rs"]
 mod tests;

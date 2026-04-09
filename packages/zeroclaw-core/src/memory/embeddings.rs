@@ -190,7 +190,6 @@ pub fn create_embedding_provider(
     }
 }
 
-
 #[cfg(test)]
 #[path = "embeddings.test.rs"]
 mod tests;

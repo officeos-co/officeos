@@ -285,7 +285,6 @@ pub fn evaluate_response(
     }
 }
 
-
 #[cfg(test)]
 #[path = "eval.test.rs"]
 mod tests;

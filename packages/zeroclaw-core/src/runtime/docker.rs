@@ -137,7 +137,6 @@ impl RuntimeAdapter for DockerRuntime {
     }
 }
 
-
 #[cfg(test)]
 #[path = "docker.test.rs"]
 mod tests;

@@ -183,7 +183,6 @@ impl RetrievalPipeline {
     }
 }
 
-
 #[cfg(test)]
 #[path = "retrieval.test.rs"]
 mod tests;

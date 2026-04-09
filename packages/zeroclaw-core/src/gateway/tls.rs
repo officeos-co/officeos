@@ -189,7 +189,6 @@ fn load_private_key(path: &str) -> Result<PrivateKeyDer<'static>> {
     Ok(key)
 }
 
-
 #[cfg(test)]
 #[path = "tls.test.rs"]
 mod tests;

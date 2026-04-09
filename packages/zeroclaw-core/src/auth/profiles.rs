@@ -630,7 +630,6 @@ pub fn profile_id(provider: &str, profile_name: &str) -> String {
     format!("{}:{}", provider.trim(), profile_name.trim())
 }
 
-
 #[cfg(test)]
 #[path = "profiles.test.rs"]
 mod tests;

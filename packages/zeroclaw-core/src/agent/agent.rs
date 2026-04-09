@@ -39,13 +39,13 @@
 //! - `src/daemon/mod.rs` — the production boot path that calls `from_config`.
 //! - `docs/architecture/overview.md` — the big picture.
 
-use crate::agent::personality;
-use crate::agent::vault_bootstrap;
 use crate::agent::dispatcher::{
     NativeToolDispatcher, ParsedToolCall, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
 };
 use crate::agent::memory_loader::{DefaultMemoryLoader, MemoryLoader};
+use crate::agent::personality;
 use crate::agent::prompt::{PromptContext, SystemPromptBuilder};
+use crate::agent::vault_bootstrap;
 use crate::config::Config;
 use crate::i18n::ToolDescriptions;
 use crate::memory::{self, Memory, MemoryCategory};
@@ -179,10 +179,7 @@ impl AgentBuilder {
         }
     }
 
-    pub fn capability_cache(
-        mut self,
-        cache: crate::skills::live::CapabilityCache,
-    ) -> Self {
+    pub fn capability_cache(mut self, cache: crate::skills::live::CapabilityCache) -> Self {
         self.capability_cache = Some(cache);
         self
     }
@@ -420,6 +417,57 @@ impl Agent {
     }
 
     pub async fn from_config(config: &Config) -> Result<Self> {
+        // Phase 3: required-config gate.
+        //
+        // Zeroclaw no longer ships compiled-in defaults for provider or
+        // model — if the caller (dashboard backend, CLI, test harness)
+        // fails to supply them, we refuse to boot with a loud error
+        // rather than silently routing through a baked-in fallback.
+        //
+        // `api_key` is required for every provider except `ollama`
+        // (local, no auth). Extend this list if more keyless providers
+        // are added.
+        let provider = config
+            .default_provider
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Agent boot failed: no provider configured. Set ZEROCLAW_PROVIDER / PROVIDER \
+                 env var or `default_provider` in config.toml."
+                )
+            })?;
+        let model = config
+            .default_model
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Agent boot failed: no model configured for provider '{provider}'. \
+                 Set ZEROCLAW_MODEL / MODEL env var or `default_model` in config.toml."
+                )
+            })?;
+        let is_keyless_provider = provider.eq_ignore_ascii_case("ollama");
+        let has_api_key = config
+            .api_key
+            .as_deref()
+            .map(str::trim)
+            .is_some_and(|k| !k.is_empty());
+        if !is_keyless_provider && !has_api_key {
+            return Err(anyhow::anyhow!(
+                "Agent boot failed: provider '{provider}' requires an API key but none is set. \
+                 Set ZEROCLAW_API_KEY / API_KEY env var or `api_key` in config.toml."
+            ));
+        }
+        tracing::info!(
+            provider = %provider,
+            model = %model,
+            keyless = is_keyless_provider,
+            "Required-config gate passed"
+        );
+
         let observer: Arc<dyn Observer> =
             Arc::from(observability::create_observer(&config.observability));
         let runtime: Arc<dyn runtime::RuntimeAdapter> =
@@ -1417,7 +1465,6 @@ pub async fn run(
 
     Ok(())
 }
-
 
 #[cfg(test)]
 #[path = "agent.test.rs"]

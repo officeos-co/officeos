@@ -357,7 +357,6 @@ pub fn is_public_bind(host: &str) -> bool {
     )
 }
 
-
 #[cfg(test)]
 #[path = "pairing.test.rs"]
 mod tests;

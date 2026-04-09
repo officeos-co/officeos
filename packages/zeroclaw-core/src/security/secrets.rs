@@ -309,7 +309,6 @@ fn hex_decode(hex: &str) -> Result<Vec<u8>> {
         .collect()
 }
 
-
 #[cfg(test)]
 #[path = "secrets.test.rs"]
 mod tests;

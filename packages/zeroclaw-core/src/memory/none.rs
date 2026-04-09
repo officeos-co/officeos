@@ -66,7 +66,6 @@ impl Memory for NoneMemory {
     }
 }
 
-
 #[cfg(test)]
 #[path = "none.test.rs"]
 mod tests;

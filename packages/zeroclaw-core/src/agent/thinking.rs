@@ -175,7 +175,6 @@ pub fn clamp_temperature(temp: f64) -> f64 {
     temp.clamp(0.0, 2.0)
 }
 
-
 #[cfg(test)]
 #[path = "thinking.test.rs"]
 mod tests;

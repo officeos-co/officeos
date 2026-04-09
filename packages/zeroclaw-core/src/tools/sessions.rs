@@ -294,7 +294,6 @@ impl Tool for SessionsSendTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "sessions.test.rs"]
 mod tests;

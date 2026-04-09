@@ -258,7 +258,6 @@ fn truncate_for_summary(input: &str, max_chars: usize) -> String {
 
 // ── Tests ────────────────────────────────────────────────────────
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

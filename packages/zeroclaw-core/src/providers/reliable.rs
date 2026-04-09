@@ -1260,7 +1260,6 @@ impl Provider for ReliableProvider {
     }
 }
 
-
 #[cfg(test)]
 #[path = "reliable.test.rs"]
 mod tests;

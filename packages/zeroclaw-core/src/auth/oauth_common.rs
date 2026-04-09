@@ -108,7 +108,6 @@ pub fn parse_query_params(input: &str) -> BTreeMap<String, String> {
     out
 }
 
-
 #[cfg(test)]
 #[path = "oauth_common.test.rs"]
 mod tests;

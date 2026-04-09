@@ -64,11 +64,7 @@ pub struct CapabilityCache {
 }
 
 impl CapabilityCache {
-    pub fn new(
-        backend_url: String,
-        backend_token: Option<String>,
-        refresh_seconds: u64,
-    ) -> Self {
+    pub fn new(backend_url: String, backend_token: Option<String>, refresh_seconds: u64) -> Self {
         Self {
             backend_url: backend_url.trim_end_matches('/').to_string(),
             backend_token,
@@ -118,10 +114,7 @@ impl CapabilityCache {
 
         let resp = req.send().await?;
         if !resp.status().is_success() {
-            anyhow::bail!(
-                "backend /capabilities returned HTTP {}",
-                resp.status()
-            );
+            anyhow::bail!("backend /capabilities returned HTTP {}", resp.status());
         }
 
         let parsed: CapabilitiesResponse = resp.json().await?;

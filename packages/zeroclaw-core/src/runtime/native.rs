@@ -55,7 +55,6 @@ impl RuntimeAdapter for NativeRuntime {
     }
 }
 
-
 #[cfg(test)]
 #[path = "native.test.rs"]
 mod tests;

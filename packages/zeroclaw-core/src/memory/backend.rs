@@ -53,11 +53,8 @@ const OBSIDIAN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     optional_dependency: true,
 };
 
-const SELECTABLE_MEMORY_BACKENDS: [MemoryBackendProfile; 3] = [
-    SQLITE_PROFILE,
-    OBSIDIAN_PROFILE,
-    NONE_PROFILE,
-];
+const SELECTABLE_MEMORY_BACKENDS: [MemoryBackendProfile; 3] =
+    [SQLITE_PROFILE, OBSIDIAN_PROFILE, NONE_PROFILE];
 
 pub fn selectable_memory_backends() -> &'static [MemoryBackendProfile] {
     &SELECTABLE_MEMORY_BACKENDS
@@ -84,7 +81,6 @@ pub fn memory_backend_profile(backend: &str) -> MemoryBackendProfile {
         MemoryBackendKind::Unknown => CUSTOM_PROFILE,
     }
 }
-
 
 #[cfg(test)]
 #[path = "backend.test.rs"]

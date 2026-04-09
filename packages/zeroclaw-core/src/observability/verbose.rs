@@ -63,7 +63,6 @@ impl Observer for VerboseObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "verbose.test.rs"]
 mod tests;

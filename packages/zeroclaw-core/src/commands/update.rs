@@ -399,7 +399,6 @@ async fn smoke_test(binary: &Path) -> Result<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 #[path = "update.test.rs"]
 mod tests;

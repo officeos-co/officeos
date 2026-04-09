@@ -1071,7 +1071,6 @@ impl Provider for AnthropicProvider {
     }
 }
 
-
 #[cfg(test)]
 #[path = "anthropic.test.rs"]
 mod tests;

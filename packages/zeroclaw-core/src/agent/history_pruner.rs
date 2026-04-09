@@ -151,7 +151,6 @@ pub fn prune_history(messages: &mut Vec<ChatMessage>, config: &HistoryPrunerConf
     }
 }
 
-
 #[cfg(test)]
 #[path = "history_pruner.test.rs"]
 mod tests;

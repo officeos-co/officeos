@@ -123,7 +123,6 @@ impl Drop for StallWatchdog {
     }
 }
 
-
 #[cfg(test)]
 #[path = "stall_watchdog.test.rs"]
 mod tests;

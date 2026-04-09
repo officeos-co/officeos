@@ -190,7 +190,6 @@ impl Memory for NamespacedMemory {
     }
 }
 
-
 #[cfg(test)]
 #[path = "namespaced.test.rs"]
 mod tests;

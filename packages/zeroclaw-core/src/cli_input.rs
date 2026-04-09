@@ -85,7 +85,6 @@ fn trim_trailing_line_ending(input: &str) -> &str {
     input.trim_end_matches(['\n', '\r'])
 }
 
-
 #[cfg(test)]
 #[path = "cli_input.test.rs"]
 mod tests;

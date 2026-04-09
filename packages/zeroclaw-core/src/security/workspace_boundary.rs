@@ -112,7 +112,6 @@ impl WorkspaceBoundary {
     }
 }
 
-
 #[cfg(test)]
 #[path = "workspace_boundary.test.rs"]
 mod tests;

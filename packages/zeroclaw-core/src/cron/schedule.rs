@@ -162,7 +162,6 @@ fn normalize_weekday_field(field: &str) -> Result<String> {
     Ok(result_parts.join(","))
 }
 
-
 #[cfg(test)]
 #[path = "schedule.test.rs"]
 mod tests;

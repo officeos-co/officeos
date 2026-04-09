@@ -152,7 +152,6 @@ impl Default for CostSummary {
     }
 }
 
-
 #[cfg(test)]
 #[path = "types.test.rs"]
 mod tests;

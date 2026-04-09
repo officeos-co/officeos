@@ -114,7 +114,6 @@ fn detect_best_sandbox() -> Arc<dyn Sandbox> {
     Arc::new(super::traits::NoopSandbox)
 }
 
-
 #[cfg(test)]
 #[path = "detect.test.rs"]
 mod tests;

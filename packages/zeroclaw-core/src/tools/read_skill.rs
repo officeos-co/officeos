@@ -112,7 +112,6 @@ impl Tool for ReadSkillTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "read_skill.test.rs"]
 mod tests;

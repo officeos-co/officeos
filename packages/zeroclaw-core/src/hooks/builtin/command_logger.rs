@@ -46,7 +46,6 @@ impl HookHandler for CommandLoggerHook {
     }
 }
 
-
 #[cfg(test)]
 #[path = "command_logger.test.rs"]
 mod tests;

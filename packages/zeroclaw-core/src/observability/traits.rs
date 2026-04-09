@@ -224,7 +224,6 @@ pub trait Observer: Send + Sync + 'static {
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

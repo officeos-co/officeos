@@ -43,9 +43,9 @@ pub mod consolidation;
 pub mod decay;
 pub mod embeddings;
 pub mod importance;
-pub mod obsidian;
 pub mod namespaced;
 pub mod none;
+pub mod obsidian;
 pub mod response_cache;
 pub mod retrieval;
 pub mod sqlite;
@@ -57,9 +57,9 @@ pub use backend::{
     MemoryBackendKind, MemoryBackendProfile, classify_memory_backend, default_memory_backend_key,
     memory_backend_profile, selectable_memory_backends,
 };
-pub use obsidian::ObsidianMemory;
 pub use namespaced::NamespacedMemory;
 pub use none::NoneMemory;
+pub use obsidian::ObsidianMemory;
 pub use response_cache::ResponseCache;
 #[allow(unused_imports)]
 pub use retrieval::{RetrievalConfig, RetrievalPipeline};
@@ -341,7 +341,6 @@ pub fn create_response_cache(config: &MemoryConfig, workspace_dir: &Path) -> Opt
         }
     }
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

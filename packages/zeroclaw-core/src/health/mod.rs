@@ -102,7 +102,6 @@ pub fn snapshot_json() -> serde_json::Value {
     })
 }
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

@@ -53,7 +53,6 @@ pub fn resolve_web_search_provider(raw_provider: &str) -> WebSearchProviderResol
     }
 }
 
-
 #[cfg(test)]
 #[path = "web_search_provider_routing.test.rs"]
 mod tests;

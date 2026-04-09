@@ -4230,9 +4230,7 @@ fn build_channel_by_id(config: &Config, channel_id: &str) -> Result<Arc<dyn Chan
                 .with_workspace_dir(config.workspace_dir.clone()),
             ))
         }
-        other => anyhow::bail!(
-            "Unknown channel '{other}'. Supported: telegram"
-        ),
+        other => anyhow::bail!("Unknown channel '{other}'. Supported: telegram"),
     }
 }
 
@@ -4953,7 +4951,6 @@ pub async fn start_channels(config: Config) -> Result<()> {
 
     Ok(())
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

@@ -654,7 +654,6 @@ fn truncate_utf8(input: &str, max_bytes: usize) -> &str {
     &input[..end]
 }
 
-
 #[cfg(test)]
 #[path = "content_search.test.rs"]
 mod tests;

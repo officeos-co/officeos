@@ -38,6 +38,7 @@
 //! - `docs/contributing/change-playbooks.md` §7.3 — adding a new tool.
 
 pub mod ask_user;
+pub mod backend_skill_tool;
 pub mod canvas;
 pub mod content_search;
 pub mod delegate;
@@ -63,7 +64,6 @@ pub mod read_skill;
 pub mod schema;
 pub mod sessions;
 pub mod shell;
-pub mod backend_skill_tool;
 pub mod skill_http;
 pub mod skill_tool;
 pub mod tool_search;
@@ -306,7 +306,12 @@ pub fn all_tools_with_runtime(
     Option<ChannelMapHandle>,
     Option<ChannelMapHandle>,
 ) {
-    let _ = (composio_key, composio_entity_id, browser_config, fallback_api_key);
+    let _ = (
+        composio_key,
+        composio_entity_id,
+        browser_config,
+        fallback_api_key,
+    );
     let sandbox = create_sandbox(&root_config.security);
     let mut tool_arcs: Vec<Arc<dyn Tool>> = vec![
         Arc::new(RateLimitedTool::new(
@@ -453,7 +458,6 @@ pub fn all_tools_with_runtime(
         Some(escalate_handle),
     )
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

@@ -49,7 +49,6 @@ pub fn detect_auth_kind(token: &str, explicit: Option<&str>) -> AnthropicAuthKin
     AnthropicAuthKind::ApiKey
 }
 
-
 #[cfg(test)]
 #[path = "anthropic_token.test.rs"]
 mod tests;

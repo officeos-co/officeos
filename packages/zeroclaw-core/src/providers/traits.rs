@@ -601,7 +601,6 @@ pub fn build_tool_instructions_text(tools: &[ToolSpec]) -> String {
     instructions
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

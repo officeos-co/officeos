@@ -188,7 +188,6 @@ impl Tool for ReactionTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "reaction.test.rs"]
 mod tests;

@@ -318,7 +318,6 @@ impl PromptSection for ChannelMediaSection {
     }
 }
 
-
 #[cfg(test)]
 #[path = "prompt.test.rs"]
 mod tests;

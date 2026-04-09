@@ -266,7 +266,6 @@ impl Tool for PollTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "poll.test.rs"]
 mod tests;

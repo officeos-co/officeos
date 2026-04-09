@@ -100,7 +100,6 @@ impl Sandbox for NoopSandbox {
     }
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

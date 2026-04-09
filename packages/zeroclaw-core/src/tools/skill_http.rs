@@ -152,7 +152,6 @@ impl Tool for SkillHttpTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "skill_http.test.rs"]
 mod tests;

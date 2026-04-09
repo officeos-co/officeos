@@ -503,7 +503,6 @@ pub fn verify_chain(log_path: &Path) -> Result<u64> {
     Ok(expected_sequence)
 }
 
-
 #[cfg(test)]
 #[path = "audit.test.rs"]
 mod tests;

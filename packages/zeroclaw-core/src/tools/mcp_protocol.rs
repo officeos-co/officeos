@@ -87,7 +87,6 @@ pub struct McpToolsListResult {
     pub tools: Vec<McpToolDef>,
 }
 
-
 #[cfg(test)]
 #[path = "mcp_protocol.test.rs"]
 mod tests;

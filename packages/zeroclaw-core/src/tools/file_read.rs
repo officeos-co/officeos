@@ -233,7 +233,6 @@ fn try_extract_pdf_text(_bytes: &[u8]) -> Option<String> {
     None
 }
 
-
 #[cfg(test)]
 #[path = "file_read.test.rs"]
 mod tests;

@@ -879,7 +879,6 @@ impl Provider for OllamaProvider {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-
 #[cfg(test)]
 #[path = "ollama.test.rs"]
 mod tests;

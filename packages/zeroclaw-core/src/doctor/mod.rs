@@ -393,10 +393,7 @@ fn check_config_semantics(config: &Config, items: &mut Vec<DiagItem>) {
     if has_channel {
         items.push(DiagItem::ok(cat, "at least one channel configured"));
     } else {
-        items.push(DiagItem::warn(
-            cat,
-            "no channels configured",
-        ));
+        items.push(DiagItem::warn(cat, "no channels configured"));
     }
 
     // Delegate agents: provider validity
@@ -777,7 +774,6 @@ fn parse_rfc3339(raw: &str) -> Option<DateTime<Utc>> {
         .ok()
         .map(|dt| dt.with_timezone(&Utc))
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

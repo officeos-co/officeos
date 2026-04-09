@@ -125,7 +125,6 @@ async fn fire_debounced(entries: &Mutex<HashMap<String, DebouncerEntry>>, key: &
     }
 }
 
-
 #[cfg(test)]
 #[path = "debounce.test.rs"]
 mod tests;

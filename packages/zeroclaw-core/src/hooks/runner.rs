@@ -314,7 +314,6 @@ impl HookRunner {
     }
 }
 
-
 #[cfg(test)]
 #[path = "runner.test.rs"]
 mod tests;

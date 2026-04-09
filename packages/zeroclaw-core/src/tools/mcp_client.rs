@@ -293,7 +293,6 @@ impl McpRegistry {
     }
 }
 
-
 #[cfg(test)]
 #[path = "mcp_client.test.rs"]
 mod tests;

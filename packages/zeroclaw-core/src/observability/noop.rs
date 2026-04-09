@@ -20,7 +20,6 @@ impl Observer for NoopObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "noop.test.rs"]
 mod tests;

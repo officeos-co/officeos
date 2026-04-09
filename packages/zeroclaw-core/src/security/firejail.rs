@@ -82,7 +82,6 @@ impl Sandbox for FirejailSandbox {
     }
 }
 
-
 #[cfg(test)]
 #[path = "firejail.test.rs"]
 mod tests;

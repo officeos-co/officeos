@@ -23,7 +23,6 @@ pub fn create_runtime(config: &RuntimeConfig) -> anyhow::Result<Box<dyn RuntimeA
     }
 }
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

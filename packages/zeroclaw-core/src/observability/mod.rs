@@ -118,7 +118,6 @@ pub fn create_observer(config: &ObservabilityConfig) -> Box<dyn Observer> {
     }
 }
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

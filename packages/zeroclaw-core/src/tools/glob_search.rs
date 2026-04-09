@@ -177,7 +177,6 @@ impl Tool for GlobSearchTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "glob_search.test.rs"]
 mod tests;

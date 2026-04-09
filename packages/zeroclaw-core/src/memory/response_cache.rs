@@ -273,7 +273,6 @@ impl ResponseCache {
     }
 }
 
-
 #[cfg(test)]
 #[path = "response_cache.test.rs"]
 mod tests;

@@ -70,7 +70,6 @@ pub trait RuntimeAdapter: Send + Sync {
     ) -> anyhow::Result<tokio::process::Command>;
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

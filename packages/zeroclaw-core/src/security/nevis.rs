@@ -398,7 +398,6 @@ struct UserInfoResponse {
 
 // ── Tests ──────────────────────────────────────────────────────────
 
-
 #[cfg(test)]
 #[path = "nevis.test.rs"]
 mod tests;

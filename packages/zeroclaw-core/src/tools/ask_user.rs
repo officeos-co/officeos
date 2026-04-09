@@ -223,7 +223,6 @@ impl Tool for AskUserTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "ask_user.test.rs"]
 mod tests;

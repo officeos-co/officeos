@@ -892,7 +892,6 @@ async fn run_mqtt_sop_listener(_config: &crate::config::MqttConfig) -> Result<()
     anyhow::bail!("MQTT SOP listener removed in phase 2.4 strip-down")
 }
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

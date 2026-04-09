@@ -175,7 +175,6 @@ impl Observer for LogObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "log.test.rs"]
 mod tests;

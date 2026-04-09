@@ -1138,7 +1138,6 @@ impl Memory for SqliteMemory {
     }
 }
 
-
 #[cfg(test)]
 #[path = "sqlite.test.rs"]
 mod tests;

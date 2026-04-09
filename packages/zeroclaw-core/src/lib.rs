@@ -133,7 +133,6 @@ Examples:
     },
 }
 
-
 /// Channel management subcommands
 #[derive(Subcommand, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ChannelCommands {
@@ -434,4 +433,3 @@ pub enum MemoryCommands {
         yes: bool,
     },
 }
-

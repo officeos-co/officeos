@@ -113,7 +113,6 @@ impl Tool for MemoryPurgeTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "memory_purge.test.rs"]
 mod tests;

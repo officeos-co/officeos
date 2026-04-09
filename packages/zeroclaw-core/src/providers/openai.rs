@@ -536,7 +536,6 @@ impl Provider for OpenAiProvider {
     }
 }
 
-
 #[cfg(test)]
 #[path = "openai.test.rs"]
 mod tests;

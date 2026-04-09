@@ -200,7 +200,6 @@ impl Sandbox for LandlockSandbox {
     }
 }
 
-
 #[cfg(test)]
 #[path = "landlock.test.rs"]
 mod tests;

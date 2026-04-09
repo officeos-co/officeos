@@ -650,7 +650,6 @@ fn is_valid_openai_tool_name(name: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 
-
 #[cfg(test)]
 #[path = "openrouter.test.rs"]
 mod tests;

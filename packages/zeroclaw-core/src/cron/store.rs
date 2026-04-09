@@ -939,7 +939,6 @@ fn with_connection<T>(config: &Config, f: impl FnOnce(&Connection) -> Result<T>)
     f(&conn)
 }
 
-
 #[cfg(test)]
 #[path = "store.test.rs"]
 mod tests;

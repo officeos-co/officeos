@@ -368,7 +368,6 @@ fn has_mixed_alpha_digit(s: &str) -> bool {
     has_alpha && has_digit
 }
 
-
 #[cfg(test)]
 #[path = "leak_detector.test.rs"]
 mod tests;

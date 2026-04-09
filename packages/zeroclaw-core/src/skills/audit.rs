@@ -595,7 +595,6 @@ fn detect_high_risk_snippet(content: &str) -> Option<&'static str> {
         .find_map(|(regex, label)| regex.is_match(content).then_some(*label))
 }
 
-
 #[cfg(test)]
 #[path = "audit.test.rs"]
 mod tests;

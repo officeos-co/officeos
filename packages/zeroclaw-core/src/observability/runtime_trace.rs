@@ -313,7 +313,6 @@ pub fn find_event_by_id(path: &Path, id: &str) -> Result<Option<RuntimeTraceEven
     Ok(None)
 }
 
-
 #[cfg(test)]
 #[path = "runtime_trace.test.rs"]
 mod tests;

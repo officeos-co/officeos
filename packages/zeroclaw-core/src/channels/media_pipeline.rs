@@ -203,7 +203,6 @@ impl<'a> MediaPipeline<'a> {
     }
 }
 
-
 #[cfg(test)]
 #[path = "media_pipeline.test.rs"]
 mod tests;

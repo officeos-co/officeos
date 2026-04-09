@@ -42,11 +42,7 @@ pub const PERSONALITY_FILES: &[&str] = &[
 /// The remaining entries in [`PERSONALITY_FILES`] (`USER.md`, `MEMORY.md`,
 /// etc.) are optional — they describe state that may or may not exist for
 /// a given agent and their absence is not a boot failure.
-pub const REQUIRED_PERSONALITY_FILES: &[&str] = &[
-    "SOUL.md",
-    "IDENTITY.md",
-    "AGENTS.md",
-];
+pub const REQUIRED_PERSONALITY_FILES: &[&str] = &["SOUL.md", "IDENTITY.md", "AGENTS.md"];
 
 /// Errors returned by [`load_personality_strict`] when the workspace
 /// directory does not contain a valid personality file set.
@@ -246,7 +242,6 @@ fn truncate_content(content: &str) -> (String, bool) {
         .unwrap_or(content);
     (truncated.to_string(), true)
 }
-
 
 #[cfg(test)]
 #[path = "personality.test.rs"]

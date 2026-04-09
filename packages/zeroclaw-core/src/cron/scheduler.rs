@@ -627,7 +627,6 @@ fn build_cron_shell_command(
     Ok(cmd)
 }
 
-
 #[cfg(test)]
 #[path = "scheduler.test.rs"]
 mod tests;

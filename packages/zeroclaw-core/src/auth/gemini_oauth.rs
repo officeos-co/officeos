@@ -520,7 +520,6 @@ pub fn extract_account_email_from_id_token(id_token: &str) -> Option<String> {
     payload.email
 }
 
-
 #[cfg(test)]
 #[path = "gemini_oauth.test.rs"]
 mod tests;

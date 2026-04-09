@@ -1254,7 +1254,6 @@ impl Observer for NoopObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "delegate.test.rs"]
 mod tests;

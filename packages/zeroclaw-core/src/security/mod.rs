@@ -103,7 +103,6 @@ pub fn redact(value: &str) -> String {
     }
 }
 
-
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;

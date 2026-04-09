@@ -880,7 +880,6 @@ pub async fn transcribe_audio(
     }
 }
 
-
 #[cfg(test)]
 #[path = "transcription.test.rs"]
 mod tests;

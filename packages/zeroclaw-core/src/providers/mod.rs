@@ -36,8 +36,6 @@
 //! - `src/agent/mod.rs` — consumer of the constructed provider
 //! - `docs/reference/providers.md` — supported backends and aliases
 
-
-
 pub mod anthropic;
 pub mod compatible;
 pub mod ollama;
@@ -2329,7 +2327,6 @@ pub(crate) mod test_util {
         }
     }
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

@@ -378,7 +378,6 @@ async fn parse_token_response(response: reqwest::Response) -> Result<TokenSet> {
     })
 }
 
-
 #[cfg(test)]
 #[path = "openai_oauth.test.rs"]
 mod tests;

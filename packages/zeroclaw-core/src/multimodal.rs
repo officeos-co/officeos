@@ -494,7 +494,6 @@ fn mime_from_magic(bytes: &[u8]) -> Option<&'static str> {
     None
 }
 
-
 #[cfg(test)]
 #[path = "multimodal.test.rs"]
 mod tests;

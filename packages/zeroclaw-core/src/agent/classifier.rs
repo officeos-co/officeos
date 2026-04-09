@@ -65,7 +65,6 @@ pub fn classify_with_decision(
     None
 }
 
-
 #[cfg(test)]
 #[path = "classifier.test.rs"]
 mod tests;

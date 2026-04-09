@@ -246,7 +246,6 @@ pub async fn enrich_message(content: &str, config: &LinkEnricherConfig) -> Strin
     format!("{prefix}\n{content}")
 }
 
-
 #[cfg(test)]
 #[path = "link_enricher.test.rs"]
 mod tests;

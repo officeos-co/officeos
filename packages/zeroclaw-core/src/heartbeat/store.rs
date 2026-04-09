@@ -192,7 +192,6 @@ fn sql_err(err: anyhow::Error) -> rusqlite::Error {
     rusqlite::Error::ToSqlConversionFailure(err.into())
 }
 
-
 #[cfg(test)]
 #[path = "store.test.rs"]
 mod tests;

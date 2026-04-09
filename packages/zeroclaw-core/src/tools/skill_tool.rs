@@ -214,7 +214,6 @@ impl Tool for SkillShellTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "skill_tool.test.rs"]
 mod tests;

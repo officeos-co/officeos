@@ -212,7 +212,6 @@ fn generate_policy(workspace: &Path) -> String {
     )
 }
 
-
 #[cfg(test)]
 #[path = "seatbelt.test.rs"]
 mod tests;

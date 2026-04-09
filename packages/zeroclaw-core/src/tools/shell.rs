@@ -240,7 +240,6 @@ impl Tool for ShellTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "shell.test.rs"]
 mod tests;

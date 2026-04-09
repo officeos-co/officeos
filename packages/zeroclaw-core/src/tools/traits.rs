@@ -42,7 +42,6 @@ pub trait Tool: Send + Sync {
     }
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

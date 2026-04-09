@@ -60,7 +60,6 @@ impl Channel for CliChannel {
     }
 }
 
-
 #[cfg(test)]
 #[path = "cli.test.rs"]
 mod tests;

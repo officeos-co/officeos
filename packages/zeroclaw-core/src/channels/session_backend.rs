@@ -133,7 +133,6 @@ pub struct SessionState {
     pub turn_started_at: Option<DateTime<Utc>>,
 }
 
-
 #[cfg(test)]
 #[path = "session_backend.test.rs"]
 mod tests;

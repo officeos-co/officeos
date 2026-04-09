@@ -178,7 +178,6 @@ impl<T: Tool> Tool for PathGuardedTool<T> {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-
 #[cfg(test)]
 #[path = "wrappers.test.rs"]
 mod tests;

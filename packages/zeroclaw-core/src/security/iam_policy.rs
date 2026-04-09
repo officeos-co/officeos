@@ -210,7 +210,6 @@ impl IamPolicy {
     }
 }
 
-
 #[cfg(test)]
 #[path = "iam_policy.test.rs"]
 mod tests;

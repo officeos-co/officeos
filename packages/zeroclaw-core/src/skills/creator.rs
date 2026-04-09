@@ -368,7 +368,6 @@ pub fn extract_tool_calls_from_history(
     records
 }
 
-
 #[cfg(test)]
 #[path = "creator.test.rs"]
 mod tests;

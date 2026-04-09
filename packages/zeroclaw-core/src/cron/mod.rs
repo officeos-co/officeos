@@ -17,9 +17,7 @@ pub use store::{
     add_agent_job, all_overdue_jobs, due_jobs, get_job, list_jobs, list_runs, record_last_run,
     record_run, remove_job, reschedule_after_run, sync_declarative_jobs, update_job,
 };
-pub use types::{
-    CronJob, CronJobPatch, CronRun, DeliveryConfig, JobType, Schedule, SessionTarget,
-};
+pub use types::{CronJob, CronJobPatch, CronRun, DeliveryConfig, JobType, Schedule, SessionTarget};
 
 /// Validate a shell command against the full security policy (allowlist + risk gate).
 ///
@@ -490,7 +488,6 @@ fn parse_delay(input: &str) -> Result<chrono::Duration> {
     };
     Ok(duration)
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

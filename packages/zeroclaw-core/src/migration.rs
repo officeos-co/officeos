@@ -420,7 +420,6 @@ fn backup_target_memory(workspace_dir: &Path) -> Result<Option<PathBuf>> {
     }
 }
 
-
 #[cfg(test)]
 #[path = "migration.test.rs"]
 mod tests;

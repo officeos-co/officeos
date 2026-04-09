@@ -919,7 +919,6 @@ pub fn create_transport(config: &McpServerConfig) -> Result<Box<dyn McpTransport
 
 // ── Tests ─────────────────────────────────────────────────────────────────
 
-
 #[cfg(test)]
 #[path = "mcp_transport.test.rs"]
 mod tests;

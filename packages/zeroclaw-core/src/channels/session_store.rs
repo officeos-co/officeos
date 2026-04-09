@@ -170,7 +170,6 @@ impl SessionBackend for SessionStore {
     }
 }
 
-
 #[cfg(test)]
 #[path = "session_store.test.rs"]
 mod tests;

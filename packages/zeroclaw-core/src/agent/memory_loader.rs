@@ -88,7 +88,6 @@ impl MemoryLoader for DefaultMemoryLoader {
     }
 }
 
-
 #[cfg(test)]
 #[path = "memory_loader.test.rs"]
 mod tests;

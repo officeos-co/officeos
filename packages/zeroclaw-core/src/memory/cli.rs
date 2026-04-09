@@ -283,7 +283,6 @@ fn truncate_content(s: &str, max_len: usize) -> String {
     format!("{truncated}...")
 }
 
-
 #[cfg(test)]
 #[path = "cli.test.rs"]
 mod tests;

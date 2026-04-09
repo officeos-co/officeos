@@ -13,9 +13,9 @@ pub mod loop_detector;
 pub mod memory_loader;
 pub mod personality;
 pub mod prompt;
-pub mod vault_bootstrap;
 pub mod thinking;
 pub mod tool_execution;
+pub mod vault_bootstrap;
 
 #[cfg(test)]
 mod tests;

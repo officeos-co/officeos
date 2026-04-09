@@ -47,9 +47,7 @@ pub mod sse;
 pub mod tls;
 pub mod ws;
 
-use crate::channels::{
-    session_backend::SessionBackend, session_sqlite::SqliteSessionBackend,
-};
+use crate::channels::{session_backend::SessionBackend, session_sqlite::SqliteSessionBackend};
 use crate::config::Config;
 use crate::cost::CostTracker;
 use crate::memory::{self, Memory, MemoryCategory};
@@ -1057,8 +1055,8 @@ async fn run_gateway_chat_simple(state: &AppState, message: &str) -> anyhow::Res
         crate::channels::build_system_prompt(
             &config_guard.workspace_dir,
             &state.model,
-            &[], // tools - empty for simple chat
-            &[], // skills
+            &[],  // tools - empty for simple chat
+            &[],  // skills
             None, // bootstrap_max_chars - use default
         )
     };
@@ -1294,7 +1292,6 @@ async fn handle_webhook(
     }
 }
 
-
 // ══════════════════════════════════════════════════════════════════════════════
 // ADMIN HANDLERS (for CLI management)
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1424,7 +1421,6 @@ async fn handle_pair_code(State(state): State<AppState>) -> impl IntoResponse {
 
     (StatusCode::OK, Json(body))
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

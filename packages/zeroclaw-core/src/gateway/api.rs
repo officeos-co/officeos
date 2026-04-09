@@ -1417,8 +1417,6 @@ pub async fn handle_api_session_state(
 
 // ── Claude Code hook endpoint ────────────────────────────────────
 
-
-
 #[cfg(test)]
 #[path = "api.test.rs"]
 mod tests;

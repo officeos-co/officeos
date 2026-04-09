@@ -241,7 +241,6 @@ impl WorkspaceManager {
     }
 }
 
-
 #[cfg(test)]
 #[path = "workspace.test.rs"]
 mod tests;

@@ -274,7 +274,6 @@ impl Channel for WebhookChannel {
     }
 }
 
-
 #[cfg(test)]
 #[path = "webhook.test.rs"]
 mod tests;

@@ -79,7 +79,6 @@ impl Tool for McpToolWrapper {
     }
 }
 
-
 #[cfg(test)]
 #[path = "mcp_tool.test.rs"]
 mod tests;

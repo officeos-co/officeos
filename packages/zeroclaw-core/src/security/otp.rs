@@ -250,7 +250,6 @@ fn decode_base32_secret(raw: &str) -> Result<Vec<u8>> {
     Ok(output)
 }
 
-
 #[cfg(test)]
 #[path = "otp.test.rs"]
 mod tests;

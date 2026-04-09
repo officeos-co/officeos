@@ -2465,7 +2465,6 @@ impl Provider for OpenAiCompatibleProvider {
     }
 }
 
-
 #[cfg(test)]
 #[path = "compatible.test.rs"]
 mod tests;

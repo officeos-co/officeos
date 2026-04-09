@@ -185,7 +185,6 @@ pub struct CronJobPatch {
     pub allowed_tools: Option<Vec<String>>,
 }
 
-
 #[cfg(test)]
 #[path = "types.test.rs"]
 mod tests;

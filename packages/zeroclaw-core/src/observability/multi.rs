@@ -40,7 +40,6 @@ impl Observer for MultiObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "multi.test.rs"]
 mod tests;

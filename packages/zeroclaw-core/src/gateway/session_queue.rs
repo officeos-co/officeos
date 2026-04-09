@@ -154,7 +154,6 @@ impl SessionActorQueue {
     }
 }
 
-
 #[cfg(test)]
 #[path = "session_queue.test.rs"]
 mod tests;

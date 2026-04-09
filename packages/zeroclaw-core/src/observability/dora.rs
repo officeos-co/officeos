@@ -196,7 +196,6 @@ impl Default for DoraCollector {
     }
 }
 
-
 #[cfg(test)]
 #[path = "dora.test.rs"]
 mod tests;

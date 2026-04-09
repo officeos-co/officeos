@@ -147,7 +147,6 @@ impl Tool for MemoryRecallTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "memory_recall.test.rs"]
 mod tests;

@@ -78,7 +78,6 @@ impl Tool for MemoryForgetTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "memory_forget.test.rs"]
 mod tests;

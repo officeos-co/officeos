@@ -78,7 +78,6 @@ pub trait HookHandler: Send + Sync {
     }
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

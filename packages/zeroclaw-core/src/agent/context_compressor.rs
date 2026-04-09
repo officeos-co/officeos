@@ -578,7 +578,6 @@ fn truncate_chars(s: &str, max: usize) -> String {
 // Tests
 // ---------------------------------------------------------------------------
 
-
 #[cfg(test)]
 #[path = "context_compressor.test.rs"]
 mod tests;

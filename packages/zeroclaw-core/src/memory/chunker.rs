@@ -177,7 +177,6 @@ fn split_on_lines(text: &str, max_chars: usize) -> Vec<String> {
     chunks
 }
 
-
 #[cfg(test)]
 #[path = "chunker.test.rs"]
 mod tests;

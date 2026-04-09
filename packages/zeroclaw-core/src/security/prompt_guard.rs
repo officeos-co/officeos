@@ -288,7 +288,6 @@ impl PromptGuard {
     }
 }
 
-
 #[cfg(test)]
 #[path = "prompt_guard.test.rs"]
 mod tests;

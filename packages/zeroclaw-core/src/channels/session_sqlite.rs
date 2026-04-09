@@ -572,7 +572,6 @@ impl SessionBackend for SqliteSessionBackend {
     }
 }
 
-
 #[cfg(test)]
 #[path = "session_sqlite.test.rs"]
 mod tests;

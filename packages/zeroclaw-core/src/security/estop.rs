@@ -297,7 +297,6 @@ fn now_rfc3339() -> String {
         .to_rfc3339()
 }
 
-
 #[cfg(test)]
 #[path = "estop.test.rs"]
 mod tests;

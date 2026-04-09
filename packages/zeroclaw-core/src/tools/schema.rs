@@ -535,7 +535,6 @@ impl SchemaCleanr {
     }
 }
 
-
 #[cfg(test)]
 #[path = "schema.test.rs"]
 mod tests;

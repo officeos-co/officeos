@@ -500,7 +500,6 @@ impl Observer for OtelObserver {
     }
 }
 
-
 #[cfg(test)]
 #[path = "otel.test.rs"]
 mod tests;

@@ -70,8 +70,8 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
 
         var env = new List<V1EnvVar>
         {
-            new("API_KEY", (apiKey ?? string.Empty).Trim()),
-            new("PROVIDER", provider),
+            new("ZEROCLAW_API_KEY", (apiKey ?? string.Empty).Trim()),
+            new("ZEROCLAW_PROVIDER", provider),
             new("ZEROCLAW_GATEWAY_PORT", ZeroclawPort.ToString()),
             new("ZEROCLAW_GATEWAY_HOST", "0.0.0.0"),
             new("ZEROCLAW_ALLOW_PUBLIC_BIND", "true"),

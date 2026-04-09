@@ -257,7 +257,6 @@ pub trait Memory: Send + Sync {
     }
 }
 
-
 #[cfg(test)]
 #[path = "traits.test.rs"]
 mod tests;

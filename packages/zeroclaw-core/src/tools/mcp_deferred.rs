@@ -255,7 +255,6 @@ pub fn build_deferred_tools_section(deferred: &DeferredMcpToolSet) -> String {
     out
 }
 
-
 #[cfg(test)]
 #[path = "mcp_deferred.test.rs"]
 mod tests;

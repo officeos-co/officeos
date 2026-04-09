@@ -44,7 +44,6 @@ pub fn apply_time_decay(entries: &mut [MemoryEntry], half_life_days: f64) {
     }
 }
 
-
 #[cfg(test)]
 #[path = "decay.test.rs"]
 mod tests;

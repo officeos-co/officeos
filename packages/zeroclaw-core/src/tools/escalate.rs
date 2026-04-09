@@ -345,7 +345,6 @@ impl Tool for EscalateToHumanTool {
     }
 }
 
-
 #[cfg(test)]
 #[path = "escalate.test.rs"]
 mod tests;

@@ -168,7 +168,6 @@ fn parse_consolidation_response(raw: &str, fallback_text: &str) -> Consolidation
     })
 }
 
-
 #[cfg(test)]
 #[path = "consolidation.test.rs"]
 mod tests;
