@@ -51,6 +51,15 @@ public sealed class AgentService : IAgentService
             Model = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim(),
             Status = "pending",
         };
+
+        if (record.Model is not null && !KnownModels.IsValid(record.Provider, record.Model))
+        {
+            var allowed = string.Join(", ", KnownModels.For(record.Provider));
+            throw new InvalidOperationException(
+                $"Model '{record.Model}' is not a known model for provider '{record.Provider}'. " +
+                $"Allowed: {(allowed.Length == 0 ? "(none)" : allowed)}");
+        }
+
         await _repository.AddAsync(record, ct);
 
         try

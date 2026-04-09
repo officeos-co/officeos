@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { useAgents } from "@/hooks/useAgents";
 import { useProviders } from "@/hooks/useProviders";
+import { useProviderModels } from "@/hooks/useProviderModels";
 
 type NewAgentOverlayProps = {
   open: boolean;
@@ -21,11 +22,19 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const { models, loading: modelsLoading, error: modelsError } = useProviderModels(
+    provider || null,
+  );
+
   useEffect(() => {
     if (open && !provider && configured.length > 0) {
       setProvider(configured[0].name);
     }
   }, [open, provider, configured]);
+
+  useEffect(() => {
+    setModel("");
+  }, [provider]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,12 +99,30 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-[var(--eaos-text-muted)]">Model (optional)</span>
-          <input
+          <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
-            placeholder="claude-sonnet-4-6"
-          />
+            disabled={!provider || modelsLoading || (!!modelsError) || models.length === 0}
+            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white disabled:opacity-50"
+          >
+            <option value="">(provider default)</option>
+            {models.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          {modelsLoading && (
+            <span className="text-xs text-[var(--eaos-text-muted)]">Loading models…</span>
+          )}
+          {modelsError && (
+            <span className="text-xs text-red-400">{modelsError}</span>
+          )}
+          {!modelsLoading && !modelsError && provider && models.length === 0 && (
+            <span className="text-xs text-yellow-400">
+              No models configured for this provider.
+            </span>
+          )}
         </label>
 
         {error && <div className="text-sm text-red-400">{error}</div>}

@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'apps/v2-frontend/**'
+      - 'k8s/frontend.yaml'
       - '.github/workflows/deploy-dashboard-prod.yml'
 
 concurrency:
@@ -45,12 +46,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout KubernetesConfig
-        uses: actions/checkout@v4
-        with:
-          repository: HarKro753/KubernetesConfig
-          token: ${{ secrets.GH_PAT }}
-          path: k8s-config
+      - uses: actions/checkout@v4
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
@@ -59,11 +55,12 @@ jobs:
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
 
-      - name: Deploy dashboard via deploy.sh
-        working-directory: k8s-config
+      - name: Apply manifest and restart dashboard
         run: |
           kubectl config set-cluster nova --server=https://tailscale-operator.tail82aae1.ts.net:443 --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
-          ./deploy.sh eaos-dashboard
+          kubectl apply -f k8s/frontend.yaml
+          kubectl rollout restart deployment/eaos-frontend-prod
+          kubectl rollout status deployment/eaos-frontend-prod --timeout=180s

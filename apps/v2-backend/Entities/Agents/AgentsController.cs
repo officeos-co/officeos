@@ -40,8 +40,15 @@ public sealed class AgentsController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var created = await _service.CreateAsync(request, ct);
-        return CreatedAtAction(nameof(List), new { id = created.Id }, created);
+        try
+        {
+            var created = await _service.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(List), new { id = created.Id }, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpGet("{id:guid}/memory")]

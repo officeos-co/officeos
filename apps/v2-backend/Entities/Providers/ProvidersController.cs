@@ -38,6 +38,17 @@ public sealed class ProvidersController : ControllerBase
         return Ok(updated);
     }
 
+    [HttpGet("{name}/models")]
+    public ActionResult<IReadOnlyList<string>> GetModels(string name)
+    {
+        var models = KnownModels.For(name.Trim().ToLowerInvariant());
+        if (models.Count == 0)
+        {
+            return NotFound();
+        }
+        return Ok(models);
+    }
+
     [HttpDelete("{name}/key")]
     public async Task<IActionResult> Clear(string name, CancellationToken ct)
     {

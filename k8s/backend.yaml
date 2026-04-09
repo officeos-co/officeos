@@ -1,0 +1,442 @@
+# ─────────────────────────────────────────────────────────────────────
+# Enterprise Agent OS — backend stack
+#
+# Everything the backend needs to run: RBAC, shared data stores
+# (postgres/redis from the legacy v1 stack, couchdb for v2 agent
+# vaults), the backend PVC, and the backend Deployment + Service.
+#
+# Frontend lives in ./frontend.yaml. Credentials are hardcoded inline
+# to match the self-contained pattern used in docker-compose.yml —
+# rotate by editing here and re-applying.
+# ─────────────────────────────────────────────────────────────────────
+
+# ==============================================================
+# RBAC — backend needs this SA to spawn per-agent zeroclaw pods
+# and clean up PVCs on agent deletion. Without the SA the backend
+# Deployment's ReplicaSet can't admit any Pod (it references
+# `serviceAccountName: dashboard-backend`).
+# ==============================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dashboard-backend
+  namespace: default
+  labels:
+    app: eaos
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: zeroclaw-manager
+  namespace: default
+  labels:
+    app: eaos
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - persistentvolumeclaims
+      - configmaps
+    verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: zeroclaw-manager-binding
+  namespace: default
+  labels:
+    app: eaos
+subjects:
+  - kind: ServiceAccount
+    name: dashboard-backend
+    namespace: default
+roleRef:
+  kind: Role
+  name: zeroclaw-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ==============================================================
+# Postgres (legacy v1 primary DB)
+# ==============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-postgres-data
+  namespace: default
+  labels:
+    app: eaos
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-postgres
+  namespace: default
+  labels:
+    app: eaos-postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # stateful — don't run two copies against the same PVC
+  selector:
+    matchLabels:
+      app: eaos-postgres
+  template:
+    metadata:
+      labels:
+        app: eaos-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              value: enterprise_agent_os
+            - name: POSTGRES_USER
+              value: eaos
+            - name: POSTGRES_PASSWORD
+              value: eaos
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - eaos
+                - -d
+                - enterprise_agent_os
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - eaos
+                - -d
+                - enterprise_agent_os
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-postgres-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-postgres
+  namespace: default
+  labels:
+    app: eaos-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+
+---
+# ==============================================================
+# Redis (legacy v1 RQ queue + rate limiting)
+# ==============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-redis
+  namespace: default
+  labels:
+    app: eaos-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-redis
+  template:
+    metadata:
+      labels:
+        app: eaos-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+              name: redis
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-redis
+  namespace: default
+  labels:
+    app: eaos-redis
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+
+---
+# ==============================================================
+# CouchDB (agent vault storage — per-agent databases)
+# ==============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-couchdb-data
+  namespace: default
+  labels:
+    app: eaos
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-couchdb
+  namespace: default
+  labels:
+    app: eaos-couchdb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: eaos-couchdb
+  template:
+    metadata:
+      labels:
+        app: eaos-couchdb
+    spec:
+      containers:
+        - name: couchdb
+          image: couchdb:3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: COUCHDB_USER
+              value: eaos
+            - name: COUCHDB_PASSWORD
+              value: eaos
+          ports:
+            - containerPort: 5984
+              name: couchdb
+          volumeMounts:
+            - name: data
+              mountPath: /opt/couchdb/data
+          livenessProbe:
+            httpGet:
+              path: /_up
+              port: 5984
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /_up
+              port: 5984
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-couchdb-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-couchdb
+  namespace: default
+  labels:
+    app: eaos-couchdb
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-couchdb
+  ports:
+    - name: couchdb
+      port: 5984
+      targetPort: 5984
+
+---
+# ==============================================================
+# Backend SQLite / DataProtection keys PVC
+#
+# v2 backend (dotnet) writes its SQLite database and DataProtection
+# keys under /data. Without this volume both would vanish on every
+# pod restart, losing agents/providers/skills and invalidating every
+# encrypted provider API key.
+# ==============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-backend-data
+  namespace: default
+  labels:
+    app: eaos
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# ==============================================================
+# Backend (v2 dotnet / legacy FastAPI image)
+# ==============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-backend-prod
+  namespace: default
+  labels:
+    app: eaos-backend-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-backend-prod
+  template:
+    metadata:
+      labels:
+        app: eaos-backend-prod
+    spec:
+      serviceAccountName: dashboard-backend
+      containers:
+        - name: backend
+          image: harkro123/eaos-backend:latest
+          imagePullPolicy: Always
+          env:
+            # Profile switch — drives app/core/config.py::PROFILES.
+            - name: ENVIRONMENT
+              value: production
+            # Cluster-local overrides of the baked .env defaults.
+            # The backend image ships with DATABASE_URL pointing at
+            # `db:5432` (compose hostname). Override so in-cluster it
+            # reaches the eaos-postgres Service.
+            - name: DATABASE_URL
+              value: postgresql+psycopg://eaos:eaos@eaos-postgres:5432/enterprise_agent_os
+            - name: RQ_REDIS_URL
+              value: redis://eaos-redis:6379/0
+            - name: ZEROCLAW_VAULT_HOST
+              value: eaos-couchdb
+            - name: ZEROCLAW_VAULT_PORT
+              value: "5984"
+            - name: ZEROCLAW_VAULT_USERNAME
+              value: eaos
+            - name: ZEROCLAW_VAULT_PASSWORD
+              value: eaos
+            - name: ZEROCLAW_VAULT_PROTOCOL
+              value: http
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-backend-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-backend-prod
+  namespace: default
+  labels:
+    app: eaos-backend-prod
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-backend-prod
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
