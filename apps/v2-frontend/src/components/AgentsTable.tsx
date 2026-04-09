@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Agent } from "../hooks/useAgents";
 import { formatDate, shortId } from "../utils/format";
 
@@ -27,7 +28,14 @@ export function AgentsTable({ agents }: AgentsTableProps) {
               <td className="px-4 py-3 font-mono text-xs text-[var(--eaos-text-muted)]">
                 {shortId(agent.id)}
               </td>
-              <td className="px-4 py-3">{agent.name}</td>
+              <td className="px-4 py-3">
+                <Link
+                  href={`/agents/${agent.id}`}
+                  className="hover:underline"
+                >
+                  {agent.name}
+                </Link>
+              </td>
               <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
                 {agent.model ?? "—"}
               </td>

@@ -21,6 +21,17 @@ public sealed class AgentsController : ControllerBase
         return Ok(agents);
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<AgentDto>> Get(Guid id, CancellationToken ct)
+    {
+        var agent = await _service.GetAsync(id, ct);
+        if (agent is null)
+        {
+            return NotFound();
+        }
+        return Ok(agent);
+    }
+
     [HttpPost]
     public async Task<ActionResult<AgentDto>> Create([FromBody] CreateAgentRequest request, CancellationToken ct)
     {

@@ -17,6 +17,12 @@ public sealed class AgentService : IAgentService
         return records.Select(ToDto).ToList();
     }
 
+    public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
+    {
+        var record = await _repository.GetAsync(id, ct);
+        return record is null ? null : ToDto(record);
+    }
+
     public async Task<AgentDto> CreateAsync(CreateAgentRequest request, CancellationToken ct = default)
     {
         var record = new AgentRecord
