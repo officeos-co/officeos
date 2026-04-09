@@ -9,9 +9,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");
+var dpKeyDir = Path.IsPathRooted(dpKeyPath)
+    ? dpKeyPath
+    : Path.Combine(Directory.GetCurrentDirectory(), dpKeyPath);
+Directory.CreateDirectory(dpKeyDir);
 builder.Services
     .AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), "dp-keys")))
+    .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir))
     .SetApplicationName("EnterpriseAgentOs.Api");
 
 builder.Services.AddSingleton<ProviderKeyProtector>();
