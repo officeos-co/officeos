@@ -6,10 +6,12 @@ namespace EnterpriseAgentOs.Api.Entities.Agents;
 public sealed class AgentsController : ControllerBase
 {
     private readonly IAgentService _service;
+    private readonly IVaultClient _vault;
 
-    public AgentsController(IAgentService service)
+    public AgentsController(IAgentService service, IVaultClient vault)
     {
         _service = service;
+        _vault = vault;
     }
 
     [HttpGet]
@@ -40,6 +42,32 @@ public sealed class AgentsController : ControllerBase
 
         var created = await _service.CreateAsync(request, ct);
         return CreatedAtAction(nameof(List), new { id = created.Id }, created);
+    }
+
+    [HttpGet("{id:guid}/memory")]
+    public async Task<ActionResult<IReadOnlyList<string>>> ListMemory(Guid id, CancellationToken ct)
+    {
+        if (await _service.GetAsync(id, ct) is null)
+        {
+            return NotFound();
+        }
+        var files = await _vault.ListFilesAsync(id, ct);
+        return Ok(files);
+    }
+
+    [HttpGet("{id:guid}/memory/{*fileName}")]
+    public async Task<IActionResult> GetMemoryFile(Guid id, string fileName, CancellationToken ct)
+    {
+        if (await _service.GetAsync(id, ct) is null)
+        {
+            return NotFound();
+        }
+        var content = await _vault.GetFileAsync(id, fileName, ct);
+        if (content is null)
+        {
+            return NotFound();
+        }
+        return Content(content, "text/markdown");
     }
 
     [HttpDelete("{id:guid}")]

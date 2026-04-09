@@ -63,6 +63,52 @@ public sealed class CouchDbVaultClient : IVaultClient
         }
     }
 
+    public async Task<IReadOnlyList<string>> ListFilesAsync(Guid agentId, CancellationToken ct = default)
+    {
+        var db = DbName(agentId);
+        using var resp = await _http.GetAsync($"{_baseUrl}/{db}/_all_docs", ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            return Array.Empty<string>();
+        }
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(body);
+        if (!doc.RootElement.TryGetProperty("rows", out var rows))
+        {
+            return Array.Empty<string>();
+        }
+        var result = new List<string>();
+        foreach (var row in rows.EnumerateArray())
+        {
+            if (row.TryGetProperty("id", out var idEl) && idEl.GetString() is { } id
+                && !id.StartsWith("_design/", StringComparison.Ordinal))
+            {
+                result.Add(id);
+            }
+        }
+        result.Sort(StringComparer.Ordinal);
+        return result;
+    }
+
+    public async Task<string?> GetFileAsync(Guid agentId, string fileName, CancellationToken ct = default)
+    {
+        var db = DbName(agentId);
+        using var resp = await _http.GetAsync($"{_baseUrl}/{db}/{Uri.EscapeDataString(fileName)}", ct);
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        if (!resp.IsSuccessStatusCode)
+        {
+            var err = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"CouchDB get {db}/{fileName} failed: {(int)resp.StatusCode} {err}");
+        }
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(body);
+        return doc.RootElement.TryGetProperty("content", out var content) ? content.GetString() : null;
+    }
+
     private async Task PutDocumentAsync(string db, string docId, string content, CancellationToken ct)
     {
         string? rev = await GetCurrentRevAsync(db, docId, ct);
