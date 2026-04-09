@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Agent } from "@/hooks/useAgents";
+import { AgentChatPanel } from "./AgentChatPanel";
 import { formatDate, shortId } from "@/utils/format";
 
 type Tab = "overview" | "chat" | "sessions" | "memory" | "crons" | "logs";
@@ -27,7 +28,9 @@ export function AgentDetailTabs({ agent }: Props) {
       <div className="sticky top-[96px] z-0 flex gap-1 border-b border-[var(--eaos-border)] bg-[var(--eaos-bg)] px-8">
         {tabs.map((t) => {
           const isActive = t.id === active;
-          const disabled = t.id !== "overview" && agent.status !== "running";
+          const chatEnabled = t.id === "chat" && agent.status === "running";
+          const disabled =
+            t.id !== "overview" && !chatEnabled && agent.status !== "running";
           return (
             <button
               key={t.id}
@@ -49,7 +52,8 @@ export function AgentDetailTabs({ agent }: Props) {
       </div>
 
       {active === "overview" && <OverviewPanel agent={agent} />}
-      {active !== "overview" && <PlaceholderPanel label={active} />}
+      {active === "chat" && <AgentChatPanel agent={agent} />}
+      {active !== "overview" && active !== "chat" && <PlaceholderPanel label={active} />}
     </div>
   );
 }

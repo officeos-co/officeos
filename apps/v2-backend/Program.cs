@@ -78,9 +78,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(FrontendCorsPolicy);
 
+app.UseWebSockets();
+
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
+app.MapAgentProxyEndpoints();
 app.MapControllers();
 
 app.Run();
