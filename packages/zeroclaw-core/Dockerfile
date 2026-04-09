@@ -27,7 +27,6 @@ RUN apt-get update \
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY tool_descriptions ./tool_descriptions
-COPY skills ./skills
 
 # Release build with the default feature set (observability-prometheus,
 # skill-creation). The workspace has exactly one binary target.
