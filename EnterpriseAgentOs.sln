@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "v2-backend", "v2-backend", "{B116CDE6-E536-4DAC-2A5F-AB5AE00F2FF8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Api", "apps\v2-backend\EnterpriseAgentOs.Api.csproj", "{0795ABF1-2A53-2214-0989-D7A87767F5E3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0795ABF1-2A53-2214-0989-D7A87767F5E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0795ABF1-2A53-2214-0989-D7A87767F5E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0795ABF1-2A53-2214-0989-D7A87767F5E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0795ABF1-2A53-2214-0989-D7A87767F5E3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B116CDE6-E536-4DAC-2A5F-AB5AE00F2FF8} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{0795ABF1-2A53-2214-0989-D7A87767F5E3} = {B116CDE6-E536-4DAC-2A5F-AB5AE00F2FF8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {73F42934-7C43-429A-855F-0DF6CB5F5BAE}
+	EndGlobalSection
+EndGlobal

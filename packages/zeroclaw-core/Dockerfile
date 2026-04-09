@@ -9,19 +9,6 @@
 # not the repo root — the COPY paths are all relative to here.
 
 # ──────────────────────────────────────────────────────────────
-# Stage 0: Web dashboard build
-# `rust-embed` at src/gateway/static_files.rs bakes `web/dist/` into
-# the binary at compile time. The directory is gitignored, so CI
-# must rebuild it from `web/` before the Rust build starts.
-# ──────────────────────────────────────────────────────────────
-FROM node:22-alpine AS web-builder
-WORKDIR /web
-COPY web/package.json web/package-lock.json* ./
-RUN npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
-COPY web/ ./
-RUN npm run build
-
-# ──────────────────────────────────────────────────────────────
 # Stage 1: Rust build
 # ──────────────────────────────────────────────────────────────
 FROM rust:1.94-slim-bookworm AS builder
@@ -36,13 +23,11 @@ RUN apt-get update \
      git \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy the Rust workspace. `web/dist/` comes from the web-builder
-# stage so rust-embed's compile-time file inclusion resolves.
-COPY Cargo.toml Cargo.lock build.rs ./
+# Copy the Rust workspace.
+COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY tool_descriptions ./tool_descriptions
 COPY skills ./skills
-COPY --from=web-builder /web/dist ./web/dist
 
 # Release build with the default feature set (observability-prometheus,
 # skill-creation). The workspace has exactly one binary target.
