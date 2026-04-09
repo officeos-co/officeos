@@ -8,8 +8,8 @@ RUN dotnet publish EnterpriseAgentOs.Api.csproj -c Release -o /app/publish /p:Us
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://+:8000
 ENV ASPNETCORE_ENVIRONMENT=Production
 COPY --from=build /app/publish ./
-EXPOSE 8080
+EXPOSE 8000
 ENTRYPOINT ["dotnet", "EnterpriseAgentOs.Api.dll"]

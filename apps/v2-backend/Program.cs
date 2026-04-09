@@ -53,6 +53,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors(FrontendCorsPolicy);
 
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
+app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 app.MapControllers();
 
@@ -69,6 +70,10 @@ static async Task SeedProvidersAsync(EaosDbContext db)
     {
         new ProviderRecord { Name = "openai", DisplayName = "OpenAI" },
         new ProviderRecord { Name = "anthropic", DisplayName = "Anthropic" },
+        new ProviderRecord { Name = "google", DisplayName = "Google Gemini" },
+        new ProviderRecord { Name = "xai", DisplayName = "xAI Grok" },
+        new ProviderRecord { Name = "groq", DisplayName = "Groq" },
+        new ProviderRecord { Name = "deepseek", DisplayName = "DeepSeek" },
         new ProviderRecord { Name = "openrouter", DisplayName = "OpenRouter" },
         new ProviderRecord { Name = "ollama", DisplayName = "Ollama" },
     };
