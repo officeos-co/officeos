@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Api.Entities.Skills;
-using Microsoft.AspNetCore.Mvc;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 

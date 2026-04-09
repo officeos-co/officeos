@@ -1,1 +1,10 @@
+global using System.ComponentModel.DataAnnotations;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+
+global using EnterpriseAgentOs.Api.Database;
 global using EnterpriseAgentOs.Api.Database.Models;
+global using EnterpriseAgentOs.Api.Entities.Agents;
+global using EnterpriseAgentOs.Api.Entities.Providers;
+global using EnterpriseAgentOs.Api.Entities.Skills;
+global using EnterpriseAgentOs.Api.Properties;

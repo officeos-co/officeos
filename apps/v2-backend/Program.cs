@@ -1,12 +1,5 @@
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Agents;
-using EnterpriseAgentOs.Api.Entities.Providers;
-using EnterpriseAgentOs.Api.Entities.Skills;
-using EnterpriseAgentOs.Api.Properties;
 using k8s;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 const string FrontendCorsPolicy = "v2-frontend";
 

@@ -1,4 +1,3 @@
-using EnterpriseAgentOs.Api.Entities.Agents;
 
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 

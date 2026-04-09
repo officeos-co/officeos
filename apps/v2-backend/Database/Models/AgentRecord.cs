@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 
 namespace EnterpriseAgentOs.Api.Database.Models;
 

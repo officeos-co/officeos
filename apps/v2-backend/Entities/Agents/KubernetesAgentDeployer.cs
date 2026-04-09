@@ -1,6 +1,5 @@
 using k8s;
 using k8s.Models;
-using EnterpriseAgentOs.Api.Properties;
 
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 

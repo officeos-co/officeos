@@ -1,4 +1,3 @@
-using EnterpriseAgentOs.Api.Entities.Skills;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 

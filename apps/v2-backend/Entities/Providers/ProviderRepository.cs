@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Api.Database;
-using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseAgentOs.Api.Entities.Providers;
 
