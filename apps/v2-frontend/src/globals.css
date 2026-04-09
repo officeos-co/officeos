@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  --eaos-bg: #111111;
+  --eaos-sidebar: #0b0b0b;
+  --eaos-panel: #161616;
+  --eaos-border: #262626;
+  --eaos-text: #ededed;
+  --eaos-text-muted: #8b8b8b;
+  --eaos-accent: #ffffff;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: var(--eaos-bg);
+  color: var(--eaos-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+}
