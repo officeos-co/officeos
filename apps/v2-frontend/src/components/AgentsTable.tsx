@@ -14,6 +14,7 @@ export function AgentsTable({ agents }: AgentsTableProps) {
           <tr className="border-b border-[var(--eaos-border)]">
             <th className="px-4 py-3 font-normal">ID</th>
             <th className="px-4 py-3 font-normal">Name</th>
+            <th className="px-4 py-3 font-normal">Provider</th>
             <th className="px-4 py-3 font-normal">Model</th>
             <th className="px-4 py-3 font-normal">Status</th>
             <th className="px-4 py-3 font-normal">Created</th>
@@ -35,6 +36,9 @@ export function AgentsTable({ agents }: AgentsTableProps) {
                 >
                   {agent.name}
                 </Link>
+              </td>
+              <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
+                {agent.provider}
               </td>
               <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
                 {agent.model ?? "—"}

@@ -21,7 +21,10 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(a => a.Id);
             e.Property(a => a.Name).IsRequired().HasMaxLength(200);
+            e.Property(a => a.Provider).IsRequired().HasMaxLength(64);
             e.Property(a => a.Status).IsRequired().HasMaxLength(32);
+            e.Property(a => a.PodName).HasMaxLength(128);
+            e.Property(a => a.ServiceUrl).HasMaxLength(256);
         });
 
         modelBuilder.Entity<ProviderRecord>(e =>

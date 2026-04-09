@@ -3,6 +3,7 @@ using EnterpriseAgentOs.Api.Entities.Agents;
 using EnterpriseAgentOs.Api.Entities.Providers;
 using EnterpriseAgentOs.Api.Entities.Skills;
 using EnterpriseAgentOs.Api.Properties;
+using k8s;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,23 @@ builder.Services.AddDbContext<EaosDbContext>(options =>
 
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAgentService, AgentService>();
+
+var kubernetesEnabled = ValueManager.GetValue<bool>("KubernetesEnabled");
+if (kubernetesEnabled)
+{
+    builder.Services.AddSingleton<IKubernetes>(_ =>
+    {
+        var config = KubernetesClientConfiguration.IsInCluster()
+            ? KubernetesClientConfiguration.InClusterConfig()
+            : KubernetesClientConfiguration.BuildDefaultConfig();
+        return new Kubernetes(config);
+    });
+    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
+}
+else
+{
+    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
+}
 builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
 builder.Services.AddScoped<IProviderService, ProviderService>();
 builder.Services.AddScoped<ISkillRepository, SkillRepository>();

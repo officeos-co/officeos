@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
-import { useAgents } from "../hooks/useAgents";
+import { useAgents } from "@/hooks/useAgents";
+import { useProviders } from "@/hooks/useProviders";
 
 type NewAgentOverlayProps = {
   open: boolean;
@@ -11,10 +12,20 @@ type NewAgentOverlayProps = {
 
 export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
   const { create } = useAgents();
+  const { providers } = useProviders();
+  const configured = providers.filter((p) => p.configured);
+
   const [name, setName] = useState("");
+  const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open && !provider && configured.length > 0) {
+      setProvider(configured[0].name);
+    }
+  }, [open, provider, configured]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +34,13 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
       setError("Name is required");
       return;
     }
+    if (!provider) {
+      setError("Select a configured provider");
+      return;
+    }
     setSubmitting(true);
     try {
-      await create({ name: name.trim(), model: model.trim() || undefined });
+      await create({ name: name.trim(), provider, model: model.trim() || undefined });
       setName("");
       setModel("");
       onClose();
@@ -49,6 +64,30 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
             placeholder="my-agent"
           />
         </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-[var(--eaos-text-muted)]">Provider</span>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
+          >
+            <option value="" disabled>
+              Select a configured provider
+            </option>
+            {configured.map((p) => (
+              <option key={p.id} value={p.name}>
+                {p.displayName}
+              </option>
+            ))}
+          </select>
+          {configured.length === 0 && (
+            <span className="text-xs text-yellow-400">
+              No providers configured yet. Set one up on the Providers page first.
+            </span>
+          )}
+        </label>
+
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-[var(--eaos-text-muted)]">Model (optional)</span>
           <input
@@ -71,7 +110,7 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || configured.length === 0}
             className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
           >
             {submitting ? "Creating..." : "Create"}

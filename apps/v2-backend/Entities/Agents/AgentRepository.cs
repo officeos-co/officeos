@@ -33,6 +33,12 @@ public sealed class AgentRepository : IAgentRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateAsync(AgentRecord record, CancellationToken ct = default)
+    {
+        _db.Agents.Update(record);
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task<bool> SoftDeleteAsync(Guid id, CancellationToken ct = default)
     {
         var record = await _db.Agents.FirstOrDefaultAsync(a => a.Id == id, ct);

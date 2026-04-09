@@ -1,14 +1,24 @@
-using EnterpriseAgentOs.Api.Entities.Agents;
+using EnterpriseAgentOs.Api.Entities.Providers;
 
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed class AgentService : IAgentService
 {
     private readonly IAgentRepository _repository;
+    private readonly IAgentDeployer _deployer;
+    private readonly IProviderService _providerService;
+    private readonly ILogger<AgentService> _logger;
 
-    public AgentService(IAgentRepository repository)
+    public AgentService(
+        IAgentRepository repository,
+        IAgentDeployer deployer,
+        IProviderService providerService,
+        ILogger<AgentService> logger)
     {
         _repository = repository;
+        _deployer = deployer;
+        _providerService = providerService;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
@@ -25,21 +35,66 @@ public sealed class AgentService : IAgentService
 
     public async Task<AgentDto> CreateAsync(CreateAgentRequest request, CancellationToken ct = default)
     {
+        var apiKey = await _providerService.GetDecryptedKeyAsync(request.Provider, ct);
+        if (apiKey is null && !IsKeylessProvider(request.Provider))
+        {
+            throw new InvalidOperationException(
+                $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
+        }
+
         var record = new AgentRecord
         {
             Name = request.Name.Trim(),
+            Provider = request.Provider.Trim().ToLowerInvariant(),
             Model = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim(),
             Status = "pending",
         };
         await _repository.AddAsync(record, ct);
+
+        try
+        {
+            var deployment = await _deployer.DeployAsync(
+                record.Id,
+                record.Provider,
+                apiKey ?? string.Empty,
+                record.Model,
+                ct);
+
+            record.PodName = deployment.PodName;
+            record.ServiceUrl = deployment.ServiceUrl;
+            record.Status = "running";
+            await _repository.UpdateAsync(record, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to deploy agent {AgentId}", record.Id);
+            record.Status = "failed";
+            await _repository.UpdateAsync(record, ct);
+        }
+
         return ToDto(record);
     }
 
-    public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        return _repository.SoftDeleteAsync(id, ct);
+        var record = await _repository.GetAsync(id, ct);
+        if (record is null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(record.PodName))
+        {
+            await _deployer.RemoveAsync(record.PodName, ct);
+        }
+
+        return await _repository.SoftDeleteAsync(id, ct);
     }
 
+    private static bool IsKeylessProvider(string name) =>
+        name.Equals("ollama", StringComparison.OrdinalIgnoreCase);
+
     private static AgentDto ToDto(AgentRecord record) =>
-        new(record.Id, record.Name, record.Model, record.Status, record.CreatedAt);
+        new(record.Id, record.Name, record.Provider, record.Model, record.Status,
+            record.PodName, record.ServiceUrl, record.CreatedAt);
 }
