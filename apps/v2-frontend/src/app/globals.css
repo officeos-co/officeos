@@ -7,11 +7,11 @@
   --eaos-border: #262626;
   --eaos-text: #ededed;
   --eaos-text-muted: #8b8b8b;
-  --eaos-accent: #ffffff;
   color-scheme: dark;
 }
 
-html, body, #root {
+html,
+body {
   height: 100%;
   margin: 0;
   background: var(--eaos-bg);

@@ -1,12 +1,17 @@
-import { NavLink } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navItems = [
-  { to: "/providers", label: "Providers" },
-  { to: "/skills", label: "Skills" },
-  { to: "/agents", label: "Agents" },
+  { href: "/providers", label: "Providers" },
+  { href: "/skills", label: "Skills" },
+  { href: "/agents", label: "Agents" },
 ];
 
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--eaos-border)] bg-[var(--eaos-sidebar)] px-3 py-4">
       <div className="mb-6 flex items-center gap-2 px-2">
@@ -20,22 +25,23 @@ export function Sidebar() {
         <div className="px-2 pb-1 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
           Workspace
         </div>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              [
+        {navItems.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={[
                 "rounded-md px-3 py-2 text-sm transition-colors",
                 isActive
                   ? "bg-black text-white"
                   : "text-[var(--eaos-text-muted)] hover:bg-[var(--eaos-panel)] hover:text-white",
-              ].join(" ")
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
+              ].join(" ")}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="mt-auto flex items-center gap-2 rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-3 py-2">

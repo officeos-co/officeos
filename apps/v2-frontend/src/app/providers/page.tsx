@@ -1,7 +1,9 @@
-import { TopBar } from "../components/TopBar";
-import { useProviders } from "../hooks/useProviders";
+"use client";
 
-export function ProvidersPage() {
+import { TopBar } from "@/components/TopBar";
+import { useProviders } from "@/hooks/useProviders";
+
+export default function ProvidersPage() {
   const { providers, loading, error } = useProviders();
 
   return (

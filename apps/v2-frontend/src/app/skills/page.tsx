@@ -1,8 +1,10 @@
-import { TopBar } from "../components/TopBar";
-import { EmptyState } from "../components/EmptyState";
-import { useSkills } from "../hooks/useSkills";
+"use client";
 
-export function SkillsPage() {
+import { TopBar } from "@/components/TopBar";
+import { EmptyState } from "@/components/EmptyState";
+import { useSkills } from "@/hooks/useSkills";
+
+export default function SkillsPage() {
   const { skills, loading } = useSkills();
 
   return (

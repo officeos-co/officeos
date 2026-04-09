@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Modal } from "./Modal";
 import { useAgents } from "../hooks/useAgents";

@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { TopBar } from "../components/TopBar";
-import { AgentsTable } from "../components/AgentsTable";
-import { EmptyState } from "../components/EmptyState";
-import { NewAgentOverlay } from "../components/NewAgentOverlay";
-import { useAgents } from "../hooks/useAgents";
+"use client";
 
-export function AgentsPage() {
+import { useState } from "react";
+import { TopBar } from "@/components/TopBar";
+import { AgentsTable } from "@/components/AgentsTable";
+import { EmptyState } from "@/components/EmptyState";
+import { NewAgentOverlay } from "@/components/NewAgentOverlay";
+import { useAgents } from "@/hooks/useAgents";
+
+export default function AgentsPage() {
   const { agents, loading, error } = useAgents();
   const [overlayOpen, setOverlayOpen] = useState(false);
 
