@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Agent } from "@/hooks/useAgents";
 import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
+import { AgentSessionsPanel } from "./AgentSessionsPanel";
+import { AgentLogsPanel } from "./AgentLogsPanel";
 import { formatDate, shortId } from "@/utils/format";
 
 type Tab = "overview" | "chat" | "sessions" | "memory" | "crons" | "logs";
@@ -30,8 +32,9 @@ export function AgentDetailTabs({ agent }: Props) {
         {tabs.map((t) => {
           const isActive = t.id === active;
           const alwaysOn = t.id === "overview" || t.id === "memory";
-          const chatEnabled = t.id === "chat" && agent.status === "running";
-          const disabled = !alwaysOn && !chatEnabled && agent.status !== "running";
+          const running = agent.status === "running";
+          const podGated = t.id === "chat" || t.id === "sessions" || t.id === "logs";
+          const disabled = !alwaysOn && !(podGated && running) && !running;
           return (
             <button
               key={t.id}
@@ -54,10 +57,10 @@ export function AgentDetailTabs({ agent }: Props) {
 
       {active === "overview" && <OverviewPanel agent={agent} />}
       {active === "chat" && <AgentChatPanel agent={agent} />}
+      {active === "sessions" && <AgentSessionsPanel agent={agent} />}
       {active === "memory" && <AgentMemoryPanel agent={agent} />}
-      {active !== "overview" && active !== "chat" && active !== "memory" && (
-        <PlaceholderPanel label={active} />
-      )}
+      {active === "logs" && <AgentLogsPanel agent={agent} />}
+      {active === "crons" && <PlaceholderPanel label={active} />}
     </div>
   );
 }

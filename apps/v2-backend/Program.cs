@@ -27,6 +27,7 @@ builder.Services.AddDbContext<EaosDbContext>(options =>
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAgentService, AgentService>();
 builder.Services.AddHttpClient<IVaultClient, CouchDbVaultClient>();
+builder.Services.AddHttpClient("agent-proxy");
 
 var kubernetesConfig = new KubernetesConfig
 {
