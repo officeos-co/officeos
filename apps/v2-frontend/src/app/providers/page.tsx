@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { TopBar } from "@/components/TopBar";
-import { useProviders } from "@/hooks/useProviders";
+import { ProviderConfigureOverlay } from "@/components/ProviderConfigureOverlay";
+import { useProviders, type Provider } from "@/hooks/useProviders";
 
 export default function ProvidersPage() {
   const { providers, loading, error } = useProviders();
+  const [selected, setSelected] = useState<Provider | null>(null);
 
   return (
     <div>
@@ -43,11 +46,10 @@ export default function ProvidersPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      disabled
-                      className="rounded-md border border-[var(--eaos-border)] px-3 py-1 text-xs text-[var(--eaos-text-muted)] opacity-60"
-                      title="Configuration coming soon"
+                      onClick={() => setSelected(p)}
+                      className="rounded-md border border-[var(--eaos-border)] px-3 py-1 text-xs hover:bg-white hover:text-black"
                     >
-                      Configure
+                      {p.configured ? "Update" : "Configure"}
                     </button>
                   </td>
                 </tr>
@@ -56,6 +58,8 @@ export default function ProvidersPage() {
           </table>
         </div>
       )}
+
+      <ProviderConfigureOverlay provider={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

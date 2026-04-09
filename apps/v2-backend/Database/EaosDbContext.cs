@@ -30,6 +30,8 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(p => p.Name).IsUnique();
             e.Property(p => p.Name).IsRequired().HasMaxLength(64);
             e.Property(p => p.DisplayName).IsRequired().HasMaxLength(128);
+            e.Property(p => p.EncryptedApiKey).HasMaxLength(4096);
+            e.Ignore(p => p.Configured);
         });
 
         modelBuilder.Entity<SkillRecord>(e =>

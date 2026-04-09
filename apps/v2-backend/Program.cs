@@ -3,6 +3,7 @@ using EnterpriseAgentOs.Api.Entities.Agents;
 using EnterpriseAgentOs.Api.Entities.Providers;
 using EnterpriseAgentOs.Api.Entities.Skills;
 using EnterpriseAgentOs.Api.Properties;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), "dp-keys")))
+    .SetApplicationName("EnterpriseAgentOs.Api");
+
+builder.Services.AddSingleton<ProviderKeyProtector>();
 
 builder.Services.AddDbContext<EaosDbContext>(options =>
     options.UseSqlite(ValueManager.GetValue<string>("ConnectionString")));
