@@ -17,9 +17,9 @@ public sealed class ProviderService : IProviderService
         return records.Select(ToDto).ToList();
     }
 
-    public async Task<ProviderDto?> ConfigureAsync(Guid id, string apiKey, CancellationToken ct = default)
+    public async Task<ProviderDto?> ConfigureAsync(string name, string apiKey, CancellationToken ct = default)
     {
-        var record = await _repository.GetAsync(id, ct);
+        var record = await _repository.GetByNameAsync(name, ct);
         if (record is null)
         {
             return null;
@@ -31,15 +31,14 @@ public sealed class ProviderService : IProviderService
         return ToDto(record);
     }
 
-    public Task<bool> ClearAsync(Guid id, CancellationToken ct = default)
+    public Task<bool> ClearAsync(string name, CancellationToken ct = default)
     {
-        return _repository.ClearKeyAsync(id, ct);
+        return _repository.ClearKeyAsync(name, ct);
     }
 
     public async Task<string?> GetDecryptedKeyAsync(string name, CancellationToken ct = default)
     {
-        var records = await _repository.ListAsync(ct);
-        var record = records.FirstOrDefault(p => p.Name == name);
+        var record = await _repository.GetByNameAsync(name, ct);
         if (record?.EncryptedApiKey is null)
         {
             return null;

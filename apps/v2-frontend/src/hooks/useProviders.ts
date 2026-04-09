@@ -49,8 +49,8 @@ export function useProviders() {
   }, [refetch]);
 
   const configure = useCallback(
-    async (id: string, apiKey: string) => {
-      await apiFetch<Provider>(`/api/providers/${id}`, {
+    async (name: string, apiKey: string) => {
+      await apiFetch<Provider>(`/api/providers/${name}`, {
         method: "PUT",
         body: JSON.stringify({ apiKey }),
       });
@@ -60,8 +60,8 @@ export function useProviders() {
   );
 
   const clear = useCallback(
-    async (id: string) => {
-      await apiFetch<void>(`/api/providers/${id}/key`, { method: "DELETE" });
+    async (name: string) => {
+      await apiFetch<void>(`/api/providers/${name}/key`, { method: "DELETE" });
       await refetch();
     },
     [refetch],

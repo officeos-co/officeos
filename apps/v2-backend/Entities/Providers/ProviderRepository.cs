@@ -17,9 +17,9 @@ public sealed class ProviderRepository : IProviderRepository
         return await _db.Providers.AsNoTracking().OrderBy(p => p.DisplayName).ToListAsync(ct);
     }
 
-    public async Task<ProviderRecord?> GetAsync(Guid id, CancellationToken ct = default)
+    public async Task<ProviderRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
-        return await _db.Providers.FirstOrDefaultAsync(p => p.Id == id, ct);
+        return await _db.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
     }
 
     public async Task SaveAsync(ProviderRecord record, CancellationToken ct = default)
@@ -27,9 +27,9 @@ public sealed class ProviderRepository : IProviderRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<bool> ClearKeyAsync(Guid id, CancellationToken ct = default)
+    public async Task<bool> ClearKeyAsync(string name, CancellationToken ct = default)
     {
-        var record = await _db.Providers.FirstOrDefaultAsync(p => p.Id == id, ct);
+        var record = await _db.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
         if (record is null)
         {
             return false;

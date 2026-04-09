@@ -33,7 +33,7 @@ export function ProviderConfigureOverlay({ provider, onClose }: Props) {
     }
     setSubmitting(true);
     try {
-      await configure(provider.id, apiKey.trim());
+      await configure(provider.name, apiKey.trim());
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save key");
@@ -46,7 +46,7 @@ export function ProviderConfigureOverlay({ provider, onClose }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      await clear(provider.id);
+      await clear(provider.name);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clear key");

@@ -20,9 +20,9 @@ public sealed class ProvidersController : ControllerBase
         return Ok(providers);
     }
 
-    [HttpPut("{id:guid}")]
+    [HttpPut("{name}")]
     public async Task<ActionResult<ProviderDto>> Configure(
-        Guid id,
+        string name,
         [FromBody] ConfigureProviderRequest request,
         CancellationToken ct)
     {
@@ -31,7 +31,7 @@ public sealed class ProvidersController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var updated = await _service.ConfigureAsync(id, request.ApiKey, ct);
+        var updated = await _service.ConfigureAsync(name, request.ApiKey, ct);
         if (updated is null)
         {
             return NotFound();
@@ -39,10 +39,10 @@ public sealed class ProvidersController : ControllerBase
         return Ok(updated);
     }
 
-    [HttpDelete("{id:guid}/key")]
-    public async Task<IActionResult> Clear(Guid id, CancellationToken ct)
+    [HttpDelete("{name}/key")]
+    public async Task<IActionResult> Clear(string name, CancellationToken ct)
     {
-        var cleared = await _service.ClearAsync(id, ct);
+        var cleared = await _service.ClearAsync(name, ct);
         if (!cleared)
         {
             return NotFound();
