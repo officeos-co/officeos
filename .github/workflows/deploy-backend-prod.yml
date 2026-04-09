@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/v2-backend/**'
+      - '.github/workflows/deploy-backend-prod.yml'
 
 concurrency:
   group: deploy-backend-prod
@@ -30,7 +33,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/backend/Dockerfile
+          file: apps/v2-backend/Dockerfile
           push: true
           tags: |
             harkro123/eaos-backend:latest

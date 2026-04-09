@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/v2-frontend/**'
+      - '.github/workflows/deploy-dashboard-prod.yml'
 
 concurrency:
   group: deploy-dashboard-prod
@@ -29,8 +32,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: apps/dashboard
-          file: apps/dashboard/Dockerfile
+          context: .
+          file: apps/v2-frontend/Dockerfile
           push: true
           tags: |
             harkro123/eaos-frontend:latest
