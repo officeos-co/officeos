@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import type { Agent } from "../hooks/useAgents";
 import { formatDate, shortId } from "../utils/format";
 
@@ -7,6 +9,8 @@ type AgentsTableProps = {
 };
 
 export function AgentsTable({ agents }: AgentsTableProps) {
+  const router = useRouter();
+
   return (
     <div className="mx-8 my-6 overflow-hidden rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]">
       <table className="w-full text-sm">
@@ -24,18 +28,14 @@ export function AgentsTable({ agents }: AgentsTableProps) {
           {agents.map((agent) => (
             <tr
               key={agent.id}
-              className="border-b border-[var(--eaos-border)] last:border-b-0 hover:bg-black/30"
+              onClick={() => router.push(`/agents/${agent.id}`)}
+              className="cursor-pointer border-b border-[var(--eaos-border)] last:border-b-0 hover:bg-black/30"
             >
               <td className="px-4 py-3 font-mono text-xs text-[var(--eaos-text-muted)]">
                 {shortId(agent.id)}
               </td>
               <td className="px-4 py-3">
-                <Link
-                  href={`/agents/${agent.id}`}
-                  className="hover:underline"
-                >
-                  {agent.name}
-                </Link>
+                <span className="hover:underline">{agent.name}</span>
               </td>
               <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
                 {agent.provider}

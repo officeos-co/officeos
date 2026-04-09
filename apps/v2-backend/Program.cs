@@ -21,9 +21,25 @@ builder.Services.AddDbContext<EaosDbContext>(options =>
 
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAgentService, AgentService>();
+builder.Services.AddHttpClient<IVaultClient, CouchDbVaultClient>();
 
-var kubernetesEnabled = ValueManager.GetValue<bool>("KubernetesEnabled");
-if (kubernetesEnabled)
+var kubernetesConfig = new KubernetesConfig
+{
+    Enabled = ValueManager.GetValue<bool>("KubernetesEnabled"),
+    Namespace = ValueManager.GetValue<string>("KubernetesNamespace"),
+    Image = ValueManager.GetValue<string>("ZeroclawImage"),
+};
+builder.Services.AddSingleton(kubernetesConfig);
+
+var couchDbConfig = new CouchDbConfig
+{
+    Url = ValueManager.GetValue<string>("CouchDbUrl"),
+    User = ValueManager.GetValue<string>("CouchDbUser"),
+    Password = ValueManager.GetValue<string>("CouchDbPassword"),
+};
+builder.Services.AddSingleton(couchDbConfig);
+
+if (kubernetesConfig.Enabled)
 {
     builder.Services.AddSingleton<IKubernetes>(_ =>
     {

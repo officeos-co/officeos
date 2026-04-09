@@ -6,17 +6,20 @@ public sealed class AgentService : IAgentService
     private readonly IAgentRepository _repository;
     private readonly IAgentDeployer _deployer;
     private readonly IProviderService _providerService;
+    private readonly IVaultClient _vault;
     private readonly ILogger<AgentService> _logger;
 
     public AgentService(
         IAgentRepository repository,
         IAgentDeployer deployer,
         IProviderService providerService,
+        IVaultClient vault,
         ILogger<AgentService> logger)
     {
         _repository = repository;
         _deployer = deployer;
         _providerService = providerService;
+        _vault = vault;
         _logger = logger;
     }
 
@@ -52,6 +55,8 @@ public sealed class AgentService : IAgentService
 
         try
         {
+            await _vault.CreateAgentVaultAsync(record.Id, record.Name, record.Provider, record.Model, ct);
+
             var deployment = await _deployer.DeployAsync(
                 record.Id,
                 record.Provider,
@@ -85,6 +90,15 @@ public sealed class AgentService : IAgentService
         if (!string.IsNullOrEmpty(record.PodName))
         {
             await _deployer.RemoveAsync(record.PodName, ct);
+        }
+
+        try
+        {
+            await _vault.DeleteAgentVaultAsync(id, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete vault for agent {AgentId}", id);
         }
 
         return await _repository.SoftDeleteAsync(id, ct);
