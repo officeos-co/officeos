@@ -52,7 +52,25 @@ public sealed class AgentService : IAgentService
             Status = "pending",
         };
 
-        if (record.Model is not null && !KnownModels.IsValid(record.Provider, record.Model))
+        if (record.Model is null)
+        {
+            // "(provider default)" on the frontend arrives here as null.
+            // zeroclaw has a compiled-in default of anthropic/claude-sonnet-4.6
+            // which it will try to route through whatever PROVIDER env says —
+            // so if we leave Model null and the deployer omits ZEROCLAW_MODEL,
+            // the pod boots with a vendor-mismatched model and every chat 400s.
+            // Substitute a concrete provider-appropriate default here so the
+            // pod always gets an explicit ZEROCLAW_MODEL for its PROVIDER.
+            var defaultModel = KnownModels.For(record.Provider).FirstOrDefault();
+            if (defaultModel is null)
+            {
+                throw new InvalidOperationException(
+                    $"Provider '{record.Provider}' has no known models configured. " +
+                    "Add an entry to KnownModels.cs before creating agents with this provider.");
+            }
+            record.Model = defaultModel;
+        }
+        else if (!KnownModels.IsValid(record.Provider, record.Model))
         {
             var allowed = string.Join(", ", KnownModels.For(record.Provider));
             throw new InvalidOperationException(
