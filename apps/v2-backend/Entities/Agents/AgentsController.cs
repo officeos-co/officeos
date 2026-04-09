@@ -77,6 +77,52 @@ public sealed class AgentsController : ControllerBase
         return Content(content, "text/markdown");
     }
 
+    public sealed record PutMemoryFileRequest([Required] string Content);
+
+    [HttpPut("{id:guid}/memory/{*fileName}")]
+    public async Task<IActionResult> PutMemoryFile(
+        Guid id,
+        string fileName,
+        [FromBody] PutMemoryFileRequest request,
+        CancellationToken ct)
+    {
+        if (await _service.GetAsync(id, ct) is null)
+        {
+            return NotFound();
+        }
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+        try
+        {
+            await _vault.PutFileAsync(id, fileName, request.Content ?? string.Empty, ct);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:guid}/memory/{*fileName}")]
+    public async Task<IActionResult> DeleteMemoryFile(Guid id, string fileName, CancellationToken ct)
+    {
+        if (await _service.GetAsync(id, ct) is null)
+        {
+            return NotFound();
+        }
+        try
+        {
+            await _vault.DeleteFileAsync(id, fileName, ct);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

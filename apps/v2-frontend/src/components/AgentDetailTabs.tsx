@@ -6,9 +6,26 @@ import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
 import { AgentSessionsPanel } from "./AgentSessionsPanel";
 import { AgentLogsPanel } from "./AgentLogsPanel";
+import { AgentCronsPanel } from "./AgentCronsPanel";
+import { AgentCostPanel } from "./AgentCostPanel";
+import { AgentDoctorPanel } from "./AgentDoctorPanel";
+import { AgentToolsPanel } from "./AgentToolsPanel";
+import { AgentIntegrationsPanel } from "./AgentIntegrationsPanel";
+import { AgentConfigPanel } from "./AgentConfigPanel";
 import { formatDate, shortId } from "@/utils/format";
 
-type Tab = "overview" | "chat" | "sessions" | "memory" | "crons" | "logs";
+type Tab =
+  | "overview"
+  | "chat"
+  | "sessions"
+  | "memory"
+  | "crons"
+  | "cost"
+  | "tools"
+  | "integrations"
+  | "doctor"
+  | "config"
+  | "logs";
 
 type Props = {
   agent: Agent;
@@ -20,21 +37,27 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "sessions", label: "Sessions" },
   { id: "memory", label: "Memory" },
   { id: "crons", label: "Crons" },
+  { id: "cost", label: "Cost" },
+  { id: "tools", label: "Tools" },
+  { id: "integrations", label: "Integrations" },
+  { id: "doctor", label: "Doctor" },
+  { id: "config", label: "Config" },
   { id: "logs", label: "Logs" },
 ];
 
 export function AgentDetailTabs({ agent }: Props) {
   const [active, setActive] = useState<Tab>("overview");
 
+  const running = agent.status === "running";
+  const alwaysOn: Tab[] = ["overview", "memory"];
+  const isAlwaysOn = (id: Tab) => alwaysOn.includes(id);
+
   return (
     <div>
-      <div className="sticky top-[96px] z-0 flex gap-1 border-b border-[var(--eaos-border)] bg-[var(--eaos-bg)] px-8">
+      <div className="sticky top-[96px] z-0 flex flex-wrap gap-1 border-b border-[var(--eaos-border)] bg-[var(--eaos-bg)] px-8">
         {tabs.map((t) => {
           const isActive = t.id === active;
-          const alwaysOn = t.id === "overview" || t.id === "memory";
-          const running = agent.status === "running";
-          const podGated = t.id === "chat" || t.id === "sessions" || t.id === "logs";
-          const disabled = !alwaysOn && !(podGated && running) && !running;
+          const disabled = !isAlwaysOn(t.id) && !running;
           return (
             <button
               key={t.id}
@@ -45,7 +68,9 @@ export function AgentDetailTabs({ agent }: Props) {
                 isActive
                   ? "border-white text-white"
                   : "border-transparent text-[var(--eaos-text-muted)] hover:text-white",
-                disabled ? "opacity-40 cursor-not-allowed hover:text-[var(--eaos-text-muted)]" : "",
+                disabled
+                  ? "cursor-not-allowed opacity-40 hover:text-[var(--eaos-text-muted)]"
+                  : "",
               ].join(" ")}
               title={disabled ? "Available once the agent pod is running" : undefined}
             >
@@ -59,8 +84,13 @@ export function AgentDetailTabs({ agent }: Props) {
       {active === "chat" && <AgentChatPanel agent={agent} />}
       {active === "sessions" && <AgentSessionsPanel agent={agent} />}
       {active === "memory" && <AgentMemoryPanel agent={agent} />}
+      {active === "crons" && <AgentCronsPanel agent={agent} />}
+      {active === "cost" && <AgentCostPanel agent={agent} />}
+      {active === "tools" && <AgentToolsPanel agent={agent} />}
+      {active === "integrations" && <AgentIntegrationsPanel agent={agent} />}
+      {active === "doctor" && <AgentDoctorPanel agent={agent} />}
+      {active === "config" && <AgentConfigPanel agent={agent} />}
       {active === "logs" && <AgentLogsPanel agent={agent} />}
-      {active === "crons" && <PlaceholderPanel label={active} />}
     </div>
   );
 }
@@ -70,6 +100,7 @@ function OverviewPanel({ agent }: { agent: Agent }) {
     <div className="mx-8 my-6 grid grid-cols-1 gap-4 md:grid-cols-2">
       <InfoCard label="ID" value={<span className="font-mono text-xs">{shortId(agent.id)}</span>} />
       <InfoCard label="Name" value={agent.name} />
+      <InfoCard label="Provider" value={agent.provider} />
       <InfoCard label="Model" value={agent.model ?? "—"} />
       <InfoCard
         label="Status"
@@ -91,18 +122,6 @@ function InfoCard({ label, value }: { label: string; value: React.ReactNode }) {
         {label}
       </div>
       <div className="mt-1 text-sm">{value}</div>
-    </div>
-  );
-}
-
-function PlaceholderPanel({ label }: { label: string }) {
-  return (
-    <div className="mx-8 my-16 grid place-items-center rounded-xl border border-dashed border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-6 py-20 text-center">
-      <div className="text-base font-medium capitalize">{label}</div>
-      <div className="mt-2 max-w-sm text-sm text-[var(--eaos-text-muted)]">
-        Available once the agent pod is running. Pod provisioning is wired in the
-        next stage.
-      </div>
     </div>
   );
 }

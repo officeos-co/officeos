@@ -109,6 +109,38 @@ public sealed class CouchDbVaultClient : IVaultClient
         return doc.RootElement.TryGetProperty("content", out var content) ? content.GetString() : null;
     }
 
+    public async Task PutFileAsync(Guid agentId, string fileName, string content, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new ArgumentException("fileName is required", nameof(fileName));
+        }
+        var db = DbName(agentId);
+        await PutDocumentAsync(db, fileName, content, ct);
+    }
+
+    public async Task DeleteFileAsync(Guid agentId, string fileName, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            throw new ArgumentException("fileName is required", nameof(fileName));
+        }
+        var db = DbName(agentId);
+        var rev = await GetCurrentRevAsync(db, fileName, ct);
+        if (rev is null)
+        {
+            return;
+        }
+        using var resp = await _http.DeleteAsync(
+            $"{_baseUrl}/{db}/{Uri.EscapeDataString(fileName)}?rev={rev}", ct);
+        if (!resp.IsSuccessStatusCode && resp.StatusCode != HttpStatusCode.NotFound)
+        {
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"CouchDB delete {db}/{fileName} failed: {(int)resp.StatusCode} {body}");
+        }
+    }
+
     private async Task PutDocumentAsync(string db, string docId, string content, CancellationToken ct)
     {
         string? rev = await GetCurrentRevAsync(db, docId, ct);

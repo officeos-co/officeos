@@ -6,4 +6,6 @@ public interface IVaultClient
     Task DeleteAgentVaultAsync(Guid agentId, CancellationToken ct = default);
     Task<IReadOnlyList<string>> ListFilesAsync(Guid agentId, CancellationToken ct = default);
     Task<string?> GetFileAsync(Guid agentId, string fileName, CancellationToken ct = default);
+    Task PutFileAsync(Guid agentId, string fileName, string content, CancellationToken ct = default);
+    Task DeleteFileAsync(Guid agentId, string fileName, CancellationToken ct = default);
 }
