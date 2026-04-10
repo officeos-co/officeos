@@ -22,11 +22,11 @@ namespace EnterpriseAgentOs.Api.Entities.Skills.GraphQL;
 /// </summary>
 public sealed class SkillTypeModule : ITypeModule
 {
-    private readonly SkillRuntimeClient _runtime;
+    private readonly IServiceProvider _services;
 
-    public SkillTypeModule(SkillRuntimeClient runtime)
+    public SkillTypeModule(IServiceProvider services)
     {
-        _runtime = runtime;
+        _services = services;
     }
 
     public event EventHandler<EventArgs>? TypesChanged;
@@ -36,7 +36,8 @@ public sealed class SkillTypeModule : ITypeModule
         CancellationToken ct)
     {
         var types = new List<ITypeSystemMember>();
-        var manifests = await _runtime.GetManifestsAsync(ct);
+        var runtime = _services.GetRequiredService<SkillRuntimeClient>();
+        var manifests = await runtime.GetManifestsAsync(ct);
 
         var queryExtDef = new ObjectTypeDefinition("Query");
 

@@ -83,6 +83,7 @@ builder.Services.AddHttpClient<SkillRuntimeClient>();
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
 
+builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
 builder.Services
     .AddGraphQLServer()
     .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
