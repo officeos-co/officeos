@@ -7,6 +7,7 @@ public sealed class AgentService : IAgentService
     private readonly IAgentDeployer _deployer;
     private readonly IProviderService _providerService;
     private readonly IVaultClient _vault;
+    private readonly AgentBackendTokenProtector _tokenProtector;
     private readonly ILogger<AgentService> _logger;
 
     public AgentService(
@@ -14,12 +15,14 @@ public sealed class AgentService : IAgentService
         IAgentDeployer deployer,
         IProviderService providerService,
         IVaultClient vault,
+        AgentBackendTokenProtector tokenProtector,
         ILogger<AgentService> logger)
     {
         _repository = repository;
         _deployer = deployer;
         _providerService = providerService;
         _vault = vault;
+        _tokenProtector = tokenProtector;
         _logger = logger;
     }
 
@@ -78,6 +81,17 @@ public sealed class AgentService : IAgentService
                 $"Allowed: {(allowed.Length == 0 ? "(none)" : allowed)}");
         }
 
+        // Mint a per-agent bearer token the pod will present back to
+        // this backend on /api/agents/me/* so the Skill Gateway can
+        // resolve the calling agent. Plaintext is handed to the deployer
+        // (pod env), ciphertext is persisted.
+        var backendTokenBytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+        var backendTokenPlain = Convert.ToBase64String(backendTokenBytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+        record.EncryptedBackendToken = _tokenProtector.Protect(backendTokenPlain);
+
         await _repository.AddAsync(record, ct);
 
         try
@@ -89,6 +103,7 @@ public sealed class AgentService : IAgentService
                 record.Provider,
                 apiKey ?? string.Empty,
                 record.Model,
+                backendTokenPlain,
                 ct);
 
             record.PodName = deployment.PodName;

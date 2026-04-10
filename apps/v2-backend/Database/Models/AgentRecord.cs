@@ -21,4 +21,12 @@ public sealed class AgentRecord
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     public bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// Bearer token the agent pod presents back to this backend on
+    /// <c>/api/agents/me/*</c>. Generated on create. Stored
+    /// DataProtection-wrapped; plaintext is only handed to the pod at
+    /// deploy time via the <c>ZEROCLAW_SKILLS_BACKEND_TOKEN</c> env var.
+    /// </summary>
+    public string? EncryptedBackendToken { get; set; }
 }

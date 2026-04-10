@@ -13,6 +13,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     private readonly ILogger<KubernetesAgentDeployer> _logger;
     private readonly KubernetesConfig _config;
     private readonly CouchDbConfig _couch;
+    private readonly SkillGatewayConfig _skillGateway;
     private readonly string _namespace;
     private readonly string _image;
 
@@ -20,12 +21,14 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         IKubernetes k8s,
         KubernetesConfig config,
         CouchDbConfig couch,
+        SkillGatewayConfig skillGateway,
         ILogger<KubernetesAgentDeployer> logger)
     {
         _k8s = k8s;
         _logger = logger;
         _config = config;
         _couch = couch;
+        _skillGateway = skillGateway;
         _namespace = config.Namespace;
         _image = config.Image;
     }
@@ -40,6 +43,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         string provider,
         string apiKey,
         string? model,
+        string backendToken,
         CancellationToken ct = default)
     {
         var pod = PodName(agentId);
@@ -86,6 +90,9 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         env.Add(new V1EnvVar("ZEROCLAW_VAULT_DB", CouchDbVaultClient.DbName(agentId)));
         env.Add(new V1EnvVar("ZEROCLAW_VAULT_USER", _couch.User));
         env.Add(new V1EnvVar("ZEROCLAW_VAULT_PASSWORD", _couch.Password));
+        env.Add(new V1EnvVar("ZEROCLAW_SKILLS_BACKEND_URL", _skillGateway.Url.TrimEnd('/')));
+        env.Add(new V1EnvVar("ZEROCLAW_SKILLS_BACKEND_TOKEN", backendToken));
+        env.Add(new V1EnvVar("ZEROCLAW_SKILLS_BACKEND_REFRESH_SECONDS", _skillGateway.RefreshSeconds.ToString()));
 
         var podManifest = new V1Pod
         {

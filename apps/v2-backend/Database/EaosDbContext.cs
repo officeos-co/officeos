@@ -9,7 +9,7 @@ public sealed class EaosDbContext : DbContext
 
     public DbSet<AgentRecord> Agents => Set<AgentRecord>();
     public DbSet<ProviderRecord> Providers => Set<ProviderRecord>();
-    public DbSet<SkillRecord> Skills => Set<SkillRecord>();
+    public DbSet<SkillCredentialRecord> SkillCredentials => Set<SkillCredentialRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,6 +21,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.Status).IsRequired().HasMaxLength(32);
             e.Property(a => a.PodName).HasMaxLength(128);
             e.Property(a => a.ServiceUrl).HasMaxLength(256);
+            e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
         });
 
         modelBuilder.Entity<ProviderRecord>(e =>
@@ -33,12 +34,12 @@ public sealed class EaosDbContext : DbContext
             e.Ignore(p => p.Configured);
         });
 
-        modelBuilder.Entity<SkillRecord>(e =>
+        modelBuilder.Entity<SkillCredentialRecord>(e =>
         {
             e.HasKey(s => s.Id);
-            e.HasIndex(s => s.Name).IsUnique();
-            e.Property(s => s.Name).IsRequired().HasMaxLength(64);
-            e.Property(s => s.DisplayName).IsRequired().HasMaxLength(128);
+            e.HasIndex(s => s.SkillName).IsUnique();
+            e.Property(s => s.SkillName).IsRequired().HasMaxLength(64);
+            e.Property(s => s.EncryptedCredentials).HasMaxLength(16384);
         });
     }
 }

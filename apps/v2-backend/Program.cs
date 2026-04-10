@@ -1,5 +1,6 @@
 using k8s;
 using Microsoft.AspNetCore.DataProtection;
+using EnterpriseAgentOs.Api.Entities.Skills.Implementations;
 
 const string FrontendCorsPolicy = "v2-frontend";
 
@@ -20,6 +21,8 @@ builder.Services
     .SetApplicationName("EnterpriseAgentOs.Api");
 
 builder.Services.AddSingleton<ProviderKeyProtector>();
+builder.Services.AddSingleton<SkillCredentialProtector>();
+builder.Services.AddSingleton<AgentBackendTokenProtector>();
 
 builder.Services.AddDbContext<EaosDbContext>(options =>
     options.UseSqlite(ValueManager.GetValue<string>("ConnectionString")));
@@ -45,6 +48,13 @@ var couchDbConfig = new CouchDbConfig
 };
 builder.Services.AddSingleton(couchDbConfig);
 
+var skillGatewayConfig = new SkillGatewayConfig
+{
+    Url = ValueManager.GetValue<string>("SkillGatewayUrl"),
+    RefreshSeconds = 30,
+};
+builder.Services.AddSingleton(skillGatewayConfig);
+
 if (kubernetesConfig.Enabled)
 {
     builder.Services.AddSingleton<IKubernetes>(_ =>
@@ -62,8 +72,11 @@ else
 }
 builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
 builder.Services.AddScoped<IProviderService, ProviderService>();
-builder.Services.AddScoped<ISkillRepository, SkillRepository>();
+builder.Services.AddScoped<ISkillCredentialRepository, SkillCredentialRepository>();
 builder.Services.AddScoped<ISkillService, SkillService>();
+builder.Services.AddHttpClient<NotionSkill>();
+builder.Services.AddHttpClient<GithubSkill>();
+builder.Services.AddHttpClient<GoogleSkill>();
 
 builder.Services.AddCors(options =>
 {
