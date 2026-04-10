@@ -38,7 +38,7 @@ await build({
   },
 });
 
-// Bundle each skill as a standalone file
+// Bundle each skill as a standalone file (.md files inlined as text)
 for (const name of skillDirs) {
   await build({
     entryPoints: [resolve(skillsDir, name, "skill.ts")],
@@ -50,6 +50,7 @@ for (const name of skillDirs) {
     sourcemap: true,
     external: ["node:*"],
     plugins: [sdkResolvePlugin],
+    loader: { ".md": "text" },
   });
 }
 
