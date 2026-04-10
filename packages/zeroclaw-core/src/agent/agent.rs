@@ -39,6 +39,7 @@
 //! - `src/daemon/mod.rs` — the production boot path that calls `from_config`.
 //! - `docs/architecture/overview.md` — the big picture.
 
+use crate::agent::gateway_bootstrap;
 use crate::agent::dispatcher::{
     NativeToolDispatcher, ParsedToolCall, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
 };
@@ -417,16 +418,18 @@ impl Agent {
     }
 
     pub async fn from_config(config: &Config) -> Result<Self> {
-        // Phase 3: required-config gate.
-        //
-        // Zeroclaw no longer ships compiled-in defaults for provider or
-        // model — if the caller (dashboard backend, CLI, test harness)
-        // fails to supply them, we refuse to boot with a loud error
-        // rather than silently routing through a baked-in fallback.
-        //
-        // `api_key` is required for every provider except `ollama`
-        // (local, no auth). Extend this list if more keyless providers
-        // are added.
+        // Gateway bootstrap: if ZEROCLAW_AGENT_ID is set, the agent
+        // derives ALL config (provider, model, api_key, vault, skills,
+        // gateway) from the backend. The single env var is the agent's
+        // identity; everything else is resolved at runtime.
+        let mut config = config.clone();
+        gateway_bootstrap::apply(&mut config);
+
+        let config = &config;
+
+        // Required-config gate: provider, model, and api_key must be set.
+        // Gateway bootstrap fills them; legacy env vars fill them; if
+        // neither did, the agent fails loudly.
         let provider = config
             .default_provider
             .as_deref()

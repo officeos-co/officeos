@@ -7,7 +7,6 @@ public sealed class AgentService : IAgentService
     private readonly IAgentDeployer _deployer;
     private readonly IProviderService _providerService;
     private readonly IVaultClient _vault;
-    private readonly AgentBackendTokenProtector _tokenProtector;
     private readonly ILogger<AgentService> _logger;
 
     public AgentService(
@@ -15,14 +14,12 @@ public sealed class AgentService : IAgentService
         IAgentDeployer deployer,
         IProviderService providerService,
         IVaultClient vault,
-        AgentBackendTokenProtector tokenProtector,
         ILogger<AgentService> logger)
     {
         _repository = repository;
         _deployer = deployer;
         _providerService = providerService;
         _vault = vault;
-        _tokenProtector = tokenProtector;
         _logger = logger;
     }
 
@@ -40,11 +37,17 @@ public sealed class AgentService : IAgentService
 
     public async Task<AgentDto> CreateAsync(CreateAgentRequest request, CancellationToken ct = default)
     {
-        var apiKey = await _providerService.GetDecryptedKeyAsync(request.Provider, ct);
-        if (apiKey is null && !IsKeylessProvider(request.Provider))
+        // Validate provider is configured (key exists). The real key is
+        // NOT passed to the deployer — the LLM proxy resolves it per-request.
+        var isKeyless = IsKeylessProvider(request.Provider);
+        if (!isKeyless)
         {
-            throw new InvalidOperationException(
-                $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
+            var apiKey = await _providerService.GetDecryptedKeyAsync(request.Provider, ct);
+            if (apiKey is null)
+            {
+                throw new InvalidOperationException(
+                    $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
+            }
         }
 
         var record = new AgentRecord
@@ -81,30 +84,16 @@ public sealed class AgentService : IAgentService
                 $"Allowed: {(allowed.Length == 0 ? "(none)" : allowed)}");
         }
 
-        // Mint a per-agent bearer token the pod will present back to
-        // this backend on /api/agents/me/* so the Skill Gateway can
-        // resolve the calling agent. Plaintext is handed to the deployer
-        // (pod env), ciphertext is persisted.
-        var backendTokenBytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
-        var backendTokenPlain = Convert.ToBase64String(backendTokenBytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-        record.EncryptedBackendToken = _tokenProtector.Protect(backendTokenPlain);
-
         await _repository.AddAsync(record, ct);
 
         try
         {
             await _vault.CreateAgentVaultAsync(record.Id, record.Name, record.Provider, record.Model, ct);
 
-            var deployment = await _deployer.DeployAsync(
-                record.Id,
-                record.Provider,
-                apiKey ?? string.Empty,
-                record.Model,
-                backendTokenPlain,
-                ct);
+            // The deployer only sets ZEROCLAW_AGENT_ID. The agent derives
+            // everything else (provider, model, vault, skills) from its
+            // ID by calling back to this backend at runtime.
+            var deployment = await _deployer.DeployAsync(record.Id, ct);
 
             record.PodName = deployment.PodName;
             record.ServiceUrl = deployment.ServiceUrl;
@@ -118,6 +107,41 @@ public sealed class AgentService : IAgentService
             await _repository.UpdateAsync(record, ct);
         }
 
+        return ToDto(record);
+    }
+
+    public async Task<AgentDto?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default)
+    {
+        var record = await _repository.GetAsync(id, ct);
+        if (record is null) return null;
+
+        if (!string.IsNullOrWhiteSpace(request.Provider))
+        {
+            var provider = request.Provider.Trim().ToLowerInvariant();
+            if (!IsKeylessProvider(provider))
+            {
+                var key = await _providerService.GetDecryptedKeyAsync(provider, ct);
+                if (key is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Provider '{provider}' is not configured.");
+                }
+            }
+            record.Provider = provider;
+        }
+
+        if (request.Model is not null)
+        {
+            var model = request.Model.Trim();
+            if (model.Length > 0 && !KnownModels.IsValid(record.Provider, model))
+            {
+                throw new InvalidOperationException(
+                    $"Model '{model}' is not a known model for provider '{record.Provider}'.");
+            }
+            record.Model = model.Length > 0 ? model : KnownModels.For(record.Provider).FirstOrDefault();
+        }
+
+        await _repository.UpdateAsync(record, ct);
         return ToDto(record);
     }
 

@@ -54,6 +54,13 @@ RUN apt-get update \
 
 COPY --from=builder --chown=zeroclaw:zeroclaw /usr/local/bin/zeroclaw /usr/local/bin/zeroclaw
 
+# Bake gateway defaults so the deployer doesn't need per-pod env vars
+# for operational settings. Only ZEROCLAW_AGENT_ID varies per pod.
+RUN mkdir -p /home/zeroclaw/.zeroclaw \
+  && printf '[gateway]\nport = 42617\nhost = "0.0.0.0"\nrequire_pairing = false\nallow_public_bind = true\n' \
+     > /home/zeroclaw/.zeroclaw/config.toml \
+  && chown -R zeroclaw:zeroclaw /home/zeroclaw/.zeroclaw
+
 USER zeroclaw
 WORKDIR /home/zeroclaw
 

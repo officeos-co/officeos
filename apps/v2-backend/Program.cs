@@ -22,7 +22,6 @@ builder.Services
 
 builder.Services.AddSingleton<ProviderKeyProtector>();
 builder.Services.AddSingleton<SkillCredentialProtector>();
-builder.Services.AddSingleton<AgentBackendTokenProtector>();
 
 builder.Services.AddDbContext<EaosDbContext>(options =>
     options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
@@ -77,6 +76,8 @@ builder.Services.AddScoped<ISkillService, SkillService>();
 builder.Services.AddHttpClient<NotionSkill>();
 builder.Services.AddHttpClient<GithubSkill>();
 builder.Services.AddHttpClient<GoogleSkill>();
+builder.Services.AddHttpClient("llm-proxy");
+builder.Services.AddScoped<LlmProviderDispatcher>();
 
 builder.Services.AddCors(options =>
 {

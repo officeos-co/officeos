@@ -7,5 +7,6 @@ global using EnterpriseAgentOs.Api.Database.Models;
 global using EnterpriseAgentOs.Api.Entities.Agents;
 global using EnterpriseAgentOs.Api.Entities.Providers;
 global using EnterpriseAgentOs.Api.Entities.Skills;
+global using EnterpriseAgentOs.Api.Entities.LlmProxy;
 global using EnterpriseAgentOs.Api.Entities.Vault;
 global using EnterpriseAgentOs.Api.Properties;

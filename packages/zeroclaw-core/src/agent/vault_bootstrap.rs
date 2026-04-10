@@ -127,12 +127,27 @@ fn cache_is_valid(workspace_dir: &Path) -> bool {
     })
 }
 
-/// Hydrate the agent workspace from CouchDB if configured.
+/// Hydrate the agent workspace from CouchDB or the backend vault proxy.
+///
+/// When `ZEROCLAW_AGENT_ID` is set (gateway bootstrap mode), vault files
+/// are fetched from the backend's memory proxy at
+/// `GET /api/agents/{id}/memory/{file}` — the agent never touches CouchDB.
+///
+/// When the legacy `ZEROCLAW_VAULT_*` env vars are set, CouchDB is
+/// accessed directly (existing path, kept for backward compat).
 ///
 /// On success, every file in [`REQUIRED_PERSONALITY_FILES`] is guaranteed
-/// to exist and be non-empty under `workspace_dir` (either cached from a
-/// previous boot or freshly fetched).
+/// to exist and be non-empty under `workspace_dir`.
 pub async fn hydrate(workspace_dir: &Path) -> Result<(), VaultBootstrapError> {
+    // Gateway bootstrap mode: fetch from backend vault proxy
+    if let (Some(agent_id), Some(backend_url)) = (
+        super::gateway_bootstrap::agent_id(),
+        super::gateway_bootstrap::backend_url(),
+    ) {
+        return hydrate_from_backend(workspace_dir, &backend_url, &agent_id).await;
+    }
+
+    // Legacy mode: fetch from CouchDB directly
     let Some(config) = load_config()? else {
         tracing::info!("vault bootstrap: no ZEROCLAW_VAULT_* env vars set, skipping");
         return Ok(());
@@ -302,6 +317,118 @@ async fn fetch_doc(
         attempts: MAX_ATTEMPTS,
         source: last_transport_err.expect("loop exits via success or transport error"),
     })
+}
+
+/// Fetch vault files from the backend's memory proxy instead of CouchDB.
+/// Used when `ZEROCLAW_AGENT_ID` is set (gateway bootstrap mode).
+async fn hydrate_from_backend(
+    workspace_dir: &Path,
+    backend_url: &str,
+    agent_id: &str,
+) -> Result<(), VaultBootstrapError> {
+    std::fs::create_dir_all(workspace_dir).map_err(|source| VaultBootstrapError::WorkspaceCreate {
+        path: workspace_dir.to_path_buf(),
+        source,
+    })?;
+
+    if cache_is_valid(workspace_dir) {
+        tracing::info!(
+            "vault bootstrap (gateway): required files cached at {:?}, skipping fetch",
+            workspace_dir
+        );
+        return Ok(());
+    }
+
+    tracing::info!(
+        "vault bootstrap (gateway): fetching vault from {}/api/agents/{}/memory/*",
+        backend_url,
+        agent_id
+    );
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .expect("reqwest client builds");
+
+    for &name in PERSONALITY_FILES {
+        let required = REQUIRED_PERSONALITY_FILES.contains(&name);
+        let url = format!("{}/api/agents/{}/memory/{}", backend_url, agent_id, name);
+
+        let mut last_err: Option<reqwest::Error> = None;
+        let mut backoff_ms = INITIAL_BACKOFF_MS;
+        let mut fetched = false;
+
+        for attempt in 1..=MAX_ATTEMPTS {
+            match client.get(&url).send().await {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        // Backend returns raw text/markdown content
+                        let content = resp.text().await.map_err(|source| {
+                            VaultBootstrapError::Unreachable {
+                                url: url.clone(),
+                                attempts: attempt,
+                                source,
+                            }
+                        })?;
+                        let path = workspace_dir.join(name);
+                        std::fs::write(&path, &content).map_err(|source| {
+                            VaultBootstrapError::Io { path, source }
+                        })?;
+                        fetched = true;
+                        break;
+                    }
+                    if resp.status() == reqwest::StatusCode::NOT_FOUND {
+                        break; // file doesn't exist — check if required below
+                    }
+                    if !resp.status().is_server_error() {
+                        break; // client error, don't retry
+                    }
+                    tracing::warn!(
+                        "vault bootstrap (gateway): {} returned {}, retrying ({}/{})",
+                        url,
+                        resp.status(),
+                        attempt,
+                        MAX_ATTEMPTS
+                    );
+                }
+                Err(err) => {
+                    tracing::warn!(
+                        "vault bootstrap (gateway): transport error on {}: {} ({}/{})",
+                        url,
+                        err,
+                        attempt,
+                        MAX_ATTEMPTS
+                    );
+                    last_err = Some(err);
+                }
+            }
+            if attempt < MAX_ATTEMPTS {
+                tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
+                backoff_ms = backoff_ms.saturating_mul(2);
+            }
+        }
+
+        if !fetched && required {
+            if let Some(err) = last_err {
+                return Err(VaultBootstrapError::Unreachable {
+                    url,
+                    attempts: MAX_ATTEMPTS,
+                    source: err,
+                });
+            }
+            return Err(VaultBootstrapError::DocMissing(name.to_string()));
+        }
+
+        if !fetched {
+            tracing::debug!(
+                "vault bootstrap (gateway): optional file {} not present, skipping",
+                name
+            );
+        }
+    }
+
+    tracing::info!("vault bootstrap (gateway): hydration complete");
+    Ok(())
 }
 
 async fn is_db_missing(client: &reqwest::Client, config: &VaultConfig) -> bool {

@@ -123,6 +123,23 @@ public sealed class AgentsController : ControllerBase
         }
     }
 
+    [HttpPatch("{id:guid}")]
+    public async Task<ActionResult<AgentDto>> Patch(
+        Guid id,
+        [FromBody] PatchAgentRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var dto = await _service.PatchAsync(id, request, ct);
+            return dto is null ? NotFound() : Ok(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {

@@ -6,10 +6,6 @@ public interface IAgentDeployer
 {
     Task<AgentDeployment> DeployAsync(
         Guid agentId,
-        string provider,
-        string apiKey,
-        string? model,
-        string backendToken,
         CancellationToken ct = default);
 
     Task<bool> RemoveAsync(string podName, CancellationToken ct = default);

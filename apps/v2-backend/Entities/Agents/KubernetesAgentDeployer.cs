@@ -40,10 +40,6 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
 
     public async Task<AgentDeployment> DeployAsync(
         Guid agentId,
-        string provider,
-        string apiKey,
-        string? model,
-        string backendToken,
         CancellationToken ct = default)
     {
         var pod = PodName(agentId);
@@ -72,27 +68,13 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         };
         await _k8s.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(pvcManifest, _namespace, cancellationToken: ct);
 
+        // Single env var. The agent derives everything else from this ID
+        // by calling the backend (LLM proxy, vault proxy, skills gateway).
+        // Backend URL is hardcoded in the zeroclaw image config.
         var env = new List<V1EnvVar>
         {
-            new("ZEROCLAW_API_KEY", (apiKey ?? string.Empty).Trim()),
-            new("ZEROCLAW_PROVIDER", provider),
-            new("ZEROCLAW_GATEWAY_PORT", ZeroclawPort.ToString()),
-            new("ZEROCLAW_GATEWAY_HOST", "0.0.0.0"),
-            new("ZEROCLAW_ALLOW_PUBLIC_BIND", "true"),
-            new("ZEROCLAW_REQUIRE_PAIRING", "false"),
+            new("ZEROCLAW_AGENT_ID", agentId.ToString()),
         };
-        if (!string.IsNullOrWhiteSpace(model))
-        {
-            env.Add(new V1EnvVar("ZEROCLAW_MODEL", model));
-        }
-        env.Add(new V1EnvVar("ZEROCLAW_WORKSPACE", WorkspacePath));
-        env.Add(new V1EnvVar("ZEROCLAW_VAULT_URL", _couch.Url.TrimEnd('/')));
-        env.Add(new V1EnvVar("ZEROCLAW_VAULT_DB", CouchDbVaultClient.DbName(agentId)));
-        env.Add(new V1EnvVar("ZEROCLAW_VAULT_USER", _couch.User));
-        env.Add(new V1EnvVar("ZEROCLAW_VAULT_PASSWORD", _couch.Password));
-        env.Add(new V1EnvVar("ZEROCLAW_SKILLS_BACKEND_URL", _skillGateway.Url.TrimEnd('/')));
-        env.Add(new V1EnvVar("ZEROCLAW_SKILLS_BACKEND_TOKEN", backendToken));
-        env.Add(new V1EnvVar("ZEROCLAW_SKILLS_BACKEND_REFRESH_SECONDS", _skillGateway.RefreshSeconds.ToString()));
 
         var podManifest = new V1Pod
         {

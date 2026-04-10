@@ -4,10 +4,6 @@ public sealed class NullAgentDeployer : IAgentDeployer
 {
     public Task<AgentDeployment> DeployAsync(
         Guid agentId,
-        string provider,
-        string apiKey,
-        string? model,
-        string backendToken,
         CancellationToken ct = default)
     {
         var podName = $"zeroclaw-{agentId.ToString("N").Substring(0, 8)}";
