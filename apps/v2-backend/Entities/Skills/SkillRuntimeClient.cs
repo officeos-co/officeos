@@ -106,6 +106,7 @@ public sealed class RuntimeManifest
 {
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
+    public string? Doc { get; set; }
     public Dictionary<string, RuntimeActionManifest> Actions { get; set; } = new();
     public Dictionary<string, RuntimeCredentialManifest> Credentials { get; set; } = new();
 }

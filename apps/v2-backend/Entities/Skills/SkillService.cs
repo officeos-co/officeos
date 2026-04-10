@@ -6,13 +6,16 @@ public sealed class SkillService : ISkillService
 {
     private readonly ISkillCredentialRepository _repository;
     private readonly SkillCredentialProtector _protector;
+    private readonly SkillRuntimeClient _runtime;
 
     public SkillService(
         ISkillCredentialRepository repository,
-        SkillCredentialProtector protector)
+        SkillCredentialProtector protector,
+        SkillRuntimeClient runtime)
     {
         _repository = repository;
         _protector = protector;
+        _runtime = runtime;
     }
 
     public async Task<IReadOnlyList<SkillDto>> ListAsync(CancellationToken ct = default)
@@ -107,7 +110,13 @@ public sealed class SkillService : ISkillService
         var caps = new List<CapabilityDto>();
         var docs = new List<SkillDocDto>();
 
-        foreach (var manifest in SkillManifests.AllWithDocs.Values)
+        // Fetch docs from skill-runtime manifests
+        var runtimeManifests = await _runtime.GetManifestsAsync(ct);
+        var runtimeDocs = runtimeManifests
+            .Where(m => m.Doc is not null)
+            .ToDictionary(m => m.Name, m => m.Doc!, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var manifest in SkillManifests.All.Values)
         {
             if (!rows.TryGetValue(manifest.Name, out var row)) continue;
             if (!row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials)) continue;
@@ -124,9 +133,9 @@ public sealed class SkillService : ISkillService
                     Route: $"/api/agents/me/skills/{manifest.Name}/{action}"));
             }
 
-            if (manifest.Doc is not null)
+            if (runtimeDocs.TryGetValue(manifest.Name, out var doc))
             {
-                docs.Add(new SkillDocDto(manifest.Name, manifest.Doc));
+                docs.Add(new SkillDocDto(manifest.Name, doc));
             }
         }
         return new CapabilitiesResponse(caps, docs);

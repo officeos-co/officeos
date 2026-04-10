@@ -40,6 +40,12 @@ export interface SkillDefinition {
   name: string;
   /** Human-readable title (e.g. "Notion", "GitHub"). */
   description: string;
+  /**
+   * Markdown documentation for the skill's CLI interface.
+   * Injected into the agent's context so it knows how to use the skill.
+   * Should include workflow guidance, examples, and limitations.
+   */
+  doc?: string;
   /** Credential schema — keys are credential field names, values are Zod schemas for validation. */
   credentials: Record<string, z.ZodType>;
   /** Map of action name → action definition. */

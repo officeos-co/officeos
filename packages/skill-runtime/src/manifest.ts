@@ -3,6 +3,7 @@ import type { SkillDefinition } from "@harro/skill-sdk";
 export interface SkillManifest {
   name: string;
   description: string;
+  doc?: string;
   actions: Record<
     string,
     {
@@ -92,6 +93,7 @@ export function extractManifest(def: SkillDefinition): SkillManifest {
 
   return {
     name: def.name,
+    doc: def.doc,
     description: def.description,
     actions,
     credentials,
