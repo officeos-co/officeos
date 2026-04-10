@@ -361,3 +361,77 @@ spec:
       protocol: TCP
       port: 8000
       targetPort: 8000
+
+---
+# ==============================================================
+# Skill Runtime (Node.js — executes SDK-defined skills)
+#
+# Bundles first-party skills (notion, github, google) and exposes
+# an HTTP API for manifest discovery and skill execution.
+# The backend dispatches skill calls here via SkillRuntimeClient.
+# ==============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-skill-runtime
+  namespace: default
+  labels:
+    app: eaos-skill-runtime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-skill-runtime
+  template:
+    metadata:
+      labels:
+        app: eaos-skill-runtime
+    spec:
+      containers:
+        - name: skill-runtime
+          image: harkro123/eaos-skill-runtime:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3001"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-skill-runtime
+  namespace: default
+  labels:
+    app: eaos-skill-runtime
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-skill-runtime
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3001
+      targetPort: 3001

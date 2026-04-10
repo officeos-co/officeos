@@ -24,10 +24,8 @@ Database/
 Entities/
   Agents/                           Agent CRUD, K8s deployer, status sync
   Providers/                        Provider registry, API key encryption, KnownModels
-  Skills/                           Skill manifests, credentials, GraphQL gateway
-    Implementations/                NotionSkill, GithubSkill, GoogleSkill
-    GraphQL/                        HotChocolate query types + auth interceptor
-    Docs/                           Skill .md documentation files
+  Skills/                           Skill credentials, runtime client, GraphQL gateway
+    GraphQL/                        SkillTypeModule (dynamic), Query, AgentAuthInterceptor
   Vault/                            CouchDB vault client, personality templates
   LlmProxy/                        LLM proxy endpoint (forwards to real providers)
 ```
@@ -35,24 +33,21 @@ Entities/
 ## Key rules
 
 - **`ValueManager` only in `Program.cs`.** It reads raw config. All other code receives typed config classes (e.g. `KubernetesConfig`, `CouchDbConfig`) via constructor injection. Never import `ValueManager` outside `Program.cs`.
-- **Skills are code, not DB rows.** `SkillManifests.cs` is the static registry. The DB stores only install state + encrypted credentials.
-- **Return typed objects.** Skill methods return concrete classes (e.g. `NotionSearchResult`), not `Task<object>`. HotChocolate needs types for schema generation.
+- **Skills are external, not C#.** Skills are TypeScript modules in `packages/skills/`, executed by the skill-runtime Node.js service. The backend has no hardcoded skill logic — `SkillTypeModule` generates the GraphQL schema dynamically from runtime manifests. `SkillManifests.cs` stores only credential metadata for the dashboard. The DB stores install state + encrypted credentials.
 - **Agent auth via UUID.** Agent pods authenticate with `Authorization: Bearer <agent-uuid>`. The `AgentTokenAuthFilter` and GraphQL `AgentAuthInterceptor` validate against the Agents table.
 - **Status is live.** `AgentService.GetAsync` and `ListAsync` call `IAgentDeployer.GetStatusAsync` inline to sync K8s pod status into the DB.
 
 ## Adding a new skill
 
-1. Add typed return classes in `Entities/Skills/GraphQL/Types/`.
-2. Add implementation class in `Entities/Skills/Implementations/` — takes `HttpClient`, returns typed objects.
-3. Add manifest in `SkillManifests.cs` — name, title, description, emoji, credential fields.
-4. Add GraphQL resolver in `Entities/Skills/GraphQL/` — thin wrapper around the implementation.
-5. Add `.md` doc in `Entities/Skills/Docs/`.
-6. Register `HttpClient` in `Program.cs` and add type extension to `AddGraphQLServer()`.
-7. No DB migration needed.
+1. Create `packages/skills/{name}/skill.ts` using `defineSkill()` from `@eaos/skill-sdk`. Include `returns` schema on each action.
+2. Create `packages/skills/{name}/package.json` with `@eaos/skill-sdk` dependency.
+3. Add credential metadata to `SkillManifests.cs` (name, title, emoji, credential fields for the dashboard form).
+4. Rebuild skill-runtime (`cd packages/skill-runtime && npm run build`). The `SkillTypeModule` auto-generates GraphQL types from the runtime manifest — no C# types or resolvers needed.
+5. No DB migration needed.
 
 ## Anti-patterns
 
 - Do not call `ValueManager` outside `Program.cs`.
-- Do not return anonymous objects from skill methods — use typed classes.
+- Do not add hardcoded C# skill implementations or GraphQL resolvers — all skill logic lives in `packages/skills/` and executes in the skill-runtime.
 - Do not add K8s env vars for app config — bake it in `appsettings.json`.
 - Do not add NuGet packages for minor convenience.

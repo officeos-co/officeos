@@ -18,6 +18,23 @@ export default function SkillsPage() {
         subtitle={`${installed} of ${skills.length} installed — every agent inherits them.`}
       />
 
+      <div className="flex gap-3 px-8 pt-4">
+        <button
+          disabled
+          className="rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-2 text-sm text-[var(--eaos-text-muted)] opacity-50 cursor-not-allowed"
+          title="Coming soon — connect a GitHub repo to install custom skills"
+        >
+          Connect GitHub Repo
+        </button>
+        <button
+          disabled
+          className="rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-2 text-sm text-[var(--eaos-text-muted)] opacity-50 cursor-not-allowed"
+          title="Coming soon — upload a skill bundle"
+        >
+          Upload Skill
+        </button>
+      </div>
+
       {loading ? (
         <div className="px-8 py-12 text-sm text-[var(--eaos-text-muted)]">Loading…</div>
       ) : error ? (
