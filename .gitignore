@@ -39,6 +39,11 @@ apps/dashboard/backend/app/services/openclaw/.device-keys
 .DS_Store
 ._*
 
+# ── .NET ────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+
 # ── IDE ──────────────────────────────────────────────────────
 .idea/
 .runlogs/

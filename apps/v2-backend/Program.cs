@@ -25,7 +25,7 @@ builder.Services.AddSingleton<SkillCredentialProtector>();
 builder.Services.AddSingleton<AgentBackendTokenProtector>();
 
 builder.Services.AddDbContext<EaosDbContext>(options =>
-    options.UseSqlite(ValueManager.GetValue<string>("ConnectionString")));
+    options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
 
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAgentService, AgentService>();
