@@ -2,6 +2,9 @@ const colors: Record<string, string> = {
   running: "border-green-500/40 text-green-300",
   pending: "border-yellow-500/40 text-yellow-300",
   failed: "border-red-500/40 text-red-300",
+  not_found: "border-red-500/40 text-red-300",
+  stopped: "border-gray-500/40 text-gray-300",
+  unknown: "border-gray-500/40 text-gray-300",
 };
 const fallback = "border-[var(--eaos-border)] text-[var(--eaos-text-muted)]";
 

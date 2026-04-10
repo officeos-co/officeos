@@ -55,12 +55,20 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
   const [streamingContent, setStreamingContent] = useState("");
   const [streamingThinking, setStreamingThinking] = useState("");
 
+  const [reconnecting, setReconnecting] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingContentRef = useRef("");
   const pendingThinkingRef = useRef("");
   const capturedThinkingRef = useRef("");
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelayRef = useRef(1000);
+  const retriesRef = useRef(0);
+  const intentionalCloseRef = useRef(false);
+  const MAX_RECONNECT_DELAY = 30_000;
+  const MAX_RETRIES = 10;
 
   // Hydrate from the pod's persisted transcript; fall back to localStorage.
   useEffect(() => {
@@ -98,29 +106,47 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
     saveLocalHistory(sessionIdRef.current, uiToPersisted(messages));
   }, [messages, historyReady]);
 
-  // Open a WebSocket scoped to this session id.
+  // Open a WebSocket scoped to this session id, with reconnect.
   useEffect(() => {
-    const url = agentWsUrl(agent.id, { session_id: sessionIdRef.current });
-    if (!url) return;
+    intentionalCloseRef.current = false;
+    reconnectDelayRef.current = 1000;
+    retriesRef.current = 0;
 
-    const ws = new WebSocket(url, ["zeroclaw.v1"]);
-    wsRef.current = ws;
+    function connectWs() {
+      const url = agentWsUrl(agent.id, { session_id: sessionIdRef.current });
+      if (!url) return;
 
-    ws.onopen = () => {
-      setConnected(true);
-      setError(null);
-    };
+      const ws = new WebSocket(url, ["zeroclaw.v1"]);
+      wsRef.current = ws;
 
-    ws.onclose = (ev) => {
-      setConnected(false);
-      if (ev.code !== 1000 && ev.code !== 1001) {
-        setError(`Connection closed unexpectedly (code: ${ev.code}).`);
-      }
-    };
+      ws.onopen = () => {
+        setConnected(true);
+        setReconnecting(false);
+        setError(null);
+        reconnectDelayRef.current = 1000;
+        retriesRef.current = 0;
+      };
 
-    ws.onerror = () => {
-      setError("WebSocket error");
-    };
+      ws.onclose = (ev) => {
+        setConnected(false);
+        if (intentionalCloseRef.current) return;
+        if (ev.code !== 1000 && ev.code !== 1001 && retriesRef.current < MAX_RETRIES) {
+          setReconnecting(true);
+          const delay = reconnectDelayRef.current;
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY);
+            retriesRef.current += 1;
+            connectWs();
+          }, delay);
+        } else if (retriesRef.current >= MAX_RETRIES) {
+          setReconnecting(false);
+          setError("Connection lost. Refresh the page to reconnect.");
+        }
+      };
+
+      ws.onerror = () => {
+        // onclose fires after onerror — reconnect is handled there
+      };
 
     ws.onmessage = (ev) => {
       let msg: WsIncoming;
@@ -271,9 +297,16 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
       }
     };
 
+    } // end connectWs
+
+    connectWs();
+
     return () => {
+      intentionalCloseRef.current = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      const ws = wsRef.current;
       wsRef.current = null;
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         ws.close(1000, "component unmount");
       }
     };
@@ -343,10 +376,12 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
           className={
             connected
               ? "rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-300"
-              : "rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-[var(--eaos-text-muted)]"
+              : reconnecting
+                ? "rounded-full border border-yellow-500/40 px-2 py-0.5 text-yellow-300"
+                : "rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-[var(--eaos-text-muted)]"
           }
         >
-          {connected ? "connected" : "connecting…"}
+          {connected ? "connected" : reconnecting ? "reconnecting…" : "disconnected"}
         </span>
       </div>
 

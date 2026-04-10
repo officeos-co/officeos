@@ -26,13 +26,18 @@ public sealed class AgentService : IAgentService
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
     {
         var records = await _repository.ListAsync(ct);
+        await Task.WhenAll(records
+            .Where(r => !string.IsNullOrEmpty(r.PodName))
+            .Select(r => RefreshStatusAsync(r, ct)));
         return records.Select(ToDto).ToList();
     }
 
     public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var record = await _repository.GetAsync(id, ct);
-        return record is null ? null : ToDto(record);
+        if (record is null) return null;
+        await RefreshStatusAsync(record, ct);
+        return ToDto(record);
     }
 
     public async Task<AgentDto> CreateAsync(CreateAgentRequest request, CancellationToken ct = default)
@@ -168,6 +173,24 @@ public sealed class AgentService : IAgentService
         }
 
         return await _repository.SoftDeleteAsync(id, ct);
+    }
+
+    private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(record.PodName)) return;
+        try
+        {
+            var live = await _deployer.GetStatusAsync(record.PodName, ct);
+            if (live != record.Status)
+            {
+                await _repository.UpdateStatusAsync(record.Id, live, ct);
+                record.Status = live;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to refresh status for agent {AgentId}", record.Id);
+        }
     }
 
     private static bool IsKeylessProvider(string name) =>

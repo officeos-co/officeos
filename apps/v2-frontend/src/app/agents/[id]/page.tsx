@@ -119,6 +119,17 @@ export default function AgentDetailPage() {
           This agent failed to deploy. You may want to delete it and try again.
         </div>
       )}
+      {agent.status === "not_found" && (
+        <div className="mx-8 mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          This agent's pod was not found in the cluster. It may have been deleted externally or
+          crashed. Delete and recreate the agent.
+        </div>
+      )}
+      {agent.status === "stopped" && (
+        <div className="mx-8 mt-4 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+          This agent's pod has stopped.
+        </div>
+      )}
 
       <AgentDetailTabs agent={agent} />
     </div>

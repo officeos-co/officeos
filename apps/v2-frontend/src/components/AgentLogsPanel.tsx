@@ -51,10 +51,17 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
   const [typeFilters, setTypeFilters] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
+  const [reconnecting, setReconnecting] = useState(false);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pausedRef = useRef(false);
   const entryIdRef = useRef(0);
   const esRef = useRef<EventSource | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectDelayRef = useRef(1000);
+  const retriesRef = useRef(0);
+  const MAX_RECONNECT_DELAY = 30_000;
+  const MAX_RETRIES = 10;
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -83,40 +90,68 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
         /* history is best-effort */
       });
 
-    // Live stream via SSE through the backend proxy.
-    const url = agentProxyUrl(agent.id, "/api/events");
-    const es = new EventSource(url);
-    esRef.current = es;
+    // Live stream via SSE through the backend proxy, with reconnect.
+    reconnectDelayRef.current = 1000;
+    retriesRef.current = 0;
 
-    es.onopen = () => {
-      setConnected(true);
-      setError(null);
-    };
-    es.onerror = () => {
-      setConnected(false);
-    };
-    es.onmessage = (ev) => {
-      if (pausedRef.current) return;
-      try {
-        const parsed = JSON.parse(ev.data) as SSEEvent;
-        entryIdRef.current += 1;
-        const entry: LogEntry = {
-          id: `log-${entryIdRef.current}`,
-          event: { ...parsed, type: parsed.type ?? "unknown" },
-        };
-        setEntries((prev) => {
-          const next = [...prev, entry];
-          return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
-        });
-      } catch {
-        /* non-JSON frame */
-      }
-    };
+    function connectSSE() {
+      const url = agentProxyUrl(agent.id, "/api/events");
+      const es = new EventSource(url);
+      esRef.current = es;
+
+      es.onopen = () => {
+        setConnected(true);
+        setReconnecting(false);
+        setError(null);
+        reconnectDelayRef.current = 1000;
+        retriesRef.current = 0;
+      };
+      es.onerror = () => {
+        setConnected(false);
+        es.close();
+        esRef.current = null;
+        if (cancelled) return;
+        if (retriesRef.current < MAX_RETRIES) {
+          setReconnecting(true);
+          const delay = reconnectDelayRef.current;
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY);
+            retriesRef.current += 1;
+            connectSSE();
+          }, delay);
+        } else {
+          setReconnecting(false);
+          setError("Log stream lost. Refresh to reconnect.");
+        }
+      };
+      es.onmessage = (ev) => {
+        if (pausedRef.current) return;
+        try {
+          const parsed = JSON.parse(ev.data) as SSEEvent;
+          entryIdRef.current += 1;
+          const entry: LogEntry = {
+            id: `log-${entryIdRef.current}`,
+            event: { ...parsed, type: parsed.type ?? "unknown" },
+          };
+          setEntries((prev) => {
+            const next = [...prev, entry];
+            return next.length > MAX_ENTRIES ? next.slice(-MAX_ENTRIES) : next;
+          });
+        } catch {
+          /* non-JSON frame */
+        }
+      };
+    }
+
+    connectSSE();
 
     return () => {
       cancelled = true;
-      es.close();
-      esRef.current = null;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
     };
   }, [agent.id]);
 
@@ -167,10 +202,12 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             className={
               connected
                 ? "rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-300"
-                : "rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-[var(--eaos-text-muted)]"
+                : reconnecting
+                  ? "rounded-full border border-yellow-500/40 px-2 py-0.5 text-yellow-300"
+                  : "rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-[var(--eaos-text-muted)]"
             }
           >
-            {connected ? "streaming" : "disconnected"}
+            {connected ? "streaming" : reconnecting ? "reconnecting…" : "disconnected"}
           </span>
           <button
             type="button"

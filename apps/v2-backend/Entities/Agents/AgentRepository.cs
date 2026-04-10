@@ -36,6 +36,12 @@ public sealed class AgentRepository : IAgentRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateStatusAsync(Guid id, string status, CancellationToken ct = default)
+    {
+        await _db.Agents.Where(a => a.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, status), ct);
+    }
+
     public async Task<bool> SoftDeleteAsync(Guid id, CancellationToken ct = default)
     {
         var record = await _db.Agents.FirstOrDefaultAsync(a => a.Id == id, ct);
