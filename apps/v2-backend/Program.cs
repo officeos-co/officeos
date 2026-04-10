@@ -89,7 +89,8 @@ builder.Services
     .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
     .AddTypeModule<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>()
     .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>()
-    .DisableIntrospection(false);
+    .DisableIntrospection(false)
+    .SetIntrospectionAllowedDepth(20, 20);
 
 builder.Services.AddCors(options =>
 {
