@@ -85,7 +85,8 @@ builder.Services
     .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.NotionQueries>()
     .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.GithubQueries>()
     .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.GoogleQueries>()
-    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>();
+    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>()
+    .DisableIntrospection(false);
 
 builder.Services.AddCors(options =>
 {

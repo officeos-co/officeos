@@ -10,7 +10,7 @@ import { AgentCronsPanel } from "./AgentCronsPanel";
 import { AgentCostPanel } from "./AgentCostPanel";
 import { AgentDoctorPanel } from "./AgentDoctorPanel";
 import { AgentToolsPanel } from "./AgentToolsPanel";
-import { AgentIntegrationsPanel } from "./AgentIntegrationsPanel";
+import { AgentSkillsListPanel } from "./AgentSkillsListPanel";
 import { AgentConfigPanel } from "./AgentConfigPanel";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate, shortId } from "@/utils/format";
@@ -23,7 +23,7 @@ type Tab =
   | "crons"
   | "cost"
   | "tools"
-  | "integrations"
+  | "skills"
   | "doctor"
   | "config"
   | "logs";
@@ -40,7 +40,7 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "crons", label: "Crons" },
   { id: "cost", label: "Cost" },
   { id: "tools", label: "Tools" },
-  { id: "integrations", label: "Integrations" },
+  { id: "skills", label: "Skills" },
   { id: "doctor", label: "Doctor" },
   { id: "config", label: "Config" },
   { id: "logs", label: "Logs" },
@@ -50,7 +50,7 @@ export function AgentDetailTabs({ agent }: Props) {
   const [active, setActive] = useState<Tab>("overview");
 
   const running = agent.status === "running";
-  const alwaysOn: Tab[] = ["overview", "memory"];
+  const alwaysOn: Tab[] = ["overview", "memory", "skills"];
   const isAlwaysOn = (id: Tab) => alwaysOn.includes(id);
 
   return (
@@ -88,7 +88,7 @@ export function AgentDetailTabs({ agent }: Props) {
       {active === "crons" && <AgentCronsPanel agent={agent} />}
       {active === "cost" && <AgentCostPanel agent={agent} />}
       {active === "tools" && <AgentToolsPanel agent={agent} />}
-      {active === "integrations" && <AgentIntegrationsPanel agent={agent} />}
+      {active === "skills" && <AgentSkillsListPanel agent={agent} />}
       {active === "doctor" && <AgentDoctorPanel agent={agent} />}
       {active === "config" && <AgentConfigPanel agent={agent} />}
       {active === "logs" && <AgentLogsPanel agent={agent} />}
