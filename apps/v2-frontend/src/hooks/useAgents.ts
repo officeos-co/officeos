@@ -28,6 +28,8 @@ function publish(agents: Agent[]) {
   listeners.forEach((fn) => fn(agents));
 }
 
+const POLL_INTERVAL_MS = 10_000;
+
 export function useAgents() {
   const [agents, setAgents] = useState<Agent[]>(cache ?? []);
   const [loading, setLoading] = useState(cache === null);
@@ -57,6 +59,17 @@ export function useAgents() {
     };
   }, [refetch]);
 
+  // Auto-poll every 10s when the tab is visible
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible") {
+        refetch();
+      }
+    };
+    const id = setInterval(tick, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [refetch]);
+
   const create = useCallback(
     async (input: CreateAgentInput) => {
       const created = await apiFetch<Agent>("/api/agents", {
@@ -69,5 +82,13 @@ export function useAgents() {
     [refetch],
   );
 
-  return { agents, loading, error, refetch, create };
+  const remove = useCallback(
+    async (id: string) => {
+      await apiFetch(`/api/agents/${id}`, { method: "DELETE" });
+      await refetch();
+    },
+    [refetch],
+  );
+
+  return { agents, loading, error, refetch, create, remove };
 }

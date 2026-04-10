@@ -1,14 +1,17 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Agent } from "../hooks/useAgents";
+import { StatusBadge } from "./StatusBadge";
 import { formatDate, shortId } from "../utils/format";
 
 type AgentsTableProps = {
   agents: Agent[];
+  onDelete: (id: string) => void;
 };
 
-export function AgentsTable({ agents }: AgentsTableProps) {
+export function AgentsTable({ agents, onDelete }: AgentsTableProps) {
   const router = useRouter();
 
   return (
@@ -22,6 +25,7 @@ export function AgentsTable({ agents }: AgentsTableProps) {
             <th className="px-4 py-3 font-normal">Model</th>
             <th className="px-4 py-3 font-normal">Status</th>
             <th className="px-4 py-3 font-normal">Created</th>
+            <th className="w-12 px-4 py-3 font-normal" />
           </tr>
         </thead>
         <tbody>
@@ -44,12 +48,25 @@ export function AgentsTable({ agents }: AgentsTableProps) {
                 {agent.model ?? "—"}
               </td>
               <td className="px-4 py-3">
-                <span className="rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-xs">
-                  {agent.status}
-                </span>
+                <StatusBadge status={agent.status} />
               </td>
               <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
                 {formatDate(agent.createdAt)}
+              </td>
+              <td className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete agent "${agent.name}"? This removes the pod, data, and vault.`)) {
+                      onDelete(agent.id);
+                    }
+                  }}
+                  className="rounded p-1 text-[var(--eaos-text-muted)] hover:text-red-300"
+                  aria-label={`Delete ${agent.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </td>
             </tr>
           ))}

@@ -12,6 +12,7 @@ import { AgentDoctorPanel } from "./AgentDoctorPanel";
 import { AgentToolsPanel } from "./AgentToolsPanel";
 import { AgentIntegrationsPanel } from "./AgentIntegrationsPanel";
 import { AgentConfigPanel } from "./AgentConfigPanel";
+import { StatusBadge } from "./StatusBadge";
 import { formatDate, shortId } from "@/utils/format";
 
 type Tab =
@@ -104,11 +105,7 @@ function OverviewPanel({ agent }: { agent: Agent }) {
       <InfoCard label="Model" value={agent.model ?? "—"} />
       <InfoCard
         label="Status"
-        value={
-          <span className="rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-xs">
-            {agent.status}
-          </span>
-        }
+        value={<StatusBadge status={agent.status} />}
       />
       <InfoCard label="Created" value={formatDate(agent.createdAt)} />
     </div>
