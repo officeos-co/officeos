@@ -38,6 +38,16 @@ public sealed class SkillsController : ControllerBase
         return dto is null ? NotFound() : Ok(dto);
     }
 
+    [HttpGet("{name}/doc")]
+    public ActionResult GetDoc(string name)
+    {
+        if (!SkillManifests.AllWithDocs.TryGetValue(name, out var manifest) || manifest.Doc is null)
+        {
+            return NotFound();
+        }
+        return Content(manifest.Doc, "text/markdown");
+    }
+
     [HttpPost("{name}/install")]
     public async Task<ActionResult<SkillDto>> Install(string name, CancellationToken ct)
     {

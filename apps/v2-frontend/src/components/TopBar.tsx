@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 type TopBarProps = {
-  title: string;
+  title: ReactNode;
   subtitle?: ReactNode;
   action?: ReactNode;
 };

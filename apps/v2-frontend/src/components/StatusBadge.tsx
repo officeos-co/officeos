@@ -5,6 +5,9 @@ const colors: Record<string, string> = {
   not_found: "border-red-500/40 text-red-300",
   stopped: "border-gray-500/40 text-gray-300",
   unknown: "border-gray-500/40 text-gray-300",
+  ready: "border-green-500/40 text-green-300",
+  "needs credentials": "border-yellow-500/40 text-yellow-300",
+  "not installed": "border-gray-500/40 text-gray-300",
 };
 const fallback = "border-[var(--eaos-border)] text-[var(--eaos-text-muted)]";
 
