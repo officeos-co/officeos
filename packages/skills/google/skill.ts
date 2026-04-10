@@ -11,14 +11,14 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 async function getAccessToken(
   serviceAccountJson: string,
   scopes: string[],
-  fetchFn: typeof globalThis.fetch
+  fetchFn: typeof globalThis.fetch,
 ): Promise<string> {
   const sa = JSON.parse(serviceAccountJson);
   const clientEmail = sa.client_email;
   const privateKeyPem = sa.private_key;
   if (!clientEmail || !privateKeyPem) {
     throw new Error(
-      "Google skill: service_account_json missing client_email or private_key."
+      "Google skill: service_account_json missing client_email or private_key.",
     );
   }
 
@@ -52,15 +52,17 @@ async function getAccessToken(
     binaryKey,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
 
   const signatureBuffer = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     key,
-    new TextEncoder().encode(signingInput)
+    new TextEncoder().encode(signingInput),
   );
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)))
+  const signatureB64 = btoa(
+    String.fromCharCode(...new Uint8Array(signatureBuffer)),
+  )
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -102,7 +104,8 @@ export default defineSkill({
 
   actions: {
     drive_search: {
-      description: "Search Google Drive for files whose name contains the query.",
+      description:
+        "Search Google Drive for files whose name contains the query.",
       params: z.object({
         query: z.string().describe("Search query"),
         page_size: z.number().min(1).max(100).default(10),
@@ -114,13 +117,13 @@ export default defineSkill({
           mime_type: z.string(),
           web_view_link: z.string().nullable(),
           modified_time: z.string(),
-        })
+        }),
       ),
       execute: async (params, ctx) => {
         const token = await getAccessToken(
           ctx.credentials.service_account_json,
           ["https://www.googleapis.com/auth/drive.readonly"],
-          ctx.fetch
+          ctx.fetch,
         );
 
         const q = `name contains '${params.query.replace(/'/g, "\\'")}' and trashed = false`;
@@ -131,7 +134,9 @@ export default defineSkill({
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok)
-          throw new Error(`Google Drive API ${res.status}: ${await res.text()}`);
+          throw new Error(
+            `Google Drive API ${res.status}: ${await res.text()}`,
+          );
         const data = await res.json();
         return (data.files ?? []).map((f: any) => ({
           id: f.id,
@@ -155,13 +160,13 @@ export default defineSkill({
           start: z.string().nullable(),
           end: z.string().nullable(),
           html_link: z.string(),
-        })
+        }),
       ),
       execute: async (params, ctx) => {
         const token = await getAccessToken(
           ctx.credentials.service_account_json,
           ["https://www.googleapis.com/auth/calendar.readonly"],
-          ctx.fetch
+          ctx.fetch,
         );
 
         const calendarId = ctx.credentials.calendar_id || "primary";
@@ -175,7 +180,7 @@ export default defineSkill({
         });
         if (!res.ok)
           throw new Error(
-            `Google Calendar API ${res.status}: ${await res.text()}`
+            `Google Calendar API ${res.status}: ${await res.text()}`,
           );
         const data = await res.json();
         return (data.items ?? []).map((e: any) => ({
