@@ -16,13 +16,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      sha: ${{ steps.meta.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
-
-      - id: meta
-        run: echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -36,9 +31,7 @@ jobs:
           context: .
           file: apps/v2-frontend/Dockerfile
           push: true
-          tags: |
-            harkro123/eaos-frontend:latest
-            harkro123/eaos-frontend:${{ steps.meta.outputs.sha }}
+          tags: harkro123/eaos-frontend:latest
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
