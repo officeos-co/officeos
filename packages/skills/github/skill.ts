@@ -17,7 +17,9 @@ export default defineSkill({
     "List repositories, issues, and pull requests via the GitHub REST API.",
 
   credentials: {
-    token: z.string().describe("Personal Access Token (github_pat_... or ghp_...)"),
+    token: z
+      .string()
+      .describe("Personal Access Token (github_pat_... or ghp_...)"),
   },
 
   actions: {
@@ -37,7 +39,7 @@ export default defineSkill({
           description: z.string().nullable(),
           html_url: z.string(),
           default_branch: z.string(),
-        })
+        }),
       ),
       execute: async (params, ctx) => {
         const url = `${GITHUB_API}/user/repos?visibility=${params.visibility}&per_page=${params.per_page}`;
@@ -74,7 +76,7 @@ export default defineSkill({
           state: z.string(),
           author: z.string().nullable(),
           html_url: z.string(),
-        })
+        }),
       ),
       execute: async (params, ctx) => {
         const url = `${GITHUB_API}/repos/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/issues?state=${params.state}`;
@@ -114,7 +116,7 @@ export default defineSkill({
           author: z.string().nullable(),
           html_url: z.string(),
           draft: z.boolean(),
-        })
+        }),
       ),
       execute: async (params, ctx) => {
         const url = `${GITHUB_API}/repos/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/pulls?state=${params.state}`;
