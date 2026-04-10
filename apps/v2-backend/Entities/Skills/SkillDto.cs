@@ -24,6 +24,10 @@ public sealed record CapabilityDto(
     JsonElement Parameters,
     string Route);
 
-public sealed record CapabilitiesResponse(IReadOnlyList<CapabilityDto> Tools);
+public sealed record SkillDocDto(string Name, string Doc);
+
+public sealed record CapabilitiesResponse(
+    IReadOnlyList<CapabilityDto> Tools,
+    IReadOnlyList<SkillDocDto> Skills);
 
 public sealed record PutCredentialsRequest(Dictionary<string, string> Credentials);

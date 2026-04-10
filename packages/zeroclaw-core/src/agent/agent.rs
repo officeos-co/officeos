@@ -119,6 +119,10 @@ pub struct Agent {
     /// `{backend_url}/api/capabilities` at the start of every turn
     /// and swaps `self.tools` / `self.tool_specs` on changes.
     capability_cache: Option<tokio::sync::Mutex<crate::skills::live::CapabilityCache>>,
+    /// Synthetic skills built from backend skill documentation (.md).
+    /// These are injected into the system prompt alongside disk-based
+    /// skills so the LLM has narrative context for each backend skill.
+    backend_skills: Vec<crate::skills::Skill>,
 }
 
 pub struct AgentBuilder {
@@ -377,6 +381,7 @@ impl AgentBuilder {
                 .unwrap_or(crate::security::AutonomyLevel::Supervised),
             activated_tools: self.activated_tools,
             capability_cache,
+            backend_skills: Vec::new(),
         })
     }
 }
@@ -725,8 +730,28 @@ impl Agent {
             Ok(Some(refreshed)) => {
                 self.tools = refreshed.tools;
                 self.tool_specs = refreshed.specs;
+
+                // Build synthetic Skill structs from backend docs so the
+                // existing skills_to_prompt_with_mode() renders them as
+                // <instructions> in the system prompt.
+                self.backend_skills = refreshed
+                    .skill_docs
+                    .into_iter()
+                    .map(|(name, doc)| crate::skills::Skill {
+                        name: name.clone(),
+                        description: name,
+                        version: "backend".to_string(),
+                        author: None,
+                        tags: vec!["backend".to_string()],
+                        tools: vec![],
+                        prompts: vec![doc],
+                        env_passthrough: vec![],
+                        location: None,
+                    })
+                    .collect();
+
                 // Drop the existing system prompt so the next turn
-                // rebuilds it with the new tool list.
+                // rebuilds it with the new tool list + skill docs.
                 if let Some(ConversationMessage::Chat(chat)) = self.history.first() {
                     if chat.role == "system" {
                         self.history.remove(0);
@@ -734,6 +759,7 @@ impl Agent {
                 }
                 tracing::info!(
                     tool_count = self.tools.len(),
+                    skill_doc_count = self.backend_skills.len(),
                     "backend capabilities refreshed"
                 );
             }
@@ -776,11 +802,19 @@ impl Agent {
 
     fn build_system_prompt(&self) -> Result<String> {
         let instructions = self.tool_dispatcher.prompt_instructions(&self.tools);
+        // Combine disk-based skills with synthetic backend skill docs
+        // so skills_to_prompt_with_mode() renders both in the system prompt.
+        let all_skills: Vec<crate::skills::Skill> = self
+            .skills
+            .iter()
+            .cloned()
+            .chain(self.backend_skills.iter().cloned())
+            .collect();
         let ctx = PromptContext {
             workspace_dir: &self.workspace_dir,
             model_name: &self.model_name,
             tools: &self.tools,
-            skills: &self.skills,
+            skills: &all_skills,
             skills_prompt_mode: self.skills_prompt_mode,
             dispatcher_instructions: &instructions,
             tool_descriptions: self.tool_descriptions.as_ref(),

@@ -27,8 +27,8 @@ public sealed class AgentSkillsController : ControllerBase
     [HttpGet("capabilities")]
     public async Task<ActionResult<CapabilitiesResponse>> Capabilities(CancellationToken ct)
     {
-        var tools = await _service.ListCapabilitiesAsync(ct);
-        return Ok(new CapabilitiesResponse(tools));
+        var response = await _service.ListCapabilitiesAsync(ct);
+        return Ok(response);
     }
 
     [HttpPost("skills/notion/search")]

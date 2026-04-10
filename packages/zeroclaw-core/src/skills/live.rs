@@ -42,15 +42,25 @@ pub struct BackendCapability {
     pub route: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct BackendSkillDoc {
+    pub name: String,
+    pub doc: String,
+}
+
 #[derive(Debug, Deserialize)]
 struct CapabilitiesResponse {
     tools: Vec<BackendCapability>,
+    #[serde(default)]
+    skills: Vec<BackendSkillDoc>,
 }
 
 /// Output of a successful refresh: a new set of tools ready to swap in.
 pub struct RefreshedCapabilities {
     pub tools: Vec<Box<dyn Tool>>,
     pub specs: Vec<ToolSpec>,
+    /// Per-skill markdown documentation for system prompt injection.
+    pub skill_docs: Vec<(String, String)>,
 }
 
 /// Tracks the last successful backend fetch so consecutive turns inside
@@ -145,7 +155,17 @@ impl CapabilityCache {
             tools.push(Box::new(tool));
         }
 
-        Ok(Some(RefreshedCapabilities { tools, specs }))
+        let skill_docs: Vec<(String, String)> = parsed
+            .skills
+            .into_iter()
+            .map(|s| (s.name, s.doc))
+            .collect();
+
+        Ok(Some(RefreshedCapabilities {
+            tools,
+            specs,
+            skill_docs,
+        }))
     }
 }
 

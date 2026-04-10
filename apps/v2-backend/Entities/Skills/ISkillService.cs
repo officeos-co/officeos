@@ -19,5 +19,5 @@ public interface ISkillService
         string name,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<CapabilityDto>> ListCapabilitiesAsync(CancellationToken ct = default);
+    Task<CapabilitiesResponse> ListCapabilitiesAsync(CancellationToken ct = default);
 }

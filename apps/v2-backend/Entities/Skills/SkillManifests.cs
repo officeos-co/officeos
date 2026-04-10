@@ -21,7 +21,8 @@ public sealed record SkillManifest(
     string Description,
     string Emoji,
     IReadOnlyList<CredentialField> CredentialFields,
-    IReadOnlyList<LlmToolSpec> LlmTools);
+    IReadOnlyList<LlmToolSpec> LlmTools,
+    string? Doc = null);
 
 /// <summary>
 /// Static in-code registry of first-party skills. Mirror of v1's
@@ -190,4 +191,23 @@ public static class SkillManifests
 
     public static SkillManifest? For(string name) =>
         All.TryGetValue(name, out var m) ? m : null;
+
+    private static readonly string DocsDirectory = Path.Combine(
+        AppContext.BaseDirectory, "Entities", "Skills", "Docs");
+
+    /// <summary>
+    /// Returns manifests with <see cref="SkillManifest.Doc"/> populated
+    /// from the corresponding <c>Entities/Skills/Docs/{name}.md</c> file.
+    /// Manifests without a doc file keep <c>Doc = null</c>.
+    /// </summary>
+    public static IReadOnlyDictionary<string, SkillManifest> AllWithDocs { get; } =
+        All.ToDictionary(
+            kv => kv.Key,
+            kv =>
+            {
+                var path = Path.Combine(DocsDirectory, $"{kv.Value.Name}.md");
+                var doc = File.Exists(path) ? File.ReadAllText(path) : null;
+                return kv.Value with { Doc = doc };
+            },
+            StringComparer.OrdinalIgnoreCase);
 }

@@ -100,12 +100,14 @@ public sealed class SkillService : ISkillService
         return parsed;
     }
 
-    public async Task<IReadOnlyList<CapabilityDto>> ListCapabilitiesAsync(CancellationToken ct = default)
+    public async Task<CapabilitiesResponse> ListCapabilitiesAsync(CancellationToken ct = default)
     {
         var rows = (await _repository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
         var caps = new List<CapabilityDto>();
-        foreach (var manifest in SkillManifests.All.Values)
+        var docs = new List<SkillDocDto>();
+
+        foreach (var manifest in SkillManifests.AllWithDocs.Values)
         {
             if (!rows.TryGetValue(manifest.Name, out var row)) continue;
             if (!row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials)) continue;
@@ -121,8 +123,13 @@ public sealed class SkillService : ISkillService
                     Parameters: tool.Parameters,
                     Route: $"/api/agents/me/skills/{manifest.Name}/{action}"));
             }
+
+            if (manifest.Doc is not null)
+            {
+                docs.Add(new SkillDocDto(manifest.Name, manifest.Doc));
+            }
         }
-        return caps;
+        return new CapabilitiesResponse(caps, docs);
     }
 
     private static SkillDto ToDto(SkillManifest manifest, SkillCredentialRecord? row) =>
