@@ -1434,6 +1434,12 @@ pub struct SkillsConfig {
     /// this window and reuse the cached tool list.
     #[serde(default = "default_backend_refresh_seconds")]
     pub backend_refresh_seconds: u64,
+    /// GraphQL endpoint URL for the `skill_exec` CLI tool.
+    /// When set (usually `{backend_url}/api/graphql`), the agent
+    /// registers a single `skill_exec` tool that gives the LLM
+    /// a CLI-like interface to all backend skills via GraphQL.
+    #[serde(default)]
+    pub graphql_url: Option<String>,
 }
 
 fn default_backend_refresh_seconds() -> u64 {

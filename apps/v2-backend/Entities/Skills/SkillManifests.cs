@@ -192,7 +192,7 @@ public static class SkillManifests
     public static SkillManifest? For(string name) =>
         All.TryGetValue(name, out var m) ? m : null;
 
-    private static readonly string DocsDirectory = Path.Combine(
+    private static readonly string DocsDirectory = System.IO.Path.Combine(
         AppContext.BaseDirectory, "Entities", "Skills", "Docs");
 
     /// <summary>
@@ -205,7 +205,7 @@ public static class SkillManifests
             kv => kv.Key,
             kv =>
             {
-                var path = Path.Combine(DocsDirectory, $"{kv.Value.Name}.md");
+                var path = System.IO.Path.Combine(DocsDirectory, $"{kv.Value.Name}.md");
                 var doc = File.Exists(path) ? File.ReadAllText(path) : null;
                 return kv.Value with { Doc = doc };
             },

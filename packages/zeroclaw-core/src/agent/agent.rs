@@ -663,6 +663,22 @@ impl Agent {
             None
         };
 
+        // Register the GraphQL-backed skill_exec tool if configured.
+        if let Some(gql_url) = config
+            .skills
+            .graphql_url
+            .as_ref()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+        {
+            let skill_exec = crate::tools::skill_exec::SkillExecTool::new(
+                gql_url,
+                config.api_key.clone(),
+            );
+            tools.push(Box::new(skill_exec));
+            tracing::info!("skill_exec tool registered (GraphQL backend)");
+        }
+
         let builder = Agent::builder()
             .provider(provider)
             .tools(tools)

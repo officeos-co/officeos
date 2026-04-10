@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Types;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills.Implementations;
 
@@ -21,7 +22,7 @@ public sealed class GoogleSkill
         _http = http;
     }
 
-    public async Task<object> DriveSearchAsync(
+    public async Task<List<DriveFile>> DriveSearchAsync(
         GoogleDriveSearchRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -39,15 +40,25 @@ public sealed class GoogleSkill
             + "&fields=" + Uri.EscapeDataString("files(id,name,mimeType,webViewLink,modifiedTime)");
 
         var data = await CallGoogleAsync(HttpMethod.Get, url, token, ct);
-        var files = new List<JsonElement>();
+        var files = new List<DriveFile>();
         if (data.TryGetProperty("files", out var arr) && arr.ValueKind == JsonValueKind.Array)
         {
-            foreach (var f in arr.EnumerateArray()) files.Add(f.Clone());
+            foreach (var f in arr.EnumerateArray())
+            {
+                files.Add(new DriveFile
+                {
+                    Id = f.TryGetProperty("id", out var fid) ? fid.GetString() : null,
+                    Name = f.TryGetProperty("name", out var fn) ? fn.GetString() : null,
+                    MimeType = f.TryGetProperty("mimeType", out var fm) ? fm.GetString() : null,
+                    WebViewLink = f.TryGetProperty("webViewLink", out var fw) ? fw.GetString() : null,
+                    ModifiedTime = f.TryGetProperty("modifiedTime", out var ft) ? ft.GetString() : null,
+                });
+            }
         }
-        return new { files };
+        return files;
     }
 
-    public async Task<object> CalendarUpcomingAsync(
+    public async Task<List<CalendarEvent>> CalendarUpcomingAsync(
         GoogleCalendarUpcomingRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -69,22 +80,22 @@ public sealed class GoogleSkill
             + $"&timeMin={Uri.EscapeDataString(nowIso)}";
 
         var data = await CallGoogleAsync(HttpMethod.Get, url, token, ct);
-        var events = new List<object>();
+        var events = new List<CalendarEvent>();
         if (data.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array)
         {
             foreach (var e in items.EnumerateArray())
             {
-                events.Add(new
+                events.Add(new CalendarEvent
                 {
-                    id = Prop(e, "id"),
-                    summary = Prop(e, "summary"),
-                    start = ExtractDateOrDateTime(e, "start"),
-                    end = ExtractDateOrDateTime(e, "end"),
-                    html_link = Prop(e, "htmlLink"),
+                    Id = Prop(e, "id"),
+                    Summary = Prop(e, "summary"),
+                    Start = ExtractDateOrDateTime(e, "start"),
+                    End = ExtractDateOrDateTime(e, "end"),
+                    HtmlLink = Prop(e, "htmlLink"),
                 });
             }
         }
-        return new { events };
+        return events;
     }
 
     private static string? ExtractDateOrDateTime(JsonElement parent, string key)

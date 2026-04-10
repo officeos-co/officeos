@@ -4,7 +4,7 @@ public static class VaultPersonalityTemplate
 {
     private static readonly string[] TemplateFiles = ["SOUL.md", "IDENTITY.md", "AGENTS.md"];
 
-    private static readonly string TemplateDirectory = Path.Combine(
+    private static readonly string TemplateDirectory = System.IO.Path.Combine(
         AppContext.BaseDirectory, "Entities", "Vault", "Templates");
 
     public static IReadOnlyDictionary<string, string> Render(
@@ -24,7 +24,7 @@ public static class VaultPersonalityTemplate
         var rendered = new Dictionary<string, string>(TemplateFiles.Length);
         foreach (var file in TemplateFiles)
         {
-            var path = Path.Combine(TemplateDirectory, file);
+            var path = System.IO.Path.Combine(TemplateDirectory, file);
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException(

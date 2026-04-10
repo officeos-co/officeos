@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Types;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills.Implementations;
 
@@ -17,7 +18,7 @@ public sealed class GithubSkill
         _http = http;
     }
 
-    public async Task<object> ListReposAsync(
+    public async Task<List<GithubRepo>> ListReposAsync(
         GithubListReposRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -29,25 +30,25 @@ public sealed class GithubSkill
             token,
             ct);
 
-        var repos = new List<object>();
+        var repos = new List<GithubRepo>();
         if (data.ValueKind == JsonValueKind.Array)
         {
             foreach (var r in data.EnumerateArray())
             {
-                repos.Add(new
+                repos.Add(new GithubRepo
                 {
-                    full_name = Prop(r, "full_name"),
-                    @private = r.TryGetProperty("private", out var pv) ? pv.GetBoolean() : (bool?)null,
-                    description = Prop(r, "description"),
-                    html_url = Prop(r, "html_url"),
-                    default_branch = Prop(r, "default_branch"),
+                    FullName = Prop(r, "full_name"),
+                    Private = r.TryGetProperty("private", out var pv) ? pv.GetBoolean() : null,
+                    Description = Prop(r, "description"),
+                    HtmlUrl = Prop(r, "html_url"),
+                    DefaultBranch = Prop(r, "default_branch"),
                 });
             }
         }
-        return new { repos };
+        return repos;
     }
 
-    public async Task<object> ListIssuesAsync(
+    public async Task<List<GithubIssue>> ListIssuesAsync(
         GithubRepoRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -59,29 +60,28 @@ public sealed class GithubSkill
             token,
             ct);
 
-        var issues = new List<object>();
+        var issues = new List<GithubIssue>();
         if (data.ValueKind == JsonValueKind.Array)
         {
             foreach (var i in data.EnumerateArray())
             {
-                // Filter out PRs masquerading as issues
                 if (i.TryGetProperty("pull_request", out _)) continue;
-                issues.Add(new
+                issues.Add(new GithubIssue
                 {
-                    number = i.TryGetProperty("number", out var n) ? n.GetInt64() : (long?)null,
-                    title = Prop(i, "title"),
-                    state = Prop(i, "state"),
-                    author = i.TryGetProperty("user", out var u) && u.ValueKind == JsonValueKind.Object
+                    Number = i.TryGetProperty("number", out var n) ? n.GetInt64() : null,
+                    Title = Prop(i, "title"),
+                    State = Prop(i, "state"),
+                    Author = i.TryGetProperty("user", out var u) && u.ValueKind == JsonValueKind.Object
                         ? Prop(u, "login")
                         : null,
-                    html_url = Prop(i, "html_url"),
+                    HtmlUrl = Prop(i, "html_url"),
                 });
             }
         }
-        return new { issues };
+        return issues;
     }
 
-    public async Task<object> ListPrsAsync(
+    public async Task<List<GithubPr>> ListPrsAsync(
         GithubRepoRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -93,25 +93,25 @@ public sealed class GithubSkill
             token,
             ct);
 
-        var prs = new List<object>();
+        var prs = new List<GithubPr>();
         if (data.ValueKind == JsonValueKind.Array)
         {
             foreach (var pr in data.EnumerateArray())
             {
-                prs.Add(new
+                prs.Add(new GithubPr
                 {
-                    number = pr.TryGetProperty("number", out var n) ? n.GetInt64() : (long?)null,
-                    title = Prop(pr, "title"),
-                    state = Prop(pr, "state"),
-                    author = pr.TryGetProperty("user", out var u) && u.ValueKind == JsonValueKind.Object
+                    Number = pr.TryGetProperty("number", out var n) ? n.GetInt64() : null,
+                    Title = Prop(pr, "title"),
+                    State = Prop(pr, "state"),
+                    Author = pr.TryGetProperty("user", out var u) && u.ValueKind == JsonValueKind.Object
                         ? Prop(u, "login")
                         : null,
-                    html_url = Prop(pr, "html_url"),
-                    draft = pr.TryGetProperty("draft", out var d) ? d.GetBoolean() : (bool?)null,
+                    HtmlUrl = Prop(pr, "html_url"),
+                    Draft = pr.TryGetProperty("draft", out var d) ? d.GetBoolean() : null,
                 });
             }
         }
-        return new { prs };
+        return prs;
     }
 
     private async Task<JsonElement> CallAsync(

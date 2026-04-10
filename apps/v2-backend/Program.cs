@@ -11,9 +11,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");
-var dpKeyDir = Path.IsPathRooted(dpKeyPath)
+var dpKeyDir = System.IO.Path.IsPathRooted(dpKeyPath)
     ? dpKeyPath
-    : Path.Combine(Directory.GetCurrentDirectory(), dpKeyPath);
+    : System.IO.Path.Combine(Directory.GetCurrentDirectory(), dpKeyPath);
 Directory.CreateDirectory(dpKeyDir);
 builder.Services
     .AddDataProtection()
@@ -79,6 +79,14 @@ builder.Services.AddHttpClient<GoogleSkill>();
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
 
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
+    .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.NotionQueries>()
+    .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.GithubQueries>()
+    .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.GoogleQueries>()
+    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
@@ -113,6 +121,7 @@ app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 app.MapAgentProxyEndpoints();
+app.MapGraphQL("/api/graphql");
 app.MapControllers();
 
 app.Run();

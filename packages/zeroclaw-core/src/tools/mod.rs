@@ -64,6 +64,7 @@ pub mod read_skill;
 pub mod schema;
 pub mod sessions;
 pub mod shell;
+pub mod skill_exec;
 pub mod skill_http;
 pub mod skill_tool;
 pub mod tool_search;

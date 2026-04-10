@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Types;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills.Implementations;
 
@@ -20,7 +21,7 @@ public sealed class NotionSkill
         _http = http;
     }
 
-    public async Task<object> SearchAsync(
+    public async Task<NotionSearchResult> SearchAsync(
         NotionSearchRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -29,7 +30,7 @@ public sealed class NotionSkill
         var body = JsonSerializer.Serialize(new { query = req.Query, page_size = req.PageSize });
         var json = await CallAsync(HttpMethod.Post, "/search", apiKey, body, ct);
 
-        var results = new List<object>();
+        var results = new List<NotionPage>();
         if (json.TryGetProperty("results", out var arr) && arr.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in arr.EnumerateArray())
@@ -56,19 +57,19 @@ public sealed class NotionSkill
                         }
                     }
                 }
-                results.Add(new
+                results.Add(new NotionPage
                 {
-                    id = item.TryGetProperty("id", out var id) ? id.GetString() : null,
-                    title = string.IsNullOrEmpty(title) ? "(untitled)" : title,
-                    url = item.TryGetProperty("url", out var url) ? url.GetString() : null,
-                    @object = item.TryGetProperty("object", out var obj) ? obj.GetString() : null,
+                    Id = item.TryGetProperty("id", out var id) ? id.GetString() : null,
+                    Title = string.IsNullOrEmpty(title) ? "(untitled)" : title,
+                    Url = item.TryGetProperty("url", out var url) ? url.GetString() : null,
+                    ObjectType = item.TryGetProperty("object", out var obj) ? obj.GetString() : null,
                 });
             }
         }
-        return new { results };
+        return new NotionSearchResult { Results = results };
     }
 
-    public async Task<object> ReadPageAsync(
+    public async Task<NotionPageContent> ReadPageAsync(
         NotionReadPageRequest req,
         IReadOnlyDictionary<string, string> creds,
         CancellationToken ct = default)
@@ -103,7 +104,7 @@ public sealed class NotionSkill
                 if (!string.IsNullOrEmpty(text)) lines.Add(text);
             }
         }
-        return new { page_id = req.PageId, text = string.Join("\n", lines) };
+        return new NotionPageContent { PageId = req.PageId, Text = string.Join("\n", lines) };
     }
 
     private async Task<JsonElement> CallAsync(

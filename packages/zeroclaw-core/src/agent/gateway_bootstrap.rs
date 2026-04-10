@@ -62,10 +62,11 @@ pub fn apply(config: &mut Config) -> Option<String> {
     // Model: placeholder — backend overrides from agent record per-request
     config.default_model = Some("backend-managed".to_string());
 
-    // Skills gateway
+    // Skills gateway (legacy REST capabilities + new GraphQL)
     config.skills.backend_url = Some(backend_url.clone());
     config.skills.backend_token = Some(agent_id.clone());
     config.skills.backend_refresh_seconds = 30;
+    config.skills.graphql_url = Some(format!("{backend_url}/api/graphql"));
 
     // Gateway: bind to all interfaces for k8s service routing
     config.gateway.port = 42617;
