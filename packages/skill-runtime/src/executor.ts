@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SkillDefinition } from "@eaos/skill-sdk";
+import type { SkillDefinition } from "@harro/skill-sdk";
 import { createSandboxedContext } from "./sandbox.js";
 import { extractManifest, type SkillManifest } from "./manifest.js";
 

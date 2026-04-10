@@ -10,7 +10,7 @@
     "dev": "node --watch dist/server.js"
   },
   "dependencies": {
-    "@eaos/skill-sdk": "file:../skill-sdk",
+    "@harro/skill-sdk": "file:../skill-sdk",
     "zod": "^3.23.0"
   },
   "devDependencies": {

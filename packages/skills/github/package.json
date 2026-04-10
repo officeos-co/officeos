@@ -5,6 +5,6 @@
   "type": "module",
   "main": "skill.ts",
   "dependencies": {
-    "@eaos/skill-sdk": "file:../../skill-sdk"
+    "@harro/skill-sdk": "file:../../skill-sdk"
   }
 }

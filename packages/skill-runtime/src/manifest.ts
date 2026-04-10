@@ -1,4 +1,4 @@
-import type { SkillDefinition } from "@eaos/skill-sdk";
+import type { SkillDefinition } from "@harro/skill-sdk";
 
 export interface SkillManifest {
   name: string;

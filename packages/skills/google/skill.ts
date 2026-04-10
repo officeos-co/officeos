@@ -1,4 +1,4 @@
-import { defineSkill, z } from "@eaos/skill-sdk";
+import { defineSkill, z } from "@harro/skill-sdk";
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";

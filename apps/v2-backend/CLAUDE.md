@@ -39,8 +39,8 @@ Entities/
 
 ## Adding a new skill
 
-1. Create `packages/skills/{name}/skill.ts` using `defineSkill()` from `@eaos/skill-sdk`. Include `returns` schema on each action.
-2. Create `packages/skills/{name}/package.json` with `@eaos/skill-sdk` dependency.
+1. Create `packages/skills/{name}/skill.ts` using `defineSkill()` from `@harro/skill-sdk`. Include `returns` schema on each action.
+2. Create `packages/skills/{name}/package.json` with `@harro/skill-sdk` dependency.
 3. Add credential metadata to `SkillManifests.cs` (name, title, emoji, credential fields for the dashboard form).
 4. Rebuild skill-runtime (`cd packages/skill-runtime && npm run build`). The `SkillTypeModule` auto-generates GraphQL types from the runtime manifest — no C# types or resolvers needed.
 5. No DB migration needed.

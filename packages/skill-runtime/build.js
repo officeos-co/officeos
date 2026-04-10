@@ -7,11 +7,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillsDir = resolve(__dirname, "../skills");
 const sdkEntry = resolve(__dirname, "../skill-sdk/src/index.ts");
 
-// Plugin to resolve @eaos/skill-sdk to the local SDK source
+// Plugin to resolve @harro/skill-sdk to the local SDK source
 const sdkResolvePlugin = {
   name: "sdk-resolve",
   setup(build) {
-    build.onResolve({ filter: /^@eaos\/skill-sdk$/ }, () => ({
+    build.onResolve({ filter: /^@harro\/skill-sdk$/ }, () => ({
       path: sdkEntry,
     }));
   },

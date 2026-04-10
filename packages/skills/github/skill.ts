@@ -1,4 +1,4 @@
-import { defineSkill, z } from "@eaos/skill-sdk";
+import { defineSkill, z } from "@harro/skill-sdk";
 
 const GITHUB_API = "https://api.github.com";
 

@@ -1,5 +1,5 @@
-import type { SkillContext } from "@eaos/skill-sdk";
-import { createContext } from "@eaos/skill-sdk";
+import type { SkillContext } from "@harro/skill-sdk";
+import { createContext } from "@harro/skill-sdk";
 
 /**
  * Create a sandboxed SkillContext for executing a skill action.

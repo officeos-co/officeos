@@ -1,17 +1,17 @@
-# @eaos/skill-sdk
+# @harro/skill-sdk
 
 TypeScript SDK for defining EnterpriseAgentOS skills.
 
 ## Install
 
 ```bash
-npm install @eaos/skill-sdk
+npm install @harro/skill-sdk
 ```
 
 ## Usage
 
 ```typescript
-import { defineSkill, z } from "@eaos/skill-sdk";
+import { defineSkill, z } from "@harro/skill-sdk";
 
 export default defineSkill({
   name: "my-skill",
