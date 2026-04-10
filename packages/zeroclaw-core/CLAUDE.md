@@ -1,87 +1,83 @@
-# AGENTS.md — ZeroClaw
+# zeroclaw-core — Rust Agent Runtime
 
-Cross-tool agent instructions for any AI coding assistant working on this repository.
+The autonomous agent binary that runs inside each K8s pod. Trait-driven, modular architecture.
 
 ## Commands
 
 ```bash
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
+cargo build
 cargo test
+cargo check --tests    # Use this (not plain cargo check) after deletions
 ```
 
-Docs-only changes: run markdown lint and link-integrity checks.
+## How it runs in EnterpriseAgentOS
 
-## Project Snapshot
+Each agent pod boots with a single env var: `ZEROCLAW_AGENT_ID`. The `gateway_bootstrap` module derives everything from that ID by calling the backend:
 
-ZeroClaw is a Rust-first autonomous agent runtime optimized for performance, efficiency, stability, extensibility, sustainability, and security.
+- **Provider**: `custom:{backend_url}/v1` — all LLM calls proxy through the backend
+- **API key**: the agent UUID (bearer token for all backend calls)
+- **Skills**: `{backend_url}/api/graphql` — discovered via introspection
+- **Vault**: fetched from `{backend_url}/api/agents/{id}/memory/*`
+- **Workspace**: `/zeroclaw-data/workspace` (PVC-backed, cached)
 
-Core architecture is trait-driven and modular. Extend by implementing traits and registering in factory modules.
+## Key modules
 
-Key extension points:
+```
+src/agent/
+  gateway_bootstrap.rs    Derives config from ZEROCLAW_AGENT_ID + backend URL
+  vault_bootstrap.rs      Fetches personality files, caches on PVC
+  personality.rs          Strict loader (SOUL.md, IDENTITY.md, AGENTS.md required)
+  agent.rs                Turn loop, system prompt, tool execution, capability refresh
+  prompt.rs               System prompt builder (trait-based section composition)
 
-- `src/providers/traits.rs` (`Provider`)
-- `src/channels/traits.rs` (`Channel`)
-- `src/tools/traits.rs` (`Tool`)
-- `src/memory/traits.rs` (`Memory`)
-- `src/observability/traits.rs` (`Observer`)
-- `src/runtime/traits.rs` (`RuntimeAdapter`)
-- `src/peripherals/traits.rs` (`Peripheral`) — hardware boards (STM32, RPi GPIO)
+src/tools/
+  traits.rs               Tool trait: name, description, parameters_schema, execute
+  skill_exec/             GraphQL-backed CLI tool for all backend skills
+    mod.rs                SkillExecTool (single tool, command string parameter)
+    parser.rs             Deterministic CLI parser (skill action --flags)
+    schema_cache.rs       GraphQL introspection cache + --help generation
+    query_builder.rs      CLI command → GraphQL query string
+  backend_skill_tool.rs   Legacy per-tool HTTP caller (being replaced by skill_exec)
 
-## Repository Map
+src/skills/
+  mod.rs                  Disk-based skill loading (SKILL.md files)
+  live.rs                 Legacy backend capability cache (being replaced)
 
-- `src/main.rs` — CLI entrypoint and command routing
-- `src/lib.rs` — module exports and shared command enums
-- `src/config/` — schema + config loading/merging
-- `src/agent/` — orchestration loop
-- `src/gateway/` — webhook/gateway server
-- `src/security/` — policy, pairing, secret store
-- `src/memory/` — markdown/sqlite memory backends + embeddings/vector merge
-- `src/providers/` — model providers and resilient wrapper
-- `src/channels/` — Telegram/Discord/Slack/etc channels
-- `src/tools/` — tool execution surface (shell, file, memory, browser)
-- `src/peripherals/` — hardware peripherals (STM32, RPi GPIO)
-- `src/runtime/` — runtime adapters (currently native)
-- `docs/` — topic-based documentation (setup-guides, reference, ops, security, hardware, contributing, maintainers)
-- `.github/` — CI, templates, automation workflows
+src/gateway/              WebSocket server on :42617
+src/providers/            LLM provider routing + resilient wrapper
+src/config/               Schema + config loading/merging
+src/memory/               Markdown/SQLite memory backends
+src/security/             Policy, pairing, sandboxing
+src/channels/             Telegram/Discord/Slack channels
+```
 
-## Risk Tiers
+## Extension points
 
-- **Low risk**: docs/chore/tests-only changes
-- **Medium risk**: most `src/**` behavior changes without boundary/security impact
-- **High risk**: `src/security/**`, `src/runtime/**`, `src/gateway/**`, `src/tools/**`, `.github/workflows/**`, access-control boundaries
+- `src/providers/traits.rs` — `Provider` trait
+- `src/tools/traits.rs` — `Tool` trait
+- `src/channels/traits.rs` — `Channel` trait
+- `src/memory/traits.rs` — `Memory` trait
+- `src/observability/traits.rs` — `Observer` trait
 
-When uncertain, classify as higher risk.
+## Risk tiers
+
+- **Low**: docs, tests, chore
+- **Medium**: most `src/**` behavior changes
+- **High**: `src/security/**`, `src/gateway/**`, `src/tools/**`, `src/agent/gateway_bootstrap.rs`
 
 ## Workflow
 
-1. **Read before write** — inspect existing module, factory wiring, and adjacent tests before editing.
-2. **One concern per PR** — avoid mixed feature+refactor+infra patches.
-3. **Implement minimal patch** — no speculative abstractions, no config keys without a concrete use case.
-4. **Validate by risk tier** — docs-only: lightweight checks. Code changes: full relevant checks.
-5. **Document impact** — update PR notes for behavior, risk, side effects, and rollback.
-6. **Queue hygiene** — stacked PR: declare `Depends on #...`. Replacing old PR: declare `Supersedes #...`.
+1. **Read before write** — inspect existing module, factory wiring, and adjacent tests.
+2. **One concern per PR.**
+3. **Minimal patch** — no speculative abstractions.
+4. **Use `cargo check --tests`** (not plain `cargo check`) after deleting code — catches test-only usages.
 
-Branch/commit/PR rules:
-
-- Work from a non-`master` branch. Open a PR to `master`; do not push directly.
-- Use conventional commit titles. Prefer small PRs (`size: XS/S/M`).
-- Follow `.github/pull_request_template.md` fully.
-- Never commit secrets, personal data, or real identity information (see `@docs/contributing/pr-discipline.md`).
-
-## Anti-Patterns
+## Anti-patterns
 
 - Do not add heavy dependencies for minor convenience.
-- Do not silently weaken security policy or access constraints.
-- Do not add speculative config/feature flags "just in case".
-- Do not mix massive formatting-only changes with functional changes.
+- Do not silently weaken security policy.
+- Do not add config keys without a concrete use case.
 - Do not modify unrelated modules "while here".
-- Do not bypass failing checks without explicit explanation.
-- Do not hide behavior-changing side effects in refactor commits.
-- Do not include personal identity or sensitive information in test data, examples, docs, or commits.
-
-## Linked References
-
-- `@docs/contributing/change-playbooks.md` — adding providers, channels, tools, peripherals; security/gateway changes; architecture boundaries
-- `@docs/contributing/pr-discipline.md` — privacy rules, superseded-PR attribution/templates, handoff template
-- `@docs/contributing/docs-contract.md` — docs system contract, i18n rules, locale parity
+- Do not bypass failing clippy checks without explanation.
