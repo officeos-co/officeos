@@ -15,6 +15,14 @@ export default defineSkill({
         query: z.string().describe("Free-text search query"),
         page_size: z.number().min(1).max(100).default(10),
       }),
+      returns: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          url: z.string(),
+          object_type: z.string(),
+        })
+      ),
       execute: async (params, ctx) => {
         const res = await ctx.fetch("https://api.notion.com/v1/search", {
           method: "POST",
@@ -60,6 +68,10 @@ export default defineSkill({
       description: "Fetch a Notion page's top-level block children as plain text.",
       params: z.object({
         page_id: z.string().describe("Page UUID from search results"),
+      }),
+      returns: z.object({
+        page_id: z.string(),
+        text: z.string(),
       }),
       execute: async (params, ctx) => {
         const res = await ctx.fetch(

@@ -104,6 +104,15 @@ export default defineSkill({
         query: z.string().describe("Search query"),
         page_size: z.number().min(1).max(100).default(10),
       }),
+      returns: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          mime_type: z.string(),
+          web_view_link: z.string().nullable(),
+          modified_time: z.string(),
+        })
+      ),
       execute: async (params, ctx) => {
         const token = await getAccessToken(
           ctx.credentials.service_account_json,
@@ -136,6 +145,15 @@ export default defineSkill({
       params: z.object({
         max_results: z.number().min(1).max(50).default(10),
       }),
+      returns: z.array(
+        z.object({
+          id: z.string(),
+          summary: z.string().nullable(),
+          start: z.string().nullable(),
+          end: z.string().nullable(),
+          html_link: z.string(),
+        })
+      ),
       execute: async (params, ctx) => {
         const token = await getAccessToken(
           ctx.credentials.service_account_json,

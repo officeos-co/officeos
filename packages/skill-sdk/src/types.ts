@@ -22,6 +22,12 @@ export interface ActionDefinition<T extends z.ZodType = z.ZodType> {
   description: string;
   /** Zod schema for the action's parameters. */
   params: T;
+  /**
+   * Zod schema describing the shape of the return value.
+   * Used by the runtime to generate GraphQL return types for introspection.
+   * If omitted, the return type is treated as opaque JSON.
+   */
+  returns?: z.ZodType;
   /** Execute the action with validated params and injected context. */
   execute: (params: z.infer<T>, ctx: SkillContext) => Promise<unknown>;
 }

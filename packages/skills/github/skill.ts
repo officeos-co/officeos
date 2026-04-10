@@ -30,6 +30,15 @@ export default defineSkill({
           .describe("Filter by visibility"),
         per_page: z.number().min(1).max(100).default(30),
       }),
+      returns: z.array(
+        z.object({
+          full_name: z.string(),
+          private: z.boolean(),
+          description: z.string().nullable(),
+          html_url: z.string(),
+          default_branch: z.string(),
+        })
+      ),
       execute: async (params, ctx) => {
         const url = `${GITHUB_API}/user/repos?visibility=${params.visibility}&per_page=${params.per_page}`;
         const res = await ctx.fetch(url, {
@@ -58,6 +67,15 @@ export default defineSkill({
           .default("open")
           .describe("Issue state filter"),
       }),
+      returns: z.array(
+        z.object({
+          number: z.number(),
+          title: z.string(),
+          state: z.string(),
+          author: z.string().nullable(),
+          html_url: z.string(),
+        })
+      ),
       execute: async (params, ctx) => {
         const url = `${GITHUB_API}/repos/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/issues?state=${params.state}`;
         const res = await ctx.fetch(url, {
@@ -88,6 +106,16 @@ export default defineSkill({
           .default("open")
           .describe("PR state filter"),
       }),
+      returns: z.array(
+        z.object({
+          number: z.number(),
+          title: z.string(),
+          state: z.string(),
+          author: z.string().nullable(),
+          html_url: z.string(),
+          draft: z.boolean(),
+        })
+      ),
       execute: async (params, ctx) => {
         const url = `${GITHUB_API}/repos/${encodeURIComponent(params.owner)}/${encodeURIComponent(params.repo)}/pulls?state=${params.state}`;
         const res = await ctx.fetch(url, {

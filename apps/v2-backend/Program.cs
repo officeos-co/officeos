@@ -83,6 +83,13 @@ builder.Services.AddHttpClient<SkillRuntimeClient>();
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
 
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
+    .AddTypeModule<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>()
+    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>()
+    .DisableIntrospection(false);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
@@ -117,6 +124,7 @@ app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 app.MapAgentProxyEndpoints();
+app.MapGraphQL("/api/graphql");
 app.MapControllers();
 
 app.Run();

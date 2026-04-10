@@ -114,6 +114,7 @@ public sealed class RuntimeActionManifest
 {
     public string Description { get; set; } = "";
     public JsonElement? Params { get; set; }
+    public JsonElement? Returns { get; set; }
 }
 
 public sealed class RuntimeCredentialManifest
