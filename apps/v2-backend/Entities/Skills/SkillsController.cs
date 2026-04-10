@@ -1,4 +1,4 @@
-using EnterpriseAgentOs.Api.Entities.Skills.Implementations;
+using System.Text.Json;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -7,20 +7,14 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 public sealed class SkillsController : ControllerBase
 {
     private readonly ISkillService _service;
-    private readonly NotionSkill _notion;
-    private readonly GithubSkill _github;
-    private readonly GoogleSkill _google;
+    private readonly SkillRuntimeClient _runtime;
 
     public SkillsController(
         ISkillService service,
-        NotionSkill notion,
-        GithubSkill github,
-        GoogleSkill google)
+        SkillRuntimeClient runtime)
     {
         _service = service;
-        _notion = notion;
-        _github = github;
-        _google = google;
+        _runtime = runtime;
     }
 
     // ---------- catalog ----------
@@ -90,52 +84,28 @@ public sealed class SkillsController : ControllerBase
 
     // ---------- user-auth execution (dashboard test buttons) ----------
 
-    [HttpPost("notion/search")]
-    public Task<IActionResult> NotionSearch([FromBody] NotionSearchRequest body, CancellationToken ct) =>
-        ExecuteAsync("notion", async creds => await _notion.SearchAsync(body, creds, ct), ct);
-
-    [HttpPost("notion/read_page")]
-    public Task<IActionResult> NotionReadPage([FromBody] NotionReadPageRequest body, CancellationToken ct) =>
-        ExecuteAsync("notion", async creds => await _notion.ReadPageAsync(body, creds, ct), ct);
-
-    [HttpPost("github/list_repos")]
-    public Task<IActionResult> GithubListRepos([FromBody] GithubListReposRequest body, CancellationToken ct) =>
-        ExecuteAsync("github", async creds => await _github.ListReposAsync(body, creds, ct), ct);
-
-    [HttpPost("github/list_issues")]
-    public Task<IActionResult> GithubListIssues([FromBody] GithubRepoRequest body, CancellationToken ct) =>
-        ExecuteAsync("github", async creds => await _github.ListIssuesAsync(body, creds, ct), ct);
-
-    [HttpPost("github/list_prs")]
-    public Task<IActionResult> GithubListPrs([FromBody] GithubRepoRequest body, CancellationToken ct) =>
-        ExecuteAsync("github", async creds => await _github.ListPrsAsync(body, creds, ct), ct);
-
-    [HttpPost("google/drive_search")]
-    public Task<IActionResult> GoogleDriveSearch([FromBody] GoogleDriveSearchRequest body, CancellationToken ct) =>
-        ExecuteAsync("google", async creds => await _google.DriveSearchAsync(body, creds, ct), ct);
-
-    [HttpPost("google/calendar_upcoming")]
-    public Task<IActionResult> GoogleCalendarUpcoming([FromBody] GoogleCalendarUpcomingRequest body, CancellationToken ct) =>
-        ExecuteAsync("google", async creds => await _google.CalendarUpcomingAsync(body, creds, ct), ct);
-
-    private async Task<IActionResult> ExecuteAsync(
-        string skillName,
-        Func<IReadOnlyDictionary<string, string>, Task<object>> handler,
+    [HttpPost("{skill}/{action}")]
+    public async Task<IActionResult> ExecuteAction(
+        string skill,
+        string action,
+        [FromBody] JsonElement body,
         CancellationToken ct)
     {
-        var creds = await _service.GetDecryptedCredentialsAsync(skillName, ct);
+        var creds = await _service.GetDecryptedCredentialsAsync(skill, ct);
         if (creds is null)
         {
-            return Conflict(new { error = $"Skill '{skillName}' is not installed or not configured." });
+            return Conflict(new { error = $"Skill '{skill}' is not installed or not configured." });
         }
         try
         {
-            var result = await handler(creds);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return UnprocessableEntity(new { error = ex.Message });
+            var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText())
+                ?? new Dictionary<string, object>();
+            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct);
+            if (result.Success)
+            {
+                return Ok(result.Result);
+            }
+            return UnprocessableEntity(new { error = result.Error });
         }
         catch (HttpRequestException ex)
         {

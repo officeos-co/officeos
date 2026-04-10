@@ -25,10 +25,10 @@ public sealed record SkillManifest(
     string? Doc = null);
 
 /// <summary>
-/// Static in-code registry of first-party skills. Mirror of v1's
-/// <c>app.skills.__init__</c> + the three <c>{notion,github,google}/__init__.py</c>
-/// MANIFEST declarations. Adding a skill here requires a matching
-/// implementation class and controller action wiring — no DB seed.
+/// Static in-code registry of first-party skills. Credential metadata lives here
+/// because the dashboard needs it for the credentials form. LLM tool schemas are
+/// kept in sync with the skill-runtime manifests — the runtime is authoritative
+/// but this provides a fallback for the capabilities endpoint.
 /// </summary>
 public static class SkillManifests
 {
@@ -42,14 +42,14 @@ public static class SkillManifests
                 Name: "notion",
                 Title: "Notion",
                 Description: "Search and read Notion pages and databases via the Notion REST API.",
-                Emoji: "📝",
+                Emoji: "\ud83d\udcdd",
                 CredentialFields: new[]
                 {
                     new CredentialField(
                         Key: "api_key",
                         Label: "Internal Integration Token",
                         Kind: "password",
-                        Placeholder: "secret_…",
+                        Placeholder: "secret_\u2026",
                         Help: "Create an Internal Integration at https://www.notion.so/my-integrations and share the pages you want the agent to access with it."),
                 },
                 LlmTools: new[]
@@ -85,14 +85,14 @@ public static class SkillManifests
                 Name: "github",
                 Title: "GitHub",
                 Description: "List repositories, issues, and pull requests via the GitHub REST API.",
-                Emoji: "🐙",
+                Emoji: "\ud83d\udc19",
                 CredentialFields: new[]
                 {
                     new CredentialField(
                         Key: "token",
                         Label: "Personal Access Token",
                         Kind: "password",
-                        Placeholder: "github_pat_… or ghp_…",
+                        Placeholder: "github_pat_\u2026 or ghp_\u2026",
                         Help: "Fine-grained PAT recommended. Needs read access to the repos/issues/PRs you want the agent to see. Create one at https://github.com/settings/tokens."),
                 },
                 LlmTools: new[]
@@ -143,7 +143,7 @@ public static class SkillManifests
                 Name: "google",
                 Title: "Google Workspace",
                 Description: "Search Google Drive and list upcoming Calendar events via a service-account key.",
-                Emoji: "🔎",
+                Emoji: "\ud83d\udd0e",
                 CredentialFields: new[]
                 {
                     new CredentialField(
@@ -192,22 +192,10 @@ public static class SkillManifests
     public static SkillManifest? For(string name) =>
         All.TryGetValue(name, out var m) ? m : null;
 
-    private static readonly string DocsDirectory = System.IO.Path.Combine(
-        AppContext.BaseDirectory, "Entities", "Skills", "Docs");
-
     /// <summary>
-    /// Returns manifests with <see cref="SkillManifest.Doc"/> populated
-    /// from the corresponding <c>Entities/Skills/Docs/{name}.md</c> file.
-    /// Manifests without a doc file keep <c>Doc = null</c>.
+    /// Alias for <see cref="All"/> — docs now live in skill READMEs
+    /// within the skill-runtime. Kept for backward compatibility
+    /// with code that references AllWithDocs.
     /// </summary>
-    public static IReadOnlyDictionary<string, SkillManifest> AllWithDocs { get; } =
-        All.ToDictionary(
-            kv => kv.Key,
-            kv =>
-            {
-                var path = System.IO.Path.Combine(DocsDirectory, $"{kv.Value.Name}.md");
-                var doc = File.Exists(path) ? File.ReadAllText(path) : null;
-                return kv.Value with { Doc = doc };
-            },
-            StringComparer.OrdinalIgnoreCase);
+    public static IReadOnlyDictionary<string, SkillManifest> AllWithDocs => All;
 }

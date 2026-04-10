@@ -1,6 +1,5 @@
 using k8s;
 using Microsoft.AspNetCore.DataProtection;
-using EnterpriseAgentOs.Api.Entities.Skills.Implementations;
 
 const string FrontendCorsPolicy = "v2-frontend";
 
@@ -73,20 +72,16 @@ builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
 builder.Services.AddScoped<IProviderService, ProviderService>();
 builder.Services.AddScoped<ISkillCredentialRepository, SkillCredentialRepository>();
 builder.Services.AddScoped<ISkillService, SkillService>();
-builder.Services.AddHttpClient<NotionSkill>();
-builder.Services.AddHttpClient<GithubSkill>();
-builder.Services.AddHttpClient<GoogleSkill>();
+
+var skillRuntimeConfig = new SkillRuntimeConfig
+{
+    Url = ValueManager.GetValue<string>("SkillRuntimeUrl"),
+};
+builder.Services.AddSingleton(skillRuntimeConfig);
+builder.Services.AddHttpClient<SkillRuntimeClient>();
+
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
-
-builder.Services
-    .AddGraphQLServer()
-    .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
-    .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.NotionQueries>()
-    .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.GithubQueries>()
-    .AddTypeExtension<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.GoogleQueries>()
-    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>()
-    .DisableIntrospection(false);
 
 builder.Services.AddCors(options =>
 {
@@ -122,7 +117,6 @@ app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 app.MapAgentProxyEndpoints();
-app.MapGraphQL("/api/graphql");
 app.MapControllers();
 
 app.Run();

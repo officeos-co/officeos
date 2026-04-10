@@ -1,4 +1,4 @@
-using EnterpriseAgentOs.Api.Entities.Skills.Implementations;
+using System.Text.Json;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -8,20 +8,14 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 public sealed class AgentSkillsController : ControllerBase
 {
     private readonly ISkillService _service;
-    private readonly NotionSkill _notion;
-    private readonly GithubSkill _github;
-    private readonly GoogleSkill _google;
+    private readonly SkillRuntimeClient _runtime;
 
     public AgentSkillsController(
         ISkillService service,
-        NotionSkill notion,
-        GithubSkill github,
-        GoogleSkill google)
+        SkillRuntimeClient runtime)
     {
         _service = service;
-        _notion = notion;
-        _github = github;
-        _google = google;
+        _runtime = runtime;
     }
 
     [HttpGet("capabilities")]
@@ -31,52 +25,63 @@ public sealed class AgentSkillsController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPost("skills/notion/search")]
-    public Task<IActionResult> NotionSearch([FromBody] NotionSearchRequest body, CancellationToken ct) =>
-        ExecuteAsync("notion", async creds => await _notion.SearchAsync(body, creds, ct), ct);
-
-    [HttpPost("skills/notion/read_page")]
-    public Task<IActionResult> NotionReadPage([FromBody] NotionReadPageRequest body, CancellationToken ct) =>
-        ExecuteAsync("notion", async creds => await _notion.ReadPageAsync(body, creds, ct), ct);
-
-    [HttpPost("skills/github/list_repos")]
-    public Task<IActionResult> GithubListRepos([FromBody] GithubListReposRequest body, CancellationToken ct) =>
-        ExecuteAsync("github", async creds => await _github.ListReposAsync(body, creds, ct), ct);
-
-    [HttpPost("skills/github/list_issues")]
-    public Task<IActionResult> GithubListIssues([FromBody] GithubRepoRequest body, CancellationToken ct) =>
-        ExecuteAsync("github", async creds => await _github.ListIssuesAsync(body, creds, ct), ct);
-
-    [HttpPost("skills/github/list_prs")]
-    public Task<IActionResult> GithubListPrs([FromBody] GithubRepoRequest body, CancellationToken ct) =>
-        ExecuteAsync("github", async creds => await _github.ListPrsAsync(body, creds, ct), ct);
-
-    [HttpPost("skills/google/drive_search")]
-    public Task<IActionResult> GoogleDriveSearch([FromBody] GoogleDriveSearchRequest body, CancellationToken ct) =>
-        ExecuteAsync("google", async creds => await _google.DriveSearchAsync(body, creds, ct), ct);
-
-    [HttpPost("skills/google/calendar_upcoming")]
-    public Task<IActionResult> GoogleCalendarUpcoming([FromBody] GoogleCalendarUpcomingRequest body, CancellationToken ct) =>
-        ExecuteAsync("google", async creds => await _google.CalendarUpcomingAsync(body, creds, ct), ct);
-
-    private async Task<IActionResult> ExecuteAsync(
-        string skillName,
-        Func<IReadOnlyDictionary<string, string>, Task<object>> handler,
-        CancellationToken ct)
+    /// <summary>
+    /// Generic skill execution endpoint — dispatches to skill-runtime.
+    /// Used by agent pods via skill_exec tool.
+    /// </summary>
+    [HttpPost("skill-exec")]
+    public async Task<IActionResult> SkillExec([FromBody] SkillExecRequest body, CancellationToken ct)
     {
-        var creds = await _service.GetDecryptedCredentialsAsync(skillName, ct);
+        var creds = await _service.GetDecryptedCredentialsAsync(body.Skill, ct);
         if (creds is null)
         {
-            return Conflict(new { error = $"Skill '{skillName}' is not installed or not configured." });
+            return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured." });
         }
         try
         {
-            var result = await handler(creds);
-            return Ok(result);
+            var result = await _runtime.ExecuteAsync(
+                body.Skill,
+                body.Action,
+                body.Params ?? new Dictionary<string, object>(),
+                creds,
+                ct);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            return UnprocessableEntity(result);
         }
-        catch (InvalidOperationException ex)
+        catch (HttpRequestException ex)
         {
-            return UnprocessableEntity(new { error = ex.Message });
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+        }
+    }
+
+    // --- Legacy per-action routes (dispatch through runtime) ---
+
+    [HttpPost("skills/{skill}/{action}")]
+    public async Task<IActionResult> ExecuteAction(
+        string skill,
+        string action,
+        [FromBody] JsonElement body,
+        CancellationToken ct)
+    {
+        var creds = await _service.GetDecryptedCredentialsAsync(skill, ct);
+        if (creds is null)
+        {
+            return Conflict(new { error = $"Skill '{skill}' is not installed or not configured." });
+        }
+        try
+        {
+            // Convert JsonElement body to dictionary for the runtime
+            var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText())
+                ?? new Dictionary<string, object>();
+            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct);
+            if (result.Success)
+            {
+                return Ok(result.Result);
+            }
+            return UnprocessableEntity(new { error = result.Error });
         }
         catch (HttpRequestException ex)
         {
@@ -84,3 +89,8 @@ public sealed class AgentSkillsController : ControllerBase
         }
     }
 }
+
+public sealed record SkillExecRequest(
+    string Skill,
+    string Action,
+    Dictionary<string, object>? Params = null);
