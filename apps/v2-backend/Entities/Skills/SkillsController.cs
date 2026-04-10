@@ -33,9 +33,12 @@ public sealed class SkillsController : ControllerBase
     }
 
     [HttpGet("{name}/doc")]
-    public ActionResult GetDoc(string name)
+    public async Task<ActionResult> GetDoc(string name, CancellationToken ct)
     {
-        if (!SkillManifests.AllWithDocs.TryGetValue(name, out var manifest) || manifest.Doc is null)
+        var manifests = await _runtime.GetManifestsAsync(ct);
+        var manifest = manifests.FirstOrDefault(m =>
+            string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (manifest?.Doc is null)
         {
             return NotFound();
         }
