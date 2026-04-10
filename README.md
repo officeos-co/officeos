@@ -92,12 +92,13 @@ kubectl apply -f k8s/frontend.yaml
 
 ## Documentation
 
-| Doc                                        | Description                                         |
-| ------------------------------------------ | --------------------------------------------------- |
-| [Architecture](docs/architecture.md)       | System design, data flows, component boundaries     |
-| [Skill System](docs/skills.md)             | How skills work, adding new skills, GraphQL gateway |
-| [Agent Lifecycle](docs/agent-lifecycle.md) | Pod provisioning, vault hydration, status sync      |
-| [Zeroclaw Runtime](docs/zeroclaw-runtime.md) | Rust agent internals: boot, turn loop, tools    |
+| Doc | Description |
+|-----|-------------|
+| [Agent Lifecycle](docs/agent-lifecycle.md) | Pod provisioning, vault hydration, status sync |
+| [Skill System](docs/skills.md) | How skills work, adding new skills, GraphQL gateway |
+| [LLM Proxy](docs/llm-proxy.md) | How every LLM call flows through the backend |
+| [Vault System](docs/vault-system.md) | CouchDB vaults, personality files, knowledge graph philosophy |
+| [Zeroclaw Runtime](docs/zeroclaw-runtime.md) | Rust agent internals: boot, turn loop, tools |
 
 ## Tech stack
 
