@@ -33,15 +33,15 @@ Entities/
 ## Key rules
 
 - **`ValueManager` only in `Program.cs`.** It reads raw config. All other code receives typed config classes (e.g. `KubernetesConfig`, `CouchDbConfig`) via constructor injection. Never import `ValueManager` outside `Program.cs`.
-- **Skills are external, not C#.** Skills are TypeScript modules in `packages/skills/`, executed by the skill-runtime Node.js service. The backend has no hardcoded skill logic — `SkillTypeModule` generates the GraphQL schema dynamically from runtime manifests. `SkillManifests.cs` stores only credential metadata for the dashboard. The DB stores install state + encrypted credentials.
+- **Skills are external, not C#.** Skills are TypeScript modules in `packages/skills/`, executed by the skill-runtime Node.js service. The backend has no hardcoded skill logic — `SkillTypeModule` generates the GraphQL schema dynamically from runtime manifests. `SkillManifests.cs` stores only credential UI metadata (label, kind, placeholder, help) for the dashboard form. Title, emoji, description, tools, and doc all come from the runtime. The DB stores install state + encrypted credentials.
 - **Agent auth via UUID.** Agent pods authenticate with `Authorization: Bearer <agent-uuid>`. The `AgentTokenAuthFilter` and GraphQL `AgentAuthInterceptor` validate against the Agents table.
 - **Status is live.** `AgentService.GetAsync` and `ListAsync` call `IAgentDeployer.GetStatusAsync` inline to sync K8s pod status into the DB.
 
 ## Adding a new skill
 
-1. Create `packages/skills/{name}/skill.ts` using `defineSkill()` from `@harro/skill-sdk`. Include `returns` schema on each action.
+1. Create `packages/skills/{name}/skill.ts` using `defineSkill()` from `@harro/skill-sdk`. Include `title`, `emoji`, `description`, `doc`, `returns` schema on each action.
 2. Create `packages/skills/{name}/package.json` with `@harro/skill-sdk` dependency.
-3. Add credential metadata to `SkillManifests.cs` (name, title, emoji, credential fields for the dashboard form).
+3. Add credential UI metadata to `SkillManifests.cs` (key, label, kind, placeholder, help for the dashboard form).
 4. Rebuild skill-runtime (`cd packages/skill-runtime && npm run build`). The `SkillTypeModule` auto-generates GraphQL types from the runtime manifest — no C# types or resolvers needed.
 5. No DB migration needed.
 

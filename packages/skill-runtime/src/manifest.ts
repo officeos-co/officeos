@@ -1,9 +1,20 @@
 import type { SkillDefinition } from "@harro/skill-sdk";
 
+export interface CredentialFieldManifest {
+  key: string;
+  label: string;
+  kind: "password" | "text" | "textarea";
+  required: boolean;
+  placeholder?: string;
+  help?: string;
+}
+
 export interface SkillManifest {
   name: string;
+  title: string;
+  emoji: string;
   description: string;
-  doc?: string;
+  doc: string;
   actions: Record<
     string,
     {
@@ -12,7 +23,7 @@ export interface SkillManifest {
       returns?: Record<string, unknown>;
     }
   >;
-  credentials: Record<string, { description: string }>;
+  credentialFields: CredentialFieldManifest[];
 }
 
 /**
@@ -84,18 +95,25 @@ export function extractManifest(def: SkillDefinition): SkillManifest {
     };
   }
 
-  const credentials: SkillManifest["credentials"] = {};
-  for (const [key, schema] of Object.entries(def.credentials)) {
-    credentials[key] = {
-      description: (schema as any).description ?? key,
-    };
+  const credentialFields: CredentialFieldManifest[] = [];
+  for (const [key, field] of Object.entries(def.credentials)) {
+    credentialFields.push({
+      key,
+      label: field.label,
+      kind: field.kind,
+      required: field.required !== false,
+      placeholder: field.placeholder,
+      help: field.help,
+    });
   }
 
   return {
     name: def.name,
+    title: def.title,
+    emoji: def.emoji,
     doc: def.doc,
     description: def.description,
     actions,
-    credentials,
+    credentialFields,
   };
 }

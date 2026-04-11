@@ -33,12 +33,32 @@ export interface ActionDefinition<T extends z.ZodType = z.ZodType> {
 }
 
 /**
+ * Credential field definition — describes a single credential the skill needs.
+ */
+export interface CredentialFieldDefinition {
+  /** Human-readable label for the dashboard form (e.g. "Personal Access Token"). */
+  label: string;
+  /** Input kind: "password" for secrets, "text" for short strings, "textarea" for multi-line. */
+  kind: "password" | "text" | "textarea";
+  /** Whether this field is required. Defaults to true. */
+  required?: boolean;
+  /** Placeholder text for the input field. */
+  placeholder?: string;
+  /** Help text shown below the input. */
+  help?: string;
+}
+
+/**
  * A complete skill definition — the unit of packaging and deployment.
  */
 export interface SkillDefinition {
   /** Unique skill identifier (lowercase, e.g. "notion", "github"). */
   name: string;
   /** Human-readable title (e.g. "Notion", "GitHub"). */
+  title: string;
+  /** Emoji icon for dashboard display. */
+  emoji: string;
+  /** Short description of the skill's purpose. */
   description: string;
   /**
    * Markdown documentation for the skill's CLI interface.
@@ -46,8 +66,8 @@ export interface SkillDefinition {
    * Must include workflow guidance, examples, and limitations.
    */
   doc: string;
-  /** Credential schema — keys are credential field names, values are Zod schemas for validation. */
-  credentials: Record<string, z.ZodType>;
+  /** Credential fields — keys are credential names, values describe the field and its UI. */
+  credentials: Record<string, CredentialFieldDefinition>;
   /** Map of action name → action definition. */
   actions: Record<string, ActionDefinition>;
 }

@@ -92,33 +92,3 @@ public sealed class SkillRuntimeClient
 
     private static string Trim(string s, int max) => s.Length <= max ? s : s[..max];
 }
-
-/// <summary>Result from POST /execute on the skill runtime.</summary>
-public sealed class SkillExecutionResult
-{
-    public bool Success { get; set; }
-    public JsonElement? Result { get; set; }
-    public string? Error { get; set; }
-}
-
-/// <summary>Manifest returned by GET /manifests from the skill runtime.</summary>
-public sealed class RuntimeManifest
-{
-    public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string? Doc { get; set; }
-    public Dictionary<string, RuntimeActionManifest> Actions { get; set; } = new();
-    public Dictionary<string, RuntimeCredentialManifest> Credentials { get; set; } = new();
-}
-
-public sealed class RuntimeActionManifest
-{
-    public string Description { get; set; } = "";
-    public JsonElement? Params { get; set; }
-    public JsonElement? Returns { get; set; }
-}
-
-public sealed class RuntimeCredentialManifest
-{
-    public string Description { get; set; } = "";
-}

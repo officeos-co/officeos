@@ -88,18 +88,26 @@ import doc from "./SKILL.md";
 
 export default defineSkill({
   name: "google",
+  title: "Google Workspace",
+  emoji: "\ud83d\udd0e",
   description:
     "Search Google Drive and list upcoming Calendar events via a service-account key.",
   doc,
 
   credentials: {
-    service_account_json: z
-      .string()
-      .describe("Service Account JSON key file contents"),
-    calendar_id: z
-      .string()
-      .optional()
-      .describe("Calendar ID (defaults to 'primary')"),
+    service_account_json: {
+      label: "Service Account JSON",
+      kind: "textarea",
+      placeholder: '{ "type": "service_account", "project_id": "...", "private_key": "-----BEGIN PRIVATE KEY-----..." }',
+      help: "Paste the entire contents of a service-account key file. Enable the Drive and Calendar APIs in your GCP project and share the relevant Drive folders / Calendar with the service-account email.",
+    },
+    calendar_id: {
+      label: "Calendar ID (optional)",
+      kind: "text",
+      required: false,
+      placeholder: "primary",
+      help: "Defaults to 'primary'. Use the calendar's email address for shared calendars.",
+    },
   },
 
   actions: {

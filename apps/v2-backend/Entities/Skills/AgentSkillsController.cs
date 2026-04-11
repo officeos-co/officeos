@@ -89,8 +89,3 @@ public sealed class AgentSkillsController : ControllerBase
         }
     }
 }
-
-public sealed record SkillExecRequest(
-    string Skill,
-    string Action,
-    Dictionary<string, object>? Params = null);

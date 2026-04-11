@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { SkillDefinition, ActionDefinition, SkillContext } from "./types.js";
+import type { SkillDefinition, ActionDefinition, SkillContext, CredentialFieldDefinition } from "./types.js";
 
 export { z };
-export type { SkillDefinition, ActionDefinition, SkillContext };
+export type { SkillDefinition, ActionDefinition, SkillContext, CredentialFieldDefinition };
 export { createContext } from "./context.js";
 
 /**
@@ -14,8 +14,13 @@ export { createContext } from "./context.js";
  *
  * export default defineSkill({
  *   name: 'notion',
+ *   title: 'Notion',
+ *   emoji: '📝',
  *   description: 'Search and read Notion pages.',
- *   credentials: { api_key: z.string() },
+ *   doc,
+ *   credentials: {
+ *     api_key: { label: 'API Key', kind: 'password' },
+ *   },
  *   actions: {
  *     search: {
  *       description: 'Search pages',

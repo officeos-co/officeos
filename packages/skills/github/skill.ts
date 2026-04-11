@@ -15,14 +15,19 @@ import doc from "./SKILL.md";
 
 export default defineSkill({
   name: "github",
+  title: "GitHub",
+  emoji: "\ud83d\udc19",
   description:
     "List repositories, issues, and pull requests via the GitHub REST API.",
   doc,
 
   credentials: {
-    token: z
-      .string()
-      .describe("Personal Access Token (github_pat_... or ghp_...)"),
+    token: {
+      label: "Personal Access Token",
+      kind: "password",
+      placeholder: "github_pat_\u2026 or ghp_\u2026",
+      help: "Fine-grained PAT recommended. Needs read access to the repos/issues/PRs you want the agent to see. Create one at https://github.com/settings/tokens.",
+    },
   },
 
   actions: {

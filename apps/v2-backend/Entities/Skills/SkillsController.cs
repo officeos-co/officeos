@@ -38,7 +38,7 @@ public sealed class SkillsController : ControllerBase
         var manifests = await _runtime.GetManifestsAsync(ct);
         var manifest = manifests.FirstOrDefault(m =>
             string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
-        if (manifest?.Doc is null)
+        if (manifest is null)
         {
             return NotFound();
         }

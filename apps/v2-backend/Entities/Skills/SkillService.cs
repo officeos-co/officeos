@@ -22,7 +22,9 @@ public sealed class SkillService : ISkillService
     {
         var rows = (await _repository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
-        return SkillManifests.All.Values
+        var runtimeManifests = await _runtime.GetManifestsAsync(ct);
+
+        return runtimeManifests
             .Select(m =>
             {
                 rows.TryGetValue(m.Name, out var row);
@@ -33,7 +35,7 @@ public sealed class SkillService : ISkillService
 
     public async Task<SkillDto?> GetAsync(string name, CancellationToken ct = default)
     {
-        var manifest = SkillManifests.For(name);
+        var manifest = await GetRuntimeManifestAsync(name, ct);
         if (manifest is null) return null;
         var row = await _repository.GetByNameAsync(manifest.Name, ct);
         return ToDto(manifest, row);
@@ -41,7 +43,7 @@ public sealed class SkillService : ISkillService
 
     public async Task<SkillDto?> InstallAsync(string name, CancellationToken ct = default)
     {
-        var manifest = SkillManifests.For(name);
+        var manifest = await GetRuntimeManifestAsync(name, ct);
         if (manifest is null) return null;
         var row = await _repository.UpsertAsync(manifest.Name, enabled: true, encryptedCredentials: null, ct);
         return ToDto(manifest, row);
@@ -49,7 +51,7 @@ public sealed class SkillService : ISkillService
 
     public async Task<SkillDto?> UninstallAsync(string name, CancellationToken ct = default)
     {
-        var manifest = SkillManifests.For(name);
+        var manifest = await GetRuntimeManifestAsync(name, ct);
         if (manifest is null) return null;
         var row = await _repository.UpsertAsync(manifest.Name, enabled: false, encryptedCredentials: null, ct);
         return ToDto(manifest, row);
@@ -60,11 +62,13 @@ public sealed class SkillService : ISkillService
         IReadOnlyDictionary<string, string> credentials,
         CancellationToken ct = default)
     {
-        var manifest = SkillManifests.For(name);
+        var manifest = await GetRuntimeManifestAsync(name, ct);
         if (manifest is null) return null;
 
+        var credFields = ToCredentialFields(manifest);
+
         // Validate required fields.
-        var missing = manifest.CredentialFields
+        var missing = credFields
             .Where(f => f.Required && string.IsNullOrWhiteSpace(GetField(credentials, f.Key)))
             .Select(f => f.Key)
             .ToList();
@@ -75,7 +79,7 @@ public sealed class SkillService : ISkillService
         }
 
         // Only keep fields the manifest knows about.
-        var known = manifest.CredentialFields.Select(f => f.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var known = credFields.Select(f => f.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var filtered = credentials
             .Where(kv => known.Contains(kv.Key))
             .ToDictionary(kv => kv.Key, kv => kv.Value);
@@ -91,7 +95,7 @@ public sealed class SkillService : ISkillService
         string name,
         CancellationToken ct = default)
     {
-        var manifest = SkillManifests.For(name);
+        var manifest = await GetRuntimeManifestAsync(name, ct);
         if (manifest is null) return null;
         var row = await _repository.GetByNameAsync(manifest.Name, ct);
         if (row?.Enabled != true || string.IsNullOrEmpty(row.EncryptedCredentials))
@@ -110,49 +114,72 @@ public sealed class SkillService : ISkillService
         var caps = new List<CapabilityDto>();
         var docs = new List<SkillDocDto>();
 
-        // Fetch docs from skill-runtime manifests
         var runtimeManifests = await _runtime.GetManifestsAsync(ct);
-        var runtimeDocs = runtimeManifests
-            .Where(m => m.Doc is not null)
-            .ToDictionary(m => m.Name, m => m.Doc!, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var manifest in SkillManifests.All.Values)
+        foreach (var manifest in runtimeManifests)
         {
             if (!rows.TryGetValue(manifest.Name, out var row)) continue;
             if (!row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials)) continue;
 
-            foreach (var tool in manifest.LlmTools)
+            foreach (var (actionName, action) in manifest.Actions)
             {
-                var dotIndex = tool.Name.IndexOf('.');
-                var action = dotIndex > 0 ? tool.Name[(dotIndex + 1)..] : tool.Name;
+                var toolName = $"{manifest.Name}.{actionName}";
+                var parameters = action.Params is JsonElement p
+                    ? p
+                    : JsonDocument.Parse("{}").RootElement;
                 caps.Add(new CapabilityDto(
                     Skill: manifest.Name,
-                    Name: tool.Name,
-                    Description: tool.Description,
-                    Parameters: tool.Parameters,
-                    Route: $"/api/agents/me/skills/{manifest.Name}/{action}"));
+                    Name: toolName,
+                    Description: action.Description,
+                    Parameters: parameters,
+                    Route: $"/api/agents/me/skills/{manifest.Name}/{actionName}"));
             }
 
-            if (runtimeDocs.TryGetValue(manifest.Name, out var doc))
-            {
-                docs.Add(new SkillDocDto(manifest.Name, doc));
-            }
+            docs.Add(new SkillDocDto(manifest.Name, manifest.Doc));
         }
         return new CapabilitiesResponse(caps, docs);
     }
 
-    private static SkillDto ToDto(SkillManifest manifest, SkillCredentialRecord? row) =>
-        new(
+    private async Task<RuntimeManifest?> GetRuntimeManifestAsync(string name, CancellationToken ct)
+    {
+        var manifests = await _runtime.GetManifestsAsync(ct);
+        return manifests.FirstOrDefault(m =>
+            string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static SkillDto ToDto(RuntimeManifest manifest, SkillCredentialRecord? row)
+    {
+        var tools = manifest.Actions
+            .Select(kv =>
+            {
+                var parameters = kv.Value.Params is JsonElement p
+                    ? p
+                    : JsonDocument.Parse("{}").RootElement;
+                return new LlmToolDto($"{manifest.Name}.{kv.Key}", kv.Value.Description, parameters);
+            })
+            .ToList();
+
+        return new SkillDto(
             Name: manifest.Name,
             Title: manifest.Title,
             Description: manifest.Description,
             Emoji: manifest.Emoji,
             Installed: row?.Enabled == true,
             Configured: !string.IsNullOrEmpty(row?.EncryptedCredentials),
-            CredentialFields: manifest.CredentialFields,
-            LlmTools: manifest.LlmTools
-                .Select(t => new LlmToolDto(t.Name, t.Description, t.Parameters))
-                .ToList());
+            CredentialFields: ToCredentialFields(manifest),
+            LlmTools: tools);
+    }
+
+    private static IReadOnlyList<CredentialField> ToCredentialFields(RuntimeManifest manifest) =>
+        manifest.CredentialFields
+            .Select(f => new CredentialField(
+                Key: f.Key,
+                Label: f.Label,
+                Kind: f.Kind,
+                Required: f.Required,
+                Placeholder: f.Placeholder,
+                Help: f.Help))
+            .ToList();
 
     private static string? GetField(IReadOnlyDictionary<string, string> creds, string key)
     {

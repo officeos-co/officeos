@@ -29,12 +29,19 @@ const BLOCK_TYPES = [
 
 export default defineSkill({
   name: "notion",
+  title: "Notion",
+  emoji: "\ud83d\udcdd",
   description:
     "Search, read, create, and manage Notion pages, blocks, and to-do items.",
   doc,
 
   credentials: {
-    api_key: z.string().describe("Internal Integration Token (secret_...)"),
+    api_key: {
+      label: "Internal Integration Token",
+      kind: "password",
+      placeholder: "secret_\u2026",
+      help: "Create an Internal Integration at https://www.notion.so/my-integrations and share the pages you want the agent to access with it.",
+    },
   },
 
   actions: {
