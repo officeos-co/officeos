@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Puzzle, RefreshCw } from "lucide-react";
 import type { Agent } from "@/hooks/useAgents";
 import { apiFetch } from "@/hooks/useApi";
@@ -30,6 +31,7 @@ function skillStatus(s: Skill): keyof typeof statusStyle {
 export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
   const [skills, setSkills] = useState<Skill[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const load = async () => {
     setError(null);
@@ -84,9 +86,11 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
           {skills.map((s) => {
             const status = skillStatus(s);
             return (
-              <div
+              <button
                 key={s.name}
-                className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4"
+                type="button"
+                onClick={() => router.push(`/skills/${s.name}`)}
+                className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4 text-left transition-colors hover:bg-black/30"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -117,7 +121,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
                     {status}
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
