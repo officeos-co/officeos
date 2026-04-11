@@ -48,11 +48,7 @@ function LoginContent() {
           variant="outline"
           size="lg"
           onClick={() => {
-            // Go directly to the backend — cookies must be set by the backend origin
-            const backendUrl = window.location.hostname === "localhost"
-              ? ""
-              : "https://api.harrokrog.com";
-            window.location.href = `${backendUrl}/api/auth/google`;
+            window.location.href = "/api/auth/google";
           }}
           className="gap-3"
         >
