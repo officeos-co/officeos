@@ -51,8 +51,8 @@ export function UploadSkillOverlay({ open, onClose }: Props) {
           <p className="text-sm text-muted-foreground">
             Skill <strong className="text-foreground">{result.name}</strong> — build status:{" "}
             <span className={
-              result.buildStatus === "ready" ? "text-emerald-400" :
-              result.buildStatus === "failed" ? "text-destructive" : "text-amber-400"
+              result.buildStatus === "ready" ? "text-emerald-600" :
+              result.buildStatus === "failed" ? "text-destructive" : "text-amber-600"
             }>
               {result.buildStatus}
             </span>

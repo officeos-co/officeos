@@ -74,7 +74,7 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
 
   return (
     <div className="mx-8 my-6">
-      <div className="mb-3 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-200">
+      <div className="mb-3 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-700">
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
         <div>
           Editing config.toml may require a pod restart to take effect. Changes are written
@@ -85,7 +85,7 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm text-muted-foreground">config.toml</div>
         <div className="flex gap-2">
-          {saved && <span className="text-xs text-emerald-300">Saved.</span>}
+          {saved && <span className="text-xs text-emerald-700">Saved.</span>}
           <button
             type="button"
             onClick={load}

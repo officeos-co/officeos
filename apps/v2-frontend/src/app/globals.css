@@ -5,60 +5,60 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  /* Background layers */
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Background — clean white */
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.15 0.01 260);
 
-  /* Cards / panels */
+  /* Cards / panels — pure white, slight shadow instead of bg diff */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.15 0.01 260);
 
   /* Popovers / dropdowns */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.15 0.01 260);
 
-  /* Primary — blue accent */
-  --primary: oklch(0.55 0.2 260);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Primary — indigo accent */
+  --primary: oklch(0.5 0.18 265);
+  --primary-foreground: oklch(0.99 0 0);
 
-  /* Secondary — subtle surface */
-  --secondary: oklch(0.96 0.004 260);
-  --secondary-foreground: oklch(0.205 0 0);
+  /* Secondary — neutral surface */
+  --secondary: oklch(0.965 0.002 260);
+  --secondary-foreground: oklch(0.25 0.01 260);
 
   /* Muted — de-emphasized */
-  --muted: oklch(0.96 0.004 260);
-  --muted-foreground: oklch(0.45 0 0);
+  --muted: oklch(0.965 0.002 260);
+  --muted-foreground: oklch(0.48 0.01 260);
 
-  /* Accent — light blue tint */
-  --accent: oklch(0.96 0.008 260);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Accent — very subtle blue tint */
+  --accent: oklch(0.96 0.01 260);
+  --accent-foreground: oklch(0.25 0.01 260);
 
   /* Destructive */
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.55 0.22 27);
 
-  /* Borders */
-  --border: oklch(0 0 0 / 10%);
-  --input: oklch(0 0 0 / 12%);
-  --ring: oklch(0.55 0.2 260);
+  /* Borders — crisp, light */
+  --border: oklch(0.91 0.005 260);
+  --input: oklch(0.91 0.005 260);
+  --ring: oklch(0.5 0.18 265);
 
   /* Charts */
-  --chart-1: oklch(0.55 0.2 260);
-  --chart-2: oklch(0.5 0.15 200);
-  --chart-3: oklch(0.55 0.1 150);
+  --chart-1: oklch(0.5 0.18 265);
+  --chart-2: oklch(0.55 0.14 200);
+  --chart-3: oklch(0.6 0.12 150);
   --chart-4: oklch(0.5 0.08 100);
   --chart-5: oklch(0.45 0.05 50);
 
-  /* Sidebar — slightly off-white */
-  --sidebar: oklch(0.97 0.004 260);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.55 0.2 260);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0.01 260);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0.2 260);
+  /* Sidebar — warm off-white */
+  --sidebar: oklch(0.975 0.003 80);
+  --sidebar-foreground: oklch(0.15 0.01 260);
+  --sidebar-primary: oklch(0.5 0.18 265);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.008 265);
+  --sidebar-accent-foreground: oklch(0.15 0.01 260);
+  --sidebar-border: oklch(0.91 0.005 260);
+  --sidebar-ring: oklch(0.5 0.18 265);
 }
 
 /* Backward compat: map old --eaos-* vars to new system */

@@ -25,19 +25,19 @@ function formatTs(ts?: string): string {
 function typeColor(type: string): string {
   switch (type.toLowerCase()) {
     case "error":
-      return "border-red-500/40 bg-destructive/5 text-destructive";
+      return "border-red-200 bg-destructive/5 text-destructive";
     case "warn":
     case "warning":
-      return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
+      return "border-yellow-200 bg-yellow-50 text-yellow-700";
     case "tool_call":
     case "tool_result":
     case "tool_call_start":
-      return "border-purple-500/40 bg-purple-500/10 text-purple-300";
+      return "border-purple-200 bg-purple-50 text-purple-700";
     case "llm_request":
-      return "border-sky-500/40 bg-sky-500/10 text-sky-300";
+      return "border-sky-200 bg-sky-50 text-sky-700";
     case "agent_start":
     case "agent_end":
-      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
     default:
       return "border-border bg-muted text-muted-foreground";
   }
@@ -201,9 +201,9 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
           <span
             className={
               connected
-                ? "rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-300"
+                ? "rounded-full border border-emerald-200 px-2 py-0.5 text-emerald-700"
                 : reconnecting
-                  ? "rounded-full border border-yellow-500/40 px-2 py-0.5 text-yellow-300"
+                  ? "rounded-full border border-yellow-200 px-2 py-0.5 text-yellow-700"
                   : "rounded-full border border-border px-2 py-0.5 text-muted-foreground"
             }
           >

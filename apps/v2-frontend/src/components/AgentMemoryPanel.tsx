@@ -139,7 +139,7 @@ export function AgentMemoryPanel({ agent }: Props) {
 
   return (
     <div className="mx-8 my-6">
-      <div className="mb-3 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-200">
+      <div className="mb-3 flex items-start gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-700">
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
         <div>
           CouchDB is the source of truth for vault files. The agent caches them on its PVC at

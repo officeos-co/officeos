@@ -95,7 +95,7 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
             ))}
           </select>
           {configured.length === 0 && (
-            <p className="text-xs text-amber-400">
+            <p className="text-xs text-amber-600">
               No providers configured yet. Set one up on the Providers page first.
             </p>
           )}

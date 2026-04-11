@@ -375,9 +375,9 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
         <span
           className={
             connected
-              ? "rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-300"
+              ? "rounded-full border border-emerald-200 px-2 py-0.5 text-emerald-700"
               : reconnecting
-                ? "rounded-full border border-yellow-500/40 px-2 py-0.5 text-yellow-300"
+                ? "rounded-full border border-yellow-200 px-2 py-0.5 text-yellow-700"
                 : "rounded-full border border-border px-2 py-0.5 text-muted-foreground"
           }
         >
@@ -468,7 +468,7 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
                 aria-label="Copy message"
               >
                 {copiedId === m.id ? (
-                  <Check className="h-3 w-3 text-emerald-400" />
+                  <Check className="h-3 w-3 text-emerald-600" />
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}

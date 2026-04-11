@@ -181,7 +181,7 @@ export default function SkillDetailPage() {
                 </button>
               </div>
               {skill.runTarget === "runner" && (
-                <p className="mt-3 text-xs text-amber-400">
+                <p className="mt-3 text-xs text-amber-600">
                   Make sure at least one runner is online. If no runners are available,
                   skill calls will fail with a clear error.
                 </p>

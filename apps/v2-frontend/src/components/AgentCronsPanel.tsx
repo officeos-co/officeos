@@ -245,7 +245,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {j.enabled ? (
-                            <Play className="h-3 w-3 text-emerald-400" />
+                            <Play className="h-3 w-3 text-emerald-600" />
                           ) : (
                             <Pause className="h-3 w-3 text-muted-foreground" />
                           )}
@@ -268,7 +268,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                             e.stopPropagation();
                             remove(j.id);
                           }}
-                          className="rounded border border-red-500/40 p-1 text-destructive hover:bg-red-500/20"
+                          className="rounded border border-red-200 p-1 text-destructive hover:bg-red-100"
                           aria-label="Delete"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -303,9 +303,9 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                       <span
                         className={`rounded border px-1.5 py-0.5 text-[10px] capitalize ${
                           r.status === "ok" || r.status === "success"
-                            ? "border-emerald-500/40 text-emerald-300"
+                            ? "border-emerald-200 text-emerald-700"
                             : r.status === "error" || r.status === "failed"
-                            ? "border-red-500/40 text-destructive"
+                            ? "border-red-200 text-destructive"
                             : "border-border text-muted-foreground"
                         }`}
                       >

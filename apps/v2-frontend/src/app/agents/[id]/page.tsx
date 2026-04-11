@@ -99,7 +99,7 @@ export default function AgentDetailPage() {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="flex items-center gap-1 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-red-500/20 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-red-100 disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" />
               {deleting ? "Deleting..." : "Delete"}
@@ -115,7 +115,7 @@ export default function AgentDetailPage() {
       />
 
       {agent.status === "failed" && (
-        <div className="mx-8 mt-4 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+        <div className="mx-8 mt-4 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
           This agent failed to deploy. You may want to delete it and try again.
         </div>
       )}
@@ -126,7 +126,7 @@ export default function AgentDetailPage() {
         </div>
       )}
       {agent.status === "stopped" && (
-        <div className="mx-8 mt-4 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+        <div className="mx-8 mt-4 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
           This agent's pod has stopped.
         </div>
       )}

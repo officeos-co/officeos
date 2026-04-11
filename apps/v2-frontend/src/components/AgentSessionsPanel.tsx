@@ -147,7 +147,7 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
                   >
                     <td className="px-4 py-3 font-mono text-xs">
                       {isActive && (
-                        <span className="mr-2 inline-block rounded-full border border-emerald-500/40 px-1.5 text-[10px] text-emerald-300">
+                        <span className="mr-2 inline-block rounded-full border border-emerald-200 px-1.5 text-[10px] text-emerald-700">
                           active
                         </span>
                       )}
@@ -176,7 +176,7 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
                         <button
                           type="button"
                           onClick={() => deleteSession(s.session_id)}
-                          className="flex items-center gap-1 rounded-md border border-red-500/40 px-2 py-1 text-[11px] text-destructive hover:bg-red-500/20"
+                          className="flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-[11px] text-destructive hover:bg-red-100"
                         >
                           <Trash2 className="h-3 w-3" />
                           Delete

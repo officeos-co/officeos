@@ -335,3 +335,7 @@ Assert.True(result.Success);
 # Logging and error handling
 
 We want full logging troughout everything. We should find a guide on logging and error handling and how to do that extensivelyt.
+
+# Runner auto authentication
+
+A runner should be more like in github where you install the runner but dont register it in the dashboard. In the runner itself you then login trough the browser and it then authenticates that runner. I believe in github you never even see your runner.

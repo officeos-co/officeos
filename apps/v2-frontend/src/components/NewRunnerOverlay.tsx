@@ -66,7 +66,7 @@ export function NewRunnerOverlay({ open, onClose }: NewRunnerOverlayProps) {
           </p>
 
           <div className="rounded-lg border border-border bg-secondary p-3">
-            <code className="block whitespace-pre-wrap break-all font-mono text-xs text-emerald-400">
+            <code className="block whitespace-pre-wrap break-all font-mono text-xs text-emerald-600">
               docker run \{"\n"}
               {"  "}-e PLATFORM_URL=https://api.harrokrog.com \{"\n"}
               {"  "}-e REGISTRATION_TOKEN={result.registrationToken} \{"\n"}

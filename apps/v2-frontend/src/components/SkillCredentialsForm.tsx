@@ -49,7 +49,7 @@ export function SkillCredentialsForm({ fields, onSubmit, configured }: Props) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       {configured && (
-        <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-600">
           Credentials are configured. Submitting will overwrite them.
         </div>
       )}
@@ -88,7 +88,7 @@ export function SkillCredentialsForm({ fields, onSubmit, configured }: Props) {
 
       <div className="flex items-center justify-between">
         {saved ? (
-          <span className="flex items-center gap-1 text-xs text-emerald-400">
+          <span className="flex items-center gap-1 text-xs text-emerald-600">
             <Check className="h-3 w-3" />
             Saved
           </span>

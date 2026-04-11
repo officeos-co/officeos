@@ -17,8 +17,8 @@ type Skill = {
 };
 
 const statusStyle = {
-  configured: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-  installed: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+  configured: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  installed: "border-yellow-200 bg-yellow-50 text-yellow-700",
   available: "border-border bg-muted text-muted-foreground",
 };
 

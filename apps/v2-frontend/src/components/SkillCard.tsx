@@ -27,8 +27,8 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
 
   const statusChip = skill.installed
     ? skill.configured
-      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-      : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-yellow-200 bg-yellow-50 text-yellow-700"
     : "border-border bg-muted text-muted-foreground";
 
   const statusLabel = skill.installed
@@ -64,7 +64,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
               type="button"
               onClick={() => toggle(onUninstall)}
               disabled={busy}
-              className="flex items-center gap-1 rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
             >
               <Trash2 className="h-3 w-3" />
               Uninstall

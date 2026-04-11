@@ -87,10 +87,10 @@ export function AgentDoctorPanel({ agent }: { agent: Agent }) {
           {results.map((r, idx) => {
             const style =
               r.severity === "ok"
-                ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-100"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-100"
                 : r.severity === "warn"
-                ? "border-yellow-500/40 bg-yellow-500/5 text-yellow-100"
-                : "border-red-500/40 bg-red-500/5 text-red-100";
+                ? "border-yellow-200 bg-yellow-500/5 text-yellow-100"
+                : "border-red-200 bg-red-500/5 text-red-100";
             const Icon =
               r.severity === "ok" ? CheckCircle : r.severity === "warn" ? AlertTriangle : AlertCircle;
             return (
