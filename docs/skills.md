@@ -37,9 +37,30 @@ Agent sees:          skill_exec("notion search --query meetings")
 ### Discovery flow
 
 1. Agent boots with `ZEROCLAW_AGENT_ID`.
-2. Agent calls `GET /api/agents/me/capabilities` to discover installed skills and their tools.
-3. Skill documentation (SKILL.md) is included in the capabilities response and injected into the agent's context.
-4. When a skill is installed/configured on the dashboard, the capabilities change. The agent picks it up on the next call.
+2. On first turn, fetches `GET /api/agents/me/capabilities` (forced, ignores TTL).
+3. Response includes tool specs and SKILL.md docs for all installed+configured skills.
+4. Skill docs are injected into the system prompt as XML sections so the LLM knows how to use each skill without needing `--help`.
+
+### Refresh behavior
+
+The agent polls for capability changes — no event-driven push, no pod restart needed.
+
+```
+skill-runtime (source of truth)
+    ↓ GET /manifests (cached 30s by backend)
+backend SkillRuntimeClient
+    ↓ GET /api/agents/me/capabilities (polled every 30s by agent)
+zeroclaw CapabilityCache
+    ↓ hash-compare response
+    ↓ if changed → swap tools + rebuild system prompt
+agent LLM context (up to date)
+```
+
+- **Agent polling**: every 30 seconds (configurable via `backend_refresh_seconds` in gateway bootstrap).
+- **Backend caching**: skill-runtime manifests cached for 30 seconds in `SkillRuntimeClient`.
+- **Change detection**: agent hash-compares each capabilities response. If unchanged, no work is done. If changed, tools are swapped and the system prompt is rebuilt with new SKILL.md docs.
+- **Worst case latency**: ~60 seconds between a skill-runtime update and the agent picking it up (30s backend cache + 30s agent poll).
+- **Failure mode**: network errors fail open — the agent reuses cached tools and logs a warning.
 
 ### Credential isolation
 

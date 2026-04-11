@@ -14,7 +14,7 @@ public sealed class SkillRuntimeClient
     // Cached manifests (refreshed periodically)
     private IReadOnlyList<RuntimeManifest>? _cachedManifests;
     private DateTime _lastManifestFetch = DateTime.MinValue;
-    private static readonly TimeSpan ManifestCacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan ManifestCacheTtl = TimeSpan.FromSeconds(30);
 
     public SkillRuntimeClient(HttpClient http, SkillRuntimeConfig config)
     {
