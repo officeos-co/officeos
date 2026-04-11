@@ -9,6 +9,10 @@ const navItems = [
   { href: "/agents", label: "Agents" },
 ];
 
+const secondaryItems = [
+  { href: "/docs", label: "Documentation" },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
 
@@ -26,6 +30,27 @@ export function Sidebar() {
           Workspace
         </div>
         {navItems.map((item) => {
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={[
+                "rounded-md px-3 py-2 text-sm transition-colors",
+                isActive
+                  ? "bg-black text-white"
+                  : "text-[var(--eaos-text-muted)] hover:bg-[var(--eaos-panel)] hover:text-white",
+              ].join(" ")}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+        <div className="mt-4 px-2 pb-1 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+          Resources
+        </div>
+        {secondaryItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
