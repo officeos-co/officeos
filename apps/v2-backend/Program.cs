@@ -141,7 +141,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(ValueManager.GetValue<string>("FrontendOrigin"))
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 

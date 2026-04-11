@@ -13,29 +13,36 @@ public sealed class AuthController : ControllerBase
     private readonly IUserRepository _users;
     private readonly ISessionRepository _sessions;
     private readonly IHttpClientFactory _httpFactory;
+    private readonly string _frontendOrigin;
 
     public AuthController(
         GoogleOAuthConfig oauth,
         IUserRepository users,
         ISessionRepository sessions,
-        IHttpClientFactory httpFactory)
+        IHttpClientFactory httpFactory,
+        IConfiguration configuration)
     {
         _oauth = oauth;
         _users = users;
         _sessions = sessions;
         _httpFactory = httpFactory;
+        // Read frontend origin for post-login redirect
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        _frontendOrigin = configuration.GetValue<string>($"{env}:FrontendOrigin") ?? "http://localhost:5173";
     }
 
     [HttpGet("google")]
     public IActionResult GoogleLogin()
     {
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var isLocalhost = Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
         Response.Cookies.Append("oauth-state", state, new CookieOptions
         {
             HttpOnly = true,
-            Secure = !Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase),
+            Secure = !isLocalhost,
             SameSite = SameSiteMode.Lax,
             MaxAge = TimeSpan.FromMinutes(10),
+            Domain = isLocalhost ? null : ".harrokrog.com",
         });
 
         var url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -111,16 +118,18 @@ public sealed class AuthController : ControllerBase
             var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
             await _sessions.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
 
+            var isLocal = Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
             Response.Cookies.Append("eaos-session", sessionToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase),
+                Secure = !isLocal,
                 SameSite = SameSiteMode.Lax,
                 MaxAge = TimeSpan.FromDays(7),
                 Path = "/",
+                Domain = isLocal ? null : ".harrokrog.com",
             });
 
-            return Redirect("/");
+            return Redirect(_frontendOrigin);
         }
         catch (Exception ex)
         {
@@ -157,5 +166,5 @@ public sealed class AuthController : ControllerBase
     }
 
     private IActionResult RedirectWithError(string message)
-        => Redirect($"/login?error={Uri.EscapeDataString(message)}");
+        => Redirect($"{_frontendOrigin}/login?error={Uri.EscapeDataString(message)}");
 }
