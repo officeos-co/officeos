@@ -67,8 +67,8 @@ export function AgentDetailTabs({ agent }: Props) {
               className={[
                 "-mb-px border-b-2 px-4 py-3 text-sm transition-colors",
                 isActive
-                  ? "border-white text-white"
-                  : "border-transparent text-muted-foreground hover:text-white",
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
                 disabled
                   ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
                   : "",

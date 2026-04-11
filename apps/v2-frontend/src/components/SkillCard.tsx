@@ -29,7 +29,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
     ? skill.configured
       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
       : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-    : "border-border bg-black/30 text-muted-foreground";
+    : "border-border bg-muted text-muted-foreground";
 
   const statusLabel = skill.installed
     ? skill.configured
@@ -74,7 +74,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
               type="button"
               onClick={() => toggle(onInstall)}
               disabled={busy}
-              className="flex items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-black disabled:opacity-50"
+              className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
             >
               <Download className="h-3 w-3" />
               Install
@@ -84,7 +84,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="rounded-md border border-border p-1.5 hover:bg-black/40"
+              className="rounded-md border border-border p-1.5 hover:bg-accent"
             >
               {expanded ? (
                 <ChevronUp className="h-3.5 w-3.5" />
@@ -117,7 +117,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
               {skill.llmTools.map((tool) => (
                 <div
                   key={tool.name}
-                  className="rounded-md border border-border bg-black/20 px-3 py-2"
+                  className="rounded-md border border-border bg-muted px-3 py-2"
                 >
                   <div className="font-mono text-xs">{tool.name}</div>
                   <div className="mt-0.5 text-[11px] text-muted-foreground">

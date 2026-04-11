@@ -90,7 +90,7 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
             type="button"
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
           >
             <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
             Reload
@@ -99,7 +99,7 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
             type="button"
             onClick={save}
             disabled={saving || draft === content}
-            className="flex items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-black disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
           >
             <Save className="h-3 w-3" />
             {saving ? "Saving…" : "Save"}
@@ -120,7 +120,7 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           spellCheck={false}
-          className="h-[calc(100vh-340px)] w-full resize-none rounded-md border border-border bg-black/40 p-3 font-mono text-xs outline-none focus:border-white"
+          className="h-[calc(100vh-340px)] w-full resize-none rounded-md border border-border bg-accent p-3 font-mono text-xs outline-none focus:border-primary"
         />
       )}
     </div>

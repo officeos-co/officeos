@@ -55,7 +55,7 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh
@@ -84,7 +84,7 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
                 <button
                   type="button"
                   onClick={() => setExpanded(isOpen ? null : tool.name)}
-                  className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-black/30"
+                  className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-muted"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-sm">{tool.name}</div>
@@ -97,7 +97,7 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
                   </span>
                 </button>
                 {isOpen && tool.parameters !== undefined && (
-                  <pre className="max-h-60 overflow-auto border-t border-border bg-black/20 p-3 font-mono text-[11px] text-muted-foreground">
+                  <pre className="max-h-60 overflow-auto border-t border-border bg-muted p-3 font-mono text-[11px] text-muted-foreground">
                     {JSON.stringify(tool.parameters, null, 2)}
                   </pre>
                 )}

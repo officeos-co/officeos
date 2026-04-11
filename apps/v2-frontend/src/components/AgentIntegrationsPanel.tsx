@@ -23,7 +23,7 @@ function unwrap(data: IntegrationsResponse): Integration[] {
 
 const statusStyle: Record<IntegrationStatus, string> = {
   Active: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
-  Available: "border-border bg-black/30 text-muted-foreground",
+  Available: "border-border bg-muted text-muted-foreground",
   ComingSoon: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
 };
 
@@ -68,7 +68,7 @@ export function AgentIntegrationsPanel({ agent }: { agent: Agent }) {
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh

@@ -39,7 +39,7 @@ function typeColor(type: string): string {
     case "agent_end":
       return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
     default:
-      return "border-border bg-black/30 text-muted-foreground";
+      return "border-border bg-muted text-muted-foreground";
   }
 }
 
@@ -212,7 +212,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
           <button
             type="button"
             onClick={() => setPaused((p) => !p)}
-            className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-white hover:text-black"
+            className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-primary hover:text-primary-foreground"
           >
             {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
             {paused ? "Resume" : "Pause"}
@@ -221,7 +221,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             <button
               type="button"
               onClick={jumpToBottom}
-              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-white hover:text-black"
+              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-primary hover:text-primary-foreground"
             >
               <ArrowDown className="h-3 w-3" />
               Jump
@@ -245,8 +245,8 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
                 onClick={() => toggleType(type)}
                 className={`flex-shrink-0 rounded border px-2 py-0.5 transition-colors ${
                   active
-                    ? "border-white bg-white text-black"
-                    : "border-border text-muted-foreground hover:text-white"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {type}
@@ -257,7 +257,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             <button
               type="button"
               onClick={() => setTypeFilters(new Set())}
-              className="flex-shrink-0 text-muted-foreground hover:text-white"
+              className="flex-shrink-0 text-muted-foreground hover:text-foreground"
             >
               clear
             </button>
@@ -298,7 +298,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             return (
               <div
                 key={entry.id}
-                className="flex items-start gap-3 rounded-md border border-border bg-black/20 px-3 py-2 text-xs"
+                className="flex items-start gap-3 rounded-md border border-border bg-muted px-3 py-2 text-xs"
               >
                 <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground">
                   {formatTs(event.timestamp)}

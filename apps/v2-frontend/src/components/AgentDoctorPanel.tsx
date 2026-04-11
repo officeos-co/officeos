@@ -63,7 +63,7 @@ export function AgentDoctorPanel({ agent }: { agent: Agent }) {
           type="button"
           onClick={run}
           disabled={running}
-          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40 disabled:opacity-50"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
         >
           <RefreshCw className={`h-3 w-3 ${running ? "animate-spin" : ""}`} />
           Re-run

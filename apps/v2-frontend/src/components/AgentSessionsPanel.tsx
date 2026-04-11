@@ -108,7 +108,7 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
         <button
           type="button"
           onClick={startNewSession}
-          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-white hover:text-black"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-primary hover:text-primary-foreground"
         >
           <MessageSquare className="h-3.5 w-3.5" />
           New session
@@ -143,7 +143,7 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
                 return (
                   <tr
                     key={s.session_id}
-                    className="border-b border-border last:border-b-0 hover:bg-black/30"
+                    className="border-b border-border last:border-b-0 hover:bg-muted"
                   >
                     <td className="px-4 py-3 font-mono text-xs">
                       {isActive && (
@@ -168,7 +168,7 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
                           type="button"
                           onClick={() => activate(s.session_id)}
                           disabled={isActive}
-                          className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-white hover:text-black disabled:opacity-40"
+                          className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-primary hover:text-primary-foreground disabled:opacity-40"
                         >
                           <Play className="h-3 w-3" />
                           Activate

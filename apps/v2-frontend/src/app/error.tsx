@@ -21,7 +21,7 @@ export default function RootError({
       </p>
       <button
         onClick={reset}
-        className="rounded-md border border-border px-4 py-2 text-sm hover:bg-white hover:text-black"
+        className="rounded-md border border-border px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground"
       >
         Try again
       </button>

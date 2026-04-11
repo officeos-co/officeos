@@ -150,7 +150,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
           <button
             type="button"
             onClick={load}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
           >
             <RefreshCw className="h-3 w-3" />
             Refresh
@@ -158,7 +158,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
           <button
             type="button"
             onClick={() => setCreating((c) => !c)}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-white hover:text-black"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-primary hover:text-primary-foreground"
           >
             <Plus className="h-3 w-3" />
             New job
@@ -179,26 +179,26 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder="Name (optional)"
-              className="rounded-md border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-white"
+              className="rounded-md border border-border bg-accent px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <input
               value={formSchedule}
               onChange={(e) => setFormSchedule(e.target.value)}
               placeholder="Schedule (cron expr)"
-              className="rounded-md border border-border bg-black/40 px-3 py-2 font-mono text-sm outline-none focus:border-white"
+              className="rounded-md border border-border bg-accent px-3 py-2 font-mono text-sm outline-none focus:border-primary"
             />
             <input
               value={formCommand}
               onChange={(e) => setFormCommand(e.target.value)}
               placeholder="Command or prompt"
-              className="rounded-md border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-white"
+              className="rounded-md border border-border bg-accent px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </div>
           <div className="mt-3 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setCreating(false)}
-              className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
+              className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
             >
               Cancel
             </button>
@@ -206,7 +206,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
               type="button"
               onClick={create}
               disabled={submitting || !formSchedule.trim() || !formCommand.trim()}
-              className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-black disabled:opacity-50"
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
             >
               {submitting ? "Creating…" : "Create"}
             </button>
@@ -238,8 +238,8 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                     <tr
                       key={j.id}
                       onClick={() => setSelected(j.id)}
-                      className={`cursor-pointer border-b border-border last:border-b-0 hover:bg-black/30 ${
-                        isActive ? "bg-black/40" : ""
+                      className={`cursor-pointer border-b border-border last:border-b-0 hover:bg-muted ${
+                        isActive ? "bg-accent" : ""
                       }`}
                     >
                       <td className="px-4 py-3">
@@ -297,7 +297,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                 {runs.map((r) => (
                   <li
                     key={r.id}
-                    className="rounded border border-border bg-black/20 p-2 text-xs"
+                    className="rounded border border-border bg-muted p-2 text-xs"
                   >
                     <div className="flex items-center justify-between">
                       <span

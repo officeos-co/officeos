@@ -19,7 +19,7 @@ export default function DocsPage() {
             <Link
               key={doc.slug}
               href={`/docs/${doc.slug}`}
-              className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:bg-black/30"
+              className="flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted"
             >
               <div className="text-sm font-semibold">{doc.title}</div>
               {doc.subtitle && (

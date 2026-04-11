@@ -162,7 +162,7 @@ export function AgentMemoryPanel({ agent }: Props) {
             <button
               type="button"
               onClick={loadList}
-              className="rounded p-1 text-muted-foreground hover:bg-black/40 hover:text-white"
+              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label="Refresh"
             >
               <RefreshCw className="h-3 w-3" />
@@ -179,8 +179,8 @@ export function AgentMemoryPanel({ agent }: Props) {
                     className={[
                       "flex-1 rounded-md px-3 py-2 text-left font-mono text-xs",
                       isActive
-                        ? "bg-white text-black"
-                        : "text-muted-foreground hover:bg-black/30 hover:text-white",
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
                     ].join(" ")}
                   >
                     {f}
@@ -204,14 +204,14 @@ export function AgentMemoryPanel({ agent }: Props) {
                   value={newFileName}
                   onChange={(e) => setNewFileName(e.target.value)}
                   placeholder="NOTES.md"
-                  className="rounded-md border border-border bg-black/40 px-2 py-1 text-xs outline-none focus:border-white"
+                  className="rounded-md border border-border bg-muted px-2 py-1 text-xs outline-none focus:border-primary"
                 />
                 <div className="flex gap-1">
                   <button
                     type="button"
                     onClick={createFile}
                     disabled={!newFileName.trim()}
-                    className="flex-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-white hover:text-black disabled:opacity-40"
+                    className="flex-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-primary hover:text-primary-foreground disabled:opacity-40"
                   >
                     Create
                   </button>
@@ -221,7 +221,7 @@ export function AgentMemoryPanel({ agent }: Props) {
                       setCreatingNew(false);
                       setNewFileName("");
                     }}
-                    className="rounded border border-border px-2 py-1 text-[11px] hover:bg-black/40"
+                    className="rounded border border-border px-2 py-1 text-[11px] hover:bg-accent"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -231,7 +231,7 @@ export function AgentMemoryPanel({ agent }: Props) {
               <button
                 type="button"
                 onClick={() => setCreatingNew(true)}
-                className="flex w-full items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] text-muted-foreground hover:bg-black/30 hover:text-white"
+                className="flex w-full items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
               >
                 <FilePlus className="h-3 w-3" />
                 New file
@@ -256,7 +256,7 @@ export function AgentMemoryPanel({ agent }: Props) {
                     type="button"
                     onClick={save}
                     disabled={saving || draft === content}
-                    className="flex items-center gap-1 rounded-md bg-white px-3 py-1 text-xs font-medium text-black disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
                   >
                     <Save className="h-3 w-3" />
                     {saving ? "Saving…" : "Save"}
@@ -264,7 +264,7 @@ export function AgentMemoryPanel({ agent }: Props) {
                   <button
                     type="button"
                     onClick={cancelEdit}
-                    className="flex items-center gap-1 rounded-md border border-border px-3 py-1 text-xs hover:bg-black/40"
+                    className="flex items-center gap-1 rounded-md border border-border px-3 py-1 text-xs hover:bg-accent"
                   >
                     <X className="h-3 w-3" />
                     Cancel
@@ -275,7 +275,7 @@ export function AgentMemoryPanel({ agent }: Props) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 spellCheck={false}
-                className="min-h-[400px] flex-1 resize-none rounded-md border border-border bg-black/40 p-3 font-mono text-xs outline-none focus:border-white"
+                className="min-h-[400px] flex-1 resize-none rounded-md border border-border bg-accent p-3 font-mono text-xs outline-none focus:border-primary"
               />
             </div>
           ) : (
@@ -288,13 +288,13 @@ export function AgentMemoryPanel({ agent }: Props) {
                     setDraft(content);
                     setEditing(true);
                   }}
-                  className="flex items-center gap-1 rounded-md border border-border px-3 py-1 text-xs hover:bg-white hover:text-black"
+                  className="flex items-center gap-1 rounded-md border border-border px-3 py-1 text-xs hover:bg-primary hover:text-primary-foreground"
                 >
                   <Pencil className="h-3 w-3" />
                   Edit
                 </button>
               </div>
-              <pre className="min-h-[400px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-black/20 p-3 font-mono text-xs leading-relaxed">
+              <pre className="min-h-[400px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-3 font-mono text-xs leading-relaxed">
                 {content}
               </pre>
             </div>

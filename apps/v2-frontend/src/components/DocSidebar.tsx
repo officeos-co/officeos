@@ -20,8 +20,8 @@ export function DocSidebar({ docs, activeSlug }: Props) {
             className={[
               "rounded-md px-3 py-2 text-sm transition-colors",
               doc.slug === activeSlug
-                ? "bg-black text-white"
-                : "text-muted-foreground hover:bg-card hover:text-white",
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground",
             ].join(" ")}
           >
             {doc.title}

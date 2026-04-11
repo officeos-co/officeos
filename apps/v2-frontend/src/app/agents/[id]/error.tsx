@@ -23,13 +23,13 @@ export default function AgentDetailError({
       <div className="flex gap-2">
         <button
           onClick={reset}
-          className="rounded-md border border-border px-4 py-2 text-sm hover:bg-white hover:text-black"
+          className="rounded-md border border-border px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground"
         >
           Try again
         </button>
         <Link
           href="/agents"
-          className="rounded-md border border-border px-4 py-2 text-sm hover:bg-white hover:text-black"
+          className="rounded-md border border-border px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground"
         >
           Back to agents
         </Link>

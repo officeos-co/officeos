@@ -19,7 +19,7 @@ type Skill = {
 const statusStyle = {
   configured: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
   installed: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-  available: "border-border bg-black/30 text-muted-foreground",
+  available: "border-border bg-muted text-muted-foreground",
 };
 
 function skillStatus(s: Skill): keyof typeof statusStyle {
@@ -64,7 +64,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh
@@ -90,7 +90,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
                 key={s.name}
                 type="button"
                 onClick={() => router.push(`/skills/${s.name}`)}
-                className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-black/30"
+                className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">

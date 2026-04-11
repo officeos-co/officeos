@@ -410,8 +410,8 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
             <div
               className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border ${
                 m.role === "user"
-                  ? "border-white bg-white text-black"
-                  : "border-border bg-black/30"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-muted"
               }`}
             >
               {m.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -420,8 +420,8 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
               <div
                 className={`rounded-xl px-3 py-2 text-sm ${
                   m.role === "user"
-                    ? "bg-white text-black"
-                    : "border border-border bg-black/30 text-white"
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-secondary text-foreground"
                 }`}
               >
                 {m.thinking && (
@@ -429,7 +429,7 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
                     <summary className="cursor-pointer text-[11px] text-muted-foreground">
                       Thinking
                     </summary>
-                    <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-black/30 p-2 text-[11px] text-muted-foreground">
+                    <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-2 text-[11px] text-muted-foreground">
                       {m.thinking}
                     </pre>
                   </details>
@@ -440,18 +440,18 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
                       tool: {m.toolCall.name}
                     </div>
                     {m.toolCall.args !== undefined && (
-                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2">
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-accent p-2">
                         {JSON.stringify(m.toolCall.args, null, 2)}
                       </pre>
                     )}
                     {m.toolCall.output !== undefined && (
-                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-black/40 p-2">
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-accent p-2">
                         {m.toolCall.output}
                       </pre>
                     )}
                   </div>
                 ) : m.markdown ? (
-                  <div className="break-words text-sm [&>*]:my-1 [&_code]:rounded [&_code]:bg-black/40 [&_code]:px-1 [&_pre]:overflow-auto [&_pre]:rounded [&_pre]:bg-black/40 [&_pre]:p-2">
+                  <div className="break-words text-sm [&>*]:my-1 [&_code]:rounded [&_code]:bg-accent [&_code]:px-1 [&_pre]:overflow-auto [&_pre]:rounded [&_pre]:bg-accent [&_pre]:p-2">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                   </div>
                 ) : (
@@ -464,7 +464,7 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
               <button
                 type="button"
                 onClick={() => handleCopy(m.id, m.content)}
-                className="absolute right-1 top-1 rounded border border-border bg-black/60 p-1 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-1 top-1 rounded border border-border bg-accent p-1 opacity-0 transition-opacity group-hover:opacity-100"
                 aria-label="Copy message"
               >
                 {copiedId === m.id ? (
@@ -479,16 +479,16 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
 
         {typing && (streamingContent || streamingThinking) && (
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-black/30">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-muted">
               <Bot className="h-4 w-4" />
             </div>
-            <div className="max-w-[75%] rounded-xl border border-border bg-black/30 px-3 py-2 text-sm">
+            <div className="max-w-[75%] rounded-xl border border-border bg-muted px-3 py-2 text-sm">
               {streamingThinking && (
                 <details className="mb-2" open={!streamingContent}>
                   <summary className="cursor-pointer text-[11px] text-muted-foreground">
                     Thinking{!streamingContent && "…"}
                   </summary>
-                  <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-black/30 p-2 text-[11px] text-muted-foreground">
+                  <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-2 text-[11px] text-muted-foreground">
                     {streamingThinking}
                   </pre>
                 </details>
@@ -502,10 +502,10 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
 
         {typing && !streamingContent && !streamingThinking && (
           <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-black/30">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-muted">
               <Bot className="h-4 w-4" />
             </div>
-            <div className="rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-muted-foreground">
+            <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
               …
             </div>
           </div>
@@ -527,14 +527,14 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
           onKeyDown={handleKeyDown}
           disabled={!connected}
           placeholder={connected ? "Message…" : "Waiting for connection…"}
-          className="flex-1 resize-none rounded-md border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-white disabled:opacity-50"
+          className="flex-1 resize-none rounded-md border border-border bg-accent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50"
           style={{ minHeight: "40px", maxHeight: "200px" }}
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={!connected || !input.trim()}
-          className="flex items-center gap-1 rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
+          className="flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
           Send

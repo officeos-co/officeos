@@ -76,7 +76,7 @@ export function AgentCostPanel({ agent }: { agent: Agent }) {
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh

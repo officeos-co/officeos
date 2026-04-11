@@ -76,7 +76,7 @@ export default function AgentDetailPage() {
         <div className="mx-8 mt-4">
           <Link
             href="/agents"
-            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-white hover:text-black"
+            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-primary hover:text-primary-foreground"
           >
             ← Back to agents
           </Link>
@@ -106,7 +106,7 @@ export default function AgentDetailPage() {
             </button>
             <Link
               href="/agents"
-              className="rounded-md border border-border px-3 py-2 text-sm hover:bg-white hover:text-black"
+              className="rounded-md border border-border px-3 py-2 text-sm hover:bg-primary hover:text-primary-foreground"
             >
               ← All agents
             </Link>
