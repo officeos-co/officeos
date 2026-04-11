@@ -11,9 +11,7 @@ const navItems = [
   { href: "/runners", label: "Runners" },
 ];
 
-const secondaryItems = [
-  { href: "/docs", label: "Documentation" },
-];
+const secondaryItems: { href: string; label: string }[] = [];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -73,7 +71,17 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto flex items-center gap-2 rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-3 py-2">
+      <div className="mt-auto flex flex-col gap-2">
+        <Link
+          href="/docs"
+          target="_blank"
+          className="rounded-md px-3 py-2 text-sm text-[var(--eaos-text-muted)] transition-colors hover:bg-[var(--eaos-panel)] hover:text-white"
+        >
+          Documentation
+        </Link>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2 rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-3 py-2">
         {user?.avatarUrl ? (
           <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full" />
         ) : (

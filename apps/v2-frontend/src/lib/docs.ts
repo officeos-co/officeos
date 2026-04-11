@@ -1,7 +1,10 @@
 import fs from "fs";
 import path from "path";
 
-const DOCS_DIR = path.resolve(process.cwd(), "docs");
+// Resolve to monorepo root docs/ — works whether cwd is frontend or monorepo root
+const DOCS_DIR = fs.existsSync(path.resolve(process.cwd(), "docs"))
+  ? path.resolve(process.cwd(), "docs")
+  : path.resolve(process.cwd(), "../../docs");
 
 export type DocEntry = {
   slug: string;

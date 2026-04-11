@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Sidebar } from "@/components/Sidebar";
-import { AuthGuard } from "@/components/AuthGuard";
+import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,12 +12,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <AuthGuard>
-          <div className="flex h-screen w-screen overflow-hidden bg-[var(--eaos-bg)] text-[var(--eaos-text)]">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto">{children}</main>
-          </div>
-        </AuthGuard>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

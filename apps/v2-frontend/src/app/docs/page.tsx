@@ -5,7 +5,7 @@ export default function DocsPage() {
   const docs = listDocs();
 
   return (
-    <div>
+    <>
       <div className="sticky top-0 z-10 border-b border-[var(--eaos-border)] bg-[var(--eaos-bg)]/90 px-8 py-6 backdrop-blur">
         <h1 className="text-2xl font-semibold">Documentation</h1>
         <p className="mt-1 text-sm text-[var(--eaos-text-muted)]">
@@ -31,6 +31,6 @@ export default function DocsPage() {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
