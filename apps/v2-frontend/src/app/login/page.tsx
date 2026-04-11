@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -17,7 +20,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center">
-      <div className="flex flex-col items-center gap-8">
+      <div className="flex w-full max-w-sm flex-col items-center gap-8">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
             E
@@ -30,6 +33,16 @@ export default function LoginPage() {
         <p className="text-sm text-muted-foreground">
           Sign in to access Mission Control
         </p>
+
+        {error && (
+          <div className="flex w-full items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-destructive">Sign-in failed</p>
+              <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+            </div>
+          </div>
+        )}
 
         <Button
           variant="outline"

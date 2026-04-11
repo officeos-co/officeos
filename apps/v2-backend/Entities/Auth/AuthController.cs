@@ -60,10 +60,10 @@ public sealed class AuthController : ControllerBase
             Response.Cookies.Delete("oauth-state");
 
             if (string.IsNullOrEmpty(savedState) || savedState != state)
-                return BadRequest(new { error = "Invalid OAuth state", detail = $"cookie present: {savedState is not null}, match: {savedState == state}" });
+                return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
             if (string.IsNullOrEmpty(_oauth.ClientId) || string.IsNullOrEmpty(_oauth.ClientSecret))
-                return StatusCode(500, new { error = "Google OAuth not configured — ClientId or ClientSecret is empty" });
+                return RedirectWithError("Google OAuth is not configured on the server.");
 
             // Exchange code for tokens
             var client = _httpFactory.CreateClient();
@@ -77,13 +77,16 @@ public sealed class AuthController : ControllerBase
                     ["grant_type"] = "authorization_code",
                 }), ct);
 
-            var tokenBody = await tokenResponse.Content.ReadAsStringAsync(ct);
             if (!tokenResponse.IsSuccessStatusCode)
-                return BadRequest(new { error = "Failed to exchange authorization code", detail = tokenBody });
+            {
+                var body = await tokenResponse.Content.ReadAsStringAsync(ct);
+                return RedirectWithError($"Failed to exchange authorization code: {body}");
+            }
 
+            var tokenBody = await tokenResponse.Content.ReadAsStringAsync(ct);
             var tokenJson = JsonSerializer.Deserialize<JsonElement>(tokenBody);
             if (!tokenJson.TryGetProperty("access_token", out var atProp))
-                return BadRequest(new { error = "Token response missing access_token", detail = tokenBody });
+                return RedirectWithError("Google did not return an access token.");
             var accessToken = atProp.GetString()!;
 
             // Fetch user info
@@ -92,10 +95,7 @@ public sealed class AuthController : ControllerBase
             var userInfoResponse = await client.SendAsync(userInfoRequest, ct);
 
             if (!userInfoResponse.IsSuccessStatusCode)
-            {
-                var uiBody = await userInfoResponse.Content.ReadAsStringAsync(ct);
-                return BadRequest(new { error = "Failed to fetch user info", detail = uiBody });
-            }
+                return RedirectWithError("Failed to fetch your Google profile.");
 
             var userInfo = await userInfoResponse.Content.ReadFromJsonAsync<JsonElement>(ct);
             var sub = userInfo.GetProperty("sub").GetString()!;
@@ -124,7 +124,7 @@ public sealed class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = "OAuth callback failed", detail = ex.Message, type = ex.GetType().Name });
+            return RedirectWithError($"Sign-in failed: {ex.Message}");
         }
     }
 
@@ -155,4 +155,7 @@ public sealed class AuthController : ControllerBase
             avatarUrl = user.AvatarUrl,
         });
     }
+
+    private IActionResult RedirectWithError(string message)
+        => Redirect($"/login?error={Uri.EscapeDataString(message)}");
 }

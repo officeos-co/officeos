@@ -5,15 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, error } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !isAuthenticated && pathname !== "/login") {
-      router.push("/login");
+      const params = error ? `?error=${encodeURIComponent(error)}` : "";
+      router.push(`/login${params}`);
     }
-  }, [loading, isAuthenticated, pathname, router]);
+  }, [loading, isAuthenticated, error, pathname, router]);
 
   if (pathname === "/login") return <>{children}</>;
 
