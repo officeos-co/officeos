@@ -199,6 +199,85 @@ No C# code. No DB migration. No GraphQL resolvers. The dashboard shows the new s
 | `AgentBackendTokenProtector.cs` | Backend token encryption |
 | `GraphQL/` | Dynamic GraphQL schema from runtime manifests (SkillTypeModule) |
 
+## Custom skills
+
+Users can add their own skills via the dashboard — either by uploading a `.zip` or connecting a GitHub repo.
+
+### Upload flow
+
+```
+Dashboard "Upload Skill" button
+    ↓
+POST /api/custom-skills/upload (multipart .zip)
+    ↓
+Backend validates: zip must contain skill.ts
+    ↓
+Stores zip in MinIO (s3://skills/{name}/{name}.zip)
+    ↓
+Sends source files to skill-runtime POST /build
+    ↓
+skill-runtime runs esbuild, hot-loads the skill
+    ↓
+Skill appears in /manifests → agents discover it
+```
+
+### GitHub flow
+
+```
+Dashboard "Connect GitHub Repo" button
+    ↓
+POST /api/custom-skills/github { repoUrl, branch }
+    ↓
+Backend stores config in CustomSkills table
+    ↓
+Build status: "pending" (clone + build is TODO)
+```
+
+### Storage
+
+Custom skill source archives are stored in **MinIO** (S3-compatible) in the `skills` bucket. Config in `appsettings.json`:
+
+| Key | Description |
+|-----|-------------|
+| `MinioEndpoint` | S3 endpoint URL (e.g. `http://eaos-minio:9000`) |
+| `MinioAccessKey` | Access key |
+| `MinioSecretKey` | Secret key |
+| `MinioBucket` | Bucket name (default: `skills`) |
+
+### Build endpoints (skill-runtime)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST /build` | `{ name, files: [{ path, content }] }` | Build a skill from source, hot-load it |
+| `POST /reload/{name}` | — | Re-load an existing built skill from disk |
+
+### Database model (`CustomSkillRecord`)
+
+| Column | Description |
+|--------|-------------|
+| `Id` | Primary key |
+| `OwnerId` | FK to UserRecord |
+| `Name` | Skill name (unique) |
+| `Source` | `"upload"` or `"github"` |
+| `GitHubRepoUrl` | Repository URL (github source) |
+| `BundlePath` | S3 path to stored zip |
+| `BuildStatus` | `pending`, `building`, `ready`, `failed` |
+
+## Runner dispatch
+
+When an agent calls `skill_exec` for a skill that isn't installed locally, the backend checks for an online runner. If one exists, the job is dispatched to the runner instead of the local skill-runtime. See [runners.md](runners.md) for the full architecture.
+
+```
+Agent calls skill_exec
+    ↓
+AgentSkillsController.SkillExec:
+  1. Check local skill credentials → if configured, use skill-runtime (normal path)
+  2. If not configured → check for online runners
+  3. If runner available → create RunnerJobRecord, await via RunnerJobWaiter (30s timeout)
+  4. Runner polls, executes, posts result → waiter completes → response to agent
+  5. If no runner → return 409 "not installed or not configured"
+```
+
 ## Global vs per-agent
 
 Skills are currently **global** — all agents see all configured skills. There's no per-agent scoping. The `SkillCredentials` table has no `AgentId` column.

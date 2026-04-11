@@ -20,4 +20,14 @@ public interface ISkillService
         CancellationToken ct = default);
 
     Task<CapabilitiesResponse> ListCapabilitiesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets where a skill executes: "cloud" (default) or "runner" (self-hosted).
+    /// </summary>
+    Task<SkillDto?> SetRunTargetAsync(string name, string runTarget, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the run target for a skill ("cloud" or "runner").
+    /// </summary>
+    Task<string> GetRunTargetAsync(string name, CancellationToken ct = default);
 }

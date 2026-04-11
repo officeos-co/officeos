@@ -19,4 +19,10 @@ public sealed class SkillCredentialRecord
     public string? EncryptedCredentials { get; set; }
 
     public DateTime? ConfiguredAt { get; set; }
+
+    /// <summary>
+    /// Where to execute this skill: "cloud" (default skill-runtime), "runner" (self-hosted), or null (cloud).
+    /// </summary>
+    [MaxLength(16)]
+    public string? RunTarget { get; set; }
 }

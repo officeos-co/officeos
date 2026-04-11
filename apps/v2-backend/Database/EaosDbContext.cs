@@ -10,6 +10,11 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentRecord> Agents => Set<AgentRecord>();
     public DbSet<ProviderRecord> Providers => Set<ProviderRecord>();
     public DbSet<SkillCredentialRecord> SkillCredentials => Set<SkillCredentialRecord>();
+    public DbSet<UserRecord> Users => Set<UserRecord>();
+    public DbSet<SessionRecord> Sessions => Set<SessionRecord>();
+    public DbSet<RunnerRecord> Runners => Set<RunnerRecord>();
+    public DbSet<RunnerJobRecord> RunnerJobs => Set<RunnerJobRecord>();
+    public DbSet<CustomSkillRecord> CustomSkills => Set<CustomSkillRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +45,40 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(s => s.SkillName).IsUnique();
             e.Property(s => s.SkillName).IsRequired().HasMaxLength(64);
             e.Property(s => s.EncryptedCredentials).HasMaxLength(16384);
+        });
+
+        modelBuilder.Entity<UserRecord>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.HasIndex(u => u.GoogleSubjectId).IsUnique();
+            e.HasIndex(u => u.Email).IsUnique();
+        });
+
+        modelBuilder.Entity<SessionRecord>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.TokenHash).IsUnique();
+            e.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId);
+        });
+
+        modelBuilder.Entity<RunnerRecord>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasOne(r => r.Owner).WithMany().HasForeignKey(r => r.OwnerId);
+        });
+
+        modelBuilder.Entity<RunnerJobRecord>(e =>
+        {
+            e.HasKey(j => j.Id);
+            e.HasIndex(j => new { j.RunnerId, j.Status });
+            e.HasOne(j => j.Runner).WithMany().HasForeignKey(j => j.RunnerId);
+        });
+
+        modelBuilder.Entity<CustomSkillRecord>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Name).IsUnique();
+            e.HasOne(c => c.Owner).WithMany().HasForeignKey(c => c.OwnerId);
         });
     }
 }

@@ -24,6 +24,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.1" />
     <PackageReference Include="KubernetesClient" Version="15.0.1" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.405.5" />
   </ItemGroup>
 
 </Project>

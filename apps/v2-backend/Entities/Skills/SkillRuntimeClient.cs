@@ -84,6 +84,28 @@ public sealed class SkillRuntimeClient
         return manifests;
     }
 
+    /// <summary>
+    /// Send skill source files to the runtime for building and hot-loading.
+    /// </summary>
+    public async Task<JsonElement> BuildAsync(string name, object files, CancellationToken ct = default)
+    {
+        var body = JsonSerializer.Serialize(new { name, files });
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/build");
+        req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        using var resp = await _http.SendAsync(req, ct);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var errorText = await resp.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException($"Build failed (HTTP {(int)resp.StatusCode}): {Trim(errorText, 500)}");
+        }
+
+        var text = await resp.Content.ReadAsStringAsync(ct);
+        // Invalidate manifest cache so new skill appears immediately
+        _cachedManifests = null;
+        return JsonSerializer.Deserialize<JsonElement>(text);
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

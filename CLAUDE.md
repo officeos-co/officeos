@@ -1,6 +1,6 @@
 # EnterpriseAgentOS
 
-Kubernetes-native platform for autonomous AI agents. Single-tenant, self-hosted.
+Kubernetes-native platform for autonomous AI agents. Single-tenant, self-hosted. Trying to get into ycombinator being the intellifence layer for Agents. I see the product as the obvious next iteration after openclaw. Problems of openclaw are that an agent is just a virtrual machine which you have to ssh into really often not just for initialisation or go torugh the web ui. Agents dont know each other. Tools arent centrally logged, tools cant be shared. So our Architecture is the solution. Agents are mostly decoupled in the cloud hosted as npm packages exposing a graphql api. However we still have all the capabilties of openclaw unlike claude managed agents where agents run entirely in the cloud and thus can only access mcp servers. Our architecture can control any software which exposes a graphql api. And still has full system control.
 
 ## Repository layout
 

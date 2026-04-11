@@ -80,6 +80,48 @@ var skillRuntimeConfig = new SkillRuntimeConfig
 builder.Services.AddSingleton(skillRuntimeConfig);
 builder.Services.AddHttpClient<SkillRuntimeClient>();
 
+var googleOAuthConfig = new GoogleOAuthConfig
+{
+    ClientId = ValueManager.GetValue<string>("GoogleOAuthClientId"),
+    ClientSecret = ValueManager.GetValue<string>("GoogleOAuthClientSecret"),
+    RedirectUri = ValueManager.GetValue<string>("GoogleOAuthRedirectUri"),
+};
+builder.Services.AddSingleton(googleOAuthConfig);
+
+var skillStorageConfig = new SkillStorageConfig
+{
+    Endpoint = ValueManager.GetValue<string>("MinioEndpoint"),
+    AccessKey = ValueManager.GetValue<string>("MinioAccessKey"),
+    SecretKey = ValueManager.GetValue<string>("MinioSecretKey"),
+    Bucket = ValueManager.GetValue<string>("MinioBucket"),
+};
+builder.Services.AddSingleton(skillStorageConfig);
+builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
+{
+    var config = new Amazon.S3.AmazonS3Config
+    {
+        ServiceURL = skillStorageConfig.Endpoint,
+        ForcePathStyle = true,
+    };
+    return new Amazon.S3.AmazonS3Client(
+        skillStorageConfig.AccessKey,
+        skillStorageConfig.SecretKey,
+        config);
+});
+
+// Auth
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+
+// Runners
+builder.Services.AddScoped<IRunnerRepository, RunnerRepository>();
+builder.Services.AddScoped<IRunnerJobRepository, RunnerJobRepository>();
+builder.Services.AddSingleton<RunnerJobWaiter>();
+builder.Services.AddHostedService<RunnerJobTimeoutService>();
+
+// Custom Skills
+builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
+
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
 
@@ -119,6 +161,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors(FrontendCorsPolicy);
+app.UseMiddleware<SessionAuthMiddleware>();
 
 app.UseWebSockets();
 

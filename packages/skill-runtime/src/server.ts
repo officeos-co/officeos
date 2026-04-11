@@ -1,8 +1,9 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readdir } from "node:fs/promises";
+import { readdir, writeFile, mkdir } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { SkillExecutor, type ExecuteRequest } from "./executor.js";
+import { buildSkill } from "./builder.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
@@ -101,6 +102,74 @@ async function handleRequest(
 
     const result = await executor.execute(body);
     json(res, result.success ? 200 : 422, result);
+    return;
+  }
+
+  // POST /build — build a skill from source files and hot-load it
+  if (url.pathname === "/build" && req.method === "POST") {
+    let body: { name: string; files: { path: string; content: string }[] };
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      json(res, 400, { error: "Invalid JSON body" });
+      return;
+    }
+
+    if (!body.name || !body.files?.length) {
+      json(res, 400, { error: "Missing required fields: name, files" });
+      return;
+    }
+
+    try {
+      const tmpDir = resolve(__dirname, ".build-tmp", body.name);
+      await mkdir(tmpDir, { recursive: true });
+
+      // Write source files to temp dir
+      for (const file of body.files) {
+        const filePath = resolve(tmpDir, file.path);
+        await mkdir(dirname(filePath), { recursive: true });
+        await writeFile(filePath, file.content, "utf-8");
+      }
+
+      // Build the skill
+      const skillsDir = resolve(__dirname, "skills");
+      await mkdir(skillsDir, { recursive: true });
+      await buildSkill(body.name, tmpDir, skillsDir);
+
+      // Hot-load the built skill
+      const bundlePath = resolve(skillsDir, `${body.name}.js`);
+      const mod = await import(pathToFileURL(bundlePath).href + `?t=${Date.now()}`);
+      const def = mod.default?.default ?? mod.default;
+      if (def?.name && def?.actions) {
+        executor.register(def);
+        console.log(`Built and loaded skill: ${def.name}`);
+      }
+
+      const manifest = executor.getManifest(body.name);
+      json(res, 200, { ok: true, manifest });
+    } catch (err) {
+      json(res, 500, { error: `Build failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return;
+  }
+
+  // POST /reload/:name — hot-reload a skill from dist/skills/
+  const reloadMatch = url.pathname.match(/^\/reload\/([a-z0-9_-]+)$/);
+  if (reloadMatch && req.method === "POST") {
+    const name = reloadMatch[1];
+    try {
+      const bundlePath = resolve(__dirname, "skills", `${name}.js`);
+      const mod = await import(pathToFileURL(bundlePath).href + `?t=${Date.now()}`);
+      const def = mod.default?.default ?? mod.default;
+      if (def?.name && def?.actions) {
+        executor.register(def);
+        json(res, 200, { ok: true, manifest: executor.getManifest(name) });
+      } else {
+        json(res, 400, { error: `Invalid skill module: ${name}` });
+      }
+    } catch (err) {
+      json(res, 500, { error: `Reload failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
     return;
   }
 

@@ -140,6 +140,29 @@ public sealed class SkillService : ISkillService
         return new CapabilitiesResponse(caps, docs);
     }
 
+    public async Task<SkillDto?> SetRunTargetAsync(string name, string runTarget, CancellationToken ct = default)
+    {
+        var manifest = await GetRuntimeManifestAsync(name, ct);
+        if (manifest is null) return null;
+
+        var n = name.Trim().ToLowerInvariant();
+        var row = await _repository.GetByNameAsync(n, ct);
+        if (row is null)
+        {
+            row = await _repository.UpsertAsync(n, enabled: false, encryptedCredentials: null, ct);
+        }
+        row.RunTarget = runTarget == "runner" ? "runner" : null;
+        await _repository.SetRunTargetAsync(n, row.RunTarget, ct);
+        row = await _repository.GetByNameAsync(n, ct);
+        return ToDto(manifest, row);
+    }
+
+    public async Task<string> GetRunTargetAsync(string name, CancellationToken ct = default)
+    {
+        var row = await _repository.GetByNameAsync(name.Trim().ToLowerInvariant(), ct);
+        return row?.RunTarget ?? "cloud";
+    }
+
     private async Task<RuntimeManifest?> GetRuntimeManifestAsync(string name, CancellationToken ct)
     {
         var manifests = await _runtime.GetManifestsAsync(ct);
@@ -166,6 +189,7 @@ public sealed class SkillService : ISkillService
             Emoji: manifest.Emoji,
             Installed: row?.Enabled == true,
             Configured: !string.IsNullOrEmpty(row?.EncryptedCredentials),
+            RunTarget: row?.RunTarget ?? "cloud",
             CredentialFields: ToCredentialFields(manifest),
             LlmTools: tools);
     }

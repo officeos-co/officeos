@@ -12,7 +12,7 @@ import { useSkills, type Skill } from "@/hooks/useSkills";
 export default function SkillDetailPage() {
   const params = useParams<{ name: string }>();
   const name = params.name;
-  const { skills, loading, install, uninstall, putCredentials } = useSkills();
+  const { skills, loading, install, uninstall, putCredentials, setRunTarget } = useSkills();
   const [doc, setDoc] = useState<string | null>(null);
   const [docLoading, setDocLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -139,6 +139,55 @@ export default function SkillDetailPage() {
                 onSubmit={async (creds) => { await putCredentials(skill.name, creds); }}
                 configured={skill.configured}
               />
+            </div>
+          </section>
+        )}
+
+        {/* Execution target */}
+        {skill.installed && (
+          <section>
+            <h2 className="mb-3 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+              Execution target
+            </h2>
+            <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => handleAction(() => setRunTarget(skill.name, "cloud"))}
+                  disabled={busy}
+                  className={[
+                    "flex-1 rounded-lg border px-4 py-3 text-left text-sm transition-colors",
+                    skill.runTarget === "cloud"
+                      ? "border-white/40 bg-white/5"
+                      : "border-[var(--eaos-border)] hover:border-white/20",
+                  ].join(" ")}
+                >
+                  <div className="font-medium">Cloud</div>
+                  <div className="mt-0.5 text-xs text-[var(--eaos-text-muted)]">
+                    Runs on the platform skill-runtime
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleAction(() => setRunTarget(skill.name, "runner"))}
+                  disabled={busy}
+                  className={[
+                    "flex-1 rounded-lg border px-4 py-3 text-left text-sm transition-colors",
+                    skill.runTarget === "runner"
+                      ? "border-white/40 bg-white/5"
+                      : "border-[var(--eaos-border)] hover:border-white/20",
+                  ].join(" ")}
+                >
+                  <div className="font-medium">Self-hosted runner</div>
+                  <div className="mt-0.5 text-xs text-[var(--eaos-text-muted)]">
+                    Runs on any online runner in your network
+                  </div>
+                </button>
+              </div>
+              {skill.runTarget === "runner" && (
+                <p className="mt-3 text-xs text-yellow-300">
+                  Make sure at least one runner is online. If no runners are available when
+                  an agent calls this skill, the call will fail with a clear error.
+                </p>
+              )}
             </div>
           </section>
         )}

@@ -22,6 +22,7 @@ public sealed record SkillDto(
     string Emoji,
     bool Installed,
     bool Configured,
+    string RunTarget,
     IReadOnlyList<CredentialField> CredentialFields,
     IReadOnlyList<LlmToolDto> LlmTools);
 
@@ -39,6 +40,8 @@ public sealed record CapabilitiesResponse(
     IReadOnlyList<SkillDocDto> Skills);
 
 public sealed record PutCredentialsRequest(Dictionary<string, string> Credentials);
+
+public sealed record SetRunTargetRequest(string RunTarget);
 
 public sealed record SkillExecRequest(
     string Skill,

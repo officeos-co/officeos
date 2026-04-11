@@ -10,4 +10,5 @@ public interface ISkillCredentialRepository
         string? encryptedCredentials,
         CancellationToken ct = default);
     Task<bool> DeleteByNameAsync(string skillName, CancellationToken ct = default);
+    Task SetRunTargetAsync(string skillName, string? runTarget, CancellationToken ct = default);
 }

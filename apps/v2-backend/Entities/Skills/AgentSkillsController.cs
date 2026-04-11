@@ -9,13 +9,22 @@ public sealed class AgentSkillsController : ControllerBase
 {
     private readonly ISkillService _service;
     private readonly SkillRuntimeClient _runtime;
+    private readonly IRunnerRepository _runners;
+    private readonly IRunnerJobRepository _runnerJobs;
+    private readonly RunnerJobWaiter _jobWaiter;
 
     public AgentSkillsController(
         ISkillService service,
-        SkillRuntimeClient runtime)
+        SkillRuntimeClient runtime,
+        IRunnerRepository runners,
+        IRunnerJobRepository runnerJobs,
+        RunnerJobWaiter jobWaiter)
     {
         _service = service;
         _runtime = runtime;
+        _runners = runners;
+        _runnerJobs = runnerJobs;
+        _jobWaiter = jobWaiter;
     }
 
     [HttpGet("capabilities")]
@@ -26,16 +35,24 @@ public sealed class AgentSkillsController : ControllerBase
     }
 
     /// <summary>
-    /// Generic skill execution endpoint — dispatches to skill-runtime.
-    /// Used by agent pods via skill_exec tool.
+    /// Generic skill execution endpoint — routes to cloud skill-runtime
+    /// or a self-hosted runner based on the skill's run target setting.
     /// </summary>
     [HttpPost("skill-exec")]
     public async Task<IActionResult> SkillExec([FromBody] SkillExecRequest body, CancellationToken ct)
     {
+        var runTarget = await _service.GetRunTargetAsync(body.Skill, ct);
+
+        if (runTarget == "runner")
+        {
+            return await DispatchToRunnerAsync(body, ct);
+        }
+
+        // Cloud execution (default)
         var creds = await _service.GetDecryptedCredentialsAsync(body.Skill, ct);
         if (creds is null)
         {
-            return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured." });
+            return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured. Configure credentials on the Skills page, or set it to run on a self-hosted runner." });
         }
         try
         {
@@ -53,7 +70,60 @@ public sealed class AgentSkillsController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { error = $"Cloud skill-runtime unreachable: {ex.Message}" });
+        }
+    }
+
+    private async Task<IActionResult> DispatchToRunnerAsync(SkillExecRequest body, CancellationToken ct)
+    {
+        // Find any online runner
+        var onlineRunners = await _runners.GetOnlineRunnersAsync(ct);
+        if (onlineRunners.Count == 0)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                error = $"Skill '{body.Skill}' is configured to run on a self-hosted runner, but no runners are currently online. "
+                    + "Start a runner with `docker run -e PLATFORM_URL=... -e REGISTRATION_TOKEN=... harkro123/skill-runner`, "
+                    + "or switch the skill back to cloud execution on the Skills page.",
+            });
+        }
+
+        // Pick the runner with the most recent heartbeat (most responsive)
+        var runner = onlineRunners.OrderByDescending(r => r.LastHeartbeatAt).First();
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            skill = body.Skill,
+            action = body.Action,
+            @params = body.Params ?? new Dictionary<string, object>(),
+        });
+
+        var job = await _runnerJobs.CreateAsync(runner.Id, payload, TimeSpan.FromSeconds(60), ct);
+        var tcs = _jobWaiter.Register(job.Id);
+
+        try
+        {
+            var result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(30), ct);
+            if (result.Success)
+                return Ok(new { success = true, result = result.Result });
+            return UnprocessableEntity(new
+            {
+                success = false,
+                error = result.Error,
+                executedBy = "runner",
+                runnerName = runner.Name,
+            });
+        }
+        catch (TimeoutException)
+        {
+            _jobWaiter.Remove(job.Id);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new
+            {
+                error = $"Runner '{runner.Name}' did not complete the job within 30 seconds. "
+                    + "The runner may be overloaded, or the skill execution is taking too long. "
+                    + "Check the runner logs or try again.",
+            });
         }
     }
 

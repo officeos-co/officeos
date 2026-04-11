@@ -60,4 +60,20 @@ public sealed class SkillCredentialRepository : ISkillCredentialRepository
         await _db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task SetRunTargetAsync(string skillName, string? runTarget, CancellationToken ct = default)
+    {
+        var name = skillName.Trim().ToLowerInvariant();
+        var row = await _db.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
+        if (row is null)
+        {
+            row = new SkillCredentialRecord { SkillName = name, RunTarget = runTarget };
+            _db.SkillCredentials.Add(row);
+        }
+        else
+        {
+            row.RunTarget = runTarget;
+        }
+        await _db.SaveChangesAsync(ct);
+    }
 }

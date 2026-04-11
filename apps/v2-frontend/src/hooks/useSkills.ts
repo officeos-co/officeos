@@ -25,6 +25,7 @@ export type Skill = {
   emoji: string;
   installed: boolean;
   configured: boolean;
+  runTarget: "cloud" | "runner";
   credentialFields: CredentialField[];
   llmTools: LlmTool[];
 };
@@ -83,5 +84,20 @@ export function useSkills() {
     [],
   );
 
-  return { skills, loading, error, refresh, install, uninstall, putCredentials };
+  const setRunTarget = useCallback(
+    async (name: string, runTarget: "cloud" | "runner") => {
+      const updated = await apiFetch<Skill>(
+        `/api/skills/${encodeURIComponent(name)}/run-target`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ runTarget }),
+        },
+      );
+      setSkills((prev) => prev.map((s) => (s.name === updated.name ? updated : s)));
+      return updated;
+    },
+    [],
+  );
+
+  return { skills, loading, error, refresh, install, uninstall, putCredentials, setRunTarget };
 }

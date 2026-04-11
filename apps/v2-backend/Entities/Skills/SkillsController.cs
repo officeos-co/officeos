@@ -76,6 +76,19 @@ public sealed class SkillsController : ControllerBase
         }
     }
 
+    [HttpPut("{name}/run-target")]
+    public async Task<ActionResult<SkillDto>> SetRunTarget(
+        string name,
+        [FromBody] SetRunTargetRequest request,
+        CancellationToken ct)
+    {
+        if (request.RunTarget is not "cloud" and not "runner")
+            return BadRequest(new { error = "runTarget must be 'cloud' or 'runner'" });
+
+        var dto = await _service.SetRunTargetAsync(name, request.RunTarget, ct);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
     // ---------- user-auth capabilities (dashboard introspection) ----------
 
     [HttpGet("/api/capabilities")]

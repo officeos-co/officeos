@@ -1,13 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { SkillGridCard } from "@/components/SkillGridCard";
+import { UploadSkillOverlay } from "@/components/UploadSkillOverlay";
+import { GitHubSkillOverlay } from "@/components/GitHubSkillOverlay";
 import { useSkills } from "@/hooks/useSkills";
 
 export default function SkillsPage() {
   const { skills, loading, error } = useSkills();
   const router = useRouter();
+  const [showUpload, setShowUpload] = useState(false);
+  const [showGitHub, setShowGitHub] = useState(false);
 
   const installed = skills.filter((s) => s.installed).length;
 
@@ -20,16 +25,14 @@ export default function SkillsPage() {
 
       <div className="flex gap-3 px-8 pt-4">
         <button
-          disabled
-          className="rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-2 text-sm text-[var(--eaos-text-muted)] opacity-50 cursor-not-allowed"
-          title="Coming soon — connect a GitHub repo to install custom skills"
+          onClick={() => setShowGitHub(true)}
+          className="rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-2 text-sm text-[var(--eaos-text-muted)] hover:text-white hover:border-white/30 transition-colors"
         >
           Connect GitHub Repo
         </button>
         <button
-          disabled
-          className="rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-2 text-sm text-[var(--eaos-text-muted)] opacity-50 cursor-not-allowed"
-          title="Coming soon — upload a skill bundle"
+          onClick={() => setShowUpload(true)}
+          className="rounded-md border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-2 text-sm text-[var(--eaos-text-muted)] hover:text-white hover:border-white/30 transition-colors"
         >
           Upload Skill
         </button>
@@ -54,6 +57,9 @@ export default function SkillsPage() {
           </div>
         </div>
       )}
+
+      <UploadSkillOverlay open={showUpload} onClose={() => setShowUpload(false)} />
+      <GitHubSkillOverlay open={showGitHub} onClose={() => setShowGitHub(false)} />
     </div>
   );
 }
