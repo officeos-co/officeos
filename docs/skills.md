@@ -11,13 +11,13 @@ Agent sees:          skill_exec("notion search --query meetings")
                               ↓
                      CLI parser (Rust, deterministic)
                               ↓
-GraphQL query:       { notionSearch(query: "meetings") { id title url } }
+                     POST /api/agents/me/skill-exec (Bearer: agent-uuid)
                               ↓
-                     POST /api/graphql (Bearer: agent-uuid)
+                     Backend decrypts credentials from Postgres
                               ↓
-                     HotChocolate resolver → NotionSkill.SearchAsync()
+                     POST /execute → skill-runtime (Node.js)
                               ↓
-                     Notion REST API (with decrypted credentials)
+                     Notion REST API (with injected credentials)
                               ↓
                      Structured result back to agent
 ```
@@ -26,18 +26,20 @@ GraphQL query:       { notionSearch(query: "meetings") { id title url } }
 
 ### Three layers
 
-1. **Skill implementations** (`apps/v2-backend/Entities/Skills/Implementations/`) — C# classes that call vendor APIs. Each takes a request DTO + decrypted credentials + CancellationToken, returns typed result objects.
+1. **Skill packages** (`packages/skills/{name}/`) — TypeScript modules using `@harro/skill-sdk`. Each skill is fully self-contained: title, emoji, description, doc, credential field definitions, and action implementations all live in a single `skill.ts` file alongside a `SKILL.md` documentation file.
 
-2. **GraphQL gateway** (`apps/v2-backend/Entities/Skills/GraphQL/`) — HotChocolate query types that wrap the implementations. Each resolver fetches decrypted credentials from the DB and calls the skill method. Exposed at `POST /api/graphql` with agent-token auth.
+2. **Skill runtime** (`packages/skill-runtime/`) — Node.js service that bundles all skills via esbuild, exposes `/manifests` (skill metadata) and `/execute` (action dispatch). Receives credentials per-request from the backend — never stores them.
 
-3. **`skill_exec` tool** (`packages/zeroclaw-core/src/tools/skill_exec/`) — Rust tool registered on every agent. Parses CLI-style commands, caches the GraphQL schema via introspection, builds queries, and sends them to the backend.
+3. **Backend gateway** (`apps/v2-backend/Entities/Skills/`) — Proxies execution requests, manages credential encryption/storage, and serves the dashboard API. The backend has zero hardcoded skill knowledge — everything comes from the runtime's `/manifests` endpoint.
+
+4. **`skill_exec` tool** (`packages/zeroclaw-core/src/tools/skill_exec/`) — Rust tool registered on every agent. Parses CLI-style commands, discovers available skills via the capabilities endpoint, and dispatches execution through the backend.
 
 ### Discovery flow
 
 1. Agent boots with `ZEROCLAW_AGENT_ID`.
-2. On first `skill_exec` call, the tool fires a GraphQL introspection query against `/api/graphql`.
-3. The schema is cached for 5 minutes. `--help` at any level reads from cache (no HTTP).
-4. When a skill is installed/configured on the dashboard, the schema changes. The agent picks it up on the next cache refresh.
+2. Agent calls `GET /api/agents/me/capabilities` to discover installed skills and their tools.
+3. Skill documentation (SKILL.md) is included in the capabilities response and injected into the agent's context.
+4. When a skill is installed/configured on the dashboard, the capabilities change. The agent picks it up on the next call.
 
 ### Credential isolation
 
@@ -45,138 +47,139 @@ GraphQL query:       { notionSearch(query: "meetings") { id title url } }
 Dashboard admin configures Notion API key
   → encrypted with DataProtection, stored in Postgres SkillCredentials table
   → never sent to agent pods
-  → decrypted per-request inside GraphQL resolvers
-  → used to call Notion API server-side
+  → decrypted per-request in SkillService
+  → injected into skill-runtime /execute call
+  → used to call Notion API inside the skill
   → result returned to agent (no key in the response)
 ```
 
+## Skill SDK
+
+Skills are defined with `defineSkill()` from `@harro/skill-sdk`. A skill definition includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | Unique identifier (lowercase) |
+| `title` | `string` | Human-readable title for the dashboard |
+| `emoji` | `string` | Icon for dashboard display |
+| `description` | `string` | Short description of the skill's purpose |
+| `doc` | `string` | Markdown documentation (imported from SKILL.md) |
+| `credentials` | `Record<string, CredentialFieldDefinition>` | Credential fields with UI metadata |
+| `actions` | `Record<string, ActionDefinition>` | Map of action name → implementation |
+
+All fields are required. Credential fields specify `label`, `kind` (password/text/textarea), `required`, `placeholder`, and `help` — the dashboard renders forms directly from this metadata.
+
 ## Current skills
 
-| Skill  | Tools                                             | Vendor API                   |
-| ------ | ------------------------------------------------- | ---------------------------- |
-| Notion | `notion search`, `notion read_page`               | Notion REST API v1           |
-| GitHub | `github repos`, `github issues`, `github prs`     | GitHub REST API v3           |
-| Google | `google drive_search`, `google calendar_upcoming` | Google Drive + Calendar APIs |
+| Skill  | Actions                                                                                              | Vendor API                   |
+|--------|------------------------------------------------------------------------------------------------------|------------------------------|
+| Notion | search, read_page, create_page, list_blocks, add_block, update_block, delete_block, add_todo, update_todo, query_database | Notion REST API v1           |
+| GitHub | list_repos, list_issues, list_prs                                                                    | GitHub REST API v3           |
+| Google | drive_search, calendar_upcoming                                                                      | Google Drive + Calendar APIs |
 
 ## Adding a new skill
 
-### 1. Typed return objects
+### 1. Skill package
 
-Create `Entities/Skills/GraphQL/Types/JiraTypes.cs`:
+Create `packages/skills/jira/skill.ts`:
 
-```csharp
-public class JiraIssue
-{
-    public string? Key { get; init; }
-    public string? Summary { get; init; }
-    public string? Status { get; init; }
-    public string? Assignee { get; init; }
-}
-```
+```typescript
+import { defineSkill, z } from "@harro/skill-sdk";
+import doc from "./SKILL.md";
 
-### 2. Skill implementation
+export default defineSkill({
+  name: "jira",
+  title: "Jira",
+  emoji: "🎯",
+  description: "Search and manage Jira issues.",
+  doc,
 
-Create `Entities/Skills/Implementations/JiraSkill.cs`:
-
-```csharp
-public sealed class JiraSkill
-{
-    private readonly HttpClient _http;
-    public JiraSkill(HttpClient http) { _http = http; }
-
-    public async Task<List<JiraIssue>> SearchAsync(
-        JiraSearchRequest req,
-        IReadOnlyDictionary<string, string> creds,
-        CancellationToken ct = default)
-    {
-        var token = creds["api_token"];
-        var domain = creds["domain"];
-        // Call Jira REST API, parse, return typed objects
-    }
-}
-```
-
-### 3. Manifest
-
-Add to `SkillManifests.cs`:
-
-```csharp
-["jira"] = new SkillManifest(
-    Name: "jira",
-    Title: "Jira",
-    Description: "Search and manage Jira issues.",
-    Emoji: "🎯",
-    CredentialFields: new[] {
-        new CredentialField(Key: "api_token", Label: "API Token", Kind: "password"),
-        new CredentialField(Key: "domain", Label: "Domain", Kind: "text", Placeholder: "company.atlassian.net"),
+  credentials: {
+    api_token: {
+      label: "API Token",
+      kind: "password",
+      placeholder: "ATATT3x...",
+      help: "Create an API token at https://id.atlassian.com/manage-profile/security/api-tokens",
     },
-    LlmTools: new[] { /* kept for admin UI display */ }),
+    domain: {
+      label: "Atlassian Domain",
+      kind: "text",
+      placeholder: "company.atlassian.net",
+    },
+  },
+
+  actions: {
+    search: {
+      description: "Search Jira issues by JQL query.",
+      params: z.object({
+        jql: z.string().describe("JQL query string"),
+        max_results: z.number().min(1).max(100).default(20),
+      }),
+      returns: z.array(z.object({
+        key: z.string(),
+        summary: z.string(),
+        status: z.string(),
+        assignee: z.string().nullable(),
+      })),
+      execute: async (params, ctx) => {
+        // Call Jira REST API using ctx.credentials and ctx.fetch
+      },
+    },
+  },
+});
 ```
 
-### 4. GraphQL resolver
+### 2. Documentation
 
-Create `Entities/Skills/GraphQL/JiraQueries.cs`:
+Create `packages/skills/jira/SKILL.md` with CLI usage examples, parameter tables, workflow guidance, and safety notes. This file is injected into the agent's context.
 
-```csharp
-[ExtendObjectType("Query")]
-public class JiraQueries
+### 3. Package manifest
+
+Create `packages/skills/jira/package.json`:
+
+```json
 {
-    [GraphQLDescription("Search Jira issues")]
-    public async Task<List<JiraIssue>> JiraSearch(
-        [Service] JiraSkill jira,
-        [Service] ISkillService skills,
-        string jql,
-        int maxResults = 20,
-        CancellationToken ct = default)
-    {
-        var creds = await skills.GetDecryptedCredentialsAsync("jira", ct)
-            ?? throw new GraphQLException("Jira not configured");
-        return await jira.SearchAsync(new(jql, maxResults), creds, ct);
-    }
+  "name": "@harro/skill-jira",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "skill.ts",
+  "dependencies": {
+    "@harro/skill-sdk": "file:../../skill-sdk"
+  }
 }
 ```
 
-### 5. Documentation
+### 4. Build
 
-Create `Entities/Skills/Docs/jira.md` with tool descriptions, parameter details, and usage patterns.
-
-### 6. Registration
-
-In `Program.cs`:
-
-```csharp
-builder.Services.AddHttpClient<JiraSkill>();
-// In AddGraphQLServer():
-.AddTypeExtension<JiraQueries>()
+```bash
+cd packages/skill-runtime && npm run build
 ```
 
-### 7. Done
+The build script auto-discovers skill packages and bundles them. No backend code changes needed — the runtime's `/manifests` endpoint exposes the new skill, and the backend's `SkillService` picks it up automatically.
 
-No DB migration. No zeroclaw changes. The agent discovers the new skill automatically via GraphQL introspection within 5 minutes (or on next `skill_exec("--help")` after cache expiry).
+### 5. Done
 
-## Agent CLI experience
+No C# code. No DB migration. No GraphQL resolvers. The dashboard shows the new skill with its credential form, and agents discover it via the capabilities endpoint.
 
-```
-skill_exec("--help")
-→ Available skills:
-    notion     actions: search, read_page
-    github     actions: repos, issues, prs
-    google     actions: drive_search, calendar_upcoming
+## Backend structure (`Entities/Skills/`)
 
-skill_exec("notion --help")
-→ notion search — Search the Notion workspace for pages
-    --query STRING        (required) Free-text search query
-    --page_size INT       Max results (1-100), default 10
-
-  notion read_page — Read a page's content as plain text
-    --page_id STRING      (required) Page UUID from search results
-
-skill_exec("notion search --query 'project plan' --page_size 5")
-→ { "notionSearch": { "results": [ { "id": "abc", "title": "Q2 Project Plan", ... } ] } }
-```
+| File | Responsibility |
+|------|---------------|
+| `SkillsController.cs` | Dashboard REST API (`/api/skills`) — list, get, install, uninstall, credentials, doc |
+| `AgentSkillsController.cs` | Agent pod API (`/api/agents/me`) — capabilities, skill-exec |
+| `ISkillService.cs` / `SkillService.cs` | Business logic — merges runtime manifests with DB state |
+| `ISkillCredentialRepository.cs` / `SkillCredentialRepository.cs` | Postgres CRUD for encrypted credentials |
+| `SkillCredentialProtector.cs` | DataProtection wrapper for credential encryption |
+| `SkillRuntimeClient.cs` | HTTP client to the skill-runtime service |
+| `SkillRuntimeModels.cs` | Deserialization models for runtime responses |
+| `SkillDto.cs` | API DTOs and request/response records |
+| `AgentTokenAuthAttribute.cs` | Agent pod auth (Bearer UUID) |
+| `AgentBackendTokenProtector.cs` | Backend token encryption |
+| `GraphQL/` | Dynamic GraphQL schema from runtime manifests (SkillTypeModule) |
 
 ## Global vs per-agent
 
 Skills are currently **global** — all agents see all configured skills. There's no per-agent scoping. The `SkillCredentials` table has no `AgentId` column.
 
-To add per-agent skills in the future: add `AgentId` FK to `SkillCredentialRecord`, filter in the GraphQL auth interceptor, and add a per-agent skill config UI on the agent detail page.
+To add per-agent skills in the future: add `AgentId` FK to `SkillCredentialRecord`, filter in the capabilities endpoint, and add a per-agent skill config UI on the agent detail page.
