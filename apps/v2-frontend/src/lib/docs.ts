@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const DOCS_DIR = path.resolve(process.cwd(), "..", "..", "docs");
+const DOCS_DIR = path.resolve(process.cwd(), "docs");
 
 export type DocEntry = {
   slug: string;
