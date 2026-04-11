@@ -13,17 +13,20 @@ public sealed class AuthController : ControllerBase
     private readonly IUserRepository _users;
     private readonly ISessionRepository _sessions;
     private readonly IHttpClientFactory _httpFactory;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         GoogleOAuthConfig oauth,
         IUserRepository users,
         ISessionRepository sessions,
-        IHttpClientFactory httpFactory)
+        IHttpClientFactory httpFactory,
+        ILogger<AuthController> logger)
     {
         _oauth = oauth;
         _users = users;
         _sessions = sessions;
         _httpFactory = httpFactory;
+        _logger = logger;
     }
 
     [HttpGet("google")]
@@ -105,11 +108,14 @@ public sealed class AuthController : ControllerBase
 
             // Upsert user
             var user = await _users.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
+            _logger.LogInformation("OAuth: user upserted {Email} ({UserId})", email, user.Id);
 
             // Create session
             var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
             var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
             await _sessions.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
+            _logger.LogInformation("OAuth: session created for {Email}, hash prefix {HashPrefix}...",
+                email, tokenHash[..8]);
 
             Response.Cookies.Append("eaos-session", sessionToken, new CookieOptions
             {
@@ -120,6 +126,7 @@ public sealed class AuthController : ControllerBase
                 Path = "/",
             });
 
+            _logger.LogInformation("OAuth: login complete for {Email}, redirecting to /", email);
             return Redirect("/");
         }
         catch (Exception ex)
@@ -144,8 +151,12 @@ public sealed class AuthController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
+        var hasCookie = Request.Cookies.ContainsKey("eaos-session");
         if (HttpContext.Items["User"] is not UserRecord user)
+        {
+            _logger.LogWarning("GET /auth/me → 401 (cookie present: {HasCookie})", hasCookie);
             return Unauthorized(new { error = "Not authenticated" });
+        }
 
         return Ok(new
         {

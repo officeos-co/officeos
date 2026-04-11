@@ -85,6 +85,7 @@ that registers back to our platform.
 ## Components
 
 ### 1. Registration / handshake protocol
+
 - Self-hosted runtime starts up, authenticates with our backend using a
   customer-issued token
 - Sends its skill manifests (same format as cloud skills)
@@ -92,12 +93,14 @@ that registers back to our platform.
 - Heartbeat to track online/offline status
 
 ### 2. Secure tunnel
+
 - Customer's skill-runtime establishes an outbound-only tunnel to our backend
 - Options: Cloudflare Tunnel, Tailscale, or our own WebSocket-based relay
 - No customer firewall changes required — all connections are outbound
 - TLS everywhere, mutual auth via the registration token
 
 ### 3. Skill execution flow
+
 - Agent discovers remote skills via GraphQL introspection (same as cloud skills)
 - Agent calls `skill_exec` → backend routes to the remote skill-runtime
   via the tunnel
@@ -105,6 +108,7 @@ that registers back to our platform.
 - Result flows back through the tunnel to the agent
 
 ### 4. Customer deployment artifact
+
 - Single Docker image: `harkro123/skill-runtime:latest`
 - Customer bundles their custom skills into it (or mounts as volume)
 - Config: just our platform URL + registration token
@@ -166,55 +170,55 @@ Mock agent client (HttpClient)  ← simulates agent pod calling backend
 
 ### Test cases: Auth flow
 
-| Test | What it verifies |
-|------|-----------------|
-| `GET /api/auth/me` without cookie → 401 | Middleware skips, controller returns unauthorized |
-| `GET /api/auth/google` → redirect to Google | OAuth URL is well-formed with client ID, scopes, state |
-| Full OAuth round-trip (mocked Google) | Exchange code → upsert user → create session → cookie set |
-| `POST /api/auth/logout` → session deleted | Cookie cleared, subsequent /me returns 401 |
-| Session expiry | Expired session rejected by middleware |
+| Test                                        | What it verifies                                          |
+| ------------------------------------------- | --------------------------------------------------------- |
+| `GET /api/auth/me` without cookie → 401     | Middleware skips, controller returns unauthorized         |
+| `GET /api/auth/google` → redirect to Google | OAuth URL is well-formed with client ID, scopes, state    |
+| Full OAuth round-trip (mocked Google)       | Exchange code → upsert user → create session → cookie set |
+| `POST /api/auth/logout` → session deleted   | Cookie cleared, subsequent /me returns 401                |
+| Session expiry                              | Expired session rejected by middleware                    |
 
 ### Test cases: Agent lifecycle
 
-| Test | What it verifies |
-|------|-----------------|
-| `POST /api/agents` → creates agent | Record in DB, status "pending" or "unknown" |
-| `GET /api/agents` → lists agents | Returns all non-deleted agents |
-| `DELETE /api/agents/{id}` → soft delete | IsDeleted=true, subsequent GET excludes it |
+| Test                                    | What it verifies                            |
+| --------------------------------------- | ------------------------------------------- |
+| `POST /api/agents` → creates agent      | Record in DB, status "pending" or "unknown" |
+| `GET /api/agents` → lists agents        | Returns all non-deleted agents              |
+| `DELETE /api/agents/{id}` → soft delete | IsDeleted=true, subsequent GET excludes it  |
 
 ### Test cases: Skill execution (the big one)
 
-| Test | What it verifies |
-|------|-----------------|
-| Mock agent calls `GET /api/agents/me/capabilities` | Returns installed+configured skills with tool specs |
-| Mock agent calls `POST /api/agents/me/skill-exec` (cloud) | Routes to skill-runtime, returns result |
-| Skill not installed → 409 with message | Clear error, suggests configuring or using runner |
-| Skill set to runner target, no runners online → 503 | Error includes "no runners online" + how to fix |
-| Skill set to runner target, runner online → dispatches | Job created, waiter resolves when result posted |
-| Runner job timeout → 504 | TCS times out, meaningful error returned |
+| Test                                                      | What it verifies                                    |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| Mock agent calls `GET /api/agents/me/capabilities`        | Returns installed+configured skills with tool specs |
+| Mock agent calls `POST /api/agents/me/skill-exec` (cloud) | Routes to skill-runtime, returns result             |
+| Skill not installed → 409 with message                    | Clear error, suggests configuring or using runner   |
+| Skill set to runner target, no runners online → 503       | Error includes "no runners online" + how to fix     |
+| Skill set to runner target, runner online → dispatches    | Job created, waiter resolves when result posted     |
+| Runner job timeout → 504                                  | TCS times out, meaningful error returned            |
 
 ### Test cases: Runner flow
 
-| Test | What it verifies |
-|------|-----------------|
-| `POST /api/runners` → creates runner | Returns registration token, hash stored |
-| `POST /api/runner/register` with valid token | Issues auth token, status → online |
-| `POST /api/runner/register` with invalid token → 401 | Rejected |
-| `POST /api/runner/register` twice → 409 | Already registered |
-| `GET /api/runner/jobs` with no pending jobs → 204 | No content |
+| Test                                                       | What it verifies                              |
+| ---------------------------------------------------------- | --------------------------------------------- |
+| `POST /api/runners` → creates runner                       | Returns registration token, hash stored       |
+| `POST /api/runner/register` with valid token               | Issues auth token, status → online            |
+| `POST /api/runner/register` with invalid token → 401       | Rejected                                      |
+| `POST /api/runner/register` twice → 409                    | Already registered                            |
+| `GET /api/runner/jobs` with no pending jobs → 204          | No content                                    |
 | Full round-trip: create job → runner claims → posts result | RunnerJobWaiter completes, skill_exec returns |
-| `GET /api/runner/skills` → lists ready custom skills | Only BuildStatus=ready skills returned |
-| Heartbeat updates timestamp | LastHeartbeatAt refreshed |
-| RunnerJobTimeoutService marks stale runners offline | Runner with old heartbeat → status "offline" |
+| `GET /api/runner/skills` → lists ready custom skills       | Only BuildStatus=ready skills returned        |
+| Heartbeat updates timestamp                                | LastHeartbeatAt refreshed                     |
+| RunnerJobTimeoutService marks stale runners offline        | Runner with old heartbeat → status "offline"  |
 
 ### Test cases: Custom skill upload
 
-| Test | What it verifies |
-|------|-----------------|
+| Test                                       | What it verifies                             |
+| ------------------------------------------ | -------------------------------------------- |
 | Upload valid zip → stored in MinIO + built | CustomSkillRecord created, BuildStatus=ready |
-| Upload zip without skill.ts → 400 | Validation catches missing entry point |
-| Upload non-zip → 400 | File type validation |
-| Delete custom skill → removed from DB + S3 | Cleanup works |
+| Upload zip without skill.ts → 400          | Validation catches missing entry point       |
+| Upload non-zip → 400                       | File type validation                         |
+| Delete custom skill → removed from DB + S3 | Cleanup works                                |
 
 ## Phase 2: Mock agent client
 
@@ -327,3 +331,7 @@ Assert.True(result.Success);
 <PackageReference Include="WireMock.Net" Version="1.*" />
 <PackageReference Include="Testcontainers.Minio" Version="4.*" />
 ```
+
+# Logging and error handling
+
+We want full logging troughout everything. We should find a guide on logging and error handling and how to do that extensivelyt.
