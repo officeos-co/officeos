@@ -25,7 +25,7 @@ function formatTs(ts?: string): string {
 function typeColor(type: string): string {
   switch (type.toLowerCase()) {
     case "error":
-      return "border-red-500/40 bg-red-500/10 text-red-300";
+      return "border-red-500/40 bg-destructive/5 text-destructive";
     case "warn":
     case "warning":
       return "border-yellow-500/40 bg-yellow-500/10 text-yellow-300";
@@ -39,7 +39,7 @@ function typeColor(type: string): string {
     case "agent_end":
       return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
     default:
-      return "border-[var(--eaos-border)] bg-black/30 text-[var(--eaos-text-muted)]";
+      return "border-border bg-black/30 text-muted-foreground";
   }
 }
 
@@ -188,12 +188,12 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
   };
 
   return (
-    <div className="mx-8 my-6 flex h-[calc(100vh-260px)] flex-col rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]">
-      <div className="flex items-center justify-between border-b border-[var(--eaos-border)] px-4 py-2 text-xs">
+    <div className="mx-8 my-6 flex h-[calc(100vh-260px)] flex-col rounded-xl border border-border bg-card">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4" />
           <span className="font-medium uppercase tracking-wider">Live logs</span>
-          <span className="font-mono text-[10px] text-[var(--eaos-text-muted)]">
+          <span className="font-mono text-[10px] text-muted-foreground">
             {filtered.length} events
           </span>
         </div>
@@ -204,7 +204,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
                 ? "rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-300"
                 : reconnecting
                   ? "rounded-full border border-yellow-500/40 px-2 py-0.5 text-yellow-300"
-                  : "rounded-full border border-[var(--eaos-border)] px-2 py-0.5 text-[var(--eaos-text-muted)]"
+                  : "rounded-full border border-border px-2 py-0.5 text-muted-foreground"
             }
           >
             {connected ? "streaming" : reconnecting ? "reconnecting…" : "disconnected"}
@@ -212,7 +212,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
           <button
             type="button"
             onClick={() => setPaused((p) => !p)}
-            className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-2 py-1 hover:bg-white hover:text-black"
+            className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-white hover:text-black"
           >
             {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
             {paused ? "Resume" : "Pause"}
@@ -221,7 +221,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             <button
               type="button"
               onClick={jumpToBottom}
-              className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-2 py-1 hover:bg-white hover:text-black"
+              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-white hover:text-black"
             >
               <ArrowDown className="h-3 w-3" />
               Jump
@@ -231,9 +231,9 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
       </div>
 
       {allTypes.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-[var(--eaos-border)] px-4 py-2 text-[11px]">
-          <Filter className="h-3 w-3 flex-shrink-0 text-[var(--eaos-text-muted)]" />
-          <span className="flex-shrink-0 uppercase tracking-wider text-[var(--eaos-text-muted)]">
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-border px-4 py-2 text-[11px]">
+          <Filter className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+          <span className="flex-shrink-0 uppercase tracking-wider text-muted-foreground">
             Filter:
           </span>
           {allTypes.map((type) => {
@@ -246,7 +246,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
                 className={`flex-shrink-0 rounded border px-2 py-0.5 transition-colors ${
                   active
                     ? "border-white bg-white text-black"
-                    : "border-[var(--eaos-border)] text-[var(--eaos-text-muted)] hover:text-white"
+                    : "border-border text-muted-foreground hover:text-white"
                 }`}
               >
                 {type}
@@ -257,7 +257,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             <button
               type="button"
               onClick={() => setTypeFilters(new Set())}
-              className="flex-shrink-0 text-[var(--eaos-text-muted)] hover:text-white"
+              className="flex-shrink-0 text-muted-foreground hover:text-white"
             >
               clear
             </button>
@@ -266,7 +266,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
       )}
 
       {error && (
-        <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
@@ -277,7 +277,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
         className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3"
       >
         {filtered.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-sm text-[var(--eaos-text-muted)]">
+          <div className="flex h-full flex-col items-center justify-center text-sm text-muted-foreground">
             <Activity className="mb-2 h-8 w-8" />
             {paused ? "Stream paused." : "Waiting for events…"}
           </div>
@@ -298,9 +298,9 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             return (
               <div
                 key={entry.id}
-                className="flex items-start gap-3 rounded-md border border-[var(--eaos-border)] bg-black/20 px-3 py-2 text-xs"
+                className="flex items-start gap-3 rounded-md border border-border bg-black/20 px-3 py-2 text-xs"
               >
-                <span className="flex-shrink-0 font-mono text-[10px] text-[var(--eaos-text-muted)]">
+                <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground">
                   {formatTs(event.timestamp)}
                 </span>
                 <span
@@ -308,7 +308,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
                 >
                   {event.type}
                 </span>
-                <p className="min-w-0 break-words text-[var(--eaos-text-muted)]">
+                <p className="min-w-0 break-words text-muted-foreground">
                   {typeof detail === "string" ? detail : JSON.stringify(detail)}
                 </p>
               </div>

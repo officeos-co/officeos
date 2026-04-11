@@ -29,7 +29,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
     ? skill.configured
       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
       : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-    : "border-[var(--eaos-border)] bg-black/30 text-[var(--eaos-text-muted)]";
+    : "border-border bg-black/30 text-muted-foreground";
 
   const statusLabel = skill.installed
     ? skill.configured
@@ -38,20 +38,20 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
     : "not installed";
 
   return (
-    <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]">
+    <div className="rounded-xl border border-border bg-card">
       <div className="flex items-start justify-between gap-3 px-4 py-4">
         <div className="flex items-start gap-3">
           <span className="text-2xl">{skill.emoji}</span>
           <div className="min-w-0">
             <div className="text-sm font-medium">{skill.title}</div>
-            <div className="mt-0.5 text-xs text-[var(--eaos-text-muted)]">
+            <div className="mt-0.5 text-xs text-muted-foreground">
               {skill.description}
             </div>
             <div className="mt-2 flex items-center gap-2">
               <span className={`rounded border px-2 py-0.5 text-[10px] ${statusChip}`}>
                 {statusLabel}
               </span>
-              <span className="text-[10px] text-[var(--eaos-text-muted)]">
+              <span className="text-[10px] text-muted-foreground">
                 {skill.llmTools.length} tool{skill.llmTools.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -84,7 +84,7 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="rounded-md border border-[var(--eaos-border)] p-1.5 hover:bg-black/40"
+              className="rounded-md border border-border p-1.5 hover:bg-black/40"
             >
               {expanded ? (
                 <ChevronUp className="h-3.5 w-3.5" />
@@ -97,9 +97,9 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
       </div>
 
       {expanded && skill.installed && (
-        <div className="border-t border-[var(--eaos-border)] px-4 py-4">
+        <div className="border-t border-border px-4 py-4">
           <div className="mb-4">
-            <div className="mb-2 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+            <div className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
               Credentials
             </div>
             <SkillCredentialsForm
@@ -110,17 +110,17 @@ export function SkillCard({ skill, onInstall, onUninstall, onPutCredentials }: P
           </div>
 
           <div>
-            <div className="mb-2 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+            <div className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
               Tools ({skill.llmTools.length})
             </div>
             <div className="space-y-2">
               {skill.llmTools.map((tool) => (
                 <div
                   key={tool.name}
-                  className="rounded-md border border-[var(--eaos-border)] bg-black/20 px-3 py-2"
+                  className="rounded-md border border-border bg-black/20 px-3 py-2"
                 >
                   <div className="font-mono text-xs">{tool.name}</div>
-                  <div className="mt-0.5 text-[11px] text-[var(--eaos-text-muted)]">
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">
                     {tool.description}
                   </div>
                 </div>

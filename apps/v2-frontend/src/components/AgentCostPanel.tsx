@@ -56,11 +56,11 @@ export function AgentCostPanel({ agent }: { agent: Agent }) {
   }, [agent.id]);
 
   if (loading && !cost) {
-    return <div className="mx-8 my-6 text-sm text-[var(--eaos-text-muted)]">Loading cost…</div>;
+    return <div className="mx-8 my-6 text-sm text-muted-foreground">Loading cost…</div>;
   }
   if (error && !cost) {
     return (
-      <div className="mx-8 my-6 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+      <div className="mx-8 my-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         {error}
       </div>
     );
@@ -72,11 +72,11 @@ export function AgentCostPanel({ agent }: { agent: Agent }) {
   return (
     <div className="mx-8 my-6">
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm text-[var(--eaos-text-muted)]">Usage and spend for this agent</div>
+        <div className="text-sm text-muted-foreground">Usage and spend for this agent</div>
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh
@@ -102,18 +102,18 @@ export function AgentCostPanel({ agent }: { agent: Agent }) {
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]">
-        <div className="border-b border-[var(--eaos-border)] px-4 py-3 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="border-b border-border px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
           Breakdown by model
         </div>
         {byModel.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-[var(--eaos-text-muted)]">
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
             No usage recorded yet.
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="text-left text-[var(--eaos-text-muted)]">
-              <tr className="border-b border-[var(--eaos-border)]">
+            <thead className="text-left text-muted-foreground">
+              <tr className="border-b border-border">
                 <th className="px-4 py-3 font-normal">Model</th>
                 <th className="px-4 py-3 font-normal">Requests</th>
                 <th className="px-4 py-3 font-normal">Tokens</th>
@@ -124,11 +124,11 @@ export function AgentCostPanel({ agent }: { agent: Agent }) {
               {byModel.map((m) => (
                 <tr
                   key={m.model}
-                  className="border-b border-[var(--eaos-border)] last:border-b-0"
+                  className="border-b border-border last:border-b-0"
                 >
                   <td className="px-4 py-3 font-mono text-xs">{m.model}</td>
-                  <td className="px-4 py-3 text-[var(--eaos-text-muted)]">{fmtNum(m.request_count)}</td>
-                  <td className="px-4 py-3 text-[var(--eaos-text-muted)]">{fmtNum(m.total_tokens)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{fmtNum(m.request_count)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{fmtNum(m.total_tokens)}</td>
                   <td className="px-4 py-3">{fmtUsd(m.cost_usd)}</td>
                 </tr>
               ))}
@@ -150,8 +150,8 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
         {icon}
         {label}
       </div>

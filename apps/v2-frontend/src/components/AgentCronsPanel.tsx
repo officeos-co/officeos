@@ -137,20 +137,20 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
   };
 
   if (jobs === null) {
-    return <div className="mx-8 my-6 text-sm text-[var(--eaos-text-muted)]">Loading cron jobs…</div>;
+    return <div className="mx-8 my-6 text-sm text-muted-foreground">Loading cron jobs…</div>;
   }
 
   return (
     <div className="mx-8 my-6">
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm text-[var(--eaos-text-muted)]">
+        <div className="text-sm text-muted-foreground">
           {jobs.length} job{jobs.length === 1 ? "" : "s"}
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={load}
-            className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
           >
             <RefreshCw className="h-3 w-3" />
             Refresh
@@ -158,7 +158,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
           <button
             type="button"
             onClick={() => setCreating((c) => !c)}
-            className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-white hover:text-black"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-white hover:text-black"
           >
             <Plus className="h-3 w-3" />
             New job
@@ -167,38 +167,38 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
       </div>
 
       {error && (
-        <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {creating && (
-        <div className="mb-4 rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
+        <div className="mb-4 rounded-xl border border-border bg-card p-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <input
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder="Name (optional)"
-              className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 text-sm outline-none focus:border-white"
+              className="rounded-md border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-white"
             />
             <input
               value={formSchedule}
               onChange={(e) => setFormSchedule(e.target.value)}
               placeholder="Schedule (cron expr)"
-              className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 font-mono text-sm outline-none focus:border-white"
+              className="rounded-md border border-border bg-black/40 px-3 py-2 font-mono text-sm outline-none focus:border-white"
             />
             <input
               value={formCommand}
               onChange={(e) => setFormCommand(e.target.value)}
               placeholder="Command or prompt"
-              className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 text-sm outline-none focus:border-white"
+              className="rounded-md border border-border bg-black/40 px-3 py-2 text-sm outline-none focus:border-white"
             />
           </div>
           <div className="mt-3 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setCreating(false)}
-              className="rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40"
+              className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
             >
               Cancel
             </button>
@@ -215,15 +215,15 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
       )}
 
       {jobs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-6 py-12 text-center text-sm text-[var(--eaos-text-muted)]">
+        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
           No cron jobs scheduled.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
-          <div className="overflow-hidden rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
             <table className="w-full text-sm">
-              <thead className="text-left text-[var(--eaos-text-muted)]">
-                <tr className="border-b border-[var(--eaos-border)]">
+              <thead className="text-left text-muted-foreground">
+                <tr className="border-b border-border">
                   <th className="px-4 py-3 font-normal">Name</th>
                   <th className="px-4 py-3 font-normal">Schedule</th>
                   <th className="px-4 py-3 font-normal">Next run</th>
@@ -238,7 +238,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                     <tr
                       key={j.id}
                       onClick={() => setSelected(j.id)}
-                      className={`cursor-pointer border-b border-[var(--eaos-border)] last:border-b-0 hover:bg-black/30 ${
+                      className={`cursor-pointer border-b border-border last:border-b-0 hover:bg-black/30 ${
                         isActive ? "bg-black/40" : ""
                       }`}
                     >
@@ -247,18 +247,18 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                           {j.enabled ? (
                             <Play className="h-3 w-3 text-emerald-400" />
                           ) : (
-                            <Pause className="h-3 w-3 text-[var(--eaos-text-muted)]" />
+                            <Pause className="h-3 w-3 text-muted-foreground" />
                           )}
-                          <span>{j.name ?? <em className="text-[var(--eaos-text-muted)]">unnamed</em>}</span>
+                          <span>{j.name ?? <em className="text-muted-foreground">unnamed</em>}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-[var(--eaos-text-muted)]">
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                         {j.expression}
                       </td>
-                      <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {formatDate(j.next_run)}
                       </td>
-                      <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {j.last_status ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -268,7 +268,7 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                             e.stopPropagation();
                             remove(j.id);
                           }}
-                          className="rounded border border-red-500/40 p-1 text-red-300 hover:bg-red-500/20"
+                          className="rounded border border-red-500/40 p-1 text-destructive hover:bg-red-500/20"
                           aria-label="Delete"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -281,23 +281,23 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
             </table>
           </div>
 
-          <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
-            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
               <Clock className="h-3 w-3" />
               Recent runs
             </div>
             {!selected ? (
-              <div className="text-xs text-[var(--eaos-text-muted)]">Select a job to view its runs.</div>
+              <div className="text-xs text-muted-foreground">Select a job to view its runs.</div>
             ) : loadingRuns ? (
-              <div className="text-xs text-[var(--eaos-text-muted)]">Loading…</div>
+              <div className="text-xs text-muted-foreground">Loading…</div>
             ) : runs.length === 0 ? (
-              <div className="text-xs text-[var(--eaos-text-muted)]">No runs yet.</div>
+              <div className="text-xs text-muted-foreground">No runs yet.</div>
             ) : (
               <ul className="space-y-2">
                 {runs.map((r) => (
                   <li
                     key={r.id}
-                    className="rounded border border-[var(--eaos-border)] bg-black/20 p-2 text-xs"
+                    className="rounded border border-border bg-black/20 p-2 text-xs"
                   >
                     <div className="flex items-center justify-between">
                       <span
@@ -305,18 +305,18 @@ export function AgentCronsPanel({ agent }: { agent: Agent }) {
                           r.status === "ok" || r.status === "success"
                             ? "border-emerald-500/40 text-emerald-300"
                             : r.status === "error" || r.status === "failed"
-                            ? "border-red-500/40 text-red-300"
-                            : "border-[var(--eaos-border)] text-[var(--eaos-text-muted)]"
+                            ? "border-red-500/40 text-destructive"
+                            : "border-border text-muted-foreground"
                         }`}
                       >
                         {r.status}
                       </span>
-                      <span className="text-[10px] text-[var(--eaos-text-muted)]">
+                      <span className="text-[10px] text-muted-foreground">
                         {formatDate(r.started_at)}
                       </span>
                     </div>
                     {r.output && (
-                      <pre className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words text-[10px] text-[var(--eaos-text-muted)]">
+                      <pre className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words text-[10px] text-muted-foreground">
                         {r.output}
                       </pre>
                     )}

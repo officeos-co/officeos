@@ -42,20 +42,20 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
   }, [agent.id]);
 
   if (tools === null) {
-    return <div className="mx-8 my-6 text-sm text-[var(--eaos-text-muted)]">Loading tools…</div>;
+    return <div className="mx-8 my-6 text-sm text-muted-foreground">Loading tools…</div>;
   }
 
   return (
     <div className="mx-8 my-6">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-[var(--eaos-text-muted)]">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Wrench className="h-4 w-4" />
           {tools.length} tool{tools.length === 1 ? "" : "s"} registered
         </div>
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh
@@ -63,13 +63,13 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
       </div>
 
       {error && (
-        <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {tools.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-6 py-12 text-center text-sm text-[var(--eaos-text-muted)]">
+        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
           No tools available.
         </div>
       ) : (
@@ -79,7 +79,7 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
             return (
               <div
                 key={tool.name}
-                className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]"
+                className="rounded-xl border border-border bg-card"
               >
                 <button
                   type="button"
@@ -88,16 +88,16 @@ export function AgentToolsPanel({ agent }: { agent: Agent }) {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-sm">{tool.name}</div>
-                    <div className="mt-0.5 text-xs text-[var(--eaos-text-muted)]">
+                    <div className="mt-0.5 text-xs text-muted-foreground">
                       {tool.description || "(no description)"}
                     </div>
                   </div>
-                  <span className="flex-shrink-0 text-[var(--eaos-text-muted)]">
+                  <span className="flex-shrink-0 text-muted-foreground">
                     {isOpen ? "−" : "+"}
                   </span>
                 </button>
                 {isOpen && tool.parameters !== undefined && (
-                  <pre className="max-h-60 overflow-auto border-t border-[var(--eaos-border)] bg-black/20 p-3 font-mono text-[11px] text-[var(--eaos-text-muted)]">
+                  <pre className="max-h-60 overflow-auto border-t border-border bg-black/20 p-3 font-mono text-[11px] text-muted-foreground">
                     {JSON.stringify(tool.parameters, null, 2)}
                   </pre>
                 )}

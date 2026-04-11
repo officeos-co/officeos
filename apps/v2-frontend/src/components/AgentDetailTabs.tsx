@@ -55,7 +55,7 @@ export function AgentDetailTabs({ agent }: Props) {
 
   return (
     <div>
-      <div className="sticky top-[96px] z-0 flex flex-wrap gap-1 border-b border-[var(--eaos-border)] bg-[var(--eaos-bg)] px-8">
+      <div className="sticky top-[96px] z-0 flex flex-wrap gap-1 border-b border-border bg-background px-8">
         {tabs.map((t) => {
           const isActive = t.id === active;
           const disabled = !isAlwaysOn(t.id) && !running;
@@ -68,9 +68,9 @@ export function AgentDetailTabs({ agent }: Props) {
                 "-mb-px border-b-2 px-4 py-3 text-sm transition-colors",
                 isActive
                   ? "border-white text-white"
-                  : "border-transparent text-[var(--eaos-text-muted)] hover:text-white",
+                  : "border-transparent text-muted-foreground hover:text-white",
                 disabled
-                  ? "cursor-not-allowed opacity-40 hover:text-[var(--eaos-text-muted)]"
+                  ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
                   : "",
               ].join(" ")}
               title={disabled ? "Available once the agent pod is running" : undefined}
@@ -114,8 +114,8 @@ function OverviewPanel({ agent }: { agent: Agent }) {
 
 function InfoCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+    <div className="rounded-xl border border-border bg-card px-4 py-3">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
       <div className="mt-1 text-sm">{value}</div>

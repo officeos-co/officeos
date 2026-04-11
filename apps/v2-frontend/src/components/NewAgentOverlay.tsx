@@ -5,6 +5,9 @@ import { Modal } from "./Modal";
 import { useAgents } from "@/hooks/useAgents";
 import { useProviders } from "@/hooks/useProviders";
 import { useProviderModels } from "@/hooks/useProviderModels";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type NewAgentOverlayProps = {
   open: boolean;
@@ -63,23 +66,24 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
   return (
     <Modal open={open} title="New agent" onClose={onClose}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[var(--eaos-text-muted)]">Name</span>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="agent-name">Name</Label>
+          <Input
+            id="agent-name"
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
             placeholder="my-agent"
           />
-        </label>
+        </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[var(--eaos-text-muted)]">Provider</span>
+        <div className="space-y-2">
+          <Label htmlFor="agent-provider">Provider</Label>
           <select
+            id="agent-provider"
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
-            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="" disabled>
               Select a configured provider
@@ -91,19 +95,20 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
             ))}
           </select>
           {configured.length === 0 && (
-            <span className="text-xs text-yellow-400">
+            <p className="text-xs text-amber-400">
               No providers configured yet. Set one up on the Providers page first.
-            </span>
+            </p>
           )}
-        </label>
+        </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[var(--eaos-text-muted)]">Model (optional)</span>
+        <div className="space-y-2">
+          <Label htmlFor="agent-model">Model (optional)</Label>
           <select
+            id="agent-model"
             value={model}
             onChange={(e) => setModel(e.target.value)}
             disabled={!provider || modelsLoading || (!!modelsError) || models.length === 0}
-            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white disabled:opacity-50"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="">(provider default)</option>
             {models.map((m) => (
@@ -113,35 +118,22 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
             ))}
           </select>
           {modelsLoading && (
-            <span className="text-xs text-[var(--eaos-text-muted)]">Loading models…</span>
+            <p className="text-xs text-muted-foreground">Loading models...</p>
           )}
           {modelsError && (
-            <span className="text-xs text-red-400">{modelsError}</span>
+            <p className="text-xs text-destructive">{modelsError}</p>
           )}
-          {!modelsLoading && !modelsError && provider && models.length === 0 && (
-            <span className="text-xs text-yellow-400">
-              No models configured for this provider.
-            </span>
-          )}
-        </label>
+        </div>
 
-        {error && <div className="text-sm text-red-400">{error}</div>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="mt-2 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-[var(--eaos-border)] px-4 py-2 text-sm hover:bg-black/40"
-          >
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || configured.length === 0}
-            className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" size="sm" disabled={submitting || configured.length === 0}>
             {submitting ? "Creating..." : "Create"}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

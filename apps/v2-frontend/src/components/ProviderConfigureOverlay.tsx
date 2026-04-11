@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { useProviders, type Provider } from "@/hooks/useProviders";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   provider: Provider | null;
@@ -58,53 +61,48 @@ export function ProviderConfigureOverlay({ provider, onClose }: Props) {
   return (
     <Modal open={true} title={`Configure ${provider.displayName}`} onClose={onClose}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[var(--eaos-text-muted)]">API key</span>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="api-key">API key</Label>
+          <Input
+            id="api-key"
             autoFocus
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 font-mono outline-none focus:border-white"
-            placeholder={provider.configured ? "•••••••• (stored)" : "sk-..."}
+            placeholder={provider.configured ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022 (stored)" : "sk-..."}
+            className="font-mono"
           />
           {provider.configured && (
-            <span className="text-xs text-[var(--eaos-text-muted)]">
+            <p className="text-xs text-muted-foreground">
               Key is already stored. Enter a new one to replace it.
-            </span>
+            </p>
           )}
-        </label>
+        </div>
 
-        {error && <div className="text-sm text-red-400">{error}</div>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="mt-2 flex justify-between gap-2">
+        <div className="flex justify-between gap-2">
           <div>
             {provider.configured && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={onClear}
                 disabled={submitting}
-                className="rounded-md border border-red-500/30 px-4 py-2 text-sm text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                className="text-destructive hover:text-destructive"
               >
                 Clear key
-              </button>
+              </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-[var(--eaos-border)] px-4 py-2 text-sm hover:bg-black/40"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" size="sm" disabled={submitting}>
               {submitting ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

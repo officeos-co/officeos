@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
 import { useRunners, type CreateRunnerResult } from "@/hooks/useRunners";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Copy, Check } from "lucide-react";
 
 type NewRunnerOverlayProps = {
   open: boolean;
@@ -56,13 +60,13 @@ export function NewRunnerOverlay({ open, onClose }: NewRunnerOverlayProps) {
     <Modal open={open} title={result ? "Runner created" : "New runner"} onClose={handleClose}>
       {result ? (
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-[var(--eaos-text-muted)]">
-            Your runner <strong>{result.name}</strong> has been created. Copy the command below to
-            start it. The registration token will only be shown once.
+          <p className="text-sm text-muted-foreground">
+            Runner <strong className="text-foreground">{result.name}</strong> created.
+            Copy the command below. The registration token is shown only once.
           </p>
 
-          <div className="rounded-md border border-[var(--eaos-border)] bg-black/40 p-3">
-            <code className="block whitespace-pre-wrap break-all text-xs text-green-300">
+          <div className="rounded-lg border border-border bg-secondary p-3">
+            <code className="block whitespace-pre-wrap break-all font-mono text-xs text-emerald-400">
               docker run \{"\n"}
               {"  "}-e PLATFORM_URL=https://api.harrokrog.com \{"\n"}
               {"  "}-e REGISTRATION_TOKEN={result.registrationToken} \{"\n"}
@@ -71,50 +75,35 @@ export function NewRunnerOverlay({ open, onClose }: NewRunnerOverlayProps) {
           </div>
 
           <div className="flex justify-end gap-2">
-            <button
-              onClick={copyCommand}
-              className="rounded-md border border-[var(--eaos-border)] px-4 py-2 text-sm hover:bg-black/40"
-            >
-              {copied ? "Copied!" : "Copy command"}
-            </button>
-            <button
-              onClick={handleClose}
-              className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black"
-            >
-              Done
-            </button>
+            <Button variant="outline" size="sm" onClick={copyCommand}>
+              {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+              {copied ? "Copied" : "Copy command"}
+            </Button>
+            <Button size="sm" onClick={handleClose}>Done</Button>
           </div>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[var(--eaos-text-muted)]">Name</span>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="runner-name">Name</Label>
+            <Input
+              id="runner-name"
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
               placeholder="production-runner"
             />
-          </label>
+          </div>
 
-          {error && <div className="text-sm text-red-400">{error}</div>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-md border border-[var(--eaos-border)] px-4 py-2 text-sm hover:bg-black/40"
-            >
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" size="sm" disabled={submitting}>
               {submitting ? "Creating..." : "Create"}
-            </button>
+            </Button>
           </div>
         </form>
       )}

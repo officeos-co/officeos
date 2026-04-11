@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard>
-      <div className="flex h-screen w-screen overflow-hidden bg-[var(--eaos-bg)] text-[var(--eaos-text)]">
+      <div className="flex h-screen w-screen overflow-hidden">
         {!isDocs && <Sidebar />}
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>

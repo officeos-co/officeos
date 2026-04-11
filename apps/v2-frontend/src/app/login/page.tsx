@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth();
@@ -15,24 +16,28 @@ export default function LoginPage() {
   }, [loading, isAuthenticated, router]);
 
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center bg-[var(--eaos-bg)] text-[var(--eaos-text)]">
-      <div className="flex flex-col items-center gap-6">
+    <div className="flex h-screen w-screen flex-col items-center justify-center">
+      <div className="flex flex-col items-center gap-8">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-white text-black grid place-items-center text-lg font-bold">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-lg font-bold text-primary-foreground">
             E
           </div>
-          <h1 className="text-2xl font-semibold">EnterpriseAgentOS</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            EnterpriseAgentOS
+          </h1>
         </div>
 
-        <p className="text-sm text-[var(--eaos-text-muted)]">
+        <p className="text-sm text-muted-foreground">
           Sign in to access Mission Control
         </p>
 
-        <button
+        <Button
+          variant="outline"
+          size="lg"
           onClick={() => {
             window.location.href = "/api/auth/google";
           }}
-          className="flex items-center gap-3 rounded-lg border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-6 py-3 text-sm font-medium transition-colors hover:bg-white/5"
+          className="gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -53,7 +58,7 @@ export default function LoginPage() {
             />
           </svg>
           Sign in with Google
-        </button>
+        </Button>
       </div>
     </div>
   );

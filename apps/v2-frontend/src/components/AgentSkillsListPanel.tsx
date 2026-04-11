@@ -19,7 +19,7 @@ type Skill = {
 const statusStyle = {
   configured: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
   installed: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
-  available: "border-[var(--eaos-border)] bg-black/30 text-[var(--eaos-text-muted)]",
+  available: "border-border bg-black/30 text-muted-foreground",
 };
 
 function skillStatus(s: Skill): keyof typeof statusStyle {
@@ -50,21 +50,21 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
 
   if (skills === null) {
     return (
-      <div className="mx-8 my-6 text-sm text-[var(--eaos-text-muted)]">Loading skills…</div>
+      <div className="mx-8 my-6 text-sm text-muted-foreground">Loading skills…</div>
     );
   }
 
   return (
     <div className="mx-8 my-6">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-[var(--eaos-text-muted)]">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Puzzle className="h-4 w-4" />
           {skills.length} skill{skills.length === 1 ? "" : "s"}
         </div>
         <button
           type="button"
           onClick={load}
-          className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40"
         >
           <RefreshCw className="h-3 w-3" />
           Refresh
@@ -72,13 +72,13 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
       </div>
 
       {error && (
-        <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {skills.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-6 py-12 text-center text-sm text-[var(--eaos-text-muted)]">
+        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
           No skills available.
         </div>
       ) : (
@@ -90,7 +90,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
                 key={s.name}
                 type="button"
                 onClick={() => router.push(`/skills/${s.name}`)}
-                className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4 text-left transition-colors hover:bg-black/30"
+                className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-black/30"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -98,7 +98,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
                       <span>{s.emoji}</span>
                       <span>{s.title}</span>
                     </div>
-                    <div className="mt-1 text-xs text-[var(--eaos-text-muted)]">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       {s.description}
                     </div>
                     {s.configured && s.llmTools.length > 0 && (
@@ -106,7 +106,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
                         {s.llmTools.map((t) => (
                           <span
                             key={t.name}
-                            className="rounded border border-[var(--eaos-border)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--eaos-text-muted)]"
+                            className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
                             title={t.description}
                           >
                             {t.name}

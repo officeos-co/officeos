@@ -8,8 +8,8 @@ type Props = {
 
 export function DocSidebar({ docs, activeSlug }: Props) {
   return (
-    <aside className="hidden w-[220px] shrink-0 border-r border-[var(--eaos-border)] bg-[var(--eaos-sidebar)] lg:block">
-      <div className="px-4 pt-6 pb-2 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+    <aside className="hidden w-[220px] shrink-0 border-r border-border bg-sidebar lg:block">
+      <div className="px-4 pt-6 pb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
         Documentation
       </div>
       <nav className="flex flex-col gap-0.5 px-2 pb-6">
@@ -21,7 +21,7 @@ export function DocSidebar({ docs, activeSlug }: Props) {
               "rounded-md px-3 py-2 text-sm transition-colors",
               doc.slug === activeSlug
                 ? "bg-black text-white"
-                : "text-[var(--eaos-text-muted)] hover:bg-[var(--eaos-panel)] hover:text-white",
+                : "text-muted-foreground hover:bg-card hover:text-white",
             ].join(" ")}
           >
             {doc.title}

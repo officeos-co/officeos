@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, ArrowLeft } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SkillCredentialsForm } from "@/components/SkillCredentialsForm";
 import { useSkills, type Skill } from "@/hooks/useSkills";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function SkillDetailPage() {
   const params = useParams<{ name: string }>();
@@ -44,7 +46,7 @@ export default function SkillDetailPage() {
 
   if (loading) {
     return (
-      <div className="px-8 py-12 text-sm text-[var(--eaos-text-muted)]">Loading…</div>
+      <div className="px-8 py-12 text-sm text-muted-foreground">Loading...</div>
     );
   }
 
@@ -52,15 +54,13 @@ export default function SkillDetailPage() {
     return (
       <div>
         <TopBar title="Skill not found" />
-        <div className="mx-8 mt-6 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mx-8 mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           No skill named &ldquo;{name}&rdquo; found.
         </div>
         <div className="mx-8 mt-4">
-          <Link
-            href="/skills"
-            className="rounded-md border border-[var(--eaos-border)] px-3 py-1 text-xs hover:bg-white hover:text-black"
-          >
-            ← Back to skills
+          <Link href="/skills" className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+            Back to skills
           </Link>
         </div>
       </div>
@@ -93,31 +93,29 @@ export default function SkillDetailPage() {
         action={
           <div className="flex items-center gap-2">
             {skill.installed ? (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleAction(() => uninstall(skill.name))}
                 disabled={busy}
-                className="flex items-center gap-1 rounded-md border border-red-500/40 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                className="text-destructive hover:text-destructive"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                 Uninstall
-              </button>
+              </Button>
             ) : (
-              <button
-                type="button"
+              <Button
+                size="sm"
                 onClick={() => handleAction(() => install(skill.name))}
                 disabled={busy}
-                className="flex items-center gap-1 rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
               >
-                <Download className="h-4 w-4" />
+                <Download className="mr-1.5 h-3.5 w-3.5" />
                 Install
-              </button>
+              </Button>
             )}
-            <Link
-              href="/skills"
-              className="rounded-md border border-[var(--eaos-border)] px-3 py-2 text-sm hover:bg-white hover:text-black"
-            >
-              ← All skills
+            <Link href="/skills" className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              All skills
             </Link>
           </div>
         }
@@ -125,15 +123,15 @@ export default function SkillDetailPage() {
 
       <div className="mx-8 my-6 space-y-6">
         {/* Description */}
-        <div className="text-sm text-[var(--eaos-text-muted)]">{skill.description}</div>
+        <p className="text-sm text-muted-foreground">{skill.description}</p>
 
         {/* Credentials */}
         {skill.installed && (
           <section>
-            <h2 className="mb-3 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+            <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               Credentials
             </h2>
-            <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <SkillCredentialsForm
                 fields={skill.credentialFields}
                 onSubmit={async (creds) => { await putCredentials(skill.name, creds); }}
@@ -146,46 +144,46 @@ export default function SkillDetailPage() {
         {/* Execution target */}
         {skill.installed && (
           <section>
-            <h2 className="mb-3 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+            <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               Execution target
             </h2>
-            <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
-              <div className="flex items-center gap-4">
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => handleAction(() => setRunTarget(skill.name, "cloud"))}
                   disabled={busy}
-                  className={[
-                    "flex-1 rounded-lg border px-4 py-3 text-left text-sm transition-colors",
+                  className={cn(
+                    "flex-1 rounded-lg border px-4 py-3 text-left text-sm transition-all",
                     skill.runTarget === "cloud"
-                      ? "border-white/40 bg-white/5"
-                      : "border-[var(--eaos-border)] hover:border-white/20",
-                  ].join(" ")}
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border hover:border-primary/20"
+                  )}
                 >
                   <div className="font-medium">Cloud</div>
-                  <div className="mt-0.5 text-xs text-[var(--eaos-text-muted)]">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     Runs on the platform skill-runtime
                   </div>
                 </button>
                 <button
                   onClick={() => handleAction(() => setRunTarget(skill.name, "runner"))}
                   disabled={busy}
-                  className={[
-                    "flex-1 rounded-lg border px-4 py-3 text-left text-sm transition-colors",
+                  className={cn(
+                    "flex-1 rounded-lg border px-4 py-3 text-left text-sm transition-all",
                     skill.runTarget === "runner"
-                      ? "border-white/40 bg-white/5"
-                      : "border-[var(--eaos-border)] hover:border-white/20",
-                  ].join(" ")}
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border hover:border-primary/20"
+                  )}
                 >
                   <div className="font-medium">Self-hosted runner</div>
-                  <div className="mt-0.5 text-xs text-[var(--eaos-text-muted)]">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     Runs on any online runner in your network
                   </div>
                 </button>
               </div>
               {skill.runTarget === "runner" && (
-                <p className="mt-3 text-xs text-yellow-300">
-                  Make sure at least one runner is online. If no runners are available when
-                  an agent calls this skill, the call will fail with a clear error.
+                <p className="mt-3 text-xs text-amber-400">
+                  Make sure at least one runner is online. If no runners are available,
+                  skill calls will fail with a clear error.
                 </p>
               )}
             </div>
@@ -194,17 +192,17 @@ export default function SkillDetailPage() {
 
         {/* Tools */}
         <section>
-          <h2 className="mb-3 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+          <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Tools ({skill.llmTools.length})
           </h2>
           <div className="space-y-2">
             {skill.llmTools.map((tool) => (
               <div
                 key={tool.name}
-                className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-4 py-3"
+                className="rounded-lg border border-border bg-card px-4 py-3"
               >
                 <div className="font-mono text-xs">{tool.name}</div>
-                <div className="mt-1 text-[11px] text-[var(--eaos-text-muted)]">
+                <div className="mt-1 text-[11px] text-muted-foreground">
                   {tool.description}
                 </div>
               </div>
@@ -212,20 +210,20 @@ export default function SkillDetailPage() {
           </div>
         </section>
 
-        {/* Documentation (.md) */}
+        {/* Documentation */}
         <section>
-          <h2 className="mb-3 text-[11px] uppercase tracking-wider text-[var(--eaos-text-muted)]">
+          <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             SKILL.md
           </h2>
-          <div className="rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)] p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             {docLoading ? (
-              <div className="text-sm text-[var(--eaos-text-muted)]">Loading documentation…</div>
+              <div className="text-sm text-muted-foreground">Loading documentation...</div>
             ) : doc ? (
               <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
                 {doc}
               </pre>
             ) : (
-              <div className="text-sm text-[var(--eaos-text-muted)]">
+              <div className="text-sm text-muted-foreground">
                 No documentation available for this skill.
               </div>
             )}

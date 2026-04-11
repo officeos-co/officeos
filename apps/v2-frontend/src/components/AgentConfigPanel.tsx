@@ -83,14 +83,14 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm text-[var(--eaos-text-muted)]">config.toml</div>
+        <div className="text-sm text-muted-foreground">config.toml</div>
         <div className="flex gap-2">
           {saved && <span className="text-xs text-emerald-300">Saved.</span>}
           <button
             type="button"
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40 disabled:opacity-50"
           >
             <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
             Reload
@@ -108,19 +108,19 @@ export function AgentConfigPanel({ agent }: { agent: Agent }) {
       </div>
 
       {error && (
-        <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="text-sm text-[var(--eaos-text-muted)]">Loading…</div>
+        <div className="text-sm text-muted-foreground">Loading…</div>
       ) : (
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           spellCheck={false}
-          className="h-[calc(100vh-340px)] w-full resize-none rounded-md border border-[var(--eaos-border)] bg-black/40 p-3 font-mono text-xs outline-none focus:border-white"
+          className="h-[calc(100vh-340px)] w-full resize-none rounded-md border border-border bg-black/40 p-3 font-mono text-xs outline-none focus:border-white"
         />
       )}
     </div>

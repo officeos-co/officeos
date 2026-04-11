@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import { TopBar } from "@/components/TopBar";
+import { StatusBadge } from "@/components/StatusBadge";
 import { ProviderConfigureOverlay } from "@/components/ProviderConfigureOverlay";
 import { useProviders, type Provider } from "@/hooks/useProviders";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function ProvidersPage() {
   const { providers, loading, error } = useProviders();
@@ -13,49 +23,47 @@ export default function ProvidersPage() {
     <div>
       <TopBar
         title="Providers"
-        subtitle="Paste your LLM provider API keys once — every agent inherits them."
+        subtitle="LLM provider API keys — configure once, every agent inherits them."
       />
 
       {error && (
-        <div className="mx-8 mt-6 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mx-8 mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="px-8 py-12 text-sm text-[var(--eaos-text-muted)]">Loading...</div>
+        <div className="px-8 py-12 text-sm text-muted-foreground">Loading...</div>
       ) : (
-        <div className="mx-8 my-6 overflow-hidden rounded-xl border border-[var(--eaos-border)] bg-[var(--eaos-panel)]">
-          <table className="w-full text-sm">
-            <thead className="text-left text-[var(--eaos-text-muted)]">
-              <tr className="border-b border-[var(--eaos-border)]">
-                <th className="px-4 py-3 font-normal">Provider</th>
-                <th className="px-4 py-3 font-normal">Status</th>
-                <th className="px-4 py-3 font-normal"></th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="mx-8 my-6 rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Provider</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {providers.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-[var(--eaos-border)] last:border-b-0"
-                >
-                  <td className="px-4 py-3">{p.displayName}</td>
-                  <td className="px-4 py-3 text-[var(--eaos-text-muted)]">
-                    {p.configured ? "Configured" : "Not configured"}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">{p.displayName}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={p.configured ? "ready" : "not installed"} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setSelected(p)}
-                      className="rounded-md border border-[var(--eaos-border)] px-3 py-1 text-xs hover:bg-white hover:text-black"
                     >
                       {p.configured ? "Update" : "Configure"}
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

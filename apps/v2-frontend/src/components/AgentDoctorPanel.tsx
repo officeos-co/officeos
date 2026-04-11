@@ -53,7 +53,7 @@ export function AgentDoctorPanel({ agent }: { agent: Agent }) {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Stethoscope className="h-4 w-4" />
-          <span className="text-sm text-[var(--eaos-text-muted)]">
+          <span className="text-sm text-muted-foreground">
             {results
               ? `${okCount} ok · ${warnCount} warn · ${errCount} error`
               : "Running diagnostics…"}
@@ -63,7 +63,7 @@ export function AgentDoctorPanel({ agent }: { agent: Agent }) {
           type="button"
           onClick={run}
           disabled={running}
-          className="flex items-center gap-1 rounded-md border border-[var(--eaos-border)] px-3 py-1.5 text-xs hover:bg-black/40 disabled:opacity-50"
+          className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-black/40 disabled:opacity-50"
         >
           <RefreshCw className={`h-3 w-3 ${running ? "animate-spin" : ""}`} />
           Re-run
@@ -71,15 +71,15 @@ export function AgentDoctorPanel({ agent }: { agent: Agent }) {
       </div>
 
       {error && (
-        <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-300">
+        <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {!results ? (
-        <div className="text-sm text-[var(--eaos-text-muted)]">Loading…</div>
+        <div className="text-sm text-muted-foreground">Loading…</div>
       ) : results.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--eaos-border)] bg-[var(--eaos-panel)] px-6 py-12 text-center text-sm text-[var(--eaos-text-muted)]">
+        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
           No diagnostic checks returned.
         </div>
       ) : (

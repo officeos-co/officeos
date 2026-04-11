@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
 import { useCustomSkills } from "@/hooks/useCustomSkills";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   open: boolean;
@@ -47,47 +50,43 @@ export function GitHubSkillOverlay({ open, onClose }: Props) {
     <Modal open={open} title="Connect GitHub repo" onClose={handleClose}>
       {done ? (
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-[var(--eaos-text-muted)]">
+          <p className="text-sm text-muted-foreground">
             Repository connected. The skill will be built automatically.
           </p>
           <div className="flex justify-end">
-            <button onClick={handleClose} className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black">
-              Done
-            </button>
+            <Button size="sm" onClick={handleClose}>Done</Button>
           </div>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[var(--eaos-text-muted)]">GitHub repo URL</span>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="repo-url">GitHub repo URL</Label>
+            <Input
+              id="repo-url"
               autoFocus
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
-              className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
               placeholder="https://github.com/user/my-skill"
             />
-          </label>
+          </div>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[var(--eaos-text-muted)]">Branch (optional)</span>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="repo-branch">Branch (optional)</Label>
+            <Input
+              id="repo-branch"
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
-              className="rounded-md border border-[var(--eaos-border)] bg-black/40 px-3 py-2 outline-none focus:border-white"
               placeholder="main"
             />
-          </label>
+          </div>
 
-          {error && <div className="text-sm text-red-400">{error}</div>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={handleClose} className="rounded-md border border-[var(--eaos-border)] px-4 py-2 text-sm hover:bg-black/40">
-              Cancel
-            </button>
-            <button type="submit" disabled={submitting} className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50">
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleClose}>Cancel</Button>
+            <Button type="submit" size="sm" disabled={submitting}>
               {submitting ? "Connecting..." : "Connect"}
-            </button>
+            </Button>
           </div>
         </form>
       )}

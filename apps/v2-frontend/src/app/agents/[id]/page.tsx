@@ -62,7 +62,7 @@ export default function AgentDetailPage() {
 
   if (loading) {
     return (
-      <div className="px-8 py-12 text-sm text-[var(--eaos-text-muted)]">Loading...</div>
+      <div className="px-8 py-12 text-sm text-muted-foreground">Loading...</div>
     );
   }
 
@@ -70,13 +70,13 @@ export default function AgentDetailPage() {
     return (
       <div>
         <TopBar title="Agent not found" />
-        <div className="mx-8 mt-6 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mx-8 mt-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error ?? "Unknown agent"}
         </div>
         <div className="mx-8 mt-4">
           <Link
             href="/agents"
-            className="rounded-md border border-[var(--eaos-border)] px-3 py-1 text-xs hover:bg-white hover:text-black"
+            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-white hover:text-black"
           >
             ← Back to agents
           </Link>
@@ -99,14 +99,14 @@ export default function AgentDetailPage() {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="flex items-center gap-1 rounded-md border border-red-500/30 px-3 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+              className="flex items-center gap-1 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-red-500/20 disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" />
               {deleting ? "Deleting..." : "Delete"}
             </button>
             <Link
               href="/agents"
-              className="rounded-md border border-[var(--eaos-border)] px-3 py-2 text-sm hover:bg-white hover:text-black"
+              className="rounded-md border border-border px-3 py-2 text-sm hover:bg-white hover:text-black"
             >
               ← All agents
             </Link>
@@ -120,7 +120,7 @@ export default function AgentDetailPage() {
         </div>
       )}
       {agent.status === "not_found" && (
-        <div className="mx-8 mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mx-8 mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           This agent's pod was not found in the cluster. It may have been deleted externally or
           crashed. Delete and recreate the agent.
         </div>
