@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+function LoginContent() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,5 +74,13 @@ export default function LoginPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }
