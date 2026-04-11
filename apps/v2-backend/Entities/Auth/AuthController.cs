@@ -54,62 +54,78 @@ public sealed class AuthController : ControllerBase
         [FromQuery] string state,
         CancellationToken ct)
     {
-        var savedState = Request.Cookies["oauth-state"];
-        Response.Cookies.Delete("oauth-state");
-
-        if (string.IsNullOrEmpty(savedState) || savedState != state)
-            return BadRequest(new { error = "Invalid OAuth state" });
-
-        // Exchange code for tokens
-        var client = _httpFactory.CreateClient();
-        var tokenResponse = await client.PostAsync("https://oauth2.googleapis.com/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["code"] = code,
-                ["client_id"] = _oauth.ClientId,
-                ["client_secret"] = _oauth.ClientSecret,
-                ["redirect_uri"] = _oauth.RedirectUri,
-                ["grant_type"] = "authorization_code",
-            }), ct);
-
-        if (!tokenResponse.IsSuccessStatusCode)
-            return BadRequest(new { error = "Failed to exchange authorization code" });
-
-        var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>(ct);
-        var accessToken = tokenJson.GetProperty("access_token").GetString()!;
-
-        // Fetch user info
-        var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/oauth2/v3/userinfo");
-        userInfoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        var userInfoResponse = await client.SendAsync(userInfoRequest, ct);
-
-        if (!userInfoResponse.IsSuccessStatusCode)
-            return BadRequest(new { error = "Failed to fetch user info" });
-
-        var userInfo = await userInfoResponse.Content.ReadFromJsonAsync<JsonElement>(ct);
-        var sub = userInfo.GetProperty("sub").GetString()!;
-        var email = userInfo.GetProperty("email").GetString()!;
-        var name = userInfo.TryGetProperty("name", out var n) ? n.GetString() : null;
-        var avatar = userInfo.TryGetProperty("picture", out var p) ? p.GetString() : null;
-
-        // Upsert user
-        var user = await _users.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
-
-        // Create session
-        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
-        await _sessions.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
-
-        Response.Cookies.Append("eaos-session", sessionToken, new CookieOptions
+        try
         {
-            HttpOnly = true,
-            Secure = !Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase),
-            SameSite = SameSiteMode.Lax,
-            MaxAge = TimeSpan.FromDays(7),
-            Path = "/",
-        });
+            var savedState = Request.Cookies["oauth-state"];
+            Response.Cookies.Delete("oauth-state");
 
-        return Redirect("/");
+            if (string.IsNullOrEmpty(savedState) || savedState != state)
+                return BadRequest(new { error = "Invalid OAuth state", detail = $"cookie present: {savedState is not null}, match: {savedState == state}" });
+
+            if (string.IsNullOrEmpty(_oauth.ClientId) || string.IsNullOrEmpty(_oauth.ClientSecret))
+                return StatusCode(500, new { error = "Google OAuth not configured — ClientId or ClientSecret is empty" });
+
+            // Exchange code for tokens
+            var client = _httpFactory.CreateClient();
+            var tokenResponse = await client.PostAsync("https://oauth2.googleapis.com/token",
+                new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["code"] = code,
+                    ["client_id"] = _oauth.ClientId,
+                    ["client_secret"] = _oauth.ClientSecret,
+                    ["redirect_uri"] = _oauth.RedirectUri,
+                    ["grant_type"] = "authorization_code",
+                }), ct);
+
+            var tokenBody = await tokenResponse.Content.ReadAsStringAsync(ct);
+            if (!tokenResponse.IsSuccessStatusCode)
+                return BadRequest(new { error = "Failed to exchange authorization code", detail = tokenBody });
+
+            var tokenJson = JsonSerializer.Deserialize<JsonElement>(tokenBody);
+            if (!tokenJson.TryGetProperty("access_token", out var atProp))
+                return BadRequest(new { error = "Token response missing access_token", detail = tokenBody });
+            var accessToken = atProp.GetString()!;
+
+            // Fetch user info
+            var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/oauth2/v3/userinfo");
+            userInfoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            var userInfoResponse = await client.SendAsync(userInfoRequest, ct);
+
+            if (!userInfoResponse.IsSuccessStatusCode)
+            {
+                var uiBody = await userInfoResponse.Content.ReadAsStringAsync(ct);
+                return BadRequest(new { error = "Failed to fetch user info", detail = uiBody });
+            }
+
+            var userInfo = await userInfoResponse.Content.ReadFromJsonAsync<JsonElement>(ct);
+            var sub = userInfo.GetProperty("sub").GetString()!;
+            var email = userInfo.GetProperty("email").GetString()!;
+            var name = userInfo.TryGetProperty("name", out var n) ? n.GetString() : null;
+            var avatar = userInfo.TryGetProperty("picture", out var p) ? p.GetString() : null;
+
+            // Upsert user
+            var user = await _users.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
+
+            // Create session
+            var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
+            await _sessions.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
+
+            Response.Cookies.Append("eaos-session", sessionToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase),
+                SameSite = SameSiteMode.Lax,
+                MaxAge = TimeSpan.FromDays(7),
+                Path = "/",
+            });
+
+            return Redirect("/");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "OAuth callback failed", detail = ex.Message, type = ex.GetType().Name });
+        }
     }
 
     [HttpPost("logout")]
