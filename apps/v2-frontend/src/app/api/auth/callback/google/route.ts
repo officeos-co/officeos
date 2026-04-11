@@ -19,10 +19,13 @@ export async function GET(req: NextRequest) {
     return new NextResponse(body, { status: res.status });
   }
 
-  // Resolve relative redirects (e.g. "/" → full dashboard URL)
-  const redirectUrl = location.startsWith("/")
-    ? `${url.origin}${location}`
-    : location;
+  // Resolve relative redirects using the incoming Host header (not url.origin which may be 0.0.0.0 in containers)
+  let redirectUrl = location;
+  if (location.startsWith("/")) {
+    const proto = req.headers.get("x-forwarded-proto") ?? "https";
+    const host = req.headers.get("host") ?? url.host;
+    redirectUrl = `${proto}://${host}${location}`;
+  }
 
   const response = NextResponse.redirect(redirectUrl, 302);
   // Forward all Set-Cookie headers (the session cookie)
