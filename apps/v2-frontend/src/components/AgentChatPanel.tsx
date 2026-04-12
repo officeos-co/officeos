@@ -364,35 +364,15 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
   }, []);
 
   return (
-    <div className="mx-8 my-6 flex h-[calc(100vh-260px)] flex-col rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs">
-        <div className="flex items-center gap-3">
-          <span className="text-muted-foreground">{agent.podName ?? "no pod"}</span>
-          <span className="font-mono text-[10px] text-muted-foreground">
-            session: {sessionIdRef.current.slice(0, 8)}
-          </span>
-        </div>
-        <span
-          className={
-            connected
-              ? "rounded-full border border-emerald-200 px-2 py-0.5 text-emerald-700"
-              : reconnecting
-                ? "rounded-full border border-yellow-200 px-2 py-0.5 text-yellow-700"
-                : "rounded-full border border-border px-2 py-0.5 text-muted-foreground"
-          }
-        >
-          {connected ? "connected" : reconnecting ? "reconnecting…" : "disconnected"}
-        </span>
-      </div>
-
+    <div className="flex h-[calc(100vh-200px)] flex-col">
       {error && (
-        <div className="flex items-center gap-2 border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+        <div className="flex items-center gap-2 bg-destructive/5 px-6 py-2 text-xs text-destructive">
           <AlertCircle className="h-3.5 w-3.5" />
           {error}
         </div>
       )}
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
         {messages.length === 0 && !typing && (
           <div className="flex h-full flex-col items-center justify-center text-center text-sm text-muted-foreground">
             <Bot className="mb-3 h-8 w-8" />
@@ -514,7 +494,7 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex gap-2 border-t border-border p-3">
+      <div className="flex gap-2 px-6 py-3">
         <textarea
           ref={inputRef}
           rows={1}
@@ -527,17 +507,16 @@ export function AgentChatPanel({ agent }: { agent: Agent }) {
           onKeyDown={handleKeyDown}
           disabled={!connected}
           placeholder={connected ? "Message…" : "Waiting for connection…"}
-          className="flex-1 resize-none rounded-md border border-border bg-accent px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50"
+          className="flex-1 resize-none rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-50"
           style={{ minHeight: "40px", maxHeight: "200px" }}
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={!connected || !input.trim()}
-          className="flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
-          Send
         </button>
       </div>
     </div>
