@@ -4,6 +4,7 @@ using System.Text.Json;
 using EnterpriseAgentOs.Api.Entities.Billing;
 using EnterpriseAgentOs.Api.Properties;
 
+
 namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 
 /// <summary>
@@ -28,7 +29,7 @@ public sealed class LlmProxyController : ControllerBase
     private readonly LlmProviderDispatcher _dispatcher;
     private readonly LiteLlmConfig _liteLlm;
     private readonly PlatformKeysConfig _platformKeys;
-    private readonly StripeService _stripeService;
+    private readonly ICreditRecordingService _creditRecording;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmProxyController> _logger;
 
@@ -38,7 +39,7 @@ public sealed class LlmProxyController : ControllerBase
         LlmProviderDispatcher dispatcher,
         LiteLlmConfig liteLlm,
         PlatformKeysConfig platformKeys,
-        StripeService stripeService,
+        ICreditRecordingService creditRecording,
         IHttpClientFactory httpFactory,
         ILogger<LlmProxyController> logger)
     {
@@ -47,7 +48,7 @@ public sealed class LlmProxyController : ControllerBase
         _dispatcher = dispatcher;
         _liteLlm = liteLlm;
         _platformKeys = platformKeys;
-        _stripeService = stripeService;
+        _creditRecording = creditRecording;
         _httpFactory = httpFactory;
         _logger = logger;
     }
@@ -274,7 +275,7 @@ public sealed class LlmProxyController : ControllerBase
         {
             try
             {
-                await _stripeService.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
+                await _creditRecording.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
             }
             catch (Exception ex)
             {

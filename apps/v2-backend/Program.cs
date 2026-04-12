@@ -151,7 +151,10 @@ builder.Services.AddSingleton(stripeConfig);
 var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
 builder.Services.AddSingleton(frontendConfig);
 
-builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.StripeService>();
+builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService,   EnterpriseAgentOs.Api.Entities.Billing.UserBillingService>();
+builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IOrgBillingService,    EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService>();
+builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IStripeWebhookService, EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>();
+builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService, EnterpriseAgentOs.Api.Entities.Billing.CreditRecordingService>();
 
 // Custom Skills
 builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
