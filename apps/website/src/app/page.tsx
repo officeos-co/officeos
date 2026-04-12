@@ -11,23 +11,23 @@ import { TrustSection } from "@/components/sections/trust-section";
 import { CalModal } from "@/components/cal-modal";
 
 export default function Home() {
-	return (
-		<div className="relative mx-auto max-w-7xl border-x">
-			<div className="absolute top-0 left-6 z-10 block h-full w-px border-border border-l"></div>
-			<div className="absolute top-0 right-6 z-10 block h-full w-px border-border border-r"></div>
-			<Navbar />
-			<main className="flex min-h-screen w-full flex-col items-center justify-center divide-y divide-border">
-				<HeroSection />
-				<CompanyShowcase />
-				<BentoSection />
-				<FeatureSection />
-				<GrowthSection />
-				<TrustSection />
-				<FAQSection />
-				<CTASection />
-				<FooterSection />
-			</main>
-			<CalModal />
-		</div>
-	);
+  return (
+    <div className="relative mx-auto max-w-7xl border-x">
+      <div className="absolute top-0 left-6 z-10 block h-full w-px border-border border-l"></div>
+      <div className="absolute top-0 right-6 z-10 block h-full w-px border-border border-r"></div>
+      <Navbar />
+      <main className="flex min-h-screen w-full flex-col items-center justify-center divide-y divide-border">
+        <HeroSection />
+        <CompanyShowcase />
+        <BentoSection />
+        <FeatureSection />
+        <GrowthSection />
+        <TrustSection />
+        <FAQSection />
+        <CTASection />
+        <FooterSection />
+      </main>
+      <CalModal />
+    </div>
+  );
 }
