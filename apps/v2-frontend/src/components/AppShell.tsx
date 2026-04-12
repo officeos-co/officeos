@@ -7,9 +7,9 @@ import type { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isLogin = pathname === "/login";
+  const isFullscreen = pathname === "/login" || pathname === "/pricing";
 
-  if (isLogin) {
+  if (isFullscreen) {
     return <>{children}</>;
   }
 
