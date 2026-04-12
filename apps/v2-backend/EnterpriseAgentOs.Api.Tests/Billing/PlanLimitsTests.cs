@@ -18,9 +18,9 @@ public sealed class PlanLimitsTests
     }
 
     [Fact]
-    public void IndividualFree_HasTwoMillionTokens()
+    public void IndividualFree_Has500KCredits()
     {
-        Assert.Equal(2_000_000L, PlanLimits.IndividualFree.TokensPerMonth);
+        Assert.Equal(500_000L, PlanLimits.IndividualFree.CreditsPerMonth);
     }
 
     [Fact]
@@ -30,9 +30,9 @@ public sealed class PlanLimitsTests
     }
 
     [Fact]
-    public void IndividualPro_HasTenMillionTokens()
+    public void IndividualPro_HasTenMillionCredits()
     {
-        Assert.Equal(10_000_000L, PlanLimits.IndividualPro.TokensPerMonth);
+        Assert.Equal(10_000_000L, PlanLimits.IndividualPro.CreditsPerMonth);
     }
 
     [Fact]
@@ -42,9 +42,9 @@ public sealed class PlanLimitsTests
     }
 
     [Fact]
-    public void OrgTeam_HasTwentyFiveMillionTokens()
+    public void OrgTeam_HasTwentyFiveMillionCredits()
     {
-        Assert.Equal(25_000_000L, PlanLimits.OrgTeam.TokensPerMonth);
+        Assert.Equal(25_000_000L, PlanLimits.OrgTeam.CreditsPerMonth);
     }
 
     // -------------------------------------------------------------------------

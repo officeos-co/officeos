@@ -44,9 +44,14 @@ public sealed class OrgBillingService : IOrgBillingService
         return customer.Id;
     }
 
-    public async Task<string> CreateSubscriptionAsync(string customerId, string plan, CancellationToken ct = default)
+    public async Task<string> CreateSubscriptionAsync(string customerId, string plan, string billingCycle = "monthly", CancellationToken ct = default)
     {
-        var priceId = plan == "team" ? _config.TeamPriceId : _config.FreePriceId;
+        var priceId = (plan, billingCycle) switch
+        {
+            ("team", "yearly") => _config.TeamYearlyPriceId,
+            ("team", _)        => _config.TeamMonthlyPriceId,
+            _                  => _config.FreePriceId,
+        };
         var sub = await new SubscriptionService().CreateAsync(
             new SubscriptionCreateOptions
             {

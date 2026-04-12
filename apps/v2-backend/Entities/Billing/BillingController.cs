@@ -1,5 +1,6 @@
 using EnterpriseAgentOs.Api.Properties;
 using Microsoft.AspNetCore.Mvc;
+using Stripe;
 
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
@@ -68,7 +69,7 @@ public sealed class BillingController : ControllerBase
 
         const string orgId = "default";
         var customerId = await _orgBilling.CreateCustomerAsync(orgId, request.Email, ct);
-        var subscriptionId = await _orgBilling.CreateSubscriptionAsync(customerId, request.Plan, ct);
+        var subscriptionId = await _orgBilling.CreateSubscriptionAsync(customerId, request.Plan, ct: ct);
 
         return Ok(new { customerId, subscriptionId, plan = request.Plan });
     }
@@ -179,6 +180,85 @@ public sealed class BillingController : ControllerBase
 
         await _userBilling.EnableOverageAsync(user.Id, user.Email, request.Enabled, ct);
         return Ok(new { overageEnabled = request.Enabled });
+    }
+
+    // ── Plans (live prices from Stripe) ─────────────────────────────────────
+
+    [HttpGet("plans")]
+    public async Task<IActionResult> GetPlans(CancellationToken ct)
+    {
+        if (!_config.Enabled)
+        {
+            // Return static fallback when Stripe is disabled
+            return Ok(new
+            {
+                individual = new[]
+                {
+                    new { plan = "free", monthlyPrice = 0, yearlyPrice = 0, currency = "eur" },
+                    new { plan = "pro", monthlyPrice = 2000, yearlyPrice = 1600, currency = "eur" },
+                },
+                team = new[]
+                {
+                    new { plan = "team", monthlyPrice = 14900, yearlyPrice = 11900, currency = "eur" },
+                },
+            });
+        }
+
+        StripeConfiguration.ApiKey = _config.SecretKey;
+        var priceService = new PriceService();
+
+        var priceIds = new[]
+        {
+            _config.FreePriceId,
+            _config.ProMonthlyPriceId,
+            _config.ProYearlyPriceId,
+            _config.TeamMonthlyPriceId,
+            _config.TeamYearlyPriceId,
+        };
+
+        var prices = new Dictionary<string, Price>();
+        foreach (var id in priceIds.Where(id => !string.IsNullOrEmpty(id)))
+        {
+            try
+            {
+                prices[id] = await priceService.GetAsync(id, cancellationToken: ct);
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch Stripe price {PriceId}", id);
+            }
+        }
+
+        long GetAmount(string priceId) =>
+            prices.TryGetValue(priceId, out var p) ? p.UnitAmount ?? 0 : 0;
+
+        string GetCurrency(string priceId) =>
+            prices.TryGetValue(priceId, out var p) ? p.Currency ?? "eur" : "eur";
+
+        return Ok(new
+        {
+            individual = new[]
+            {
+                new { plan = "free", monthlyPrice = 0L, yearlyPrice = 0L, currency = "eur" },
+                new
+                {
+                    plan = "pro",
+                    monthlyPrice = GetAmount(_config.ProMonthlyPriceId),
+                    yearlyPrice = GetAmount(_config.ProYearlyPriceId),
+                    currency = GetCurrency(_config.ProMonthlyPriceId),
+                },
+            },
+            team = new[]
+            {
+                new
+                {
+                    plan = "team",
+                    monthlyPrice = GetAmount(_config.TeamMonthlyPriceId),
+                    yearlyPrice = GetAmount(_config.TeamYearlyPriceId),
+                    currency = GetCurrency(_config.TeamMonthlyPriceId),
+                },
+            },
+        });
     }
 
     // ── Webhook ───────────────────────────────────────────────────────────────

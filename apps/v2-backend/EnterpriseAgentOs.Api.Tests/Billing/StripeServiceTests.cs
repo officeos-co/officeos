@@ -7,9 +7,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace EnterpriseAgentOs.Api.Tests.Billing;
 
 /// <summary>
-/// Unit tests for StripeService.
-/// Tests that exercise live Stripe SDK calls (CreateCustomer, CreateSubscription, etc.)
-/// are skipped when Stripe is disabled / no real API key is configured.
+/// Unit tests for the SOLID billing services (OrgBillingService, StripeWebhookService, CreditRecordingService).
+/// Tests that exercise live Stripe SDK calls are skipped when Stripe is disabled / no real API key is configured.
 /// </summary>
 public sealed class StripeServiceTests
 {
@@ -21,31 +20,35 @@ public sealed class StripeServiceTests
         return new EaosDbContext(opts);
     }
 
-    private static StripeService CreateService(bool enabled = false) =>
-        new(
-            new StripeConfig
-            {
-                SecretKey = "STRIPE_SECRET_KEY_PLACEHOLDER",
-                WebhookSecret = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
-                FreePriceId = "STRIPE_FREE_PRICE_ID_PLACEHOLDER",
-                TeamPriceId = "STRIPE_TEAM_PRICE_ID_PLACEHOLDER",
-                TeamOveragePriceId = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
-                Enabled = enabled,
-            },
-            new FrontendConfig("https://dashboard.harrokrog.com"),
-            CreateDb(),
-            NullLogger<StripeService>.Instance);
+    private static StripeConfig CreateConfig(bool enabled = false) => new()
+    {
+        SecretKey = "STRIPE_SECRET_KEY_PLACEHOLDER",
+        WebhookSecret = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
+        FreePriceId = "STRIPE_FREE_PRICE_ID_PLACEHOLDER",
+        TeamMonthlyPriceId = "STRIPE_TEAM_MONTHLY_PRICE_ID_PLACEHOLDER",
+        TeamYearlyPriceId = "STRIPE_TEAM_YEARLY_PRICE_ID_PLACEHOLDER",
+        TeamOveragePriceId = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
+        FreeOveragePriceId = "STRIPE_FREE_OVERAGE_PRICE_ID_PLACEHOLDER",
+        ProOveragePriceId = "STRIPE_PRO_OVERAGE_PRICE_ID_PLACEHOLDER",
+        Enabled = enabled,
+    };
+
+    private static OrgBillingService CreateOrgService(EaosDbContext? db = null) =>
+        new(CreateConfig(), db ?? CreateDb(), NullLogger<OrgBillingService>.Instance);
+
+    private static StripeWebhookService CreateWebhookService(EaosDbContext? db = null) =>
+        new(CreateConfig(), db ?? CreateDb(), NullLogger<StripeWebhookService>.Instance);
 
     // -------------------------------------------------------------------------
-    // GetOrgSubscriptionAsync — tier detection
+    // GetSubscriptionAsync — tier detection
     // -------------------------------------------------------------------------
 
     [Fact]
     public async Task GetPlanForOrg_DefaultOrg_ReturnsFreeSubscription()
     {
-        var svc = CreateService();
+        var svc = CreateOrgService();
 
-        var sub = await svc.GetOrgSubscriptionAsync("org-1");
+        var sub = await svc.GetSubscriptionAsync("org-1");
 
         Assert.Equal("free", sub.Plan);
     }
@@ -53,69 +56,70 @@ public sealed class StripeServiceTests
     [Fact]
     public async Task GetPlanForOrg_DefaultOrg_HasCorrectFreeLimits()
     {
-        var svc = CreateService();
+        var svc = CreateOrgService();
 
-        var sub = await svc.GetOrgSubscriptionAsync("org-1");
+        var sub = await svc.GetSubscriptionAsync("org-1");
 
         Assert.Equal(1, sub.ConcurrentAgentLimit);
-        Assert.Equal(2_000_000L, sub.TokenBudgetPerMonth);
+        Assert.Equal(500_000L, sub.CreditBudgetPerMonth);
         Assert.True(sub.IsActive);
     }
 
     [Fact]
     public async Task GetPlanForOrg_DifferentOrgIds_ReturnedOrgIdMatches()
     {
-        var svc = CreateService();
+        var svc = CreateOrgService();
 
-        var sub = await svc.GetOrgSubscriptionAsync("my-unique-org");
+        var sub = await svc.GetSubscriptionAsync("my-unique-org");
 
         Assert.Equal("my-unique-org", sub.OrganizationId);
     }
 
     // -------------------------------------------------------------------------
-    // CheckTokenBudgetAsync — remaining tokens
+    // CheckCreditBudgetAsync — remaining credits
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task CheckTokenBudget_FreshFreeOrg_ReturnsFullBudget()
+    public async Task CheckCreditBudget_FreshFreeOrg_ReturnsFullBudget()
     {
-        var svc = CreateService();
+        var svc = CreateOrgService();
 
-        var (remaining, overBudget) = await svc.CheckTokenBudgetAsync("org-2");
+        var (remaining, overBudget) = await svc.CheckCreditBudgetAsync("org-2");
 
-        Assert.Equal(2_000_000L, remaining);
+        Assert.Equal(500_000L, remaining);
         Assert.False(overBudget);
     }
 
     [Fact]
-    public async Task CheckTokenBudget_UnusedTokens_NotOverBudget()
+    public async Task CheckCreditBudget_UnusedCredits_NotOverBudget()
     {
-        var svc = CreateService();
+        var svc = CreateOrgService();
 
-        var (_, overBudget) = await svc.CheckTokenBudgetAsync("org-3");
+        var (_, overBudget) = await svc.CheckCreditBudgetAsync("org-3");
 
         Assert.False(overBudget);
     }
 
     // -------------------------------------------------------------------------
-    // RecordTokenUsageAsync — placeholder (metered billing via Billing Meter Events)
+    // ModelCostWeights — credit normalization
     // -------------------------------------------------------------------------
 
-    [Fact]
-    public async Task RecordTokenUsage_ValidSubscriptionItemId_CompletesWithoutException()
+    [Theory]
+    [InlineData("gpt-4o-mini", 1000, 1000)]       // weight 1
+    [InlineData("claude-haiku-4-5", 1000, 5000)]   // weight 5
+    [InlineData("claude-sonnet-4-6", 1000, 20000)]  // weight 20
+    [InlineData("claude-opus-4-6", 1000, 75000)]    // weight 75
+    public void ModelCostWeights_ToCredits_AppliesCorrectMultiplier(string model, long rawTokens, long expectedCredits)
     {
-        var svc = CreateService();
-
-        // Should not throw — placeholder until meter event name is configured
-        await svc.RecordTokenUsageAsync("sub_item_placeholder", 1_000);
+        var credits = ModelCostWeights.ToCredits(model, rawTokens);
+        Assert.Equal(expectedCredits, credits);
     }
 
     [Fact]
-    public async Task RecordTokenUsage_LargeTokenCount_CompletesWithoutException()
+    public void ModelCostWeights_UnknownModel_DefaultsToSonnetWeight()
     {
-        var svc = CreateService();
-
-        await svc.RecordTokenUsageAsync("sub_item_placeholder_large", 500_000);
+        var credits = ModelCostWeights.ToCredits("unknown-model", 1000);
+        Assert.Equal(20_000, credits); // default weight = 20
     }
 
     // -------------------------------------------------------------------------
@@ -123,43 +127,39 @@ public sealed class StripeServiceTests
     // -------------------------------------------------------------------------
 
     [Theory]
-    [InlineData(0.50, 1_000_000, 650_000.0)]  // Haiku $0.50/M blended
-    [InlineData(9.00, 1_000_000, 11_700_000.0)]  // Sonnet $9/M blended
-    [InlineData(45.00, 1_000_000, 58_500_000.0)] // Opus $45/M blended
+    [InlineData(0.50, 1_000_000, 650_000.0)]       // Haiku $0.50/M blended
+    [InlineData(9.00, 1_000_000, 11_700_000.0)]    // Sonnet $9/M blended
+    [InlineData(45.00, 1_000_000, 58_500_000.0)]   // Opus $45/M blended
     public void OverageCalculation_ModelCostTimesOnePointThree_NeverLosesMoney(
         double modelCostPerMillion,
         long tokens,
         double expectedOverageBillingUnits)
     {
-        // Overage rate = model cost × 1.3
         const double overageMultiplier = 1.3;
         var overageRate = modelCostPerMillion * overageMultiplier;
         var billingUnits = (tokens / 1_000_000.0) * overageRate * 1_000_000;
 
         Assert.Equal(expectedOverageBillingUnits, billingUnits, precision: 0);
-        // Ensure we always charge MORE than model cost
         Assert.True(overageRate > modelCostPerMillion);
     }
 
     [Fact]
     public void OverageMultiplier_IsAlwaysGreaterThanOne()
     {
-        // Sanity check: 1.3x always covers model cost + margin
         const double overageMultiplier = 1.3;
         Assert.True(overageMultiplier > 1.0);
     }
 
     // -------------------------------------------------------------------------
-    // HandleWebhookAsync — signature verification requires real Stripe secret
+    // HandleAsync — signature verification requires real Stripe secret
     // -------------------------------------------------------------------------
 
     [Fact]
     public async Task HandleWebhook_InvalidSignature_ThrowsStripeException()
     {
-        var svc = CreateService();
+        var svc = CreateWebhookService();
 
-        // Real SDK now verifies signature — an invalid signature should throw
         await Assert.ThrowsAnyAsync<Exception>(() =>
-            svc.HandleWebhookAsync("{\"type\":\"customer.subscription.updated\"}", "t=12345,v1=abc"));
+            svc.HandleAsync("{\"type\":\"customer.subscription.updated\"}", "t=12345,v1=abc"));
     }
 }

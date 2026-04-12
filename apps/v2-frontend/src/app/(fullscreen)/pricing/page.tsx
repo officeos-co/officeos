@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ArrowLeft, Leaf, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,15 +8,34 @@ import { cn } from "@/lib/utils";
 type Tab = "individual" | "team";
 type Billing = "monthly" | "yearly";
 
+interface PlanPricing {
+  plan: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  currency: string;
+}
+
+interface PlansResponse {
+  individual: PlanPricing[];
+  team: PlanPricing[];
+}
+
+function formatPrice(cents: number, currency: string): string {
+  if (cents === 0) return "Free";
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
 const individualPlans = [
   {
     key: "free",
     name: "Free",
     icon: Leaf,
     description: "Get started with one agent",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    priceNote: "forever",
     hasBillingToggle: false,
     cta: "Get started",
     ctaHref: "/agents",
@@ -38,8 +57,6 @@ const individualPlans = [
     name: "Pro",
     icon: Sparkles,
     description: "Run up to 3 agents",
-    monthlyPrice: 20,
-    yearlyPrice: 16,
     hasBillingToggle: true,
     cta: "Subscribe",
     disabled: false,
@@ -63,8 +80,6 @@ const teamPlans = [
     name: "Team",
     icon: Leaf,
     description: "Scale to 10 agents",
-    monthlyPrice: 149,
-    yearlyPrice: 119,
     hasBillingToggle: true,
     cta: "Subscribe",
     disabled: true,
@@ -84,8 +99,6 @@ const teamPlans = [
     name: "Enterprise",
     icon: Sparkles,
     description: "Unlimited agents, custom budget",
-    monthlyPrice: null,
-    yearlyPrice: null,
     hasBillingToggle: false,
     cta: "Contact us",
     ctaHref: "mailto:harro@harrokrog.com",
@@ -148,18 +161,23 @@ function PlanCard({
   plan,
   billing,
   onBillingChange,
+  pricing,
 }: {
   plan: AnyPlan;
   billing: Billing;
   onBillingChange: (b: Billing) => void;
+  pricing?: PlanPricing;
 }) {
   const Icon = plan.icon;
-  const isCustom = plan.monthlyPrice === null;
+  const isCustom = plan.key === "enterprise";
+  const monthlyPrice = pricing?.monthlyPrice ?? 0;
+  const yearlyPrice = pricing?.yearlyPrice ?? 0;
+  const currency = pricing?.currency ?? "eur";
   const price = isCustom
     ? null
     : billing === "yearly" && plan.hasBillingToggle
-      ? plan.yearlyPrice
-      : plan.monthlyPrice;
+      ? yearlyPrice
+      : monthlyPrice;
 
   const [loading, setLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -221,10 +239,12 @@ function PlanCard({
           <span className="text-4xl font-bold text-foreground">Custom</span>
         ) : (
           <>
-            <span className="text-4xl font-bold text-foreground">{price === 0 ? "Free" : price}</span>
+            <span className="text-4xl font-bold text-foreground">
+              {price === 0 ? "Free" : formatPrice(price!, currency)}
+            </span>
             {price !== 0 && (
               <div className="mt-1 text-xs text-muted-foreground leading-tight">
-                <div>EUR / month</div>
+                <div>/ month</div>
                 <div>
                   {billing === "yearly" && plan.hasBillingToggle
                     ? "billed annually"
@@ -302,8 +322,22 @@ export default function PricingPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("individual");
   const [billing, setBilling] = useState<Billing>("monthly");
+  const [prices, setPrices] = useState<PlansResponse | null>(null);
+
+  useEffect(() => {
+    fetch("/api/billing/plans", { credentials: "include" })
+      .then((r) => r.json())
+      .then(setPrices)
+      .catch(console.error);
+  }, []);
 
   const plans = tab === "individual" ? individualPlans : teamPlans;
+
+  function getPricing(planKey: string): PlanPricing | undefined {
+    if (!prices) return undefined;
+    const all = [...prices.individual, ...prices.team];
+    return all.find((p) => p.plan === planKey);
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -368,6 +402,7 @@ export default function PricingPage() {
               plan={plan}
               billing={billing}
               onBillingChange={setBilling}
+              pricing={getPricing(plan.key)}
             />
           ))}
         </div>

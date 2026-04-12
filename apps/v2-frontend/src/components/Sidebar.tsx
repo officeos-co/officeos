@@ -7,7 +7,6 @@ import { useAgents, type Agent } from "@/hooks/useAgents";
 import { cn } from "@/lib/utils";
 import {
   Bot,
-  KeyRound,
   Radio,
   BookOpen,
   LogOut,
@@ -210,7 +209,6 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
   const orgNavItems = [
     { href: "/settings/profile", label: "Profile", icon: User },
     { href: "/settings/organization", label: "Organization", icon: Building2 },
-    { href: "/providers", label: "Providers", icon: KeyRound },
     { href: "/skills", label: "Tools", icon: Wrench },
     { href: "/runners", label: "Runners", icon: Radio },
     { href: "/settings/billing", label: "Billing", icon: CreditCard },
