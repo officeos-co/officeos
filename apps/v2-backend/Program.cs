@@ -133,6 +133,12 @@ builder.Services.AddScoped<IRunnerJobRepository, RunnerJobRepository>();
 builder.Services.AddSingleton<RunnerJobWaiter>();
 builder.Services.AddHostedService<RunnerJobTimeoutService>();
 
+// Billing
+var stripeConfig = new StripeConfig();
+ValueManager.GetConfiguration().GetSection($"{ValueManager.GetEnvironmentName()}:Stripe").Bind(stripeConfig);
+builder.Services.AddSingleton(stripeConfig);
+builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.StripeService>();
+
 // Custom Skills
 builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
 

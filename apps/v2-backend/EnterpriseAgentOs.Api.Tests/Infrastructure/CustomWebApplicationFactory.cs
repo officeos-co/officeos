@@ -58,6 +58,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Production:MinioAccessKey"] = "testkey",
                 ["Production:MinioSecretKey"] = "testsecret",
                 ["Production:MinioBucket"] = "test-skills",
+                ["Production:Stripe:SecretKey"] = "STRIPE_SECRET_KEY_PLACEHOLDER",
+                ["Production:Stripe:WebhookSecret"] = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
+                ["Production:Stripe:FreePriceId"] = "STRIPE_FREE_PRICE_ID_PLACEHOLDER",
+                ["Production:Stripe:TeamPriceId"] = "STRIPE_TEAM_PRICE_ID_PLACEHOLDER",
+                ["Production:Stripe:TeamOveragePriceId"] = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
+                ["Production:Stripe:Enabled"] = "false",
             })
             .Build();
 
