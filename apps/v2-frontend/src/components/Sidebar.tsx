@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   User,
   Building2,
+  Wrench,
   CreditCard,
   Gauge,
   Key,
@@ -63,6 +64,7 @@ function MainSidebar({
           {[
             { href: "/", label: "Dashboard", icon: LayoutDashboard },
             { href: "/agents", label: "Agents", icon: Bot },
+            { href: "/skills", label: "Tools", icon: Wrench },
           ].map((item) => {
             const isActive =
               item.href === "/"
