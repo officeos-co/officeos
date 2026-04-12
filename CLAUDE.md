@@ -39,4 +39,5 @@ User opens the dashboard, creates an agent. The backend provisions a CouchDB vau
 - Docker images push to Docker Hub under `harkro123/` — `:latest` tag only, no SHA tags.
 - Prod hostnames: `dashboard.harrokrog.com` (frontend), `api.harrokrog.com` (backend).
 - Update docs/ if changes have been done or major feature has been added. Same for CLAUDE.md prompt if its relevant to the prompt
-- When working on long running tasks do iterative commits
+- When working on long running tasks do iterative commits but not when working on main only when in a separate branch.
+  Dont make the committs too small the goal should be at every commit it should be in a usable state its totally fine if for a large tast you structure it only in 3 commits except 10
