@@ -139,6 +139,14 @@ builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
 
+var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+var configSection = (env == "Production" || string.IsNullOrEmpty(env)) ? "Production" : "Staging";
+
+var liteLlmConfig = builder.Configuration
+    .GetSection($"{configSection}:LiteLlm")
+    .Get<LiteLlmConfig>() ?? new LiteLlmConfig();
+builder.Services.AddSingleton(liteLlmConfig);
+
 builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
 builder.Services
     .AddGraphQLServer()
@@ -216,10 +224,6 @@ static async Task SeedProvidersAsync(EaosDbContext db)
         new ProviderRecord { Name = "anthropic", DisplayName = "Anthropic" },
         new ProviderRecord { Name = "google", DisplayName = "Google Gemini" },
         new ProviderRecord { Name = "xai", DisplayName = "xAI Grok" },
-        new ProviderRecord { Name = "groq", DisplayName = "Groq" },
-        new ProviderRecord { Name = "deepseek", DisplayName = "DeepSeek" },
-        new ProviderRecord { Name = "openrouter", DisplayName = "OpenRouter" },
-        new ProviderRecord { Name = "ollama", DisplayName = "Ollama" },
     };
 
     await db.Providers.AddRangeAsync(seed);

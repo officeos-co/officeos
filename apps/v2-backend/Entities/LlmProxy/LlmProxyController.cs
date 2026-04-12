@@ -1,4 +1,7 @@
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using EnterpriseAgentOs.Api.Properties;
 
 namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 
@@ -6,12 +9,12 @@ namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 /// OpenAI-compatible <c>POST /v1/chat/completions</c> endpoint that proxies
 /// LLM calls for agent pods. The agent authenticates with its per-agent
 /// bearer token (<c>ZEROCLAW_SKILLS_BACKEND_TOKEN</c>). The backend
-/// resolves the real provider + API key from the agent's record + the
-/// global Providers table, then dispatches to the upstream provider.
-///
-/// This decouples agents from provider config: keys, providers, and models
-/// can be changed in the dashboard without restarting pods. The agent never
-/// holds the real API key.
+/// resolves the real provider + model from the agent's record, then:
+/// <list type="bullet">
+///   <item>OpenAI with a configured BYOK key → dispatches via <see cref="LlmProviderDispatcher"/>.</item>
+///   <item>All other providers → forwards to the LiteLLM sidecar which holds platform keys.</item>
+/// </list>
+/// Credentials never leave the backend / LiteLLM sidecar.
 /// </summary>
 [ApiController]
 [AgentTokenAuth]
@@ -20,17 +23,23 @@ public sealed class LlmProxyController : ControllerBase
     private readonly IAgentService _agents;
     private readonly IProviderService _providers;
     private readonly LlmProviderDispatcher _dispatcher;
+    private readonly LiteLlmConfig _liteLlm;
+    private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmProxyController> _logger;
 
     public LlmProxyController(
         IAgentService agents,
         IProviderService providers,
         LlmProviderDispatcher dispatcher,
+        LiteLlmConfig liteLlm,
+        IHttpClientFactory httpFactory,
         ILogger<LlmProxyController> logger)
     {
         _agents = agents;
         _providers = providers;
         _dispatcher = dispatcher;
+        _liteLlm = liteLlm;
+        _httpFactory = httpFactory;
         _logger = logger;
     }
 
@@ -54,9 +63,6 @@ public sealed class LlmProxyController : ControllerBase
             return;
         }
 
-        _logger.LogInformation("LLM proxy request from agent {AgentId} ({Provider}/{Model})",
-            agentId, agent.Provider, agent.Model);
-
         // 2. Parse request body
         JsonElement body;
         try
@@ -71,28 +77,49 @@ public sealed class LlmProxyController : ControllerBase
             return;
         }
 
-        // 3. Resolve provider + key + model from agent record
-        var provider = agent.Provider;
-        var model = agent.Model ?? "gpt-4o";
+        // 3. Resolve concrete model via SmartRouter
+        var requestedModel = agent.Model ?? "auto";
+        var provider = agent.Provider ?? "anthropic";
 
-        if (!_dispatcher.IsSupported(provider))
+        // Map provider name to SmartRouter family
+        var family = provider.ToLowerInvariant() switch
         {
-            _logger.LogWarning("LLM proxy: unsupported provider {Provider} for agent {AgentId}", provider, agentId);
-            HttpContext.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
-            await HttpContext.Response.WriteAsJsonAsync(new { error = $"Provider '{provider}' is not supported by the LLM proxy." }, ct);
-            return;
+            "openai" => "openai",
+            "google" => "google",
+            _ => "anthropic",
+        };
+
+        var resolvedModel = SmartRouter.Resolve(requestedModel, body, family);
+
+        _logger.LogInformation(
+            "LLM proxy: agent {AgentId} requested {RequestedModel} → resolved {ResolvedModel} (provider={Provider})",
+            agentId, requestedModel, resolvedModel, provider);
+
+        // 4. OpenAI BYOK path (kept for dev/testing)
+        if (provider.Equals("openai", StringComparison.OrdinalIgnoreCase))
+        {
+            var apiKey = await _providers.GetDecryptedKeyAsync("openai", ct);
+            if (apiKey is not null)
+            {
+                await DispatchViaByokAsync(provider, apiKey, resolvedModel, body, ct);
+                return;
+            }
+            // Fall through to LiteLLM if no BYOK key configured
         }
 
-        var apiKey = await _providers.GetDecryptedKeyAsync(provider, ct);
-        if (apiKey is null)
-        {
-            _logger.LogWarning("LLM proxy: provider {Provider} not configured for agent {AgentId}", provider, agentId);
-            HttpContext.Response.StatusCode = StatusCodes.Status409Conflict;
-            await HttpContext.Response.WriteAsJsonAsync(new { error = $"Provider '{provider}' is not configured. Set its API key on the Providers page." }, ct);
-            return;
-        }
+        // 5. All other providers → LiteLLM sidecar
+        await DispatchViaLiteLlmAsync(resolvedModel, body, ct);
+    }
 
-        // 4. Dispatch to upstream
+    // ── BYOK path (OpenAI only) ───────────────────────────────────────────────
+
+    private async Task DispatchViaByokAsync(
+        string provider,
+        string apiKey,
+        string model,
+        JsonElement body,
+        CancellationToken ct)
+    {
         HttpResponseMessage upstream;
         try
         {
@@ -100,13 +127,57 @@ public sealed class LlmProxyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LLM proxy dispatch failed for agent {AgentId} provider {Provider}", agentId, provider);
+            _logger.LogWarning(ex, "LLM proxy BYOK dispatch failed for provider {Provider}", provider);
             HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
             await HttpContext.Response.WriteAsJsonAsync(new { error = $"Upstream error: {ex.Message}" }, ct);
             return;
         }
 
-        // 5. Stream response back
+        await StreamUpstreamResponseAsync(upstream, ct);
+    }
+
+    // ── LiteLLM path ──────────────────────────────────────────────────────────
+
+    private async Task DispatchViaLiteLlmAsync(string model, JsonElement body, CancellationToken ct)
+    {
+        // Replace model in the body, keep everything else intact
+        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.GetRawText())
+            ?? new Dictionary<string, JsonElement>();
+        dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
+
+        var json = JsonSerializer.Serialize(dict);
+        var client = _httpFactory.CreateClient("llm-proxy");
+
+        var url = $"{_liteLlm.BaseUrl.TrimEnd('/')}/v1/chat/completions";
+        var req = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+        // LiteLLM accepts any bearer when no master key is set; using a well-known
+        // platform sentinel keeps the logs clean and allows future master-key adoption.
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "sk-platform");
+        req.Headers.Accept.ParseAdd("text/event-stream");
+
+        HttpResponseMessage upstream;
+        try
+        {
+            upstream = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "LLM proxy: LiteLLM call failed (url={Url} model={Model})", url, model);
+            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
+            await HttpContext.Response.WriteAsJsonAsync(new { error = $"LiteLLM upstream error: {ex.Message}" }, ct);
+            return;
+        }
+
+        await StreamUpstreamResponseAsync(upstream, ct);
+    }
+
+    // ── shared response streaming ─────────────────────────────────────────────
+
+    private async Task StreamUpstreamResponseAsync(HttpResponseMessage upstream, CancellationToken ct)
+    {
         HttpContext.Response.StatusCode = (int)upstream.StatusCode;
         var contentType = upstream.Content.Headers.ContentType?.ToString() ?? "text/event-stream";
         HttpContext.Response.ContentType = contentType;
@@ -115,4 +186,7 @@ public sealed class LlmProxyController : ControllerBase
         await upstreamBody.CopyToAsync(HttpContext.Response.Body, ct);
         upstream.Dispose();
     }
+
+    private static string EscapeJson(string s) =>
+        s.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

@@ -58,6 +58,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Production:MinioAccessKey"] = "testkey",
                 ["Production:MinioSecretKey"] = "testsecret",
                 ["Production:MinioBucket"] = "test-skills",
+                ["Production:LiteLlm:BaseUrl"] = "http://localhost:4000",
+                ["Production:LiteLlm:Enabled"] = "true",
             })
             .Build();
 
@@ -97,6 +99,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Replace SkillRuntimeConfig to point at WireMock
             services.RemoveAll<SkillRuntimeConfig>();
             services.AddSingleton(new SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
+
+            // Replace LiteLlmConfig with a test-safe value
+            services.RemoveAll<LiteLlmConfig>();
+            services.AddSingleton(new LiteLlmConfig { BaseUrl = "http://localhost:4000", Enabled = true });
         });
     }
 }

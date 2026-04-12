@@ -5,6 +5,14 @@ namespace EnterpriseAgentOs.Api.Entities.Providers;
 [Route("api/providers")]
 public sealed class ProvidersController : ControllerBase
 {
+    /// <summary>
+    /// Providers whose keys are held by the platform (never BYOK).
+    /// </summary>
+    private static readonly HashSet<string> PlatformKeyProviders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "anthropic", "google", "xai",
+    };
+
     private readonly IProviderService _service;
     private readonly ILogger<ProvidersController> _logger;
 
@@ -18,7 +26,15 @@ public sealed class ProvidersController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ProviderDto>>> List(CancellationToken ct)
     {
         var providers = await _service.ListAsync(ct);
-        return Ok(providers);
+
+        // Platform-key providers are always treated as configured
+        var result = providers.Select(p =>
+            PlatformKeyProviders.Contains(p.Name)
+                ? p with { Configured = true }
+                : p
+        ).ToList();
+
+        return Ok(result);
     }
 
     [HttpPut("{name}")]
@@ -27,6 +43,14 @@ public sealed class ProvidersController : ControllerBase
         [FromBody] ConfigureProviderRequest request,
         CancellationToken ct)
     {
+        if (PlatformKeyProviders.Contains(name))
+        {
+            return BadRequest(new
+            {
+                error = "Only OpenAI supports custom API keys. Other providers use platform keys."
+            });
+        }
+
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -56,6 +80,14 @@ public sealed class ProvidersController : ControllerBase
     [HttpDelete("{name}/key")]
     public async Task<IActionResult> Clear(string name, CancellationToken ct)
     {
+        if (PlatformKeyProviders.Contains(name))
+        {
+            return BadRequest(new
+            {
+                error = "Only OpenAI supports custom API keys. Other providers use platform keys."
+            });
+        }
+
         var cleared = await _service.ClearAsync(name, ct);
         if (!cleared)
         {
