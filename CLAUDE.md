@@ -67,3 +67,4 @@ Backend config lives in `apps/v2-backend/appsettings.json` (Production / Staging
 - No K8s env vars for app config — use `appsettings.json` baked into the image.
 - Docker images push to Docker Hub under `harkro123/` — `:latest` tag only, no SHA tags.
 - Prod hostnames: `dashboard.harrokrog.com` (frontend), `api.harrokrog.com` (backend).
+- Update docs/ if changes have been done or major feature has been added. Same for CLAUDE.md prompt if its relevant to the prompt
