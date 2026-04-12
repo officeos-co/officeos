@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Office OS - Deploy, Connect, and Control AI Agents</title>
+  <meta name="description" content="Give every team their own AI agent with the right skills, permissions, and access to your organization's knowledge." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 1. Nav Bar -->
+  <nav class="nav">
+    <div class="nav-inner container">
+      <a href="/" class="nav-logo">Office OS</a>
+      <a href="#cta" class="btn btn-primary btn-sm">Start Free</a>
+    </div>
+  </nav>
+
+  <!-- 2. Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1>Stop managing agents manually.<br />Deploy, connect, and control them from one place.</h1>
+        <p class="hero-subtitle">Give every team their own AI agent with the right skills, permissions, and access to your organization's knowledge.</p>
+        <div class="hero-ctas">
+          <a href="#cta" class="btn btn-primary">Start Free</a>
+          <a href="#cta" class="btn btn-secondary">Book a Demo</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="placeholder placeholder-lg">
+          <span>Agent Deployment Animation &mdash; Coming Soon</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Social Proof Bar -->
+  <section class="social-proof">
+    <div class="container">
+      <p class="social-proof-label">Built by engineers from</p>
+      <div class="logo-row">
+        <div class="logo-placeholder"><span>Company A</span></div>
+        <div class="logo-placeholder"><span>Company B</span></div>
+        <div class="logo-placeholder"><span>Company C</span></div>
+        <div class="logo-placeholder"><span>University D</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Product in Action -->
+  <section class="product-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>One dashboard for every agent in your organization.</h2>
+        <p class="section-subtitle">Deploy agents per team. Each with their own skills, permissions, and knowledge graph access. Manage credentials, monitor activity, control everything centrally.</p>
+      </div>
+
+      <!-- 4A: Agent Deployment -->
+      <div class="feature-row">
+        <div class="feature-text">
+          <h3>Agent Deployment</h3>
+          <p>Deploy a new agent in under a minute. Select a team, assign skills, set permissions &mdash; done. Runs in Kubernetes with minimal resources. No infrastructure work needed.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="placeholder placeholder-md">
+            <span>Deploy Flow Screenshot &mdash; Team &rarr; Skills &rarr; Deploy &rarr; Running</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4B: Custom Skills -->
+      <div class="feature-row feature-row-reverse">
+        <div class="feature-text">
+          <h3>Custom Skills</h3>
+          <p>Write your own skills in TypeScript. Deploy them to our cloud or run them in your local network &mdash; your agents execute real business logic on your infrastructure, not generic API calls through MCP. Skills run as V8 Isolates &mdash; sandboxed, fast, scalable.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="placeholder placeholder-md">
+            <span>Code Editor + Skill Library Screenshot</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4C: Knowledge Graph -->
+      <div class="feature-row">
+        <div class="feature-text">
+          <h3>Knowledge Graph</h3>
+          <p>Every agent accesses your organization's knowledge. Per-team and per-organization graphs that stay in sync. No more agents that don't know what happened yesterday.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="placeholder placeholder-md">
+            <span>Knowledge Graph Visualization</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4D: Central Credentials -->
+      <div class="feature-row feature-row-reverse">
+        <div class="feature-text">
+          <h3>Central Credentials</h3>
+          <p>API keys, tokens, service accounts &mdash; managed once, used by all agents. When a token expires, update it in one place. Not in a hundred agent configs.</p>
+        </div>
+        <div class="feature-visual">
+          <div class="placeholder placeholder-md">
+            <span>Credentials Management Screenshot</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Capability Sections -->
+
+  <!-- 5A: Organization Knowledge Graph -->
+  <section class="capability-section capability-graph">
+    <div class="container">
+      <h2>Organization Knowledge Graph</h2>
+      <p class="section-subtitle">See how agents, teams, tools, and knowledge connect across your organization. Not another dashboard &mdash; a living map of everything your agents know and do.</p>
+      <div class="placeholder placeholder-xl">
+        <span>Interactive Knowledge Graph Visualization &mdash; Coming Soon</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5B: Micro Footprint -->
+  <section class="capability-section capability-metrics">
+    <div class="container">
+      <h2>Micro Footprint, Massive Scale</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-value">100x</span>
+          <span class="metric-label">less resources</span>
+          <p class="metric-desc">Hundreds of agents where other systems manage five.</p>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">&lt;5ms</span>
+          <span class="metric-label">cold start</span>
+          <p class="metric-desc">Skills as V8 Isolates, not containers.</p>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">MB</span>
+          <span class="metric-label">not gigabytes</span>
+          <p class="metric-desc">Rust-based runtime, minimal footprint.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5C: Custom Skills vs MCP -->
+  <section class="capability-section capability-compare">
+    <div class="container">
+      <h2>Your logic. Your network. Not generic MCP.</h2>
+      <p class="section-subtitle">MCP servers call APIs. Your agents need to run actual business logic &mdash; validate invoices against your ERP, check compliance rules against internal policies, sync data between systems that don't have public APIs. Write it in TypeScript, deploy it as a skill, run it on your own network.</p>
+      <div class="compare-grid">
+        <div class="compare-card compare-mcp">
+          <h4>Generic MCP</h4>
+          <ul>
+            <li>Simple API calls</li>
+            <li>Stateless</li>
+            <li>Cloud-only</li>
+            <li>Limited to public APIs</li>
+          </ul>
+        </div>
+        <div class="compare-card compare-skill">
+          <h4>Custom Skill</h4>
+          <ul>
+            <li>Full TypeScript logic</li>
+            <li>Access to local network</li>
+            <li>Business-critical workflows</li>
+            <li>Sandboxed V8 execution</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Integration / Setup -->
+  <section class="integration-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Connect your existing tools in minutes.</h2>
+        <p class="section-subtitle">Office OS sits on top of your current stack. No migration, no replacement.</p>
+      </div>
+      <div class="integration-grid">
+        <div class="integration-logo"><span>GitHub</span></div>
+        <div class="integration-logo"><span>Notion</span></div>
+        <div class="integration-logo"><span>Google Workspace</span></div>
+        <div class="integration-logo"><span>Slack</span></div>
+        <div class="integration-logo"><span>Linear</span></div>
+        <div class="integration-logo"><span>Jira</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Enterprise Trust / Security -->
+  <section class="trust-section">
+    <div class="container">
+      <h2>Infrastructure your IT team will trust.</h2>
+      <div class="trust-grid">
+        <div class="trust-item">
+          <div class="trust-icon">K8s</div>
+          <div>
+            <h4>Kubernetes-native Deployment</h4>
+            <p>Runs where your infrastructure already lives.</p>
+          </div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">V8</div>
+          <div>
+            <h4>Sandboxed Skill Execution</h4>
+            <p>V8 Isolates or self-hosted skills in your own network.</p>
+          </div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">RBAC</div>
+          <div>
+            <h4>Role-based Permissions per Agent</h4>
+            <p>Fine-grained access control for every agent.</p>
+          </div>
+        </div>
+        <div class="trust-item">
+          <div class="trust-icon">Log</div>
+          <div>
+            <h4>Audit Logs for All Agent Actions</h4>
+            <p>Full traceability of every action every agent takes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Final CTA -->
+  <section id="cta" class="cta-section">
+    <div class="container">
+      <h2>Ready to deploy your first agent?</h2>
+      <p class="section-subtitle">Start free with your own API keys. No credit card required.</p>
+      <div class="cta-grid">
+        <div class="cta-card">
+          <h4>Get Started</h4>
+          <p>Create your account and deploy your first agent in minutes.</p>
+          <a href="#" class="btn btn-primary btn-lg">Start Free</a>
+        </div>
+        <div class="cta-card">
+          <h4>Talk to Us</h4>
+          <p>See Office OS in action with a 30-minute walkthrough.</p>
+          <div class="placeholder placeholder-sm">
+            <span>Calendar Booking Widget &mdash; Coming Soon</span>
+          </div>
+        </div>
+      </div>
+      <p class="cta-reassurance">Free tier includes 3 agents. Bring your own API keys. Cancel anytime.</p>
+    </div>
+  </section>
+
+  <!-- 9. Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="/" class="footer-logo">Office OS</a>
+          <p class="footer-tagline">The intelligence layer for AI agents.</p>
+        </div>
+        <div class="footer-col">
+          <h5>Product</h5>
+          <ul>
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Docs</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Company</h5>
+          <ul>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Legal</h5>
+          <ul>
+            <li><a href="#">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-social">
+          <a href="#" aria-label="GitHub">GitHub</a>
+          <a href="#" aria-label="LinkedIn">LinkedIn</a>
+          <a href="#" aria-label="X">X</a>
+        </div>
+        <p>Made in Hamburg &mdash; &copy; 2026 Office OS GmbH</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
