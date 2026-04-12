@@ -21,7 +21,7 @@ public sealed class SsoController : ControllerBase
     }
 
     [HttpGet("initiate")]
-    public async Task<IActionResult> Initiate([FromQuery] string org, CancellationToken ct)
+    public async Task<IActionResult> Initiate([FromQuery] string? org, CancellationToken ct)
     {
         if (!_config.Enabled)
         {
@@ -42,8 +42,8 @@ public sealed class SsoController : ControllerBase
 
     [HttpGet("callback")]
     public async Task<IActionResult> Callback(
-        [FromQuery] string code,
-        [FromQuery] string state,
+        [FromQuery] string? code,
+        [FromQuery] string? state,
         CancellationToken ct)
     {
         if (!_config.Enabled)
