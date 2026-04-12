@@ -16,6 +16,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -23,11 +24,15 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Build and run tests
+      - name: Build test project
         working-directory: apps/v2-backend
-        run: |
-          dotnet build EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
-          dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj --no-build --logger "console;verbosity=normal"
+        run: dotnet build EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
+
+      - name: Run integration tests
+        working-directory: apps/v2-backend
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+        run: dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj --no-build --logger "console;verbosity=normal" --blame-hang-timeout 120s
 
   build:
     needs: test
