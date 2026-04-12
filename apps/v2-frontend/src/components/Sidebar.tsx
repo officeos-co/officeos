@@ -166,14 +166,15 @@ export function Sidebar() {
 
       {/* Bottom section */}
       <div className="mt-auto border-t border-sidebar-border px-4 py-3">
-        <Link
-          href="/docs"
+        <a
+          href="https://docs.harrokrog.com"
           target="_blank"
+          rel="noopener noreferrer"
           className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         >
           <BookOpen className="h-4 w-4 shrink-0" />
           Documentation
-        </Link>
+        </a>
 
         {/* User card */}
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">

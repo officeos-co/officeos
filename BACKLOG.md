@@ -71,7 +71,26 @@ Also providers really shouldnt be a sidebar element has like a way better sdebar
 also remove new agent from sidebar
 
 The philosophy is Main app is for the consumer accpetance criteria is even a non technical person should instantly understand whats going on and not have to think about any config or permission they should just be subject to it.
+
 \*Conclusion after talking:
+
+**Sidebar restructure:**
+- Remove Platform section (Providers, Skills, Runners) from main sidebar entirely → move to Org Settings
+- Main sidebar: Dashboard, Agents, [future: Knowledge Graph], then bottom: Org Settings + Account/Logout
+- Org Settings gets the Claude Code sidebar transition — clicking it replaces the full sidebar with an org-settings view that has a "Back to main app" button at the top. This is the right pattern for the coming enterprise complexity (privacy controls, rate limiting, team setup, API keys, runners config).
+- "Active Agents" section stays in sidebar as-is (it's operational, not config)
+- Agent creation lives as a big button inside the Agents tab — confirmed correct, do not add it back to the sidebar
+
+**Rename Skills → Tools everywhere** (skills = knowledge in the industry; tools = callable capabilities — our abstraction is wrong, fix it)
+
+**Agent detail panel — 5 tabs:**
+1. **Chat + Tools** — operational interface, chat window + assigned tools list with emoji icons
+2. **Prompt** — separate tab because our system prompt is a vault of files (CouchDB/Obsidian), not a single text field; cannot collapse this
+3. **Sessions** — session history
+4. **Logs** — tool execution logs
+5. **Memory** — what the agent has learned; separate from Prompt even though both live in Obsidian (different concerns: behavior vs. learned context)
+
+**Icons:** Keep emojis for now, they work and are distinctive. Revisit when there is a clear reason to upgrade.
 
 ---
 
