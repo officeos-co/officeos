@@ -185,6 +185,34 @@ obsidian find_by_tag --tag "project"
 |----------|--------|----------|---------|--------------------------|
 | `tag`    | string | yes      |         | Tag name (without `#`)   |
 
+### Find notes by category
+
+```
+obsidian find_by_category --category "project" --limit 20
+```
+
+| Argument   | Type   | Required | Default | Description                                     |
+|------------|--------|----------|---------|-------------------------------------------------|
+| `category` | string | yes      |         | Category value to match (e.g. `project`)        |
+| `limit`    | int    | no       | 50      | Max results to return                           |
+
+Returns an array of `{ path, title, category, tags }` for notes whose `category` frontmatter property matches exactly.
+
+### Query notes by property
+
+```
+obsidian query_by_property --property "status" --value "active" --operator "eq" --limit 30
+```
+
+| Argument   | Type                          | Required | Default | Description                                                                       |
+|------------|-------------------------------|----------|---------|-----------------------------------------------------------------------------------|
+| `property` | string                        | yes      |         | Frontmatter property name (e.g. `status`, `priority`)                            |
+| `value`    | string                        | no       |         | Value to match (not required when `operator` is `exists`)                        |
+| `operator` | `eq` \| `contains` \| `exists` | no      | `eq`    | `eq` — exact match; `contains` — substring/array member; `exists` — any value    |
+| `limit`    | int                           | no       | 50      | Max results to return                                                             |
+
+Returns an array of `{ path, title, value, tags }` for matching notes.
+
 ### Get frontmatter properties
 
 ```
@@ -236,6 +264,7 @@ No arguments. Returns available template names.
 4. Use `obsidian create_note`, `obsidian write_note`, `obsidian append_note` to modify vault content.
 5. Use `obsidian find_orphans` and `obsidian find_unresolved` for vault maintenance.
 6. Use `obsidian list_tags` and `obsidian find_by_tag` to navigate by topic.
+7. Use `obsidian find_by_category` to find all notes of a given category, or `obsidian query_by_property` for flexible bases-style filtering on any frontmatter property.
 
 ## Safety notes
 
