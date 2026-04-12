@@ -7,11 +7,11 @@ namespace EnterpriseAgentOs.Api.Entities.Billing;
 public static class PlanLimits
 {
     // ── Individual plans ─────────────────────────────────────────────────────
-    public static readonly PlanLimit IndividualFree = new("free",  1,  2_000_000L);
+    public static readonly PlanLimit IndividualFree = new("free",  1,    500_000L);
     public static readonly PlanLimit IndividualPro  = new("pro",   3, 10_000_000L);
 
     // ── Org plans ─────────────────────────────────────────────────────────────
-    public static readonly PlanLimit OrgFree  = new("free",  1,  2_000_000L);
+    public static readonly PlanLimit OrgFree  = new("free",  1,    500_000L);
     public static readonly PlanLimit OrgTeam  = new("team", 10, 25_000_000L);
     // Enterprise limits are custom — stored on OrgSubscription directly.
 
@@ -29,4 +29,4 @@ public static class PlanLimits
     };
 }
 
-public sealed record PlanLimit(string Plan, int ConcurrentAgents, long TokensPerMonth);
+public sealed record PlanLimit(string Plan, int ConcurrentAgents, long CreditsPerMonth);

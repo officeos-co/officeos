@@ -16,14 +16,20 @@ public sealed class UserSubscription
     public string? StripeCustomerId { get; set; }
     public string? StripeSubscriptionId { get; set; }
 
+    /// <summary>Stripe subscription item ID for the metered overage price, set when OverageEnabled=true.</summary>
+    public string? StripeOverageItemId { get; set; }
+
     /// <summary>1 for Free, 3 for Pro.</summary>
     public int ConcurrentAgentLimit { get; set; } = 1;
 
-    /// <summary>2_000_000 for Free, 10_000_000 for Pro.</summary>
-    public long TokenBudgetPerMonth { get; set; } = 2_000_000L;
+    /// <summary>500_000 for Free, 10_000_000 for Pro. Normalized credits (not raw tokens).</summary>
+    public long CreditBudgetPerMonth { get; set; } = 500_000L;
 
-    public long TokensUsedThisMonth { get; set; } = 0;
+    public long CreditsUsedThisMonth { get; set; } = 0;
     public DateTime PeriodStart { get; set; }
     public DateTime PeriodEnd { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>When true, usage above CreditBudgetPerMonth is billed via Stripe metered overage.</summary>
+    public bool OverageEnabled { get; set; } = false;
 }
