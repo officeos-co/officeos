@@ -125,10 +125,20 @@ public sealed class LlmProxyController : ControllerBase
         JsonElement body,
         CancellationToken ct)
     {
+        // Inject cache_control for Claude models before forwarding
+        var cachedBody = PromptCacheInjector.Inject(body, model);
+        if (model.StartsWith("claude", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogDebug(
+                "LLM proxy: prompt caching injected for agent {AgentId} model {Model}",
+                HttpContext.Items.TryGetValue("agent-id", out var id) ? id : "unknown",
+                model);
+        }
+
         HttpResponseMessage upstream;
         try
         {
-            upstream = await _dispatcher.DispatchAsync(provider, apiKey, model, body, ct);
+            upstream = await _dispatcher.DispatchAsync(provider, apiKey, model, cachedBody, ct);
         }
         catch (Exception ex)
         {
@@ -154,8 +164,18 @@ public sealed class LlmProxyController : ControllerBase
 
     private async Task DispatchViaLiteLlmAsync(string model, JsonElement body, CancellationToken ct)
     {
+        // Inject cache_control for Claude models before forwarding
+        var cachedBody = PromptCacheInjector.Inject(body, model);
+        if (model.StartsWith("claude", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogDebug(
+                "LLM proxy: prompt caching injected for agent {AgentId} model {Model}",
+                HttpContext.Items.TryGetValue("agent-id", out var id) ? id : "unknown",
+                model);
+        }
+
         // Replace model in the body, inject platform api_key, keep everything else intact
-        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.GetRawText())
+        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(cachedBody.GetRawText())
             ?? new Dictionary<string, JsonElement>();
         dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
 

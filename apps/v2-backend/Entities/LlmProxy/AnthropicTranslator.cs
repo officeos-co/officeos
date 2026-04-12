@@ -12,31 +12,48 @@ public static class AnthropicTranslator
 {
     /// <summary>
     /// Convert an OpenAI-format request body to an Anthropic Messages API body.
+    /// Preserves <c>cache_control</c> annotations added by <see cref="PromptCacheInjector"/>:
+    /// system messages with array content are passed as-is to the Anthropic <c>system</c> field,
+    /// and tool-level <c>cache_control</c> is preserved in translated tool definitions.
     /// </summary>
     public static string TranslateRequest(JsonElement openAiBody, string model)
     {
         var messages = new List<object>();
-        string? systemPrompt = null;
+        // systemContent holds either a plain string or a pre-built array JsonElement for cache_control
+        string? systemPromptString = null;
+        JsonElement? systemPromptArray = null;
 
         if (openAiBody.TryGetProperty("messages", out var msgsEl) && msgsEl.ValueKind == JsonValueKind.Array)
         {
             foreach (var msg in msgsEl.EnumerateArray())
             {
                 var role = msg.TryGetProperty("role", out var r) ? r.GetString() : "user";
-                var content = msg.TryGetProperty("content", out var c)
-                    ? c.ValueKind == JsonValueKind.String ? c.GetString() : c.GetRawText()
-                    : "";
 
                 if (role == "system")
                 {
-                    systemPrompt = content;
+                    if (msg.TryGetProperty("content", out var c))
+                    {
+                        if (c.ValueKind == JsonValueKind.Array)
+                        {
+                            // Array content with potential cache_control — pass through as JsonElement
+                            systemPromptArray = c.Clone();
+                        }
+                        else
+                        {
+                            systemPromptString = c.GetString();
+                        }
+                    }
                     continue;
                 }
+
+                var contentValue = msg.TryGetProperty("content", out var cv)
+                    ? cv.ValueKind == JsonValueKind.String ? cv.GetString() : cv.GetRawText()
+                    : "";
 
                 messages.Add(new
                 {
                     role = role == "assistant" ? "assistant" : "user",
-                    content = content ?? "",
+                    content = contentValue ?? "",
                 });
             }
         }
@@ -53,21 +70,63 @@ public static class AnthropicTranslator
             temperature = temp.GetDouble();
         }
 
-        var request = new Dictionary<string, object>
-        {
-            ["model"] = model,
-            ["max_tokens"] = maxTokens,
-            ["messages"] = messages,
-            ["stream"] = true,
-            ["temperature"] = temperature,
-        };
+        // Build the request using Utf8JsonWriter so we can embed raw JsonElement values
+        // (needed to preserve cache_control arrays in system and tools fields).
+        using var stream = new System.IO.MemoryStream();
+        using var writer = new Utf8JsonWriter(stream);
 
-        if (systemPrompt is not null)
+        writer.WriteStartObject();
+        writer.WriteString("model", model);
+        writer.WriteNumber("max_tokens", maxTokens);
+        writer.WriteBoolean("stream", true);
+        writer.WriteNumber("temperature", temperature);
+
+        // system field
+        if (systemPromptArray.HasValue)
         {
-            request["system"] = systemPrompt;
+            // Anthropic accepts a content array in the system field, which preserves cache_control
+            writer.WritePropertyName("system");
+            systemPromptArray.Value.WriteTo(writer);
+        }
+        else if (systemPromptString is not null)
+        {
+            writer.WriteString("system", systemPromptString);
         }
 
-        return JsonSerializer.Serialize(request);
+        // messages field
+        writer.WritePropertyName("messages");
+        writer.WriteStartArray();
+        foreach (var m in messages)
+        {
+            // Serialize each message object via JSON round-trip
+            var msgJson = JsonSerializer.Serialize(m);
+            using var msgDoc = JsonDocument.Parse(msgJson);
+            msgDoc.RootElement.WriteTo(writer);
+        }
+        writer.WriteEndArray();
+
+        // tools field — preserve cache_control if present
+        if (openAiBody.TryGetProperty("tools", out var toolsEl) && toolsEl.ValueKind == JsonValueKind.Array)
+        {
+            writer.WritePropertyName("tools");
+            writer.WriteStartArray();
+            foreach (var tool in toolsEl.EnumerateArray())
+            {
+                writer.WriteStartObject();
+                foreach (var prop in tool.EnumerateObject())
+                {
+                    // Preserve all properties including cache_control
+                    prop.WriteTo(writer);
+                }
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
+
+        writer.WriteEndObject();
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     /// <summary>
