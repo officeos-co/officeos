@@ -6,59 +6,64 @@ import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
 import { AgentSessionsPanel } from "./AgentSessionsPanel";
 import { AgentLogsPanel } from "./AgentLogsPanel";
-import { AgentSkillsListPanel } from "./AgentSkillsListPanel";
 import { AgentConfigPanel } from "./AgentConfigPanel";
+import { AgentOverviewPanel } from "./AgentOverviewPanel";
 
-type Tab = "chat-tools" | "prompt" | "sessions" | "logs" | "memory";
+type Tab = "agent" | "chat" | "prompt" | "sessions" | "logs" | "memory";
 
 type Props = {
   agent: Agent;
 };
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: "chat-tools", label: "Chat + Tools" },
+const TABS: { id: Tab; label: string }[] = [
+  { id: "agent", label: "Agent" },
+  { id: "chat", label: "Chat" },
   { id: "prompt", label: "Prompt" },
   { id: "sessions", label: "Sessions" },
   { id: "logs", label: "Logs" },
   { id: "memory", label: "Memory" },
 ];
 
+const ALWAYS_ON_TABS: Tab[] = ["agent", "prompt", "memory"];
+
 export function AgentDetailTabs({ agent }: Props) {
-  const [active, setActive] = useState<Tab>("chat-tools");
+  const [active, setActive] = useState<Tab>("agent");
 
   const running = agent.status === "running";
-  const alwaysOn: Tab[] = ["prompt", "memory"];
-  const isAlwaysOn = (id: Tab) => alwaysOn.includes(id);
+
+  const isEnabled = (id: Tab) => ALWAYS_ON_TABS.includes(id) || running;
 
   return (
     <div>
-      <div className="sticky top-[96px] z-0 flex gap-1 border-b border-border bg-background px-8">
-        {tabs.map((t) => {
-          const isActive = t.id === active;
-          const disabled = !isAlwaysOn(t.id) && !running;
+      <div className="sticky top-[96px] z-10 flex gap-1 border-b border-border bg-background px-8">
+        {TABS.map((tab) => {
+          const enabled = isEnabled(tab.id);
+          const isActive = tab.id === active;
           return (
             <button
-              key={t.id}
-              disabled={disabled}
-              onClick={() => setActive(t.id)}
+              key={tab.id}
+              type="button"
+              disabled={!enabled}
+              onClick={() => setActive(tab.id)}
+              title={!enabled ? "Available once the agent pod is running" : undefined}
               className={[
                 "-mb-px border-b-2 px-4 py-3 text-sm transition-colors",
                 isActive
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground",
-                disabled
+                !enabled
                   ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
                   : "",
               ].join(" ")}
-              title={disabled ? "Available once the agent pod is running" : undefined}
             >
-              {t.label}
+              {tab.label}
             </button>
           );
         })}
       </div>
 
-      {active === "chat-tools" && <ChatToolsPanel agent={agent} />}
+      {active === "agent" && <AgentOverviewPanel agent={agent} />}
+      {active === "chat" && <AgentChatPanel agent={agent} />}
       {active === "prompt" && <AgentConfigPanel agent={agent} />}
       {active === "sessions" && <AgentSessionsPanel agent={agent} />}
       {active === "logs" && <AgentLogsPanel agent={agent} />}
@@ -66,18 +71,3 @@ export function AgentDetailTabs({ agent }: Props) {
     </div>
   );
 }
-
-function ChatToolsPanel({ agent }: { agent: Agent }) {
-  return (
-    <div className="mx-8 my-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-      <AgentChatPanel agent={agent} />
-      <div className="flex flex-col gap-4">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 px-1">
-          Assigned Tools
-        </div>
-        <AgentSkillsListPanel agent={agent} />
-      </div>
-    </div>
-  );
-}
-

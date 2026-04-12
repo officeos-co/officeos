@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { TopBar } from "@/components/TopBar";
 import { AgentDetailTabs } from "@/components/AgentDetailTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/hooks/useApi";
@@ -37,7 +36,6 @@ export default function AgentDetailPage() {
     fetchAgent().finally(() => setLoading(false));
   }, [fetchAgent]);
 
-  // Auto-poll every 10s
   useEffect(() => {
     const tick = () => {
       if (document.visibilityState === "visible") {
@@ -62,58 +60,74 @@ export default function AgentDetailPage() {
 
   if (loading) {
     return (
-      <div className="px-8 py-12 text-sm text-muted-foreground">Loading...</div>
+      <div className="px-8 py-12 text-sm text-muted-foreground">Loading…</div>
     );
   }
 
   if (error || !agent) {
     return (
-      <div>
-        <TopBar title="Agent not found" />
-        <div className="mx-8 mt-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error ?? "Unknown agent"}
-        </div>
-        <div className="mx-8 mt-4">
-          <Link
-            href="/agents"
-            className="rounded-md border border-border px-3 py-1 text-xs hover:bg-primary hover:text-primary-foreground"
-          >
-            ← Back to agents
+      <div className="px-8 py-12">
+        <div className="mb-4 text-sm text-muted-foreground">
+          <Link href="/agents" className="hover:text-foreground transition-colors">
+            Agents
           </Link>
         </div>
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error ?? "Unknown agent"}
+        </div>
+        <Link
+          href="/agents"
+          className="rounded-md border border-border px-3 py-1 text-xs hover:bg-primary hover:text-primary-foreground"
+        >
+          ← Back to agents
+        </Link>
       </div>
     );
   }
 
   return (
     <div>
-      <TopBar
-        title={agent.name}
-        subtitle={
-          <span className="flex items-center gap-2">
-            {agent.model ?? "no model"} · <StatusBadge status={agent.status} />
-          </span>
-        }
-        action={
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="px-8 pt-8 pb-0">
+        {/* Breadcrumb */}
+        <div className="mb-4 text-sm text-muted-foreground">
+          <Link href="/agents" className="hover:text-foreground transition-colors">
+            Agents
+          </Link>
+          {" / "}
+          <span>{agent.name}</span>
+        </div>
+
+        {/* Title row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold">{agent.name}</h1>
+            <StatusBadge status={agent.status} />
+          </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="flex items-center gap-1 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-red-100 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-red-100 disabled:opacity-50 transition-colors"
             >
               <Trash2 className="h-4 w-4" />
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? "Deleting…" : "Delete"}
             </button>
-            <Link
-              href="/agents"
-              className="rounded-md border border-border px-3 py-2 text-sm hover:bg-primary hover:text-primary-foreground"
-            >
-              ← All agents
-            </Link>
           </div>
-        }
-      />
+        </div>
 
+        {/* Agent ID + provider/model */}
+        <div className="mt-2 flex items-center gap-2 font-mono text-xs text-muted-foreground">
+          <span>{agent.id}</span>
+          <span>·</span>
+          <span>
+            {agent.provider} / {agent.model ?? "auto"}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Status banners ─────────────────────────────────────────── */}
       {agent.status === "failed" && (
         <div className="mx-8 mt-4 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
           This agent failed to deploy. You may want to delete it and try again.
@@ -121,17 +135,20 @@ export default function AgentDetailPage() {
       )}
       {agent.status === "not_found" && (
         <div className="mx-8 mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          This agent's pod was not found in the cluster. It may have been deleted externally or
+          This agent&apos;s pod was not found in the cluster. It may have been deleted externally or
           crashed. Delete and recreate the agent.
         </div>
       )}
       {agent.status === "stopped" && (
         <div className="mx-8 mt-4 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          This agent's pod has stopped.
+          This agent&apos;s pod has stopped.
         </div>
       )}
 
-      <AgentDetailTabs agent={agent} />
+      {/* ── Tabs ───────────────────────────────────────────────────── */}
+      <div className="mt-6">
+        <AgentDetailTabs agent={agent} />
+      </div>
     </div>
   );
 }
