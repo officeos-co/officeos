@@ -6,6 +6,7 @@ import { useAgents, type Agent } from "@/hooks/useAgents";
 import { useSkills } from "@/hooks/useSkills";
 import { useProviders } from "@/hooks/useProviders";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, shortId } from "@/utils/format";
 
 function StatCard({
@@ -51,8 +52,8 @@ function statusGroup(agents: Agent[]) {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { agents } = useAgents();
-  const { skills } = useSkills();
+  const { agents, loading: agentsLoading } = useAgents();
+  const { skills, loading: skillsLoading } = useSkills();
   const { providers } = useProviders();
 
   const { running, pending, errors } = statusGroup(agents);
@@ -71,30 +72,47 @@ export default function DashboardPage() {
       <div className="px-8 py-6">
         {/* Stat cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            value={agents.length}
-            label="Agents"
-            sub={`${running} running, ${pending} pending, ${errors} errors`}
-            icon={Bot}
-          />
-          <StatCard
-            value={installedSkills}
-            label="Skills Installed"
-            sub={`${skills.length} available`}
-            icon={Puzzle}
-          />
-          <StatCard
-            value={configuredProviders}
-            label="Providers"
-            sub={`${providers.length} total`}
-            icon={KeyRound}
-          />
-          <StatCard
-            value={running}
-            label="Live Agents"
-            sub={running > 0 ? "All systems nominal" : "No agents running"}
-            icon={Activity}
-          />
+          {agentsLoading && agents.length === 0 ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-5">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-12" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </div>
+            ))
+          ) : (
+            <>
+              <StatCard
+                value={agents.length}
+                label="Agents"
+                sub={`${running} running, ${pending} pending, ${errors} errors`}
+                icon={Bot}
+              />
+              <StatCard
+                value={installedSkills}
+                label="Skills Installed"
+                sub={`${skills.length} available`}
+                icon={Puzzle}
+              />
+              <StatCard
+                value={configuredProviders}
+                label="Providers"
+                sub={`${providers.length} total`}
+                icon={KeyRound}
+              />
+              <StatCard
+                value={running}
+                label="Live Agents"
+                sub={running > 0 ? "All systems nominal" : "No agents running"}
+                icon={Activity}
+              />
+            </>
+          )}
         </div>
 
         {/* Two-column layout */}
@@ -105,7 +123,19 @@ export default function DashboardPage() {
               Recent Agents
             </div>
             <div className="rounded-xl border border-border bg-card">
-              {agents.length === 0 ? (
+              {agentsLoading && agents.length === 0 ? (
+                <div className="divide-y divide-border">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  ))}
+                </div>
+              ) : agents.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">
                   No agents yet. Create one to get started.
                 </div>
@@ -143,7 +173,19 @@ export default function DashboardPage() {
               Installed Skills
             </div>
             <div className="rounded-xl border border-border bg-card">
-              {installedSkills === 0 ? (
+              {skillsLoading && skills.length === 0 ? (
+                <div className="divide-y divide-border">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                      <Skeleton className="h-7 w-7 rounded shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : installedSkills === 0 ? (
                 <div className="px-5 py-8 text-center text-sm text-muted-foreground">
                   No skills installed yet.
                 </div>

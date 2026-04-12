@@ -35,7 +35,7 @@ export function AgentDetailTabs({ agent }: Props) {
 
   return (
     <div>
-      <div className="sticky top-[96px] z-10 flex gap-1 border-b border-border bg-background px-8">
+      <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background px-8">
         {TABS.map((tab) => {
           const enabled = isEnabled(tab.id);
           const isActive = tab.id === active;

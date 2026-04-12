@@ -8,6 +8,7 @@ import { UploadSkillOverlay } from "@/components/UploadSkillOverlay";
 import { GitHubSkillOverlay } from "@/components/GitHubSkillOverlay";
 import { useSkills } from "@/hooks/useSkills";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GitBranch, Upload } from "lucide-react";
 
 export default function SkillsPage() {
@@ -37,7 +38,24 @@ export default function SkillsPage() {
       </div>
 
       {loading ? (
-        <div className="px-8 py-12 text-sm text-muted-foreground">Loading...</div>
+        <div className="px-8 py-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-8 w-24 rounded-lg mt-2" />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : error ? (
         <div className="mx-8 mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}

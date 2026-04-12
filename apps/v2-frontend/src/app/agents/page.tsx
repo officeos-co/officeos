@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { NewAgentOverlay } from "@/components/NewAgentOverlay";
 import { useAgents } from "@/hooks/useAgents";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AgentsPage() {
   const { agents, loading, error, refetch, remove } = useAgents();
@@ -41,7 +42,18 @@ export default function AgentsPage() {
       )}
 
       {loading && agents.length === 0 ? (
-        <div className="px-8 py-12 text-sm text-muted-foreground">Loading...</div>
+        <div className="px-8 py-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-64" />
+              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+          ))}
+        </div>
       ) : agents.length === 0 ? (
         <EmptyState
           title="No agents yet"
