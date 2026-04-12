@@ -4,6 +4,8 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class SkillService : ISkillService
 {
+    private static readonly HashSet<string> SystemSkills = new(StringComparer.OrdinalIgnoreCase) { "browser" };
+
     private readonly ISkillCredentialRepository _repository;
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
@@ -115,6 +117,8 @@ public sealed class SkillService : ISkillService
         var row = await _repository.GetByNameAsync(manifest.Name, ct);
         if (row?.Enabled != true || string.IsNullOrEmpty(row.EncryptedCredentials))
         {
+            if (SystemSkills.Contains(name))
+                return new Dictionary<string, string>();
             return null;
         }
         var plaintext = _protector.Unprotect(row.EncryptedCredentials);
@@ -133,8 +137,9 @@ public sealed class SkillService : ISkillService
 
         foreach (var manifest in runtimeManifests)
         {
-            if (!rows.TryGetValue(manifest.Name, out var row)) continue;
-            if (!row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials)) continue;
+            var isSystem = SystemSkills.Contains(manifest.Name);
+            rows.TryGetValue(manifest.Name, out var row);
+            if (!isSystem && (row is null || !row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials))) continue;
 
             foreach (var (actionName, action) in manifest.Actions)
             {
@@ -192,6 +197,7 @@ public sealed class SkillService : ISkillService
 
     private static SkillDto ToDto(RuntimeManifest manifest, SkillCredentialRecord? row)
     {
+        var isSystem = SystemSkills.Contains(manifest.Name);
         var tools = manifest.Actions
             .Select(kv =>
             {
@@ -207,9 +213,10 @@ public sealed class SkillService : ISkillService
             Title: manifest.Title,
             Description: manifest.Description,
             Emoji: manifest.Emoji,
-            Installed: row?.Enabled == true,
-            Configured: !string.IsNullOrEmpty(row?.EncryptedCredentials),
+            Installed: isSystem || row?.Enabled == true,
+            Configured: isSystem || !string.IsNullOrEmpty(row?.EncryptedCredentials),
             RunTarget: row?.RunTarget ?? "cloud",
+            IsSystem: isSystem,
             CredentialFields: ToCredentialFields(manifest),
             LlmTools: tools);
     }

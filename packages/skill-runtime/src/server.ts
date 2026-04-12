@@ -179,12 +179,25 @@ async function handleRequest(
 
 await loadSkills();
 
+// Start browser session cleanup loop
+const { browserSessions } = await import("./browser-session-manager.js");
+browserSessions.startCleanup();
+
 const server = createServer((req, res) => {
   handleRequest(req, res).catch((err) => {
     console.error("Unhandled error:", err);
     json(res, 500, { success: false, error: "Internal server error" });
   });
 });
+
+async function shutdown() {
+  const { browserSessions } = await import("./browser-session-manager.js");
+  await browserSessions.shutdown();
+  server.close();
+  process.exit(0);
+}
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 
 server.listen(PORT, () => {
   console.log(`Skill runtime listening on :${PORT}`);

@@ -116,7 +116,7 @@ public sealed class SkillsController : ControllerBase
         {
             var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText())
                 ?? new Dictionary<string, object>();
-            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct);
+            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct: ct);
             if (result.Success)
             {
                 return Ok(result.Result);

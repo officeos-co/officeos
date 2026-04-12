@@ -8,10 +8,12 @@ export function createContext(opts: {
   credentials: Record<string, string>;
   fetch?: typeof globalThis.fetch;
   log?: (...args: unknown[]) => void;
+  page?: unknown;
 }): SkillContext {
   return {
     credentials: opts.credentials,
     fetch: opts.fetch ?? globalThis.fetch,
     log: opts.log ?? console.log,
+    page: opts.page,
   };
 }

@@ -292,7 +292,7 @@ fn parse_schema_to_skills(fields: &[FieldInfo]) -> HashMap<String, SkillInfo> {
     let mut skills: HashMap<String, SkillInfo> = HashMap::new();
 
     // Known skill prefixes — extend as skills are added
-    let prefixes = ["notion", "github", "google"];
+    let prefixes = ["notion", "github", "google", "browser"];
 
     for field in fields {
         // Match against known prefixes

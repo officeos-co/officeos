@@ -85,6 +85,7 @@ else
 builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
 builder.Services.AddScoped<IProviderService, ProviderService>();
 builder.Services.AddScoped<ISkillCredentialRepository, SkillCredentialRepository>();
+builder.Services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
 builder.Services.AddScoped<ISkillService, SkillService>();
 
 var skillRuntimeConfig = new SkillRuntimeConfig

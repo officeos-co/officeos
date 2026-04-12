@@ -8,12 +8,20 @@ export interface ExecuteRequest {
   action: string;
   params: Record<string, unknown>;
   credentials: Record<string, string>;
+  sessionContext?: {
+    sessionId?: string;
+    cookies?: Array<{ name: string; value: string; domain: string; path: string; [key: string]: unknown }>;
+  };
 }
 
 export interface ExecuteResult {
   success: boolean;
   result?: unknown;
   error?: string;
+  sessionMeta?: {
+    sessionId: string;
+    cookies: Array<{ name: string; value: string; domain: string; path: string; [key: string]: unknown }>;
+  };
 }
 
 /**
@@ -63,12 +71,38 @@ export class SkillExecutor {
       return { success: false, error: `Validation error: ${String(err)}` };
     }
 
+    // Set up browser session if this is a browser skill
+    let page: unknown = undefined;
+    let activeSessionId: string | undefined;
+
+    if (req.skill === "browser") {
+      const { browserSessions } = await import("./browser-session-manager.js");
+      const session = await browserSessions.getOrCreate(
+        req.sessionContext?.sessionId,
+        req.sessionContext?.cookies as any,
+      );
+      page = session.page;
+      activeSessionId = session.sessionId;
+    }
+
     // Create sandboxed context with injected credentials
-    const ctx = createSandboxedContext({ credentials: req.credentials });
+    const ctx = createSandboxedContext({ credentials: req.credentials, page });
 
     // Execute the action
     try {
       const result = await actionDef.execute(validatedParams, ctx);
+
+      // Return session metadata for browser skills
+      if (req.skill === "browser" && activeSessionId) {
+        const { browserSessions } = await import("./browser-session-manager.js");
+        if (req.action === "close") {
+          const cookies = await browserSessions.close(activeSessionId);
+          return { success: true, result, sessionMeta: { sessionId: "", cookies: cookies as any } };
+        }
+        const cookies = await browserSessions.extractCookies(activeSessionId);
+        return { success: true, result, sessionMeta: { sessionId: activeSessionId, cookies: cookies as any } };
+      }
+
       return { success: true, result };
     } catch (err) {
       return {

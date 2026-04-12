@@ -89,7 +89,7 @@ public sealed class SkillTypeModule : ITypeModule
                     // Dispatch to skill runtime
                     var client = ctx.Service<SkillRuntimeClient>();
                     var result = await client.ExecuteAsync(
-                        skillName, actionKey, parameters, creds, ctx.RequestAborted);
+                        skillName, actionKey, parameters, creds, ct: ctx.RequestAborted);
 
                     if (!result.Success)
                     {

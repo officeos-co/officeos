@@ -12,6 +12,7 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly IRunnerRepository _runners;
     private readonly IRunnerJobRepository _runnerJobs;
     private readonly RunnerJobWaiter _jobWaiter;
+    private readonly IBrowserSessionRepository _browserSessions;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -21,6 +22,7 @@ public sealed class AgentSkillsController : ControllerBase
         IRunnerRepository runners,
         IRunnerJobRepository runnerJobs,
         RunnerJobWaiter jobWaiter,
+        IBrowserSessionRepository browserSessions,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
@@ -28,6 +30,7 @@ public sealed class AgentSkillsController : ControllerBase
         _runners = runners;
         _runnerJobs = runnerJobs;
         _jobWaiter = jobWaiter;
+        _browserSessions = browserSessions;
         _logger = logger;
     }
 
@@ -61,6 +64,24 @@ public sealed class AgentSkillsController : ControllerBase
             _logger.LogWarning("Skill {Skill} not configured for cloud execution", body.Skill);
             return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured. Configure credentials on the Skills page, or set it to run on a self-hosted runner." });
         }
+
+        // Browser session injection
+        SessionContext? sessionContext = null;
+        Guid? agentId = null;
+        if (string.Equals(body.Skill, "browser", StringComparison.OrdinalIgnoreCase))
+        {
+            agentId = (Guid)HttpContext.Items["agent-id"]!;
+            var existingSession = await _browserSessions.GetByAgentAsync(agentId.Value, ct);
+            if (existingSession is not null)
+            {
+                sessionContext = new SessionContext
+                {
+                    SessionId = existingSession.RuntimeSessionId,
+                    CookiesJson = existingSession.CookiesJson,
+                };
+            }
+        }
+
         try
         {
             var result = await _runtime.ExecuteAsync(
@@ -68,12 +89,28 @@ public sealed class AgentSkillsController : ControllerBase
                 body.Action,
                 body.Params ?? new Dictionary<string, object>(),
                 creds,
+                sessionContext,
                 ct);
-            if (result.Success)
+
+            // Persist browser session state
+            if (string.Equals(body.Skill, "browser", StringComparison.OrdinalIgnoreCase)
+                && agentId.HasValue && result.SessionMeta is not null)
             {
-                return Ok(result);
+                if (string.IsNullOrEmpty(result.SessionMeta.SessionId))
+                {
+                    await _browserSessions.DeleteByAgentAsync(agentId.Value, ct);
+                }
+                else
+                {
+                    await _browserSessions.UpsertAsync(agentId.Value,
+                        result.SessionMeta.SessionId, result.SessionMeta.CookiesJson, ct);
+                }
             }
-            return UnprocessableEntity(result);
+
+            // Strip session metadata from the response to the agent
+            if (result.Success)
+                return Ok(new { success = result.Success, result = result.Result });
+            return UnprocessableEntity(new { success = result.Success, error = result.Error });
         }
         catch (HttpRequestException ex)
         {
@@ -156,7 +193,7 @@ public sealed class AgentSkillsController : ControllerBase
             // Convert JsonElement body to dictionary for the runtime
             var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText())
                 ?? new Dictionary<string, object>();
-            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct);
+            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct: ct);
             if (result.Success)
             {
                 return Ok(result.Result);

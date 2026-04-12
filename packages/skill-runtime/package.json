@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@harro/skill-sdk": "file:../skill-sdk",
+    "playwright-core": "^1.44.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

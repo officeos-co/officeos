@@ -23,6 +23,7 @@ public sealed record SkillDto(
     bool Installed,
     bool Configured,
     string RunTarget,
+    bool IsSystem,
     IReadOnlyList<CredentialField> CredentialFields,
     IReadOnlyList<LlmToolDto> LlmTools);
 

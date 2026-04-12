@@ -8,6 +8,19 @@ public sealed class SkillExecutionResult
     public required bool Success { get; set; }
     public JsonElement? Result { get; set; }
     public string? Error { get; set; }
+    public SessionMeta? SessionMeta { get; set; }
+}
+
+public sealed class SessionContext
+{
+    public string? SessionId { get; set; }
+    public string? CookiesJson { get; set; }
+}
+
+public sealed class SessionMeta
+{
+    public string? SessionId { get; set; }
+    public string? CookiesJson { get; set; }
 }
 
 /// <summary>Manifest returned by GET /manifests from the skill runtime.</summary>

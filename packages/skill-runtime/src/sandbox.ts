@@ -9,6 +9,7 @@ import { createContext } from "@harro/skill-sdk";
  */
 export function createSandboxedContext(opts: {
   credentials: Record<string, string>;
+  page?: unknown;
 }): SkillContext {
   return createContext({
     credentials: opts.credentials,
@@ -16,5 +17,6 @@ export function createSandboxedContext(opts: {
     log: (...args: unknown[]) => {
       console.log("[skill]", ...args);
     },
+    page: opts.page,
   });
 }

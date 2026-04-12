@@ -1,3 +1,4 @@
+using EnterpriseAgentOs.Api.Database.Models;
 
 namespace EnterpriseAgentOs.Api.Database;
 
@@ -19,6 +20,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
     public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
     public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
+    public DbSet<BrowserSessionRecord> BrowserSessions => Set<BrowserSessionRecord>();
     public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
     public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
 
@@ -128,6 +130,13 @@ public sealed class EaosDbContext : DbContext
             e.Property(c => c.Role).IsRequired().HasMaxLength(32);
             e.Property(c => c.Content).IsRequired();
             e.Property(c => c.SessionId).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<BrowserSessionRecord>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.HasIndex(b => b.AgentId).IsUnique();
+            e.Property(b => b.CookiesJson).HasColumnType("text");
         });
 
         modelBuilder.Entity<UserSubscription>(e =>

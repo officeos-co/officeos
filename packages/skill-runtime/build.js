@@ -31,7 +31,7 @@ await build({
   format: "esm",
   outfile: "dist/server.js",
   sourcemap: true,
-  external: ["node:*"],
+  external: ["node:*", "playwright-core"],
   plugins: [sdkResolvePlugin],
   banner: {
     js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
@@ -48,7 +48,7 @@ for (const name of skillDirs) {
     format: "esm",
     outfile: `dist/skills/${name}.js`,
     sourcemap: true,
-    external: ["node:*"],
+    external: ["node:*", "playwright-core"],
     plugins: [sdkResolvePlugin],
     loader: { ".md": "text" },
   });

@@ -32,15 +32,28 @@ public sealed class SkillRuntimeClient
         string action,
         object parameters,
         IReadOnlyDictionary<string, string> credentials,
+        SessionContext? sessionContext = null,
         CancellationToken ct = default)
     {
-        var body = JsonSerializer.Serialize(new
+        var payload = new Dictionary<string, object?>
         {
-            skill,
-            action,
-            @params = parameters,
-            credentials,
-        });
+            ["skill"] = skill,
+            ["action"] = action,
+            ["params"] = parameters,
+            ["credentials"] = credentials,
+        };
+
+        if (sessionContext is not null)
+        {
+            var sc = new Dictionary<string, object?>();
+            if (sessionContext.SessionId is not null)
+                sc["sessionId"] = sessionContext.SessionId;
+            if (sessionContext.CookiesJson is not null)
+                sc["cookies"] = JsonSerializer.Deserialize<JsonElement>(sessionContext.CookiesJson);
+            payload["sessionContext"] = sc;
+        }
+
+        var body = JsonSerializer.Serialize(payload);
 
         _logger.LogInformation("Executing skill {Skill}.{Action} via runtime", skill, action);
 

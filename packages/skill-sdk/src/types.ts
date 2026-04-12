@@ -12,6 +12,8 @@ export interface SkillContext {
   fetch: typeof globalThis.fetch;
   /** Structured logger. */
   log: (...args: unknown[]) => void;
+  /** Playwright Page object — injected by runtime for browser skills. */
+  page?: unknown;
 }
 
 /**
