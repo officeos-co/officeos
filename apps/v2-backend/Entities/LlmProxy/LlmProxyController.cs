@@ -12,9 +12,10 @@ namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 /// resolves the real provider + model from the agent's record, then:
 /// <list type="bullet">
 ///   <item>OpenAI with a configured BYOK key → dispatches via <see cref="LlmProviderDispatcher"/>.</item>
-///   <item>All other providers → forwards to the LiteLLM sidecar which holds platform keys.</item>
+///   <item>All other providers → forwards to the LiteLLM sidecar; the backend injects the
+///         platform API key per-request so LiteLLM never needs its own credentials.</item>
 /// </list>
-/// Credentials never leave the backend / LiteLLM sidecar.
+/// Credentials never leave the backend.
 /// </summary>
 [ApiController]
 [AgentTokenAuth]
@@ -24,6 +25,7 @@ public sealed class LlmProxyController : ControllerBase
     private readonly IProviderService _providers;
     private readonly LlmProviderDispatcher _dispatcher;
     private readonly LiteLlmConfig _liteLlm;
+    private readonly PlatformKeysConfig _platformKeys;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmProxyController> _logger;
 
@@ -32,6 +34,7 @@ public sealed class LlmProxyController : ControllerBase
         IProviderService providers,
         LlmProviderDispatcher dispatcher,
         LiteLlmConfig liteLlm,
+        PlatformKeysConfig platformKeys,
         IHttpClientFactory httpFactory,
         ILogger<LlmProxyController> logger)
     {
@@ -39,6 +42,7 @@ public sealed class LlmProxyController : ControllerBase
         _providers = providers;
         _dispatcher = dispatcher;
         _liteLlm = liteLlm;
+        _platformKeys = platformKeys;
         _httpFactory = httpFactory;
         _logger = logger;
     }
@@ -95,16 +99,17 @@ public sealed class LlmProxyController : ControllerBase
             "LLM proxy: agent {AgentId} requested {RequestedModel} → resolved {ResolvedModel} (provider={Provider})",
             agentId, requestedModel, resolvedModel, provider);
 
-        // 4. OpenAI BYOK path (kept for dev/testing)
+        // 4. OpenAI BYOK path: prefer org-configured key, fall back to platform key
         if (provider.Equals("openai", StringComparison.OrdinalIgnoreCase))
         {
-            var apiKey = await _providers.GetDecryptedKeyAsync("openai", ct);
-            if (apiKey is not null)
+            var byokKey = await _providers.GetDecryptedKeyAsync("openai", ct);
+            var effectiveKey = byokKey ?? _platformKeys.OpenAiApiKey;
+            if (!string.IsNullOrEmpty(effectiveKey))
             {
-                await DispatchViaByokAsync(provider, apiKey, resolvedModel, body, ct);
+                await DispatchViaByokAsync(provider, effectiveKey, resolvedModel, body, ct);
                 return;
             }
-            // Fall through to LiteLLM if no BYOK key configured
+            // Fall through to LiteLLM if no key is configured at all
         }
 
         // 5. All other providers → LiteLLM sidecar
@@ -138,12 +143,25 @@ public sealed class LlmProxyController : ControllerBase
 
     // ── LiteLLM path ──────────────────────────────────────────────────────────
 
+    private string GetPlatformKeyForModel(string model) => model switch
+    {
+        var m when m.StartsWith("claude") => _platformKeys.AnthropicApiKey,
+        var m when m.StartsWith("gpt")    => _platformKeys.OpenAiApiKey,
+        var m when m.StartsWith("gemini") => _platformKeys.GeminiApiKey,
+        var m when m.StartsWith("grok")   => _platformKeys.XaiApiKey,
+        _                                  => _platformKeys.AnthropicApiKey, // default
+    };
+
     private async Task DispatchViaLiteLlmAsync(string model, JsonElement body, CancellationToken ct)
     {
-        // Replace model in the body, keep everything else intact
+        // Replace model in the body, inject platform api_key, keep everything else intact
         var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(body.GetRawText())
             ?? new Dictionary<string, JsonElement>();
         dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
+
+        var platformKey = GetPlatformKeyForModel(model);
+        if (!string.IsNullOrEmpty(platformKey))
+            dict["api_key"] = JsonDocument.Parse($"\"{EscapeJson(platformKey)}\"").RootElement.Clone();
 
         var json = JsonSerializer.Serialize(dict);
         var client = _httpFactory.CreateClient("llm-proxy");

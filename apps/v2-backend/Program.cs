@@ -147,6 +147,11 @@ var liteLlmConfig = builder.Configuration
     .Get<LiteLlmConfig>() ?? new LiteLlmConfig();
 builder.Services.AddSingleton(liteLlmConfig);
 
+var platformKeysConfig = builder.Configuration
+    .GetSection($"{configSection}:PlatformKeys")
+    .Get<PlatformKeysConfig>() ?? new PlatformKeysConfig();
+builder.Services.AddSingleton(platformKeysConfig);
+
 builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
 builder.Services
     .AddGraphQLServer()

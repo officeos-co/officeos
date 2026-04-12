@@ -10,35 +10,35 @@ data:
       - model_name: claude-haiku-4-5
         litellm_params:
           model: anthropic/claude-haiku-4-5-20251001
-          api_key: os.environ/ANTHROPIC_API_KEY
+          # api_key injected per-request by backend
       - model_name: claude-sonnet-4-6
         litellm_params:
           model: anthropic/claude-sonnet-4-6
-          api_key: os.environ/ANTHROPIC_API_KEY
+          # api_key injected per-request by backend
       - model_name: claude-opus-4-6
         litellm_params:
           model: anthropic/claude-opus-4-6
-          api_key: os.environ/ANTHROPIC_API_KEY
+          # api_key injected per-request by backend
       - model_name: gpt-4o
         litellm_params:
           model: openai/gpt-4o
-          api_key: os.environ/OPENAI_API_KEY
+          # api_key injected per-request by backend
       - model_name: gpt-4o-mini
         litellm_params:
           model: openai/gpt-4o-mini
-          api_key: os.environ/OPENAI_API_KEY
+          # api_key injected per-request by backend
       - model_name: gemini-2.5-pro
         litellm_params:
           model: gemini/gemini-2.5-pro
-          api_key: os.environ/GEMINI_API_KEY
+          # api_key injected per-request by backend
       - model_name: gemini-2.5-flash
         litellm_params:
           model: gemini/gemini-2.5-flash
-          api_key: os.environ/GEMINI_API_KEY
+          # api_key injected per-request by backend
       - model_name: grok-4
         litellm_params:
           model: xai/grok-4
-          api_key: os.environ/XAI_API_KEY
+          # api_key injected per-request by backend
 
     router_settings:
       routing_strategy: simple-shuffle
@@ -76,27 +76,6 @@ spec:
             - "/app/config/litellm_config.yaml"
             - "--port"
             - "4000"
-          env:
-            - name: ANTHROPIC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: platform-llm-keys
-                  key: ANTHROPIC_API_KEY
-            - name: GEMINI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: platform-llm-keys
-                  key: GEMINI_API_KEY
-            - name: XAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: platform-llm-keys
-                  key: XAI_API_KEY
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: platform-llm-keys
-                  key: OPENAI_API_KEY
           volumeMounts:
             - name: litellm-config
               mountPath: /app/config
