@@ -197,3 +197,6 @@ static async Task SeedProvidersAsync(EaosDbContext db)
     await db.Providers.AddRangeAsync(seed);
     await db.SaveChangesAsync();
 }
+
+// Make Program visible to test project (WebApplicationFactory<Program>)
+public partial class Program { }
