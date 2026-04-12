@@ -337,6 +337,91 @@ export default defineSkill({
       },
     },
 
+    find_by_category: {
+      description:
+        "Find notes whose `category` frontmatter property matches the given value.",
+      params: z.object({
+        category: z.string().describe("Category value to match (e.g. 'project')"),
+        limit: z
+          .number()
+          .min(1)
+          .max(200)
+          .default(50)
+          .describe("Max results to return"),
+      }),
+      returns: z.array(
+        z.object({
+          path: z.string(),
+          title: z.string(),
+          category: z.string(),
+          tags: z.array(z.string()),
+        }),
+      ),
+      execute: async (params, ctx) => {
+        const out = await obsctl(
+          [
+            "properties",
+            "find-by",
+            "category",
+            params.category,
+            "--limit",
+            String(params.limit),
+          ],
+          ctx.credentials,
+        );
+        return parse(out);
+      },
+    },
+
+    query_by_property: {
+      description:
+        "Query notes by any frontmatter property — a generalised bases-style filter.",
+      params: z.object({
+        property: z.string().describe("Frontmatter property name (e.g. 'status')"),
+        value: z
+          .string()
+          .optional()
+          .describe("Value to match (ignored when operator is 'exists')"),
+        operator: z
+          .enum(["eq", "contains", "exists"])
+          .default("eq")
+          .describe(
+            "'eq' — exact match; 'contains' — substring / array membership; 'exists' — property is present",
+          ),
+        limit: z
+          .number()
+          .min(1)
+          .max(200)
+          .default(50)
+          .describe("Max results to return"),
+      }),
+      returns: z.array(
+        z.object({
+          path: z.string(),
+          title: z.string(),
+          value: z.unknown(),
+          tags: z.array(z.string()),
+        }),
+      ),
+      execute: async (params, ctx) => {
+        const args = [
+          "properties",
+          "query",
+          "--property",
+          params.property,
+          "--operator",
+          params.operator,
+          "--limit",
+          String(params.limit),
+        ];
+        if (params.operator !== "exists" && params.value !== undefined) {
+          args.push("--value", params.value);
+        }
+        const out = await obsctl(args, ctx.credentials);
+        return parse(out);
+      },
+    },
+
     // ── Properties ───────────────────────────────────────
 
     get_properties: {
