@@ -1,34 +1,44 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistMono } from "geist/font/mono";
+import type { Viewport } from "next";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export const viewport: Viewport = {
+	themeColor: "black",
+};
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Office OS — The Intelligence Layer for AI Agents",
-  description:
-    "Deploy, connect, and control AI agents from one place. Kubernetes-native, self-hosted, enterprise-ready.",
+export const metadata = {
+	title: "Office OS — Deploy, Connect, and Control AI Agents",
+	description:
+		"Give every team their own AI agent with the right skills, permissions, and access to your organization's knowledge.",
+	keywords: [
+		"Office OS",
+		"AI agent platform",
+		"agent deployment",
+		"Kubernetes agents",
+		"enterprise AI",
+	],
 };
 
 export default function RootLayout({
-  children,
+	children,
 }: Readonly<{
-  children: React.ReactNode;
+	children: React.ReactNode;
 }>) {
-  return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
-    </html>
-  );
+	return (
+		<html lang="en" className="dark" suppressHydrationWarning>
+			<body
+				className={`${GeistMono.className} bg-background font-sans antialiased`}
+			>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					enableSystem={false}
+					disableTransitionOnChange
+				>
+					{children}
+				</ThemeProvider>
+			</body>
+		</html>
+	);
 }

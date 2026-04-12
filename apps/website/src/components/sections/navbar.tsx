@@ -1,24 +1,156 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { siteConfig, navConfig } from "@/lib/config";
+import { Menu, X } from "lucide-react";
+import { AnimatePresence, motion, useScroll } from "motion/react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { siteConfig } from "@/lib/config";
+import { cn } from "@/lib/utils";
+
+const INITIAL_WIDTH = "70rem";
+const MAX_WIDTH = "800px";
+
+const overlayVariants = {
+	hidden: { opacity: 0 },
+	visible: { opacity: 1 },
+	exit: { opacity: 0 },
+};
+
+const drawerVariants = {
+	hidden: { opacity: 0, y: 100 },
+	visible: {
+		opacity: 1,
+		y: 0,
+		rotate: 0,
+		transition: {
+			type: "spring" as const,
+			damping: 15,
+			stiffness: 200,
+			staggerChildren: 0.03,
+		},
+	},
+	exit: {
+		opacity: 0,
+		y: 100,
+		transition: { duration: 0.1 },
+	},
+};
 
 export function Navbar() {
-  return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <a href="#" className="font-mono text-lg font-bold tracking-tight">
-          {siteConfig.name}
-        </a>
-        <Button
-          size="sm"
-          onClick={() =>
-            document.getElementById("cta")?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          {navConfig.cta}
-        </Button>
-      </div>
-    </nav>
-  );
+	const { scrollY } = useScroll();
+	const [hasScrolled, setHasScrolled] = useState(false);
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+	useEffect(() => {
+		const unsubscribe = scrollY.on("change", (latest) => {
+			setHasScrolled(latest > 10);
+		});
+		return unsubscribe;
+	}, [scrollY]);
+
+	const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
+	const handleOverlayClick = () => setIsDrawerOpen(false);
+
+	return (
+		<header
+			className={cn(
+				"sticky z-50 mx-4 flex justify-center transition-all duration-300 md:mx-0",
+				hasScrolled ? "top-6" : "top-4 mx-0",
+			)}
+		>
+			<motion.div
+				initial={{ width: INITIAL_WIDTH }}
+				animate={{ width: hasScrolled ? MAX_WIDTH : INITIAL_WIDTH }}
+				transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+			>
+				<div
+					className={cn(
+						"mx-auto max-w-7xl rounded-2xl transition-all duration-300 xl:px-0",
+						hasScrolled
+							? "border border-border bg-background/75 px-2 backdrop-blur-lg"
+							: "px-7 shadow-none",
+					)}
+				>
+					<div className="flex h-[56px] items-center justify-between p-4">
+						<Link href="/" className="flex items-center gap-3">
+							<p className="font-semibold text-lg text-primary">
+								{siteConfig.name}
+							</p>
+						</Link>
+
+						<div className="flex shrink-0 flex-row items-center gap-1 md:gap-3">
+							<div className="flex items-center space-x-6">
+								<Link
+									className="hidden h-8 w-fit items-center justify-center rounded-full border border-white/[0.12] bg-secondary px-4 font-normal text-sm tracking-wide shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] md:flex dark:text-secondary-foreground"
+									href="#cta"
+								>
+									Start Free
+								</Link>
+							</div>
+							<button
+								className="flex size-8 cursor-pointer items-center justify-center rounded-md border border-border md:hidden"
+								onClick={toggleDrawer}
+							>
+								{isDrawerOpen ? (
+									<X className="size-5" />
+								) : (
+									<Menu className="size-5" />
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
+			</motion.div>
+
+			<AnimatePresence>
+				{isDrawerOpen && (
+					<>
+						<motion.div
+							className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+							initial="hidden"
+							animate="visible"
+							exit="exit"
+							variants={overlayVariants}
+							transition={{ duration: 0.2 }}
+							onClick={handleOverlayClick}
+						/>
+
+						<motion.div
+							className="fixed inset-x-0 bottom-3 mx-auto w-[95%] rounded-xl border border-border bg-background p-4 shadow-lg"
+							initial="hidden"
+							animate="visible"
+							exit="exit"
+							variants={drawerVariants}
+						>
+							<div className="flex flex-col gap-4">
+								<div className="flex items-center justify-between">
+									<Link href="/" className="flex items-center gap-3">
+										<p className="font-semibold text-lg text-primary">
+											{siteConfig.name}
+										</p>
+									</Link>
+									<button
+										onClick={toggleDrawer}
+										className="cursor-pointer rounded-md border border-border p-1"
+									>
+										<X className="size-5" />
+									</button>
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<Link
+										href="#cta"
+										onClick={() => setIsDrawerOpen(false)}
+										className="flex h-8 w-full items-center justify-center rounded-full border border-white/[0.12] bg-secondary px-4 font-normal text-sm tracking-wide shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] transition-all ease-out hover:bg-secondary/80 active:scale-95 dark:text-secondary-foreground"
+									>
+										Start Free
+									</Link>
+								</div>
+							</div>
+						</motion.div>
+					</>
+				)}
+			</AnimatePresence>
+		</header>
+	);
 }
