@@ -17,7 +17,12 @@ public sealed class SessionAuthMiddleware
         "/healthz",
         "/api/graphql",
         "/api/agents/me/",
-        "/api/runner/",
+        "/api/runner/register",
+        "/api/runner/jobs",
+        "/api/runner/heartbeat",
+        "/api/runner/skills",
+        "/api/runner/device/code",
+        "/api/runner/device/token",
     ];
 
     public SessionAuthMiddleware(RequestDelegate next, ILogger<SessionAuthMiddleware> logger)

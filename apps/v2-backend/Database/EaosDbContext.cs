@@ -15,6 +15,10 @@ public sealed class EaosDbContext : DbContext
     public DbSet<RunnerRecord> Runners => Set<RunnerRecord>();
     public DbSet<RunnerJobRecord> RunnerJobs => Set<RunnerJobRecord>();
     public DbSet<CustomSkillRecord> CustomSkills => Set<CustomSkillRecord>();
+    public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();
+    public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
+    public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
+    public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,6 +83,49 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.Name).IsUnique();
             e.HasOne(c => c.Owner).WithMany().HasForeignKey(c => c.OwnerId);
+        });
+
+        modelBuilder.Entity<DeviceCodeRecord>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => d.DeviceCode).IsUnique();
+            e.HasIndex(d => d.UserCode);
+            e.HasOne(d => d.User).WithMany().HasForeignKey(d => d.UserId);
+        });
+
+        modelBuilder.Entity<AgentMemoryRecord>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => m.AgentId);
+            e.HasIndex(m => new { m.AgentId, m.Key }).IsUnique();
+            e.HasIndex(m => new { m.AgentId, m.Category });
+            e.HasIndex(m => new { m.AgentId, m.SessionId });
+            e.Property(m => m.Key).IsRequired().HasMaxLength(512);
+            e.Property(m => m.Content).IsRequired();
+            e.Property(m => m.Category).IsRequired().HasMaxLength(64);
+            e.Property(m => m.Namespace).IsRequired().HasMaxLength(128).HasDefaultValue("default");
+            e.Property(m => m.SessionId).HasMaxLength(256);
+            e.Property(m => m.SupersededBy).HasMaxLength(512);
+        });
+
+        modelBuilder.Entity<AgentCacheRecord>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => new { c.AgentId, c.CacheKey }).IsUnique();
+            e.HasIndex(c => c.AccessedAt);
+            e.Property(c => c.CacheKey).IsRequired().HasMaxLength(128);
+            e.Property(c => c.Model).IsRequired().HasMaxLength(128);
+            e.Property(c => c.Response).IsRequired();
+        });
+
+        modelBuilder.Entity<AgentConversationRecord>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.AgentId);
+            e.HasIndex(c => new { c.AgentId, c.SessionId });
+            e.Property(c => c.Role).IsRequired().HasMaxLength(32);
+            e.Property(c => c.Content).IsRequired();
+            e.Property(c => c.SessionId).HasMaxLength(256);
         });
     }
 }

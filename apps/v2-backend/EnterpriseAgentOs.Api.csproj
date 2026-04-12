@@ -27,4 +27,8 @@
     <PackageReference Include="AWSSDK.S3" Version="3.7.405.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="EnterpriseAgentOs.Api.Tests/**" />
+  </ItemGroup>
+
 </Project>
