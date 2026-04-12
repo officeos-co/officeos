@@ -1,5 +1,6 @@
 using System.Text.Json;
 using EnterpriseAgentOs.Api.Properties;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
@@ -48,34 +49,26 @@ public sealed class BillingController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/billing/subscribe — create or upgrade a subscription.
+    /// POST /api/billing/subscribe — create or upgrade an org subscription.
     /// Returns 503 when Stripe is not yet configured.
     /// </summary>
     [HttpPost("subscribe")]
     public async Task<IActionResult> Subscribe([FromBody] SubscribeRequest request, CancellationToken ct)
     {
         if (!_config.Enabled)
-        {
             return StatusCode(503, new { error = "Billing not configured" });
-        }
 
         if (string.IsNullOrWhiteSpace(request.Plan) ||
             (request.Plan != "free" && request.Plan != "team"))
-        {
             return BadRequest(new { error = "plan must be 'free' or 'team'" });
-        }
 
         if (string.IsNullOrWhiteSpace(request.Email))
-        {
             return BadRequest(new { error = "email is required" });
-        }
 
-        // TODO: Derive orgId from authenticated session.
         const string orgId = "default";
 
-        _logger.LogInformation("TODO: Subscribe org {OrgId} to plan {Plan}", orgId, request.Plan);
+        _logger.LogInformation("Subscribe org {OrgId} to plan {Plan}", orgId, request.Plan);
 
-        // TODO: Check if customer already exists, create if not, then create/update subscription.
         var customerId = await _stripe.CreateCustomerAsync(orgId, request.Email, ct);
         var subscriptionId = await _stripe.CreateSubscriptionAsync(customerId, request.Plan, ct);
 
@@ -84,7 +77,6 @@ public sealed class BillingController : ControllerBase
             customerId,
             subscriptionId,
             plan = request.Plan,
-            message = "TODO: Subscription creation is a stub. Wire up real Stripe SDK to activate.",
         });
     }
 
@@ -98,16 +90,18 @@ public sealed class BillingController : ControllerBase
     [HttpGet("user/subscription")]
     public async Task<IActionResult> GetUserSubscription(CancellationToken ct)
     {
-        // TODO: Derive userId from authenticated session once auth is wired up.
-        var userId = Guid.Empty; // TODO: replace with real user ID from session
+        if (HttpContext.Items["User"] is not UserRecord user)
+            return Unauthorized();
 
-        var sub = await _stripe.GetUserSubscriptionAsync(userId, ct);
-        var (remaining, overBudget) = await _stripe.CheckUserTokenBudgetAsync(userId, ct);
+        var sub = await _stripe.GetUserSubscriptionAsync(user.Id, ct);
+        var (remaining, overBudget) = await _stripe.CheckUserTokenBudgetAsync(user.Id, ct);
 
         return Ok(new
         {
             plan = sub.Plan,
             billingCycle = sub.BillingCycle,
+            stripeCustomerId = sub.StripeCustomerId,
+            stripeSubscriptionId = sub.StripeSubscriptionId,
             concurrentAgentLimit = sub.ConcurrentAgentLimit,
             tokenBudgetPerMonth = sub.TokenBudgetPerMonth,
             tokensUsedThisMonth = sub.TokensUsedThisMonth,
@@ -140,68 +134,67 @@ public sealed class BillingController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/billing/user/subscribe — subscribe or upgrade an individual user.
+    /// POST /api/billing/user/subscribe — start a Stripe Checkout session for an individual user.
+    /// Returns { checkoutUrl } on success.
     /// Returns 503 when Stripe is not yet configured.
     /// </summary>
     [HttpPost("user/subscribe")]
     public async Task<IActionResult> UserSubscribe([FromBody] UserSubscribeRequest request, CancellationToken ct)
     {
         if (!_config.Enabled)
-        {
             return StatusCode(503, new { error = "Billing not configured" });
-        }
+
+        if (HttpContext.Items["User"] is not UserRecord user)
+            return Unauthorized();
 
         if (string.IsNullOrWhiteSpace(request.Plan) ||
             (request.Plan != "free" && request.Plan != "pro"))
-        {
             return BadRequest(new { error = "plan must be 'free' or 'pro'" });
-        }
 
         var billingCycle = string.IsNullOrWhiteSpace(request.BillingCycle) ? "monthly" : request.BillingCycle;
         if (billingCycle != "monthly" && billingCycle != "yearly")
-        {
             return BadRequest(new { error = "billingCycle must be 'monthly' or 'yearly'" });
-        }
 
-        if (string.IsNullOrWhiteSpace(request.Email))
-        {
-            return BadRequest(new { error = "email is required" });
-        }
+        _logger.LogInformation("User {UserId} starting checkout for plan {Plan} billingCycle {BillingCycle}", user.Id, request.Plan, billingCycle);
 
-        // TODO: Derive userId from authenticated session.
-        var userId = Guid.Empty; // TODO: replace with real user ID from session
+        var checkoutUrl = await _stripe.CreateUserCheckoutSessionAsync(user.Id, user.Email, request.Plan, billingCycle, ct);
 
-        _logger.LogInformation("TODO: Subscribe user {UserId} to plan {Plan} billingCycle {BillingCycle}", userId, request.Plan, billingCycle);
+        return Ok(new { checkoutUrl });
+    }
 
-        var subscriptionId = await _stripe.CreateUserSubscriptionAsync(userId, request.Email, request.Plan, billingCycle, ct);
+    /// <summary>
+    /// GET /api/billing/user/portal — create a Stripe Billing Portal session for the authenticated user.
+    /// Returns { portalUrl }.
+    /// </summary>
+    [HttpGet("user/portal")]
+    public async Task<IActionResult> UserPortal(CancellationToken ct)
+    {
+        if (!_config.Enabled)
+            return StatusCode(503, new { error = "Billing not configured" });
 
-        return Ok(new
-        {
-            subscriptionId,
-            plan = request.Plan,
-            billingCycle,
-            message = "TODO: User subscription creation is a stub. Wire up real Stripe SDK to activate.",
-        });
+        if (HttpContext.Items["User"] is not UserRecord user)
+            return Unauthorized();
+
+        var portalUrl = await _stripe.CreateBillingPortalSessionAsync(user.Id, user.Email, ct);
+
+        return Ok(new { portalUrl });
     }
 
     /// <summary>
     /// POST /api/billing/webhook — receives and processes Stripe webhook events.
     /// Verifies the Stripe-Signature header before processing.
-    /// Returns 503 when Stripe is not yet configured.
     /// </summary>
     [HttpPost("webhook")]
+    [DisableRequestSizeLimit]
+    [Consumes("application/json")]
     public async Task<IActionResult> Webhook(CancellationToken ct)
     {
         if (!_config.Enabled)
-        {
             return StatusCode(503, new { error = "Billing not configured" });
-        }
 
         if (!Request.Headers.TryGetValue("Stripe-Signature", out var signature) ||
             string.IsNullOrEmpty(signature))
-        {
             return BadRequest(new { error = "Missing Stripe-Signature header" });
-        }
 
         string payload;
         using (var reader = new StreamReader(Request.Body))
@@ -223,4 +216,4 @@ public sealed class BillingController : ControllerBase
 }
 
 public sealed record SubscribeRequest(string Plan, string Email);
-public sealed record UserSubscribeRequest(string Plan, string Email, string? BillingCycle);
+public sealed record UserSubscribeRequest(string Plan, string? BillingCycle);

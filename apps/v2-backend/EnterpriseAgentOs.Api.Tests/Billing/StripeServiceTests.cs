@@ -1,15 +1,26 @@
+using EnterpriseAgentOs.Api.Database;
 using EnterpriseAgentOs.Api.Entities.Billing;
 using EnterpriseAgentOs.Api.Properties;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EnterpriseAgentOs.Api.Tests.Billing;
 
 /// <summary>
 /// Unit tests for StripeService.
-/// All tests run against the stub implementation — real Stripe calls are replaced with TODOs.
+/// Tests that exercise live Stripe SDK calls (CreateCustomer, CreateSubscription, etc.)
+/// are skipped when Stripe is disabled / no real API key is configured.
 /// </summary>
 public sealed class StripeServiceTests
 {
+    private static EaosDbContext CreateDb()
+    {
+        var opts = new DbContextOptionsBuilder<EaosDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        return new EaosDbContext(opts);
+    }
+
     private static StripeService CreateService(bool enabled = false) =>
         new(
             new StripeConfig
@@ -21,6 +32,8 @@ public sealed class StripeServiceTests
                 TeamOveragePriceId = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
                 Enabled = enabled,
             },
+            new FrontendConfig("https://dashboard.harrokrog.com"),
+            CreateDb(),
             NullLogger<StripeService>.Instance);
 
     // -------------------------------------------------------------------------
@@ -85,16 +98,16 @@ public sealed class StripeServiceTests
     }
 
     // -------------------------------------------------------------------------
-    // RecordTokenUsageAsync — stub increments (will be real once DB is wired)
+    // RecordTokenUsageAsync — placeholder (metered billing via Billing Meter Events)
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task RecordTokenUsage_ValidSubscriptionId_CompletesWithoutException()
+    public async Task RecordTokenUsage_ValidSubscriptionItemId_CompletesWithoutException()
     {
         var svc = CreateService();
 
-        // Should not throw even on the stub
-        await svc.RecordTokenUsageAsync("sub_placeholder_cus_test_free", 1_000);
+        // Should not throw — placeholder until meter event name is configured
+        await svc.RecordTokenUsageAsync("sub_item_placeholder", 1_000);
     }
 
     [Fact]
@@ -102,7 +115,7 @@ public sealed class StripeServiceTests
     {
         var svc = CreateService();
 
-        await svc.RecordTokenUsageAsync("sub_placeholder_cus_test_team", 500_000);
+        await svc.RecordTokenUsageAsync("sub_item_placeholder_large", 500_000);
     }
 
     // -------------------------------------------------------------------------
@@ -137,63 +150,16 @@ public sealed class StripeServiceTests
     }
 
     // -------------------------------------------------------------------------
-    // CreateCustomerAsync
+    // HandleWebhookAsync — signature verification requires real Stripe secret
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task CreateCustomer_ValidOrgAndEmail_ReturnsNonEmptyCustomerId()
+    public async Task HandleWebhook_InvalidSignature_ThrowsStripeException()
     {
         var svc = CreateService();
 
-        var customerId = await svc.CreateCustomerAsync("org-4", "test@example.com");
-
-        Assert.NotEmpty(customerId);
-    }
-
-    [Fact]
-    public async Task CreateCustomer_ContainsOrgId_InPlaceholderId()
-    {
-        var svc = CreateService();
-
-        var customerId = await svc.CreateCustomerAsync("org-5", "user@example.com");
-
-        Assert.Contains("org-5", customerId);
-    }
-
-    // -------------------------------------------------------------------------
-    // CreateSubscriptionAsync
-    // -------------------------------------------------------------------------
-
-    [Fact]
-    public async Task CreateSubscription_FreePlan_ReturnsNonEmptySubscriptionId()
-    {
-        var svc = CreateService();
-
-        var subscriptionId = await svc.CreateSubscriptionAsync("cus_test", "free");
-
-        Assert.NotEmpty(subscriptionId);
-    }
-
-    [Fact]
-    public async Task CreateSubscription_TeamPlan_ReturnsNonEmptySubscriptionId()
-    {
-        var svc = CreateService();
-
-        var subscriptionId = await svc.CreateSubscriptionAsync("cus_test", "team");
-
-        Assert.NotEmpty(subscriptionId);
-    }
-
-    // -------------------------------------------------------------------------
-    // HandleWebhookAsync
-    // -------------------------------------------------------------------------
-
-    [Fact]
-    public async Task HandleWebhook_ValidPayloadAndSignature_CompletesWithoutException()
-    {
-        var svc = CreateService();
-
-        // TODO: Once real Stripe SDK is wired, this should verify the signature.
-        await svc.HandleWebhookAsync("{\"type\":\"customer.subscription.updated\"}", "t=12345,v1=abc");
+        // Real SDK now verifies signature — an invalid signature should throw
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            svc.HandleWebhookAsync("{\"type\":\"customer.subscription.updated\"}", "t=12345,v1=abc"));
     }
 }

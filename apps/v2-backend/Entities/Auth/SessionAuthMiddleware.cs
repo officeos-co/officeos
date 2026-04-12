@@ -23,6 +23,7 @@ public sealed class SessionAuthMiddleware
         "/api/runner/skills",
         "/api/runner/device/code",
         "/api/runner/device/token",
+        "/api/billing/webhook",
     ];
 
     public SessionAuthMiddleware(RequestDelegate next, ILogger<SessionAuthMiddleware> logger)

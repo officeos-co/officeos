@@ -147,6 +147,10 @@ builder.Services.AddHostedService<RunnerJobTimeoutService>();
 var stripeConfig = new StripeConfig();
 ValueManager.GetConfiguration().GetSection($"{ValueManager.GetEnvironmentName()}:Stripe").Bind(stripeConfig);
 builder.Services.AddSingleton(stripeConfig);
+
+var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
+builder.Services.AddSingleton(frontendConfig);
+
 builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.StripeService>();
 
 // Custom Skills
