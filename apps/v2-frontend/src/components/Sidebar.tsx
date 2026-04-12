@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   User,
   Building2,
-  Wrench,
   CreditCard,
   Gauge,
   Key,
@@ -209,7 +208,6 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
   const orgNavItems = [
     { href: "/settings/profile", label: "Profile", icon: User },
     { href: "/settings/organization", label: "Organization", icon: Building2 },
-    { href: "/skills", label: "Tools", icon: Wrench },
     { href: "/runners", label: "Runners", icon: Radio },
     { href: "/settings/billing", label: "Billing", icon: CreditCard },
     { href: "/settings/limits", label: "Limits", icon: Gauge, placeholder: true },
