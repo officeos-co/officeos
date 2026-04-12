@@ -6,56 +6,33 @@ import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
 import { AgentSessionsPanel } from "./AgentSessionsPanel";
 import { AgentLogsPanel } from "./AgentLogsPanel";
-import { AgentCronsPanel } from "./AgentCronsPanel";
-import { AgentCostPanel } from "./AgentCostPanel";
-import { AgentDoctorPanel } from "./AgentDoctorPanel";
-import { AgentToolsPanel } from "./AgentToolsPanel";
 import { AgentSkillsListPanel } from "./AgentSkillsListPanel";
 import { AgentConfigPanel } from "./AgentConfigPanel";
-import { StatusBadge } from "./StatusBadge";
-import { formatDate, shortId } from "@/utils/format";
 
-type Tab =
-  | "overview"
-  | "chat"
-  | "sessions"
-  | "memory"
-  | "crons"
-  | "cost"
-  | "tools"
-  | "skills"
-  | "doctor"
-  | "config"
-  | "logs";
+type Tab = "chat-tools" | "prompt" | "sessions" | "logs" | "memory";
 
 type Props = {
   agent: Agent;
 };
 
 const tabs: { id: Tab; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "chat", label: "Chat" },
+  { id: "chat-tools", label: "Chat + Tools" },
+  { id: "prompt", label: "Prompt" },
   { id: "sessions", label: "Sessions" },
-  { id: "memory", label: "Memory" },
-  { id: "crons", label: "Crons" },
-  { id: "cost", label: "Cost" },
-  { id: "tools", label: "Tools" },
-  { id: "skills", label: "Skills" },
-  { id: "doctor", label: "Doctor" },
-  { id: "config", label: "Config" },
   { id: "logs", label: "Logs" },
+  { id: "memory", label: "Memory" },
 ];
 
 export function AgentDetailTabs({ agent }: Props) {
-  const [active, setActive] = useState<Tab>("overview");
+  const [active, setActive] = useState<Tab>("chat-tools");
 
   const running = agent.status === "running";
-  const alwaysOn: Tab[] = ["overview", "memory", "skills"];
+  const alwaysOn: Tab[] = ["prompt", "memory"];
   const isAlwaysOn = (id: Tab) => alwaysOn.includes(id);
 
   return (
     <div>
-      <div className="sticky top-[96px] z-0 flex flex-wrap gap-1 border-b border-border bg-background px-8">
+      <div className="sticky top-[96px] z-0 flex gap-1 border-b border-border bg-background px-8">
         {tabs.map((t) => {
           const isActive = t.id === active;
           const disabled = !isAlwaysOn(t.id) && !running;
@@ -81,44 +58,26 @@ export function AgentDetailTabs({ agent }: Props) {
         })}
       </div>
 
-      {active === "overview" && <OverviewPanel agent={agent} />}
-      {active === "chat" && <AgentChatPanel agent={agent} />}
+      {active === "chat-tools" && <ChatToolsPanel agent={agent} />}
+      {active === "prompt" && <AgentConfigPanel agent={agent} />}
       {active === "sessions" && <AgentSessionsPanel agent={agent} />}
-      {active === "memory" && <AgentMemoryPanel agent={agent} />}
-      {active === "crons" && <AgentCronsPanel agent={agent} />}
-      {active === "cost" && <AgentCostPanel agent={agent} />}
-      {active === "tools" && <AgentToolsPanel agent={agent} />}
-      {active === "skills" && <AgentSkillsListPanel agent={agent} />}
-      {active === "doctor" && <AgentDoctorPanel agent={agent} />}
-      {active === "config" && <AgentConfigPanel agent={agent} />}
       {active === "logs" && <AgentLogsPanel agent={agent} />}
+      {active === "memory" && <AgentMemoryPanel agent={agent} />}
     </div>
   );
 }
 
-function OverviewPanel({ agent }: { agent: Agent }) {
+function ChatToolsPanel({ agent }: { agent: Agent }) {
   return (
-    <div className="mx-8 my-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-      <InfoCard label="ID" value={<span className="font-mono text-xs">{shortId(agent.id)}</span>} />
-      <InfoCard label="Name" value={agent.name} />
-      <InfoCard label="Provider" value={agent.provider} />
-      <InfoCard label="Model" value={agent.model ?? "—"} />
-      <InfoCard
-        label="Status"
-        value={<StatusBadge status={agent.status} />}
-      />
-      <InfoCard label="Created" value={formatDate(agent.createdAt)} />
-    </div>
-  );
-}
-
-function InfoCard({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        {label}
+    <div className="mx-8 my-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+      <AgentChatPanel agent={agent} />
+      <div className="flex flex-col gap-4">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 px-1">
+          Assigned Tools
+        </div>
+        <AgentSkillsListPanel agent={agent} />
       </div>
-      <div className="mt-1 text-sm">{value}</div>
     </div>
   );
 }
+

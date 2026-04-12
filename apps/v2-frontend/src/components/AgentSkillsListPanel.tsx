@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Puzzle, RefreshCw } from "lucide-react";
+import { Wrench, RefreshCw } from "lucide-react";
 import type { Agent } from "@/hooks/useAgents";
 import { apiFetch } from "@/hooks/useApi";
 
@@ -39,7 +39,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
       const data = await apiFetch<Skill[]>("/api/skills");
       setSkills(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load skills");
+      setError(err instanceof Error ? err.message : "Failed to load tools");
       setSkills([]);
     }
   };
@@ -50,7 +50,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
 
   if (skills === null) {
     return (
-      <div className="mx-8 my-6 text-sm text-muted-foreground">Loading skills…</div>
+      <div className="mx-8 my-6 text-sm text-muted-foreground">Loading tools…</div>
     );
   }
 
@@ -58,8 +58,8 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
     <div className="mx-8 my-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Puzzle className="h-4 w-4" />
-          {skills.length} skill{skills.length === 1 ? "" : "s"}
+          <Wrench className="h-4 w-4" />
+          {skills.length} tool{skills.length === 1 ? "" : "s"}
         </div>
         <button
           type="button"
@@ -79,7 +79,7 @@ export function AgentSkillsListPanel({ agent }: { agent: Agent }) {
 
       {skills.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
-          No skills available.
+          No tools available.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

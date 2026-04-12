@@ -21,7 +21,7 @@ export default function SkillsPage() {
   return (
     <div>
       <TopBar
-        title="Skills"
+        title="Tools"
         subtitle={`${installed} of ${skills.length} installed`}
       />
 
@@ -32,7 +32,7 @@ export default function SkillsPage() {
         </Button>
         <Button variant="outline" size="sm" onClick={() => setShowUpload(true)}>
           <Upload className="mr-1.5 h-3.5 w-3.5" />
-          Upload Skill
+          Upload Tool
         </Button>
       </div>
 

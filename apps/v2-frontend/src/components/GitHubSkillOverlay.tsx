@@ -51,7 +51,7 @@ export function GitHubSkillOverlay({ open, onClose }: Props) {
       {done ? (
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Repository connected. The skill will be built automatically.
+            Repository connected. The tool will be built automatically.
           </p>
           <div className="flex justify-end">
             <Button size="sm" onClick={handleClose}>Done</Button>
@@ -66,7 +66,7 @@ export function GitHubSkillOverlay({ open, onClose }: Props) {
               autoFocus
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="https://github.com/user/my-skill"
+              placeholder="https://github.com/user/my-tool"
             />
           </div>
 
