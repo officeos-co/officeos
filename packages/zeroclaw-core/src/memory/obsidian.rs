@@ -23,6 +23,7 @@ use super::traits::{Memory, MemoryCategory, MemoryEntry};
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use std::collections::HashMap;
+use std::fmt::Write;
 use uuid::Uuid;
 
 /// Maximum number of entries to keep in the local cache.
@@ -87,11 +88,11 @@ impl ObsidianMemory {
     ) -> String {
         let timestamp = now_rfc3339();
         let mut note = String::from("---\n");
-        note.push_str(&format!("key: \"{key}\"\n"));
-        note.push_str(&format!("category: \"{category}\"\n"));
-        note.push_str(&format!("created_at: \"{timestamp}\"\n"));
+        let _ = writeln!(note, "key: \"{key}\"");
+        let _ = writeln!(note, "category: \"{category}\"");
+        let _ = writeln!(note, "created_at: \"{timestamp}\"");
         if let Some(sid) = session_id {
-            note.push_str(&format!("session_id: \"{sid}\"\n"));
+            let _ = writeln!(note, "session_id: \"{sid}\"");
         }
         note.push_str("---\n\n");
         note.push_str(content);

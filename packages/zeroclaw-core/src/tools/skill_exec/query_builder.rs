@@ -1,6 +1,7 @@
 //! Converts a parsed CLI command into a GraphQL query string.
 
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 
 use super::schema_cache::{ActionInfo, SchemaCache};
 
@@ -8,10 +9,10 @@ use super::schema_cache::{ActionInfo, SchemaCache};
 ///
 /// Maps CLI names back to GraphQL field names, coerces argument types
 /// based on the cached schema, and selects all scalar return fields.
-pub fn build_query(
+pub fn build_query<S: BuildHasher>(
     skill: &str,
     action: &str,
-    args: &HashMap<String, String>,
+    args: &HashMap<String, String, S>,
     schema: &SchemaCache,
 ) -> Result<String, String> {
     let action_info = schema
@@ -58,8 +59,8 @@ pub fn build_query(
     ))
 }
 
-fn build_graphql_args(
-    cli_args: &HashMap<String, String>,
+fn build_graphql_args<S: BuildHasher>(
+    cli_args: &HashMap<String, String, S>,
     action_info: &ActionInfo,
 ) -> Vec<String> {
     let mut gql_args = Vec::new();

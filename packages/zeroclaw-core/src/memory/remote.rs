@@ -8,6 +8,7 @@ use super::traits::{Memory, MemoryCategory, MemoryEntry, ProceduralMessage};
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 
 pub struct RemoteMemory {
     client: Client,
@@ -135,13 +136,13 @@ impl Memory for RemoteMemory {
     ) -> anyhow::Result<Vec<MemoryEntry>> {
         let mut url = format!("memory/search?query={}&limit={}", urlencoding::encode(query), limit);
         if let Some(sid) = session_id {
-            url.push_str(&format!("&sessionId={}", urlencoding::encode(sid)));
+            let _ = write!(url, "&sessionId={}", urlencoding::encode(sid));
         }
         if let Some(s) = since {
-            url.push_str(&format!("&since={}", urlencoding::encode(s)));
+            let _ = write!(url, "&since={}", urlencoding::encode(s));
         }
         if let Some(u) = until {
-            url.push_str(&format!("&until={}", urlencoding::encode(u)));
+            let _ = write!(url, "&until={}", urlencoding::encode(u));
         }
 
         let resp = self

@@ -252,6 +252,7 @@ pub struct Config {
     ///   persistent SSO sessions. When empty, a fresh profile is used each invocation.
     /// - `allowed_domains` (`Vec<String>`, default `[]`) — allowlist of domains the browser
     ///   may navigate to. Empty means all non-blocked domains are permitted.
+    ///
     /// HTTP request tool configuration (`[http_request]`).
     #[serde(default)]
     pub http_request: HttpRequestConfig,
@@ -1440,6 +1441,12 @@ pub struct SkillsConfig {
     /// a CLI-like interface to all backend skills via GraphQL.
     #[serde(default)]
     pub graphql_url: Option<String>,
+    /// Base URL of the skill-runtime service (e.g. `http://localhost:3001`).
+    /// When set, the agent registers native Obsidian tools
+    /// (`obsidian_find_by_category`, `obsidian_query_by_property`) that
+    /// proxy calls directly to the skill-runtime HTTP endpoint.
+    #[serde(default)]
+    pub skill_runtime_url: Option<String>,
 }
 
 fn default_backend_refresh_seconds() -> u64 {
