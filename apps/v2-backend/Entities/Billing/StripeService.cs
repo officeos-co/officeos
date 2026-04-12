@@ -28,9 +28,6 @@ public sealed class StripeService
     // Org billing
     // -------------------------------------------------------------------------
 
-    /// <summary>
-    /// Creates a Stripe customer for the given org.
-    /// </summary>
     public async Task<string> CreateCustomerAsync(string orgId, string email, CancellationToken ct = default)
     {
         var options = new CustomerCreateOptions
@@ -48,9 +45,6 @@ public sealed class StripeService
         return customer.Id;
     }
 
-    /// <summary>
-    /// Creates a Stripe subscription for the given customer on the given plan ("free" or "team").
-    /// </summary>
     public async Task<string> CreateSubscriptionAsync(string customerId, string plan, CancellationToken ct = default)
     {
         var priceId = plan == "team" ? _config.TeamPriceId : _config.FreePriceId;
@@ -65,60 +59,226 @@ public sealed class StripeService
         return subscription.Id;
     }
 
-    /// <summary>
-    /// Reports metered token usage to Stripe for overage billing.
-    /// Overage rate = model cost × 1.3 (never lose money on overage).
-    /// Note: Stripe.net v51 uses Billing Meter Events instead of legacy UsageRecords.
-    /// </summary>
-    public Task RecordTokenUsageAsync(string subscriptionItemId, long tokens, CancellationToken ct = default)
-    {
-        // Metered billing via Billing Meter Events (v51 API)
-        // Requires a meter event name configured in the Stripe dashboard.
-        // Placeholder — wire up once meter event name is configured.
-        _logger.LogInformation("TODO: Record {Tokens} tokens for subscription item {SubscriptionItemId} via Billing Meter Event", tokens, subscriptionItemId);
-        return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Returns the <see cref="OrgSubscription"/> for the given org.
-    /// Falls back to a default Free-tier subscription when not found.
-    /// </summary>
     public Task<OrgSubscription> GetOrgSubscriptionAsync(string orgId, CancellationToken ct = default)
     {
         _logger.LogDebug("Returning default free subscription for org {OrgId} (org subscriptions stored in-memory)", orgId);
         return Task.FromResult(CreateDefaultFreeSubscription(orgId));
     }
 
-    /// <summary>
-    /// Returns how many tokens remain for the org this period, and whether they are over-budget.
-    /// </summary>
-    public async Task<(long Remaining, bool OverBudget)> CheckTokenBudgetAsync(string orgId, CancellationToken ct = default)
+    public async Task<(long Remaining, bool OverBudget)> CheckCreditBudgetAsync(string orgId, CancellationToken ct = default)
     {
         var sub = await GetOrgSubscriptionAsync(orgId, ct);
-        var remaining = sub.TokenBudgetPerMonth - sub.TokensUsedThisMonth;
-        var overBudget = remaining < 0;
-        return (remaining, overBudget);
+        var remaining = sub.CreditBudgetPerMonth - sub.CreditsUsedThisMonth;
+        return (remaining, remaining < 0);
     }
 
     // -------------------------------------------------------------------------
     // User (Individual) billing
     // -------------------------------------------------------------------------
 
-    /// <summary>
-    /// Returns the UserSubscription for the given user from DB.
-    /// Defaults to Free if not found.
-    /// </summary>
     public async Task<UserSubscription> GetUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
         var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
         return sub ?? CreateDefaultFreeUserSubscription(userId);
     }
 
+    public async Task<(long Remaining, bool OverBudget)> CheckUserCreditBudgetAsync(Guid userId, CancellationToken ct = default)
+    {
+        var sub = await GetUserSubscriptionAsync(userId, ct);
+        var remaining = sub.CreditBudgetPerMonth - sub.CreditsUsedThisMonth;
+        return (remaining, remaining < 0);
+    }
+
     /// <summary>
-    /// Creates a Stripe Checkout Session for the user to subscribe to the given plan + billing cycle.
-    /// Upserts a Stripe customer first (checks DB for existing ID).
-    /// Returns the hosted checkout URL.
+    /// Called by the LLM proxy after each completion. Converts raw tokens to normalized
+    /// credits via <see cref="ModelCostWeights"/>, increments the owner's monthly counter,
+    /// and fires a Stripe Billing Meter Event if overage is enabled and the budget is exceeded.
+    /// Never throws — billing failures must not block agent execution.
     /// </summary>
+    public async Task RecordCreditUsageAsync(Guid agentId, string model, long rawTokens, CancellationToken ct = default)
+    {
+        var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agentId, ct);
+        if (agent?.OwnerId is null) return;
+
+        var credits = ModelCostWeights.ToCredits(model, rawTokens);
+        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == agent.OwnerId.Value, ct);
+        if (sub is null) return;
+
+        sub.CreditsUsedThisMonth += credits;
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogDebug(
+            "Agent {AgentId} used {Credits} credits ({RawTokens} raw tokens on {Model}). " +
+            "User {UserId}: {Used}/{Budget} credits this month.",
+            agentId, credits, rawTokens, model, agent.OwnerId, sub.CreditsUsedThisMonth, sub.CreditBudgetPerMonth);
+
+        // Fire Stripe meter event for overage if enabled and over budget
+        if (sub.OverageEnabled
+            && sub.StripeOverageItemId is not null
+            && sub.StripeCustomerId is not null
+            && sub.CreditsUsedThisMonth > sub.CreditBudgetPerMonth)
+        {
+            var overageCredits = sub.CreditsUsedThisMonth - sub.CreditBudgetPerMonth;
+            var meterEventName = sub.Plan == "pro" ? "pro_credits_used" : "free_credits_used";
+            await FireMeterEventAsync(meterEventName, sub.StripeCustomerId, overageCredits, ct);
+        }
+    }
+
+    /// <summary>
+    /// Enables or disables pay-as-you-go overage billing for an individual user.
+    /// When enabling, attaches a metered subscription item to the user's Stripe subscription
+    /// (creating a free subscription first if the user has no paid plan).
+    /// When disabling, deletes the subscription item.
+    /// </summary>
+    public async Task EnableUserOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default)
+    {
+        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        if (sub is null)
+        {
+            sub = CreateDefaultFreeUserSubscription(userId);
+            await _db.UserSubscriptions.AddAsync(sub, ct);
+        }
+
+        if (enabled)
+        {
+            if (sub.OverageEnabled) return; // already enabled
+
+            var customerId = await GetOrCreateStripeCustomerAsync(userId, email, ct);
+            var overagePriceId = sub.Plan == "pro" ? _config.ProOveragePriceId : _config.FreeOveragePriceId;
+
+            string subscriptionId;
+            if (sub.StripeSubscriptionId is not null)
+            {
+                // Add overage item to existing subscription
+                subscriptionId = sub.StripeSubscriptionId;
+            }
+            else
+            {
+                // Free user with no subscription yet — create one with just the metered overage price
+                var subOptions = new SubscriptionCreateOptions
+                {
+                    Customer = customerId,
+                    Items = [new SubscriptionItemOptions { Price = overagePriceId }],
+                };
+                var subService = new SubscriptionService();
+                var newSub = await subService.CreateAsync(subOptions, cancellationToken: ct);
+                sub.StripeSubscriptionId = newSub.Id;
+
+                // The overage item is the first (and only) item on this subscription
+                sub.StripeOverageItemId = newSub.Items.Data[0].Id;
+                sub.StripeCustomerId = customerId;
+                sub.OverageEnabled = true;
+                await _db.SaveChangesAsync(ct);
+                _logger.LogInformation("Overage enabled for user {UserId} (new subscription {SubId})", userId, newSub.Id);
+                return;
+            }
+
+            // Add overage item to existing subscription
+            var siOptions = new SubscriptionItemCreateOptions
+            {
+                Subscription = subscriptionId,
+                Price = overagePriceId,
+            };
+            var siService = new SubscriptionItemService();
+            var item = await siService.CreateAsync(siOptions, cancellationToken: ct);
+
+            sub.StripeOverageItemId = item.Id;
+            sub.StripeCustomerId = customerId;
+            sub.OverageEnabled = true;
+            _logger.LogInformation("Overage enabled for user {UserId}, subscription item {ItemId}", userId, item.Id);
+        }
+        else
+        {
+            if (!sub.OverageEnabled || sub.StripeOverageItemId is null) return;
+
+            var siService = new SubscriptionItemService();
+            await siService.DeleteAsync(
+                sub.StripeOverageItemId,
+                new SubscriptionItemDeleteOptions { ClearUsage = true },
+                cancellationToken: ct);
+
+            sub.StripeOverageItemId = null;
+            sub.OverageEnabled = false;
+            _logger.LogInformation("Overage disabled for user {UserId}", userId);
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Enables or disables pay-as-you-go overage billing for an org (Team plan).
+    /// </summary>
+    public async Task EnableOrgOverageAsync(string orgId, string email, bool enabled, CancellationToken ct = default)
+    {
+        var sub = await _db.OrgSubscriptions.FirstOrDefaultAsync(s => s.OrganizationId == orgId, ct);
+        if (sub is null)
+        {
+            sub = CreateDefaultFreeSubscription(orgId);
+            await _db.OrgSubscriptions.AddAsync(sub, ct);
+        }
+
+        if (enabled)
+        {
+            if (sub.OverageEnabled) return;
+
+            var options = new CustomerCreateOptions
+            {
+                Email = email,
+                Metadata = new Dictionary<string, string> { ["type"] = "org", ["orgId"] = orgId },
+            };
+            var customerSvc = new CustomerService();
+            var customer = sub.StripeCustomerId is not null
+                ? null
+                : await customerSvc.CreateAsync(options, cancellationToken: ct);
+
+            var customerId = sub.StripeCustomerId ?? customer!.Id;
+
+            if (sub.StripeSubscriptionId is not null)
+            {
+                var siOptions = new SubscriptionItemCreateOptions
+                {
+                    Subscription = sub.StripeSubscriptionId,
+                    Price = _config.TeamOveragePriceId,
+                };
+                var siService = new SubscriptionItemService();
+                var item = await siService.CreateAsync(siOptions, cancellationToken: ct);
+                sub.StripeOverageItemId = item.Id;
+            }
+            else
+            {
+                var subOptions = new SubscriptionCreateOptions
+                {
+                    Customer = customerId,
+                    Items = [new SubscriptionItemOptions { Price = _config.TeamOveragePriceId }],
+                };
+                var subService = new SubscriptionService();
+                var newSub = await subService.CreateAsync(subOptions, cancellationToken: ct);
+                sub.StripeSubscriptionId = newSub.Id;
+                sub.StripeOverageItemId = newSub.Items.Data[0].Id;
+            }
+
+            sub.StripeCustomerId = customerId;
+            sub.OverageEnabled = true;
+            _logger.LogInformation("Overage enabled for org {OrgId}", orgId);
+        }
+        else
+        {
+            if (!sub.OverageEnabled || sub.StripeOverageItemId is null) return;
+
+            var siService = new SubscriptionItemService();
+            await siService.DeleteAsync(
+                sub.StripeOverageItemId,
+                new SubscriptionItemDeleteOptions { ClearUsage = true },
+                cancellationToken: ct);
+
+            sub.StripeOverageItemId = null;
+            sub.OverageEnabled = false;
+            _logger.LogInformation("Overage disabled for org {OrgId}", orgId);
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task<string> CreateUserCheckoutSessionAsync(
         Guid userId,
         string email,
@@ -130,9 +290,9 @@ public sealed class StripeService
 
         var priceId = (plan, billingCycle) switch
         {
-            ("pro", "yearly") => _config.ProYearlyPriceId,
+            ("pro", "yearly")  => _config.ProYearlyPriceId,
             ("pro", "monthly") => _config.ProMonthlyPriceId,
-            _ => _config.FreePriceId,
+            _                  => _config.FreePriceId,
         };
 
         var options = new SessionCreateOptions
@@ -141,11 +301,7 @@ public sealed class StripeService
             Customer = customerId,
             LineItems =
             [
-                new SessionLineItemOptions
-                {
-                    Price = priceId,
-                    Quantity = 1,
-                },
+                new SessionLineItemOptions { Price = priceId, Quantity = 1 },
             ],
             SuccessUrl = $"{_frontend.Origin}/settings/billing?checkout=success",
             CancelUrl = $"{_frontend.Origin}/pricing",
@@ -163,10 +319,6 @@ public sealed class StripeService
         return session.Url;
     }
 
-    /// <summary>
-    /// Creates a Stripe Billing Portal session for the authenticated user.
-    /// Returns the portal URL.
-    /// </summary>
     public async Task<string> CreateBillingPortalSessionAsync(
         Guid userId,
         string email,
@@ -186,9 +338,6 @@ public sealed class StripeService
         return session.Url;
     }
 
-    /// <summary>
-    /// Processes an incoming Stripe webhook event after verifying the signature.
-    /// </summary>
     public async Task HandleWebhookAsync(string payload, string signature, CancellationToken ct = default)
     {
         var stripeEvent = EventUtility.ConstructEvent(payload, signature, _config.WebhookSecret);
@@ -222,7 +371,7 @@ public sealed class StripeService
                 sub.Plan = limits.Plan;
                 sub.BillingCycle = billingCycle ?? "monthly";
                 sub.ConcurrentAgentLimit = limits.ConcurrentAgents;
-                sub.TokenBudgetPerMonth = limits.TokensPerMonth;
+                sub.CreditBudgetPerMonth = limits.CreditsPerMonth;
                 sub.IsActive = true;
                 sub.PeriodStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                 sub.PeriodEnd = sub.PeriodStart.AddMonths(1);
@@ -240,12 +389,11 @@ public sealed class StripeService
                     s => s.StripeSubscriptionId == stripeSub.Id, ct);
                 if (sub is null) break;
 
-                // Determine plan from metadata or items (best effort)
                 var planName = stripeSub.Metadata?.TryGetValue("plan", out var metaPlan) == true ? metaPlan : sub.Plan;
                 var limits = PlanLimits.ForIndividualPlan(planName);
                 sub.Plan = limits.Plan;
                 sub.ConcurrentAgentLimit = limits.ConcurrentAgents;
-                sub.TokenBudgetPerMonth = limits.TokensPerMonth;
+                sub.CreditBudgetPerMonth = limits.CreditsPerMonth;
                 sub.IsActive = stripeSub.Status == "active";
 
                 _logger.LogInformation("Subscription updated for user {UserId} to {Plan}", sub.UserId, limits.Plan);
@@ -264,7 +412,9 @@ public sealed class StripeService
                 var freeLimits = PlanLimits.IndividualFree;
                 sub.Plan = freeLimits.Plan;
                 sub.ConcurrentAgentLimit = freeLimits.ConcurrentAgents;
-                sub.TokenBudgetPerMonth = freeLimits.TokensPerMonth;
+                sub.CreditBudgetPerMonth = freeLimits.CreditsPerMonth;
+                sub.StripeOverageItemId = null;
+                sub.OverageEnabled = false;
                 sub.IsActive = false;
 
                 _logger.LogInformation("Subscription deleted for user {UserId}, downgraded to free", sub.UserId);
@@ -276,14 +426,13 @@ public sealed class StripeService
                 var invoice = stripeEvent.Data.Object as Invoice;
                 if (invoice is null) break;
 
-                // In Stripe.net v51, the subscription ID lives on invoice.Parent.SubscriptionDetails.SubscriptionId
                 var subscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
 
                 var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(
                     s => s.StripeSubscriptionId == subscriptionId, ct);
                 if (sub is null) break;
 
-                sub.TokensUsedThisMonth = 0;
+                sub.CreditsUsedThisMonth = 0;
                 if (invoice.Lines?.Data?.Count > 0)
                 {
                     var period = invoice.Lines.Data[0].Period;
@@ -294,7 +443,7 @@ public sealed class StripeService
                     }
                 }
 
-                _logger.LogInformation("Invoice payment succeeded for user {UserId}, tokens reset", sub.UserId);
+                _logger.LogInformation("Invoice payment succeeded for user {UserId}, credits reset", sub.UserId);
                 break;
             }
 
@@ -314,23 +463,10 @@ public sealed class StripeService
         await _db.SaveChangesAsync(ct);
     }
 
-    /// <summary>Returns remaining tokens and whether the user is over-budget.</summary>
-    public async Task<(long Remaining, bool OverBudget)> CheckUserTokenBudgetAsync(Guid userId, CancellationToken ct = default)
-    {
-        var sub = await GetUserSubscriptionAsync(userId, ct);
-        var remaining = sub.TokenBudgetPerMonth - sub.TokensUsedThisMonth;
-        var overBudget = remaining < 0;
-        return (remaining, overBudget);
-    }
-
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 
-    /// <summary>
-    /// Returns the existing Stripe customer ID for a user from DB, or creates a new one.
-    /// Persists the customer ID to the DB for future lookups.
-    /// </summary>
     private async Task<string> GetOrCreateStripeCustomerAsync(Guid userId, string email, CancellationToken ct)
     {
         var existing = await _db.UserSubscriptions
@@ -352,7 +488,6 @@ public sealed class StripeService
         var customer = await service.CreateAsync(options, cancellationToken: ct);
         _logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
 
-        // Persist so next call skips creation
         var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
         if (sub is null)
         {
@@ -365,13 +500,33 @@ public sealed class StripeService
         return customer.Id;
     }
 
+    private async Task FireMeterEventAsync(string eventName, string customerId, long credits, CancellationToken ct)
+    {
+        var client = new StripeClient(_config.SecretKey);
+        await client.V2.Billing.MeterEvents.CreateAsync(
+            new Stripe.V2.Billing.MeterEventCreateOptions
+            {
+                EventName = eventName,
+                Payload = new Dictionary<string, string>
+                {
+                    ["stripe_customer_id"] = customerId,
+                    ["value"] = credits.ToString(),
+                },
+            },
+            cancellationToken: ct);
+
+        _logger.LogInformation(
+            "Fired Stripe meter event {EventName} for customer {CustomerId}: {Credits} overage credits",
+            eventName, customerId, credits);
+    }
+
     private static OrgSubscription CreateDefaultFreeSubscription(string orgId) => new()
     {
         OrganizationId = orgId,
         Plan = "free",
-        ConcurrentAgentLimit = 1,
-        TokenBudgetPerMonth = 2_000_000,
-        TokensUsedThisMonth = 0,
+        ConcurrentAgentLimit = PlanLimits.OrgFree.ConcurrentAgents,
+        CreditBudgetPerMonth = PlanLimits.OrgFree.CreditsPerMonth,
+        CreditsUsedThisMonth = 0,
         PeriodStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc),
         PeriodEnd = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
         IsActive = true,
@@ -379,15 +534,15 @@ public sealed class StripeService
 
     private static UserSubscription CreateDefaultFreeUserSubscription(Guid userId)
     {
-        var limits = PlanLimits.ForIndividualPlan("free");
+        var limits = PlanLimits.IndividualFree;
         return new UserSubscription
         {
             UserId = userId,
             Plan = limits.Plan,
             BillingCycle = "monthly",
             ConcurrentAgentLimit = limits.ConcurrentAgents,
-            TokenBudgetPerMonth = limits.TokensPerMonth,
-            TokensUsedThisMonth = 0,
+            CreditBudgetPerMonth = limits.CreditsPerMonth,
+            CreditsUsedThisMonth = 0,
             PeriodStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc),
             PeriodEnd = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
             IsActive = true,

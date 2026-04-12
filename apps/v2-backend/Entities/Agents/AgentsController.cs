@@ -42,7 +42,8 @@ public sealed class AgentsController : ControllerBase
 
         try
         {
-            var created = await _service.CreateAsync(request, ct);
+            var ownerId = (HttpContext.Items["User"] as UserRecord)?.Id;
+            var created = await _service.CreateAsync(request, ownerId, ct);
             return CreatedAtAction(nameof(List), new { id = created.Id }, created);
         }
         catch (InvalidOperationException ex)

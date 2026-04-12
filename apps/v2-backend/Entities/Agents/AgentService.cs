@@ -45,7 +45,7 @@ public sealed class AgentService : IAgentService
         return ToDto(record);
     }
 
-    public async Task<AgentDto> CreateAsync(CreateAgentRequest request, CancellationToken ct = default)
+    public async Task<AgentDto> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, CancellationToken ct = default)
     {
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
@@ -68,6 +68,7 @@ public sealed class AgentService : IAgentService
             Provider = request.Provider.Trim().ToLowerInvariant(),
             Model = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim(),
             Status = "pending",
+            OwnerId = ownerId,
         };
 
         if (record.Model is null)

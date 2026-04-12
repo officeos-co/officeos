@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using EnterpriseAgentOs.Api.Entities.Billing;
 using EnterpriseAgentOs.Api.Properties;
 
 namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
@@ -15,7 +16,8 @@ namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 ///   <item>All other providers → forwards to the LiteLLM sidecar; the backend injects the
 ///         platform API key per-request so LiteLLM never needs its own credentials.</item>
 /// </list>
-/// Credentials never leave the backend.
+/// Credentials never leave the backend. Token usage is intercepted from the response
+/// to record normalized credits against the agent owner's billing subscription.
 /// </summary>
 [ApiController]
 [AgentTokenAuth]
@@ -26,6 +28,7 @@ public sealed class LlmProxyController : ControllerBase
     private readonly LlmProviderDispatcher _dispatcher;
     private readonly LiteLlmConfig _liteLlm;
     private readonly PlatformKeysConfig _platformKeys;
+    private readonly StripeService _stripeService;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmProxyController> _logger;
 
@@ -35,6 +38,7 @@ public sealed class LlmProxyController : ControllerBase
         LlmProviderDispatcher dispatcher,
         LiteLlmConfig liteLlm,
         PlatformKeysConfig platformKeys,
+        StripeService stripeService,
         IHttpClientFactory httpFactory,
         ILogger<LlmProxyController> logger)
     {
@@ -43,6 +47,7 @@ public sealed class LlmProxyController : ControllerBase
         _dispatcher = dispatcher;
         _liteLlm = liteLlm;
         _platformKeys = platformKeys;
+        _stripeService = stripeService;
         _httpFactory = httpFactory;
         _logger = logger;
     }
@@ -106,14 +111,14 @@ public sealed class LlmProxyController : ControllerBase
             var effectiveKey = byokKey ?? _platformKeys.OpenAiApiKey;
             if (!string.IsNullOrEmpty(effectiveKey))
             {
-                await DispatchViaByokAsync(provider, effectiveKey, resolvedModel, body, ct);
+                await DispatchViaByokAsync(provider, effectiveKey, resolvedModel, agentId, body, ct);
                 return;
             }
             // Fall through to LiteLLM if no key is configured at all
         }
 
         // 5. All other providers → LiteLLM sidecar
-        await DispatchViaLiteLlmAsync(resolvedModel, body, ct);
+        await DispatchViaLiteLlmAsync(resolvedModel, agentId, body, ct);
     }
 
     // ── BYOK path (OpenAI only) ───────────────────────────────────────────────
@@ -122,6 +127,7 @@ public sealed class LlmProxyController : ControllerBase
         string provider,
         string apiKey,
         string model,
+        Guid agentId,
         JsonElement body,
         CancellationToken ct)
     {
@@ -148,7 +154,7 @@ public sealed class LlmProxyController : ControllerBase
             return;
         }
 
-        await StreamUpstreamResponseAsync(upstream, ct);
+        await StreamAndRecordUsageAsync(upstream, agentId, model, ct);
     }
 
     // ── LiteLLM path ──────────────────────────────────────────────────────────
@@ -162,7 +168,7 @@ public sealed class LlmProxyController : ControllerBase
         _                                  => _platformKeys.AnthropicApiKey, // default
     };
 
-    private async Task DispatchViaLiteLlmAsync(string model, JsonElement body, CancellationToken ct)
+    private async Task DispatchViaLiteLlmAsync(string model, Guid agentId, JsonElement body, CancellationToken ct)
     {
         // Inject cache_control for Claude models before forwarding
         var cachedBody = PromptCacheInjector.Inject(body, model);
@@ -209,20 +215,100 @@ public sealed class LlmProxyController : ControllerBase
             return;
         }
 
-        await StreamUpstreamResponseAsync(upstream, ct);
+        await StreamAndRecordUsageAsync(upstream, agentId, model, ct);
     }
 
-    // ── shared response streaming ─────────────────────────────────────────────
+    // ── streaming + credit recording ─────────────────────────────────────────
 
-    private async Task StreamUpstreamResponseAsync(HttpResponseMessage upstream, CancellationToken ct)
+    /// <summary>
+    /// Streams the upstream response to the client while intercepting token usage
+    /// from the final SSE chunk (or JSON body for non-streaming responses).
+    /// Records normalized credits against the agent owner's billing subscription.
+    /// </summary>
+    private async Task StreamAndRecordUsageAsync(
+        HttpResponseMessage upstream,
+        Guid agentId,
+        string model,
+        CancellationToken ct)
     {
         HttpContext.Response.StatusCode = (int)upstream.StatusCode;
         var contentType = upstream.Content.Headers.ContentType?.ToString() ?? "text/event-stream";
         HttpContext.Response.ContentType = contentType;
 
-        await using var upstreamBody = await upstream.Content.ReadAsStreamAsync(ct);
-        await upstreamBody.CopyToAsync(HttpContext.Response.Body, ct);
+        long rawTokens = 0;
+        await using var upstreamStream = await upstream.Content.ReadAsStreamAsync(ct);
+
+        if (contentType.Contains("text/event-stream"))
+        {
+            // SSE: forward line by line immediately so the client sees tokens as they arrive.
+            // Capture usage from whichever data chunk contains it (typically the last one).
+            using var reader = new StreamReader(upstreamStream, Encoding.UTF8, leaveOpen: true);
+            string? line;
+            while ((line = await reader.ReadLineAsync(ct)) is not null)
+            {
+                var lineBytes = Encoding.UTF8.GetBytes(line + "\n");
+                await HttpContext.Response.Body.WriteAsync(lineBytes, ct);
+                await HttpContext.Response.Body.FlushAsync(ct);
+
+                if (line.StartsWith("data: ", StringComparison.Ordinal) && line.Length > 6)
+                {
+                    var data = line[6..];
+                    var t = TryExtractRawTokens(data);
+                    if (t > 0) rawTokens = t;
+                }
+            }
+        }
+        else
+        {
+            // Non-streaming JSON: buffer so we can parse usage before forwarding.
+            using var ms = new MemoryStream();
+            await upstreamStream.CopyToAsync(ms, ct);
+            var bytes = ms.ToArray();
+            await HttpContext.Response.Body.WriteAsync(bytes, ct);
+            rawTokens = TryExtractRawTokens(Encoding.UTF8.GetString(bytes));
+        }
+
         upstream.Dispose();
+
+        if (rawTokens > 0)
+        {
+            try
+            {
+                await _stripeService.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "LLM proxy: failed to record credit usage for agent {AgentId}", agentId);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Attempts to extract total raw token count from an OpenAI-compatible usage object.
+    /// Handles both <c>total_tokens</c> (OpenAI) and <c>input_tokens + output_tokens</c> (Anthropic).
+    /// Returns 0 if the text is not valid JSON or contains no usage data.
+    /// </summary>
+    private static long TryExtractRawTokens(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text == "[DONE]") return 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("usage", out var usage)) return 0;
+
+            // OpenAI: usage.total_tokens
+            if (usage.TryGetProperty("total_tokens", out var total) && total.TryGetInt64(out var t))
+                return t;
+
+            // Anthropic: usage.input_tokens + usage.output_tokens
+            if (usage.TryGetProperty("input_tokens", out var inp) &&
+                usage.TryGetProperty("output_tokens", out var outp) &&
+                inp.TryGetInt64(out var i) && outp.TryGetInt64(out var o))
+                return i + o;
+        }
+        catch { /* not JSON — ignore */ }
+        return 0;
     }
 
     private static string EscapeJson(string s) =>

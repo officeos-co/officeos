@@ -22,6 +22,9 @@ public sealed class AgentRecord
 
     public bool IsDeleted { get; set; }
 
+    /// <summary>FK → UserRecord.Id. Set at creation time from the authenticated user.</summary>
+    public Guid? OwnerId { get; set; }
+
     /// <summary>
     /// Bearer token the agent pod presents back to this backend on
     /// <c>/api/agents/me/*</c>. Generated on create. Stored

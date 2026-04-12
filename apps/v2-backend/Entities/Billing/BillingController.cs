@@ -20,16 +20,15 @@ public sealed class BillingController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/billing/subscription — returns the current org's subscription and token usage.
+    /// GET /api/billing/subscription — returns the current org's subscription and credit usage.
     /// </summary>
     [HttpGet("subscription")]
     public async Task<IActionResult> GetSubscription(CancellationToken ct)
     {
-        // TODO: Derive orgId from authenticated session once multi-tenancy is wired up.
         const string orgId = "default";
 
         var sub = await _stripe.GetOrgSubscriptionAsync(orgId, ct);
-        var (remaining, overBudget) = await _stripe.CheckTokenBudgetAsync(orgId, ct);
+        var (remaining, overBudget) = await _stripe.CheckCreditBudgetAsync(orgId, ct);
 
         return Ok(new
         {
@@ -37,9 +36,10 @@ public sealed class BillingController : ControllerBase
             stripeCustomerId = sub.StripeCustomerId,
             stripeSubscriptionId = sub.StripeSubscriptionId,
             concurrentAgentLimit = sub.ConcurrentAgentLimit,
-            tokenBudgetPerMonth = sub.TokenBudgetPerMonth,
-            tokensUsedThisMonth = sub.TokensUsedThisMonth,
-            tokensRemaining = remaining,
+            creditBudgetPerMonth = sub.CreditBudgetPerMonth,
+            creditsUsedThisMonth = sub.CreditsUsedThisMonth,
+            creditsRemaining = remaining,
+            overageEnabled = sub.OverageEnabled,
             overBudget,
             periodStart = sub.PeriodStart,
             periodEnd = sub.PeriodEnd,
@@ -50,7 +50,6 @@ public sealed class BillingController : ControllerBase
 
     /// <summary>
     /// POST /api/billing/subscribe — create or upgrade an org subscription.
-    /// Returns 503 when Stripe is not yet configured.
     /// </summary>
     [HttpPost("subscribe")]
     public async Task<IActionResult> Subscribe([FromBody] SubscribeRequest request, CancellationToken ct)
@@ -72,12 +71,7 @@ public sealed class BillingController : ControllerBase
         var customerId = await _stripe.CreateCustomerAsync(orgId, request.Email, ct);
         var subscriptionId = await _stripe.CreateSubscriptionAsync(customerId, request.Plan, ct);
 
-        return Ok(new
-        {
-            customerId,
-            subscriptionId,
-            plan = request.Plan,
-        });
+        return Ok(new { customerId, subscriptionId, plan = request.Plan });
     }
 
     // -------------------------------------------------------------------------
@@ -85,7 +79,7 @@ public sealed class BillingController : ControllerBase
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// GET /api/billing/user/subscription — returns the current user's individual plan and usage.
+    /// GET /api/billing/user/subscription — returns the current user's individual plan and credit usage.
     /// </summary>
     [HttpGet("user/subscription")]
     public async Task<IActionResult> GetUserSubscription(CancellationToken ct)
@@ -94,7 +88,7 @@ public sealed class BillingController : ControllerBase
             return Unauthorized();
 
         var sub = await _stripe.GetUserSubscriptionAsync(user.Id, ct);
-        var (remaining, overBudget) = await _stripe.CheckUserTokenBudgetAsync(user.Id, ct);
+        var (remaining, overBudget) = await _stripe.CheckUserCreditBudgetAsync(user.Id, ct);
 
         return Ok(new
         {
@@ -103,9 +97,10 @@ public sealed class BillingController : ControllerBase
             stripeCustomerId = sub.StripeCustomerId,
             stripeSubscriptionId = sub.StripeSubscriptionId,
             concurrentAgentLimit = sub.ConcurrentAgentLimit,
-            tokenBudgetPerMonth = sub.TokenBudgetPerMonth,
-            tokensUsedThisMonth = sub.TokensUsedThisMonth,
-            tokensRemaining = remaining,
+            creditBudgetPerMonth = sub.CreditBudgetPerMonth,
+            creditsUsedThisMonth = sub.CreditsUsedThisMonth,
+            creditsRemaining = remaining,
+            overageEnabled = sub.OverageEnabled,
             overBudget,
             periodStart = sub.PeriodStart,
             periodEnd = sub.PeriodEnd,
@@ -117,7 +112,7 @@ public sealed class BillingController : ControllerBase
                 {
                     plan = PlanLimits.IndividualFree.Plan,
                     concurrentAgents = PlanLimits.IndividualFree.ConcurrentAgents,
-                    tokensPerMonth = PlanLimits.IndividualFree.TokensPerMonth,
+                    creditsPerMonth = PlanLimits.IndividualFree.CreditsPerMonth,
                     priceMonthly = 0,
                     priceYearly = 0,
                 },
@@ -125,9 +120,9 @@ public sealed class BillingController : ControllerBase
                 {
                     plan = PlanLimits.IndividualPro.Plan,
                     concurrentAgents = PlanLimits.IndividualPro.ConcurrentAgents,
-                    tokensPerMonth = PlanLimits.IndividualPro.TokensPerMonth,
-                    priceMonthly = 29,
-                    priceYearly = 24,
+                    creditsPerMonth = PlanLimits.IndividualPro.CreditsPerMonth,
+                    priceMonthly = 20,
+                    priceYearly = 16,
                 },
             },
         });
@@ -135,8 +130,6 @@ public sealed class BillingController : ControllerBase
 
     /// <summary>
     /// POST /api/billing/user/subscribe — start a Stripe Checkout session for an individual user.
-    /// Returns { checkoutUrl } on success.
-    /// Returns 503 when Stripe is not yet configured.
     /// </summary>
     [HttpPost("user/subscribe")]
     public async Task<IActionResult> UserSubscribe([FromBody] UserSubscribeRequest request, CancellationToken ct)
@@ -164,7 +157,6 @@ public sealed class BillingController : ControllerBase
 
     /// <summary>
     /// GET /api/billing/user/portal — create a Stripe Billing Portal session for the authenticated user.
-    /// Returns { portalUrl }.
     /// </summary>
     [HttpGet("user/portal")]
     public async Task<IActionResult> UserPortal(CancellationToken ct)
@@ -181,8 +173,44 @@ public sealed class BillingController : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/billing/user/overage — enable or disable pay-as-you-go overage for the current user.
+    /// Body: { "enabled": true|false }
+    /// </summary>
+    [HttpPost("user/overage")]
+    public async Task<IActionResult> UserOverage([FromBody] OverageRequest request, CancellationToken ct)
+    {
+        if (!_config.Enabled)
+            return StatusCode(503, new { error = "Billing not configured" });
+
+        if (HttpContext.Items["User"] is not UserRecord user)
+            return Unauthorized();
+
+        await _stripe.EnableUserOverageAsync(user.Id, user.Email, request.Enabled, ct);
+
+        return Ok(new { overageEnabled = request.Enabled });
+    }
+
+    /// <summary>
+    /// POST /api/billing/org/overage — enable or disable pay-as-you-go overage for the current org.
+    /// Body: { "enabled": true|false }
+    /// </summary>
+    [HttpPost("org/overage")]
+    public async Task<IActionResult> OrgOverage([FromBody] OverageRequest request, CancellationToken ct)
+    {
+        if (!_config.Enabled)
+            return StatusCode(503, new { error = "Billing not configured" });
+
+        if (HttpContext.Items["User"] is not UserRecord user)
+            return Unauthorized();
+
+        const string orgId = "default";
+        await _stripe.EnableOrgOverageAsync(orgId, user.Email, request.Enabled, ct);
+
+        return Ok(new { overageEnabled = request.Enabled });
+    }
+
+    /// <summary>
     /// POST /api/billing/webhook — receives and processes Stripe webhook events.
-    /// Verifies the Stripe-Signature header before processing.
     /// </summary>
     [HttpPost("webhook")]
     [DisableRequestSizeLimit]
@@ -217,3 +245,4 @@ public sealed class BillingController : ControllerBase
 
 public sealed record SubscribeRequest(string Plan, string Email);
 public sealed record UserSubscribeRequest(string Plan, string? BillingCycle);
+public sealed record OverageRequest(bool Enabled);
