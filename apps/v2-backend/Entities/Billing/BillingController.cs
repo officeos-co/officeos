@@ -88,6 +88,102 @@ public sealed class BillingController : ControllerBase
         });
     }
 
+    // -------------------------------------------------------------------------
+    // User (Individual) billing endpoints
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// GET /api/billing/user/subscription — returns the current user's individual plan and usage.
+    /// </summary>
+    [HttpGet("user/subscription")]
+    public async Task<IActionResult> GetUserSubscription(CancellationToken ct)
+    {
+        // TODO: Derive userId from authenticated session once auth is wired up.
+        var userId = Guid.Empty; // TODO: replace with real user ID from session
+
+        var sub = await _stripe.GetUserSubscriptionAsync(userId, ct);
+        var (remaining, overBudget) = await _stripe.CheckUserTokenBudgetAsync(userId, ct);
+
+        return Ok(new
+        {
+            plan = sub.Plan,
+            billingCycle = sub.BillingCycle,
+            concurrentAgentLimit = sub.ConcurrentAgentLimit,
+            tokenBudgetPerMonth = sub.TokenBudgetPerMonth,
+            tokensUsedThisMonth = sub.TokensUsedThisMonth,
+            tokensRemaining = remaining,
+            overBudget,
+            periodStart = sub.PeriodStart,
+            periodEnd = sub.PeriodEnd,
+            isActive = sub.IsActive,
+            billingEnabled = _config.Enabled,
+            availablePlans = new[]
+            {
+                new
+                {
+                    plan = PlanLimits.IndividualFree.Plan,
+                    concurrentAgents = PlanLimits.IndividualFree.ConcurrentAgents,
+                    tokensPerMonth = PlanLimits.IndividualFree.TokensPerMonth,
+                    priceMonthly = 0,
+                    priceYearly = 0,
+                },
+                new
+                {
+                    plan = PlanLimits.IndividualPro.Plan,
+                    concurrentAgents = PlanLimits.IndividualPro.ConcurrentAgents,
+                    tokensPerMonth = PlanLimits.IndividualPro.TokensPerMonth,
+                    priceMonthly = 29,
+                    priceYearly = 24,
+                },
+            },
+        });
+    }
+
+    /// <summary>
+    /// POST /api/billing/user/subscribe — subscribe or upgrade an individual user.
+    /// Returns 503 when Stripe is not yet configured.
+    /// </summary>
+    [HttpPost("user/subscribe")]
+    public async Task<IActionResult> UserSubscribe([FromBody] UserSubscribeRequest request, CancellationToken ct)
+    {
+        if (!_config.Enabled)
+        {
+            return StatusCode(503, new { error = "Billing not configured" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Plan) ||
+            (request.Plan != "free" && request.Plan != "pro"))
+        {
+            return BadRequest(new { error = "plan must be 'free' or 'pro'" });
+        }
+
+        var billingCycle = string.IsNullOrWhiteSpace(request.BillingCycle) ? "monthly" : request.BillingCycle;
+        if (billingCycle != "monthly" && billingCycle != "yearly")
+        {
+            return BadRequest(new { error = "billingCycle must be 'monthly' or 'yearly'" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return BadRequest(new { error = "email is required" });
+        }
+
+        // TODO: Derive userId from authenticated session.
+        var userId = Guid.Empty; // TODO: replace with real user ID from session
+
+        _logger.LogInformation("TODO: Subscribe user {UserId} to plan {Plan} billingCycle {BillingCycle}", userId, request.Plan, billingCycle);
+
+        var subscriptionId = await _stripe.CreateUserSubscriptionAsync(userId, request.Email, request.Plan, billingCycle, ct);
+
+        return Ok(new
+        {
+            subscriptionId,
+            plan = request.Plan,
+            billingCycle,
+            message = "TODO: User subscription creation is a stub. Wire up real Stripe SDK to activate.",
+        });
+    }
+
     /// <summary>
     /// POST /api/billing/webhook — receives and processes Stripe webhook events.
     /// Verifies the Stripe-Signature header before processing.
@@ -127,3 +223,4 @@ public sealed class BillingController : ControllerBase
 }
 
 public sealed record SubscribeRequest(string Plan, string Email);
+public sealed record UserSubscribeRequest(string Plan, string Email, string? BillingCycle);
