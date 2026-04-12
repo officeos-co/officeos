@@ -33,4 +33,8 @@
     <Compile Remove="EnterpriseAgentOs.Api.Tests/**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="EnterpriseAgentOs.Api.Tests" />
+  </ItemGroup>
+
 </Project>
