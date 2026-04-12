@@ -1,0 +1,38 @@
+---
+title: Testing
+description: "How to test the various components of EnterpriseAgentOS."
+---
+
+## Backend
+
+```bash
+cd apps/v2-backend && dotnet build
+```
+
+## Frontend
+
+```bash
+cd apps/v2-frontend && npx tsc --noEmit
+```
+
+## Zeroclaw Runtime
+
+```bash
+cd packages/zeroclaw-core && cargo test
+cd packages/zeroclaw-core && cargo clippy --all-targets -- -D warnings
+```
+
+Use `cargo check --tests` (not plain `cargo check`) after deletions to ensure test code still compiles.
+
+## Skill SDK
+
+```bash
+cd packages/skill-sdk && npm run build
+```
+
+## Skill Runtime
+
+```bash
+cd packages/skill-runtime && npm run build
+cd packages/skill-runtime && npm start
+```

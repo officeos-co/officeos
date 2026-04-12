@@ -1,0 +1,16 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Getting Started---",
+    "getting-started/agent-lifecycle",
+    "---Architecture---",
+    "architecture/llm-proxy",
+    "architecture/vault-system",
+    "architecture/zeroclaw-runtime",
+    "---Features---",
+    "features/skills",
+    "features/runners",
+    "---Development---",
+    "development/testing"
+  ]
+}
