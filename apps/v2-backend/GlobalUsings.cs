@@ -12,4 +12,5 @@ global using EnterpriseAgentOs.Api.Entities.Auth;
 global using EnterpriseAgentOs.Api.Entities.Runners;
 global using EnterpriseAgentOs.Api.Entities.CustomSkills;
 global using EnterpriseAgentOs.Api.Entities.AgentMemory;
+global using EnterpriseAgentOs.Api.Entities.Sso;
 global using EnterpriseAgentOs.Api.Properties;

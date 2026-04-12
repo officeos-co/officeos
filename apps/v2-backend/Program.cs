@@ -102,6 +102,16 @@ var googleOAuthConfig = new GoogleOAuthConfig
 };
 builder.Services.AddSingleton(googleOAuthConfig);
 
+var workOsConfig = new WorkOsConfig
+{
+    ApiKey = ValueManager.GetValue<string>("WorkOsApiKey"),
+    ClientId = ValueManager.GetValue<string>("WorkOsClientId"),
+    RedirectUri = ValueManager.GetValue<string>("WorkOsRedirectUri"),
+    Enabled = ValueManager.GetValue<bool>("WorkOsEnabled"),
+};
+builder.Services.AddSingleton(workOsConfig);
+builder.Services.AddScoped<IWorkOsAuthService, WorkOsAuthService>();
+
 var skillStorageConfig = new SkillStorageConfig
 {
     Endpoint = ValueManager.GetValue<string>("MinioEndpoint"),

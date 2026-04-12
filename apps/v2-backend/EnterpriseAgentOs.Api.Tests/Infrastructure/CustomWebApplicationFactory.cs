@@ -58,6 +58,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Production:MinioAccessKey"] = "testkey",
                 ["Production:MinioSecretKey"] = "testsecret",
                 ["Production:MinioBucket"] = "test-skills",
+                ["Production:WorkOsApiKey"] = "WORKOS_API_KEY_PLACEHOLDER",
+                ["Production:WorkOsClientId"] = "WORKOS_CLIENT_ID_PLACEHOLDER",
+                ["Production:WorkOsRedirectUri"] = "https://api.harrokrog.com/api/sso/callback",
+                ["Production:WorkOsEnabled"] = "false",
             })
             .Build();
 
