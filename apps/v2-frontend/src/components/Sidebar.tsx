@@ -146,6 +146,18 @@ function MainSidebar({
 
       {/* Bottom section */}
       <div className="mt-auto border-t border-sidebar-border px-4 py-3">
+        <Link
+          href="/pricing"
+          className={cn(
+            "mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
+            pathname === "/pricing"
+              ? "bg-sidebar-accent text-sidebar-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+          )}
+        >
+          <CreditCard className="h-4 w-4 shrink-0" />
+          Pricing
+        </Link>
         <button
           type="button"
           onClick={onOpenOrgSettings}

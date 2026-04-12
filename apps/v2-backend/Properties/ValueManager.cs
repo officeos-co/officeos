@@ -44,6 +44,18 @@ public static class ValueManager
         }
     }
 
+    /// <summary>
+    /// Returns the active environment name ("Production" or "Staging").
+    /// Used in Program.cs to bind nested config sections.
+    /// </summary>
+    public static string GetEnvironmentName() => EnvironmentName;
+
+    /// <summary>
+    /// Exposes the underlying IConfiguration instance.
+    /// Use only in Program.cs to bind nested config sections (e.g. Stripe).
+    /// </summary>
+    public static IConfiguration GetConfiguration() => Configuration;
+
     public static T GetValue<T>(string key)
     {
         var value = Configuration.GetValue<T>($"{EnvironmentName}:{key}");
