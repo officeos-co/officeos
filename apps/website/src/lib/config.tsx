@@ -264,13 +264,13 @@ export const siteConfig = {
 			title: "Product",
 			links: [
 				{ id: 1, title: "Features", url: "#features" },
-				{ id: 2, title: "Docs", url: "#" },
+				{ id: 2, title: "Docs", url: "https://docs.harrokrog.com" },
 			],
 		},
 		{
 			title: "Company",
 			links: [
-				{ id: 3, title: "About", url: "#" },
+				{ id: 3, title: "About", url: "/about" },
 				{ id: 4, title: "Blog", url: "#" },
 			],
 		},
