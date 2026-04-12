@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal } from "./Modal";
 import { useAgents } from "@/hooks/useAgents";
-import { useProviders } from "@/hooks/useProviders";
-import { useProviderModels } from "@/hooks/useProviderModels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const MODELS: { label: string; value: string }[] = [
+  { label: "Auto (recommended)", value: "auto" },
+  { label: "Claude Haiku", value: "claude-haiku-4-5" },
+  { label: "Claude Sonnet", value: "claude-sonnet-4-6" },
+  { label: "Claude Opus", value: "claude-opus-4-6" },
+  { label: "GPT-4o", value: "gpt-4o" },
+  { label: "GPT-4o mini", value: "gpt-4o-mini" },
+  { label: "Gemini 2.5 Pro", value: "gemini-2.5-pro" },
+  { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
+  { label: "Grok 4", value: "grok-4" },
+];
 
 type NewAgentOverlayProps = {
   open: boolean;
@@ -16,28 +26,20 @@ type NewAgentOverlayProps = {
 
 export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
   const { create } = useAgents();
-  const { providers } = useProviders();
-  const configured = providers.filter((p) => p.configured);
 
   const [name, setName] = useState("");
-  const [provider, setProvider] = useState("");
-  const [model, setModel] = useState("");
+  const [model, setModel] = useState("auto");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { models, loading: modelsLoading, error: modelsError } = useProviderModels(
-    provider || null,
-  );
-
-  useEffect(() => {
-    if (open && !provider && configured.length > 0) {
-      setProvider(configured[0].name);
-    }
-  }, [open, provider, configured]);
-
-  useEffect(() => {
-    setModel("");
-  }, [provider]);
+  // Derive provider from model selection so the backend record stays consistent
+  function providerFromModel(m: string): string {
+    if (m.startsWith("claude-")) return "anthropic";
+    if (m.startsWith("gpt-") || m === "auto") return "openai";
+    if (m.startsWith("gemini-")) return "google";
+    if (m.startsWith("grok-")) return "xai";
+    return "anthropic"; // safe default
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,15 +48,15 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
       setError("Name is required");
       return;
     }
-    if (!provider) {
-      setError("Select a configured provider");
-      return;
-    }
     setSubmitting(true);
     try {
-      await create({ name: name.trim(), provider, model: model.trim() || undefined });
+      await create({
+        name: name.trim(),
+        provider: providerFromModel(model),
+        model,
+      });
       setName("");
-      setModel("");
+      setModel("auto");
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create agent");
@@ -78,37 +80,41 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="agent-provider">Provider</Label>
-          <select
-            id="agent-provider"
-            value={provider}
-            onChange={(e) => setProvider(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="" disabled>
-              Select a configured provider
-            </option>
-            {configured.map((p) => (
-              <option key={p.id} value={p.name}>
-                {p.displayName}
-              </option>
-            ))}
-          </select>
-          {configured.length === 0 && (
-            <p className="text-xs text-amber-600">
-              No providers configured yet. Set one up on the Providers page first.
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="agent-model">Model (optional)</Label>
+          <Label htmlFor="agent-model">Model</Label>
           <select
             id="agent-model"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            disabled={!provider || modelsLoading || (!!modelsError) || models.length === 0}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {MODELS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          {model === "auto" && (
+            <p className="text-xs text-muted-foreground">
+              Smart routing picks the best model for each request automatically.
+            </p>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" disabled={submitting}>
+            {submitting ? "Creating..." : "Create"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+bled:opacity-50"
           >
             <option value="">(provider default)</option>
             {models.map((m) => (

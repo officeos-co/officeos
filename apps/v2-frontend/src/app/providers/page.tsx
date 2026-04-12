@@ -15,6 +15,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+/** Providers whose keys are managed by the platform — no BYOK allowed. */
+const PLATFORM_KEY_PROVIDERS = new Set(["anthropic", "google", "xai"]);
+
 export default function ProvidersPage() {
   const { providers, loading, error } = useProviders();
   const [selected, setSelected] = useState<Provider | null>(null);
@@ -23,7 +26,7 @@ export default function ProvidersPage() {
     <div>
       <TopBar
         title="Providers"
-        subtitle="LLM provider API keys — configure once, every agent inherits them."
+        subtitle="LLM providers — Anthropic, Gemini, and xAI use platform keys. OpenAI supports custom BYOK keys."
       />
 
       {error && (
@@ -41,27 +44,36 @@ export default function ProvidersPage() {
               <TableRow>
                 <TableHead>Provider</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Key source</TableHead>
                 <TableHead className="text-right" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {providers.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.displayName}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={p.configured ? "ready" : "not installed"} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelected(p)}
-                    >
-                      {p.configured ? "Update" : "Configure"}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {providers.map((p) => {
+                const isPlatformManaged = PLATFORM_KEY_PROVIDERS.has(p.name);
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{p.displayName}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={p.configured ? "ready" : "not installed"} />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {isPlatformManaged ? "Platform key" : "Your key (BYOK)"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {!isPlatformManaged && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelected(p)}
+                        >
+                          {p.configured ? "Update" : "Configure"}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

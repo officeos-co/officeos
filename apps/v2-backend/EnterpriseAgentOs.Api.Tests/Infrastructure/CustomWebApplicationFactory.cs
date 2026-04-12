@@ -68,6 +68,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Production:Stripe:TeamPriceId"] = "STRIPE_TEAM_PRICE_ID_PLACEHOLDER",
                 ["Production:Stripe:TeamOveragePriceId"] = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
                 ["Production:Stripe:Enabled"] = "false",
+                ["Production:LiteLlm:BaseUrl"] = "http://localhost:4000",
+                ["Production:LiteLlm:Enabled"] = "true",
+                ["Production:PlatformKeys:AnthropicApiKey"] = "ANTHROPIC_API_KEY_PLACEHOLDER",
+                ["Production:PlatformKeys:GeminiApiKey"] = "GEMINI_API_KEY_PLACEHOLDER",
+                ["Production:PlatformKeys:XaiApiKey"] = "XAI_API_KEY_PLACEHOLDER",
+                ["Production:PlatformKeys:OpenAiApiKey"] = "OPENAI_PLATFORM_API_KEY_PLACEHOLDER",
             })
             .Build();
 
@@ -107,6 +113,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Replace SkillRuntimeConfig to point at WireMock
             services.RemoveAll<SkillRuntimeConfig>();
             services.AddSingleton(new SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
+
+            // Replace LiteLlmConfig with a test-safe value
+            services.RemoveAll<LiteLlmConfig>();
+            services.AddSingleton(new LiteLlmConfig { BaseUrl = "http://localhost:4000", Enabled = true });
         });
     }
 }

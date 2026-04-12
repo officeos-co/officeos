@@ -72,28 +72,16 @@ public sealed class AgentService : IAgentService
 
         if (record.Model is null)
         {
-            // "(provider default)" on the frontend arrives here as null.
-            // zeroclaw has a compiled-in default of anthropic/claude-sonnet-4.6
-            // which it will try to route through whatever PROVIDER env says —
-            // so if we leave Model null and the deployer omits ZEROCLAW_MODEL,
-            // the pod boots with a vendor-mismatched model and every chat 400s.
-            // Substitute a concrete provider-appropriate default here so the
-            // pod always gets an explicit ZEROCLAW_MODEL for its PROVIDER.
-            var defaultModel = KnownModels.For(record.Provider).FirstOrDefault();
-            if (defaultModel is null)
-            {
-                throw new InvalidOperationException(
-                    $"Provider '{record.Provider}' has no known models configured. " +
-                    "Add an entry to KnownModels.cs before creating agents with this provider.");
-            }
-            record.Model = defaultModel;
+            // Default to "auto" — SmartRouter will pick the appropriate model at
+            // inference time based on request complexity and agent provider family.
+            record.Model = "auto";
         }
-        else if (!KnownModels.IsValid(record.Provider, record.Model))
+        else if (!KnownModels.IsValid(record.Model))
         {
-            var allowed = string.Join(", ", KnownModels.For(record.Provider));
+            var allowed = string.Join(", ", KnownModels.SupportedModels);
             throw new InvalidOperationException(
-                $"Model '{record.Model}' is not a known model for provider '{record.Provider}'. " +
-                $"Allowed: {(allowed.Length == 0 ? "(none)" : allowed)}");
+                $"Model '{record.Model}' is not a known model. " +
+                $"Allowed: {allowed}");
         }
 
         await _repository.AddAsync(record, ct);
@@ -155,12 +143,12 @@ public sealed class AgentService : IAgentService
         if (request.Model is not null)
         {
             var model = request.Model.Trim();
-            if (model.Length > 0 && !KnownModels.IsValid(record.Provider, model))
+            if (model.Length > 0 && !KnownModels.IsValid(model))
             {
                 throw new InvalidOperationException(
-                    $"Model '{model}' is not a known model for provider '{record.Provider}'.");
+                    $"Model '{model}' is not a known model.");
             }
-            record.Model = model.Length > 0 ? model : KnownModels.For(record.Provider).FirstOrDefault();
+            record.Model = model.Length > 0 ? model : "auto";
         }
 
         await _repository.UpdateAsync(record, ct);
@@ -214,8 +202,19 @@ public sealed class AgentService : IAgentService
         }
     }
 
+    /// <summary>
+    /// Providers that do NOT require a BYOK API key in the database —
+    /// either they are local (ollama) or their keys are held by the platform
+    /// (anthropic, google, xai) and injected via LiteLLM.
+    /// </summary>
+    private static readonly HashSet<string> KeylessProviders =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            "ollama", "anthropic", "google", "xai",
+        };
+
     private static bool IsKeylessProvider(string name) =>
-        name.Equals("ollama", StringComparison.OrdinalIgnoreCase);
+        KeylessProviders.Contains(name);
 
     private static AgentDto ToDto(AgentRecord record) =>
         new(record.Id, record.Name, record.Provider, record.Model, record.Status,
