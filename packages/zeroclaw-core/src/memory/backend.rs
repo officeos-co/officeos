@@ -2,6 +2,7 @@
 pub enum MemoryBackendKind {
     Sqlite,
     Obsidian,
+    Remote,
     None,
     Unknown,
 }
@@ -53,6 +54,15 @@ const OBSIDIAN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     optional_dependency: true,
 };
 
+const REMOTE_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
+    key: "remote",
+    label: "Remote — Postgres-backed via backend API (managed mode)",
+    auto_save_default: true,
+    uses_sqlite_hygiene: false,
+    sqlite_based: false,
+    optional_dependency: false,
+};
+
 const SELECTABLE_MEMORY_BACKENDS: [MemoryBackendProfile; 3] =
     [SQLITE_PROFILE, OBSIDIAN_PROFILE, NONE_PROFILE];
 
@@ -68,6 +78,7 @@ pub fn classify_memory_backend(backend: &str) -> MemoryBackendKind {
     match backend {
         "sqlite" => MemoryBackendKind::Sqlite,
         "obsidian" => MemoryBackendKind::Obsidian,
+        "remote" => MemoryBackendKind::Remote,
         "none" => MemoryBackendKind::None,
         _ => MemoryBackendKind::Unknown,
     }
@@ -77,6 +88,7 @@ pub fn memory_backend_profile(backend: &str) -> MemoryBackendProfile {
     match classify_memory_backend(backend) {
         MemoryBackendKind::Sqlite => SQLITE_PROFILE,
         MemoryBackendKind::Obsidian => OBSIDIAN_PROFILE,
+        MemoryBackendKind::Remote => REMOTE_PROFILE,
         MemoryBackendKind::None => NONE_PROFILE,
         MemoryBackendKind::Unknown => CUSTOM_PROFILE,
     }

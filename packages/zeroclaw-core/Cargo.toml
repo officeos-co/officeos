@@ -124,7 +124,7 @@ ring = "0.17"
 lru = "0.16"
 
 # Memory / persistence
-rusqlite = { version = "0.37", features = ["bundled"] }
+rusqlite = { version = "0.37", features = ["bundled"], optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 chrono-tz = "0.10"
 cron = "0.15"
@@ -188,7 +188,8 @@ landlock = { version = "0.4", optional = true }
 libc = "0.2"
 
 [features]
-default = ["observability-prometheus", "skill-creation"]
+default = ["observability-prometheus", "skill-creation", "local-storage"]
+local-storage = ["dep:rusqlite"]
 observability-prometheus = ["dep:prometheus"]
 observability-otel = ["dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-otlp"]
 # Sandbox feature aliases used by cfg(feature = "sandbox-*")
@@ -208,6 +209,7 @@ ci-all = [
     "sandbox-landlock",
     "rag-pdf",
     "skill-creation",
+    "local-storage",
 ]
 
 [profile.dev]
