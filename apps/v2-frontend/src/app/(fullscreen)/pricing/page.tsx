@@ -24,7 +24,8 @@ const individualPlans = [
     features: {
       base: [
         "1 concurrent agent",
-        "2M tokens / month included",
+        "500K credits / month included",
+        "Optional pay-as-you-go overage ($5 / 1M credits)",
         "All providers (OpenAI, Anthropic, Gemini, …)",
         "Full system control via zeroclaw runtime",
         "GraphQL skill gateway",
@@ -37,8 +38,8 @@ const individualPlans = [
     name: "Pro",
     icon: Sparkles,
     description: "Run up to 3 agents",
-    monthlyPrice: 29,
-    yearlyPrice: 24,
+    monthlyPrice: 20,
+    yearlyPrice: 16,
     hasBillingToggle: true,
     cta: "Subscribe",
     disabled: false,
@@ -46,7 +47,8 @@ const individualPlans = [
       prefix: "Everything in Free and:",
       base: [
         "3 concurrent agents",
-        "10M tokens / month included",
+        "10M credits / month included",
+        "Optional pay-as-you-go overage ($3 / 1M credits)",
         "Smart model routing",
         "Priority email support",
         "Custom skill packages",
@@ -61,8 +63,8 @@ const teamPlans = [
     name: "Team",
     icon: Leaf,
     description: "Scale to 10 agents",
-    monthlyPrice: 249,
-    yearlyPrice: 207,
+    monthlyPrice: 149,
+    yearlyPrice: 119,
     hasBillingToggle: true,
     cta: "Subscribe",
     disabled: true,
@@ -70,8 +72,8 @@ const teamPlans = [
       prefix: "Everything in Pro and:",
       base: [
         "10 concurrent agents",
-        "25M tokens / month included",
-        "Pay-as-you-go overage (no hard cutoff mid-task)",
+        "25M credits / month included",
+        "Pay-as-you-go overage ($2.50 / 1M credits, no hard cutoff)",
         "SSO (SAML / OIDC)",
         "Priority email support",
       ],
@@ -134,7 +136,7 @@ function BillingToggle({
         )}
       >
         Yearly{" "}
-        <span className="text-primary font-medium">· Save 17%</span>
+        <span className="text-primary font-medium">· Save 20%</span>
       </button>
     </div>
   );

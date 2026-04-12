@@ -213,7 +213,7 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
     { href: "/providers", label: "Providers", icon: KeyRound },
     { href: "/skills", label: "Tools", icon: Wrench },
     { href: "/runners", label: "Runners", icon: Radio },
-    { href: "/settings/billing", label: "Billing", icon: CreditCard, placeholder: true },
+    { href: "/settings/billing", label: "Billing", icon: CreditCard },
     { href: "/settings/limits", label: "Limits", icon: Gauge, placeholder: true },
     { href: "/settings/api-keys", label: "API Keys", icon: Key, placeholder: true },
   ];

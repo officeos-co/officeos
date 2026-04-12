@@ -9,9 +9,10 @@ interface UserSubscription {
   plan: string;
   billingCycle: string;
   concurrentAgentLimit: number;
-  tokenBudgetPerMonth: number;
-  tokensUsedThisMonth: number;
-  tokensRemaining: number;
+  creditBudgetPerMonth: number;
+  creditsUsedThisMonth: number;
+  creditsRemaining: number;
+  overageEnabled: boolean;
   overBudget: boolean;
   periodStart: string;
   periodEnd: string;
@@ -19,7 +20,7 @@ interface UserSubscription {
   billingEnabled: boolean;
 }
 
-function TokenUsageBar({
+function CreditUsageBar({
   used,
   budget,
 }: {
@@ -32,8 +33,8 @@ function TokenUsageBar({
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{(used / 1_000_000).toFixed(1)}M used</span>
-        <span>{(budget / 1_000_000).toFixed(0)}M / month</span>
+        <span>{(used / 1_000_000).toFixed(2)}M credits used</span>
+        <span>{(budget / 1_000_000).toFixed(1)}M / month</span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <div
@@ -64,6 +65,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [overageLoading, setOverageLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,6 +115,30 @@ export default function BillingPage() {
       setError("Could not open billing portal. Please try again.");
     } finally {
       setPortalLoading(false);
+    }
+  }
+
+  async function handleOverageToggle() {
+    if (!sub) return;
+    setOverageLoading(true);
+    try {
+      const res = await fetch("/api/billing/user/overage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ enabled: !sub.overageEnabled }),
+      });
+      if (!res.ok) {
+        setError("Could not update overage setting. Please try again.");
+        return;
+      }
+      setSub((prev) =>
+        prev ? { ...prev, overageEnabled: !prev.overageEnabled } : prev,
+      );
+    } catch {
+      setError("Could not update overage setting. Please try again.");
+    } finally {
+      setOverageLoading(false);
     }
   }
 
@@ -172,13 +198,18 @@ export default function BillingPage() {
               )}
             </div>
 
-            {/* Token usage */}
+            {/* Credit usage */}
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Token usage this period</p>
-              <TokenUsageBar
-                used={sub.tokensUsedThisMonth}
-                budget={sub.tokenBudgetPerMonth}
+              <p className="text-sm font-medium text-foreground">Credit usage this period</p>
+              <CreditUsageBar
+                used={sub.creditsUsedThisMonth}
+                budget={sub.creditBudgetPerMonth}
               />
+              {sub.overBudget && !sub.overageEnabled && (
+                <p className="text-xs text-amber-600">
+                  Over budget — enable pay-as-you-go below to continue past your limit.
+                </p>
+              )}
             </div>
 
             {/* Period dates */}
@@ -186,6 +217,40 @@ export default function BillingPage() {
               Period: {formatDate(sub.periodStart)} — {formatDate(sub.periodEnd)}
             </p>
           </div>
+
+          {/* Overage toggle */}
+          {sub.billingEnabled && (
+            <div className="rounded-2xl border border-border bg-card p-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-foreground">Pay-as-you-go overage</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Continue using agents after your monthly credit budget is exhausted.
+                  Billed in arrears at{" "}
+                  {isPro ? "$3.00" : "$5.00"} per 1M credits.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOverageToggle}
+                disabled={overageLoading}
+                aria-checked={sub.overageEnabled}
+                role="switch"
+                className={cn(
+                  "relative shrink-0 mt-0.5 h-6 w-11 rounded-full border transition-colors focus:outline-none disabled:opacity-60",
+                  sub.overageEnabled
+                    ? "bg-primary border-primary"
+                    : "bg-muted border-border",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                    sub.overageEnabled ? "translate-x-5" : "translate-x-0.5",
+                  )}
+                />
+              </button>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col gap-3 sm:flex-row">
