@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ArrowLeft, Leaf, Sparkles } from "lucide-react";
+import { Check, ArrowLeft, Leaf, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tab = "individual" | "team";
@@ -41,7 +41,7 @@ const individualPlans = [
     yearlyPrice: 24,
     hasBillingToggle: true,
     cta: "Subscribe",
-    disabled: true,
+    disabled: false,
     features: {
       prefix: "Everything in Free and:",
       base: [
@@ -159,6 +159,44 @@ function PlanCard({
       ? plan.yearlyPrice
       : plan.monthlyPrice;
 
+  const [loading, setLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  async function handleProSubscribe() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/billing/user/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ plan: "pro", billingCycle: billing }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Checkout error:", err);
+        return;
+      }
+      const { checkoutUrl } = await res.json();
+      window.location.href = checkoutUrl;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleManagePortal() {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/billing/user/portal", {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const { portalUrl } = await res.json();
+      window.location.href = portalUrl;
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-border bg-card p-8 flex flex-col gap-6 hover:border-primary/30 transition-colors shadow-sm">
       {/* Icon */}
@@ -204,18 +242,39 @@ function PlanCard({
         >
           {plan.cta}
         </a>
-      ) : plan.disabled ? (
-        <div className="relative group">
+      ) : plan.key === "pro" ? (
+        <button
+          type="button"
+          onClick={handleProSubscribe}
+          disabled={loading}
+          className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {loading ? "Redirecting…" : plan.cta}
+        </button>
+      ) : plan.key === "team" && plan.disabled ? (
+        <div className="flex flex-col gap-2">
+          <div className="relative group">
+            <button
+              type="button"
+              disabled
+              className="w-full rounded-xl border border-border text-muted-foreground py-3 font-medium text-sm cursor-not-allowed bg-muted/50"
+            >
+              {plan.cta}
+            </button>
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground/80 px-2 py-1 text-xs text-background opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Coming soon
+            </div>
+          </div>
           <button
             type="button"
-            disabled
-            className="w-full rounded-xl border border-border text-muted-foreground py-3 font-medium text-sm cursor-not-allowed bg-muted/50"
+            onClick={handleManagePortal}
+            disabled={portalLoading}
+            className="w-full rounded-xl border border-border text-muted-foreground py-2 font-medium text-xs hover:bg-muted transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
           >
-            {plan.cta}
+            {portalLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+            Manage subscription
           </button>
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground/80 px-2 py-1 text-xs text-background opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Coming soon
-          </div>
         </div>
       ) : null}
 
