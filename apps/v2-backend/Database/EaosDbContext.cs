@@ -19,6 +19,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
     public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
     public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
+    public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -126,6 +127,16 @@ public sealed class EaosDbContext : DbContext
             e.Property(c => c.Role).IsRequired().HasMaxLength(32);
             e.Property(c => c.Content).IsRequired();
             e.Property(c => c.SessionId).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<UserSubscription>(e =>
+        {
+            e.HasKey(u => u.Id);
+            e.HasIndex(u => u.UserId).IsUnique();
+            e.Property(u => u.Plan).IsRequired().HasMaxLength(32);
+            e.Property(u => u.BillingCycle).IsRequired().HasMaxLength(16);
+            e.Property(u => u.StripeCustomerId).HasMaxLength(256);
+            e.Property(u => u.StripeSubscriptionId).HasMaxLength(256);
         });
     }
 }

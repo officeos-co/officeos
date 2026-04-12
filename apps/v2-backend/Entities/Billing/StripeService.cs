@@ -100,6 +100,51 @@ public sealed class StripeService
     }
 
     // -------------------------------------------------------------------------
+    // User subscription methods (Individual Free / Pro track)
+    // -------------------------------------------------------------------------
+
+    /// <summary>Returns the UserSubscription for the given user. Defaults to Free if not found.</summary>
+    /// <remarks>TODO: Load from EF Core DB: _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct)</remarks>
+    public Task<UserSubscription> GetUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
+    {
+        _logger.LogDebug("TODO: Load user subscription for user {UserId} from database", userId);
+        // TODO: return await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct)
+        //       ?? CreateDefaultFreeUserSubscription(userId);
+        return Task.FromResult(CreateDefaultFreeUserSubscription(userId));
+    }
+
+    /// <summary>Creates or upgrades a user subscription to the given plan + billing cycle.</summary>
+    /// <returns>Stripe checkout URL or placeholder subscription ID.</returns>
+    /// <remarks>TODO: Replace with Stripe SDK SubscriptionService.CreateAsync() for the right price ID.</remarks>
+    public Task<string> CreateUserSubscriptionAsync(Guid userId, string email, string plan, string billingCycle, CancellationToken ct = default)
+    {
+        var priceId = (plan, billingCycle) switch
+        {
+            ("pro", "yearly")  => _config.ProYearlyPriceId,
+            ("pro", "monthly") => _config.ProMonthlyPriceId,
+            _                  => _config.FreePriceId,
+        };
+
+        _logger.LogInformation(
+            "TODO: Create user subscription for user {UserId} email {Email} plan {Plan} billingCycle {BillingCycle} priceId {PriceId}",
+            userId, email, plan, billingCycle, priceId);
+
+        // TODO: var customerId = await CreateCustomerAsync(userId.ToString(), email, ct);
+        // TODO: var options = new SubscriptionCreateOptions { Customer = customerId, Items = [ new SubscriptionItemOptions { Price = priceId } ] };
+        // TODO: var service = new SubscriptionService(); return (await service.CreateAsync(options, cancellationToken: ct)).Id;
+        return Task.FromResult($"sub_user_placeholder_{userId}_{plan}_{billingCycle}");
+    }
+
+    /// <summary>Returns remaining tokens and whether the user is over-budget (triggers overage billing).</summary>
+    public async Task<(long Remaining, bool OverBudget)> CheckUserTokenBudgetAsync(Guid userId, CancellationToken ct = default)
+    {
+        var sub = await GetUserSubscriptionAsync(userId, ct);
+        var remaining = sub.TokenBudgetPerMonth - sub.TokensUsedThisMonth;
+        var overBudget = remaining < 0;
+        return (remaining, overBudget);
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 
@@ -114,4 +159,21 @@ public sealed class StripeService
         PeriodEnd = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
         IsActive = true,
     };
+
+    private static UserSubscription CreateDefaultFreeUserSubscription(Guid userId)
+    {
+        var limits = PlanLimits.ForIndividualPlan("free");
+        return new UserSubscription
+        {
+            UserId = userId,
+            Plan = limits.Plan,
+            BillingCycle = "monthly",
+            ConcurrentAgentLimit = limits.ConcurrentAgents,
+            TokenBudgetPerMonth = limits.TokensPerMonth,
+            TokensUsedThisMonth = 0,
+            PeriodStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+            PeriodEnd = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1),
+            IsActive = true,
+        };
+    }
 }
