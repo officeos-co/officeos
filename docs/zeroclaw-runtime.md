@@ -9,7 +9,7 @@
 The `Agent` struct (`src/agent/agent.rs`) is the central object. It owns:
 
 - `Box<dyn Provider>` — the LLM connection (routes through backend proxy)
-- `Arc<dyn Memory>` — persistent state (SQLite per pod)
+- `Arc<dyn Memory>` — persistent state (remote Postgres via backend API in managed mode, SQLite in standalone mode)
 - `Vec<Box<dyn Tool>>` — callable tools (including `skill_exec` for backend skills)
 - `Box<dyn ToolDispatcher>` — parses LLM output into tool calls
 - `SystemPromptBuilder` — assembles the system prompt each turn
@@ -119,3 +119,19 @@ Sections are registered via `SystemPromptBuilder::with_defaults()` and rendered 
 | `src/gateway/mod.rs` | HTTP + WebSocket server |
 | `src/providers/router.rs` | Multi-model routing |
 | `src/config/schema.rs` | Full config schema |
+| `src/memory/remote.rs` | Remote memory backend (HTTP calls to backend API) |
+| `src/memory/sqlite.rs` | Local SQLite memory backend (standalone mode) |
+| `src/memory/backend.rs` | Backend classifier (auto-selects remote when `ZEROCLAW_AGENT_ID` is set) |
+
+## Memory backends
+
+The agent supports two memory backends, selected automatically:
+
+| Mode | Backend | Storage | When |
+|------|---------|---------|------|
+| **Managed** | `RemoteMemory` | Postgres (via backend API) | `ZEROCLAW_AGENT_ID` is set (K8s pod) |
+| **Standalone** | `SqliteMemory` | Local SQLite file | Running locally without backend |
+
+The `RemoteMemory` backend calls the backend's `/api/agents/me/memory`, `/api/agents/me/cache`, and `/api/agents/me/conversations` endpoints. This centralizes all agent data in the platform's Postgres database.
+
+SQLite is behind the `local-storage` Cargo feature flag (enabled by default). The `rusqlite` dependency is optional.

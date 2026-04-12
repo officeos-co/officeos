@@ -7,12 +7,13 @@ Kubernetes-native platform for autonomous AI agents. Single-tenant, self-hosted.
 ```
 apps/v2-backend/         C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, vault, K8s orchestration
 apps/v2-frontend/        Next.js 16 + React 19 — Mission Control dashboard
+apps/website/            Next.js 15 + Bun + shadcn — public landing page (harrokrog.com)
 packages/zeroclaw-core/  Rust agent runtime — turn loop, tool execution, memory, channels
 packages/skill-sdk/      @harro/skill-sdk — TypeScript SDK for defining skills (defineSkill + Zod)
 packages/skill-runtime/  Node.js skill execution service — loads bundled skills, exposes HTTP API
-packages/skills/         First-party skills (notion, github, google) built with the SDK
+packages/skills/         First-party skills (notion, github, google, obsidian) built with the SDK
 packages/obsctl/         Python CLI for Obsidian vault operations (CouchDB backend)
-k8s/                     Kubernetes manifests (backend.yaml, frontend.yaml)
+k8s/                     Kubernetes manifests (backend.yaml, frontend.yaml, website.yaml)
 docs/                    Architecture and system documentation
 ```
 

@@ -78,25 +78,17 @@ Dashboard admin configures Notion API key
 
 Skills are defined with `defineSkill()` from `@harro/skill-sdk`. A skill definition includes:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | `string` | Unique identifier (lowercase) |
-| `title` | `string` | Human-readable title for the dashboard |
-| `emoji` | `string` | Icon for dashboard display |
-| `description` | `string` | Short description of the skill's purpose |
-| `doc` | `string` | Markdown documentation (imported from SKILL.md) |
-| `credentials` | `Record<string, CredentialFieldDefinition>` | Credential fields with UI metadata |
-| `actions` | `Record<string, ActionDefinition>` | Map of action name → implementation |
+| Field         | Type                                        | Description                                     |
+| ------------- | ------------------------------------------- | ----------------------------------------------- |
+| `name`        | `string`                                    | Unique identifier (lowercase)                   |
+| `title`       | `string`                                    | Human-readable title for the dashboard          |
+| `emoji`       | `string`                                    | Icon for dashboard display                      |
+| `description` | `string`                                    | Short description of the skill's purpose        |
+| `doc`         | `string`                                    | Markdown documentation (imported from SKILL.md) |
+| `credentials` | `Record<string, CredentialFieldDefinition>` | Credential fields with UI metadata              |
+| `actions`     | `Record<string, ActionDefinition>`          | Map of action name → implementation             |
 
 All fields are required. Credential fields specify `label`, `kind` (password/text/textarea), `required`, `placeholder`, and `help` — the dashboard renders forms directly from this metadata.
-
-## Current skills
-
-| Skill  | Actions                                                                                              | Vendor API                   |
-|--------|------------------------------------------------------------------------------------------------------|------------------------------|
-| Notion | search, read_page, create_page, list_blocks, add_block, update_block, delete_block, add_todo, update_todo, query_database | Notion REST API v1           |
-| GitHub | list_repos, list_issues, list_prs                                                                    | GitHub REST API v3           |
-| Google | drive_search, calendar_upcoming                                                                      | Google Drive + Calendar APIs |
 
 ## Adding a new skill
 
@@ -136,12 +128,14 @@ export default defineSkill({
         jql: z.string().describe("JQL query string"),
         max_results: z.number().min(1).max(100).default(20),
       }),
-      returns: z.array(z.object({
-        key: z.string(),
-        summary: z.string(),
-        status: z.string(),
-        assignee: z.string().nullable(),
-      })),
+      returns: z.array(
+        z.object({
+          key: z.string(),
+          summary: z.string(),
+          status: z.string(),
+          assignee: z.string().nullable(),
+        }),
+      ),
       execute: async (params, ctx) => {
         // Call Jira REST API using ctx.credentials and ctx.fetch
       },
@@ -185,19 +179,19 @@ No C# code. No DB migration. No GraphQL resolvers. The dashboard shows the new s
 
 ## Backend structure (`Entities/Skills/`)
 
-| File | Responsibility |
-|------|---------------|
-| `SkillsController.cs` | Dashboard REST API (`/api/skills`) — list, get, install, uninstall, credentials, doc |
-| `AgentSkillsController.cs` | Agent pod API (`/api/agents/me`) — capabilities, skill-exec |
-| `ISkillService.cs` / `SkillService.cs` | Business logic — merges runtime manifests with DB state |
-| `ISkillCredentialRepository.cs` / `SkillCredentialRepository.cs` | Postgres CRUD for encrypted credentials |
-| `SkillCredentialProtector.cs` | DataProtection wrapper for credential encryption |
-| `SkillRuntimeClient.cs` | HTTP client to the skill-runtime service |
-| `SkillRuntimeModels.cs` | Deserialization models for runtime responses |
-| `SkillDto.cs` | API DTOs and request/response records |
-| `AgentTokenAuthAttribute.cs` | Agent pod auth (Bearer UUID) |
-| `AgentBackendTokenProtector.cs` | Backend token encryption |
-| `GraphQL/` | Dynamic GraphQL schema from runtime manifests (SkillTypeModule) |
+| File                                                             | Responsibility                                                                       |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `SkillsController.cs`                                            | Dashboard REST API (`/api/skills`) — list, get, install, uninstall, credentials, doc |
+| `AgentSkillsController.cs`                                       | Agent pod API (`/api/agents/me`) — capabilities, skill-exec                          |
+| `ISkillService.cs` / `SkillService.cs`                           | Business logic — merges runtime manifests with DB state                              |
+| `ISkillCredentialRepository.cs` / `SkillCredentialRepository.cs` | Postgres CRUD for encrypted credentials                                              |
+| `SkillCredentialProtector.cs`                                    | DataProtection wrapper for credential encryption                                     |
+| `SkillRuntimeClient.cs`                                          | HTTP client to the skill-runtime service                                             |
+| `SkillRuntimeModels.cs`                                          | Deserialization models for runtime responses                                         |
+| `SkillDto.cs`                                                    | API DTOs and request/response records                                                |
+| `AgentTokenAuthAttribute.cs`                                     | Agent pod auth (Bearer UUID)                                                         |
+| `AgentBackendTokenProtector.cs`                                  | Backend token encryption                                                             |
+| `GraphQL/`                                                       | Dynamic GraphQL schema from runtime manifests (SkillTypeModule)                      |
 
 ## Custom skills
 
@@ -237,31 +231,31 @@ Build status: "pending" (clone + build is TODO)
 
 Custom skill source archives are stored in **MinIO** (S3-compatible) in the `skills` bucket. Config in `appsettings.json`:
 
-| Key | Description |
-|-----|-------------|
-| `MinioEndpoint` | S3 endpoint URL (e.g. `http://eaos-minio:9000`) |
-| `MinioAccessKey` | Access key |
-| `MinioSecretKey` | Secret key |
-| `MinioBucket` | Bucket name (default: `skills`) |
+| Key              | Description                                     |
+| ---------------- | ----------------------------------------------- |
+| `MinioEndpoint`  | S3 endpoint URL (e.g. `http://eaos-minio:9000`) |
+| `MinioAccessKey` | Access key                                      |
+| `MinioSecretKey` | Secret key                                      |
+| `MinioBucket`    | Bucket name (default: `skills`)                 |
 
 ### Build endpoints (skill-runtime)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST /build` | `{ name, files: [{ path, content }] }` | Build a skill from source, hot-load it |
-| `POST /reload/{name}` | — | Re-load an existing built skill from disk |
+| Method                | Path                                   | Description                               |
+| --------------------- | -------------------------------------- | ----------------------------------------- |
+| `POST /build`         | `{ name, files: [{ path, content }] }` | Build a skill from source, hot-load it    |
+| `POST /reload/{name}` | —                                      | Re-load an existing built skill from disk |
 
 ### Database model (`CustomSkillRecord`)
 
-| Column | Description |
-|--------|-------------|
-| `Id` | Primary key |
-| `OwnerId` | FK to UserRecord |
-| `Name` | Skill name (unique) |
-| `Source` | `"upload"` or `"github"` |
-| `GitHubRepoUrl` | Repository URL (github source) |
-| `BundlePath` | S3 path to stored zip |
-| `BuildStatus` | `pending`, `building`, `ready`, `failed` |
+| Column          | Description                              |
+| --------------- | ---------------------------------------- |
+| `Id`            | Primary key                              |
+| `OwnerId`       | FK to UserRecord                         |
+| `Name`          | Skill name (unique)                      |
+| `Source`        | `"upload"` or `"github"`                 |
+| `GitHubRepoUrl` | Repository URL (github source)           |
+| `BundlePath`    | S3 path to stored zip                    |
+| `BuildStatus`   | `pending`, `building`, `ready`, `failed` |
 
 ## Runner dispatch
 
