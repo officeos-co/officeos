@@ -75,6 +75,7 @@ The philosophy is Main app is for the consumer accpetance criteria is even a non
 \*Conclusion after talking:
 
 **Sidebar restructure:**
+
 - Remove Platform section (Providers, Skills, Runners) from main sidebar entirely → move to Org Settings
 - Main sidebar: Dashboard, Agents, [future: Knowledge Graph], then bottom: Org Settings + Account/Logout
 - Org Settings gets the Claude Code sidebar transition — clicking it replaces the full sidebar with an org-settings view that has a "Back to main app" button at the top. This is the right pattern for the coming enterprise complexity (privacy controls, rate limiting, team setup, API keys, runners config).
@@ -84,6 +85,7 @@ The philosophy is Main app is for the consumer accpetance criteria is even a non
 **Rename Skills → Tools everywhere** (skills = knowledge in the industry; tools = callable capabilities — our abstraction is wrong, fix it)
 
 **Agent detail panel — 5 tabs:**
+
 1. **Chat + Tools** — operational interface, chat window + assigned tools list with emoji icons
 2. **Prompt** — separate tab because our system prompt is a vault of files (CouchDB/Obsidian), not a single text field; cannot collapse this
 3. **Sessions** — session history
@@ -105,6 +107,24 @@ This org wide knoweldge graph also needs to be a new tab in the sidebar.
 
 \*Solution after talking:
 
+**Agent ↔ knowledge graph access (already solved):** The obsidian skill already exposes discrete, typed tools (read_note, search, get_backlinks, find_by_tag, etc.) via the skill SDK. obsctl is just the execution engine — the agent never sees raw CLI. No architecture change needed here.
+
+**Human ↔ knowledge graph (sidebar tab MVP):** Add a Knowledge Graph sidebar section. MVP scope: file tree + full-text search + markdown preview. Graph visualization (nodes/edges) is v2. The CouchDB connection for this tab is an org-level config (org settings), not per-agent.
+
+**System prompt — continuous memory updates:** Agent system prompts must explicitly instruct agents to treat the knowledge graph as their external memory and update it continuously. Guided by the philosophy in `/Users/harrokrog/Documents/Optimierung/README.md`:
+
+- After completing tasks, the agent appends findings to existing relevant notes before creating new ones (text-dump-first: only atomize when a note exceeds ~500 lines or is referenced from many places)
+- When creating a note, always set `category` (one per note, defines identity) and `tags` (sparse, multi-dimensional, only when a concept genuinely spans categories)
+- Use the org's template per category when creating structured notes (`apply_template`)
+- Link notes using `[[wikilinks]]` in content to build the graph — the graph is the structure, not the folder hierarchy
+- Folders are architecture only; agents should file notes by the org's folder convention, not invent new folders
+
+**Tool gaps to fix — tags, categories, bases must work:**
+
+- Tags: `find_by_tag` exists ✅
+- Categories: `get_properties` / `set_property` can read/write a `category` frontmatter field, but there is no `find_by_category` action — **add `find_by_category` to the obsidian skill**
+- Bases: Obsidian Bases are filtered views of notes by property. obsctl likely doesn't support this yet — **add bases/filtered-property-query support to obsctl and expose it as a tool**
+
 ---
 
 # Enterprse auth
@@ -113,6 +133,19 @@ I really dont know if enterprise auth is any different but right now there is no
 Probably we would need to support more auth methodes such as github, microsoft, iam from aws and so on.
 
 \*Solution after talking:
+
+**Standard: OIDC (OpenID Connect) + SAML 2.0**
+
+- OIDC is the primary protocol — covers Google, GitHub, Microsoft (Entra ID), AWS IAM Identity Center, all modern IdPs
+- SAML 2.0 is required for large enterprises on Okta, Azure AD legacy, OneLogin, PingIdentity — a hard blocker without it
+
+**Implementation: WorkOS** (not DIY)
+
+- Single API abstracting OIDC, SAML 2.0, and SCIM (directory sync)
+- Per-org connections: each enterprise customer configures their own IdP once, all employees SSO automatically
+- C# backend integrates via WorkOS SDK — no hand-rolled SAML state machines
+
+**SCIM (user provisioning) is mandatory for enterprise:** when an employee leaves, their agent access must auto-revoke. This is a compliance requirement, not a nice-to-have.
 
 ---
 
@@ -131,6 +164,24 @@ I am currently questioning if a coding agent is so custom that it should not jus
 
 \*Solution after talking:
 
+**Don't build a coding agent from scratch — fork opencode.**
+
+opencode already solves the hard problems: file editing, diff application, shell execution, multi-turn coding loop. Our contribution is:
+
+- Strip the TUI entirely — no interactive terminal needed, headless only
+- Inject the LLM provider via our backend (consistent with "credentials never leave the backend" — the fork receives a provider config, not raw API keys)
+- Run in an isolated environment using **git worktree** — fast (same object store, no clone), isolated per task, own branch, clean to remove after
+- Called as an async tool by the orchestrator agent — main agent fires the task, coding agent works independently, returns result (branch name, PR link, summary)
+
+**Why not a subagent within the same agent, or a native Rust implementation:**
+
+- Competing with opencode/Claude Code on coding UX is the wrong move — users have strong tool preferences
+- Our position is orchestration and org management, not coding execution
+- opencode's engine is the right foundation; we just make it programmable and headless
+- Coding agents are fundamentally seemingly the same but trying to balance zeroclaw fork beeing a coding agent and a orchestrator at the same time would be to complex
+
+**Delay:** This is a real engineering effort. Ship everything else first. Revisit when there is a concrete customer need for it.
+
 ---
 
 # Own model
@@ -144,6 +195,47 @@ But most importantly we should implement model forwarding so that we basically r
 This goes right along with stripe. Since we are b2b idk if a simple SAAS pricing is good but i guess so. We should integrate stripe probably having 3 tiers where tier 3 would be a custom contact us enterprise tier. We sohould really consider pricing structure and to what way we wanna integrate normal users. I can imagine actually being able to distribute this service for free to regular users and making b2b pay. This is like a pretty well regarded business model which YC loves. ALso we need to consider open source.
 
 We should thus probably add a simple pricing page https://re-entry.ai/pricing
+
+\*Solution after talking:
+
+**Model strategy: resell models, no BYOK in SaaS** (BYOK is a future self-hosted concern, not in scope now)
+
+**Smart model routing is what makes the economics work** — not every call goes to Sonnet. Haiku handles simple tool calls and routing decisions, Sonnet handles actual reasoning. Real blended cost lands at ~$3-5/M tokens across a typical workload. This routing is itself a product feature.
+
+**Model cost reference (retail, pre-volume-discount):**
+
+- Haiku: ~$0.50/M blended
+- Sonnet: ~$9/M blended
+- Opus: ~$45/M blended
+
+**Typical agent usage:**
+
+- Light agent: ~1M tokens/month
+- Active agent: ~3M tokens/month
+- Heavy agent: ~8M tokens/month
+
+**3 tiers — limits on concurrent agents + token bundle, all features available at every tier:**
+
+|                   | Free       | Team        | Enterprise |
+| ----------------- | ---------- | ----------- | ---------- |
+| Price             | $0         | $249/mo     | Custom     |
+| Concurrent agents | 1          | 10          | Custom     |
+| Tokens included   | 2M/mo      | 25M/mo      | Custom     |
+| Our model cost    | ~$10       | ~$100       | —          |
+| Gross margin      | −$10 (CAC) | ~$149 / 60% | target 65% |
+
+Enterprise starting point: ~$1,500–3,000/month. Justified by SSO (WorkOS), SCIM, compliance, and dedicated support — all of which have real cost to serve.
+
+**On power users:** Heavy agents at full Sonnet load can flip a Team subscription to a loss (25M tokens at Sonnet = $225 in model costs vs $249 revenue). This is expected — every company loses money on power users (AWS, Notion, Figma all do). We accept this as normal. The pay-as-you-go model (see below) ensures we never run at sustained loss on a single customer.
+
+**Profitability path is not only token price drops:** Revenue grows as we add customers, model routing improves, volume discounts kick in, and the platform expands (coding agents, channel integrations, marketplace). The business has multiple expansion levers beyond model cost reduction.
+
+**Pay-as-you-go after threshold (Cursor model):** Inspired by Cursor's pricing — every plan includes a token bundle, after which on-demand usage kicks in automatically, billed in arrears. No hard cutoff that breaks an agent mid-task. Users see their usage dashboard and get notified as they approach limits. This solves the power-user margin problem without punishing them.
+
+- Overage rate: our model cost + markup (e.g., cost × 1.3) — we never lose money on overage
+- Enterprise gets pooled token budgets across all agents + invoice/PO billing instead of card
+
+**Implementation:** Stripe for subscriptions + Stripe usage-based billing (metered) for token overage. Add a pricing page.
 
 ---
 
