@@ -16,9 +16,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="light">
       <body>
-        <RootProvider>
+        <RootProvider theme={{ defaultTheme: "light", enableSystem: false }}>
           <DocsLayout tree={source.pageTree}>
             {children}
           </DocsLayout>

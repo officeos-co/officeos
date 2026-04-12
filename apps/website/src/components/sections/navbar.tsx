@@ -81,7 +81,7 @@ export function Navbar() {
 						<div className="flex shrink-0 flex-row items-center gap-1 md:gap-3">
 							<div className="flex items-center space-x-6">
 								<Link
-									className="hidden h-8 w-fit items-center justify-center rounded-full border border-white/[0.12] bg-secondary px-4 font-normal text-sm tracking-wide shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] md:flex dark:text-secondary-foreground"
+									className="hidden h-8 w-fit items-center justify-center rounded-full border border-white/[0.12] bg-secondary px-4 font-normal text-sm tracking-wide shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] md:flex"
 									href="#cta"
 								>
 									Start Free
@@ -141,7 +141,7 @@ export function Navbar() {
 									<Link
 										href="#cta"
 										onClick={() => setIsDrawerOpen(false)}
-										className="flex h-8 w-full items-center justify-center rounded-full border border-white/[0.12] bg-secondary px-4 font-normal text-sm tracking-wide shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] transition-all ease-out hover:bg-secondary/80 active:scale-95 dark:text-secondary-foreground"
+										className="flex h-8 w-full items-center justify-center rounded-full border border-white/[0.12] bg-secondary px-4 font-normal text-sm tracking-wide shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] transition-all ease-out hover:bg-secondary/80 active:scale-95"
 									>
 										Start Free
 									</Link>

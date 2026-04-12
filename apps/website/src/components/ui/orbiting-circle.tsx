@@ -74,9 +74,8 @@ export function OrbitingCircles({
 							<div
 								className={cn(
 									"size-full rounded-full",
-									"border border-[0,0,0,0.07] dark:border-[rgba(249,250,251,0.07)]",
+									"border border-[0,0,0,0.07]",
 									"bg-gradient-to-b from-0% from-[rgba(0,0,0,0.05)] via-54.76% via-[rgba(249,250,251,0.00)]",
-									"dark:bg-gradient-to-b dark:from-0% dark:from-[rgba(249,250,251,0.03)] dark:via-54.76% dark:via-[rgba(249,250,251,0.00)]",
 									className,
 								)}
 							/>

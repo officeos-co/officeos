@@ -1,6 +1,5 @@
 import { GeistMono } from "geist/font/mono";
 import type { Viewport } from "next";
-import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -26,18 +25,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className="light" suppressHydrationWarning>
+		<html lang="en" className="light">
 			<body
 				className={`${GeistMono.className} bg-background font-sans antialiased`}
 			>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="light"
-					enableSystem={false}
-					disableTransitionOnChange
-				>
-					{children}
-				</ThemeProvider>
+				{children}
 			</body>
 		</html>
 	);

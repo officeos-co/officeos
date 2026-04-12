@@ -2,7 +2,6 @@
 
 import createGlobe, { COBEOptions } from "cobe";
 import { useMotionValue, useSpring } from "motion/react";
-import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
@@ -58,9 +57,6 @@ export function Globe({
 	className?: string;
 	config?: COBEOptions;
 }) {
-	const { theme } = useTheme();
-	const isDarkMode = theme === "dark";
-
 	const phiRef = useRef(0);
 	const widthRef = useRef(0);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,14 +73,14 @@ export function Globe({
 	const finalConfig = useMemo(
 		() => ({
 			...config,
-			baseColor: isDarkMode ? COLORS.dark.base : COLORS.light.base,
-			glowColor: isDarkMode ? COLORS.dark.glow : COLORS.light.glow,
+			baseColor: COLORS.light.base,
+			glowColor: COLORS.light.glow,
 			markerColor: COLORS.light.marker,
-			dark: isDarkMode ? 1 : 0,
-			diffuse: isDarkMode ? 0.5 : 0.4,
-			mapBrightness: isDarkMode ? 1.4 : 1.2,
+			dark: 0,
+			diffuse: 0.4,
+			mapBrightness: 1.2,
 		}),
-		[config, isDarkMode],
+		[config],
 	);
 
 	const updatePointerInteraction = (value: number | null) => {

@@ -185,7 +185,7 @@ export function FourthBentoAnimation({
 			</div>
 
 			<motion.div
-				className="absolute top-10 z-10 h-[calc(100%-80px)] w-[2px] bg-gradient-to-b from-black to-transparent dark:from-accent"
+				className="absolute top-10 z-10 h-[calc(100%-80px)] w-[2px] bg-gradient-to-b from-black to-transparent"
 				style={{
 					x: smoothX,
 					translateX: "-50%",
@@ -200,7 +200,7 @@ export function FourthBentoAnimation({
 				}}
 			/>
 			<motion.div
-				className="absolute top-14 z-20 flex h-6 items-center justify-center rounded-md bg-black p-2 text-xs shadow-[0px_2.2px_6.6px_0px_rgba(18,43,105,0.04),0px_1.1px_2.2px_0px_rgba(18,43,105,0.08),0px_0px_0px_1.1px_rgba(18,43,105,0.08),0px_1.1px_0px_0px_rgba(255,255,255,0.20)_inset,0px_4.4px_6.6px_0px_rgba(255,255,255,0.01)_inset] dark:bg-accent"
+				className="absolute top-14 z-20 flex h-6 items-center justify-center rounded-md bg-black p-2 text-xs shadow-[0px_2.2px_6.6px_0px_rgba(18,43,105,0.04),0px_1.1px_2.2px_0px_rgba(18,43,105,0.08),0px_0px_0px_1.1px_rgba(18,43,105,0.08),0px_1.1px_0px_0px_rgba(255,255,255,0.20)_inset,0px_4.4px_6.6px_0px_rgba(255,255,255,0.01)_inset]"
 				style={{
 					x: smoothX,
 					translateX: "-50%",

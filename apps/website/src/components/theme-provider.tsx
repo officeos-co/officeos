@@ -1,11 +1,8 @@
 "use client";
 
-import { ThemeProvider as NextThemesProvider } from "next-themes";
 import * as React from "react";
 
-export function ThemeProvider({
-	children,
-	...props
-}: React.ComponentProps<typeof NextThemesProvider>) {
-	return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+// Theme provider kept as stub — dark mode removed, next-themes dependency removed.
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+	return <>{children}</>;
 }
