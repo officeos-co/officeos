@@ -13,6 +13,7 @@ type Tab = "agent" | "chat" | "prompt" | "sessions" | "logs" | "memory";
 
 type Props = {
   agent: Agent;
+  onAgentUpdated?: () => void;
 };
 
 const TABS: { id: Tab; label: string }[] = [
@@ -26,7 +27,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 const ALWAYS_ON_TABS: Tab[] = ["agent", "prompt", "memory"];
 
-export function AgentDetailTabs({ agent }: Props) {
+export function AgentDetailTabs({ agent, onAgentUpdated }: Props) {
   const [active, setActive] = useState<Tab>("agent");
 
   const running = agent.status === "running";
@@ -34,8 +35,9 @@ export function AgentDetailTabs({ agent }: Props) {
   const isEnabled = (id: Tab) => ALWAYS_ON_TABS.includes(id) || running;
 
   return (
-    <div>
-      <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background px-8">
+    <div className="flex h-full flex-col">
+      {/* Tab bar — sticky */}
+      <div className="shrink-0 flex gap-1 border-b border-border bg-background px-8">
         {TABS.map((tab) => {
           const enabled = isEnabled(tab.id);
           const isActive = tab.id === active;
@@ -62,12 +64,15 @@ export function AgentDetailTabs({ agent }: Props) {
         })}
       </div>
 
-      {active === "agent" && <AgentOverviewPanel agent={agent} />}
-      {active === "chat" && <AgentChatPanel agent={agent} />}
-      {active === "prompt" && <AgentConfigPanel agent={agent} />}
-      {active === "sessions" && <AgentSessionsPanel agent={agent} />}
-      {active === "logs" && <AgentLogsPanel agent={agent} />}
-      {active === "memory" && <AgentMemoryPanel agent={agent} />}
+      {/* Tab content — scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        {active === "agent" && <AgentOverviewPanel agent={agent} onAgentUpdated={onAgentUpdated} />}
+        {active === "chat" && <AgentChatPanel agent={agent} />}
+        {active === "prompt" && <AgentConfigPanel agent={agent} />}
+        {active === "sessions" && <AgentSessionsPanel agent={agent} />}
+        {active === "logs" && <AgentLogsPanel agent={agent} />}
+        {active === "memory" && <AgentMemoryPanel agent={agent} />}
+      </div>
     </div>
   );
 }

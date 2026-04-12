@@ -100,7 +100,7 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
   }
 
   return (
-    <div className="mx-8 my-6">
+    <div className="px-8 py-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           {sessions.length} session{sessions.length === 1 ? "" : "s"}
@@ -122,11 +122,11 @@ export function AgentSessionsPanel({ agent }: { agent: Agent }) {
       )}
 
       {sessions.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+        <div className="py-12 text-center text-sm text-muted-foreground">
           No sessions yet. Sessions are created automatically when you start a chat.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-hidden border-t border-border">
           <table className="w-full text-sm">
             <thead className="text-left text-muted-foreground">
               <tr className="border-b border-border">

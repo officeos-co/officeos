@@ -188,54 +188,10 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
   };
 
   return (
-    <div className="mx-8 my-6 flex h-[calc(100vh-260px)] flex-col rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs">
-        <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4" />
-          <span className="font-medium uppercase tracking-wider">Live logs</span>
-          <span className="font-mono text-[10px] text-muted-foreground">
-            {filtered.length} events
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={
-              connected
-                ? "rounded-full border border-emerald-200 px-2 py-0.5 text-emerald-700"
-                : reconnecting
-                  ? "rounded-full border border-yellow-200 px-2 py-0.5 text-yellow-700"
-                  : "rounded-full border border-border px-2 py-0.5 text-muted-foreground"
-            }
-          >
-            {connected ? "streaming" : reconnecting ? "reconnecting…" : "disconnected"}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-primary hover:text-primary-foreground"
-          >
-            {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
-            {paused ? "Resume" : "Pause"}
-          </button>
-          {!autoScroll && (
-            <button
-              type="button"
-              onClick={jumpToBottom}
-              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-primary hover:text-primary-foreground"
-            >
-              <ArrowDown className="h-3 w-3" />
-              Jump
-            </button>
-          )}
-        </div>
-      </div>
-
+    <div className="flex h-[calc(100vh-200px)] flex-col">
       {allTypes.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-border px-4 py-2 text-[11px]">
+        <div className="flex items-center gap-2 overflow-x-auto px-6 py-2 text-[11px]">
           <Filter className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-          <span className="flex-shrink-0 uppercase tracking-wider text-muted-foreground">
-            Filter:
-          </span>
           {allTypes.map((type) => {
             const active = typeFilters.has(type);
             return (
@@ -266,7 +222,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
       )}
 
       {error && (
-        <div className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+        <div className="bg-destructive/5 px-6 py-2 text-xs text-destructive">
           {error}
         </div>
       )}
@@ -274,7 +230,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3"
+        className="min-h-0 flex-1 space-y-1 overflow-y-auto px-6 py-3"
       >
         {filtered.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-sm text-muted-foreground">
@@ -298,7 +254,7 @@ export function AgentLogsPanel({ agent }: { agent: Agent }) {
             return (
               <div
                 key={entry.id}
-                className="flex items-start gap-3 rounded-md border border-border bg-muted px-3 py-2 text-xs"
+                className="flex items-start gap-3 px-3 py-1.5 text-xs"
               >
                 <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground">
                   {formatTs(event.timestamp)}
