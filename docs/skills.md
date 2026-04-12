@@ -272,6 +272,47 @@ AgentSkillsController.SkillExec:
   5. If no runner → return 409 "not installed or not configured"
 ```
 
+## System skills
+
+Some skills are marked as **system skills** — always available to agents without manual install or credentials. The backend's `SkillService` has a static `SystemSkills` set. System skills:
+
+- Are always included in the capabilities endpoint (no DB row required)
+- Return empty credentials when none are configured
+- Show as installed + configured in the dashboard
+- Cannot be uninstalled
+
+Current system skills: **browser**.
+
+## Browser skill & session management
+
+The browser skill (`packages/skills/browser/`) uses Playwright to control a headless Chromium browser. It runs in the skill-runtime like any other skill, but has special session handling:
+
+### Session flow
+
+```
+Agent calls skill_exec("browser open --url ...")
+    ↓
+AgentSkillsController: looks up BrowserSessionRecord for this agent
+    ↓
+Includes stored sessionId + cookies in the runtime request
+    ↓
+Skill-runtime: BrowserSessionManager creates/reuses BrowserContext
+    ↓
+Playwright executes action (navigate, click, screenshot, etc.)
+    ↓
+Returns result + sessionMeta (sessionId, cookies)
+    ↓
+Backend persists updated cookies in BrowserSessionRecord
+    ↓
+Agent receives result only (no session metadata)
+```
+
+- **Agent is session-unaware** — never sees session IDs or cookies
+- **Cookies persist in Postgres** (`BrowserSessionRecord` table, per-agent)
+- **In-memory sessions** expire after 5 min idle in the skill-runtime
+- **Cookie injection** re-creates authenticated state when a new session starts
+- **Max 20 concurrent sessions** in the runtime (oldest evicted when full)
+
 ## Global vs per-agent
 
 Skills are currently **global** — all agents see all configured skills. There's no per-agent scoping. The `SkillCredentials` table has no `AgentId` column.

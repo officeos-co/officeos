@@ -28,6 +28,8 @@ User opens the dashboard, creates an agent. The backend provisions a CouchDB vau
 - **Single env var deployment.** Agent pods receive only `ZEROCLAW_AGENT_ID`. Everything else (provider, model, vault, skills) is derived from that ID by calling the backend.
 - **CouchDB is the vault source of truth.** Personality files live in per-agent CouchDB databases, cached on the pod's PVC.
 - **GraphQL skill gateway.** Skills are defined in TypeScript (`@harro/skill-sdk`), executed in a separate Node.js skill-runtime. The backend generates GraphQL types dynamically from runtime manifests via `SkillTypeModule` (`ITypeModule`). Agents discover skills via introspection and call them through a CLI-style `skill_exec` tool.
+- **System skills.** Some skills (e.g. `browser`) are always available without manual install or credentials. The backend auto-includes them in the capabilities endpoint.
+- **Browser sessions.** The browser skill uses Playwright in the skill-runtime. The backend transparently manages per-agent sessions and persists cookies in Postgres (`BrowserSessionRecord`). Agents are session-unaware.
 - **Status is live.** `GET /api/agents` calls K8s API inline to refresh pod status. Frontend polls every 10s.
 - **CICD handles everything** no manual commands need to be done. CICD handles building, testing and deploying.
 
