@@ -10,11 +10,10 @@ COPY packages/skill-runtime/ packages/skill-runtime/
 # Install and build SDK first (local dependency)
 RUN cd packages/skill-sdk && npm ci && npm run build
 
-# Install skills dependencies
-RUN cd packages/skills/notion && npm install
-RUN cd packages/skills/github && npm install
-RUN cd packages/skills/google && npm install
-RUN cd packages/skills/browser && npm install
+# Install all skill dependencies (auto-discovers every skill with a package.json)
+RUN for dir in packages/skills/*/; do \
+      [ -f "$dir/package.json" ] && (cd "$dir" && npm install) || true; \
+    done
 
 # Build runtime (bundles server + all skills)
 RUN cd packages/skill-runtime && npm ci && npm run build
