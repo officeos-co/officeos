@@ -11,11 +11,13 @@ public sealed class RunnersController : ControllerBase
 {
     private readonly IRunnerRepository _runners;
     private readonly IRunnerJobRepository _jobs;
+    private readonly ILogger<RunnersController> _logger;
 
-    public RunnersController(IRunnerRepository runners, IRunnerJobRepository jobs)
+    public RunnersController(IRunnerRepository runners, IRunnerJobRepository jobs, ILogger<RunnersController> logger)
     {
         _runners = runners;
         _jobs = jobs;
+        _logger = logger;
     }
 
     private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
@@ -31,6 +33,9 @@ public sealed class RunnersController : ControllerBase
         var hash = Auth.SessionAuthMiddleware.HashToken(registrationToken);
 
         var runner = await _runners.CreateAsync(CurrentUser.Id, body.Name.Trim(), hash, ct);
+
+        _logger.LogInformation("Runner {RunnerId} ({RunnerName}) created by user {UserId}",
+            runner.Id, runner.Name, CurrentUser.Id);
 
         return Ok(new
         {
@@ -97,6 +102,7 @@ public sealed class RunnersController : ControllerBase
             return NotFound();
 
         await _runners.DeleteAsync(id, ct);
+        _logger.LogInformation("Runner {RunnerId} deleted by user {UserId}", id, CurrentUser.Id);
         return NoContent();
     }
 }

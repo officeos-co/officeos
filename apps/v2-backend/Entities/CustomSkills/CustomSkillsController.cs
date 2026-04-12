@@ -14,16 +14,20 @@ public sealed class CustomSkillsController : ControllerBase
     private readonly IAmazonS3 _s3;
     private readonly SkillStorageConfig _storage;
 
+    private readonly ILogger<CustomSkillsController> _logger;
+
     public CustomSkillsController(
         ICustomSkillRepository repo,
         SkillRuntimeClient runtime,
         IAmazonS3 s3,
-        SkillStorageConfig storage)
+        SkillStorageConfig storage,
+        ILogger<CustomSkillsController> logger)
     {
         _repo = repo;
         _runtime = runtime;
         _s3 = s3;
         _storage = storage;
+        _logger = logger;
     }
 
     private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
@@ -113,6 +117,7 @@ public sealed class CustomSkillsController : ControllerBase
             BuildStatus = "building",
         };
         await _repo.CreateAsync(record, ct);
+        _logger.LogInformation("Custom skill {SkillName} uploaded to S3, building", skillName);
 
         // Send to skill-runtime for building
         try
@@ -120,11 +125,13 @@ public sealed class CustomSkillsController : ControllerBase
             await _runtime.BuildAsync(skillName, files, ct);
             record.BuildStatus = "ready";
             record.LastSyncAt = DateTime.UtcNow;
+            _logger.LogInformation("Custom skill {SkillName} built successfully", skillName);
         }
         catch (Exception ex)
         {
             record.BuildStatus = "failed";
             record.BuildError = ex.Message;
+            _logger.LogError(ex, "Custom skill {SkillName} build failed", skillName);
         }
 
         await _repo.UpdateAsync(record, ct);
@@ -157,6 +164,8 @@ public sealed class CustomSkillsController : ControllerBase
             BuildStatus = "pending",
         };
         await _repo.CreateAsync(record, ct);
+        _logger.LogInformation("Custom skill {SkillName} connected to GitHub repo {RepoUrl}",
+            skillName, body.RepoUrl);
 
         return Ok(new
         {
@@ -205,10 +214,15 @@ public sealed class CustomSkillsController : ControllerBase
             {
                 await _s3.DeleteObjectAsync(_storage.Bucket, s3Key, ct);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete S3 object {S3Key} for custom skill {SkillName}",
+                    s3Key, record.Name);
+            }
         }
 
         await _repo.DeleteAsync(id, ct);
+        _logger.LogInformation("Custom skill {SkillId} ({SkillName}) deleted", id, record.Name);
         return NoContent();
     }
 }

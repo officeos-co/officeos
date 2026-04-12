@@ -1,9 +1,23 @@
 using k8s;
 using Microsoft.AspNetCore.DataProtection;
+using Serilog;
+using Serilog.Events;
+using EnterpriseAgentOs.Api.Middleware;
 
 const string FrontendCorsPolicy = "v2-frontend";
 
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -160,6 +174,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? "unknown");
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString() ?? "");
+        if (httpContext.Items.TryGetValue("agent-id", out var agentId) && agentId is not null)
+            diagnosticContext.Set("AgentId", agentId);
+        if (httpContext.Items["User"] is UserRecord user)
+            diagnosticContext.Set("UserId", user.Id);
+    };
+});
 
 app.UseCors(FrontendCorsPolicy);
 app.UseMiddleware<SessionAuthMiddleware>();

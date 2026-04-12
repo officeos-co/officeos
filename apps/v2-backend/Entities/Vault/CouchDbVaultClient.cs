@@ -27,6 +27,7 @@ public sealed class CouchDbVaultClient : IVaultClient
     public async Task CreateAgentVaultAsync(Guid agentId, string agentName, string provider, string? model, CancellationToken ct = default)
     {
         var db = DbName(agentId);
+        _logger.LogInformation("Creating vault {Db} for agent {AgentId} ({AgentName})", db, agentId, agentName);
 
         using (var createReq = new HttpRequestMessage(HttpMethod.Put, $"{_baseUrl}/{db}"))
         using (var createResp = await _http.SendAsync(createReq, ct))
@@ -54,6 +55,7 @@ public sealed class CouchDbVaultClient : IVaultClient
     public async Task DeleteAgentVaultAsync(Guid agentId, CancellationToken ct = default)
     {
         var db = DbName(agentId);
+        _logger.LogInformation("Deleting vault {Db} for agent {AgentId}", db, agentId);
         using var resp = await _http.DeleteAsync($"{_baseUrl}/{db}", ct);
         if (!resp.IsSuccessStatusCode && resp.StatusCode != HttpStatusCode.NotFound)
         {
@@ -116,11 +118,13 @@ public sealed class CouchDbVaultClient : IVaultClient
             throw new ArgumentException("fileName is required", nameof(fileName));
         }
         var db = DbName(agentId);
+        _logger.LogDebug("Writing file {FileName} to vault {Db}", fileName, db);
         await PutDocumentAsync(db, fileName, content, ct);
     }
 
     public async Task DeleteFileAsync(Guid agentId, string fileName, CancellationToken ct = default)
     {
+        _logger.LogDebug("Deleting file {FileName} from vault for agent {AgentId}", fileName, agentId);
         if (string.IsNullOrWhiteSpace(fileName))
         {
             throw new ArgumentException("fileName is required", nameof(fileName));

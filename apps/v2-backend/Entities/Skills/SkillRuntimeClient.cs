@@ -9,6 +9,7 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 public sealed class SkillRuntimeClient
 {
     private readonly HttpClient _http;
+    private readonly ILogger<SkillRuntimeClient> _logger;
     private readonly string _baseUrl;
 
     // Cached manifests (refreshed periodically)
@@ -16,9 +17,10 @@ public sealed class SkillRuntimeClient
     private DateTime _lastManifestFetch = DateTime.MinValue;
     private static readonly TimeSpan ManifestCacheTtl = TimeSpan.FromSeconds(30);
 
-    public SkillRuntimeClient(HttpClient http, SkillRuntimeConfig config)
+    public SkillRuntimeClient(HttpClient http, SkillRuntimeConfig config, ILogger<SkillRuntimeClient> logger)
     {
         _http = http;
+        _logger = logger;
         _baseUrl = config.Url.TrimEnd('/');
     }
 
@@ -40,6 +42,8 @@ public sealed class SkillRuntimeClient
             credentials,
         });
 
+        _logger.LogInformation("Executing skill {Skill}.{Action} via runtime", skill, action);
+
         using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/execute");
         req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
         using var resp = await _http.SendAsync(req, ct);
@@ -48,10 +52,21 @@ public sealed class SkillRuntimeClient
         try
         {
             var result = JsonSerializer.Deserialize<SkillExecutionResult>(text, JsonOptions);
+            if (result is null || !result.Success)
+            {
+                _logger.LogWarning("Skill {Skill}.{Action} execution failed: {Error}",
+                    skill, action, result?.Error ?? "empty response");
+            }
+            else
+            {
+                _logger.LogInformation("Skill {Skill}.{Action} executed successfully", skill, action);
+            }
             return result ?? new SkillExecutionResult { Success = false, Error = "Empty response from runtime" };
         }
         catch (JsonException)
         {
+            _logger.LogError("Skill runtime returned non-JSON for {Skill}.{Action} (HTTP {StatusCode})",
+                skill, action, (int)resp.StatusCode);
             return new SkillExecutionResult
             {
                 Success = false,
@@ -73,7 +88,7 @@ public sealed class SkillRuntimeClient
         using var resp = await _http.GetAsync($"{_baseUrl}/manifests", ct);
         if (!resp.IsSuccessStatusCode)
         {
-            // Return cached or empty
+            _logger.LogWarning("Failed to fetch skill manifests from runtime (HTTP {StatusCode})", (int)resp.StatusCode);
             return _cachedManifests ?? Array.Empty<RuntimeManifest>();
         }
         var text = await resp.Content.ReadAsStringAsync(ct);
@@ -81,6 +96,7 @@ public sealed class SkillRuntimeClient
             ?? new List<RuntimeManifest>();
         _cachedManifests = manifests;
         _lastManifestFetch = DateTime.UtcNow;
+        _logger.LogDebug("Refreshed {Count} skill manifests from runtime", manifests.Count);
         return manifests;
     }
 
@@ -97,12 +113,15 @@ public sealed class SkillRuntimeClient
         if (!resp.IsSuccessStatusCode)
         {
             var errorText = await resp.Content.ReadAsStringAsync(ct);
+            _logger.LogError("Skill build failed for {SkillName} (HTTP {StatusCode}): {Error}",
+                name, (int)resp.StatusCode, Trim(errorText, 200));
             throw new HttpRequestException($"Build failed (HTTP {(int)resp.StatusCode}): {Trim(errorText, 500)}");
         }
 
         var text = await resp.Content.ReadAsStringAsync(ct);
         // Invalidate manifest cache so new skill appears immediately
         _cachedManifests = null;
+        _logger.LogInformation("Skill {SkillName} built successfully", name);
         return JsonSerializer.Deserialize<JsonElement>(text);
     }
 

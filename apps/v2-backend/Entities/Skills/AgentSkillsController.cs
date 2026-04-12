@@ -13,18 +13,22 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly IRunnerJobRepository _runnerJobs;
     private readonly RunnerJobWaiter _jobWaiter;
 
+    private readonly ILogger<AgentSkillsController> _logger;
+
     public AgentSkillsController(
         ISkillService service,
         SkillRuntimeClient runtime,
         IRunnerRepository runners,
         IRunnerJobRepository runnerJobs,
-        RunnerJobWaiter jobWaiter)
+        RunnerJobWaiter jobWaiter,
+        ILogger<AgentSkillsController> logger)
     {
         _service = service;
         _runtime = runtime;
         _runners = runners;
         _runnerJobs = runnerJobs;
         _jobWaiter = jobWaiter;
+        _logger = logger;
     }
 
     [HttpGet("capabilities")]
@@ -42,6 +46,8 @@ public sealed class AgentSkillsController : ControllerBase
     public async Task<IActionResult> SkillExec([FromBody] SkillExecRequest body, CancellationToken ct)
     {
         var runTarget = await _service.GetRunTargetAsync(body.Skill, ct);
+        _logger.LogInformation("Agent skill-exec: {Skill}.{Action} (target={RunTarget})",
+            body.Skill, body.Action, runTarget);
 
         if (runTarget == "runner")
         {
@@ -52,6 +58,7 @@ public sealed class AgentSkillsController : ControllerBase
         var creds = await _service.GetDecryptedCredentialsAsync(body.Skill, ct);
         if (creds is null)
         {
+            _logger.LogWarning("Skill {Skill} not configured for cloud execution", body.Skill);
             return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured. Configure credentials on the Skills page, or set it to run on a self-hosted runner." });
         }
         try
@@ -81,6 +88,7 @@ public sealed class AgentSkillsController : ControllerBase
         var onlineRunners = await _runners.GetOnlineRunnersAsync(ct);
         if (onlineRunners.Count == 0)
         {
+            _logger.LogWarning("No online runners available for skill {Skill}", body.Skill);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new
             {
                 error = $"Skill '{body.Skill}' is configured to run on a self-hosted runner, but no runners are currently online. "
@@ -100,6 +108,8 @@ public sealed class AgentSkillsController : ControllerBase
         });
 
         var job = await _runnerJobs.CreateAsync(runner.Id, payload, TimeSpan.FromSeconds(60), ct);
+        _logger.LogInformation("Dispatched job {JobId} to runner {RunnerId} ({RunnerName}) for {Skill}.{Action}",
+            job.Id, runner.Id, runner.Name, body.Skill, body.Action);
         var tcs = _jobWaiter.Register(job.Id);
 
         try

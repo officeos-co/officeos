@@ -26,6 +26,7 @@ public sealed class AgentService : IAgentService
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
     {
         var records = await _repository.ListAsync(ct);
+        _logger.LogDebug("Listing {Count} agents, refreshing pod status", records.Count);
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
@@ -35,13 +36,19 @@ public sealed class AgentService : IAgentService
     public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var record = await _repository.GetAsync(id, ct);
-        if (record is null) return null;
+        if (record is null)
+        {
+            _logger.LogDebug("Agent {AgentId} not found", id);
+            return null;
+        }
         await RefreshStatusAsync(record, ct);
         return ToDto(record);
     }
 
     public async Task<AgentDto> CreateAsync(CreateAgentRequest request, CancellationToken ct = default)
     {
+        _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
+            request.Name, request.Provider, request.Model);
         // Validate provider is configured (key exists). The real key is
         // NOT passed to the deployer — the LLM proxy resolves it per-request.
         var isKeyless = IsKeylessProvider(request.Provider);
@@ -90,10 +97,13 @@ public sealed class AgentService : IAgentService
         }
 
         await _repository.AddAsync(record, ct);
+        _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
+            record.Id, record.Name, record.Provider, record.Model);
 
         try
         {
             await _vault.CreateAgentVaultAsync(record.Id, record.Name, record.Provider, record.Model, ct);
+            _logger.LogInformation("Vault created for agent {AgentId}", record.Id);
 
             // The deployer only sets ZEROCLAW_AGENT_ID. The agent derives
             // everything else (provider, model, vault, skills) from its
@@ -104,6 +114,7 @@ public sealed class AgentService : IAgentService
             record.ServiceUrl = deployment.ServiceUrl;
             record.Status = "running";
             await _repository.UpdateAsync(record, ct);
+            _logger.LogInformation("Agent {AgentId} deployed as pod {PodName}", record.Id, record.PodName);
         }
         catch (Exception ex)
         {
@@ -118,7 +129,13 @@ public sealed class AgentService : IAgentService
     public async Task<AgentDto?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default)
     {
         var record = await _repository.GetAsync(id, ct);
-        if (record is null) return null;
+        if (record is null)
+        {
+            _logger.LogWarning("Patch failed: agent {AgentId} not found", id);
+            return null;
+        }
+        _logger.LogInformation("Patching agent {AgentId}: Provider={Provider} Model={Model}",
+            id, request.Provider, request.Model);
 
         if (!string.IsNullOrWhiteSpace(request.Provider))
         {
@@ -155,11 +172,15 @@ public sealed class AgentService : IAgentService
         var record = await _repository.GetAsync(id, ct);
         if (record is null)
         {
+            _logger.LogWarning("Delete failed: agent {AgentId} not found", id);
             return false;
         }
 
+        _logger.LogInformation("Deleting agent {AgentId} ({AgentName})", id, record.Name);
+
         if (!string.IsNullOrEmpty(record.PodName))
         {
+            _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", record.PodName, id);
             await _deployer.RemoveAsync(record.PodName, ct);
         }
 

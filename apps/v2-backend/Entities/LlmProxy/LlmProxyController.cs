@@ -48,10 +48,14 @@ public sealed class LlmProxyController : ControllerBase
         var agent = await _agents.GetAsync(agentId, ct);
         if (agent is null)
         {
+            _logger.LogWarning("LLM proxy: agent {AgentId} not found", agentId);
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
             await HttpContext.Response.WriteAsJsonAsync(new { error = "Agent not found" }, ct);
             return;
         }
+
+        _logger.LogInformation("LLM proxy request from agent {AgentId} ({Provider}/{Model})",
+            agentId, agent.Provider, agent.Model);
 
         // 2. Parse request body
         JsonElement body;
@@ -73,6 +77,7 @@ public sealed class LlmProxyController : ControllerBase
 
         if (!_dispatcher.IsSupported(provider))
         {
+            _logger.LogWarning("LLM proxy: unsupported provider {Provider} for agent {AgentId}", provider, agentId);
             HttpContext.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
             await HttpContext.Response.WriteAsJsonAsync(new { error = $"Provider '{provider}' is not supported by the LLM proxy." }, ct);
             return;
@@ -81,6 +86,7 @@ public sealed class LlmProxyController : ControllerBase
         var apiKey = await _providers.GetDecryptedKeyAsync(provider, ct);
         if (apiKey is null)
         {
+            _logger.LogWarning("LLM proxy: provider {Provider} not configured for agent {AgentId}", provider, agentId);
             HttpContext.Response.StatusCode = StatusCodes.Status409Conflict;
             await HttpContext.Response.WriteAsJsonAsync(new { error = $"Provider '{provider}' is not configured. Set its API key on the Providers page." }, ct);
             return;

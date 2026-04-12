@@ -20,13 +20,16 @@ public sealed class RunnerApiController : ControllerBase
     private readonly IAmazonS3 _s3;
     private readonly SkillStorageConfig _storage;
 
+    private readonly ILogger<RunnerApiController> _logger;
+
     public RunnerApiController(
         IRunnerRepository runners,
         IRunnerJobRepository jobs,
         RunnerJobWaiter waiter,
         ICustomSkillRepository customSkills,
         IAmazonS3 s3,
-        SkillStorageConfig storage)
+        SkillStorageConfig storage,
+        ILogger<RunnerApiController> logger)
     {
         _runners = runners;
         _jobs = jobs;
@@ -34,6 +37,7 @@ public sealed class RunnerApiController : ControllerBase
         _customSkills = customSkills;
         _s3 = s3;
         _storage = storage;
+        _logger = logger;
     }
 
     private RunnerRecord? CurrentRunner => HttpContext.Items["Runner"] as RunnerRecord;
@@ -52,10 +56,17 @@ public sealed class RunnerApiController : ControllerBase
         var runner = await _runners.GetByRegistrationTokenHashAsync(hash, ct);
 
         if (runner is null)
+        {
+            _logger.LogWarning("Runner registration failed: invalid token");
             return Unauthorized(new { error = "Invalid registration token" });
+        }
 
         if (runner.Status != "pending")
+        {
+            _logger.LogWarning("Runner {RunnerId} registration rejected: already registered (status={Status})",
+                runner.Id, runner.Status);
             return Conflict(new { error = "Runner already registered" });
+        }
 
         // Issue auth token
         var authToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -66,6 +77,8 @@ public sealed class RunnerApiController : ControllerBase
         runner.LastHeartbeatAt = DateTime.UtcNow;
         runner.Version = body.Version;
         await _runners.UpdateAsync(runner, ct);
+
+        _logger.LogInformation("Runner {RunnerId} ({RunnerName}) registered successfully", runner.Id, runner.Name);
 
         return Ok(new
         {
@@ -87,6 +100,8 @@ public sealed class RunnerApiController : ControllerBase
 
         if (job is null)
             return NoContent();
+
+        _logger.LogInformation("Runner {RunnerId} claimed job {JobId}", runner.Id, job.Id);
 
         return Ok(new
         {
@@ -110,6 +125,9 @@ public sealed class RunnerApiController : ControllerBase
         job.Result = JsonSerializer.Serialize(new { body.Success, body.Result, body.Error });
         job.CompletedAt = DateTime.UtcNow;
         await _jobs.UpdateAsync(job, ct);
+
+        _logger.LogInformation("Job {JobId} completed by runner {RunnerId} (success={Success})",
+            jobId, CurrentRunner!.Id, body.Success);
 
         // Notify the waiter so skill_exec can return
         _waiter.Complete(jobId, new RunnerJobResult

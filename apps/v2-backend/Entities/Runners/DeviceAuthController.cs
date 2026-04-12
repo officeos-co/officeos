@@ -17,10 +17,13 @@ public sealed class DeviceAuthController : ControllerBase
     private static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(15);
     private const int PollIntervalSeconds = 5;
 
-    public DeviceAuthController(EaosDbContext db, IRunnerRepository runners)
+    private readonly ILogger<DeviceAuthController> _logger;
+
+    public DeviceAuthController(EaosDbContext db, IRunnerRepository runners, ILogger<DeviceAuthController> logger)
     {
         _db = db;
         _runners = runners;
+        _logger = logger;
     }
 
     private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
@@ -46,6 +49,8 @@ public sealed class DeviceAuthController : ControllerBase
 
         _db.DeviceCodes.Add(record);
         await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Device code issued: user_code={UserCode} runner={RunnerName}",
+            FormatUserCode(userCode), body.RunnerName);
 
         var host = $"{Request.Scheme}://{Request.Host}";
 
@@ -120,6 +125,9 @@ public sealed class DeviceAuthController : ControllerBase
         record.Status = "consumed";
         await _db.SaveChangesAsync(ct);
 
+        _logger.LogInformation("Device flow completed: runner {RunnerId} ({RunnerName}) created for user {UserId}",
+            runner.Id, runner.Name, record.UserId);
+
         return Ok(new
         {
             auth_token = authToken,
@@ -180,6 +188,9 @@ public sealed class DeviceAuthController : ControllerBase
         record.Status = "approved";
         record.UserId = CurrentUser.Id;
         await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Device code {UserCode} approved by user {UserId}",
+            FormatUserCode(normalized), CurrentUser.Id);
 
         return Ok(new { approved = true });
     }

@@ -6,10 +6,12 @@ namespace EnterpriseAgentOs.Api.Entities.Providers;
 public sealed class ProvidersController : ControllerBase
 {
     private readonly IProviderService _service;
+    private readonly ILogger<ProvidersController> _logger;
 
-    public ProvidersController(IProviderService service)
+    public ProvidersController(IProviderService service, ILogger<ProvidersController> logger)
     {
         _service = service;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -33,8 +35,10 @@ public sealed class ProvidersController : ControllerBase
         var updated = await _service.ConfigureAsync(name, request.ApiKey, ct);
         if (updated is null)
         {
+            _logger.LogWarning("Configure provider {ProviderName}: not found", name);
             return NotFound();
         }
+        _logger.LogInformation("Provider {ProviderName} configured", name);
         return Ok(updated);
     }
 

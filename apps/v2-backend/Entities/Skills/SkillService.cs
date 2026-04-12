@@ -7,15 +7,18 @@ public sealed class SkillService : ISkillService
     private readonly ISkillCredentialRepository _repository;
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
+    private readonly ILogger<SkillService> _logger;
 
     public SkillService(
         ISkillCredentialRepository repository,
         SkillCredentialProtector protector,
-        SkillRuntimeClient runtime)
+        SkillRuntimeClient runtime,
+        ILogger<SkillService> logger)
     {
         _repository = repository;
         _protector = protector;
         _runtime = runtime;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<SkillDto>> ListAsync(CancellationToken ct = default)
@@ -44,16 +47,26 @@ public sealed class SkillService : ISkillService
     public async Task<SkillDto?> InstallAsync(string name, CancellationToken ct = default)
     {
         var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null) return null;
+        if (manifest is null)
+        {
+            _logger.LogWarning("Install failed: skill {SkillName} not found in runtime", name);
+            return null;
+        }
         var row = await _repository.UpsertAsync(manifest.Name, enabled: true, encryptedCredentials: null, ct);
+        _logger.LogInformation("Skill {SkillName} installed", manifest.Name);
         return ToDto(manifest, row);
     }
 
     public async Task<SkillDto?> UninstallAsync(string name, CancellationToken ct = default)
     {
         var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null) return null;
+        if (manifest is null)
+        {
+            _logger.LogWarning("Uninstall failed: skill {SkillName} not found in runtime", name);
+            return null;
+        }
         var row = await _repository.UpsertAsync(manifest.Name, enabled: false, encryptedCredentials: null, ct);
+        _logger.LogInformation("Skill {SkillName} uninstalled", manifest.Name);
         return ToDto(manifest, row);
     }
 
@@ -88,6 +101,8 @@ public sealed class SkillService : ISkillService
         var ciphertext = _protector.Protect(json);
 
         var row = await _repository.UpsertAsync(manifest.Name, enabled: null, encryptedCredentials: ciphertext, ct);
+        _logger.LogInformation("Credentials updated for skill {SkillName} ({FieldCount} fields)",
+            manifest.Name, filtered.Count);
         return ToDto(manifest, row);
     }
 
@@ -143,7 +158,12 @@ public sealed class SkillService : ISkillService
     public async Task<SkillDto?> SetRunTargetAsync(string name, string runTarget, CancellationToken ct = default)
     {
         var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null) return null;
+        if (manifest is null)
+        {
+            _logger.LogWarning("SetRunTarget failed: skill {SkillName} not found in runtime", name);
+            return null;
+        }
+        _logger.LogInformation("Setting run target for skill {SkillName} to {RunTarget}", name, runTarget);
 
         var n = name.Trim().ToLowerInvariant();
         var row = await _repository.GetByNameAsync(n, ct);

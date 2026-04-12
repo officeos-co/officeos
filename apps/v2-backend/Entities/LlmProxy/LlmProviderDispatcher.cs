@@ -50,6 +50,8 @@ public sealed class LlmProviderDispatcher
         JsonElement requestBody,
         CancellationToken ct)
     {
+        _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, model);
+
         if (provider.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
         {
             return await DispatchAnthropicAsync(apiKey, model, requestBody, ct);
@@ -57,6 +59,7 @@ public sealed class LlmProviderDispatcher
 
         if (!OpenAiCompatBaseUrls.TryGetValue(provider, out var baseUrl))
         {
+            _logger.LogError("Unsupported provider {Provider} in dispatcher", provider);
             throw new InvalidOperationException($"Unsupported provider: {provider}");
         }
 
