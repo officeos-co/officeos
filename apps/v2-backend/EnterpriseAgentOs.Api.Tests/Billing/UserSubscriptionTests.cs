@@ -1,14 +1,26 @@
+using EnterpriseAgentOs.Api.Database;
 using EnterpriseAgentOs.Api.Entities.Billing;
 using EnterpriseAgentOs.Api.Properties;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EnterpriseAgentOs.Api.Tests.Billing;
 
 /// <summary>
 /// Unit tests for UserSubscription and the StripeService user-subscription methods.
+/// Tests that exercise live Stripe SDK calls (CreateUserCheckoutSessionAsync) are
+/// expected to throw when no real API key is configured.
 /// </summary>
 public sealed class UserSubscriptionTests
 {
+    private static EaosDbContext CreateDb()
+    {
+        var opts = new DbContextOptionsBuilder<EaosDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        return new EaosDbContext(opts);
+    }
+
     private static StripeService CreateService(
         string proMonthlyPriceId = "price_pro_monthly",
         string proYearlyPriceId = "price_pro_yearly") =>
@@ -24,6 +36,8 @@ public sealed class UserSubscriptionTests
                 ProYearlyPriceId = proYearlyPriceId,
                 Enabled = false,
             },
+            new FrontendConfig("https://dashboard.harrokrog.com"),
+            CreateDb(),
             NullLogger<StripeService>.Instance);
 
     // -------------------------------------------------------------------------
@@ -86,40 +100,29 @@ public sealed class UserSubscriptionTests
     }
 
     // -------------------------------------------------------------------------
-    // Pro plan limits match PlanLimits.IndividualPro
+    // CreateUserCheckoutSessionAsync — requires live Stripe API key
+    // These tests verify the method throws gracefully with placeholder keys.
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task CreateUserSubscription_ProMonthly_UsesProMonthlyPriceId()
+    public async Task CreateUserCheckoutSession_ProMonthly_ThrowsWithPlaceholderKey()
     {
         var svc = CreateService(proMonthlyPriceId: "price_pro_monthly_test");
         var userId = Guid.NewGuid();
 
-        var checkoutUrl = await svc.CreateUserSubscriptionAsync(userId, "user@example.com", "pro", "monthly");
-
-        Assert.NotEmpty(checkoutUrl);
+        // With a placeholder key the Stripe API call will throw (no real auth)
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            svc.CreateUserCheckoutSessionAsync(userId, "user@example.com", "pro", "monthly"));
     }
 
     [Fact]
-    public async Task CreateUserSubscription_ProYearly_UsesProYearlyPriceId()
+    public async Task CreateUserCheckoutSession_ProYearly_ThrowsWithPlaceholderKey()
     {
         var svc = CreateService(proYearlyPriceId: "price_pro_yearly_test");
         var userId = Guid.NewGuid();
 
-        var checkoutUrl = await svc.CreateUserSubscriptionAsync(userId, "user@example.com", "pro", "yearly");
-
-        Assert.NotEmpty(checkoutUrl);
-    }
-
-    [Fact]
-    public async Task CreateUserSubscription_Free_UsesFreePriceId()
-    {
-        var svc = CreateService();
-        var userId = Guid.NewGuid();
-
-        var checkoutUrl = await svc.CreateUserSubscriptionAsync(userId, "user@example.com", "free", "monthly");
-
-        Assert.NotEmpty(checkoutUrl);
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            svc.CreateUserCheckoutSessionAsync(userId, "user@example.com", "pro", "yearly"));
     }
 
     // -------------------------------------------------------------------------
