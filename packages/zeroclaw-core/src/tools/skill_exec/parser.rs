@@ -181,7 +181,7 @@ mod tests {
                 assert_eq!(args.get("query").unwrap(), "meeting notes");
                 assert_eq!(args.get("page_size").unwrap(), "5");
             }
-            _ => panic!("expected Query"),
+            ParsedCommand::Help(_) => panic!("expected Query"),
         }
     }
 
@@ -198,7 +198,7 @@ mod tests {
                 assert_eq!(action, "repos");
                 assert!(args.is_empty());
             }
-            _ => panic!("expected Query"),
+            ParsedCommand::Help(_) => panic!("expected Query"),
         }
     }
 }

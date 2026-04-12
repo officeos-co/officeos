@@ -497,17 +497,17 @@ impl Agent {
             .await
             .map_err(|e| {
                 anyhow::anyhow!(
-                    "Agent boot failed: vault bootstrap into workspace {:?} failed. {e}",
-                    config.workspace_dir
+                    "Agent boot failed: vault bootstrap into workspace {} failed. {e}",
+                    config.workspace_dir.display()
                 )
             })?;
 
         personality::load_personality_strict(&config.workspace_dir).map_err(|e| {
             anyhow::anyhow!(
                 "Agent boot failed: required personality files missing or empty \
-                 in workspace {:?}. The dashboard backend must seed the per-agent \
+                 in workspace {}. The dashboard backend must seed the per-agent \
                  vault before the pod starts. Details: {e}",
-                config.workspace_dir
+                config.workspace_dir.display()
             )
         })?;
 
@@ -732,8 +732,8 @@ impl Agent {
 
     /// Pull the live capability list from the backend and swap tool set
     /// + tool specs if anything changed. Fails open: any error is logged
-    /// and the previously cached tools are reused, so a flaky backend
-    /// cannot take a running agent offline.
+    ///   and the previously cached tools are reused, so a flaky backend
+    ///   cannot take a running agent offline.
     async fn refresh_backend_capabilities(&mut self) {
         let Some(cache) = self.capability_cache.as_ref() else {
             return;

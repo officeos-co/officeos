@@ -2,6 +2,7 @@
 //! and generates CLI-style --help text from it.
 
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
@@ -135,11 +136,12 @@ impl SchemaCache {
                     let skill = &skills[name];
                     let action_names: Vec<_> =
                         skill.actions.iter().map(|a| a.cli_name.as_str()).collect();
-                    out.push_str(&format!(
-                        "  {:<14} actions: {}\n",
+                    let _ = writeln!(
+                        out,
+                        "  {:<14} actions: {}",
                         name,
                         action_names.join(", ")
-                    ));
+                    );
                 }
                 out.push_str("\nUsage: <skill> <action> [--flags]\n");
                 out.push_str("Use \"<skill> --help\" for details.\n");
@@ -151,12 +153,9 @@ impl SchemaCache {
                 };
                 let mut out = format!("{}:\n\n", skill.name);
                 for action in &skill.actions {
-                    out.push_str(&format!(
-                        "  {} {}",
-                        skill.name, action.cli_name
-                    ));
+                    let _ = write!(out, "  {} {}", skill.name, action.cli_name);
                     if !action.description.is_empty() {
-                        out.push_str(&format!("  — {}", action.description));
+                        let _ = write!(out, "  — {}", action.description);
                     }
                     out.push('\n');
                     for arg in &action.args {
@@ -166,13 +165,14 @@ impl SchemaCache {
                             .as_ref()
                             .map(|d| format!(", default: {d}"))
                             .unwrap_or_default();
-                        out.push_str(&format!(
-                            "    --{:<20} {}{}{}\n",
+                        let _ = writeln!(
+                            out,
+                            "    --{:<20} {}{}{}",
                             format!("{} {}", arg.name, arg.type_name),
                             arg.description,
                             req,
                             def,
-                        ));
+                        );
                     }
                     out.push('\n');
                 }
@@ -198,19 +198,17 @@ impl SchemaCache {
                         .as_ref()
                         .map(|d| format!(", default: {d}"))
                         .unwrap_or_default();
-                    out.push_str(&format!(
-                        "  --{:<20} {}{}{}\n",
+                    let _ = writeln!(
+                        out,
+                        "  --{:<20} {}{}{}",
                         format!("{} {}", arg.name, arg.type_name),
                         arg.description,
                         req,
                         def,
-                    ));
+                    );
                 }
                 if !action.return_fields.is_empty() {
-                    out.push_str(&format!(
-                        "\nReturns: {}\n",
-                        action.return_fields.join(", ")
-                    ));
+                    let _ = writeln!(out, "\nReturns: {}", action.return_fields.join(", "));
                 }
                 out
             }
@@ -377,7 +375,6 @@ fn type_name(t: &TypeRef) -> String {
         let inner = type_name(of);
         return match t.kind.as_deref() {
             Some("LIST") => format!("[{inner}]"),
-            Some("NON_NULL") => inner,
             _ => inner,
         };
     }
@@ -396,7 +393,7 @@ fn extract_return_fields(t: &TypeRef) -> Vec<String> {
 
 fn unwrap_type(t: &TypeRef) -> &TypeRef {
     match t.kind.as_deref() {
-        Some("NON_NULL") | Some("LIST") => {
+        Some("NON_NULL" | "LIST") => {
             t.of_type.as_ref().map(|o| unwrap_type(o)).unwrap_or(t)
         }
         _ => t,

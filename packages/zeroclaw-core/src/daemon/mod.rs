@@ -888,6 +888,7 @@ fn has_supervised_channels(config: &Config) -> bool {
         .any(|(_, ok)| *ok)
 }
 
+#[allow(clippy::unused_async)]
 async fn run_mqtt_sop_listener(_config: &crate::config::MqttConfig) -> Result<()> {
     anyhow::bail!("MQTT SOP listener removed in phase 2.4 strip-down")
 }

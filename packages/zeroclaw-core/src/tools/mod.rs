@@ -58,6 +58,8 @@ pub mod memory_forget;
 pub mod memory_purge;
 pub mod memory_recall;
 pub mod memory_store;
+pub mod obsidian_find_by_category;
+pub mod obsidian_query_by_property;
 pub mod poll;
 pub mod reaction;
 pub mod read_skill;
@@ -94,6 +96,8 @@ pub use memory_forget::MemoryForgetTool;
 pub use memory_purge::MemoryPurgeTool;
 pub use memory_recall::MemoryRecallTool;
 pub use memory_store::MemoryStoreTool;
+pub use obsidian_find_by_category::ObsidianFindByCategoryTool;
+pub use obsidian_query_by_property::ObsidianQueryByPropertyTool;
 pub use poll::{ChannelMapHandle, PollTool};
 pub use reaction::ReactionTool;
 pub use read_skill::ReadSkillTool;
@@ -335,6 +339,20 @@ pub fn all_tools_with_runtime(
         Arc::new(MemoryPurgeTool::new(memory.clone(), security.clone())),
         Arc::new(CanvasTool::new(canvas_store.unwrap_or_default())),
     ];
+
+    if let Some(runtime_url) = root_config
+        .skills
+        .skill_runtime_url
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+    {
+        tool_arcs.push(Arc::new(ObsidianFindByCategoryTool::new(
+            runtime_url.clone(),
+        )));
+        tool_arcs.push(Arc::new(ObsidianQueryByPropertyTool::new(runtime_url)));
+        tracing::info!("obsidian native tools registered (skill-runtime)");
+    }
 
     if matches!(
         root_config.skills.prompt_injection_mode,
