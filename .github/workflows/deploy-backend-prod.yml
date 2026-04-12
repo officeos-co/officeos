@@ -14,7 +14,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build and run tests
+        working-directory: apps/v2-backend
+        run: |
+          dotnet build EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
+          dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj --no-build --logger "console;verbosity=normal"
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
