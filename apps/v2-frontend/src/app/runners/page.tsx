@@ -44,7 +44,7 @@ export default function RunnersPage() {
       ) : runners.length === 0 ? (
         <div className="px-8 py-16 text-center">
           <p className="text-sm text-muted-foreground">
-            No runners yet. Create one to execute skills inside your network.
+            No runners yet. Create one to execute tools inside your network.
           </p>
         </div>
       ) : (

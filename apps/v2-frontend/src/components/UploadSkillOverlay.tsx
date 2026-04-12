@@ -45,11 +45,11 @@ export function UploadSkillOverlay({ open, onClose }: Props) {
   };
 
   return (
-    <Modal open={open} title="Upload skill" onClose={handleClose}>
+    <Modal open={open} title="Upload tool" onClose={handleClose}>
       {result ? (
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Skill <strong className="text-foreground">{result.name}</strong> — build status:{" "}
+            Tool <strong className="text-foreground">{result.name}</strong> — build status:{" "}
             <span className={
               result.buildStatus === "ready" ? "text-emerald-600" :
               result.buildStatus === "failed" ? "text-destructive" : "text-amber-600"
@@ -72,7 +72,7 @@ export function UploadSkillOverlay({ open, onClose }: Props) {
             <code className="rounded bg-secondary px-1 py-0.5 text-xs">package.json</code>.
           </p>
           <div className="space-y-2">
-            <Label>Skill archive (.zip)</Label>
+            <Label>Tool archive (.zip)</Label>
             <input
               ref={fileRef}
               type="file"
