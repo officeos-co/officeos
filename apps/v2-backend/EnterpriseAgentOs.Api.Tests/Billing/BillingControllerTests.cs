@@ -45,7 +45,7 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task GetSubscription_FreePlan_HasCorrectTokenBudget()
+    public async Task GetSubscription_FreePlan_HasCorrectCreditBudget()
     {
         var client = _factory.CreateClient();
 
@@ -53,7 +53,7 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(2_000_000L, body.GetProperty("tokenBudgetPerMonth").GetInt64());
+        Assert.Equal(500_000L, body.GetProperty("creditBudgetPerMonth").GetInt64());
     }
 
     [Fact]
