@@ -14,6 +14,7 @@ RUN cd packages/skill-sdk && npm ci && npm run build
 RUN cd packages/skills/notion && npm install
 RUN cd packages/skills/github && npm install
 RUN cd packages/skills/google && npm install
+RUN cd packages/skills/browser && npm install
 
 # Build runtime (bundles server + all skills)
 RUN cd packages/skill-runtime && npm ci && npm run build
@@ -22,6 +23,11 @@ RUN cd packages/skill-runtime && npm ci && npm run build
 FROM node:22-slim
 
 WORKDIR /app
+
+# Install playwright-core and Chromium (browser skill needs a real browser)
+RUN npm init -y && npm install playwright-core && \
+    npx playwright-core install --with-deps chromium && \
+    rm -rf /root/.cache/ms-playwright/firefox-* /root/.cache/ms-playwright/webkit-*
 
 COPY --from=builder /app/packages/skill-runtime/dist/ ./dist/
 
