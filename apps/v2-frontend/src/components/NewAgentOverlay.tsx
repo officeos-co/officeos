@@ -114,34 +114,3 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
     </Modal>
   );
 }
-bled:opacity-50"
-          >
-            <option value="">(provider default)</option>
-            {models.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-          {modelsLoading && (
-            <p className="text-xs text-muted-foreground">Loading models...</p>
-          )}
-          {modelsError && (
-            <p className="text-xs text-destructive">{modelsError}</p>
-          )}
-        </div>
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
-
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" disabled={submitting || configured.length === 0}>
-            {submitting ? "Creating..." : "Create"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
