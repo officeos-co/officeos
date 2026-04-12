@@ -46,8 +46,12 @@ pub mod importance;
 pub mod namespaced;
 pub mod none;
 pub mod obsidian;
+pub mod remote;
+#[cfg(feature = "local-storage")]
 pub mod response_cache;
+#[cfg(feature = "local-storage")]
 pub mod retrieval;
+#[cfg(feature = "local-storage")]
 pub mod sqlite;
 pub mod traits;
 pub mod vector;
@@ -60,9 +64,13 @@ pub use backend::{
 pub use namespaced::NamespacedMemory;
 pub use none::NoneMemory;
 pub use obsidian::ObsidianMemory;
+pub use remote::RemoteMemory;
+#[cfg(feature = "local-storage")]
 pub use response_cache::ResponseCache;
+#[cfg(feature = "local-storage")]
 #[allow(unused_imports)]
 pub use retrieval::{RetrievalConfig, RetrievalPipeline};
+#[cfg(feature = "local-storage")]
 pub use sqlite::SqliteMemory;
 pub use traits::Memory;
 #[allow(unused_imports)]
@@ -87,6 +95,14 @@ where
             tracing::info!("📓 Obsidian vault memory backend enabled");
             Ok(Box::new(ObsidianMemory::new()))
         }
+        MemoryBackendKind::Remote => {
+            let backend_url = crate::agent::gateway_bootstrap::backend_url()
+                .ok_or_else(|| anyhow::anyhow!("remote memory backend requires ZEROCLAW_BACKEND_URL"))?;
+            let agent_id = crate::agent::gateway_bootstrap::agent_id()
+                .ok_or_else(|| anyhow::anyhow!("remote memory backend requires ZEROCLAW_AGENT_ID"))?;
+            tracing::info!("🌐 Remote memory backend enabled (via {backend_url})");
+            Ok(Box::new(RemoteMemory::new(&backend_url, &agent_id)))
+        }
         MemoryBackendKind::None => Ok(Box::new(NoneMemory::new())),
         MemoryBackendKind::Unknown => {
             tracing::warn!(
@@ -108,7 +124,15 @@ pub fn effective_memory_backend_name(
         return override_provider.to_ascii_lowercase();
     }
 
-    memory_backend.trim().to_ascii_lowercase()
+    let name = memory_backend.trim().to_ascii_lowercase();
+
+    // In managed mode (ZEROCLAW_AGENT_ID set), auto-select remote backend
+    // unless the config explicitly requests something else.
+    if name == "sqlite" && crate::agent::gateway_bootstrap::agent_id().is_some() {
+        return "remote".to_string();
+    }
+
+    name
 }
 
 /// Legacy auto-save key used for model-authored assistant summaries.
