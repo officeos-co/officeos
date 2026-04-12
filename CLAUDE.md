@@ -29,38 +29,7 @@ User opens the dashboard, creates an agent. The backend provisions a CouchDB vau
 - **CouchDB is the vault source of truth.** Personality files live in per-agent CouchDB databases, cached on the pod's PVC.
 - **GraphQL skill gateway.** Skills are defined in TypeScript (`@harro/skill-sdk`), executed in a separate Node.js skill-runtime. The backend generates GraphQL types dynamically from runtime manifests via `SkillTypeModule` (`ITypeModule`). Agents discover skills via introspection and call them through a CLI-style `skill_exec` tool.
 - **Status is live.** `GET /api/agents` calls K8s API inline to refresh pod status. Frontend polls every 10s.
-
-## Commands
-
-```bash
-# Backend
-cd apps/v2-backend && dotnet build
-
-# Frontend
-cd apps/v2-frontend && npm run dev
-cd apps/v2-frontend && npx tsc --noEmit
-
-# Zeroclaw
-cd packages/zeroclaw-core && cargo build
-cd packages/zeroclaw-core && cargo test
-cd packages/zeroclaw-core && cargo clippy --all-targets -- -D warnings
-
-# Skill SDK
-cd packages/skill-sdk && npm run build
-
-# Skill Runtime
-cd packages/skill-runtime && npm run build
-cd packages/skill-runtime && npm start
-
-# Deploy
-kubectl apply -f k8s/backend.yaml
-kubectl apply -f k8s/frontend.yaml
-```
-
-## Configuration
-
-Backend config lives in `apps/v2-backend/appsettings.json` (Production / Staging sections).
-`ValueManager` is only called in `Program.cs`. Downstream code receives typed config classes from `Properties/` via DI.
+- **CICD handles everything** no manual commands need to be done. CICD handles building, testing and deploying.
 
 ## Conventions
 
@@ -70,3 +39,4 @@ Backend config lives in `apps/v2-backend/appsettings.json` (Production / Staging
 - Docker images push to Docker Hub under `harkro123/` — `:latest` tag only, no SHA tags.
 - Prod hostnames: `dashboard.harrokrog.com` (frontend), `api.harrokrog.com` (backend).
 - Update docs/ if changes have been done or major feature has been added. Same for CLAUDE.md prompt if its relevant to the prompt
+- When working on long running tasks do iterative commits
