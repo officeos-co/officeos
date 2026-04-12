@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
@@ -16,6 +17,11 @@ namespace EnterpriseAgentOs.Api.Tests.Infrastructure;
 
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    static CustomWebApplicationFactory()
+    {
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production");
+    }
+
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")
         .Build();
@@ -27,6 +33,35 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
+
+        // Inject test config into ValueManager BEFORE Program.cs runs
+        var testConfig = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Production:ConnectionString"] = _postgres.GetConnectionString(),
+                ["Production:KubernetesEnabled"] = "false",
+                ["Production:KubernetesNamespace"] = "default",
+                ["Production:ZeroclawImage"] = "harkro123/zeroclaw:latest",
+                ["Production:SkillRuntimeUrl"] = SkillRuntimeMock.Url!,
+                ["Production:SkillGatewayUrl"] = SkillRuntimeMock.Url!,
+                ["Production:FrontendOrigin"] = "http://localhost:5173",
+                ["Production:DataProtectionKeyPath"] = Path.Combine(Path.GetTempPath(), $"dp-keys-{Guid.NewGuid():N}"),
+                ["Production:CouchDbUrl"] = "http://localhost:5984",
+                ["Production:CouchDbUser"] = "test",
+                ["Production:CouchDbPassword"] = "test",
+                ["Production:GoogleOAuthClientId"] = "test-client-id",
+                ["Production:GoogleOAuthClientSecret"] = "test-client-secret",
+                ["Production:GoogleOAuthRedirectUri"] = "http://localhost/api/auth/callback/google",
+                ["Production:MinioEndpoint"] = "http://localhost:9000",
+                ["Production:MinioAccessKey"] = "testkey",
+                ["Production:MinioSecretKey"] = "testsecret",
+                ["Production:MinioBucket"] = "test-skills",
+            })
+            .Build();
+
+        ValueManager.SetConfiguration(testConfig);
 
         // Seed WireMock with a default manifests endpoint (empty list)
         SkillRuntimeMock
@@ -45,25 +80,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Force Staging environment so ValueManager reads Staging section
-        builder.UseEnvironment("Staging");
-
-        builder.UseSetting("Staging:ConnectionString", _postgres.GetConnectionString());
-        builder.UseSetting("Staging:KubernetesEnabled", "false");
-        builder.UseSetting("Staging:SkillRuntimeUrl", SkillRuntimeMock.Url!);
-        builder.UseSetting("Staging:SkillGatewayUrl", SkillRuntimeMock.Url!);
-        builder.UseSetting("Staging:FrontendOrigin", "http://localhost:5173");
-        builder.UseSetting("Staging:DataProtectionKeyPath", Path.Combine(Path.GetTempPath(), $"dp-keys-{Guid.NewGuid():N}"));
-        builder.UseSetting("Staging:CouchDbUrl", "http://localhost:5984");
-        builder.UseSetting("Staging:CouchDbUser", "test");
-        builder.UseSetting("Staging:CouchDbPassword", "test");
-        builder.UseSetting("Staging:GoogleOAuthClientId", "test-client-id");
-        builder.UseSetting("Staging:GoogleOAuthClientSecret", "test-client-secret");
-        builder.UseSetting("Staging:GoogleOAuthRedirectUri", "http://localhost/api/auth/callback/google");
-        builder.UseSetting("Staging:MinioEndpoint", "http://localhost:9000");
-        builder.UseSetting("Staging:MinioAccessKey", "testkey");
-        builder.UseSetting("Staging:MinioSecretKey", "testsecret");
-        builder.UseSetting("Staging:MinioBucket", "test-skills");
+        builder.UseEnvironment("Production");
 
         builder.ConfigureServices(services =>
         {

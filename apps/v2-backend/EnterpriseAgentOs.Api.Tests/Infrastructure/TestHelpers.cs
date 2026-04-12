@@ -16,7 +16,7 @@ public static class TestHelpers
     /// </summary>
     public static async Task<HttpClient> CreateAuthenticatedClientAsync(
         CustomWebApplicationFactory factory,
-        string email = "test@example.com",
+        string? email = null,
         string name = "Test User")
     {
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -24,6 +24,8 @@ public static class TestHelpers
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
+
+        email ??= $"test-{Guid.NewGuid():N}@example.com";
 
         var user = new UserRecord
         {

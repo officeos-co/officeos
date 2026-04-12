@@ -5,6 +5,16 @@ public static class ValueManager
     private static IConfiguration? _configuration;
     private static string? _environmentName;
 
+    /// <summary>
+    /// Override the configuration source. Used by tests to inject
+    /// WebApplicationFactory configuration (which includes UseSetting overrides).
+    /// </summary>
+    public static void SetConfiguration(IConfiguration configuration)
+    {
+        _configuration = configuration;
+        _environmentName = null; // reset so it re-reads from new config
+    }
+
     private static IConfiguration Configuration
     {
         get
