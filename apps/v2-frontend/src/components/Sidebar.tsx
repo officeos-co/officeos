@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useAgents, type Agent } from "@/hooks/useAgents";
 import { cn } from "@/lib/utils";
@@ -20,9 +20,9 @@ import {
   Gauge,
   Key,
   Network,
-  ChevronRight,
+  Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 function statusDot(status: string) {
   if (status === "running" || status === "ready" || status === "online")
@@ -33,14 +33,82 @@ function statusDot(status: string) {
   return "bg-muted-foreground/40";
 }
 
+function ProfileMenu({
+  open,
+  onClose,
+  onOpenOrgSettings,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onOpenOrgSettings: () => void;
+}) {
+  const { logout } = useAuth();
+  const router = useRouter();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      ref={ref}
+      className="absolute bottom-full left-0 right-0 mb-2 mx-3 rounded-xl border border-border bg-popover shadow-lg py-1.5 z-50"
+    >
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          router.push("/pricing");
+        }}
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60"
+      >
+        <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+        Upgrade plan
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          onOpenOrgSettings();
+        }}
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+      >
+        <Settings className="h-4 w-4 shrink-0" />
+        Org Settings
+      </button>
+      <div className="mx-3 my-1 border-t border-border" />
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          logout();
+        }}
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+      >
+        <LogOut className="h-4 w-4 shrink-0" />
+        Sign out
+      </button>
+    </div>
+  );
+}
+
 function MainSidebar({
   onOpenOrgSettings,
 }: {
   onOpenOrgSettings: () => void;
 }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { agents } = useAgents();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const runningCount = agents.filter(
     (a) => a.status === "running" || a.status === "ready" || a.status === "online",
@@ -146,58 +214,48 @@ function MainSidebar({
 
       {/* Bottom section */}
       <div className="mt-auto border-t border-sidebar-border px-4 py-3">
-        <Link
-          href="/pricing"
-          className={cn(
-            "mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
-            pathname === "/pricing"
-              ? "bg-sidebar-accent text-sidebar-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-          )}
+        <a
+          href="https://docs.harrokrog.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         >
-          <CreditCard className="h-4 w-4 shrink-0" />
-          Pricing
-        </Link>
-        <button
-          type="button"
-          onClick={onOpenOrgSettings}
-          className="mb-2 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-        >
-          <Settings className="h-4 w-4 shrink-0" />
-          Org Settings
-          <ChevronRight className="ml-auto h-3.5 w-3.5" />
-        </button>
+          <BookOpen className="h-4 w-4 shrink-0" />
+          Documentation
+        </a>
 
-        {/* User card */}
-        <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-          {user?.avatarUrl ? (
-            <img
-              src={user.avatarUrl}
-              alt=""
-              className="h-8 w-8 rounded-full ring-1 ring-border"
-            />
-          ) : (
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-1 ring-border">
-              {(user?.name ?? "U").charAt(0).toUpperCase()}
+        {/* User card — clickable, opens profile menu */}
+        <div className="relative">
+          <ProfileMenu
+            open={profileMenuOpen}
+            onClose={() => setProfileMenuOpen(false)}
+            onOpenOrgSettings={onOpenOrgSettings}
+          />
+          <button
+            type="button"
+            onClick={() => setProfileMenuOpen((v) => !v)}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent/60"
+          >
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt=""
+                className="h-8 w-8 rounded-full ring-1 ring-border"
+              />
+            ) : (
+              <div className="grid h-8 w-8 place-items-center rounded-full bg-muted text-xs font-medium text-muted-foreground ring-1 ring-border">
+                {(user?.name ?? "U").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 truncate text-left">
+              <div className="truncate text-[13px] font-medium text-sidebar-foreground">
+                {user?.name ?? "Local dev"}
+              </div>
+              <div className="truncate text-[11px] text-muted-foreground">
+                {user?.email ?? "single-tenant"}
+              </div>
             </div>
-          )}
-          <div className="flex-1 truncate">
-            <div className="truncate text-[13px] font-medium text-sidebar-foreground">
-              {user?.name ?? "Local dev"}
-            </div>
-            <div className="truncate text-[11px] text-muted-foreground">
-              {user?.email ?? "single-tenant"}
-            </div>
-          </div>
-          {user && (
-            <button
-              onClick={logout}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              title="Sign out"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
-          )}
+          </button>
         </div>
       </div>
     </aside>

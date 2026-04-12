@@ -37,8 +37,7 @@ const individualPlans = [
     icon: Leaf,
     description: "Get started with one agent",
     hasBillingToggle: false,
-    cta: "Get started",
-    ctaHref: "/agents",
+    cta: "Current plan",
     disabled: false,
     features: {
       base: [
@@ -82,7 +81,7 @@ const teamPlans = [
     description: "Scale to 10 agents",
     hasBillingToggle: true,
     cta: "Subscribe",
-    disabled: true,
+    disabled: false,
     features: {
       prefix: "Everything in Pro and:",
       base: [
@@ -173,23 +172,24 @@ function PlanCard({
   const monthlyPrice = pricing?.monthlyPrice ?? 0;
   const yearlyPrice = pricing?.yearlyPrice ?? 0;
   const currency = pricing?.currency ?? "eur";
+  // Stripe yearly price is the full year amount — show per-month equivalent
+  const yearlyPerMonth = Math.round(yearlyPrice / 12);
   const price = isCustom
     ? null
     : billing === "yearly" && plan.hasBillingToggle
-      ? yearlyPrice
+      ? yearlyPerMonth
       : monthlyPrice;
 
   const [loading, setLoading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
 
-  async function handleProSubscribe() {
+  async function handleSubscribe() {
     setLoading(true);
     try {
       const res = await fetch("/api/billing/user/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ plan: "pro", billingCycle: billing }),
+        body: JSON.stringify({ plan: plan.key, billingCycle: billing }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -200,20 +200,6 @@ function PlanCard({
       window.location.href = checkoutUrl;
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleManagePortal() {
-    setPortalLoading(true);
-    try {
-      const res = await fetch("/api/billing/user/portal", {
-        credentials: "include",
-      });
-      if (!res.ok) return;
-      const { portalUrl } = await res.json();
-      window.location.href = portalUrl;
-    } finally {
-      setPortalLoading(false);
     }
   }
 
@@ -264,39 +250,19 @@ function PlanCard({
         >
           {plan.cta}
         </a>
-      ) : plan.key === "pro" ? (
+      ) : (plan.key === "pro" || plan.key === "team") ? (
         <button
           type="button"
-          onClick={handleProSubscribe}
+          onClick={handleSubscribe}
           disabled={loading}
           className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {loading ? "Redirecting…" : plan.cta}
         </button>
-      ) : plan.key === "team" && plan.disabled ? (
-        <div className="flex flex-col gap-2">
-          <div className="relative group">
-            <button
-              type="button"
-              disabled
-              className="w-full rounded-xl border border-border text-muted-foreground py-3 font-medium text-sm cursor-not-allowed bg-muted/50"
-            >
-              {plan.cta}
-            </button>
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground/80 px-2 py-1 text-xs text-background opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Coming soon
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleManagePortal}
-            disabled={portalLoading}
-            className="w-full rounded-xl border border-border text-muted-foreground py-2 font-medium text-xs hover:bg-muted transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60"
-          >
-            {portalLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-            Manage subscription
-          </button>
+      ) : plan.key === "free" ? (
+        <div className="w-full rounded-xl border border-border text-muted-foreground py-3 font-medium text-sm text-center cursor-default">
+          {plan.cta}
         </div>
       ) : null}
 
