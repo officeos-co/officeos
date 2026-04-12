@@ -41,20 +41,30 @@ export const siteConfig = {
 		cta: {
 			primary: {
 				text: "Start Free",
-				href: "#cta",
+				href: "https://dashboard.harrokrog.com",
 			},
 			secondary: {
 				text: "Book a Demo",
-				href: "#cta",
+				href: "#book-demo",
 			},
 		},
 	},
 	companyShowcase: {
+		title: "Judged & backed by",
+		subtitle: "Hackathon winners — backed by industry leaders in tech and innovation",
 		companyLogos: [
-			{ id: 1, name: "Company A" },
-			{ id: 2, name: "Company B" },
-			{ id: 3, name: "Company C" },
-			{ id: 4, name: "Company D" },
+			{ id: 1, name: "Disability Tech Denmark", src: "/logos/disability-tech.png", href: "https://disabilitytech.dk/" },
+			{ id: 2, name: "Microsoft Denmark", src: "/logos/microsoft.png", href: "https://www.microsoft.com/da-dk/about" },
+			{ id: 3, name: "DTU Skylab", src: "/logos/dtu-skylab.png", href: "https://www.skylab.dtu.dk/" },
+			{ id: 4, name: "UCPH Lighthouse", src: "/logos/ku-lighthouse.png", href: "https://lighthouse.ku.dk/en/" },
+			{ id: 5, name: "AccessibleEU", src: "/logos/accessible-eu.png", href: "https://accessibleeu.eu/" },
+			{ id: 6, name: "Danske Iværksættere", src: "/logos/danske-ivaerksaettere.png", href: "https://dkiv.dk/" },
+			{ id: 7, name: "TechBBQ", src: "/logos/techbbq.png", href: "https://techbbq.dk/" },
+			{ id: 8, name: "Siteimprove", src: "/logos/siteimprove.png", href: "https://siteimprove.ai/" },
+			{ id: 9, name: "Elsass Fonden", src: "/logos/elsass-fonden.png", href: "https://www.elsassfonden.dk/" },
+			{ id: 10, name: "Bevica Legater", src: "/logos/bevica.png", href: "https://www.bevicafonden.dk/" },
+			{ id: 11, name: "Videnscenter om Handicap", src: "/logos/videnscenter-handicap.png", href: "https://videnomhandicap.dk/" },
+			{ id: 12, name: "Iværksættere med Handicap", src: "/logos/ivaerksaettere-med-handicap.png", href: "https://www.ivmh.dk/" },
 		],
 	},
 	bentoSection: {
@@ -244,7 +254,7 @@ export const siteConfig = {
 			"Start free with your own API keys. No credit card required.",
 		button: {
 			text: "Start Free",
-			href: "#",
+			href: "https://dashboard.harrokrog.com",
 		},
 		subtext:
 			"Free tier includes 3 agents. Bring your own API keys. Cancel anytime.",

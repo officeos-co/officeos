@@ -8,6 +8,7 @@ import { GrowthSection } from "@/components/sections/growth-section";
 import { HeroSection } from "@/components/sections/hero-section";
 import { Navbar } from "@/components/sections/navbar";
 import { TrustSection } from "@/components/sections/trust-section";
+import { CalModal } from "@/components/cal-modal";
 
 export default function Home() {
 	return (
@@ -26,6 +27,7 @@ export default function Home() {
 				<CTASection />
 				<FooterSection />
 			</main>
+			<CalModal />
 		</div>
 	);
 }

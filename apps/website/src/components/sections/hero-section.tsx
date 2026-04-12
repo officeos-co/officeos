@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { siteConfig } from "@/lib/config";
+import { useCalModal } from "@/hooks/use-cal-modal";
 
 export function HeroSection() {
 	const { hero } = siteConfig;
+	const { openCalModal } = useCalModal();
 
 	return (
 		<section id="hero" className="relative w-full">
@@ -26,12 +31,14 @@ export function HeroSection() {
 						>
 							{hero.cta.primary.text}
 						</Link>
-						<Link
-							href={hero.cta.secondary.href}
-							className="flex h-10 w-32 items-center justify-center rounded-full border border-[#27272A] bg-background px-5 font-normal text-primary text-sm tracking-wide transition-all ease-out hover:bg-background/80 active:scale-95"
+						<button
+							type="button"
+							onClick={openCalModal}
+							className="flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#e5e7eb] bg-background px-5 font-normal text-primary text-sm tracking-wide transition-all ease-out hover:bg-muted active:scale-95 dark:border-[#27272A]"
 						>
 							{hero.cta.secondary.text}
-						</Link>
+							<ArrowRight className="h-4 w-4" />
+						</button>
 					</div>
 				</div>
 			</div>

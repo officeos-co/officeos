@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const viewport: Viewport = {
-	themeColor: "black",
+	themeColor: "white",
 };
 
 export const metadata = {
@@ -26,13 +26,13 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className="dark" suppressHydrationWarning>
+		<html lang="en" className="light" suppressHydrationWarning>
 			<body
 				className={`${GeistMono.className} bg-background font-sans antialiased`}
 			>
 				<ThemeProvider
 					attribute="class"
-					defaultTheme="dark"
+					defaultTheme="light"
 					enableSystem={false}
 					disableTransitionOnChange
 				>
