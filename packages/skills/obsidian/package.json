@@ -1,0 +1,10 @@
+{
+  "name": "@harro/skill-obsidian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "skill.ts",
+  "dependencies": {
+    "@harro/skill-sdk": "file:../../skill-sdk"
+  }
+}
