@@ -7,10 +7,10 @@ public sealed class SkillGatewayConfig
     /// e.g. <c>http://eaos-backend-prod:8000</c> in-cluster. Must be
     /// cluster-local so the bearer token never leaves the network.
     /// </summary>
-    public string Url { get; init; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
 
     /// <summary>
     /// How often zeroclaw polls <c>/api/agents/me/capabilities</c>.
     /// </summary>
-    public int RefreshSeconds { get; init; } = 30;
+    public int RefreshSeconds { get; set; } = 30;
 }

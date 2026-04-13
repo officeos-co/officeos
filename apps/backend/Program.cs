@@ -47,54 +47,35 @@ builder.Services
     .AddProtectors()
     .AddHttpClients();
 
-// Infrastructure configs
-builder.Services.AddSingleton(new KubernetesConfig
-{
-    Enabled = ValueManager.GetValue<bool>("KubernetesEnabled"),
-    Namespace = ValueManager.GetValue<string>("KubernetesNamespace"),
-    Image = ValueManager.GetValue<string>("ZeroclawImage"),
-});
+// Infrastructure configs — bind from nested appsettings sections
+var envSection = ValueManager.GetConfiguration().GetSection(ValueManager.GetEnvironmentName());
 
-builder.Services.AddSingleton(new CouchDbConfig
-{
-    Url = ValueManager.GetValue<string>("CouchDbUrl"),
-    User = ValueManager.GetValue<string>("CouchDbUser"),
-    Password = ValueManager.GetValue<string>("CouchDbPassword"),
-});
+var kubernetesConfig = new KubernetesConfig();
+envSection.GetSection("Kubernetes").Bind(kubernetesConfig);
+builder.Services.AddSingleton(kubernetesConfig);
 
-builder.Services.AddSingleton(new SkillGatewayConfig
-{
-    Url = ValueManager.GetValue<string>("SkillGatewayUrl"),
-    RefreshSeconds = 30,
-});
+var couchDbConfig = new CouchDbConfig();
+envSection.GetSection("CouchDb").Bind(couchDbConfig);
+builder.Services.AddSingleton(couchDbConfig);
 
-builder.Services.AddSingleton(new SkillRuntimeConfig
-{
-    Url = ValueManager.GetValue<string>("SkillRuntimeUrl"),
-});
+var skillGatewayConfig = new SkillGatewayConfig { RefreshSeconds = 30 };
+envSection.GetSection("SkillGateway").Bind(skillGatewayConfig);
+builder.Services.AddSingleton(skillGatewayConfig);
 
-builder.Services.AddSingleton(new GoogleOAuthConfig
-{
-    ClientId = ValueManager.GetValue<string>("GoogleOAuthClientId"),
-    ClientSecret = ValueManager.GetValue<string>("GoogleOAuthClientSecret"),
-    RedirectUri = ValueManager.GetValue<string>("GoogleOAuthRedirectUri"),
-});
+var skillRuntimeConfig = new SkillRuntimeConfig();
+envSection.GetSection("SkillRuntime").Bind(skillRuntimeConfig);
+builder.Services.AddSingleton(skillRuntimeConfig);
 
-builder.Services.AddSingleton(new WorkOsConfig
-{
-    ApiKey = ValueManager.GetValue<string>("WorkOsApiKey"),
-    ClientId = ValueManager.GetValue<string>("WorkOsClientId"),
-    RedirectUri = ValueManager.GetValue<string>("WorkOsRedirectUri"),
-    Enabled = ValueManager.GetValue<bool>("WorkOsEnabled"),
-});
+var googleOAuthConfig = new GoogleOAuthConfig();
+envSection.GetSection("GoogleOAuth").Bind(googleOAuthConfig);
+builder.Services.AddSingleton(googleOAuthConfig);
 
-var skillStorageConfig = new SkillStorageConfig
-{
-    Endpoint = ValueManager.GetValue<string>("MinioEndpoint"),
-    AccessKey = ValueManager.GetValue<string>("MinioAccessKey"),
-    SecretKey = ValueManager.GetValue<string>("MinioSecretKey"),
-    Bucket = ValueManager.GetValue<string>("MinioBucket"),
-};
+var workOsConfig = new WorkOsConfig();
+envSection.GetSection("WorkOs").Bind(workOsConfig);
+builder.Services.AddSingleton(workOsConfig);
+
+var skillStorageConfig = new SkillStorageConfig();
+envSection.GetSection("Minio").Bind(skillStorageConfig);
 builder.Services.AddSingleton(skillStorageConfig);
 builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
 {
@@ -110,8 +91,7 @@ builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
 });
 
 // Kubernetes deployer
-var kubernetesEnabled = ValueManager.GetValue<bool>("KubernetesEnabled");
-if (kubernetesEnabled)
+if (kubernetesConfig.Enabled)
 {
     builder.Services.AddSingleton<IKubernetes>(_ =>
     {
@@ -129,20 +109,15 @@ else
 
 // Billing
 var stripeConfig = new StripeConfig();
-ValueManager.GetConfiguration().GetSection($"{ValueManager.GetEnvironmentName()}:Stripe").Bind(stripeConfig);
+envSection.GetSection("Stripe").Bind(stripeConfig);
 builder.Services.AddSingleton(stripeConfig);
 
 var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
 builder.Services.AddSingleton(frontendConfig);
 
 // LLM
-var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var configSection = (env == "Production" || string.IsNullOrEmpty(env)) ? "Production" : "Staging";
-
-builder.Services.AddSingleton(
-    builder.Configuration.GetSection($"{configSection}:LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
-builder.Services.AddSingleton(
-    builder.Configuration.GetSection($"{configSection}:PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
+builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
+builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
 // GraphQL skill gateway
 builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
