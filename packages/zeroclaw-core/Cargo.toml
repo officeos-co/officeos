@@ -213,7 +213,11 @@ ci-all = [
 ]
 
 [profile.dev]
-incremental = true
+# Incremental OFF: Rust's incremental cache never evicts old sessions,
+# causing target/debug/incremental/ to grow to 5-8GB over time.
+# Cold dev builds take ~30s which is acceptable for this crate size.
+# Set CARGO_INCREMENTAL=1 locally if you want incremental back.
+incremental = false
 opt-level = 0
 
 [profile.release]
