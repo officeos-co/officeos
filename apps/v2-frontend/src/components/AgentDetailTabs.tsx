@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { Agent } from "@/hooks/useAgents";
 import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
@@ -33,8 +34,32 @@ const TABS: { id: Tab; label: string }[] = [
 
 const ALWAYS_ON_TABS: Tab[] = ["agent", "prompt", "memory", "heartbeat", "channels"];
 
+const VALID_TABS = new Set<string>(TABS.map((t) => t.id));
+
+function parseTab(value: string | null): Tab {
+  return value && VALID_TABS.has(value) ? (value as Tab) : "agent";
+}
+
 export function AgentDetailTabs({ agent, onAgentUpdated }: Props) {
-  const [active, setActive] = useState<Tab>("agent");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const active = parseTab(searchParams.get("tab"));
+
+  const setActive = useCallback(
+    (tab: Tab) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (tab === "agent") {
+        params.delete("tab");
+      } else {
+        params.set("tab", tab);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    },
+    [searchParams, router, pathname],
+  );
 
   const running = agent.status === "running";
 
