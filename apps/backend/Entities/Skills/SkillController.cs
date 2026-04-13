@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Amazon.S3;
+using Amazon.S3.Model;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -7,14 +9,23 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 public sealed class SkillController : ControllerBase
 {
     private readonly ISkillService _service;
+    private readonly ISkillCatalogRepository _catalog;
     private readonly SkillRuntimeClient _runtime;
+    private readonly IAmazonS3 _s3;
+    private readonly SkillStorageConfig _storage;
 
     public SkillController(
         ISkillService service,
-        SkillRuntimeClient runtime)
+        ISkillCatalogRepository catalog,
+        SkillRuntimeClient runtime,
+        IAmazonS3 s3,
+        SkillStorageConfig storage)
     {
         _service = service;
+        _catalog = catalog;
         _runtime = runtime;
+        _s3 = s3;
+        _storage = storage;
     }
 
     // ---------- catalog ----------
@@ -35,13 +46,13 @@ public sealed class SkillController : ControllerBase
     [HttpGet("{name}/doc")]
     public async Task<ActionResult> GetDoc(string name, CancellationToken ct)
     {
-        var manifests = await _runtime.GetManifestsAsync(ct);
-        var manifest = manifests.FirstOrDefault(m =>
-            string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
-        if (manifest is null)
-        {
-            return NotFound();
-        }
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null) return NotFound();
+
+        var manifest = JsonSerializer.Deserialize<RuntimeManifest>(skill.ManifestJson,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (manifest is null) return NotFound();
+
         return Content(manifest.Doc, "text/markdown");
     }
 
@@ -96,6 +107,31 @@ public sealed class SkillController : ControllerBase
     {
         var response = await _service.ListCapabilitiesAsync(agentId: null, ct);
         return Ok(response);
+    }
+
+    // ---------- bundle download (for skill-runtime on-demand loading) ----------
+
+    [HttpGet("{name}/bundle")]
+    public async Task<IActionResult> GetBundle(string name, CancellationToken ct)
+    {
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null || string.IsNullOrEmpty(skill.BundleS3Key))
+            return NotFound(new { error = "No bundle available for this skill" });
+
+        try
+        {
+            var response = await _s3.GetObjectAsync(new GetObjectRequest
+            {
+                BucketName = _storage.Bucket,
+                Key = skill.BundleS3Key,
+            }, ct);
+
+            return File(response.ResponseStream, "application/javascript", $"{name}.js");
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return NotFound(new { error = "Bundle not found in storage" });
+        }
     }
 
     // ---------- user-auth execution (dashboard test buttons) ----------

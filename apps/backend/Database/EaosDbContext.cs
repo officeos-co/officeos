@@ -22,6 +22,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
     public DbSet<BrowserSessionRecord> BrowserSessions => Set<BrowserSessionRecord>();
     public DbSet<SkillRegistryRecord> SkillRegistry => Set<SkillRegistryRecord>();
+    public DbSet<SkillRecord> Skills => Set<SkillRecord>();
     public DbSet<AgentSkillRecord> AgentSkills => Set<AgentSkillRecord>();
     public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
     public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
@@ -162,6 +163,24 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(a => new { a.AgentId, a.SkillName }).IsUnique();
             e.HasIndex(a => a.AgentId);
             e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<SkillRecord>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.Name).IsUnique();
+            e.Property(s => s.Name).IsRequired().HasMaxLength(64);
+            e.Property(s => s.Title).IsRequired().HasMaxLength(128);
+            e.Property(s => s.Emoji).HasMaxLength(8);
+            e.Property(s => s.ManifestJson).HasColumnType("text");
+            e.Property(s => s.Doc).HasColumnType("text");
+            e.Property(s => s.BundleS3Key).HasMaxLength(512);
+            e.Property(s => s.Version).HasMaxLength(32);
+            e.Property(s => s.Status).IsRequired().HasMaxLength(16);
+            e.Property(s => s.BuildError).HasColumnType("text");
+            e.Property(s => s.GitHubRepoUrl).HasMaxLength(512);
+            e.Property(s => s.GitHubBranch).HasMaxLength(128);
+            e.HasOne(s => s.Owner).WithMany().HasForeignKey(s => s.OwnerId);
         });
 
         modelBuilder.Entity<UserSubscription>(e =>

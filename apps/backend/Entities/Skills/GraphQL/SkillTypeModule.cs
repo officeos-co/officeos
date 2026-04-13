@@ -36,8 +36,23 @@ public sealed class SkillTypeModule : ITypeModule
         CancellationToken ct)
     {
         var types = new List<ITypeSystemMember>();
-        var runtime = _services.GetRequiredService<SkillRuntimeClient>();
-        var manifests = await runtime.GetManifestsAsync(ct);
+
+        using var scope = _services.CreateScope();
+        var catalog = scope.ServiceProvider.GetRequiredService<ISkillCatalogRepository>();
+        var records = await catalog.ListActiveAsync(ct);
+        var manifests = records
+            .Select(r =>
+            {
+                try
+                {
+                    return JsonSerializer.Deserialize<RuntimeManifest>(r.ManifestJson,
+                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
+                }
+                catch { return null; }
+            })
+            .Where(m => m is not null)
+            .Cast<RuntimeManifest>()
+            .ToList();
 
         var queryExtDef = new ObjectTypeDefinition("Query");
 

@@ -10,6 +10,7 @@ namespace EnterpriseAgentOs.Api.Entities.CustomSkills;
 public sealed class CustomSkillsController : ControllerBase
 {
     private readonly ICustomSkillRepository _repo;
+    private readonly ISkillCatalogRepository _catalog;
     private readonly SkillRuntimeClient _runtime;
     private readonly IAmazonS3 _s3;
     private readonly SkillStorageConfig _storage;
@@ -18,12 +19,14 @@ public sealed class CustomSkillsController : ControllerBase
 
     public CustomSkillsController(
         ICustomSkillRepository repo,
+        ISkillCatalogRepository catalog,
         SkillRuntimeClient runtime,
         IAmazonS3 s3,
         SkillStorageConfig storage,
         ILogger<CustomSkillsController> logger)
     {
         _repo = repo;
+        _catalog = catalog;
         _runtime = runtime;
         _s3 = s3;
         _storage = storage;
@@ -126,6 +129,9 @@ public sealed class CustomSkillsController : ControllerBase
             record.BuildStatus = "ready";
             record.LastSyncAt = DateTime.UtcNow;
             _logger.LogInformation("Custom skill {SkillName} built successfully", skillName);
+
+            // Create SkillRecord in the catalog so the skill appears in GET /api/skills
+            await CreateSkillRecordFromRuntime(skillName, s3Key, ct);
         }
         catch (Exception ex)
         {
@@ -222,8 +228,48 @@ public sealed class CustomSkillsController : ControllerBase
         }
 
         await _repo.DeleteAsync(id, ct);
+        await _catalog.DeleteByNameAsync(record.Name, ct);
         _logger.LogInformation("Custom skill {SkillId} ({SkillName}) deleted", id, record.Name);
         return NoContent();
+    }
+
+    private async Task CreateSkillRecordFromRuntime(string skillName, string s3Key, CancellationToken ct)
+    {
+        try
+        {
+            var manifests = await _runtime.GetManifestsAsync(ct);
+            var manifest = manifests.FirstOrDefault(m =>
+                string.Equals(m.Name, skillName, StringComparison.OrdinalIgnoreCase));
+            if (manifest is null)
+            {
+                _logger.LogWarning("Could not find manifest for uploaded skill {SkillName} in runtime", skillName);
+                return;
+            }
+
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            };
+
+            await _catalog.UpsertAsync(new SkillRecord
+            {
+                Name = skillName,
+                Title = manifest.Title,
+                Description = manifest.Description,
+                Emoji = manifest.Emoji,
+                Doc = manifest.Doc,
+                Source = "upload",
+                ManifestJson = System.Text.Json.JsonSerializer.Serialize(manifest, jsonOptions),
+                BundleS3Key = s3Key,
+                Status = "active",
+                OwnerId = CurrentUser?.Id,
+            }, ct);
+            _logger.LogInformation("Created SkillRecord for uploaded skill {SkillName}", skillName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create SkillRecord for uploaded skill {SkillName}", skillName);
+        }
     }
 }
 
