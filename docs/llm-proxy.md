@@ -88,8 +88,8 @@ This means provider/model changes in the dashboard take effect on the next LLM c
 
 | File | Purpose |
 |------|---------|
-| `apps/v2-backend/Entities/LlmProxy/LlmProxyController.cs` | `POST /v1/chat/completions` — auth, lookup, dispatch, stream |
-| `apps/v2-backend/Entities/LlmProxy/LlmProviderDispatcher.cs` | Routes to upstream by provider, swaps model + key |
-| `apps/v2-backend/Entities/LlmProxy/AnthropicTranslator.cs` | OpenAI ↔ Anthropic format translation |
+| `apps/backend/Entities/LlmProxy/LlmProxyController.cs` | `POST /v1/chat/completions` — auth, lookup, dispatch, stream |
+| `apps/backend/Entities/LlmProxy/LlmProviderDispatcher.cs` | Routes to upstream by provider, swaps model + key |
+| `apps/backend/Entities/LlmProxy/AnthropicTranslator.cs` | OpenAI ↔ Anthropic format translation |
 | `packages/zeroclaw-core/src/agent/gateway_bootstrap.rs` | Sets `custom:{backend_url}/v1` as the provider |
-| `apps/v2-backend/Entities/Providers/KnownModels.cs` | Valid provider→model mappings |
+| `apps/backend/Entities/Providers/KnownModels.cs` | Valid provider→model mappings |

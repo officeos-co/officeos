@@ -10,7 +10,7 @@ Runners let customers execute skills against internal APIs (ERPs, databases, pro
 ```
 Customer Network                    EAOS Platform
 ┌──────────────────┐               ┌──────────────────┐
-│ skill-runner     │  HTTPS poll   │ v2-backend       │
+│ skill-runner     │  HTTPS poll   │ backend       │
 │ (Docker)         │ ═══════════>  │                  │
 │                  │  POST result  │ Job Queue (PG)   │
 │ executes skills  │ ═══════════>  │                  │
@@ -283,4 +283,4 @@ Skills are bundled into the runner image at build time (same esbuild process as 
 | `Entities/Runners/DeviceAuthController.cs` | RFC 8628 device authorization flow |
 | `Entities/Skills/AgentSkillsController.cs` | Runner dispatch in SkillExec |
 | `packages/skill-runner/src/client.ts` | Runner polling client |
-| `apps/v2-frontend/src/app/runners/page.tsx` | Runner management page |
+| `apps/dashboard/src/app/runners/page.tsx` | Runner management page |

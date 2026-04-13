@@ -1,7 +1,7 @@
 ---
 name: typescript-react
-description: TypeScript / React / Next.js style guide — authoritative for v2-frontend
-when_to_use: when editing files under apps/v2-frontend/**
+description: TypeScript / React / Next.js style guide — authoritative for dashboard
+when_to_use: when editing files under apps/dashboard/**
 ---
 
 You are a senior level react and typescript developer.

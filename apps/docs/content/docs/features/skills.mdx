@@ -31,7 +31,7 @@ Agent sees:          skill_exec("notion search --query meetings")
 
 2. **Skill runtime** (`packages/skill-runtime/`) — Node.js service that bundles all skills via esbuild, exposes `/manifests` (skill metadata) and `/execute` (action dispatch). Receives credentials per-request from the backend — never stores them.
 
-3. **Backend gateway** (`apps/v2-backend/Entities/Skills/`) — Proxies execution requests, manages credential encryption/storage, and serves the dashboard API. The backend has zero hardcoded skill knowledge — everything comes from the runtime's `/manifests` endpoint.
+3. **Backend gateway** (`apps/backend/Entities/Skills/`) — Proxies execution requests, manages credential encryption/storage, and serves the dashboard API. The backend has zero hardcoded skill knowledge — everything comes from the runtime's `/manifests` endpoint.
 
 4. **`skill_exec` tool** (`packages/zeroclaw-core/src/tools/skill_exec/`) — Rust tool registered on every agent. Parses CLI-style commands, discovers available skills via the capabilities endpoint, and dispatches execution through the backend.
 

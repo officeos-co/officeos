@@ -1,5 +1,0 @@
-node_modules/
-.next/
-dist/
-*.log
-next-env.d.ts

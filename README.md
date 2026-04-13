@@ -54,8 +54,8 @@ Agent: skill_exec("notion search --query 'meeting notes'")
 ## Repository structure
 
 ```
-apps/v2-backend/         C# ASP.NET Core 9 — the brain
-apps/v2-frontend/        Next.js 16 + React 19 — the face
+apps/backend/         C# ASP.NET Core 9 — the brain
+apps/dashboard/        Next.js 16 + React 19 — the face
 packages/zeroclaw-core/  Rust — the muscle (agent runtime)
 packages/obsctl/         Python — Obsidian vault CLI
 k8s/                     Kubernetes manifests
@@ -72,10 +72,10 @@ docs/                    Architecture documentation
 
 ```bash
 # Backend
-cd apps/v2-backend && dotnet run
+cd apps/backend && dotnet run
 
 # Frontend
-cd apps/v2-frontend && npm install && npm run dev
+cd apps/dashboard && npm install && npm run dev
 
 # Zeroclaw (build only — needs K8s to create agent pods)
 cd packages/zeroclaw-core && cargo build

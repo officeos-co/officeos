@@ -5,7 +5,7 @@ using Serilog.Events;
 using EnterpriseAgentOs.Api.Middleware;
 using EnterpriseAgentOs.Api.Extensions;
 
-const string FrontendCorsPolicy = "v2-frontend";
+const string FrontendCorsPolicy = "dashboard";
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()

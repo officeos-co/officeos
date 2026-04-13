@@ -1,7 +1,7 @@
 ---
 name: csharp
-description: C# / ASP.NET Core / EF Core style guide — authoritative for v2-backend project structure and rules
-when_to_use: when editing files under apps/v2-backend/**
+description: C# / ASP.NET Core / EF Core style guide — authoritative for backend project structure and rules
+when_to_use: when editing files under apps/backend/**
 ---
 
 You are a senior level C# and .NET developer.

@@ -6,8 +6,8 @@ Further context about what we are buildig is in /Users/harrokrog/Documents/Optim
 ## Repository layout
 
 ```
-apps/v2-backend/         C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, vault, K8s orchestration
-apps/v2-frontend/        Next.js 16 + React 19 — Mission Control dashboard
+apps/backend/         C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, vault, K8s orchestration
+apps/dashboard/        Next.js 16 + React 19 — Mission Control dashboard
 apps/website/            Next.js 15 + Bun + shadcn — public landing page (harrokrog.com)
 packages/zeroclaw-core/  Rust agent runtime — turn loop, tool execution, memory, channels
 packages/skill-sdk/      @harro/skill-sdk — TypeScript SDK for defining skills (defineSkill + Zod)

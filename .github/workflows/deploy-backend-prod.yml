@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'apps/v2-backend/**'
+      - 'apps/backend/**'
       - 'k8s/backend.yaml'
       - '.github/workflows/deploy-backend-prod.yml'
 
@@ -25,11 +25,11 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Build test project
-        working-directory: apps/v2-backend
+        working-directory: apps/backend
         run: dotnet build EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
 
       - name: Run integration tests
-        working-directory: apps/v2-backend
+        working-directory: apps/backend
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
         run: dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj --no-build --logger "console;verbosity=normal" --blame-hang-timeout 120s
@@ -50,7 +50,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/v2-backend/Dockerfile
+          file: apps/backend/Dockerfile
           push: true
           tags: harkro123/eaos-backend:latest
           cache-from: type=gha,scope=backend

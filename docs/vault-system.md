@@ -150,9 +150,9 @@ Future improvement: add a `_rev` check on boot — compare CouchDB rev with a ca
 
 | File                                                         | Purpose                                              |
 | ------------------------------------------------------------ | ---------------------------------------------------- |
-| `apps/v2-backend/Entities/Vault/CouchDbVaultClient.cs`       | CouchDB CRUD (create DB, put/get/delete docs)        |
-| `apps/v2-backend/Entities/Vault/VaultPersonalityTemplate.cs` | Renders templates with token substitution            |
-| `apps/v2-backend/Entities/Vault/Templates/*.md`              | SOUL.md, IDENTITY.md, AGENTS.md templates            |
+| `apps/backend/Entities/Vault/CouchDbVaultClient.cs`       | CouchDB CRUD (create DB, put/get/delete docs)        |
+| `apps/backend/Entities/Vault/VaultPersonalityTemplate.cs` | Renders templates with token substitution            |
+| `apps/backend/Entities/Vault/Templates/*.md`              | SOUL.md, IDENTITY.md, AGENTS.md templates            |
 | `packages/zeroclaw-core/src/agent/vault_bootstrap.rs`        | Fetches vault from backend, caches on PVC            |
 | `packages/zeroclaw-core/src/agent/personality.rs`            | Strict file loader (fails if required files missing) |
-| `apps/v2-frontend/src/components/AgentMemoryPanel.tsx`       | Dashboard vault editor                               |
+| `apps/dashboard/src/components/AgentMemoryPanel.tsx`       | Dashboard vault editor                               |

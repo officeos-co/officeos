@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY apps/v2-backend/EnterpriseAgentOs.Api.csproj ./
+COPY apps/backend/EnterpriseAgentOs.Api.csproj ./
 RUN dotnet restore EnterpriseAgentOs.Api.csproj
-COPY apps/v2-backend/. ./
+COPY apps/backend/. ./
 RUN dotnet publish EnterpriseAgentOs.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime

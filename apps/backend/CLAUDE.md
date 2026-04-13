@@ -1,4 +1,4 @@
-# v2-backend — C# ASP.NET Core 9
+# backend — C# ASP.NET Core 9
 
 The central orchestrator. Manages agent lifecycle, proxies LLM calls, serves the skill gateway, provisions vaults, and talks to Kubernetes.
 
