@@ -1,19 +1,21 @@
 //! Deterministic CLI-style parser for skill commands.
 //!
 //! Grammar:
-//!   command     = [skill] [action] [flags] [--help]
+//!   command     = [skill] [action_parts...] [flags] [--help]
 //!   skill       = identifier
-//!   action      = identifier
+//!   action_parts = identifier+ (joined with "_" to form compound action names)
 //!   flags       = (--key value)*
 //!   --help      = introspection at current level
 //!
 //! Examples:
-//!   ""                              → Help(TopLevel)
-//!   "--help"                        → Help(TopLevel)
-//!   "notion"                        → Help(Skill("notion"))
-//!   "notion --help"                 → Help(Skill("notion"))
-//!   "notion search --help"          → Help(Action("notion", "search"))
-//!   "notion search --query test"    → Query { skill, action, args }
+//!   ""                                → Help(TopLevel)
+//!   "--help"                          → Help(TopLevel)
+//!   "notion"                          → Help(Skill("notion"))
+//!   "notion --help"                   → Help(Skill("notion"))
+//!   "notion search --help"            → Help(Action("notion", "search"))
+//!   "notion search --query test"      → Query { skill, action, args }
+//!   "notion pages list --query test"  → Query { skill, action="pages_list", args }
+//!   "github repos list"              → Query { skill, action="repos_list" }
 
 use std::collections::HashMap;
 
@@ -56,10 +58,28 @@ pub fn parse(input: &str) -> ParsedCommand {
         return ParsedCommand::Help(HelpLevel::Skill(skill));
     }
 
-    let action = tokens[1].to_lowercase();
+    // Consume all consecutive non-flag tokens after the skill as parts of
+    // the action name. This allows multi-word actions like "pages list" to
+    // be parsed as action="pages_list".
+    let mut action_parts: Vec<String> = Vec::new();
+    let mut rest_start = 1;
+    for token in &tokens[1..] {
+        if token.starts_with("--") {
+            break;
+        }
+        action_parts.push(token.to_lowercase());
+        rest_start += 1;
+    }
+
+    // If there are no action parts (e.g. "notion --key val"), treat as skill help
+    if action_parts.is_empty() {
+        return ParsedCommand::Help(HelpLevel::Skill(skill));
+    }
+
+    let action = action_parts.join("_");
 
     // Remaining tokens are flags or --help
-    let flag_tokens = &tokens[2..];
+    let flag_tokens = &tokens[rest_start..];
 
     // Check for --help among flags
     if flag_tokens.iter().any(|t| t == "--help") {
@@ -197,6 +217,83 @@ mod tests {
                 assert_eq!(skill, "github");
                 assert_eq!(action, "repos");
                 assert!(args.is_empty());
+            }
+            ParsedCommand::Help(_) => panic!("expected Query"),
+        }
+    }
+
+    #[test]
+    fn multiword_action() {
+        let cmd = parse("notion pages list --query test");
+        match cmd {
+            ParsedCommand::Query {
+                skill,
+                action,
+                args,
+            } => {
+                assert_eq!(skill, "notion");
+                assert_eq!(action, "pages_list");
+                assert_eq!(args.get("query").unwrap(), "test");
+            }
+            ParsedCommand::Help(_) => panic!("expected Query"),
+        }
+    }
+
+    #[test]
+    fn multiword_action_no_args() {
+        let cmd = parse("github repos list");
+        match cmd {
+            ParsedCommand::Query {
+                skill,
+                action,
+                args,
+            } => {
+                assert_eq!(skill, "github");
+                assert_eq!(action, "repos_list");
+                assert!(args.is_empty());
+            }
+            ParsedCommand::Help(_) => panic!("expected Query"),
+        }
+    }
+
+    #[test]
+    fn multiword_action_help() {
+        assert_eq!(
+            parse("notion pages list --help"),
+            ParsedCommand::Help(HelpLevel::Action("notion".into(), "pages_list".into()))
+        );
+    }
+
+    #[test]
+    fn three_word_action() {
+        let cmd = parse("google drive files list --query docs");
+        match cmd {
+            ParsedCommand::Query {
+                skill,
+                action,
+                args,
+            } => {
+                assert_eq!(skill, "google");
+                assert_eq!(action, "drive_files_list");
+                assert_eq!(args.get("query").unwrap(), "docs");
+            }
+            ParsedCommand::Help(_) => panic!("expected Query"),
+        }
+    }
+
+    #[test]
+    fn single_word_action_unchanged() {
+        // Existing single-word actions must keep working
+        let cmd = parse("notion search --query meetings");
+        match cmd {
+            ParsedCommand::Query {
+                skill,
+                action,
+                args,
+            } => {
+                assert_eq!(skill, "notion");
+                assert_eq!(action, "search");
+                assert_eq!(args.get("query").unwrap(), "meetings");
             }
             ParsedCommand::Help(_) => panic!("expected Query"),
         }

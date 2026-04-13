@@ -153,7 +153,14 @@ impl SchemaCache {
                 };
                 let mut out = format!("{}:\n\n", skill.name);
                 for action in &skill.actions {
-                    let _ = write!(out, "  {} {}", skill.name, action.cli_name);
+                    // Show space-separated form for compound actions (e.g. "pages list")
+                    // alongside the underscore form ("pages_list")
+                    let spaced = action.cli_name.replace('_', " ");
+                    if spaced != action.cli_name {
+                        let _ = write!(out, "  {} {} (or: {} {})", skill.name, spaced, skill.name, action.cli_name);
+                    } else {
+                        let _ = write!(out, "  {} {}", skill.name, action.cli_name);
+                    }
                     if !action.description.is_empty() {
                         let _ = write!(out, "  — {}", action.description);
                     }
@@ -187,9 +194,15 @@ impl SchemaCache {
                         "Unknown action: {action_name}. Use \"{skill_name} --help\" to list actions."
                     );
                 };
+                let spaced = action.cli_name.replace('_', " ");
+                let name_display = if spaced != action.cli_name {
+                    format!("{} (or: {})", spaced, action.cli_name)
+                } else {
+                    action.cli_name.clone()
+                };
                 let mut out = format!(
                     "{} {} — {}\n\nArguments:\n",
-                    skill.name, action.cli_name, action.description
+                    skill.name, name_display, action.description
                 );
                 for arg in &action.args {
                     let req = if arg.required { " (required)" } else { "" };
