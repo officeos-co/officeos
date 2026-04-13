@@ -25,6 +25,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentSkillRecord> AgentSkills => Set<AgentSkillRecord>();
     public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
     public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
+    public DbSet<ChannelConnectionRecord> ChannelConnections => Set<ChannelConnectionRecord>();
+    public DbSet<AgentChannelBindingRecord> AgentChannelBindings => Set<AgentChannelBindingRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -182,6 +184,24 @@ public sealed class EaosDbContext : DbContext
             e.Property(o => o.StripeCustomerId).HasMaxLength(256);
             e.Property(o => o.StripeSubscriptionId).HasMaxLength(256);
             e.Property(o => o.StripeOverageItemId).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<ChannelConnectionRecord>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.ChannelType).IsRequired().HasMaxLength(32);
+            e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
+            e.Property(c => c.EncryptedConfig).HasColumnType("text");
+            e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById);
+        });
+
+        modelBuilder.Entity<AgentChannelBindingRecord>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.HasIndex(b => new { b.AgentId, b.ChannelConnectionId }).IsUnique();
+            e.Property(b => b.Config).HasColumnType("text");
+            e.HasOne(b => b.Agent).WithMany().HasForeignKey(b => b.AgentId);
+            e.HasOne(b => b.ChannelConnection).WithMany().HasForeignKey(b => b.ChannelConnectionId);
         });
     }
 }

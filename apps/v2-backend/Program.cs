@@ -35,6 +35,7 @@ builder.Services
 
 builder.Services.AddSingleton<ProviderKeyProtector>();
 builder.Services.AddSingleton<SkillCredentialProtector>();
+builder.Services.AddSingleton<ChannelConfigProtector>();
 
 builder.Services.AddDbContext<EaosDbContext>(options =>
     options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
@@ -163,6 +164,11 @@ builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
 
 // Skill Registry
 builder.Services.AddScoped<ISkillRegistryRepository, SkillRegistryRepository>();
+
+// Channels
+builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
+builder.Services.AddScoped<ChannelMessageRouter>();
+builder.Services.AddHttpClient("channel-platform");
 
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();

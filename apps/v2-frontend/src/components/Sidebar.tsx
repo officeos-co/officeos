@@ -21,6 +21,7 @@ import {
   Key,
   Network,
   Sparkles,
+  Plug,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -269,6 +270,7 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
     { href: "/settings/profile", label: "Profile", icon: User },
     { href: "/settings/organization", label: "Organization", icon: Building2 },
     { href: "/runners", label: "Runners", icon: Radio },
+    { href: "/settings/channels", label: "Channels", icon: Plug },
     { href: "/settings/billing", label: "Billing", icon: CreditCard },
     { href: "/settings/limits", label: "Limits", icon: Gauge, placeholder: true },
     { href: "/settings/api-keys", label: "API Keys", icon: Key, placeholder: true },
