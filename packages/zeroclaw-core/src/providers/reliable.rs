@@ -285,7 +285,7 @@ fn compact_error_detail(err: &anyhow::Error) -> String {
 /// Truncate conversation history by dropping the oldest non-system messages.
 /// Returns the number of messages dropped. Keeps at least the system message
 /// (if any) and the most recent user message.
-fn truncate_for_context(messages: &mut Vec<ChatMessage>) -> usize {
+pub(crate) fn truncate_for_context(messages: &mut Vec<ChatMessage>) -> usize {
     // Find all non-system message indices
     let non_system: Vec<usize> = messages
         .iter()

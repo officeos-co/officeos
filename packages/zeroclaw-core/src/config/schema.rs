@@ -1377,25 +1377,6 @@ impl Default for PacingConfig {
 }
 
 /// Skills loading configuration (`[skills]` section).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum SkillsPromptInjectionMode {
-    /// Inline full skill instructions and tool metadata into the system prompt.
-    #[default]
-    Full,
-    /// Inline only compact skill metadata (name/description/location) and load details on demand.
-    Compact,
-}
-
-fn parse_skills_prompt_injection_mode(raw: &str) -> Option<SkillsPromptInjectionMode> {
-    match raw.trim().to_ascii_lowercase().as_str() {
-        "full" => Some(SkillsPromptInjectionMode::Full),
-        "compact" => Some(SkillsPromptInjectionMode::Compact),
-        _ => None,
-    }
-}
-
-/// Skills loading configuration (`[skills]` section).
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default)]
 pub struct SkillsConfig {
     /// Enable loading and syncing the community open-skills repository.
@@ -1410,10 +1391,6 @@ pub struct SkillsConfig {
     /// Default: `false` (secure by default).
     #[serde(default)]
     pub allow_scripts: bool,
-    /// Controls how skills are injected into the system prompt.
-    /// `full` preserves legacy behavior. `compact` keeps context small and loads skills on demand.
-    #[serde(default)]
-    pub prompt_injection_mode: SkillsPromptInjectionMode,
     /// Autonomous skill creation from successful multi-step task executions.
     #[serde(default)]
     pub skill_creation: SkillCreationConfig,
@@ -9466,18 +9443,6 @@ impl Config {
             }
         }
 
-        // Skills prompt mode override: ZEROCLAW_SKILLS_PROMPT_MODE
-        if let Ok(mode) = std::env::var("ZEROCLAW_SKILLS_PROMPT_MODE") {
-            if !mode.trim().is_empty() {
-                if let Some(parsed) = parse_skills_prompt_injection_mode(&mode) {
-                    self.skills.prompt_injection_mode = parsed;
-                } else {
-                    tracing::warn!(
-                        "Ignoring invalid ZEROCLAW_SKILLS_PROMPT_MODE (valid: full|compact)"
-                    );
-                }
-            }
-        }
 
         // Skill Gateway backend URL: ZEROCLAW_SKILLS_BACKEND_URL
         //   When set, Agent::turn refreshes its tool list from

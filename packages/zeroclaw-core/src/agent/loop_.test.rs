@@ -3950,7 +3950,6 @@ fn native_tools_system_prompt_contains_zero_xml() {
         &[],  // no skills
         None, // no bootstrap_max_chars
         true, // native_tools
-        crate::config::SkillsPromptInjectionMode::Full,
         crate::security::AutonomyLevel::default(),
     );
 

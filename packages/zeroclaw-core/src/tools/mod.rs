@@ -366,16 +366,11 @@ pub fn all_tools_with_runtime(
         tracing::info!("obsidian native tools registered (skill-runtime)");
     }
 
-    if matches!(
-        root_config.skills.prompt_injection_mode,
-        crate::config::SkillsPromptInjectionMode::Compact
-    ) {
-        tool_arcs.push(Arc::new(ReadSkillTool::new(
-            workspace_dir.to_path_buf(),
-            root_config.skills.open_skills_enabled,
-            root_config.skills.open_skills_dir.clone(),
-        )));
-    }
+    tool_arcs.push(Arc::new(ReadSkillTool::new(
+        workspace_dir.to_path_buf(),
+        root_config.skills.open_skills_enabled,
+        root_config.skills.open_skills_dir.clone(),
+    )));
 
     if http_config.enabled {
         tool_arcs.push(Arc::new(HttpRequestTool::new(

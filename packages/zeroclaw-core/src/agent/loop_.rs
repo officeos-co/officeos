@@ -2322,7 +2322,6 @@ pub(crate) async fn run_tool_call_loop(
                     let stats = crate::agent::history_pruner::prune_history(
                         history,
                         &crate::agent::history_pruner::HistoryPrunerConfig {
-                            enabled: true,
                             max_tokens: context_token_budget,
                             keep_recent: 4,
                             collapse_tool_results: true,
@@ -3647,15 +3646,10 @@ pub async fn run(
             "Delete a memory entry. Use when: memory is incorrect/stale or explicitly requested for removal. Don't use when: impact is uncertain.",
         ),
     ];
-    if matches!(
-        config.skills.prompt_injection_mode,
-        crate::config::SkillsPromptInjectionMode::Compact
-    ) {
-        tool_descs.push((
-            "read_skill",
-            "Load the full source for an available skill by name. Use when: compact mode only shows a summary and you need the complete skill instructions.",
-        ));
-    }
+    tool_descs.push((
+        "read_skill",
+        "Load the full source for an available skill by name. Use when you need the complete skill instructions beyond what the summary shows.",
+    ));
     tool_descs.push((
         "cron_add",
         "Create a cron job. Supports schedule kinds: cron, at, every; and job types: shell or agent.",
@@ -3722,7 +3716,6 @@ pub async fn run(
         bootstrap_max_chars,
         Some(&config.autonomy),
         native_tools,
-        config.skills.prompt_injection_mode,
         config.agent.compact_context,
         config.agent.max_system_prompt_chars,
     );
@@ -3825,13 +3818,11 @@ pub async fn run(
             ChatMessage::user(&enriched),
         ];
 
-        // Prune history for token efficiency (when enabled).
-        if config.agent.history_pruning.enabled {
-            let _stats = crate::agent::history_pruner::prune_history(
-                &mut history,
-                &config.agent.history_pruning,
-            );
-        }
+        // Prune history for token efficiency.
+        let _stats = crate::agent::history_pruner::prune_history(
+            &mut history,
+            &config.agent.history_pruning,
+        );
 
         // Compute per-turn excluded MCP tools from tool_filter_groups.
         let excluded_tools = compute_excluded_mcp_tools(
@@ -4499,15 +4490,10 @@ pub async fn process_message(
         ("screenshot", "Capture a screenshot."),
         ("image_info", "Read image metadata."),
     ];
-    if matches!(
-        config.skills.prompt_injection_mode,
-        crate::config::SkillsPromptInjectionMode::Compact
-    ) {
-        tool_descs.push((
-            "read_skill",
-            "Load the full source for an available skill by name.",
-        ));
-    }
+    tool_descs.push((
+        "read_skill",
+        "Load the full source for an available skill by name.",
+    ));
     if config.browser.enabled {
         tool_descs.push(("browser_open", "Open approved URLs in browser."));
     }
@@ -4538,7 +4524,6 @@ pub async fn process_message(
         bootstrap_max_chars,
         Some(&config.autonomy),
         native_tools,
-        config.skills.prompt_injection_mode,
         config.agent.compact_context,
         config.agent.max_system_prompt_chars,
     );

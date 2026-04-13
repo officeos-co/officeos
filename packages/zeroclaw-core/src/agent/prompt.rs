@@ -47,8 +47,10 @@ pub struct PromptContext<'a> {
     pub model_name: &'a str,
     pub tools: &'a [Box<dyn Tool>],
     pub skills: &'a [Skill],
-    pub skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
     pub dispatcher_instructions: &'a str,
+    /// When `true`, tool specs are sent via the provider's native `tools`
+    /// parameter and the `ToolsSection` is skipped to avoid duplication.
+    pub native_tool_calling: bool,
     /// Locale-aware tool descriptions. When present, tool descriptions in
     /// prompts are resolved from the locale file instead of hardcoded values.
     pub tool_descriptions: Option<&'a ToolDescriptions>,
@@ -167,6 +169,13 @@ impl PromptSection for ToolsSection {
     }
 
     fn build(&self, ctx: &PromptContext<'_>) -> Result<String> {
+        // When native tool calling is active, tool specs are sent via the
+        // provider's `tools` parameter. Duplicating them in the system
+        // prompt wastes ~5-10k tokens per request (issue #11).
+        if ctx.native_tool_calling {
+            return Ok(String::new());
+        }
+
         let mut out = String::from("## Tools\n\n");
         for tool in ctx.tools {
             let desc = ctx
@@ -242,10 +251,9 @@ impl PromptSection for SkillsSection {
     }
 
     fn build(&self, ctx: &PromptContext<'_>) -> Result<String> {
-        Ok(crate::skills::skills_to_prompt_with_mode(
+        Ok(crate::skills::skills_to_prompt(
             ctx.skills,
             ctx.workspace_dir,
-            ctx.skills_prompt_mode,
         ))
     }
 }

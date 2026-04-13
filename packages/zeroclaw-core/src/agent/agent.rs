@@ -95,7 +95,6 @@ pub struct Agent {
     temperature: f64,
     workspace_dir: std::path::PathBuf,
     skills: Vec<crate::skills::Skill>,
-    skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
     auto_save: bool,
     memory_session_id: Option<String>,
     history: Vec<ConversationMessage>,
@@ -138,7 +137,6 @@ pub struct AgentBuilder {
     temperature: Option<f64>,
     workspace_dir: Option<std::path::PathBuf>,
     skills: Option<Vec<crate::skills::Skill>>,
-    skills_prompt_mode: Option<crate::config::SkillsPromptInjectionMode>,
     auto_save: Option<bool>,
     memory_session_id: Option<String>,
     classification_config: Option<crate::config::QueryClassificationConfig>,
@@ -168,7 +166,6 @@ impl AgentBuilder {
             temperature: None,
             workspace_dir: None,
             skills: None,
-            skills_prompt_mode: None,
             auto_save: None,
             memory_session_id: None,
             classification_config: None,
@@ -249,13 +246,6 @@ impl AgentBuilder {
         self
     }
 
-    pub fn skills_prompt_mode(
-        mut self,
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
-    ) -> Self {
-        self.skills_prompt_mode = Some(skills_prompt_mode);
-        self
-    }
 
     pub fn auto_save(mut self, auto_save: bool) -> Self {
         self.auto_save = Some(auto_save);
@@ -365,7 +355,6 @@ impl AgentBuilder {
                 .workspace_dir
                 .unwrap_or_else(|| std::path::PathBuf::from(".")),
             skills: self.skills.unwrap_or_default(),
-            skills_prompt_mode: self.skills_prompt_mode.unwrap_or_default(),
             auto_save: self.auto_save.unwrap_or(false),
             memory_session_id: self.memory_session_id,
             history: Vec::new(),
@@ -702,7 +691,6 @@ impl Agent {
                 &config.workspace_dir,
                 config,
             ))
-            .skills_prompt_mode(config.skills.prompt_injection_mode)
             .auto_save(config.memory.auto_save)
             .security_summary(Some(security.prompt_summary()))
             .autonomy_level(config.autonomy.level)
@@ -748,7 +736,7 @@ impl Agent {
                 self.tool_specs = refreshed.specs;
 
                 // Build synthetic Skill structs from backend docs so the
-                // existing skills_to_prompt_with_mode() renders them as
+                // existing skills_to_prompt() renders them as
                 // <instructions> in the system prompt.
                 self.backend_skills = refreshed
                     .skill_docs
@@ -816,10 +804,81 @@ impl Agent {
         self.history.extend(other_messages);
     }
 
+    /// Estimate the total token cost of an outgoing request and prune
+    /// messages if the estimated total exceeds `max_context_tokens`.
+    /// Uses the `context_compressor::estimate_tokens` heuristic (~4
+    /// chars/token with 1.2x safety margin).
+    fn enforce_token_budget(
+        &self,
+        messages: &mut Vec<crate::providers::traits::ChatMessage>,
+    ) {
+        use crate::agent::context_compressor::estimate_tokens;
+
+        let budget = self.config.max_context_tokens;
+        if budget == 0 {
+            return;
+        }
+
+        // Estimate token cost of tool specs (serialized JSON).
+        let tool_spec_tokens = if self.tool_dispatcher.should_send_tool_specs() {
+            let json_len: usize = self
+                .tool_specs
+                .iter()
+                .map(|s| s.name.len() + s.description.len() + s.parameters.to_string().len())
+                .sum();
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            {
+                (json_len as f64 / 4.0 * 1.2) as usize
+            }
+        } else {
+            0
+        };
+
+        let msg_tokens = estimate_tokens(messages);
+        let total = msg_tokens + tool_spec_tokens;
+
+        if total <= budget {
+            tracing::debug!(
+                msg_tokens,
+                tool_spec_tokens,
+                total,
+                budget,
+                "token budget OK"
+            );
+            return;
+        }
+
+        tracing::warn!(
+            msg_tokens,
+            tool_spec_tokens,
+            total,
+            budget,
+            "token budget exceeded — pruning history"
+        );
+
+        // First pass: run the history pruner on the provider messages.
+        let pruner_config = crate::agent::history_pruner::HistoryPrunerConfig {
+            max_tokens: budget.saturating_sub(tool_spec_tokens),
+            ..Default::default()
+        };
+        crate::agent::history_pruner::prune_history(messages, &pruner_config);
+
+        // Second pass: if still over budget, drop oldest half of non-system messages.
+        let after_prune = estimate_tokens(messages) + tool_spec_tokens;
+        if after_prune > budget {
+            crate::providers::reliable::truncate_for_context(messages);
+            tracing::warn!(
+                estimated = estimate_tokens(messages) + tool_spec_tokens,
+                budget,
+                "emergency context truncation applied"
+            );
+        }
+    }
+
     fn build_system_prompt(&self) -> Result<String> {
         let instructions = self.tool_dispatcher.prompt_instructions(&self.tools);
         // Combine disk-based skills with synthetic backend skill docs
-        // so skills_to_prompt_with_mode() renders both in the system prompt.
+        // so skills_to_prompt() renders both in the system prompt.
         let all_skills: Vec<crate::skills::Skill> = self
             .skills
             .iter()
@@ -831,8 +890,8 @@ impl Agent {
             model_name: &self.model_name,
             tools: &self.tools,
             skills: &all_skills,
-            skills_prompt_mode: self.skills_prompt_mode,
             dispatcher_instructions: &instructions,
+            native_tool_calling: self.tool_dispatcher.should_send_tool_specs(),
             tool_descriptions: self.tool_descriptions.as_ref(),
             security_summary: self.security_summary.clone(),
             autonomy_level: self.autonomy_level,
@@ -1022,7 +1081,10 @@ impl Agent {
         let effective_model = self.classify_model(user_message);
 
         for _ in 0..self.config.max_tool_iterations {
-            let messages = self.tool_dispatcher.to_provider_messages(&self.history);
+            let mut messages = self.tool_dispatcher.to_provider_messages(&self.history);
+
+            // Pre-send token budget: estimate total tokens and prune if over budget.
+            self.enforce_token_budget(&mut messages);
 
             // Response cache: check before LLM call (only for deterministic, text-only prompts)
             let cache_key = if self.temperature == 0.0 {
@@ -1197,7 +1259,10 @@ impl Agent {
 
         // ── Turn loop ──────────────────────────────────────────────────
         for _ in 0..self.config.max_tool_iterations {
-            let messages = self.tool_dispatcher.to_provider_messages(&self.history);
+            let mut messages = self.tool_dispatcher.to_provider_messages(&self.history);
+
+            // Pre-send token budget: estimate total tokens and prune if over budget.
+            self.enforce_token_budget(&mut messages);
 
             // Response cache check (same as turn)
             let cache_key = if self.temperature == 0.0 {

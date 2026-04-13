@@ -760,71 +760,42 @@ fn render_skill_location(skill: &Skill, workspace_dir: &Path, prefer_relative: b
     location.display().to_string()
 }
 
-/// Build the "Available Skills" system prompt section with full skill instructions.
+/// Build the "Available Skills" system prompt section.
+///
+/// Always uses compact mode: only skill name, description, and location are
+/// inlined. Full instructions are loaded on demand via `read_skill(name)`.
+/// This keeps the system prompt small and avoids blowing the token budget
+/// (see issue #11).
 pub fn skills_to_prompt(skills: &[Skill], workspace_dir: &Path) -> String {
-    skills_to_prompt_with_mode(
-        skills,
-        workspace_dir,
-        crate::config::SkillsPromptInjectionMode::Full,
-    )
-}
-
-/// Build the "Available Skills" system prompt section with configurable verbosity.
-pub fn skills_to_prompt_with_mode(
-    skills: &[Skill],
-    workspace_dir: &Path,
-    mode: crate::config::SkillsPromptInjectionMode,
-) -> String {
     use std::fmt::Write;
 
     if skills.is_empty() {
         return String::new();
     }
 
-    let mut prompt = match mode {
-        crate::config::SkillsPromptInjectionMode::Full => String::from(
-            "## Available Skills\n\n\
-             Skill instructions and tool metadata are preloaded below.\n\
-             Follow these instructions directly; do not read skill files at runtime unless the user asks.\n\n\
-             <available_skills>\n",
-        ),
-        crate::config::SkillsPromptInjectionMode::Compact => String::from(
-            "## Available Skills\n\n\
-             Skill summaries are preloaded below to keep context compact.\n\
-             Skill instructions are loaded on demand: call `read_skill(name)` with the skill's `<name>` when you need the full skill file.\n\
-             The `location` field is included for reference.\n\n\
-             <available_skills>\n",
-        ),
-    };
+    let mut prompt = String::from(
+        "## Available Skills\n\n\
+         Skill summaries are preloaded below to keep context compact.\n\
+         Skill instructions are loaded on demand: call `read_skill(name)` with the skill's `<name>` when you need the full skill file.\n\
+         The `location` field is included for reference.\n\n\
+         <available_skills>\n",
+    );
 
     for skill in skills {
+        if skill.description.is_empty() {
+            tracing::warn!(
+                skill = %skill.name,
+                "skill has no description — compact header will be less useful"
+            );
+        }
+
         let _ = writeln!(prompt, "  <skill>");
         write_xml_text_element(&mut prompt, 4, "name", &skill.name);
         write_xml_text_element(&mut prompt, 4, "description", &skill.description);
-        let location = render_skill_location(
-            skill,
-            workspace_dir,
-            matches!(mode, crate::config::SkillsPromptInjectionMode::Compact),
-        );
+        let location = render_skill_location(skill, workspace_dir, true);
         write_xml_text_element(&mut prompt, 4, "location", &location);
 
-        // In Full mode, inline both instructions and tools.
-        // In Compact mode, skip instructions (loaded on demand) but keep tools
-        // so the LLM knows which skill tools are available.
-        if matches!(mode, crate::config::SkillsPromptInjectionMode::Full)
-            && !skill.prompts.is_empty()
-        {
-            let _ = writeln!(prompt, "    <instructions>");
-            for instruction in &skill.prompts {
-                write_xml_text_element(&mut prompt, 6, "instruction", instruction);
-            }
-            let _ = writeln!(prompt, "    </instructions>");
-        }
-
         if !skill.tools.is_empty() {
-            // Tools with known kinds (shell, script, http) are registered as
-            // callable tool specs and can be invoked directly via function calling.
-            // We note them here for context but mark them as callable.
             let registered: Vec<_> = skill
                 .tools
                 .iter()
@@ -1750,7 +1721,9 @@ path = "Path to the note"
         let prompt = skills_to_prompt(&skills, Path::new("/tmp"));
         assert!(prompt.contains("<available_skills>"));
         assert!(prompt.contains("<name>test</name>"));
-        assert!(prompt.contains("<instruction>Do the thing.</instruction>"));
+        assert!(prompt.contains("<description>A test</description>"));
+        // Compact mode: instructions are NOT inlined, loaded on-demand via read_skill
+        assert!(!prompt.contains("<instruction>"));
     }
 
     #[test]
@@ -1772,11 +1745,7 @@ path = "Path to the note"
             env_passthrough: vec![],
             location: Some(PathBuf::from("/tmp/workspace/skills/test/SKILL.md")),
         }];
-        let prompt = skills_to_prompt_with_mode(
-            &skills,
-            Path::new("/tmp/workspace"),
-            crate::config::SkillsPromptInjectionMode::Compact,
-        );
+        let prompt = skills_to_prompt(&skills, Path::new("/tmp/workspace"));
 
         assert!(prompt.contains("<available_skills>"));
         assert!(prompt.contains("<name>test</name>"));
@@ -2003,9 +1972,8 @@ description = "Bare minimum"
         let prompt = skills_to_prompt(&skills, Path::new("/tmp"));
         assert!(prompt.contains("<name>xml&lt;skill&gt;</name>"));
         assert!(prompt.contains("<description>A &amp; B</description>"));
-        assert!(prompt.contains(
-            "<instruction>Use &lt;tool&gt; &amp; check &quot;quotes&quot;.</instruction>"
-        ));
+        // Compact mode: instructions are NOT inlined
+        assert!(!prompt.contains("<instruction>"));
     }
 
     #[test]

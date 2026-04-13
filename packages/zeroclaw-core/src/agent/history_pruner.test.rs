@@ -8,25 +8,6 @@ fn msg(role: &str, content: &str) -> ChatMessage {
 }
 
 #[test]
-fn prune_disabled_is_noop() {
-    let mut messages = vec![
-        msg("system", "You are helpful."),
-        msg("user", "Hello"),
-        msg("assistant", "Hi there!"),
-    ];
-    let config = HistoryPrunerConfig {
-        enabled: false,
-        ..Default::default()
-    };
-    let stats = prune_history(&mut messages, &config);
-    assert_eq!(messages.len(), 3);
-    assert_eq!(messages[0].content, "You are helpful.");
-    assert_eq!(stats.messages_before, 3);
-    assert_eq!(stats.messages_after, 3);
-    assert_eq!(stats.collapsed_pairs, 0);
-}
-
-#[test]
 fn prune_under_budget_no_change() {
     let mut messages = vec![
         msg("system", "You are helpful."),
@@ -34,7 +15,6 @@ fn prune_under_budget_no_change() {
         msg("assistant", "Hi!"),
     ];
     let config = HistoryPrunerConfig {
-        enabled: true,
         max_tokens: 8192,
         keep_recent: 2,
         collapse_tool_results: false,
@@ -56,7 +36,6 @@ fn prune_collapses_tool_pairs() {
         msg("assistant", "done"),
     ];
     let config = HistoryPrunerConfig {
-        enabled: true,
         max_tokens: 100_000,
         keep_recent: 2,
         collapse_tool_results: true,
@@ -79,7 +58,6 @@ fn prune_preserves_system_and_recent() {
         msg("assistant", "recent2"),
     ];
     let config = HistoryPrunerConfig {
-        enabled: true,
         max_tokens: 100,
         keep_recent: 2,
         collapse_tool_results: false,
@@ -102,7 +80,6 @@ fn prune_drops_oldest_when_over_budget() {
         msg("assistant", "recent-assistant"),
     ];
     let config = HistoryPrunerConfig {
-        enabled: true,
         max_tokens: 150,
         keep_recent: 2,
         collapse_tool_results: false,
@@ -117,10 +94,7 @@ fn prune_drops_oldest_when_over_budget() {
 #[test]
 fn prune_empty_messages() {
     let mut messages: Vec<ChatMessage> = vec![];
-    let config = HistoryPrunerConfig {
-        enabled: true,
-        ..Default::default()
-    };
+    let config = HistoryPrunerConfig::default();
     let stats = prune_history(&mut messages, &config);
     assert_eq!(stats.messages_before, 0);
     assert_eq!(stats.messages_after, 0);

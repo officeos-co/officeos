@@ -47,8 +47,9 @@ fn identity_section_renders_workspace_files() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -73,8 +74,9 @@ fn prompt_builder_assembles_sections() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "instr",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -86,7 +88,7 @@ fn prompt_builder_assembles_sections() {
 }
 
 #[test]
-fn skills_section_includes_instructions_and_tools() {
+fn skills_section_compact_mode_includes_name_and_tools() {
     let tools: Vec<Box<dyn Tool>> = vec![];
     let skills = vec![crate::skills::Skill {
         name: "deploy".into(),
@@ -111,8 +113,9 @@ fn skills_section_includes_instructions_and_tools() {
         model_name: "test-model",
         tools: &tools,
         skills: &skills,
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -121,7 +124,8 @@ fn skills_section_includes_instructions_and_tools() {
     let output = SkillsSection.build(&ctx).unwrap();
     assert!(output.contains("<available_skills>"));
     assert!(output.contains("<name>deploy</name>"));
-    assert!(output.contains("<instruction>Run smoke tests before deploy.</instruction>"));
+    // Compact mode: instructions are NOT inlined, loaded on-demand via read_skill
+    assert!(!output.contains("<instruction>"));
     // Registered tools (shell kind) appear under <callable_tools> with prefixed names
     assert!(output.contains("<callable_tools"));
     assert!(output.contains("<name>deploy.release_checklist</name>"));
@@ -153,8 +157,8 @@ fn skills_section_compact_mode_omits_instructions_but_keeps_tools() {
         model_name: "test-model",
         tools: &tools,
         skills: &skills,
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Compact,
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -180,8 +184,9 @@ fn datetime_section_includes_timestamp_and_timezone() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "instr",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -197,7 +202,7 @@ fn datetime_section_includes_timestamp_and_timezone() {
 }
 
 #[test]
-fn prompt_builder_inlines_and_escapes_skills() {
+fn prompt_builder_compact_mode_escapes_skills() {
     let tools: Vec<Box<dyn Tool>> = vec![];
     let skills = vec![crate::skills::Skill {
         name: "code<review>&".into(),
@@ -221,8 +226,9 @@ fn prompt_builder_inlines_and_escapes_skills() {
         model_name: "test-model",
         tools: &tools,
         skills: &skills,
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -238,9 +244,8 @@ fn prompt_builder_inlines_and_escapes_skills() {
     assert!(prompt.contains("<name>run&quot;linter&quot;</name>"));
     assert!(prompt.contains("<description>Run &lt;lint&gt; &amp; report</description>"));
     assert!(prompt.contains("<kind>shell&amp;exec</kind>"));
-    assert!(prompt.contains(
-        "<instruction>Use &lt;tool_call&gt; and &amp; keep output &quot;safe&quot;</instruction>"
-    ));
+    // Compact mode: instructions are NOT inlined
+    assert!(!prompt.contains("<instruction>"));
 }
 
 #[test]
@@ -254,8 +259,9 @@ fn safety_section_includes_security_summary_when_present() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: Some(summary.clone()),
         autonomy_level: AutonomyLevel::Supervised,
@@ -288,8 +294,9 @@ fn safety_section_omits_security_policy_when_none() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,
@@ -314,8 +321,9 @@ fn safety_section_full_autonomy_omits_approval_instructions() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Full,
@@ -348,8 +356,9 @@ fn safety_section_supervised_includes_approval_instructions() {
         model_name: "test-model",
         tools: &tools,
         skills: &[],
-        skills_prompt_mode: crate::config::SkillsPromptInjectionMode::Full,
+
         dispatcher_instructions: "",
+        native_tool_calling: false,
         tool_descriptions: None,
         security_summary: None,
         autonomy_level: AutonomyLevel::Supervised,

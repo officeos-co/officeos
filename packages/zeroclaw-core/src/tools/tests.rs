@@ -215,8 +215,7 @@ fn all_tools_includes_read_skill_in_compact_mode() {
 
     let browser = BrowserConfig::default();
     let http = crate::config::HttpRequestConfig::default();
-    let mut cfg = test_config(&tmp);
-    cfg.skills.prompt_injection_mode = crate::config::SkillsPromptInjectionMode::Compact;
+    let cfg = test_config(&tmp);
 
     let (tools, _, _, _, _, _) = all_tools(
         Arc::new(cfg.clone()),
@@ -234,40 +233,8 @@ fn all_tools_includes_read_skill_in_compact_mode() {
         None,
     );
     let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(names.contains(&"read_skill"));
-}
-
-#[test]
-fn all_tools_excludes_read_skill_in_full_mode() {
-    let tmp = TempDir::new().unwrap();
-    let security = Arc::new(SecurityPolicy::default());
-    let mem_cfg = MemoryConfig {
-        backend: "markdown".into(),
-        ..MemoryConfig::default()
-    };
-    let mem: Arc<dyn Memory> =
-        Arc::from(crate::memory::create_memory(&mem_cfg, tmp.path(), None).unwrap());
-
-    let browser = BrowserConfig::default();
-    let http = crate::config::HttpRequestConfig::default();
-    let mut cfg = test_config(&tmp);
-    cfg.skills.prompt_injection_mode = crate::config::SkillsPromptInjectionMode::Full;
-
-    let (tools, _, _, _, _, _) = all_tools(
-        Arc::new(cfg.clone()),
-        &security,
-        mem,
-        None,
-        None,
-        &browser,
-        &http,
-        &crate::config::WebFetchConfig::default(),
-        tmp.path(),
-        &HashMap::new(),
-        None,
-        &cfg,
-        None,
+    assert!(
+        names.contains(&"read_skill"),
+        "read_skill must always be registered for on-demand skill loading"
     );
-    let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-    assert!(!names.contains(&"read_skill"));
 }

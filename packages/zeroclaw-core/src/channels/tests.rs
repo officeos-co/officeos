@@ -3232,7 +3232,7 @@ fn prompt_runtime_metadata() {
 }
 
 #[test]
-fn prompt_skills_include_instructions_and_tools() {
+fn prompt_skills_compact_mode_includes_name_and_tools() {
     let ws = make_workspace();
     let skills = vec![crate::skills::Skill {
         name: "code-review".into(),
@@ -3257,15 +3257,12 @@ fn prompt_skills_include_instructions_and_tools() {
     assert!(prompt.contains("<available_skills>"), "missing skills XML");
     assert!(prompt.contains("<name>code-review</name>"));
     assert!(prompt.contains("<description>Review code for bugs</description>"));
-    assert!(prompt.contains("SKILL.md</location>"));
-    assert!(prompt.contains("<instructions>"));
-    assert!(
-        prompt.contains("<instruction>Always run cargo test before final response.</instruction>")
-    );
+    // Compact mode: instructions are NOT inlined, loaded on-demand via read_skill
+    assert!(!prompt.contains("<instructions>"));
+    assert!(!prompt.contains("<instruction>"));
     // Registered tools (shell kind) appear under <callable_tools> with prefixed names
     assert!(prompt.contains("<callable_tools"));
     assert!(prompt.contains("<name>code-review.lint</name>"));
-    assert!(!prompt.contains("loaded on demand"));
 }
 
 #[test]
@@ -3296,7 +3293,6 @@ fn prompt_skills_compact_mode_omits_instructions_but_keeps_tools() {
         &skills,
         None,
         false,
-        crate::config::SkillsPromptInjectionMode::Compact,
         AutonomyLevel::default(),
     );
 
@@ -3344,9 +3340,8 @@ fn prompt_skills_escape_reserved_xml_chars() {
     assert!(prompt.contains("<name>run&quot;linter&quot;</name>"));
     assert!(prompt.contains("<description>Run &lt;lint&gt; &amp; report</description>"));
     assert!(prompt.contains("<kind>shell&amp;exec</kind>"));
-    assert!(prompt.contains(
-        "<instruction>Use &lt;tool_call&gt; and &amp; keep output &quot;safe&quot;</instruction>"
-    ));
+    // Compact mode: instructions are NOT inlined
+    assert!(!prompt.contains("<instruction>"));
 }
 
 #[test]
@@ -3432,7 +3427,6 @@ fn full_autonomy_prompt_executes_allowed_tools_without_extra_approval() {
         None,
         Some(&config),
         false,
-        crate::config::SkillsPromptInjectionMode::Full,
         false,
         0,
     );
@@ -3462,7 +3456,6 @@ fn readonly_prompt_explains_policy_blocks_without_fake_approval() {
         None,
         Some(&config),
         false,
-        crate::config::SkillsPromptInjectionMode::Full,
         false,
         0,
     );
@@ -3495,7 +3488,6 @@ fn full_autonomy_omits_approval_instructions() {
         &[],
         None,
         false,
-        crate::config::SkillsPromptInjectionMode::Full,
         AutonomyLevel::Full,
     );
 
@@ -3528,7 +3520,6 @@ fn supervised_autonomy_includes_approval_instructions() {
         &[],
         None,
         false,
-        crate::config::SkillsPromptInjectionMode::Full,
         AutonomyLevel::Supervised,
     );
 
@@ -3894,7 +3885,6 @@ async fn process_channel_message_refreshes_available_skills_after_new_session() 
         &initial_skills,
         None,
         false,
-        config.skills.prompt_injection_mode,
         AutonomyLevel::default(),
     );
     assert!(

@@ -1065,13 +1065,12 @@ fn replace_available_skills_section(base_prompt: &str, refreshed_skills: &str) -
 }
 
 fn refreshed_new_session_system_prompt(ctx: &ChannelRuntimeContext) -> String {
-    let refreshed_skills = crate::skills::skills_to_prompt_with_mode(
+    let refreshed_skills = crate::skills::skills_to_prompt(
         &crate::skills::load_skills_with_config(
             ctx.workspace_dir.as_ref(),
             ctx.prompt_config.as_ref(),
         ),
         ctx.workspace_dir.as_ref(),
-        ctx.prompt_config.skills.prompt_injection_mode,
     );
     replace_available_skills_section(ctx.system_prompt.as_str(), &refreshed_skills)
 }
@@ -3718,7 +3717,6 @@ pub fn build_system_prompt(
         skills,
         bootstrap_max_chars,
         false,
-        crate::config::SkillsPromptInjectionMode::Full,
         AutonomyLevel::default(),
     )
 }
@@ -3730,7 +3728,6 @@ pub fn build_system_prompt_with_mode(
     skills: &[crate::skills::Skill],
     bootstrap_max_chars: Option<usize>,
     native_tools: bool,
-    skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
     autonomy_level: AutonomyLevel,
 ) -> String {
     let autonomy_cfg = crate::config::AutonomyConfig {
@@ -3745,7 +3742,6 @@ pub fn build_system_prompt_with_mode(
         bootstrap_max_chars,
         Some(&autonomy_cfg),
         native_tools,
-        skills_prompt_mode,
         false,
         0,
     )
@@ -3760,7 +3756,6 @@ pub fn build_system_prompt_with_mode_and_autonomy(
     bootstrap_max_chars: Option<usize>,
     autonomy_config: Option<&crate::config::AutonomyConfig>,
     native_tools: bool,
-    skills_prompt_mode: crate::config::SkillsPromptInjectionMode,
     compact_context: bool,
     max_system_prompt_chars: usize,
 ) -> String {
@@ -3869,13 +3864,9 @@ pub fn build_system_prompt_with_mode_and_autonomy(
     });
     prompt.push('\n');
 
-    // ── 3. Skills (full or compact, based on config) ─────────────
+    // ── 3. Skills (compact headers, loaded on demand) ─────────────
     if !skills.is_empty() {
-        prompt.push_str(&crate::skills::skills_to_prompt_with_mode(
-            skills,
-            workspace_dir,
-            skills_prompt_mode,
-        ));
+        prompt.push_str(&crate::skills::skills_to_prompt(skills, workspace_dir));
         prompt.push_str("\n\n");
     }
 
@@ -4576,15 +4567,10 @@ pub async fn start_channels(config: Config) -> Result<()> {
         ),
     ];
 
-    if matches!(
-        config.skills.prompt_injection_mode,
-        crate::config::SkillsPromptInjectionMode::Compact
-    ) {
-        tool_descs.push((
-            "read_skill",
-            "Load the full source for an available skill by name. Use when: compact mode only shows a summary and you need the complete skill instructions.",
-        ));
-    }
+    tool_descs.push((
+        "read_skill",
+        "Load the full source for an available skill by name. Use when you need the complete skill instructions beyond what the summary shows.",
+    ));
 
     if config.browser.enabled {
         tool_descs.push((
@@ -4636,7 +4622,6 @@ pub async fn start_channels(config: Config) -> Result<()> {
         bootstrap_max_chars,
         Some(&config.autonomy),
         native_tools,
-        config.skills.prompt_injection_mode,
         config.agent.compact_context,
         config.agent.max_system_prompt_chars,
     );

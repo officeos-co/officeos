@@ -23,7 +23,7 @@ pub use schema::{
     PluginsConfig, ProjectIntelConfig, ProxyConfig, ProxyScope, QueryClassificationConfig,
     ReliabilityConfig, ResourceLimitsConfig, RuntimeConfig, SandboxBackend, SandboxConfig,
     SchedulerConfig, SearchMode, SecretsConfig, SecurityConfig, SecurityOpsConfig, ShellToolConfig,
-    SkillCreationConfig, SkillImprovementConfig, SkillsConfig, SkillsPromptInjectionMode,
+    SkillCreationConfig, SkillImprovementConfig, SkillsConfig,
     SlackConfig, StorageConfig, StorageProviderConfig, StorageProviderSection, StreamMode,
     SwarmConfig, SwarmStrategy, TelegramConfig, TextBrowserConfig, ToolFilterGroup,
     ToolFilterGroupMode, TranscriptionConfig, TtsConfig, WebFetchConfig, WebSearchConfig,

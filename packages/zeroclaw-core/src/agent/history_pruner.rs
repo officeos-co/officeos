@@ -20,9 +20,6 @@ fn default_collapse() -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct HistoryPrunerConfig {
-    /// Enable history pruning. Default: false.
-    #[serde(default)]
-    pub enabled: bool,
     /// Maximum estimated tokens for message history. Default: 8192.
     #[serde(default = "default_max_tokens")]
     pub max_tokens: usize,
@@ -37,7 +34,6 @@ pub struct HistoryPrunerConfig {
 impl Default for HistoryPrunerConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
             max_tokens: 8192,
             keep_recent: 4,
             collapse_tool_results: true,
@@ -58,11 +54,11 @@ pub struct PruneStats {
 }
 
 // ---------------------------------------------------------------------------
-// Token estimation
+// Token estimation — delegates to context_compressor's 1.2x-margin estimator
 // ---------------------------------------------------------------------------
 
 fn estimate_tokens(messages: &[ChatMessage]) -> usize {
-    messages.iter().map(|m| m.content.len() / 4).sum()
+    super::context_compressor::estimate_tokens(messages)
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +86,7 @@ fn protected_indices(messages: &[ChatMessage], keep_recent: usize) -> Vec<bool> 
 
 pub fn prune_history(messages: &mut Vec<ChatMessage>, config: &HistoryPrunerConfig) -> PruneStats {
     let messages_before = messages.len();
-    if !config.enabled || messages.is_empty() {
+    if messages.is_empty() {
         return PruneStats {
             messages_before,
             messages_after: messages_before,

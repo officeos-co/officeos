@@ -94,10 +94,6 @@ async fn config_default_has_sane_values() {
     assert!(c.api_key.is_none());
     assert!(!c.skills.open_skills_enabled);
     assert!(!c.skills.allow_scripts);
-    assert_eq!(
-        c.skills.prompt_injection_mode,
-        SkillsPromptInjectionMode::Full
-    );
     assert_eq!(c.provider_timeout_secs, 120);
     assert!(c.workspace_dir.to_string_lossy().contains("workspace"));
     assert!(c.config_path.to_string_lossy().contains("config.toml"));
@@ -2289,19 +2285,12 @@ async fn env_override_open_skills_enabled_and_dir() {
     let mut config = Config::default();
     assert!(!config.skills.open_skills_enabled);
     assert!(config.skills.open_skills_dir.is_none());
-    assert_eq!(
-        config.skills.prompt_injection_mode,
-        SkillsPromptInjectionMode::Full
-    );
-
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::set_var("ZEROCLAW_OPEN_SKILLS_ENABLED", "true") };
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::set_var("ZEROCLAW_OPEN_SKILLS_DIR", "/tmp/open-skills") };
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::set_var("ZEROCLAW_SKILLS_ALLOW_SCRIPTS", "yes") };
-    // SAFETY: test-only, single-threaded test runner.
-    unsafe { std::env::set_var("ZEROCLAW_SKILLS_PROMPT_MODE", "compact") };
     config.apply_env_overrides();
 
     assert!(config.skills.open_skills_enabled);
@@ -2310,10 +2299,6 @@ async fn env_override_open_skills_enabled_and_dir() {
         config.skills.open_skills_dir.as_deref(),
         Some("/tmp/open-skills")
     );
-    assert_eq!(
-        config.skills.prompt_injection_mode,
-        SkillsPromptInjectionMode::Compact
-    );
 
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::remove_var("ZEROCLAW_OPEN_SKILLS_ENABLED") };
@@ -2321,8 +2306,6 @@ async fn env_override_open_skills_enabled_and_dir() {
     unsafe { std::env::remove_var("ZEROCLAW_OPEN_SKILLS_DIR") };
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::remove_var("ZEROCLAW_SKILLS_ALLOW_SCRIPTS") };
-    // SAFETY: test-only, single-threaded test runner.
-    unsafe { std::env::remove_var("ZEROCLAW_SKILLS_PROMPT_MODE") };
 }
 
 #[test]
@@ -2331,28 +2314,19 @@ async fn env_override_open_skills_enabled_invalid_value_keeps_existing_value() {
     let mut config = Config::default();
     config.skills.open_skills_enabled = true;
     config.skills.allow_scripts = true;
-    config.skills.prompt_injection_mode = SkillsPromptInjectionMode::Compact;
 
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::set_var("ZEROCLAW_OPEN_SKILLS_ENABLED", "maybe") };
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::set_var("ZEROCLAW_SKILLS_ALLOW_SCRIPTS", "maybe") };
-    // SAFETY: test-only, single-threaded test runner.
-    unsafe { std::env::set_var("ZEROCLAW_SKILLS_PROMPT_MODE", "invalid") };
     config.apply_env_overrides();
 
     assert!(config.skills.open_skills_enabled);
     assert!(config.skills.allow_scripts);
-    assert_eq!(
-        config.skills.prompt_injection_mode,
-        SkillsPromptInjectionMode::Compact
-    );
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::remove_var("ZEROCLAW_OPEN_SKILLS_ENABLED") };
     // SAFETY: test-only, single-threaded test runner.
     unsafe { std::env::remove_var("ZEROCLAW_SKILLS_ALLOW_SCRIPTS") };
-    // SAFETY: test-only, single-threaded test runner.
-    unsafe { std::env::remove_var("ZEROCLAW_SKILLS_PROMPT_MODE") };
 }
 
 #[test]
