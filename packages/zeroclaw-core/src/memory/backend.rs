@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum MemoryBackendKind {
     Sqlite,
+    Markdown,
     Obsidian,
     Remote,
     None,
@@ -54,6 +55,15 @@ const OBSIDIAN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     optional_dependency: true,
 };
 
+const MARKDOWN_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
+    key: "markdown",
+    label: "Markdown Files — local .md files with YAML frontmatter, human-readable",
+    auto_save_default: true,
+    uses_sqlite_hygiene: false,
+    sqlite_based: false,
+    optional_dependency: false,
+};
+
 const REMOTE_PROFILE: MemoryBackendProfile = MemoryBackendProfile {
     key: "remote",
     label: "Remote — Postgres-backed via backend API (managed mode)",
@@ -77,6 +87,7 @@ pub fn default_memory_backend_key() -> &'static str {
 pub fn classify_memory_backend(backend: &str) -> MemoryBackendKind {
     match backend {
         "sqlite" => MemoryBackendKind::Sqlite,
+        "markdown" => MemoryBackendKind::Markdown,
         "obsidian" => MemoryBackendKind::Obsidian,
         "remote" => MemoryBackendKind::Remote,
         "none" => MemoryBackendKind::None,
@@ -87,6 +98,7 @@ pub fn classify_memory_backend(backend: &str) -> MemoryBackendKind {
 pub fn memory_backend_profile(backend: &str) -> MemoryBackendProfile {
     match classify_memory_backend(backend) {
         MemoryBackendKind::Sqlite => SQLITE_PROFILE,
+        MemoryBackendKind::Markdown => MARKDOWN_PROFILE,
         MemoryBackendKind::Obsidian => OBSIDIAN_PROFILE,
         MemoryBackendKind::Remote => REMOTE_PROFILE,
         MemoryBackendKind::None => NONE_PROFILE,
