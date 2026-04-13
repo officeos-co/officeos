@@ -2,28 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { AgentChannelBinding, AgentChannelConfig } from "@/types/channel";
 
-export type AgentChannelConfig = {
-  dmPolicy: string;
-  groupPolicy: string;
-  allowedUsers?: string[];
-  allowedGroups?: string[];
-  requireMention: boolean;
-  mentionPatterns?: string[];
-  historyLimit: number;
-  streamingMode: string;
-};
-
-export type AgentChannelBinding = {
-  id: string;
-  agentId: string;
-  channelConnectionId: string;
-  channelType: string;
-  channelDisplayName: string;
-  enabled: boolean;
-  config: AgentChannelConfig | null;
-  createdAt: string;
-};
+export type { AgentChannelBinding, AgentChannelConfig } from "@/types/channel";
 
 export function useAgentChannels(agentId: string) {
   const [bindings, setBindings] = useState<AgentChannelBinding[]>([]);

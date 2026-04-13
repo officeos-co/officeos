@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Plug, Plus, RefreshCw, Trash2, Power, PowerOff, Settings } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
-import { useAgentChannels, type AgentChannelConfig } from "@/hooks/useAgentChannels";
+import type { Agent } from "@/types/agent";
+import { useAgentChannels } from "@/hooks/useAgentChannels";
+import type { AgentChannelConfig } from "@/hooks/useAgentChannels";
 import {
   useChannelConnections,
   type ChannelConnection,

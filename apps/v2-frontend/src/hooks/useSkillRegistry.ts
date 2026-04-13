@@ -2,18 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { RegistrySkill } from "@/types/skill";
 
-export type RegistrySkill = {
-  id: string;
-  name: string;
-  version: string;
-  npmPackage: string | null;
-  bundleUrl: string | null;
-  status: "active" | "disabled";
-  publishedById: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export type { RegistrySkill } from "@/types/skill";
 
 export function useSkillRegistry() {
   const [entries, setEntries] = useState<RegistrySkill[]>([]);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TopBar } from "@/components/TopBar";
+import { TopBar } from "@/components/shared/TopBar";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Card,

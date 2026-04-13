@@ -1,13 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { User } from "@/types/auth";
 
-export type User = {
-  id: string;
-  email: string;
-  name: string | null;
-  avatarUrl: string | null;
-};
+export type { User } from "@/types/auth";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);

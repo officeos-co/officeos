@@ -2,36 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { Skill } from "@/types/skill";
 
-export type CredentialField = {
-  key: string;
-  label: string;
-  kind: "password" | "text" | "textarea";
-  required: boolean;
-  placeholder: string | null;
-  help: string | null;
-};
-
-export type LlmTool = {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-};
-
-export type Skill = {
-  name: string;
-  title: string;
-  description: string;
-  emoji: string;
-  installed: boolean;
-  configured: boolean;
-  runTarget: "cloud" | "runner";
-  credentialFields: CredentialField[];
-  llmTools: LlmTool[];
-  // Registry metadata (populated from skill registry join)
-  registryVersion?: string;
-  registryStatus?: "active" | "disabled";
-};
+export type { CredentialField, LlmTool, Skill } from "@/types/skill";
 
 export function useSkills() {
   const [skills, setSkills] = useState<Skill[]>([]);

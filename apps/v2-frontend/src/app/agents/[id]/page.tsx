@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { AgentDetailTabs } from "@/components/AgentDetailTabs";
-import { StatusBadge } from "@/components/StatusBadge";
+import { AgentDetailTabs } from "@/components/agents/AgentDetailTabs";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { apiFetch } from "@/hooks/useApi";
 import { useAgents, type Agent } from "@/hooks/useAgents";
 

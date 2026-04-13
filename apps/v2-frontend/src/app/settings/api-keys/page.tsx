@@ -1,4 +1,4 @@
-import { TopBar } from "@/components/TopBar";
+import { TopBar } from "@/components/shared/TopBar";
 import { Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

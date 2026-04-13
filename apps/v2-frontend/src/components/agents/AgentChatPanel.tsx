@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bot, User, AlertCircle, Copy, Check, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { agentFetch, agentWsUrl } from "@/lib/agentProxy";
 import {
   type ChatMessage,

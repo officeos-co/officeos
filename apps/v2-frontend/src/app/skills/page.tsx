@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TopBar } from "@/components/TopBar";
-import { SkillGridCard } from "@/components/SkillGridCard";
-import { UploadSkillOverlay } from "@/components/UploadSkillOverlay";
-import { GitHubSkillOverlay } from "@/components/GitHubSkillOverlay";
+import { TopBar } from "@/components/shared/TopBar";
+import { SkillGridCard } from "@/components/skills/SkillGridCard";
+import { UploadSkillOverlay } from "@/components/skills/UploadSkillOverlay";
+import { GitHubSkillOverlay } from "@/components/skills/GitHubSkillOverlay";
 import { useSkills } from "@/hooks/useSkills";
 import { useSkillRegistry } from "@/hooks/useSkillRegistry";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Skill } from "@/hooks/useSkills";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
 
 type Props = {

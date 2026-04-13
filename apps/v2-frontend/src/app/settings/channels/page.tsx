@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, Power, PowerOff, RefreshCw } from "lucide-react";
-import { TopBar } from "@/components/TopBar";
+import { TopBar } from "@/components/shared/TopBar";
 import {
   useChannelConnections,
   type ChannelType,

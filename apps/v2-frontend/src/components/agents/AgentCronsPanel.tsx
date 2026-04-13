@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Play, Pause, RefreshCw, Clock } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { agentFetch } from "@/lib/agentProxy";
 
 type CronJob = {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal } from "./Modal";
-import { useProviders, type Provider } from "@/hooks/useProviders";
+import { Modal } from "@/components/shared/Modal";
+import { useProviders } from "@/hooks/useProviders";
+import type { Provider } from "@/types/provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

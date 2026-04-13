@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
 import { AgentSessionsPanel } from "./AgentSessionsPanel";

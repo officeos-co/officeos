@@ -2,32 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { ChannelConnection, ChannelType } from "@/types/channel";
 
-export type ChannelConfigField = {
-  key: string;
-  label: string;
-  kind: "password" | "text" | "textarea";
-  required: boolean;
-  placeholder: string | null;
-  help: string | null;
-};
-
-export type ChannelType = {
-  type: string;
-  displayName: string;
-  description: string;
-  configFields: ChannelConfigField[];
-};
-
-export type ChannelConnection = {
-  id: string;
-  channelType: string;
-  displayName: string;
-  enabled: boolean;
-  configured: boolean;
-  createdAt: string;
-  createdById: string | null;
-};
+export type { ChannelConfigField, ChannelType, ChannelConnection } from "@/types/channel";
 
 export function useChannelConnections() {
   const [connections, setConnections] = useState<ChannelConnection[]>([]);

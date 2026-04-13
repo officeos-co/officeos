@@ -2,23 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { Agent, CreateAgentInput } from "@/types/agent";
 
-export type Agent = {
-  id: string;
-  name: string;
-  provider: string;
-  model: string | null;
-  status: string;
-  podName: string | null;
-  serviceUrl: string | null;
-  createdAt: string;
-};
-
-export type CreateAgentInput = {
-  name: string;
-  provider: string;
-  model?: string;
-};
+export type { Agent, CreateAgentInput } from "@/types/agent";
 
 let cache: Agent[] | null = null;
 const listeners = new Set<(agents: Agent[]) => void>();

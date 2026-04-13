@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Trash2, MessageSquare, Play } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { agentFetch } from "@/lib/agentProxy";
 import { getOrCreateSessionId, resetSessionId } from "@/lib/chatSession";
 
