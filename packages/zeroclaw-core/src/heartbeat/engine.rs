@@ -4,6 +4,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use parking_lot::Mutex as ParkingMutex;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::path::Path;
 use std::sync::Arc;
@@ -50,25 +51,138 @@ impl fmt::Display for TaskStatus {
     }
 }
 
-/// A structured heartbeat task with priority and status metadata.
+/// A structured heartbeat task with priority, status, optional per-task interval,
+/// and an optional name for tracking.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeartbeatTask {
     pub text: String,
     pub priority: TaskPriority,
     pub status: TaskStatus,
+    /// Optional unique name for this task (used for per-task state tracking).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Optional per-task interval in seconds. When set, this task only runs
+    /// when at least this many seconds have elapsed since its last execution.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_secs: Option<u64>,
+    /// Optional override prompt for this task. When set, this prompt is used
+    /// instead of the task `text` when invoking the LLM.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
 }
 
 impl HeartbeatTask {
     pub fn is_runnable(&self) -> bool {
         self.status == TaskStatus::Active
     }
+
+    /// Return the display name: explicit name, or a slugified version of the text.
+    pub fn display_name(&self) -> &str {
+        self.name.as_deref().unwrap_or(&self.text)
+    }
+
+    /// Return the effective prompt: explicit prompt, or the task text.
+    pub fn effective_prompt(&self) -> &str {
+        self.prompt.as_deref().unwrap_or(&self.text)
+    }
 }
 
 impl fmt::Display for HeartbeatTask {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}] {}", self.priority, self.text)
+        if let Some(ref name) = self.name {
+            write!(f, "[{}] {} ({})", self.priority, name, self.text)
+        } else {
+            write!(f, "[{}] {}", self.priority, self.text)
+        }
     }
 }
+
+// ── Per-task state tracking ────────────────────────────────────
+
+/// Persisted state for a single heartbeat task, keyed by task name.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeartbeatTaskState {
+    pub last_run_at: Option<DateTime<Utc>>,
+    pub run_count: u64,
+}
+
+impl Default for HeartbeatTaskState {
+    fn default() -> Self {
+        Self {
+            last_run_at: None,
+            run_count: 0,
+        }
+    }
+}
+
+/// Persistent store for per-task heartbeat state.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct HeartbeatState {
+    pub tasks: HashMap<String, HeartbeatTaskState>,
+}
+
+impl HeartbeatState {
+    /// Load state from the workspace JSON file, or return default.
+    pub fn load(workspace_dir: &Path) -> Self {
+        let path = workspace_dir.join("heartbeat").join("task_state.json");
+        match std::fs::read_to_string(&path) {
+            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+            Err(_) => Self::default(),
+        }
+    }
+
+    /// Persist state to the workspace JSON file.
+    pub fn save(&self, workspace_dir: &Path) -> Result<()> {
+        let dir = workspace_dir.join("heartbeat");
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join("task_state.json");
+        let content = serde_json::to_string_pretty(self)?;
+        std::fs::write(&path, content)?;
+        Ok(())
+    }
+
+    /// Record that a task ran at the given time.
+    pub fn record_run(&mut self, task_key: &str, at: DateTime<Utc>) {
+        let entry = self.tasks.entry(task_key.to_string()).or_default();
+        entry.last_run_at = Some(at);
+        entry.run_count += 1;
+    }
+
+    /// Check if a task is due based on its interval.
+    pub fn is_due(&self, task_key: &str, interval_secs: u64) -> bool {
+        match self.tasks.get(task_key) {
+            None => true, // never run
+            Some(state) => match state.last_run_at {
+                None => true,
+                Some(last) => {
+                    let elapsed = Utc::now().signed_duration_since(last);
+                    elapsed.num_seconds() >= interval_secs as i64
+                }
+            },
+        }
+    }
+}
+
+// ── HEARTBEAT_OK response contract ─────────────────────────────
+
+/// Default max chars for suppressing near-empty heartbeat responses.
+const DEFAULT_ACK_MAX_CHARS: usize = 300;
+
+/// Strip `HEARTBEAT_OK` from a response and suppress if remaining content
+/// is short enough. Returns `None` if the message should be suppressed.
+pub fn filter_heartbeat_response(response: &str, ack_max_chars: Option<usize>) -> Option<String> {
+    let max = ack_max_chars.unwrap_or(DEFAULT_ACK_MAX_CHARS);
+    let cleaned = response.replace("HEARTBEAT_OK", "").trim().to_string();
+    if cleaned.len() <= max {
+        return None;
+    }
+    Some(cleaned)
+}
+
+/// Default heartbeat prompt suffix instructing the LLM to respond with
+/// HEARTBEAT_OK if nothing needs attention.
+pub const HEARTBEAT_OK_SUFFIX: &str =
+    "\n\nIf nothing needs attention, reply HEARTBEAT_OK.";
 
 // ── Health Metrics ───────────────────────────────────────────────
 
@@ -163,6 +277,54 @@ pub fn compute_adaptive_interval(
     base_minutes.clamp(min_minutes, max_minutes)
 }
 
+// ── Duration parsing ────────────────────────────────────────────
+
+/// Parse a human-readable duration string into seconds.
+/// Supports: `30m`, `6h`, `1d`, `90s`, `2h30m`, `1.5h`, or plain seconds.
+pub fn parse_duration_str(s: &str) -> u64 {
+    let s = s.trim().to_ascii_lowercase();
+    let mut total_secs: u64 = 0;
+    let mut num_buf = String::new();
+
+    for ch in s.chars() {
+        if ch.is_ascii_digit() || ch == '.' {
+            num_buf.push(ch);
+        } else {
+            let n: f64 = num_buf.parse().unwrap_or(0.0);
+            num_buf.clear();
+            match ch {
+                's' => total_secs += n as u64,
+                'm' => total_secs += (n * 60.0) as u64,
+                'h' => total_secs += (n * 3600.0) as u64,
+                'd' => total_secs += (n * 86400.0) as u64,
+                _ => {}
+            }
+        }
+    }
+
+    // If only digits remain, treat as seconds
+    if !num_buf.is_empty() {
+        if let Ok(n) = num_buf.parse::<u64>() {
+            total_secs += n;
+        }
+    }
+
+    total_secs.max(1) // minimum 1 second
+}
+
+/// Serialize a duration in seconds to a human-readable string.
+pub fn format_duration_secs(secs: u64) -> String {
+    if secs >= 86400 && secs % 86400 == 0 {
+        format!("{}d", secs / 86400)
+    } else if secs >= 3600 && secs % 3600 == 0 {
+        format!("{}h", secs / 3600)
+    } else if secs >= 60 && secs % 60 == 0 {
+        format!("{}m", secs / 60)
+    } else {
+        format!("{secs}s")
+    }
+}
+
 // ── Engine ───────────────────────────────────────────────────────
 
 /// Heartbeat engine — reads HEARTBEAT.md and executes tasks periodically
@@ -253,18 +415,52 @@ impl HeartbeatEngine {
         Ok(tasks)
     }
 
+    /// Collect only tasks that are both runnable and due (per-task interval check).
+    /// Tasks without an interval are always considered due.
+    pub async fn collect_due_tasks(&self) -> Result<Vec<HeartbeatTask>> {
+        let state = HeartbeatState::load(&self.workspace_dir);
+        let tasks = self.collect_runnable_tasks().await?;
+        let due: Vec<HeartbeatTask> = tasks
+            .into_iter()
+            .filter(|task| {
+                match task.interval_secs {
+                    None => true, // no interval = always due
+                    Some(interval) => {
+                        let key = task.name.as_deref().unwrap_or(&task.text);
+                        state.is_due(key, interval)
+                    }
+                }
+            })
+            .collect();
+        Ok(due)
+    }
+
     /// Parse tasks from HEARTBEAT.md with structured metadata support.
     ///
-    /// Supports both legacy flat format and new structured format:
+    /// Supports three formats:
     ///
-    /// Legacy:
-    ///   `- Check email`  →  medium priority, active status
+    /// 1. Legacy flat:
+    ///    `- Check email`  →  medium priority, active status
     ///
-    /// Structured:
-    ///   `- [high] Check email`           →  high priority, active
-    ///   `- [low|paused] Review old PRs`  →  low priority, paused
-    ///   `- [completed] Old task`         →  medium priority, completed
-    fn parse_tasks(content: &str) -> Vec<HeartbeatTask> {
+    /// 2. Structured metadata:
+    ///    `- [high] Check email`           →  high priority, active
+    ///    `- [low|paused] Review old PRs`  →  low priority, paused
+    ///
+    /// 3. YAML `tasks:` block:
+    ///    ```yaml
+    ///    tasks:
+    ///    - name: inbox-triage
+    ///      interval: 30m
+    ///      prompt: "Check for urgent unread emails"
+    ///    ```
+    pub fn parse_tasks(content: &str) -> Vec<HeartbeatTask> {
+        // Check for YAML tasks block
+        let yaml_tasks = Self::parse_yaml_tasks(content);
+        if !yaml_tasks.is_empty() {
+            return yaml_tasks;
+        }
+
+        // Legacy/structured format
         content
             .lines()
             .filter_map(|line| {
@@ -276,6 +472,129 @@ impl HeartbeatEngine {
                 Some(Self::parse_task_line(text))
             })
             .collect()
+    }
+
+    /// Parse a YAML-style `tasks:` block from HEARTBEAT.md content.
+    ///
+    /// Supports format:
+    /// ```
+    /// tasks:
+    /// - name: inbox-triage
+    ///   interval: 30m
+    ///   prompt: "Check for urgent unread emails"
+    ///   priority: high
+    ///   status: active
+    /// ```
+    fn parse_yaml_tasks(content: &str) -> Vec<HeartbeatTask> {
+        let mut tasks = Vec::new();
+        let lines: Vec<&str> = content.lines().collect();
+
+        // Find the "tasks:" line
+        let tasks_start = lines.iter().position(|l| l.trim() == "tasks:");
+        let tasks_start = match tasks_start {
+            Some(i) => i + 1,
+            None => return tasks,
+        };
+
+        let mut i = tasks_start;
+        while i < lines.len() {
+            let line = lines[i].trim();
+
+            // Stop at non-indented non-empty line that isn't a YAML list item
+            if !line.is_empty() && !line.starts_with('-') && !line.starts_with(' ') && !line.starts_with('#') {
+                break;
+            }
+
+            // Look for list item start "- name: ..." or "- ..."
+            if let Some(rest) = line.strip_prefix("- ") {
+                let mut name: Option<String> = None;
+                let mut interval_secs: Option<u64> = None;
+                let mut prompt: Option<String> = None;
+                let mut priority = TaskPriority::Medium;
+                let mut status = TaskStatus::Active;
+                let mut text = String::new();
+
+                // Parse the first line of the item
+                Self::parse_yaml_kv(rest, &mut name, &mut interval_secs, &mut prompt, &mut priority, &mut status, &mut text);
+
+                // Parse continuation lines (indented properties)
+                i += 1;
+                while i < lines.len() {
+                    let cont = lines[i];
+                    let cont_trimmed = cont.trim();
+                    // Continuation must be indented and not a new list item
+                    if cont_trimmed.is_empty() {
+                        i += 1;
+                        continue;
+                    }
+                    if cont_trimmed.starts_with("- ") || (!cont.starts_with(' ') && !cont.starts_with('\t')) {
+                        break;
+                    }
+                    Self::parse_yaml_kv(cont_trimmed, &mut name, &mut interval_secs, &mut prompt, &mut priority, &mut status, &mut text);
+                    i += 1;
+                }
+
+                // Build the task
+                let effective_text = if text.is_empty() {
+                    prompt.clone().or_else(|| name.clone()).unwrap_or_default()
+                } else {
+                    text
+                };
+
+                if !effective_text.is_empty() || name.is_some() {
+                    tasks.push(HeartbeatTask {
+                        text: effective_text,
+                        priority,
+                        status,
+                        name,
+                        interval_secs,
+                        prompt,
+                    });
+                }
+                continue;
+            }
+
+            i += 1;
+        }
+
+        tasks
+    }
+
+    /// Parse a single YAML key-value pair from a line.
+    fn parse_yaml_kv(
+        line: &str,
+        name: &mut Option<String>,
+        interval_secs: &mut Option<u64>,
+        prompt: &mut Option<String>,
+        priority: &mut TaskPriority,
+        status: &mut TaskStatus,
+        text: &mut String,
+    ) {
+        if let Some((key, val)) = line.split_once(':') {
+            let key = key.trim();
+            let val = val.trim().trim_matches('"').trim_matches('\'');
+            match key {
+                "name" => *name = Some(val.to_string()),
+                "interval" => *interval_secs = Some(parse_duration_str(val)),
+                "prompt" => *prompt = Some(val.to_string()),
+                "priority" => {
+                    *priority = match val.to_ascii_lowercase().as_str() {
+                        "high" => TaskPriority::High,
+                        "low" => TaskPriority::Low,
+                        _ => TaskPriority::Medium,
+                    };
+                }
+                "status" => {
+                    *status = match val.to_ascii_lowercase().as_str() {
+                        "paused" | "pause" => TaskStatus::Paused,
+                        "completed" | "complete" | "done" => TaskStatus::Completed,
+                        _ => TaskStatus::Active,
+                    };
+                }
+                "text" => *text = val.to_string(),
+                _ => {}
+            }
+        }
     }
 
     /// Parse a single task line into a structured `HeartbeatTask`.
@@ -291,6 +610,9 @@ impl HeartbeatEngine {
                         text: task_text.to_string(),
                         priority,
                         status,
+                        name: None,
+                        interval_secs: None,
+                        prompt: None,
                     };
                 }
             }
@@ -300,6 +622,9 @@ impl HeartbeatEngine {
             text: text.to_string(),
             priority: TaskPriority::Medium,
             status: TaskStatus::Active,
+            name: None,
+            interval_secs: None,
+            prompt: None,
         }
     }
 
@@ -344,7 +669,8 @@ impl HeartbeatEngine {
             "\nRespond with ONLY one of:\n\
              - `run: 1,2,3` (comma-separated task numbers to execute)\n\
              - `skip` (nothing needs to run right now)\n\n\
-             Be conservative — skip if tasks are routine and not time-sensitive.",
+             Be conservative — skip if tasks are routine and not time-sensitive.\n\
+             If nothing needs attention, reply HEARTBEAT_OK.",
         );
 
         prompt
@@ -395,12 +721,57 @@ impl HeartbeatEngine {
                            #   priority: high, medium (default), low\n\
                            #   status:   active (default), paused, completed\n\
                            #\n\
+                           # Or use YAML tasks: block for per-task intervals:\n\
+                           #   tasks:\n\
+                           #   - name: inbox-triage\n\
+                           #     interval: 30m\n\
+                           #     prompt: \"Check for urgent unread emails\"\n\
+                           #     priority: high\n\
+                           #\n\
                            # Examples:\n\
                            # - [high] Check my email for important messages\n\
                            # - Review my calendar for upcoming events\n\
                            # - [low|paused] Check the weather forecast\n";
             tokio::fs::write(&path, default).await?;
         }
+        Ok(())
+    }
+
+    /// Serialize tasks back to HEARTBEAT.md format (YAML tasks: block).
+    pub fn serialize_tasks(tasks: &[HeartbeatTask]) -> String {
+        let mut out = String::from("# Periodic Tasks\n\ntasks:\n");
+        for task in tasks {
+            let name = task.name.as_deref().unwrap_or(&task.text);
+            out.push_str(&format!("- name: \"{}\"\n", name));
+            if let Some(interval) = task.interval_secs {
+                out.push_str(&format!("  interval: {}\n", format_duration_secs(interval)));
+            }
+            if let Some(ref prompt) = task.prompt {
+                out.push_str(&format!("  prompt: \"{}\"\n", prompt));
+            } else {
+                out.push_str(&format!("  prompt: \"{}\"\n", task.text));
+            }
+            out.push_str(&format!("  priority: {}\n", task.priority));
+            out.push_str(&format!("  status: {}\n", task.status));
+        }
+        out
+    }
+
+    /// Read tasks from HEARTBEAT.md at the given workspace path.
+    pub fn read_tasks_from_file(workspace_dir: &Path) -> Result<Vec<HeartbeatTask>> {
+        let path = workspace_dir.join("HEARTBEAT.md");
+        if !path.exists() {
+            return Ok(Vec::new());
+        }
+        let content = std::fs::read_to_string(&path)?;
+        Ok(Self::parse_tasks(&content))
+    }
+
+    /// Write tasks to HEARTBEAT.md at the given workspace path.
+    pub fn write_tasks_to_file(workspace_dir: &Path, tasks: &[HeartbeatTask]) -> Result<()> {
+        let path = workspace_dir.join("HEARTBEAT.md");
+        let content = Self::serialize_tasks(tasks);
+        std::fs::write(&path, content)?;
         Ok(())
     }
 }

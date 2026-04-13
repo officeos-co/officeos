@@ -338,6 +338,9 @@ async fn run_heartbeat_worker(config: Config) -> Result<()> {
                     text: fallback.to_string(),
                     priority: TaskPriority::Medium,
                     status: TaskStatus::Active,
+                    name: None,
+                    interval_secs: None,
+                    prompt: None,
                 });
             } else {
                 #[allow(clippy::cast_precision_loss)]
