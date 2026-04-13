@@ -43,6 +43,7 @@ pub mod consolidation;
 pub mod decay;
 pub mod embeddings;
 pub mod importance;
+pub mod markdown;
 pub mod namespaced;
 pub mod none;
 pub mod obsidian;
@@ -61,6 +62,7 @@ pub use backend::{
     MemoryBackendKind, MemoryBackendProfile, classify_memory_backend, default_memory_backend_key,
     memory_backend_profile, selectable_memory_backends,
 };
+pub use markdown::MarkdownMemory;
 pub use namespaced::NamespacedMemory;
 pub use none::NoneMemory;
 pub use obsidian::ObsidianMemory;
@@ -91,6 +93,10 @@ where
 {
     match classify_memory_backend(backend_name) {
         MemoryBackendKind::Sqlite => Ok(Box::new(sqlite_builder()?)),
+        MemoryBackendKind::Markdown => {
+            tracing::info!("📝 Markdown file memory backend enabled");
+            Ok(Box::new(MarkdownMemory::new(_workspace_dir)?))
+        }
         MemoryBackendKind::Obsidian => {
             tracing::info!("📓 Obsidian vault memory backend enabled");
             Ok(Box::new(ObsidianMemory::new()))
