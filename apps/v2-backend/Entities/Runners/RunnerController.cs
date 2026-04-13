@@ -7,13 +7,13 @@ namespace EnterpriseAgentOs.Api.Entities.Runners;
 /// </summary>
 [ApiController]
 [Route("api/runners")]
-public sealed class RunnersController : ControllerBase
+public sealed class RunnerController : ControllerBase
 {
     private readonly IRunnerRepository _runners;
     private readonly IRunnerJobRepository _jobs;
-    private readonly ILogger<RunnersController> _logger;
+    private readonly ILogger<RunnerController> _logger;
 
-    public RunnersController(IRunnerRepository runners, IRunnerJobRepository jobs, ILogger<RunnersController> logger)
+    public RunnerController(IRunnerRepository runners, IRunnerJobRepository jobs, ILogger<RunnerController> logger)
     {
         _runners = runners;
         _jobs = jobs;

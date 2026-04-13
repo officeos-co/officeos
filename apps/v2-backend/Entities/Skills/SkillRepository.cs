@@ -1,10 +1,10 @@
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
-public sealed class SkillCredentialRepository : ISkillCredentialRepository
+public sealed class SkillRepository : ISkillRepository
 {
     private readonly EaosDbContext _db;
 
-    public SkillCredentialRepository(EaosDbContext db)
+    public SkillRepository(EaosDbContext db)
     {
         _db = db;
     }

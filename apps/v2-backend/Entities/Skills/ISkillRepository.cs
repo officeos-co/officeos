@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
-public interface ISkillCredentialRepository
+public interface ISkillRepository
 {
     Task<IReadOnlyList<SkillCredentialRecord>> ListAsync(CancellationToken ct = default);
     Task<SkillCredentialRecord?> GetByNameAsync(string skillName, CancellationToken ct = default);

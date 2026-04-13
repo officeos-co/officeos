@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Api.Entities.Providers;
 
 [ApiController]
 [Route("api/providers")]
-public sealed class ProvidersController : ControllerBase
+public sealed class ProviderController : ControllerBase
 {
     /// <summary>
     /// Providers whose keys are held by the platform (never BYOK).
@@ -14,9 +14,9 @@ public sealed class ProvidersController : ControllerBase
     };
 
     private readonly IProviderService _service;
-    private readonly ILogger<ProvidersController> _logger;
+    private readonly ILogger<ProviderController> _logger;
 
-    public ProvidersController(IProviderService service, ILogger<ProvidersController> logger)
+    public ProviderController(IProviderService service, ILogger<ProviderController> logger)
     {
         _service = service;
         _logger = logger;

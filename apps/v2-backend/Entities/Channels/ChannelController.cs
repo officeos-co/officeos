@@ -4,12 +4,12 @@ namespace EnterpriseAgentOs.Api.Entities.Channels;
 
 [ApiController]
 [Route("api/channels")]
-public sealed class ChannelConnectionController : ControllerBase
+public sealed class ChannelController : ControllerBase
 {
     private readonly IChannelRepository _repo;
     private readonly ChannelConfigProtector _protector;
 
-    public ChannelConnectionController(IChannelRepository repo, ChannelConfigProtector protector)
+    public ChannelController(IChannelRepository repo, ChannelConfigProtector protector)
     {
         _repo = repo;
         _protector = protector;
