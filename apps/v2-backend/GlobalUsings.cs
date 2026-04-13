@@ -14,4 +14,5 @@ global using EnterpriseAgentOs.Api.Entities.CustomSkills;
 global using EnterpriseAgentOs.Api.Entities.AgentMemory;
 global using EnterpriseAgentOs.Api.Entities.Sso;
 global using EnterpriseAgentOs.Api.Entities.Billing;
+global using EnterpriseAgentOs.Api.Entities.Channels;
 global using EnterpriseAgentOs.Api.Properties;
