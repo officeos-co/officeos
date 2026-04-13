@@ -257,6 +257,59 @@ Custom skill source archives are stored in **MinIO** (S3-compatible) in the `ski
 | `BundlePath`    | S3 path to stored zip                    |
 | `BuildStatus`   | `pending`, `building`, `ready`, `failed` |
 
+## Skill Registry
+
+The skill registry replaces static Docker image bundling with a dynamic system. Skills can be published, installed, and removed at runtime without rebuilding containers.
+
+### Registry model (`SkillRegistryRecord`)
+
+| Column          | Description                                          |
+| --------------- | ---------------------------------------------------- |
+| `Id`            | Primary key (Guid)                                   |
+| `Name`          | Skill name (unique)                                  |
+| `Version`       | Semver version string                                |
+| `NpmPackage`    | npm package name (nullable)                          |
+| `BundleUrl`     | Direct URL to skill JS bundle (nullable)             |
+| `ManifestJson`  | Cached skill manifest (text)                         |
+| `Status`        | `"active"` or `"disabled"`                           |
+| `PublishedById` | FK to UserRecord (who published it)                  |
+| `CreatedAt`     | Timestamp                                            |
+| `UpdatedAt`     | Timestamp                                            |
+
+### REST API
+
+| Method   | Path                              | Description                   |
+| -------- | --------------------------------- | ----------------------------- |
+| `GET`    | `/api/skill-registry`             | List all registry entries     |
+| `POST`   | `/api/skill-registry/publish`     | Publish a new skill           |
+| `PATCH`  | `/api/skill-registry/{name}`      | Update status/version         |
+| `DELETE` | `/api/skill-registry/{name}`      | Remove from registry          |
+
+### Runtime integration
+
+On boot, the skill-runtime:
+1. Loads bundled skills from `dist/skills/*.js` (unchanged)
+2. Fetches `GET /api/skill-registry` from the backend
+3. For each active entry with a `bundleUrl` or `npmPackage`, downloads and hot-loads the skill
+
+At runtime, two new endpoints enable dynamic management:
+- `POST /install` — downloads and loads a skill package
+- `POST /uninstall` — removes a loaded skill and deletes its bundle file
+
+### Publish flow
+
+```
+User uploads skill via dashboard
+    ↓
+POST /api/custom-skills/upload (builds the skill)
+    ↓
+On success → POST /api/skill-registry/publish
+    ↓
+Backend notifies skill-runtime via POST /install
+    ↓
+Skill available to all agents immediately
+```
+
 ## Runner dispatch
 
 When an agent calls `skill_exec` for a skill that isn't installed locally, the backend checks for an online runner. If one exists, the job is dispatched to the runner instead of the local skill-runtime. See [runners.md](runners.md) for the full architecture.
