@@ -160,6 +160,9 @@ builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordi
 // Custom Skills
 builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
 
+// Skill Registry
+builder.Services.AddScoped<ISkillRegistryRepository, SkillRegistryRepository>();
+
 builder.Services.AddHttpClient("llm-proxy");
 builder.Services.AddScoped<LlmProviderDispatcher>();
 

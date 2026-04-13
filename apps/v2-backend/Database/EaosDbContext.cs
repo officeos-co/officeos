@@ -21,6 +21,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
     public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
     public DbSet<BrowserSessionRecord> BrowserSessions => Set<BrowserSessionRecord>();
+    public DbSet<SkillRegistryRecord> SkillRegistry => Set<SkillRegistryRecord>();
     public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
     public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
 
@@ -137,6 +138,19 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(b => b.Id);
             e.HasIndex(b => b.AgentId).IsUnique();
             e.Property(b => b.CookiesJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<SkillRegistryRecord>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.Name).IsUnique();
+            e.Property(r => r.Name).IsRequired().HasMaxLength(64);
+            e.Property(r => r.Version).HasMaxLength(32);
+            e.Property(r => r.NpmPackage).HasMaxLength(256);
+            e.Property(r => r.BundleUrl).HasMaxLength(512);
+            e.Property(r => r.ManifestJson).HasColumnType("text");
+            e.Property(r => r.Status).IsRequired().HasMaxLength(16);
+            e.HasOne(r => r.PublishedBy).WithMany().HasForeignKey(r => r.PublishedById);
         });
 
         modelBuilder.Entity<UserSubscription>(e =>

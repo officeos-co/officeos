@@ -138,6 +138,47 @@ public sealed class SkillRuntimeClient
         return JsonSerializer.Deserialize<JsonElement>(text);
     }
 
+    /// <summary>
+    /// Install a skill from the registry into the runtime.
+    /// </summary>
+    public async Task InstallFromRegistryAsync(string name, string? npmPackage, string? bundleUrl, CancellationToken ct = default)
+    {
+        var payload = JsonSerializer.Serialize(new { name, npmPackage, bundleUrl });
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/install");
+        req.Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+        using var resp = await _http.SendAsync(req, ct);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var errorText = await resp.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException($"Install failed (HTTP {(int)resp.StatusCode}): {Trim(errorText, 500)}");
+        }
+
+        // Invalidate manifest cache so new skill appears immediately
+        _cachedManifests = null;
+        _logger.LogInformation("Skill {SkillName} installed from registry", name);
+    }
+
+    /// <summary>
+    /// Uninstall a skill from the runtime.
+    /// </summary>
+    public async Task UninstallFromRegistryAsync(string name, CancellationToken ct = default)
+    {
+        var payload = JsonSerializer.Serialize(new { name });
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/uninstall");
+        req.Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+        using var resp = await _http.SendAsync(req, ct);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var errorText = await resp.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("Skill {SkillName} uninstall failed (HTTP {StatusCode}): {Error}",
+                name, (int)resp.StatusCode, Trim(errorText, 200));
+        }
+
+        _cachedManifests = null;
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

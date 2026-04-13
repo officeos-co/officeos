@@ -7,17 +7,28 @@ import { SkillGridCard } from "@/components/SkillGridCard";
 import { UploadSkillOverlay } from "@/components/UploadSkillOverlay";
 import { GitHubSkillOverlay } from "@/components/GitHubSkillOverlay";
 import { useSkills } from "@/hooks/useSkills";
+import { useSkillRegistry } from "@/hooks/useSkillRegistry";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GitBranch, Upload } from "lucide-react";
 
 export default function SkillsPage() {
   const { skills, loading, error } = useSkills();
+  const { entries: registryEntries } = useSkillRegistry();
   const router = useRouter();
   const [showUpload, setShowUpload] = useState(false);
   const [showGitHub, setShowGitHub] = useState(false);
 
   const installed = skills.filter((s) => s.installed).length;
+
+  // Merge registry metadata into skills
+  const registryMap = new Map(registryEntries.map((e) => [e.name, e]));
+  const enrichedSkills = skills.map((s) => {
+    const reg = registryMap.get(s.name);
+    return reg
+      ? { ...s, registryVersion: reg.version, registryStatus: reg.status as "active" | "disabled" }
+      : s;
+  });
 
   return (
     <div>
@@ -63,7 +74,7 @@ export default function SkillsPage() {
       ) : (
         <div className="px-8 py-6">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {skills.map((skill) => (
+            {enrichedSkills.map((skill) => (
               <SkillGridCard
                 key={skill.name}
                 skill={skill}
