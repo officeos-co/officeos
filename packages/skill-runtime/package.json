@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "build": "node build.js",
+    "build": "node build.js && node extract-manifests.js",
     "start": "node dist/server.js",
     "dev": "node --watch dist/server.js"
   },

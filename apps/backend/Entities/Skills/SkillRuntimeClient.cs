@@ -12,11 +12,6 @@ public sealed class SkillRuntimeClient
     private readonly ILogger<SkillRuntimeClient> _logger;
     private readonly string _baseUrl;
 
-    // Cached manifests (refreshed periodically)
-    private IReadOnlyList<RuntimeManifest>? _cachedManifests;
-    private DateTime _lastManifestFetch = DateTime.MinValue;
-    private static readonly TimeSpan ManifestCacheTtl = TimeSpan.FromSeconds(30);
-
     public SkillRuntimeClient(HttpClient http, SkillRuntimeConfig config, ILogger<SkillRuntimeClient> logger)
     {
         _http = http;
@@ -89,31 +84,6 @@ public sealed class SkillRuntimeClient
     }
 
     /// <summary>
-    /// Fetch manifests from the runtime (cached for 5 minutes).
-    /// </summary>
-    public async Task<IReadOnlyList<RuntimeManifest>> GetManifestsAsync(CancellationToken ct = default)
-    {
-        if (_cachedManifests is not null && DateTime.UtcNow - _lastManifestFetch < ManifestCacheTtl)
-        {
-            return _cachedManifests;
-        }
-
-        using var resp = await _http.GetAsync($"{_baseUrl}/manifests", ct);
-        if (!resp.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Failed to fetch skill manifests from runtime (HTTP {StatusCode})", (int)resp.StatusCode);
-            return _cachedManifests ?? Array.Empty<RuntimeManifest>();
-        }
-        var text = await resp.Content.ReadAsStringAsync(ct);
-        var manifests = JsonSerializer.Deserialize<List<RuntimeManifest>>(text, JsonOptions)
-            ?? new List<RuntimeManifest>();
-        _cachedManifests = manifests;
-        _lastManifestFetch = DateTime.UtcNow;
-        _logger.LogDebug("Refreshed {Count} skill manifests from runtime", manifests.Count);
-        return manifests;
-    }
-
-    /// <summary>
     /// Send skill source files to the runtime for building and hot-loading.
     /// </summary>
     public async Task<JsonElement> BuildAsync(string name, object files, CancellationToken ct = default)
@@ -132,8 +102,7 @@ public sealed class SkillRuntimeClient
         }
 
         var text = await resp.Content.ReadAsStringAsync(ct);
-        // Invalidate manifest cache so new skill appears immediately
-        _cachedManifests = null;
+
         _logger.LogInformation("Skill {SkillName} built successfully", name);
         return JsonSerializer.Deserialize<JsonElement>(text);
     }
@@ -154,8 +123,7 @@ public sealed class SkillRuntimeClient
             throw new HttpRequestException($"Install failed (HTTP {(int)resp.StatusCode}): {Trim(errorText, 500)}");
         }
 
-        // Invalidate manifest cache so new skill appears immediately
-        _cachedManifests = null;
+
         _logger.LogInformation("Skill {SkillName} installed from registry", name);
     }
 
@@ -175,8 +143,6 @@ public sealed class SkillRuntimeClient
             _logger.LogWarning("Skill {SkillName} uninstall failed (HTTP {StatusCode}): {Error}",
                 name, (int)resp.StatusCode, Trim(errorText, 200));
         }
-
-        _cachedManifests = null;
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

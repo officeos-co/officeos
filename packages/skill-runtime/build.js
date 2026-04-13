@@ -54,6 +54,19 @@ for (const name of skillDirs) {
   });
 }
 
+// Bundle manifest.ts as standalone module for extract-manifests.js
+await build({
+  entryPoints: ["src/manifest.ts"],
+  bundle: true,
+  platform: "node",
+  target: "node22",
+  format: "esm",
+  outfile: "dist/manifest.js",
+  sourcemap: true,
+  external: ["node:*"],
+  plugins: [sdkResolvePlugin],
+});
+
 console.log(
-  `Built runtime + ${skillDirs.length} skills: ${skillDirs.join(", ")}`
+  `Built runtime + ${skillDirs.length} skills + manifest extractor: ${skillDirs.join(", ")}`
 );

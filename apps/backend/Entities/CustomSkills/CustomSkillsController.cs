@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
+using EnterpriseAgentOs.Api.Entities.Skills;
 
 namespace EnterpriseAgentOs.Api.Entities.CustomSkills;
 
@@ -125,13 +126,13 @@ public sealed class CustomSkillsController : ControllerBase
         // Send to skill-runtime for building
         try
         {
-            await _runtime.BuildAsync(skillName, files, ct);
+            var buildResult = await _runtime.BuildAsync(skillName, files, ct);
             record.BuildStatus = "ready";
             record.LastSyncAt = DateTime.UtcNow;
             _logger.LogInformation("Custom skill {SkillName} built successfully", skillName);
 
             // Create SkillRecord in the catalog so the skill appears in GET /api/skills
-            await CreateSkillRecordFromRuntime(skillName, s3Key, ct);
+            await CreateSkillRecordFromBuildResult(skillName, s3Key, buildResult, ct);
         }
         catch (Exception ex)
         {
@@ -233,23 +234,31 @@ public sealed class CustomSkillsController : ControllerBase
         return NoContent();
     }
 
-    private async Task CreateSkillRecordFromRuntime(string skillName, string s3Key, CancellationToken ct)
+    private async Task CreateSkillRecordFromBuildResult(
+        string skillName, string s3Key, System.Text.Json.JsonElement buildResult, CancellationToken ct)
     {
         try
         {
-            var manifests = await _runtime.GetManifestsAsync(ct);
-            var manifest = manifests.FirstOrDefault(m =>
-                string.Equals(m.Name, skillName, StringComparison.OrdinalIgnoreCase));
-            if (manifest is null)
-            {
-                _logger.LogWarning("Could not find manifest for uploaded skill {SkillName} in runtime", skillName);
-                return;
-            }
-
             var jsonOptions = new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true,
             };
+
+            // Build response is { ok: true, manifest: { ... } }
+            if (!buildResult.TryGetProperty("manifest", out var manifestElement))
+            {
+                _logger.LogWarning("Build result for {SkillName} did not contain a manifest", skillName);
+                return;
+            }
+
+            var manifest = System.Text.Json.JsonSerializer.Deserialize<RuntimeManifest>(
+                manifestElement.GetRawText(), jsonOptions);
+            if (manifest is null)
+            {
+                _logger.LogWarning("Could not deserialize manifest for uploaded skill {SkillName}", skillName);
+                return;
+            }
 
             await _catalog.UpsertAsync(new SkillRecord
             {

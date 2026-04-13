@@ -1,63 +1,38 @@
 # @harro/skill-runtime
 
-> Node.js execution service for EnterpriseAgentOS skills — loads, validates, and runs skill actions behind an HTTP API.
+> Node.js execution service for EnterpriseAgentOS skills — validates, sandboxes, and runs skill actions behind an HTTP API.
 
 ## Highlights
 
+- **Pure executor.** The runtime only runs skill actions. Skill metadata (manifests) are extracted at build time and seeded into the database by CI — the runtime never determines what skills exist.
 - **Zero-config skill discovery.** Bundles all skills from `packages/skills/` at build time. Drop in a new `skill.ts`, rebuild, done.
-- **Dynamic registry.** Can also load skills at runtime from the backend's skill registry — no Docker rebuild needed for registry-published skills.
 - **Zod-powered validation.** Every action call is validated against the skill's Zod schema before execution. Bad params get a structured error, not a crash.
 - **Browser sessions built in.** The `browser` skill gets a managed Playwright session with cookie persistence. Other skills get a sandboxed context with injected credentials.
-- **GraphQL-ready manifests.** Exposes skill metadata as JSON manifests that the backend's `SkillTypeModule` converts into a dynamic GraphQL schema.
+- **Build-time manifest extraction.** `npm run build` bundles skills AND extracts JSON manifests to `dist/manifests/`. CI seeds these directly into the database.
 
 ## Overview
 
-The skill runtime is the bridge between the C# backend and TypeScript skill code. It runs as a sidecar service in Kubernetes, exposes two HTTP endpoints (`/manifest` and `/execute`), and manages the lifecycle of skill execution.
+The skill runtime is the bridge between the C# backend and TypeScript skill code. It runs as a sidecar service in Kubernetes and exposes an HTTP API for executing skill actions.
 
 ```
-Backend (C#)                    Skill Runtime (Node.js)              Skills (TypeScript)
-    │                                 │                                    │
-    ├── GET /manifest ──────────────▶ │ ── loadSkills() ─────────────────▶ │
-    │   (GraphQL schema generation)   │    (reads dist/skills/*.js)        │
-    │                                 │                                    │
-    ├── POST /execute ──────────────▶ │ ── validate(Zod) ── execute() ──▶ │
-    │   {skill, action, params,       │    (sandbox context injected)      │
-    │    credentials, sessionContext} │                                    │
-    │◀── {success, result, error} ───│◀───────────────── return ──────────│
+CI Pipeline                         Database (Postgres)
+    │                                    │
+    ├── build → extract manifests ─────▶ │ POST /api/internal/seed-manifests
+    │                                    │
+    │                                    │
+Backend (C#)                        Skill Runtime (Node.js)              Skills (TypeScript)
+    │                                    │                                    │
+    ├── POST /execute ─────────────────▶ │ ── validate(Zod) ── execute() ──▶ │
+    │   {skill, action, params,          │    (sandbox context injected)      │
+    │    credentials, sessionContext}    │                                    │
+    │◀── {success, result, error} ──────│◀───────────────── return ──────────│
 ```
 
-The backend never runs skill code directly. It sends an execute request with decrypted credentials, the runtime validates params, creates a sandboxed context, runs the action, and returns the result.
+The database is the source of truth for skill metadata. The backend reads skill manifests from the database — not from the runtime. CI extracts manifests at build time and seeds them directly via `POST /api/internal/seed-manifests`.
 
 This package is part of [EnterpriseAgentOS](https://github.com/harrokrog/EnterpriseAgentOs).
 
 ## API
-
-### `GET /manifest`
-
-Returns all loaded skill manifests. Used by the backend at startup to seed the skill registry and generate GraphQL types.
-
-```json
-[
-  {
-    "name": "notion",
-    "title": "Notion",
-    "emoji": "📝",
-    "description": "Read and write Notion pages and databases.",
-    "doc": "# Notion Skill\n...",
-    "actions": {
-      "search": {
-        "description": "Search across all pages",
-        "parameters": { "type": "object", "properties": { "query": { "type": "string" } } },
-        "returns": { "type": "array" }
-      }
-    }
-  }
-]
-```
-
-### `GET /manifest/:name`
-
-Returns the manifest for a single skill by name.
 
 ### `POST /execute`
 
@@ -82,22 +57,30 @@ Response:
 }
 ```
 
-### `POST /install`
+### `POST /build`
 
-Install a skill from npm at runtime (registry skills).
+Build a custom skill from source files, hot-load it into the runtime, and return its manifest.
 
-### `POST /uninstall`
+### `POST /install` / `POST /uninstall`
 
-Unload a registry-installed skill.
+Install or unload a registry-published skill at runtime.
 
-## Installation
+### `GET /manifests` (debug only)
+
+Lists all currently loaded skill manifests. Not used by production code — manifests are seeded from build artifacts.
+
+## Build
 
 ```bash
 cd packages/skill-runtime
 npm install
-npm run build    # Bundles all skills + runtime into dist/
+npm run build    # Bundles skills + extracts manifests to dist/manifests/
 npm start        # Starts HTTP server on :3001
 ```
+
+The build process:
+1. `build.js` — esbuild bundles the runtime server, each skill, and the manifest extractor
+2. `extract-manifests.js` — imports each bundled skill, calls `extractManifest()`, writes JSON to `dist/manifests/`
 
 ### Environment variables
 
