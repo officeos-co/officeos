@@ -1,0 +1,107 @@
+"use client";
+
+import { useState } from "react";
+import { TopBar } from "@/components/shared/TopBar";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ProviderConfigureOverlay } from "@/components/providers/ProviderConfigureOverlay";
+import { useProviders, type Provider } from "@/hooks/useProviders";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+/** Providers whose keys are managed by the platform — no BYOK allowed. */
+const PLATFORM_KEY_PROVIDERS = new Set(["anthropic", "google", "xai"]);
+
+export default function ProvidersPage() {
+  const { providers, loading, error } = useProviders();
+  const [selected, setSelected] = useState<Provider | null>(null);
+
+  return (
+    <div>
+      <TopBar
+        title="Providers"
+        subtitle="LLM providers — Anthropic, Gemini, and xAI use platform keys. OpenAI supports custom BYOK keys."
+      />
+
+      {error && (
+        <div className="mx-8 mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="mx-8 my-6 rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Provider</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Key source</TableHead>
+                <TableHead className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-3 w-28" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-8 w-20 rounded-md ml-auto" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="mx-8 my-6 rounded-lg border border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Provider</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Key source</TableHead>
+                <TableHead className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {providers.map((p) => {
+                const isPlatformManaged = PLATFORM_KEY_PROVIDERS.has(p.name);
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{p.displayName}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={p.configured ? "ready" : "not installed"} />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {isPlatformManaged ? "Platform key" : "Your key (BYOK)"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {!isPlatformManaged && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelected(p)}
+                        >
+                          {p.configured ? "Update" : "Configure"}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <ProviderConfigureOverlay provider={selected} onClose={() => setSelected(null)} />
+    </div>
+  );
+}
