@@ -28,6 +28,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
     public DbSet<ChannelConnectionRecord> ChannelConnections => Set<ChannelConnectionRecord>();
     public DbSet<AgentChannelBindingRecord> AgentChannelBindings => Set<AgentChannelBindingRecord>();
+    public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -221,6 +222,17 @@ public sealed class EaosDbContext : DbContext
             e.Property(b => b.Config).HasColumnType("text");
             e.HasOne(b => b.Agent).WithMany().HasForeignKey(b => b.AgentId);
             e.HasOne(b => b.ChannelConnection).WithMany().HasForeignKey(b => b.ChannelConnectionId);
+        });
+
+        modelBuilder.Entity<SystemEventRecord>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.CreatedAt);
+            e.HasIndex(s => s.Severity);
+            e.HasIndex(s => s.Category);
+            e.HasIndex(s => s.SkillName);
+            e.HasIndex(s => s.AgentId);
+            e.Property(s => s.DetailJson).HasColumnType("text");
         });
     }
 }

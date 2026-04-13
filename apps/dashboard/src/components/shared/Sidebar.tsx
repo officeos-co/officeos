@@ -23,8 +23,10 @@ import {
   Network,
   Sparkles,
   Plug,
+  Bell,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useSystemEvents } from "@/hooks/useSystemEvents";
 
 function statusDot(status: string) {
   if (status === "running" || status === "ready" || status === "online")
@@ -112,6 +114,8 @@ function MainSidebar({
   const { agents } = useAgents();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
+  const { unacknowledgedCount: errorCount } = useSystemEvents(50);
+
   const runningCount = agents.filter(
     (a) => a.status === "running" || a.status === "ready" || a.status === "online",
   ).length;
@@ -135,6 +139,7 @@ function MainSidebar({
             { href: "/", label: "Dashboard", icon: LayoutDashboard },
             { href: "/agents", label: "Agents", icon: Bot },
             { href: "/skills", label: "Tools", icon: Wrench },
+            { href: "/system-events", label: "Events", icon: Bell },
           ].map((item) => {
             const isActive =
               item.href === "/"
@@ -159,6 +164,11 @@ function MainSidebar({
                   <span className="ml-auto flex items-center gap-1.5 text-[11px] text-emerald-600">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     {runningCount} live
+                  </span>
+                )}
+                {item.href === "/system-events" && errorCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
+                    {errorCount > 99 ? "99+" : errorCount}
                   </span>
                 )}
               </Link>

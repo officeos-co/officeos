@@ -32,12 +32,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IOrgBillingService, EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IStripeWebhookService, EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService, EnterpriseAgentOs.Api.Entities.Billing.CreditRecordingService>();
+        services.AddScoped<EnterpriseAgentOs.Api.Entities.Events.ISystemEventService, EnterpriseAgentOs.Api.Entities.Events.SystemEventService>();
         return services;
     }
 
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
         services.AddSingleton<RunnerJobWaiter>();
+        services.AddSingleton<EnterpriseAgentOs.Api.Entities.Events.SystemEventBroadcaster>();
         services.AddHostedService<RunnerJobTimeoutService>();
         return services;
     }

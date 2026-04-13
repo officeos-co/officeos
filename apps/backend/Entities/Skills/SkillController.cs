@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
+using EnterpriseAgentOs.Api.Database.Models;
+using EnterpriseAgentOs.Api.Entities.Events;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -13,19 +15,22 @@ public sealed class SkillController : ControllerBase
     private readonly SkillRuntimeClient _runtime;
     private readonly IAmazonS3 _s3;
     private readonly SkillStorageConfig _storage;
+    private readonly ISystemEventService _events;
 
     public SkillController(
         ISkillService service,
         ISkillCatalogRepository catalog,
         SkillRuntimeClient runtime,
         IAmazonS3 s3,
-        SkillStorageConfig storage)
+        SkillStorageConfig storage,
+        ISystemEventService events)
     {
         _service = service;
         _catalog = catalog;
         _runtime = runtime;
         _s3 = s3;
         _storage = storage;
+        _events = events;
     }
 
     // ---------- catalog ----------
@@ -157,10 +162,26 @@ public sealed class SkillController : ControllerBase
             {
                 return Ok(result.Result);
             }
+            await _events.RecordAsync(new SystemEventRecord
+            {
+                Severity = "error",
+                Category = "skill_execution",
+                Message = $"Skill {skill}.{action} failed: {result.Error}",
+                SkillName = skill,
+                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
+            });
             return UnprocessableEntity(new { error = result.Error });
         }
         catch (HttpRequestException ex)
         {
+            await _events.RecordAsync(new SystemEventRecord
+            {
+                Severity = "error",
+                Category = "skill_execution",
+                Message = $"Cloud skill-runtime unreachable for {skill}.{action}: {ex.Message}",
+                SkillName = skill,
+                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
+            });
             return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
         }
     }

@@ -1,4 +1,6 @@
 using System.Text.Json;
+using EnterpriseAgentOs.Api.Database.Models;
+using EnterpriseAgentOs.Api.Entities.Events;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -13,6 +15,7 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly IRunnerJobRepository _runnerJobs;
     private readonly RunnerJobWaiter _jobWaiter;
     private readonly IBrowserSessionRepository _browserSessions;
+    private readonly ISystemEventService _events;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -23,6 +26,7 @@ public sealed class AgentSkillsController : ControllerBase
         IRunnerJobRepository runnerJobs,
         RunnerJobWaiter jobWaiter,
         IBrowserSessionRepository browserSessions,
+        ISystemEventService events,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
@@ -31,6 +35,7 @@ public sealed class AgentSkillsController : ControllerBase
         _runnerJobs = runnerJobs;
         _jobWaiter = jobWaiter;
         _browserSessions = browserSessions;
+        _events = events;
         _logger = logger;
     }
 
@@ -111,10 +116,29 @@ public sealed class AgentSkillsController : ControllerBase
             // Strip session metadata from the response to the agent
             if (result.Success)
                 return Ok(new { success = result.Success, result = result.Result });
+
+            await _events.RecordAsync(new SystemEventRecord
+            {
+                Severity = "error",
+                Category = "skill_execution",
+                Message = $"Skill {body.Skill}.{body.Action} failed: {result.Error}",
+                SkillName = body.Skill,
+                AgentId = (Guid)HttpContext.Items["agent-id"]!,
+                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
+            });
             return UnprocessableEntity(new { success = result.Success, error = result.Error });
         }
         catch (HttpRequestException ex)
         {
+            await _events.RecordAsync(new SystemEventRecord
+            {
+                Severity = "error",
+                Category = "skill_execution",
+                Message = $"Cloud skill-runtime unreachable for {body.Skill}.{body.Action}: {ex.Message}",
+                SkillName = body.Skill,
+                AgentId = (Guid)HttpContext.Items["agent-id"]!,
+                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
+            });
             return StatusCode(StatusCodes.Status502BadGateway,
                 new { error = $"Cloud skill-runtime unreachable: {ex.Message}" });
         }
@@ -155,6 +179,15 @@ public sealed class AgentSkillsController : ControllerBase
             var result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(30), ct);
             if (result.Success)
                 return Ok(new { success = true, result = result.Result });
+
+            await _events.RecordAsync(new SystemEventRecord
+            {
+                Severity = "error",
+                Category = "skill_execution",
+                Message = $"Runner skill {body.Skill}.{body.Action} failed on '{runner.Name}': {result.Error}",
+                SkillName = body.Skill,
+                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
+            });
             return UnprocessableEntity(new
             {
                 success = false,
@@ -166,6 +199,14 @@ public sealed class AgentSkillsController : ControllerBase
         catch (TimeoutException)
         {
             _jobWaiter.Remove(job.Id);
+            await _events.RecordAsync(new SystemEventRecord
+            {
+                Severity = "error",
+                Category = "skill_execution",
+                Message = $"Runner '{runner.Name}' timed out executing {body.Skill}.{body.Action} (30s limit)",
+                SkillName = body.Skill,
+                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
+            });
             return StatusCode(StatusCodes.Status504GatewayTimeout, new
             {
                 error = $"Runner '{runner.Name}' did not complete the job within 30 seconds. "
