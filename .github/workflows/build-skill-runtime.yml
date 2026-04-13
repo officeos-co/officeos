@@ -34,3 +34,29 @@ jobs:
           tags: harkro123/eaos-skill-runtime:latest
           cache-from: type=gha,scope=skill-runtime
           cache-to: type=gha,scope=skill-runtime,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Apply manifest and restart skill-runtime
+        run: |
+          kubectl config set-cluster nova --server=https://tailscale-operator.tail82aae1.ts.net:443 --insecure-skip-tls-verify=true
+          kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
+          kubectl apply -f k8s/backend.yaml
+          kubectl rollout restart deployment/eaos-skill-runtime
+          kubectl rollout status deployment/eaos-skill-runtime --timeout=180s
+          # Backend seeds skills at startup — restart it so it re-discovers new skills
+          kubectl rollout restart deployment/eaos-backend-prod
+          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
