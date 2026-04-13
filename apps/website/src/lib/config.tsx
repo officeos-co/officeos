@@ -277,8 +277,8 @@ export const siteConfig = {
 		{
 			title: "Legal",
 			links: [
-				{ id: 5, title: "Privacy", url: "#" },
-				{ id: 6, title: "Terms", url: "#" },
+				{ id: 5, title: "Privacy", url: "/privacy" },
+				{ id: 6, title: "Terms", url: "/terms" },
 			],
 		},
 	],
