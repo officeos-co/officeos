@@ -117,6 +117,39 @@ async function installSkillPackage(
   }
 }
 
+/**
+ * On-demand: fetch a skill bundle from the backend and load it.
+ * Called when /execute receives a request for an unknown skill.
+ */
+async function loadSkillFromBackend(skillName: string): Promise<boolean> {
+  try {
+    const resp = await fetch(`${BACKEND_URL}/api/skills/${encodeURIComponent(skillName)}/bundle`);
+    if (!resp.ok) {
+      console.warn(`No bundle available for skill ${skillName} (HTTP ${resp.status})`);
+      return false;
+    }
+
+    const content = await resp.text();
+    const skillsDir = resolve(__dirname, "skills");
+    await mkdir(skillsDir, { recursive: true });
+    const bundlePath = resolve(skillsDir, `${skillName}.js`);
+    await writeFile(bundlePath, content, "utf-8");
+
+    const mod = await import(pathToFileURL(bundlePath).href + `?t=${Date.now()}`);
+    const def = mod.default?.default ?? mod.default;
+    if (def?.name && def?.actions) {
+      executor.register(def);
+      console.log(`On-demand loaded skill from backend: ${def.name}`);
+      return true;
+    }
+    console.warn(`Invalid skill module from backend bundle: ${skillName}`);
+    return false;
+  } catch (err) {
+    console.error(`Failed to load skill ${skillName} from backend:`, err);
+    return false;
+  }
+}
+
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -177,6 +210,15 @@ async function handleRequest(
         error: "Missing required fields: skill, action",
       });
       return;
+    }
+
+    // Try on-demand loading if the skill is not registered
+    if (!executor.getManifest(body.skill)) {
+      const loaded = await loadSkillFromBackend(body.skill);
+      if (!loaded) {
+        json(res, 422, { success: false, error: `Unknown skill: ${body.skill}` });
+        return;
+      }
     }
 
     const result = await executor.execute(body);

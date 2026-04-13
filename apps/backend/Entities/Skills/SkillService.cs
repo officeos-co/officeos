@@ -1,5 +1,4 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Api.Entities.AgentSkills;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -7,7 +6,14 @@ public sealed class SkillService : ISkillService
 {
     private static readonly HashSet<string> SystemSkills = new(StringComparer.OrdinalIgnoreCase) { "browser" };
 
+    private static readonly JsonSerializerOptions ManifestJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly ISkillRepository _repository;
+    private readonly ISkillCatalogRepository _catalog;
     private readonly IAgentSkillRepository _agentSkills;
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
@@ -15,12 +21,14 @@ public sealed class SkillService : ISkillService
 
     public SkillService(
         ISkillRepository repository,
+        ISkillCatalogRepository catalog,
         IAgentSkillRepository agentSkills,
         SkillCredentialProtector protector,
         SkillRuntimeClient runtime,
         ILogger<SkillService> logger)
     {
         _repository = repository;
+        _catalog = catalog;
         _agentSkills = agentSkills;
         _protector = protector;
         _runtime = runtime;
@@ -29,51 +37,51 @@ public sealed class SkillService : ISkillService
 
     public async Task<IReadOnlyList<SkillDto>> ListAsync(CancellationToken ct = default)
     {
+        var skills = await _catalog.ListActiveAsync(ct);
         var rows = (await _repository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
-        var runtimeManifests = await _runtime.GetManifestsAsync(ct);
 
-        return runtimeManifests
-            .Select(m =>
+        return skills
+            .Select(s =>
             {
-                rows.TryGetValue(m.Name, out var row);
-                return ToDto(m, row);
+                rows.TryGetValue(s.Name, out var row);
+                return ToDto(s, row);
             })
             .ToList();
     }
 
     public async Task<SkillDto?> GetAsync(string name, CancellationToken ct = default)
     {
-        var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null) return null;
-        var row = await _repository.GetByNameAsync(manifest.Name, ct);
-        return ToDto(manifest, row);
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null || skill.Status != "active") return null;
+        var row = await _repository.GetByNameAsync(skill.Name, ct);
+        return ToDto(skill, row);
     }
 
     public async Task<SkillDto?> InstallAsync(string name, CancellationToken ct = default)
     {
-        var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null)
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null)
         {
-            _logger.LogWarning("Install failed: skill {SkillName} not found in runtime", name);
+            _logger.LogWarning("Install failed: skill {SkillName} not found in catalog", name);
             return null;
         }
-        var row = await _repository.UpsertAsync(manifest.Name, enabled: true, encryptedCredentials: null, ct);
-        _logger.LogInformation("Skill {SkillName} installed", manifest.Name);
-        return ToDto(manifest, row);
+        var row = await _repository.UpsertAsync(skill.Name, enabled: true, encryptedCredentials: null, ct);
+        _logger.LogInformation("Skill {SkillName} installed", skill.Name);
+        return ToDto(skill, row);
     }
 
     public async Task<SkillDto?> UninstallAsync(string name, CancellationToken ct = default)
     {
-        var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null)
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null)
         {
-            _logger.LogWarning("Uninstall failed: skill {SkillName} not found in runtime", name);
+            _logger.LogWarning("Uninstall failed: skill {SkillName} not found in catalog", name);
             return null;
         }
-        var row = await _repository.UpsertAsync(manifest.Name, enabled: false, encryptedCredentials: null, ct);
-        _logger.LogInformation("Skill {SkillName} uninstalled", manifest.Name);
-        return ToDto(manifest, row);
+        var row = await _repository.UpsertAsync(skill.Name, enabled: false, encryptedCredentials: null, ct);
+        _logger.LogInformation("Skill {SkillName} uninstalled", skill.Name);
+        return ToDto(skill, row);
     }
 
     public async Task<SkillDto?> PutCredentialsAsync(
@@ -81,12 +89,12 @@ public sealed class SkillService : ISkillService
         IReadOnlyDictionary<string, string> credentials,
         CancellationToken ct = default)
     {
-        var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null) return null;
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null) return null;
 
+        var manifest = DeserializeManifest(skill);
         var credFields = ToCredentialFields(manifest);
 
-        // Validate required fields.
         var missing = credFields
             .Where(f => f.Required && string.IsNullOrWhiteSpace(GetField(credentials, f.Key)))
             .Select(f => f.Key)
@@ -94,10 +102,9 @@ public sealed class SkillService : ISkillService
         if (missing.Count > 0)
         {
             throw new InvalidOperationException(
-                $"Missing required credential fields for skill '{manifest.Name}': {string.Join(", ", missing)}");
+                $"Missing required credential fields for skill '{skill.Name}': {string.Join(", ", missing)}");
         }
 
-        // Only keep fields the manifest knows about.
         var known = credFields.Select(f => f.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var filtered = credentials
             .Where(kv => known.Contains(kv.Key))
@@ -106,22 +113,22 @@ public sealed class SkillService : ISkillService
         var json = JsonSerializer.Serialize(filtered);
         var ciphertext = _protector.Protect(json);
 
-        var row = await _repository.UpsertAsync(manifest.Name, enabled: null, encryptedCredentials: ciphertext, ct);
+        var row = await _repository.UpsertAsync(skill.Name, enabled: null, encryptedCredentials: ciphertext, ct);
         _logger.LogInformation("Credentials updated for skill {SkillName} ({FieldCount} fields)",
-            manifest.Name, filtered.Count);
-        return ToDto(manifest, row);
+            skill.Name, filtered.Count);
+        return ToDto(skill, row);
     }
 
     public async Task<IReadOnlyDictionary<string, string>?> GetDecryptedCredentialsAsync(
         string name,
         CancellationToken ct = default)
     {
-        var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null) return null;
-        var row = await _repository.GetByNameAsync(manifest.Name, ct);
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null) return null;
+        var row = await _repository.GetByNameAsync(skill.Name, ct);
         if (row?.Enabled != true || string.IsNullOrEmpty(row.EncryptedCredentials))
         {
-            if (SystemSkills.Contains(name))
+            if (skill.IsSystem || SystemSkills.Contains(name))
                 return new Dictionary<string, string>();
             return null;
         }
@@ -132,12 +139,12 @@ public sealed class SkillService : ISkillService
 
     public async Task<CapabilitiesResponse> ListCapabilitiesAsync(Guid? agentId = null, CancellationToken ct = default)
     {
+        var skills = await _catalog.ListActiveAsync(ct);
         var rows = (await _repository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
         var caps = new List<CapabilityDto>();
         var docs = new List<SkillDocDto>();
 
-        // If an agentId is provided, only include skills assigned to that agent (plus system skills).
         HashSet<string>? assignedSkills = null;
         if (agentId.HasValue)
         {
@@ -145,42 +152,40 @@ public sealed class SkillService : ISkillService
             assignedSkills = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
         }
 
-        var runtimeManifests = await _runtime.GetManifestsAsync(ct);
-
-        foreach (var manifest in runtimeManifests)
+        foreach (var skill in skills)
         {
-            var isSystem = SystemSkills.Contains(manifest.Name);
-            rows.TryGetValue(manifest.Name, out var row);
+            var isSystem = skill.IsSystem || SystemSkills.Contains(skill.Name);
+            rows.TryGetValue(skill.Name, out var row);
             if (!isSystem && (row is null || !row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials))) continue;
+            if (assignedSkills is not null && !isSystem && !assignedSkills.Contains(skill.Name)) continue;
 
-            // When filtering by agent, skip non-system skills that are not assigned.
-            if (assignedSkills is not null && !isSystem && !assignedSkills.Contains(manifest.Name)) continue;
+            var manifest = DeserializeManifest(skill);
 
             foreach (var (actionName, action) in manifest.Actions)
             {
-                var toolName = $"{manifest.Name}.{actionName}";
+                var toolName = $"{skill.Name}.{actionName}";
                 var parameters = action.Params is JsonElement p
                     ? p
                     : JsonDocument.Parse("{}").RootElement;
                 caps.Add(new CapabilityDto(
-                    Skill: manifest.Name,
+                    Skill: skill.Name,
                     Name: toolName,
                     Description: action.Description,
                     Parameters: parameters,
-                    Route: $"/api/agents/me/skills/{manifest.Name}/{actionName}"));
+                    Route: $"/api/agents/me/skills/{skill.Name}/{actionName}"));
             }
 
-            docs.Add(new SkillDocDto(manifest.Name, manifest.Doc));
+            docs.Add(new SkillDocDto(skill.Name, manifest.Doc));
         }
         return new CapabilitiesResponse(caps, docs);
     }
 
     public async Task<SkillDto?> SetRunTargetAsync(string name, string runTarget, CancellationToken ct = default)
     {
-        var manifest = await GetRuntimeManifestAsync(name, ct);
-        if (manifest is null)
+        var skill = await _catalog.GetByNameAsync(name, ct);
+        if (skill is null)
         {
-            _logger.LogWarning("SetRunTarget failed: skill {SkillName} not found in runtime", name);
+            _logger.LogWarning("SetRunTarget failed: skill {SkillName} not found in catalog", name);
             return null;
         }
         _logger.LogInformation("Setting run target for skill {SkillName} to {RunTarget}", name, runTarget);
@@ -194,7 +199,7 @@ public sealed class SkillService : ISkillService
         row.RunTarget = runTarget == "runner" ? "runner" : null;
         await _repository.SetRunTargetAsync(n, row.RunTarget, ct);
         row = await _repository.GetByNameAsync(n, ct);
-        return ToDto(manifest, row);
+        return ToDto(skill, row);
     }
 
     public async Task<string> GetRunTargetAsync(string name, CancellationToken ct = default)
@@ -203,31 +208,31 @@ public sealed class SkillService : ISkillService
         return row?.RunTarget ?? "cloud";
     }
 
-    private async Task<RuntimeManifest?> GetRuntimeManifestAsync(string name, CancellationToken ct)
+    private static RuntimeManifest DeserializeManifest(SkillRecord skill)
     {
-        var manifests = await _runtime.GetManifestsAsync(ct);
-        return manifests.FirstOrDefault(m =>
-            string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+        return JsonSerializer.Deserialize<RuntimeManifest>(skill.ManifestJson, ManifestJsonOptions)
+            ?? throw new InvalidOperationException($"Failed to deserialize manifest for skill '{skill.Name}'");
     }
 
-    private static SkillDto ToDto(RuntimeManifest manifest, SkillCredentialRecord? row)
+    private static SkillDto ToDto(SkillRecord skill, SkillCredentialRecord? row)
     {
-        var isSystem = SystemSkills.Contains(manifest.Name);
+        var manifest = DeserializeManifest(skill);
+        var isSystem = skill.IsSystem || SystemSkills.Contains(skill.Name);
         var tools = manifest.Actions
             .Select(kv =>
             {
                 var parameters = kv.Value.Params is JsonElement p
                     ? p
                     : JsonDocument.Parse("{}").RootElement;
-                return new LlmToolDto($"{manifest.Name}.{kv.Key}", kv.Value.Description, parameters);
+                return new LlmToolDto($"{skill.Name}.{kv.Key}", kv.Value.Description, parameters);
             })
             .ToList();
 
         return new SkillDto(
-            Name: manifest.Name,
-            Title: manifest.Title,
-            Description: manifest.Description,
-            Emoji: manifest.Emoji,
+            Name: skill.Name,
+            Title: skill.Title,
+            Description: skill.Description,
+            Emoji: skill.Emoji,
             Installed: isSystem || row?.Enabled == true,
             Configured: isSystem || !string.IsNullOrEmpty(row?.EncryptedCredentials),
             RunTarget: row?.RunTarget ?? "cloud",

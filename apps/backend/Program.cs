@@ -174,6 +174,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
     await SeedProvidersAsync(db);
+    await SeedBuiltinSkillsAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())
@@ -227,6 +228,76 @@ static async Task SeedProvidersAsync(EaosDbContext db)
 
     await db.Providers.AddRangeAsync(seed);
     await db.SaveChangesAsync();
+}
+
+static async Task SeedBuiltinSkillsAsync(IServiceProvider services)
+{
+    var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("SkillSeeder");
+    var runtime = services.GetRequiredService<SkillRuntimeClient>();
+    var db = services.GetRequiredService<EaosDbContext>();
+
+    IReadOnlyList<RuntimeManifest> manifests;
+    try
+    {
+        manifests = await runtime.GetManifestsAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Could not reach skill-runtime for seeding — builtin skills will be seeded on next startup");
+        return;
+    }
+
+    if (manifests.Count == 0)
+    {
+        logger.LogWarning("Skill-runtime returned 0 manifests — skipping seed");
+        return;
+    }
+
+    var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+    };
+
+    foreach (var manifest in manifests)
+    {
+        var name = manifest.Name.Trim().ToLowerInvariant();
+        var existing = await db.Skills.FirstOrDefaultAsync(s => s.Name == name);
+
+        var manifestJson = System.Text.Json.JsonSerializer.Serialize(manifest, jsonOptions);
+
+        if (existing is null)
+        {
+            db.Skills.Add(new SkillRecord
+            {
+                Name = name,
+                Title = manifest.Title,
+                Description = manifest.Description,
+                Emoji = manifest.Emoji,
+                Doc = manifest.Doc,
+                Source = "builtin",
+                ManifestJson = manifestJson,
+                IsSystem = systemSkills.Contains(name),
+                Status = "active",
+            });
+            logger.LogInformation("Seeded builtin skill: {SkillName}", name);
+        }
+        else if (existing.Source == "builtin")
+        {
+            // Update manifest for builtin skills on every startup to stay in sync
+            existing.Title = manifest.Title;
+            existing.Description = manifest.Description;
+            existing.Emoji = manifest.Emoji;
+            existing.Doc = manifest.Doc;
+            existing.ManifestJson = manifestJson;
+            existing.IsSystem = systemSkills.Contains(name);
+            existing.UpdatedAt = DateTime.UtcNow;
+            logger.LogDebug("Updated builtin skill manifest: {SkillName}", name);
+        }
+    }
+
+    await db.SaveChangesAsync();
+    logger.LogInformation("Skill seeding complete — {Count} builtin skills", manifests.Count);
 }
 
 // Make Program visible to test project (WebApplicationFactory<Program>)

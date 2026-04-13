@@ -7,6 +7,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAgentRepository, AgentRepository>();
         services.AddScoped<IProviderRepository, ProviderRepository>();
         services.AddScoped<ISkillRepository, SkillRepository>();
+        services.AddScoped<ISkillCatalogRepository, SkillCatalogRepository>();
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
         services.AddScoped<IAgentSkillRepository, AgentSkillRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
