@@ -21,6 +21,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
     public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
     public DbSet<BrowserSessionRecord> BrowserSessions => Set<BrowserSessionRecord>();
+    public DbSet<AgentSkillRecord> AgentSkills => Set<AgentSkillRecord>();
     public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
     public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
 
@@ -137,6 +138,14 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(b => b.Id);
             e.HasIndex(b => b.AgentId).IsUnique();
             e.Property(b => b.CookiesJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<AgentSkillRecord>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.AgentId, a.SkillName }).IsUnique();
+            e.HasIndex(a => a.AgentId);
+            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
         });
 
         modelBuilder.Entity<UserSubscription>(e =>

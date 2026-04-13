@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, CheckCircle } from "lucide-react";
+import { ChevronRight, CheckCircle, Plus, X } from "lucide-react";
 import type { Agent } from "@/hooks/useAgents";
 import { apiFetch } from "@/hooks/useApi";
+import { useAgentSkills } from "@/hooks/useAgentSkills";
 import { cn } from "@/lib/utils";
 
 type Skill = {
@@ -66,6 +67,16 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
   const [nativeExpanded, setNativeExpanded] = useState(false);
   const [selectedModel, setSelectedModel] = useState(agent.model ?? "auto");
   const [saving, setSaving] = useState(false);
+  const [showAddSkill, setShowAddSkill] = useState(false);
+
+  const {
+    assignments,
+    loading: assignmentsLoading,
+    assign,
+    remove: removeAssignment,
+  } = useAgentSkills(agent.id);
+
+  const assignedNames = new Set(assignments.map((a) => a.skillName));
 
   useEffect(() => {
     apiFetch<Skill[]>("/api/skills")
@@ -107,6 +118,24 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
     });
 
   const installedSkills = skills?.filter((s) => s.installed || s.configured) ?? [];
+  const assignedSkills = installedSkills.filter((s) => assignedNames.has(s.name));
+  const availableToAdd = installedSkills.filter((s) => !assignedNames.has(s.name));
+
+  const handleAddSkill = async (name: string) => {
+    try {
+      await assign([name]);
+    } catch (err) {
+      console.error("Failed to assign skill:", err);
+    }
+  };
+
+  const handleRemoveSkill = async (name: string) => {
+    try {
+      await removeAssignment(name);
+    } catch (err) {
+      console.error("Failed to remove skill:", err);
+    }
+  };
 
   return (
     <div className="px-8 py-6">
@@ -129,11 +158,23 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
         </select>
       </div>
 
-      {/* Tools section */}
-      <div className="py-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70 mb-3">
-          Tools
-        </p>
+      {/* Assigned Tools section */}
+      <div className="py-4 border-b border-border">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+            Assigned Tools
+          </p>
+          {availableToAdd.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAddSkill((v) => !v)}
+              className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-accent transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+              Add tool
+            </button>
+          )}
+        </div>
 
         {skillsError && (
           <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs text-destructive">
@@ -141,8 +182,35 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
           </div>
         )}
 
-        {skills === null ? (
-          <p className="text-sm text-muted-foreground">Loading tools…</p>
+        {/* Add skill picker */}
+        {showAddSkill && availableToAdd.length > 0 && (
+          <div className="mb-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+            <p className="text-xs text-muted-foreground mb-2">Select a tool to assign to this agent:</p>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {availableToAdd.map((skill) => (
+                <button
+                  key={skill.name}
+                  type="button"
+                  onClick={() => {
+                    handleAddSkill(skill.name);
+                    setShowAddSkill(false);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+                >
+                  <span className="text-base">{skill.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{skill.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
+                  </div>
+                  <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {assignmentsLoading || skills === null ? (
+          <p className="text-sm text-muted-foreground">Loading tools...</p>
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
             {/* Native tools card */}
@@ -197,8 +265,8 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
               )}
             </div>
 
-            {/* Installed skills */}
-            {installedSkills.map((skill) => {
+            {/* Assigned skills */}
+            {assignedSkills.map((skill) => {
               const isExpanded = expandedSkills.has(skill.name);
               return (
                 <div key={skill.name} className="border-t border-border">
@@ -210,6 +278,14 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
                       <p className="text-sm font-semibold">{skill.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill.name)}
+                      title="Remove from agent"
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
 
                   {skill.llmTools.length > 0 && (
@@ -253,6 +329,59 @@ export function AgentOverviewPanel({ agent, onAgentUpdated }: Props) {
                         </div>
                       )}
                     </>
+                  )}
+                </div>
+              );
+            })}
+
+            {assignedSkills.length === 0 && (
+              <div className="border-t border-border px-4 py-6 text-center text-sm text-muted-foreground">
+                No tools assigned yet. Click &quot;Add tool&quot; to get started.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* All available tools (read-only reference) */}
+      <div className="py-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70 mb-3">
+          All Available Tools
+        </p>
+
+        {skills === null ? (
+          <p className="text-sm text-muted-foreground">Loading tools...</p>
+        ) : installedSkills.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tools configured. Visit the Skills page to install and configure tools.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            {installedSkills.map((skill) => {
+              const isAssigned = assignedNames.has(skill.name);
+              return (
+                <div
+                  key={skill.name}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-2",
+                    isAssigned
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border bg-card",
+                  )}
+                >
+                  <span className="text-base">{skill.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{skill.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{skill.description}</p>
+                  </div>
+                  {isAssigned ? (
+                    <span className="text-[10px] text-primary shrink-0">Assigned</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAddSkill(skill.name)}
+                      className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+                    >
+                      + Assign
+                    </button>
                   )}
                 </div>
               );

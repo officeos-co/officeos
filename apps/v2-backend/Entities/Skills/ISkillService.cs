@@ -19,7 +19,7 @@ public interface ISkillService
         string name,
         CancellationToken ct = default);
 
-    Task<CapabilitiesResponse> ListCapabilitiesAsync(CancellationToken ct = default);
+    Task<CapabilitiesResponse> ListCapabilitiesAsync(Guid? agentId = null, CancellationToken ct = default);
 
     /// <summary>
     /// Sets where a skill executes: "cloud" (default) or "runner" (self-hosted).

@@ -37,7 +37,8 @@ public sealed class AgentSkillsController : ControllerBase
     [HttpGet("capabilities")]
     public async Task<ActionResult<CapabilitiesResponse>> Capabilities(CancellationToken ct)
     {
-        var response = await _service.ListCapabilitiesAsync(ct);
+        var agentId = (Guid)HttpContext.Items["agent-id"]!;
+        var response = await _service.ListCapabilitiesAsync(agentId, ct);
         return Ok(response);
     }
 

@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { useAgents } from "@/hooks/useAgents";
+import { apiFetch } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+type AvailableSkill = {
+  name: string;
+  title: string;
+  emoji: string;
+  description: string;
+  installed: boolean;
+  configured: boolean;
+};
 
 const MODELS: { label: string; value: string }[] = [
   { label: "Auto (recommended)", value: "auto" },
@@ -31,6 +41,25 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
   const [model, setModel] = useState("auto");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<AvailableSkill[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (open) {
+      apiFetch<AvailableSkill[]>("/api/skills")
+        .then((skills) => setAvailableSkills(skills.filter((s) => s.installed || s.configured)))
+        .catch(() => setAvailableSkills([]));
+    }
+  }, [open]);
+
+  const toggleSkill = (skillName: string) => {
+    setSelectedSkills((prev) => {
+      const next = new Set(prev);
+      if (next.has(skillName)) next.delete(skillName);
+      else next.add(skillName);
+      return next;
+    });
+  };
 
   // Derive provider from model selection so the backend record stays consistent
   function providerFromModel(m: string): string {
@@ -50,13 +79,26 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
     }
     setSubmitting(true);
     try {
-      await create({
+      const agent = await create({
         name: name.trim(),
         provider: providerFromModel(model),
         model,
       });
+      // Assign selected skills to the new agent
+      if (selectedSkills.size > 0) {
+        try {
+          await apiFetch(`/api/agents/${agent.id}/skills`, {
+            method: "POST",
+            body: JSON.stringify({ skillNames: Array.from(selectedSkills) }),
+          });
+        } catch {
+          // Non-fatal: agent was created, skills can be assigned later
+          console.warn("Failed to assign initial skills to agent");
+        }
+      }
       setName("");
       setModel("auto");
+      setSelectedSkills(new Set());
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create agent");
@@ -99,6 +141,36 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
             </p>
           )}
         </div>
+
+        {availableSkills.length > 0 && (
+          <div className="space-y-2">
+            <Label>Tools (optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Select which tools this agent can use. You can change this later.
+            </p>
+            <div className="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto rounded-md border border-input p-2">
+              {availableSkills.map((skill) => (
+                <button
+                  key={skill.name}
+                  type="button"
+                  onClick={() => toggleSkill(skill.name)}
+                  className={[
+                    "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
+                    selectedSkills.has(skill.name)
+                      ? "bg-primary/10 border border-primary/30"
+                      : "hover:bg-muted border border-transparent",
+                  ].join(" ")}
+                >
+                  <span className="text-base">{skill.emoji}</span>
+                  <span className="flex-1 min-w-0 truncate">{skill.title}</span>
+                  {selectedSkills.has(skill.name) && (
+                    <span className="text-[10px] text-primary shrink-0">Selected</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 

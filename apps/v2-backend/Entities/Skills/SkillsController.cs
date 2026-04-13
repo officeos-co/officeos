@@ -94,7 +94,7 @@ public sealed class SkillsController : ControllerBase
     [HttpGet("/api/capabilities")]
     public async Task<ActionResult<CapabilitiesResponse>> Capabilities(CancellationToken ct)
     {
-        var response = await _service.ListCapabilitiesAsync(ct);
+        var response = await _service.ListCapabilitiesAsync(agentId: null, ct);
         return Ok(response);
     }
 
