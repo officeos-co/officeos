@@ -3,6 +3,7 @@ using System;
 using EnterpriseAgentOs.Api.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EnterpriseAgentOs.Api.Database.Migrations
 {
     [DbContext(typeof(EaosDbContext))]
-    partial class EaosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260413082636_AddAgentSkills")]
+    partial class AddAgentSkills
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -552,57 +555,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("SkillCredentials");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BundleUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ManifestJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("NpmPackage")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<Guid?>("PublishedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.HasIndex("PublishedById");
-
-                    b.ToTable("SkillRegistry");
-                });
-
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.UserRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -812,15 +764,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "PublishedBy")
-                        .WithMany()
-                        .HasForeignKey("PublishedById");
-
-                    b.Navigation("PublishedBy");
                 });
 #pragma warning restore 612, 618
         }

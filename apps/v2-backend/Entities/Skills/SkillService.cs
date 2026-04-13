@@ -1,4 +1,5 @@
 using System.Text.Json;
+using EnterpriseAgentOs.Api.Entities.AgentSkills;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -7,17 +8,20 @@ public sealed class SkillService : ISkillService
     private static readonly HashSet<string> SystemSkills = new(StringComparer.OrdinalIgnoreCase) { "browser" };
 
     private readonly ISkillCredentialRepository _repository;
+    private readonly IAgentSkillRepository _agentSkills;
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
     private readonly ILogger<SkillService> _logger;
 
     public SkillService(
         ISkillCredentialRepository repository,
+        IAgentSkillRepository agentSkills,
         SkillCredentialProtector protector,
         SkillRuntimeClient runtime,
         ILogger<SkillService> logger)
     {
         _repository = repository;
+        _agentSkills = agentSkills;
         _protector = protector;
         _runtime = runtime;
         _logger = logger;
@@ -126,12 +130,20 @@ public sealed class SkillService : ISkillService
         return parsed;
     }
 
-    public async Task<CapabilitiesResponse> ListCapabilitiesAsync(CancellationToken ct = default)
+    public async Task<CapabilitiesResponse> ListCapabilitiesAsync(Guid? agentId = null, CancellationToken ct = default)
     {
         var rows = (await _repository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
         var caps = new List<CapabilityDto>();
         var docs = new List<SkillDocDto>();
+
+        // If an agentId is provided, only include skills assigned to that agent (plus system skills).
+        HashSet<string>? assignedSkills = null;
+        if (agentId.HasValue)
+        {
+            var names = await _agentSkills.ListSkillNamesByAgentAsync(agentId.Value, ct);
+            assignedSkills = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
+        }
 
         var runtimeManifests = await _runtime.GetManifestsAsync(ct);
 
@@ -140,6 +152,9 @@ public sealed class SkillService : ISkillService
             var isSystem = SystemSkills.Contains(manifest.Name);
             rows.TryGetValue(manifest.Name, out var row);
             if (!isSystem && (row is null || !row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials))) continue;
+
+            // When filtering by agent, skip non-system skills that are not assigned.
+            if (assignedSkills is not null && !isSystem && !assignedSkills.Contains(manifest.Name)) continue;
 
             foreach (var (actionName, action) in manifest.Actions)
             {
