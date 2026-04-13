@@ -90,6 +90,22 @@ pub struct CronPatchBody {
     pub prompt: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct HeartbeatTaskAddBody {
+    pub name: String,
+    pub prompt: String,
+    pub interval: Option<String>,
+    pub priority: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct HeartbeatTaskPatchBody {
+    pub prompt: Option<String>,
+    pub interval: Option<String>,
+    pub priority: Option<String>,
+    pub status: Option<String>,
+}
+
 // ── Handlers ────────────────────────────────────────────────────
 
 /// GET /api/status — system status overview

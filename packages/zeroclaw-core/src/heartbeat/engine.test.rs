@@ -164,11 +164,17 @@ fn decision_prompt_includes_all_tasks() {
             text: "Check email".into(),
             priority: TaskPriority::High,
             status: TaskStatus::Active,
+            name: None,
+            interval_secs: None,
+            prompt: None,
         },
         HeartbeatTask {
             text: "Review calendar".into(),
             priority: TaskPriority::Medium,
             status: TaskStatus::Active,
+            name: None,
+            interval_secs: None,
+            prompt: None,
         },
     ];
     let prompt = HeartbeatEngine::build_decision_prompt(&tasks);
@@ -222,6 +228,9 @@ fn task_display_format() {
         text: "Check email".into(),
         priority: TaskPriority::High,
         status: TaskStatus::Active,
+        name: None,
+        interval_secs: None,
+        prompt: None,
     };
     assert_eq!(format!("{task}"), "[high] Check email");
 }

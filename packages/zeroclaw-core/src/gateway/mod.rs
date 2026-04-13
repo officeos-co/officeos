@@ -38,6 +38,7 @@
 //! - `src/agent/mod.rs` — the `Agent::turn_streamed` consumer of `/ws/chat`
 
 pub mod api;
+pub mod api_heartbeat;
 pub mod api_pairing;
 pub mod auth_rate_limit;
 pub mod canvas;
@@ -64,7 +65,7 @@ use axum::{
     extract::{ConnectInfo, State},
     http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Json},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
 };
 use parking_lot::Mutex;
 use std::collections::HashMap;
@@ -727,6 +728,17 @@ pub async fn run_gateway(
             delete(api::handle_api_cron_delete).patch(api::handle_api_cron_patch),
         )
         .route("/api/cron/{id}/runs", get(api::handle_api_cron_runs))
+        .route(
+            "/api/heartbeat/tasks",
+            get(api_heartbeat::handle_heartbeat_tasks_list)
+                .post(api_heartbeat::handle_heartbeat_tasks_add),
+        )
+        .route(
+            "/api/heartbeat/tasks/{name}",
+            patch(api_heartbeat::handle_heartbeat_tasks_patch)
+                .delete(api_heartbeat::handle_heartbeat_tasks_delete),
+        )
+        .route("/api/heartbeat/status", get(api_heartbeat::handle_heartbeat_status))
         .route("/api/integrations", get(api::handle_api_integrations))
         .route(
             "/api/integrations/settings",

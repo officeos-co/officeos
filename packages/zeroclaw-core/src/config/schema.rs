@@ -5415,6 +5415,10 @@ pub struct HeartbeatConfig {
     /// Default: `600` (10 minutes).
     #[serde(default = "default_heartbeat_task_timeout")]
     pub task_timeout_secs: u64,
+    /// Maximum character count for suppressing near-empty heartbeat responses
+    /// after stripping HEARTBEAT_OK. Default: `300`.
+    #[serde(default = "default_heartbeat_ack_max_chars")]
+    pub ack_max_chars: usize,
 }
 
 fn default_heartbeat_interval() -> u32 {
@@ -5441,6 +5445,10 @@ fn default_heartbeat_task_timeout() -> u64 {
     600
 }
 
+fn default_heartbeat_ack_max_chars() -> usize {
+    300
+}
+
 impl Default for HeartbeatConfig {
     fn default() -> Self {
         Self {
@@ -5459,6 +5467,7 @@ impl Default for HeartbeatConfig {
             max_run_history: default_heartbeat_max_run_history(),
             load_session_context: false,
             task_timeout_secs: default_heartbeat_task_timeout(),
+            ack_max_chars: default_heartbeat_ack_max_chars(),
         }
     }
 }

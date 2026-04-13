@@ -47,6 +47,10 @@ pub mod file_edit;
 pub mod file_read;
 pub mod file_write;
 pub mod glob_search;
+pub mod heartbeat_add;
+pub mod heartbeat_list;
+pub mod heartbeat_remove;
+pub mod heartbeat_update;
 pub mod http_request;
 pub mod mcp_client;
 pub mod mcp_deferred;
@@ -87,6 +91,10 @@ pub use file_edit::FileEditTool;
 pub use file_read::FileReadTool;
 pub use file_write::FileWriteTool;
 pub use glob_search::GlobSearchTool;
+pub use heartbeat_add::HeartbeatAddTool;
+pub use heartbeat_list::HeartbeatListTool;
+pub use heartbeat_remove::HeartbeatRemoveTool;
+pub use heartbeat_update::HeartbeatUpdateTool;
 pub use http_request::HttpRequestTool;
 pub use mcp_client::McpRegistry;
 pub use mcp_deferred::{ActivatedToolSet, DeferredMcpToolSet};
@@ -338,6 +346,10 @@ pub fn all_tools_with_runtime(
         Arc::new(MemoryExportTool::new(memory.clone())),
         Arc::new(MemoryPurgeTool::new(memory.clone(), security.clone())),
         Arc::new(CanvasTool::new(canvas_store.unwrap_or_default())),
+        Arc::new(HeartbeatListTool::new(workspace_dir.to_path_buf())),
+        Arc::new(HeartbeatAddTool::new(workspace_dir.to_path_buf())),
+        Arc::new(HeartbeatUpdateTool::new(workspace_dir.to_path_buf())),
+        Arc::new(HeartbeatRemoveTool::new(workspace_dir.to_path_buf())),
     ];
 
     if let Some(runtime_url) = root_config
