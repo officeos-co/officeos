@@ -265,6 +265,7 @@ export const siteConfig = {
 			links: [
 				{ id: 1, title: "Features", url: "#features" },
 				{ id: 2, title: "Docs", url: "https://docs.harrokrog.com" },
+				{ id: 7, title: "Status", url: "https://status.harrokrog.com" },
 			],
 		},
 		{
