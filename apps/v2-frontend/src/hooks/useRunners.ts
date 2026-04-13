@@ -2,21 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { Runner, CreateRunnerResult } from "@/types/runner";
 
-export type Runner = {
-  id: string;
-  name: string;
-  status: string;
-  lastHeartbeatAt: string | null;
-  version: string | null;
-  createdAt: string;
-};
-
-export type CreateRunnerResult = {
-  id: string;
-  name: string;
-  registrationToken: string;
-};
+export type { Runner, CreateRunnerResult } from "@/types/runner";
 
 let cache: Runner[] | null = null;
 const listeners = new Set<(runners: Runner[]) => void>();

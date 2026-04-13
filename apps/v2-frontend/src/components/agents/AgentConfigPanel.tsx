@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Save, RefreshCw, AlertTriangle } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { agentProxyUrl } from "@/lib/agentProxy";
 
 /**

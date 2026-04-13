@@ -9,7 +9,7 @@ import {
   Pause,
   CheckCircle2,
 } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import {
   useHeartbeatTasks,
   type TaskPriority,

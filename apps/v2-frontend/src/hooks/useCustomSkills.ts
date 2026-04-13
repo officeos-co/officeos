@@ -2,17 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { CustomSkill } from "@/types/skill";
 
-export type CustomSkill = {
-  id: string;
-  name: string;
-  source: "upload" | "github";
-  gitHubRepoUrl: string | null;
-  buildStatus: string;
-  buildError: string | null;
-  createdAt: string;
-  lastSyncAt: string | null;
-};
+export type { CustomSkill } from "@/types/skill";
 
 export function useCustomSkills() {
   const [skills, setSkills] = useState<CustomSkill[]>([]);

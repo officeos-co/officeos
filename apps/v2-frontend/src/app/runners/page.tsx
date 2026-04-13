@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { TopBar } from "@/components/TopBar";
-import { StatusBadge } from "@/components/StatusBadge";
-import { NewRunnerOverlay } from "@/components/NewRunnerOverlay";
+import { TopBar } from "@/components/shared/TopBar";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { NewRunnerOverlay } from "@/components/runners/NewRunnerOverlay";
 import { useRunners } from "@/hooks/useRunners";
 import { Button } from "@/components/ui/button";
 import {

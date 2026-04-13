@@ -1,4 +1,4 @@
-import { TopBar } from "@/components/TopBar";
+import { TopBar } from "@/components/shared/TopBar";
 
 const FREE_LIMITS = [
   { resource: "Concurrent agents", limit: "1" },

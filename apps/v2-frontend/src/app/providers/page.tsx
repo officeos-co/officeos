@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { TopBar } from "@/components/TopBar";
-import { StatusBadge } from "@/components/StatusBadge";
-import { ProviderConfigureOverlay } from "@/components/ProviderConfigureOverlay";
+import { TopBar } from "@/components/shared/TopBar";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ProviderConfigureOverlay } from "@/components/providers/ProviderConfigureOverlay";
 import { useProviders, type Provider } from "@/hooks/useProviders";
 import { Button } from "@/components/ui/button";
 import {

@@ -2,14 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { Provider } from "@/types/provider";
 
-export type Provider = {
-  id: string;
-  name: string;
-  displayName: string;
-  configured: boolean;
-  configuredAt: string | null;
-};
+export type { Provider } from "@/types/provider";
 
 let cache: Provider[] | null = null;
 const listeners = new Set<(providers: Provider[]) => void>();

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, Pause, Play, ArrowDown, Filter } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { agentFetch, agentProxyUrl } from "@/lib/agentProxy";
 
 type SSEEvent = {

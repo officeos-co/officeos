@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronRight, CheckCircle, Plus, X } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { apiFetch } from "@/hooks/useApi";
 import { useAgentSkills } from "@/hooks/useAgentSkills";
 import { cn } from "@/lib/utils";

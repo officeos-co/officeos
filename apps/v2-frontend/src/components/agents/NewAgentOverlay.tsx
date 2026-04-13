@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal } from "./Modal";
+import { Modal } from "@/components/shared/Modal";
 import { useAgents } from "@/hooks/useAgents";
 import { apiFetch } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";

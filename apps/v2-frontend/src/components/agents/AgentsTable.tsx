@@ -2,9 +2,9 @@
 
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { Agent } from "../hooks/useAgents";
-import { StatusBadge } from "./StatusBadge";
-import { formatDate, shortId } from "../utils/format";
+import type { Agent } from "@/types/agent";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { formatDate, shortId } from "@/utils/format";
 import { Button } from "@/components/ui/button";
 import {
   Table,

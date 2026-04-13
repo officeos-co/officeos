@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FilePlus, Pencil, Save, Trash2, X, RefreshCw, AlertTriangle } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { apiFetch } from "@/hooks/useApi";
 
 type Props = {

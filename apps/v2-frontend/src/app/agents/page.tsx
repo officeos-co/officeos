@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { RefreshCw, Plus } from "lucide-react";
-import { TopBar } from "@/components/TopBar";
-import { AgentsTable } from "@/components/AgentsTable";
-import { EmptyState } from "@/components/EmptyState";
-import { NewAgentOverlay } from "@/components/NewAgentOverlay";
+import { TopBar } from "@/components/shared/TopBar";
+import { AgentsTable } from "@/components/agents/AgentsTable";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { NewAgentOverlay } from "@/components/agents/NewAgentOverlay";
 import { useAgents } from "@/hooks/useAgents";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

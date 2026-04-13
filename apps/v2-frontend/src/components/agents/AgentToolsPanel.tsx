@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Wrench, RefreshCw } from "lucide-react";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { agentFetch } from "@/lib/agentProxy";
 
 type ToolSpec = {

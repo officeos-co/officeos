@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import type { Agent } from "@/hooks/useAgents";
+import type { Agent } from "@/types/agent";
 import { AgentChatPanel } from "./AgentChatPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
 import { AgentSessionsPanel } from "./AgentSessionsPanel";

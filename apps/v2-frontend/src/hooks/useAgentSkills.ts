@@ -2,13 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "./useApi";
+import type { AgentSkillAssignment } from "@/types/agent";
 
-export type AgentSkillAssignment = {
-  id: string;
-  agentId: string;
-  skillName: string;
-  enabledAt: string;
-};
+export type { AgentSkillAssignment } from "@/types/agent";
 
 export function useAgentSkills(agentId: string) {
   const [assignments, setAssignments] = useState<AgentSkillAssignment[]>([]);

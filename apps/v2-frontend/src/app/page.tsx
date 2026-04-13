@@ -5,7 +5,7 @@ import { Bot, Puzzle, KeyRound, Activity } from "lucide-react";
 import { useAgents, type Agent } from "@/hooks/useAgents";
 import { useSkills } from "@/hooks/useSkills";
 import { useProviders } from "@/hooks/useProviders";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate, shortId } from "@/utils/format";
 

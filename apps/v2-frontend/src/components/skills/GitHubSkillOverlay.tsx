@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "./Modal";
+import { Modal } from "@/components/shared/Modal";
 import { useCustomSkills } from "@/hooks/useCustomSkills";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
