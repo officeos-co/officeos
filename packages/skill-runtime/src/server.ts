@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readdir, writeFile, mkdir } from "node:fs/promises";
+import { readdir, writeFile, mkdir, rm } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { SkillExecutor, type ExecuteRequest } from "./executor.js";
@@ -7,6 +7,7 @@ import { buildSkill } from "./builder.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3001", 10);
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:5000";
 
 const executor = new SkillExecutor();
 
@@ -34,6 +35,84 @@ async function loadSkills(): Promise<void> {
       }
     } catch (err) {
       console.error(`Failed to load skill ${file}:`, err);
+    }
+  }
+}
+
+/**
+ * Load skills from the backend's skill registry.
+ * Fetches the registry list and attempts to install any active skills
+ * that have a bundleUrl or npmPackage and aren't already loaded.
+ */
+async function loadSkillsFromRegistry(): Promise<void> {
+  try {
+    const resp = await fetch(`${BACKEND_URL}/api/skill-registry`);
+    if (!resp.ok) {
+      console.warn(`Failed to fetch skill registry (HTTP ${resp.status})`);
+      return;
+    }
+    const entries = (await resp.json()) as Array<{
+      name: string;
+      npmPackage?: string;
+      bundleUrl?: string;
+      status: string;
+    }>;
+
+    for (const entry of entries) {
+      if (entry.status !== "active") continue;
+      // Skip if already loaded (bundled skill takes precedence)
+      if (executor.getManifest(entry.name)) continue;
+
+      try {
+        await installSkillPackage(entry.name, entry.npmPackage, entry.bundleUrl);
+      } catch (err) {
+        console.error(`Failed to load registry skill ${entry.name}:`, err);
+      }
+    }
+  } catch (err) {
+    console.warn("Could not reach backend skill registry:", err instanceof Error ? err.message : String(err));
+  }
+}
+
+/**
+ * Install a skill from an npm package or bundle URL into the runtime.
+ */
+async function installSkillPackage(
+  name: string,
+  npmPackage?: string | null,
+  bundleUrl?: string | null,
+): Promise<void> {
+  const skillsDir = resolve(__dirname, "skills");
+  await mkdir(skillsDir, { recursive: true });
+
+  if (bundleUrl) {
+    // Download the bundle JS file directly
+    const resp = await fetch(bundleUrl);
+    if (!resp.ok) throw new Error(`Failed to download bundle from ${bundleUrl}: HTTP ${resp.status}`);
+    const content = await resp.text();
+    const bundlePath = resolve(skillsDir, `${name}.js`);
+    await writeFile(bundlePath, content, "utf-8");
+
+    const mod = await import(pathToFileURL(bundlePath).href + `?t=${Date.now()}`);
+    const def = mod.default?.default ?? mod.default;
+    if (def?.name && def?.actions) {
+      executor.register(def);
+      console.log(`Installed registry skill from bundle: ${def.name}`);
+    } else {
+      throw new Error(`Invalid skill module from bundle: ${name}`);
+    }
+  } else if (npmPackage) {
+    // For npm packages, we use dynamic import (package must be installed in node_modules)
+    // In production this would trigger npm install; for now we try direct import
+    try {
+      const mod = await import(npmPackage);
+      const def = mod.default?.default ?? mod.default;
+      if (def?.name && def?.actions) {
+        executor.register(def);
+        console.log(`Installed registry skill from npm: ${def.name}`);
+      }
+    } catch {
+      console.warn(`npm package ${npmPackage} not found in node_modules — skipping`);
     }
   }
 }
@@ -173,11 +252,67 @@ async function handleRequest(
     return;
   }
 
+  // POST /install — install a skill from registry (npm package or bundle URL)
+  if (url.pathname === "/install" && req.method === "POST") {
+    let body: { name: string; npmPackage?: string; bundleUrl?: string };
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      json(res, 400, { error: "Invalid JSON body" });
+      return;
+    }
+
+    if (!body.name) {
+      json(res, 400, { error: "Missing required field: name" });
+      return;
+    }
+
+    try {
+      await installSkillPackage(body.name, body.npmPackage, body.bundleUrl);
+      const manifest = executor.getManifest(body.name);
+      json(res, 200, { ok: true, manifest });
+    } catch (err) {
+      json(res, 500, { error: `Install failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
+    return;
+  }
+
+  // POST /uninstall — remove a loaded skill
+  if (url.pathname === "/uninstall" && req.method === "POST") {
+    let body: { name: string };
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      json(res, 400, { error: "Invalid JSON body" });
+      return;
+    }
+
+    if (!body.name) {
+      json(res, 400, { error: "Missing required field: name" });
+      return;
+    }
+
+    executor.unregister(body.name);
+
+    // Remove the bundle file if it exists
+    const bundlePath = resolve(__dirname, "skills", `${body.name}.js`);
+    try {
+      await rm(bundlePath, { force: true });
+    } catch {
+      // ignore — file may not exist
+    }
+
+    console.log(`Uninstalled skill: ${body.name}`);
+    json(res, 200, { ok: true });
+    return;
+  }
+
   // 404
   json(res, 404, { error: "Not found" });
 }
 
 await loadSkills();
+await loadSkillsFromRegistry();
 
 // Start browser session cleanup loop
 const { browserSessions } = await import("./browser-session-manager.js");

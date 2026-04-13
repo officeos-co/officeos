@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Modal } from "./Modal";
 import { useCustomSkills } from "@/hooks/useCustomSkills";
+import { useSkillRegistry } from "@/hooks/useSkillRegistry";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -13,6 +14,7 @@ type Props = {
 
 export function UploadSkillOverlay({ open, onClose }: Props) {
   const { upload } = useCustomSkills();
+  const { publish } = useSkillRegistry();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,14 @@ export function UploadSkillOverlay({ open, onClose }: Props) {
     setSubmitting(true);
     try {
       const res = await upload(file);
+      // Also register in the skill registry
+      if (res.buildStatus === "ready") {
+        try {
+          await publish({ name: res.name });
+        } catch {
+          // Registry publish is best-effort — the skill is already built
+        }
+      }
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");

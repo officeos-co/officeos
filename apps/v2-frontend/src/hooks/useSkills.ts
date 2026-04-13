@@ -28,6 +28,9 @@ export type Skill = {
   runTarget: "cloud" | "runner";
   credentialFields: CredentialField[];
   llmTools: LlmTool[];
+  // Registry metadata (populated from skill registry join)
+  registryVersion?: string;
+  registryStatus?: "active" | "disabled";
 };
 
 export function useSkills() {

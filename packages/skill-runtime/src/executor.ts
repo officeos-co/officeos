@@ -34,6 +34,10 @@ export class SkillExecutor {
     this.skills.set(def.name, def);
   }
 
+  unregister(name: string): boolean {
+    return this.skills.delete(name);
+  }
+
   getManifest(name: string): SkillManifest | undefined {
     const def = this.skills.get(name);
     return def ? extractManifest(def) : undefined;

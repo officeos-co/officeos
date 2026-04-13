@@ -43,6 +43,16 @@ export function SkillGridCard({ skill, onClick }: Props) {
         <span>
           {skill.llmTools.length} tool{skill.llmTools.length === 1 ? "" : "s"}
         </span>
+        {skill.registryVersion && (
+          <span className="rounded border border-border px-1.5 py-0.5 font-mono">
+            v{skill.registryVersion}
+          </span>
+        )}
+        {skill.registryStatus === "disabled" && (
+          <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-600">
+            disabled
+          </span>
+        )}
         {skill.runTarget === "runner" && (
           <span className="rounded border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-primary">
             self-hosted
