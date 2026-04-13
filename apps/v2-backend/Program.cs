@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Serilog;
 using Serilog.Events;
 using EnterpriseAgentOs.Api.Middleware;
+using EnterpriseAgentOs.Api.Extensions;
 
 const string FrontendCorsPolicy = "v2-frontend";
 
@@ -23,6 +24,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Data Protection
 var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");
 var dpKeyDir = System.IO.Path.IsPathRooted(dpKeyPath)
     ? dpKeyPath
@@ -33,87 +35,58 @@ builder.Services
     .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir))
     .SetApplicationName("EnterpriseAgentOs.Api");
 
-builder.Services.AddSingleton<ProviderKeyProtector>();
-builder.Services.AddSingleton<SkillCredentialProtector>();
-builder.Services.AddSingleton<ChannelConfigProtector>();
-
+// Database
 builder.Services.AddDbContext<EaosDbContext>(options =>
     options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
 
-builder.Services.AddScoped<IAgentRepository, AgentRepository>();
-builder.Services.AddScoped<IAgentService, AgentService>();
-builder.Services.AddHttpClient<IVaultClient, CouchDbVaultClient>();
-builder.Services.AddHttpClient("agent-proxy");
+// DI — services, repositories, protectors, HTTP clients
+builder.Services
+    .AddRepositories()
+    .AddApplicationServices()
+    .AddBackgroundServices()
+    .AddProtectors()
+    .AddHttpClients();
 
-var kubernetesConfig = new KubernetesConfig
+// Infrastructure configs
+builder.Services.AddSingleton(new KubernetesConfig
 {
     Enabled = ValueManager.GetValue<bool>("KubernetesEnabled"),
     Namespace = ValueManager.GetValue<string>("KubernetesNamespace"),
     Image = ValueManager.GetValue<string>("ZeroclawImage"),
-};
-builder.Services.AddSingleton(kubernetesConfig);
+});
 
-var couchDbConfig = new CouchDbConfig
+builder.Services.AddSingleton(new CouchDbConfig
 {
     Url = ValueManager.GetValue<string>("CouchDbUrl"),
     User = ValueManager.GetValue<string>("CouchDbUser"),
     Password = ValueManager.GetValue<string>("CouchDbPassword"),
-};
-builder.Services.AddSingleton(couchDbConfig);
+});
 
-var skillGatewayConfig = new SkillGatewayConfig
+builder.Services.AddSingleton(new SkillGatewayConfig
 {
     Url = ValueManager.GetValue<string>("SkillGatewayUrl"),
     RefreshSeconds = 30,
-};
-builder.Services.AddSingleton(skillGatewayConfig);
+});
 
-if (kubernetesConfig.Enabled)
-{
-    builder.Services.AddSingleton<IKubernetes>(_ =>
-    {
-        var config = KubernetesClientConfiguration.IsInCluster()
-            ? KubernetesClientConfiguration.InClusterConfig()
-            : KubernetesClientConfiguration.BuildDefaultConfig();
-        return new Kubernetes(config);
-    });
-    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
-}
-else
-{
-    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
-}
-builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
-builder.Services.AddScoped<IProviderService, ProviderService>();
-builder.Services.AddScoped<ISkillCredentialRepository, SkillCredentialRepository>();
-builder.Services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
-builder.Services.AddScoped<IAgentSkillRepository, AgentSkillRepository>();
-builder.Services.AddScoped<ISkillService, SkillService>();
-
-var skillRuntimeConfig = new SkillRuntimeConfig
+builder.Services.AddSingleton(new SkillRuntimeConfig
 {
     Url = ValueManager.GetValue<string>("SkillRuntimeUrl"),
-};
-builder.Services.AddSingleton(skillRuntimeConfig);
-builder.Services.AddHttpClient<SkillRuntimeClient>();
+});
 
-var googleOAuthConfig = new GoogleOAuthConfig
+builder.Services.AddSingleton(new GoogleOAuthConfig
 {
     ClientId = ValueManager.GetValue<string>("GoogleOAuthClientId"),
     ClientSecret = ValueManager.GetValue<string>("GoogleOAuthClientSecret"),
     RedirectUri = ValueManager.GetValue<string>("GoogleOAuthRedirectUri"),
-};
-builder.Services.AddSingleton(googleOAuthConfig);
+});
 
-var workOsConfig = new WorkOsConfig
+builder.Services.AddSingleton(new WorkOsConfig
 {
     ApiKey = ValueManager.GetValue<string>("WorkOsApiKey"),
     ClientId = ValueManager.GetValue<string>("WorkOsClientId"),
     RedirectUri = ValueManager.GetValue<string>("WorkOsRedirectUri"),
     Enabled = ValueManager.GetValue<bool>("WorkOsEnabled"),
-};
-builder.Services.AddSingleton(workOsConfig);
-builder.Services.AddScoped<IWorkOsAuthService, WorkOsAuthService>();
+});
 
 var skillStorageConfig = new SkillStorageConfig
 {
@@ -136,15 +109,23 @@ builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
         config);
 });
 
-// Auth
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<ISessionRepository, SessionRepository>();
-
-// Runners
-builder.Services.AddScoped<IRunnerRepository, RunnerRepository>();
-builder.Services.AddScoped<IRunnerJobRepository, RunnerJobRepository>();
-builder.Services.AddSingleton<RunnerJobWaiter>();
-builder.Services.AddHostedService<RunnerJobTimeoutService>();
+// Kubernetes deployer
+var kubernetesEnabled = ValueManager.GetValue<bool>("KubernetesEnabled");
+if (kubernetesEnabled)
+{
+    builder.Services.AddSingleton<IKubernetes>(_ =>
+    {
+        var config = KubernetesClientConfiguration.IsInCluster()
+            ? KubernetesClientConfiguration.InClusterConfig()
+            : KubernetesClientConfiguration.BuildDefaultConfig();
+        return new Kubernetes(config);
+    });
+    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
+}
+else
+{
+    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
+}
 
 // Billing
 var stripeConfig = new StripeConfig();
@@ -154,38 +135,16 @@ builder.Services.AddSingleton(stripeConfig);
 var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
 builder.Services.AddSingleton(frontendConfig);
 
-builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService,   EnterpriseAgentOs.Api.Entities.Billing.UserBillingService>();
-builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IOrgBillingService,    EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService>();
-builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IStripeWebhookService, EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>();
-builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService, EnterpriseAgentOs.Api.Entities.Billing.CreditRecordingService>();
-
-// Custom Skills
-builder.Services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
-
-// Skill Registry
-builder.Services.AddScoped<ISkillRegistryRepository, SkillRegistryRepository>();
-
-// Channels
-builder.Services.AddScoped<IChannelRepository, ChannelRepository>();
-builder.Services.AddScoped<ChannelMessageRouter>();
-builder.Services.AddHttpClient("channel-platform");
-
-builder.Services.AddHttpClient("llm-proxy");
-builder.Services.AddScoped<LlmProviderDispatcher>();
-
+// LLM
 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 var configSection = (env == "Production" || string.IsNullOrEmpty(env)) ? "Production" : "Staging";
 
-var liteLlmConfig = builder.Configuration
-    .GetSection($"{configSection}:LiteLlm")
-    .Get<LiteLlmConfig>() ?? new LiteLlmConfig();
-builder.Services.AddSingleton(liteLlmConfig);
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection($"{configSection}:LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
+builder.Services.AddSingleton(
+    builder.Configuration.GetSection($"{configSection}:PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
-var platformKeysConfig = builder.Configuration
-    .GetSection($"{configSection}:PlatformKeys")
-    .Get<PlatformKeysConfig>() ?? new PlatformKeysConfig();
-builder.Services.AddSingleton(platformKeysConfig);
-
+// GraphQL skill gateway
 builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
 builder.Services
     .AddGraphQLServer()
@@ -195,6 +154,7 @@ builder.Services
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
 
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>

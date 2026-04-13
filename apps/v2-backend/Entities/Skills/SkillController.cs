@@ -4,12 +4,12 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 [ApiController]
 [Route("api/skills")]
-public sealed class SkillsController : ControllerBase
+public sealed class SkillController : ControllerBase
 {
     private readonly ISkillService _service;
     private readonly SkillRuntimeClient _runtime;
 
-    public SkillsController(
+    public SkillController(
         ISkillService service,
         SkillRuntimeClient runtime)
     {

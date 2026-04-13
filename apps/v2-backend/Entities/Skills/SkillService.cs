@@ -7,14 +7,14 @@ public sealed class SkillService : ISkillService
 {
     private static readonly HashSet<string> SystemSkills = new(StringComparer.OrdinalIgnoreCase) { "browser" };
 
-    private readonly ISkillCredentialRepository _repository;
+    private readonly ISkillRepository _repository;
     private readonly IAgentSkillRepository _agentSkills;
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
     private readonly ILogger<SkillService> _logger;
 
     public SkillService(
-        ISkillCredentialRepository repository,
+        ISkillRepository repository,
         IAgentSkillRepository agentSkills,
         SkillCredentialProtector protector,
         SkillRuntimeClient runtime,

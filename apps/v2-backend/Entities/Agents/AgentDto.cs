@@ -9,3 +9,8 @@ public sealed record AgentDto(
     string? PodName,
     string? ServiceUrl,
     DateTime CreatedAt);
+
+public sealed record CreateAgentRequest(
+    [Required, MinLength(1)] string Name,
+    [Required, MinLength(1)] string Provider,
+    string? Model);

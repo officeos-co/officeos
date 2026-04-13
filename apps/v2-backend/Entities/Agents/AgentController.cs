@@ -3,12 +3,12 @@ namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 [ApiController]
 [Route("api/agents")]
-public sealed class AgentsController : ControllerBase
+public sealed class AgentController : ControllerBase
 {
     private readonly IAgentService _service;
     private readonly IVaultClient _vault;
 
-    public AgentsController(IAgentService service, IVaultClient vault)
+    public AgentController(IAgentService service, IVaultClient vault)
     {
         _service = service;
         _vault = vault;
