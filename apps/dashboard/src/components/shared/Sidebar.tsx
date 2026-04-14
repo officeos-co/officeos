@@ -104,11 +104,7 @@ function ProfileMenu({
   );
 }
 
-function MainSidebar({
-  onOpenOrgSettings,
-}: {
-  onOpenOrgSettings: () => void;
-}) {
+function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { agents } = useAgents();
@@ -117,7 +113,8 @@ function MainSidebar({
   const { unacknowledgedCount: errorCount } = useSystemEvents(50);
 
   const runningCount = agents.filter(
-    (a) => a.status === "running" || a.status === "ready" || a.status === "online",
+    (a) =>
+      a.status === "running" || a.status === "ready" || a.status === "online",
   ).length;
 
   return (
@@ -144,13 +141,16 @@ function MainSidebar({
             const isActive =
               item.href === "/"
                 ? pathname === "/"
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                : pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => posthog.capture("nav_clicked", { destination: item.href })}
+                onClick={() =>
+                  posthog.capture("nav_clicked", { destination: item.href })
+                }
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                   isActive
@@ -207,7 +207,12 @@ function MainSidebar({
                         : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
                     )}
                   >
-                    <span className={cn("h-2 w-2 shrink-0 rounded-full", statusDot(agent.status))} />
+                    <span
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        statusDot(agent.status),
+                      )}
+                    />
                     <span className="truncate">{agent.name}</span>
                   </Link>
                 );
@@ -296,8 +301,18 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
     { href: "/runners", label: "Runners", icon: Radio },
     { href: "/settings/channels", label: "Channels", icon: Plug },
     { href: "/settings/billing", label: "Billing", icon: CreditCard },
-    { href: "/settings/limits", label: "Limits", icon: Gauge, placeholder: true },
-    { href: "/settings/api-keys", label: "API Keys", icon: Key, placeholder: true },
+    {
+      href: "/settings/limits",
+      label: "Limits",
+      icon: Gauge,
+      placeholder: true,
+    },
+    {
+      href: "/settings/api-keys",
+      label: "API Keys",
+      icon: Key,
+      placeholder: true,
+    },
   ];
 
   return (
@@ -358,18 +373,6 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
 
       <div className="border-t border-sidebar-border px-4 py-3">
         <a
-          href="https://status.harrokrog.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-        >
-          <span className="relative flex h-4 w-4 items-center justify-center">
-            <span className="absolute h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="absolute h-2 w-2 animate-ping rounded-full bg-emerald-500 opacity-75" />
-          </span>
-          System Status
-        </a>
-        <a
           href="https://docs.harrokrog.com"
           target="_blank"
           rel="noopener noreferrer"
@@ -394,10 +397,12 @@ export function Sidebar() {
           showOrgSettings ? "-translate-x-full" : "translate-x-0",
         )}
       >
-        <MainSidebar onOpenOrgSettings={() => {
-          posthog.capture("settings_opened");
-          setShowOrgSettings(true);
-        }} />
+        <MainSidebar
+          onOpenOrgSettings={() => {
+            posthog.capture("settings_opened");
+            setShowOrgSettings(true);
+          }}
+        />
       </div>
       <div
         className={cn(
