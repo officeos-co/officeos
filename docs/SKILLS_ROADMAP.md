@@ -140,7 +140,7 @@
 97. **image-gen** — AI image generation/editing via Gemini, DALL-E, or Stable Diffusion (85K downloads) `harro-skills/skill-image-gen` TODO
 98. **video-transcript** — Download videos, audio, subtitles, and clean transcripts from YouTube et al. (10K downloads) `harro-skills/skill-video-transcript` TODO
 99. **screenshot** — Capture and compare screenshots of screens, windows, regions, web pages (12K downloads) `harro-skills/skill-screenshot` TODO
-100. **speech** — Text-to-speech and speech-to-text via Whisper / ElevenLabs APIs (20K downloads) `harro-skills/skill-speech` TODO
+100.  **speech** — Text-to-speech and speech-to-text via Whisper / ElevenLabs APIs (20K downloads) `harro-skills/skill-speech` TODO
 
 ---
 
@@ -150,65 +150,284 @@
 - 5 done, 95 to implement
 - Top by ClawhHub downloads: self-improving (384K), ontology (162K), web-search (116K), crypto (109K), image-gen (85K), browser (85K), obsidian (80K), api-gateway (67K), word (58K), excel (52K)
 
----
-
-## SDK Change: Icons Instead of Emojis
-
-The current `SkillDefinition.emoji` field needs to be replaced with an `icon` field that references an actual image asset.
-
-**Before (current):**
-```typescript
-interface SkillDefinition {
-  emoji: string;       // "🔧"
-}
-```
-
-**After:**
-```typescript
-interface SkillDefinition {
-  icon: string;        // relative path to SVG/PNG icon, e.g. "./icon.svg"
-  emoji?: string;      // optional fallback for terminal/CLI display
-}
-```
-
-**Icon requirements:**
-- Format: SVG preferred (scales), PNG accepted (min 128x128)
-- Style: Monochrome or branded service icon (e.g. Slack logo, AWS logo)
-- Location: `icon.svg` or `icon.png` in skill repo root
-- Runtime: Skill runtime serves icons via `/api/skills/{name}/icon` endpoint
-- Dashboard: Fetches and caches icons from the runtime
-
-**Migration path:**
-1. Update `SkillDefinition` type in `@harro/skill-sdk`
-2. Update existing 5 skills to include `icon` field + icon files
-3. Update dashboard to render icon images instead of emoji text
-4. Keep `emoji` as optional fallback for CLI/terminal contexts
-
----
-
-## Public GitHub Repository Convention
-
-- **Org:** `github.com/harro-skills/`
-- **Naming:** `skill-{name}` (e.g. `skill-slack`, `skill-stripe`, `skill-aws`)
-- **License:** MIT
-- **Published to npm:** `@harro/skill-{name}`
-- **Installable via dashboard** or `eaos skill install {name}`
-
-**Standard repo structure:**
-```
-harro-skills/skill-slack/
-  icon.svg            # Brand icon (SVG preferred, min 128x128 PNG)
-  skill.ts            # Skill definition using defineSkill()
-  SKILL.md            # Agent context documentation (CLI usage examples)
-  package.json        # @harro/skill-slack
-  README.md           # Public docs, screenshots, setup guide
-  LICENSE             # MIT
-```
-
----
-
 ## Data Sources
 
 - ClawhHub API: `wry-manatee-359.convex.cloud` — `skills:listPublicPageV4`, sorted by downloads desc, `nonSuspiciousOnly=true`
 - [VoltAgent/awesome-openclaw-skills](https://github.com/VoltAgent/awesome-openclaw-skills) — 5,400+ skills, 25 categories
 - [sundial-org/awesome-openclaw-skills](https://github.com/sundial-org/awesome-openclaw-skills) — 913 curated top skills
+
+---
+
+## ClawhHub Source Repos & OSS References
+
+> For each planned skill: the ClawhHub listing (original skill), the underlying open-source CLI/library/MCP server it wraps, and flags for skills with no clear OSS base.
+
+### 1. Agent Core & Memory
+
+1. **browser** (DONE) — OSS: [microsoft/playwright](https://github.com/microsoft/playwright). Playwright MCP: `@anthropic/mcp-server-playwright`
+2. **self-improving** — ClawhHub: [pskoett/self-improving-agent](https://clawhub.ai/pskoett/self-improving-agent) — OSS: [peterskoett/self-improving-agent](https://github.com/peterskoett/self-improving-agent). ⚠️ SKILL.md-only (prompt-based), no CLI
+3. **ontology** — ClawhHub: [oswalpalash/ontology](https://clawhub.ai/oswalpalash/ontology) — ⚠️ NO OSS CLI. SKILL.md-only, local JSONL graph file
+4. **deep-research** — ClawhHub: [parags/deep-research-pro](https://clawhub.ai/parags/deep-research-pro) — ⚠️ NO OSS CLI. SKILL.md-only research workflow
+5. **web-search** — ClawhHub: [billyutw/web-search](https://clawhub.ai/billyutw/web-search) — OSS: DuckDuckGo API / [searxng/searxng](https://github.com/searxng/searxng). Alt: `robbyczgw-cla/web-search-plus` uses Serper + Tavily
+6. **web-scraper** — OSS: [apify/crawlee](https://github.com/apify/crawlee) or [AlessandroZanella/mcp-server-webscraper](https://github.com/AlessandroZanella/mcp-server-webscraper). Crawlee is the main OSS scraping framework
+7. **perplexity** — ClawhHub: [zats/perplexity](https://clawhub.ai/zats/perplexity) — ⚠️ PROPRIETARY API. Perplexity API is closed
+8. **exa** — ⚠️ PROPRIETARY API. Exa AI API is closed, SDK exists but API is proprietary
+9. **prompt-guard** — ⚠️ NO OSS CLI. SKILL.md-only, multiple prompt injection detection libs exist but no standard CLI
+10. **api-gateway** — ClawhHub: [byungkyu/api-gateway](https://clawhub.ai/byungkyu/api-gateway) — OSS: [maton-ai/api-gateway-skill](https://github.com/maton-ai/api-gateway-skill). Maton platform is commercial
+
+### 2. Productivity & Tasks
+
+11. **notion** (DONE) — OSS: [makenotion/notion-sdk-js](https://github.com/makenotion/notion-sdk-js). Official Notion SDK
+12. **obsidian** (DONE) — Custom (CouchDB). Our own implementation
+13. **todoist** — OSS: [Doist/todoist-api-typescript](https://github.com/Doist/todoist-api-typescript). Official Todoist SDK
+14. **linear** — OSS: [linear/linear](https://github.com/linear/linear). Official Linear SDK (MIT)
+15. **jira** — REST API; no official CLI. Community: [go-jira/jira](https://github.com/go-jira/jira)
+16. **asana** — OSS: [Asana/node-asana](https://github.com/Asana/node-asana). Official Asana SDK
+17. **clickup** — ⚠️ No official OSS SDK. REST API only
+18. **trello** — OSS: [norberteder/trello](https://github.com/norberteder/trello). Community Node.js client, Trello API is REST-based
+19. **planning** — ⚠️ NO OSS CLI. SKILL.md-only, file-based planning system
+20. **productivity** — ClawhHub: [ivangdavila/productivity](https://clawhub.ai/ivangdavila/productivity) — ⚠️ NO OSS CLI. SKILL.md-only, markdown templates for `~/productivity/`
+21. **google-calendar** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Official Google API client
+22. **excel** — ClawhHub: [ivangdavila/excel-xlsx](https://clawhub.ai/ivangdavila/excel-xlsx) — OSS: [exceljs/exceljs](https://github.com/exceljs/exceljs) (MIT) or [SheetJS/sheetjs](https://github.com/SheetJS/sheetjs) (Apache-2.0)
+
+### 3. Communication & Messaging
+
+23. **slack** — ClawhHub: [steipete/slack](https://clawhub.ai/steipete/slack) — OSS: [slackapi/node-slack-sdk](https://github.com/slackapi/node-slack-sdk). Official Slack SDK (MIT)
+24. **discord** — OSS: [discordjs/discord.js](https://github.com/discordjs/discord.js). Official Discord.js (Apache-2.0)
+25. **teams** — OSS: [microsoftgraph/msgraph-sdk-javascript](https://github.com/microsoftgraph/msgraph-sdk-javascript). Microsoft Graph SDK
+26. **gmail** — ClawhHub: [byungkyu/gmail](https://clawhub.ai/byungkyu/gmail) — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Official Google API client
+27. **imap-smtp-email** — ClawhHub: [gzlicanyi/imap-smtp-email](https://clawhub.ai/gzlicanyi/imap-smtp-email) — OSS: [nodemailer/nodemailer](https://github.com/nodemailer/nodemailer) + [mscdex/node-imap](https://github.com/mscdex/node-imap). Both MIT
+28. **telegram** — ClawhHub: [codedao12/telegram](https://clawhub.ai/codedao12/telegram) — OSS: [yagop/node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api) or [telegraf/telegraf](https://github.com/telegraf/telegraf). Both OSS
+29. **whatsapp** — ⚠️ PROPRIETARY API. WhatsApp Business API is closed/commercial. Community: [AkamaiDAO/mcp-whatsapp](https://github.com/AkamaiDAO/mcp-whatsapp) uses unofficial libs
+30. **twilio-sms** — OSS: [twilio/twilio-node](https://github.com/twilio/twilio-node). Official Twilio SDK (MIT)
+31. **imessage** — ⚠️ NO OSS CLI (macOS-only). Requires macOS AppleScript/SQLite access, community MCP exists but fragile
+32. **intercom** — ⚠️ NO OFFICIAL OSS SDK. Intercom has REST API but no maintained Node.js SDK
+
+### 4. Developer Tools & Git
+
+33. **github** (DONE) — OSS: [octokit/octokit.js](https://github.com/octokit/octokit.js) + [cli/cli](https://github.com/cli/cli). GitHub CLI + Octokit SDK (both OSS)
+34. **git** — OSS: [git/git](https://github.com/git/git). Git CLI (GPL-2.0)
+35. **gitlab** — OSS: [profclems/glab](https://github.com/profclems/glab). GLab CLI (MIT)
+36. **bitbucket** — ⚠️ NO OFFICIAL CLI. REST API only. Community: [sohamganatra/bitbucket-automation](https://github.com/openclaw/skills/tree/main/skills/sohamganatra/bitbucket-automation)
+37. **github-actions** — OSS: [cli/cli](https://github.com/cli/cli) (`gh workflow`, `gh run`). Part of GitHub CLI
+38. **jenkins** — OSS: [Jenkins built-in CLI](https://www.jenkins.io/doc/book/managing/cli/). Jenkins is OSS (MIT)
+39. **azure-devops** — OSS: [Azure/azure-devops-cli-extension](https://github.com/Azure/azure-devops-cli-extension). Official CLI extension
+40. **sentry** — OSS: [getsentry/sentry-cli](https://github.com/getsentry/sentry-cli). Official Sentry CLI (BSD-3)
+41. **code-review** — ⚠️ NO OSS CLI. SKILL.md-only, custom review logic
+42. **playwright** — OSS: [microsoft/playwright](https://github.com/microsoft/playwright). Playwright (Apache-2.0)
+
+### 5. Cloud & Infrastructure
+
+43. **aws** — OSS: [aws/aws-cli](https://github.com/aws/aws-cli). Official AWS CLI (Apache-2.0)
+44. **gcp** — [google-cloud-sdk](https://cloud.google.com/sdk). `gcloud` CLI, source available but not fully OSS
+45. **azure** — OSS: [Azure/azure-cli](https://github.com/Azure/azure-cli). Official Azure CLI (MIT)
+46. **docker** — OSS: [docker/cli](https://github.com/docker/cli). Docker CLI (Apache-2.0)
+47. **kubernetes** — OSS: [kubernetes/kubectl](https://github.com/kubernetes/kubectl). kubectl (Apache-2.0)
+48. **terraform** — OSS: [hashicorp/terraform](https://github.com/hashicorp/terraform). Terraform CLI (BSL-1.1, was OSS). Alt: [opentofu/opentofu](https://github.com/opentofu/opentofu) (MPL-2.0)
+49. **cloudflare** — OSS: [cloudflare/workers-sdk](https://github.com/cloudflare/workers-sdk) (Wrangler). Wrangler CLI (MIT/Apache-2.0)
+50. **vercel** — OSS: [vercel/vercel](https://github.com/vercel/vercel). Vercel CLI (Apache-2.0)
+51. **railway** — OSS: [railwayapp/cli](https://github.com/railwayapp/cli). Railway CLI (MIT)
+52. **digital-ocean** — OSS: [digitalocean/doctl](https://github.com/digitalocean/doctl). doctl CLI (Apache-2.0)
+
+### 6. Databases & Storage
+
+53. **postgres** — OSS: [PostgreSQL `psql`](https://www.postgresql.org/) + [brianc/node-postgres](https://github.com/brianc/node-postgres). psql CLI + `pg` Node.js (both OSS)
+54. **mysql** — OSS: [mysql/mysql-server](https://github.com/mysql/mysql-server) + [mysqljs/mysql](https://github.com/mysqljs/mysql). mysql CLI + Node.js client (both OSS)
+55. **mongodb** — OSS: [mongodb-js/mongosh](https://github.com/mongodb-js/mongosh) + [mongodb/node-mongodb-native](https://github.com/mongodb/node-mongodb-native). mongosh + driver (both OSS)
+56. **redis** — OSS: [redis/redis](https://github.com/redis/redis) + [redis/node-redis](https://github.com/redis/node-redis). redis-cli + Node.js client (both OSS)
+57. **supabase** — OSS: [supabase/cli](https://github.com/supabase/cli) + [supabase/supabase-js](https://github.com/supabase/supabase-js). CLI + SDK (both MIT)
+58. **firebase** — OSS: [firebase/firebase-tools](https://github.com/firebase/firebase-tools). Firebase CLI (MIT)
+59. **s3** — OSS: [aws/aws-cli](https://github.com/aws/aws-cli) (`aws s3`). Part of AWS CLI
+60. **data-analysis** — ⚠️ NO OSS CLI. SKILL.md-only, orchestrates DB queries + visualization
+
+### 7. CRM & Sales
+
+61. **salesforce** — OSS: [forcedotcom/cli](https://github.com/forcedotcom/cli) (`sf` CLI). Official Salesforce CLI (BSD-3)
+62. **hubspot** — OSS: [HubSpot/hubspot-api-nodejs](https://github.com/HubSpot/hubspot-api-nodejs). Official SDK
+63. **pipedrive** — OSS: [pipedrive/client-nodejs](https://github.com/pipedrive/client-nodejs). Official SDK (MIT)
+64. **zendesk** — OSS: [blakmatrix/node-zendesk](https://github.com/blakmatrix/node-zendesk). Community SDK, no official Node.js SDK
+65. **freshdesk** — ⚠️ NO OSS SDK. REST API only, no maintained Node.js SDK
+66. **attio** — ⚠️ NO OSS SDK. REST API only, recently launched
+67. **klaviyo** — OSS: [klaviyo/klaviyo-api-node](https://github.com/klaviyo/klaviyo-api-node). Official SDK
+68. **apollo** — ⚠️ NO OSS SDK. Apollo.io REST API only, no official/community SDK
+
+### 8. Marketing & Content
+
+69. **market-research** — ⚠️ NO OSS CLI. SKILL.md-only, pure prompt-based research framework
+70. **seo-writer** — ⚠️ NO OSS CLI. SKILL.md-only, pure prompt-based content generation
+71. **twitter** — ⚠️ PROPRIETARY API. X/Twitter API is paid/restricted. Community: [PLhery/node-twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2)
+72. **linkedin** — ⚠️ PROPRIETARY API. LinkedIn API is restricted/commercial, no public OSS SDK with full access
+73. **social-scheduler** — ⚠️ NO OSS CLI. Wraps multiple commercial APIs (Buffer, Hootsuite)
+74. **google-analytics** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). GA4 Data API via Google SDK
+75. **meta-ads** — OSS: [facebook/facebook-nodejs-business-sdk](https://github.com/facebook/facebook-nodejs-business-sdk). Official Meta Business SDK
+76. **canva** — ⚠️ PROPRIETARY API. Canva Connect API is closed/commercial
+
+### 9. Documents & Files
+
+77. **word** — ClawhHub: [ivangdavila/word-docx](https://clawhub.ai/ivangdavila/word-docx) — OSS: [dolanmiu/docx](https://github.com/dolanmiu/docx) (MIT) for Node.js
+78. **powerpoint** — ClawhHub: [ivangdavila/powerpoint-pptx](https://clawhub.ai/ivangdavila/powerpoint-pptx) — OSS: [gitbrent/PptxGenJS](https://github.com/gitbrent/PptxGenJS) (MIT)
+79. **google-drive** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Google Drive API via official SDK
+80. **google-sheets** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Google Sheets API via official SDK
+81. **pdf** — OSS: [Hopding/pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) for creation, [mozilla/pdf.js](https://github.com/nicolo-ribaudo/pdfjs-dist) for reading
+82. **csv** — OSS: [mholt/PapaParse](https://github.com/mholt/PapaParse) (MIT). Standard CSV parsing
+83. **airtable** — OSS: [Airtable/airtable.js](https://github.com/Airtable/airtable.js). Official SDK (MIT)
+84. **confluence** — REST API. No official Node.js SDK. ⚠️ Community clients only
+
+### 10. Monitoring & Analytics
+
+85. **grafana** — OSS: [grafana/grafana](https://github.com/grafana/grafana). Grafana HTTP API (AGPL-3.0)
+86. **datadog** — OSS: [DataDog/datadog-api-client-typescript](https://github.com/DataDog/datadog-api-client-typescript). Official SDK (Apache-2.0)
+87. **pagerduty** — OSS: [PagerDuty/pdjs](https://github.com/PagerDuty/pdjs). Official JS client
+88. **posthog** — OSS: [PostHog/posthog-js](https://github.com/PostHog/posthog-js). Official SDK (MIT)
+89. **prometheus** — OSS: [prometheus/prometheus](https://github.com/prometheus/prometheus). PromQL HTTP API (Apache-2.0)
+90. **log-search** — ⚠️ NO SINGLE OSS CLI. Multi-backend (Loki/ES/CloudWatch), each has its own client
+91. **topic-monitor** — ⚠️ NO OSS CLI. SKILL.md-only, prompt-based monitoring workflow
+92. **newrelic** — OSS: [newrelic/node-newrelic](https://github.com/newrelic/node-newrelic). Official Node.js agent (Apache-2.0), API via REST
+
+### 11. Finance & Payments
+
+93. **stripe** — OSS: [stripe/stripe-node](https://github.com/stripe/stripe-node). Official SDK (MIT)
+94. **quickbooks** — OSS: [intuit/oauth-jsclient](https://github.com/intuit/oauth-jsclient). Official OAuth client only. ⚠️ No full QuickBooks Node.js SDK
+95. **stock-analysis** — ClawhHub: [udiedrichsen/stock-analysis](https://clawhub.ai/udiedrichsen/stock-analysis) — OSS: [gadicc/node-yahoo-finance2](https://github.com/gadicc/node-yahoo-finance2) (Node.js) or [ranaroussi/yfinance](https://github.com/ranaroussi/yfinance) (Python)
+96. **crypto** — OSS: [ccxt/ccxt](https://github.com/ccxt/ccxt). CCXT (MIT) — unified crypto exchange API
+
+### 12. Media & Generation
+
+97. **image-gen** — ClawhHub: [steipete/openai-image-gen](https://clawhub.ai/steipete/openai-image-gen) — ⚠️ PROPRIETARY APIs. DALL-E/Gemini/SD APIs are commercial. SD has OSS models but generation APIs are commercial
+98. **video-transcript** — OSS: [yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp) + [openai/whisper](https://github.com/openai/whisper). yt-dlp (Unlicense) + Whisper (MIT), both fully OSS
+99. **screenshot** — ⚠️ No dominant OSS CLI. macOS `screencapture` or Playwright can screenshot
+100.  **speech** — OSS (STT): [openai/whisper](https://github.com/openai/whisper) (MIT). TTS: ⚠️ ElevenLabs API is proprietary
+
+---
+
+## Skills by Source Type
+
+### ✅ Open Source — spec-drive from CLI/SDK repo
+
+- **1. browser** — [microsoft/playwright](https://github.com/microsoft/playwright) (DONE)
+- **5. web-search** — [searxng/searxng](https://github.com/searxng/searxng)
+- **6. web-scraper** — [apify/crawlee](https://github.com/apify/crawlee)
+- **11. notion** — [makenotion/notion-sdk-js](https://github.com/makenotion/notion-sdk-js) (DONE)
+- **12. obsidian** — Custom CouchDB (DONE)
+- **13. todoist** — [Doist/todoist-api-typescript](https://github.com/Doist/todoist-api-typescript)
+- **14. linear** — [linear/linear](https://github.com/linear/linear)
+- **16. asana** — [Asana/node-asana](https://github.com/Asana/node-asana)
+- **18. trello** — [norberteder/trello](https://github.com/norberteder/trello)
+- **21. google-calendar** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
+- **22. excel** — [exceljs/exceljs](https://github.com/exceljs/exceljs)
+- **23. slack** — [slackapi/node-slack-sdk](https://github.com/slackapi/node-slack-sdk)
+- **24. discord** — [discordjs/discord.js](https://github.com/discordjs/discord.js)
+- **25. teams** — [microsoftgraph/msgraph-sdk-javascript](https://github.com/microsoftgraph/msgraph-sdk-javascript)
+- **26. gmail** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
+- **27. imap-smtp-email** — [nodemailer/nodemailer](https://github.com/nodemailer/nodemailer) + [mscdex/node-imap](https://github.com/mscdex/node-imap)
+- **28. telegram** — [telegraf/telegraf](https://github.com/telegraf/telegraf)
+- **30. twilio-sms** — [twilio/twilio-node](https://github.com/twilio/twilio-node)
+- **33. github** — [octokit/octokit.js](https://github.com/octokit/octokit.js) + [cli/cli](https://github.com/cli/cli) (DONE)
+- **34. git** — [git/git](https://github.com/git/git)
+- **35. gitlab** — [profclems/glab](https://github.com/profclems/glab)
+- **37. github-actions** — [cli/cli](https://github.com/cli/cli)
+- **38. jenkins** — [Jenkins CLI](https://www.jenkins.io/doc/book/managing/cli/)
+- **39. azure-devops** — [Azure/azure-devops-cli-extension](https://github.com/Azure/azure-devops-cli-extension)
+- **40. sentry** — [getsentry/sentry-cli](https://github.com/getsentry/sentry-cli)
+- **42. playwright** — [microsoft/playwright](https://github.com/microsoft/playwright)
+- **43. aws** — [aws/aws-cli](https://github.com/aws/aws-cli)
+- **44. gcp** — [google-cloud-sdk](https://cloud.google.com/sdk)
+- **45. azure** — [Azure/azure-cli](https://github.com/Azure/azure-cli)
+- **46. docker** — [docker/cli](https://github.com/docker/cli)
+- **47. kubernetes** — [kubernetes/kubectl](https://github.com/kubernetes/kubectl)
+- **48. terraform** — [hashicorp/terraform](https://github.com/hashicorp/terraform) or [opentofu/opentofu](https://github.com/opentofu/opentofu)
+- **49. cloudflare** — [cloudflare/workers-sdk](https://github.com/cloudflare/workers-sdk)
+- **50. vercel** — [vercel/vercel](https://github.com/vercel/vercel)
+- **51. railway** — [railwayapp/cli](https://github.com/railwayapp/cli)
+- **52. digital-ocean** — [digitalocean/doctl](https://github.com/digitalocean/doctl)
+- **53. postgres** — [brianc/node-postgres](https://github.com/brianc/node-postgres)
+- **54. mysql** — [mysqljs/mysql](https://github.com/mysqljs/mysql)
+- **55. mongodb** — [mongodb-js/mongosh](https://github.com/mongodb-js/mongosh)
+- **56. redis** — [redis/node-redis](https://github.com/redis/node-redis)
+- **57. supabase** — [supabase/cli](https://github.com/supabase/cli)
+- **58. firebase** — [firebase/firebase-tools](https://github.com/firebase/firebase-tools)
+- **59. s3** — [aws/aws-cli](https://github.com/aws/aws-cli)
+- **61. salesforce** — [forcedotcom/cli](https://github.com/forcedotcom/cli)
+- **62. hubspot** — [HubSpot/hubspot-api-nodejs](https://github.com/HubSpot/hubspot-api-nodejs)
+- **63. pipedrive** — [pipedrive/client-nodejs](https://github.com/pipedrive/client-nodejs)
+- **64. zendesk** — [blakmatrix/node-zendesk](https://github.com/blakmatrix/node-zendesk)
+- **67. klaviyo** — [klaviyo/klaviyo-api-node](https://github.com/klaviyo/klaviyo-api-node)
+- **74. google-analytics** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
+- **75. meta-ads** — [facebook/facebook-nodejs-business-sdk](https://github.com/facebook/facebook-nodejs-business-sdk)
+- **77. word** — [dolanmiu/docx](https://github.com/dolanmiu/docx)
+- **78. powerpoint** — [gitbrent/PptxGenJS](https://github.com/gitbrent/PptxGenJS)
+- **79. google-drive** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
+- **80. google-sheets** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
+- **81. pdf** — [Hopding/pdf-lib](https://github.com/Hopding/pdf-lib)
+- **82. csv** — [mholt/PapaParse](https://github.com/mholt/PapaParse)
+- **83. airtable** — [Airtable/airtable.js](https://github.com/Airtable/airtable.js)
+- **85. grafana** — [grafana/grafana](https://github.com/grafana/grafana)
+- **86. datadog** — [DataDog/datadog-api-client-typescript](https://github.com/DataDog/datadog-api-client-typescript)
+- **87. pagerduty** — [PagerDuty/pdjs](https://github.com/PagerDuty/pdjs)
+- **88. posthog** — [PostHog/posthog-js](https://github.com/PostHog/posthog-js)
+- **89. prometheus** — [prometheus/prometheus](https://github.com/prometheus/prometheus)
+- **92. newrelic** — [newrelic/node-newrelic](https://github.com/newrelic/node-newrelic)
+- **93. stripe** — [stripe/stripe-node](https://github.com/stripe/stripe-node)
+- **95. stock-analysis** — [gadicc/node-yahoo-finance2](https://github.com/gadicc/node-yahoo-finance2)
+- **96. crypto** — [ccxt/ccxt](https://github.com/ccxt/ccxt)
+- **98. video-transcript** — [yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp) + [openai/whisper](https://github.com/openai/whisper)
+
+**Total: 67 skills** (5 done, 62 to implement)
+
+### ⚠️ Proprietary API — spec-drive from API docs, needs paid API keys
+
+- **7. perplexity** — Perplexity API (closed)
+- **8. exa** — Exa AI API (closed)
+- **10. api-gateway** — [maton-ai/api-gateway-skill](https://github.com/maton-ai/api-gateway-skill), Maton platform is commercial
+- **15. jira** — Atlassian REST API, no official Node.js SDK
+- **29. whatsapp** — WhatsApp Business API (restricted)
+- **71. twitter** — X/Twitter API (paid, restricted). Community: [PLhery/node-twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2)
+- **72. linkedin** — LinkedIn API (restricted, no public access)
+- **76. canva** — Canva Connect API (closed)
+- **84. confluence** — Atlassian REST API, no official Node.js SDK
+- **97. image-gen** — DALL-E/Gemini APIs (commercial). SD has OSS models but APIs are commercial
+- **100. speech (TTS)** — ElevenLabs API (commercial). STT via Whisper is OSS
+
+**Total: 11 skills**
+
+### ⚠️ Prompt-only / No CLI — agent behavior, no external tool to wrap
+
+- **2. self-improving** — agent learning loop
+- **3. ontology** — local JSONL graph, custom format
+- **4. deep-research** — multi-step prompt workflow
+- **9. prompt-guard** — prompt injection rules
+- **19. planning** — file-based task tracking
+- **20. productivity** — markdown templates
+- **41. code-review** — review checklist/rules
+- **60. data-analysis** — orchestration prompt
+- **69. market-research** — research framework
+- **70. seo-writer** — content generation prompts
+- **91. topic-monitor** — monitoring workflow
+
+**Total: 11 skills**
+
+### ⚠️ No maintained OSS SDK — need to write raw REST client
+
+- **17. clickup** — no official SDK
+- **31. imessage** — macOS-only, AppleScript/SQLite, fragile
+- **32. intercom** — no maintained Node.js SDK
+- **36. bitbucket** — no official CLI
+- **65. freshdesk** — no SDK
+- **66. attio** — no SDK
+- **68. apollo** — no SDK
+- **73. social-scheduler** — wraps multiple commercial APIs
+- **90. log-search** — multi-backend, no unified tool
+- **94. quickbooks** — no full SDK
+- **99. screenshot** — no dominant tool
+
+**Total: 11 skills**
+
+---
+
+# Workflow
+
+for every skill we must get a cli reference from the github repository which we must 100% replicate. So we will work spec driven.
+
+Then we will create tests for those skills.
+
+And only then we will implement.
