@@ -1,33 +1,33 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Shield, Server, Users, FileText } from "lucide-react";
+import { ShieldCheck, Lock, ScrollText, ScanEye } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
 
 const trustPoints = [
 	{
-		title: "Kubernetes-native",
+		title: "Self-Hosted",
 		description:
-			"Deploys as standard K8s workloads. No custom runtimes, no vendor lock-in.",
+			"Runs entirely on your infrastructure. Data never leaves your network — no third-party cloud dependency.",
 	},
 	{
-		title: "Sandboxed V8 Isolates",
+		title: "Sandboxed Execution",
 		description:
-			"Every skill runs in an isolated V8 context. No shared memory, no side effects.",
+			"Every skill runs in an isolated V8 context. No shared memory, no cross-agent side effects.",
 	},
 	{
-		title: "Role-based Permissions",
+		title: "Credential Isolation",
 		description:
-			"Control which agents access which skills and data sources at the org level.",
+			"API keys and secrets live in your backend. Agent pods have zero access to raw credentials.",
 	},
 	{
-		title: "Audit Logs",
+		title: "Full Audit Trail",
 		description:
-			"Every tool call, LLM request, and credential access is logged and traceable.",
+			"Every tool call, LLM request, and credential access is logged, traceable, and exportable.",
 	},
 ];
 
-const icons = [Server, Shield, Users, FileText];
+const icons = [ShieldCheck, ScanEye, Lock, ScrollText];
 
 export function TrustSection() {
 	return (
