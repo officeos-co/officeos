@@ -2,7 +2,6 @@ import { BentoSection } from "@/components/sections/bento-section";
 import { CompanyShowcase } from "@/components/sections/company-showcase";
 import { CTASection } from "@/components/sections/cta-section";
 import { FAQSection } from "@/components/sections/faq-section";
-import { FeatureSection } from "@/components/sections/feature-section";
 import { FooterSection } from "@/components/sections/footer-section";
 import { GrowthSection } from "@/components/sections/growth-section";
 import { HeroSection } from "@/components/sections/hero-section";
@@ -20,7 +19,6 @@ export default function Home() {
         <HeroSection />
         <CompanyShowcase />
         <BentoSection />
-        <FeatureSection />
         <GrowthSection />
         <TrustSection />
         <FAQSection />

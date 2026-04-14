@@ -83,24 +83,48 @@ export function FooterSection() {
 								<li className="mb-2 font-semibold text-primary text-sm">
 									{column.title}
 								</li>
-								{column.links.map((link) => (
-									<li
-										key={link.id}
-										className="group inline-flex cursor-pointer items-center justify-start gap-1 text-[15px]/snug text-muted-foreground"
-									>
-										<Link href={link.url}>{link.title}</Link>
-										<div className="flex size-4 translate-x-0 transform items-center justify-center rounded border border-border opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
-											<ChevronRightIcon className="h-4 w-4" />
-										</div>
-									</li>
-								))}
+								{column.links.map((link) => {
+									const isExternal = link.url.startsWith("http");
+									return (
+										<li
+											key={link.id}
+											className="group inline-flex cursor-pointer items-center justify-start gap-1 text-[15px]/snug text-muted-foreground"
+										>
+											{isExternal ? (
+												<a
+													href={link.url}
+													target="_blank"
+													rel="noopener noreferrer"
+												>
+													{link.title}
+												</a>
+											) : (
+												<Link href={link.url}>{link.title}</Link>
+											)}
+											<div className="flex size-4 translate-x-0 transform items-center justify-center rounded border border-border opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
+												<ChevronRightIcon className="h-4 w-4" />
+											</div>
+										</li>
+									);
+								})}
 							</ul>
 						))}
 					</div>
 				</div>
 			</div>
-			<div className="px-10 pb-6 text-center text-xs text-muted-foreground">
-				Made in Hamburg — &copy; 2026 Office OS GmbH
+			<div className="flex items-center justify-between px-10 pb-6">
+				<a
+					href="https://status.harrokrog.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
+				>
+					<span className="h-2 w-2 rounded-full bg-emerald-500" />
+					System Status
+				</a>
+				<span className="text-xs text-muted-foreground">
+					Made in Hamburg — &copy; 2026 Office OS GmbH
+				</span>
 			</div>
 			<div className="relative z-0 mt-8 h-48 w-full md:h-64">
 				<div className="absolute inset-0 z-10 bg-gradient-to-t from-40% from-transparent to-background" />

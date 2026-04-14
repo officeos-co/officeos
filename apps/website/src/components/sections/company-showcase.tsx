@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 
 const companyLogos = [
@@ -79,34 +81,42 @@ export function CompanyShowcase() {
 	return (
 		<section
 			id="company"
-			className="relative flex w-full flex-col items-center justify-center gap-6 px-6 py-10 pt-20"
+			className="relative flex w-full flex-col items-center justify-center gap-4 px-12 py-8 md:px-20 lg:px-32"
 		>
-			<div className="text-center">
-				<h3 className="text-xl font-medium text-primary tracking-tight">
-					Judged & backed by
-				</h3>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Hackathon winners — backed by industry leaders in tech and innovation
-				</p>
-			</div>
-			<div className="z-20 grid w-full max-w-7xl grid-cols-2 items-center justify-center overflow-hidden border-border border-y sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-				{companyLogos.map((logo) => (
-					<a
-						href={logo.href}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="group relative flex h-28 w-full items-center justify-center p-4 before:absolute before:top-0 before:-left-1 before:z-10 before:h-screen before:w-px before:bg-border before:content-[''] after:absolute after:-top-1 after:left-0 after:z-10 after:h-px after:w-screen after:bg-border after:content-[''] opacity-50 hover:opacity-100 transition-opacity"
-						key={logo.id}
-					>
-						<Image
-							src={logo.src}
-							alt={logo.name}
-							width={160}
-							height={60}
-							className="max-h-10 w-auto object-contain"
-						/>
-					</a>
-				))}
+			<p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+				Judged & backed by
+			</p>
+
+			<div
+				className="relative w-full overflow-hidden"
+				style={
+					{ "--duration": "30s", "--gap": "3rem" } as React.CSSProperties
+				}
+			>
+				{/* Left fade */}
+				<div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-background to-transparent" />
+				{/* Right fade */}
+				<div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-background to-transparent" />
+
+				<div className="flex animate-marquee items-center gap-[var(--gap)]">
+					{[...companyLogos, ...companyLogos].map((logo, i) => (
+						<a
+							href={logo.href}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex shrink-0 items-center justify-center opacity-40 transition-opacity hover:opacity-80"
+							key={`${logo.id}-${i}`}
+						>
+							<Image
+								src={logo.src}
+								alt={logo.name}
+								width={120}
+								height={40}
+								className="max-h-7 w-auto object-contain"
+							/>
+						</a>
+					))}
+				</div>
 			</div>
 		</section>
 	);

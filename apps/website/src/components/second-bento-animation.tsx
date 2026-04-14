@@ -1,9 +1,10 @@
+import Image from "next/image";
 import { OrbitingCircles } from "@/components/ui/orbiting-circle";
 
-function SkillIcon({ label }: { label: string }) {
+function ChannelIcon({ src, alt }: { src: string; alt: string }) {
 	return (
-		<div className="flex size-10 items-center justify-center rounded-lg border border-border bg-accent text-xs font-medium text-muted-foreground">
-			{label}
+		<div className="flex size-10 items-center justify-center">
+			<Image src={src} alt={alt} width={32} height={32} className="size-8" />
 		</div>
 	);
 }
@@ -26,15 +27,15 @@ export function SecondBentoAnimation() {
 						reverse
 						speed={1}
 					>
-						<SkillIcon label="GH" />
-						<SkillIcon label="Slack" />
-						<SkillIcon label="Notion" />
+						<ChannelIcon src="/logos/slack.svg" alt="Slack" />
+						<ChannelIcon src="/logos/email.svg" alt="Email" />
+						<ChannelIcon src="/logos/teams.svg" alt="Teams" />
 					</OrbitingCircles>
 
 					<OrbitingCircles index={1} iconSize={60} speed={0.5}>
-						<SkillIcon label="Jira" />
-						<SkillIcon label="Linear" />
-						<SkillIcon label="GCal" />
+						<ChannelIcon src="/logos/whatsapp.svg" alt="WhatsApp" />
+						<ChannelIcon src="/logos/discord.svg" alt="Discord" />
+						<ChannelIcon src="/logos/telegram.svg" alt="Telegram" />
 					</OrbitingCircles>
 
 					<OrbitingCircles
@@ -44,9 +45,9 @@ export function SecondBentoAnimation() {
 						reverse
 						speed={0.5}
 					>
-						<SkillIcon label="ERP" />
-						<SkillIcon label="CRM" />
-						<SkillIcon label="DB" />
+						<ChannelIcon src="/logos/github.svg" alt="GitHub" />
+						<ChannelIcon src="/logos/notion.svg" alt="Notion" />
+						<ChannelIcon src="/logos/linear.svg" alt="Linear" />
 					</OrbitingCircles>
 				</div>
 			</div>

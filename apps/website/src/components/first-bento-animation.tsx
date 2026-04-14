@@ -1,125 +1,160 @@
 "use client";
 
-import { AnimatePresence, motion, useInView } from "motion/react";
+import { motion, AnimatePresence, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+
+type Phase = "idle" | "booting" | "live";
+
+const phaseConfig: Record<Phase, { label: string; dot: string; ping: string | null; bg: string; text: string }> = {
+	idle: { label: "DEPLOY", dot: "bg-muted-foreground/30", ping: null, bg: "bg-muted", text: "text-muted-foreground" },
+	booting: { label: "BOOTING", dot: "bg-blue-400", ping: "bg-blue-400/40", bg: "bg-blue-50", text: "text-blue-600" },
+	live: { label: "LIVE", dot: "bg-emerald-500", ping: "bg-emerald-500/40", bg: "bg-emerald-50", text: "text-emerald-600" },
+};
+
+const bootSteps = [
+	"Loading knowledge graph…",
+	"Connecting tools…",
+	"Agent ready",
+];
 
 export function FirstBentoAnimation() {
 	const ref = useRef(null);
 	const isInView = useInView(ref);
-	const [shouldAnimate, setShouldAnimate] = useState(false);
+	const [phase, setPhase] = useState<Phase>("idle");
+	const [bootStep, setBootStep] = useState(0);
 
 	useEffect(() => {
-		let timeoutId: NodeJS.Timeout;
-		if (isInView) {
-			timeoutId = setTimeout(() => {
-				setShouldAnimate(true);
-			}, 1000);
-		} else {
-			setShouldAnimate(false);
+		if (!isInView) {
+			setPhase("idle");
+			setBootStep(0);
+			return;
 		}
 
+		const t1 = setTimeout(() => setPhase("booting"), 800);
+		const t2 = setTimeout(() => setBootStep(1), 1400);
+		const t3 = setTimeout(() => setBootStep(2), 2000);
+		const t4 = setTimeout(() => setPhase("live"), 2400);
+
 		return () => {
-			if (timeoutId) clearTimeout(timeoutId);
+			clearTimeout(t1);
+			clearTimeout(t2);
+			clearTimeout(t3);
+			clearTimeout(t4);
 		};
 	}, [isInView]);
+
+	const cfg = phaseConfig[phase];
 
 	return (
 		<div
 			ref={ref}
-			className="flex h-full w-full flex-col items-center justify-center gap-5 p-4"
+			className="flex h-full w-full items-center justify-center p-4"
 		>
-			<div className="pointer-events-none absolute bottom-0 left-0 z-20 h-20 w-full bg-gradient-to-t from-background to-transparent"></div>
-			<motion.div
-				className="mx-auto flex w-full max-w-md flex-col gap-2"
-				animate={{
-					y: shouldAnimate ? -75 : 0,
-				}}
-				transition={{
-					type: "spring",
-					stiffness: 300,
-					damping: 20,
-				}}
-			>
-				<div className="flex items-end justify-end gap-3">
-					<motion.div
-						className="ml-auto max-w-[280px] rounded-2xl bg-secondary p-4 text-white shadow-[0_0_10px_rgba(0,0,0,0.05)]"
-						initial={{ opacity: 0, x: 20 }}
-						animate={{ opacity: 1, x: 0 }}
-						transition={{
-							duration: 0.3,
-							ease: "easeOut",
-						}}
-					>
-						<p className="text-sm">
-							Deploy an agent for the marketing team with Notion and Slack
-							skills.
-						</p>
-					</motion.div>
-					<div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full border border-border bg-muted">
-						<span className="text-xs text-muted-foreground">U</span>
-					</div>
-				</div>
-				<div className="flex items-start gap-2">
-					<div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-[0_0_10px_rgba(0,0,0,0.05)]">
-						<span className="font-mono text-xs font-bold text-primary">OS</span>
-					</div>
+			<div className="pointer-events-none absolute bottom-0 left-0 z-20 h-20 w-full bg-gradient-to-t from-background to-transparent" />
 
-					<div className="relative">
-						<AnimatePresence mode="wait">
-							{!shouldAnimate ? (
-								<motion.div
-									key="dots"
-									className="absolute top-0 left-0 rounded-2xl border border-border bg-background p-4"
-									initial={{ opacity: 0, x: -20 }}
-									animate={{ opacity: 1, x: 0 }}
-									exit={{ opacity: 0, x: -10 }}
-									transition={{
-										duration: 0.2,
-										ease: "easeOut",
-									}}
-								>
-									<div className="flex gap-1">
-										{[0, 1, 2].map((index) => (
-											<motion.div
-												key={index}
-												className="h-2 w-2 rounded-full bg-primary/50"
-												animate={{ y: [0, -5, 0] }}
-												transition={{
-													duration: 0.6,
-													repeat: Infinity,
-													delay: index * 0.2,
-													ease: "easeInOut",
-												}}
-											/>
-										))}
-									</div>
-								</motion.div>
-							) : (
-								<motion.div
-									key="response"
-									layout
-									className="absolute top-0 left-0 min-w-[220px] rounded-xl border border-border bg-accent p-4 shadow-[0_0_10px_rgba(0,0,0,0.05)] md:min-w-[300px]"
-									initial={{ opacity: 0, x: 10 }}
-									animate={{
-										opacity: 1,
-										x: 0,
-									}}
-									exit={{ opacity: 0, x: 20 }}
-									transition={{
-										duration: 0.3,
-										ease: "easeOut",
-									}}
-								>
-									<p className="text-sm text-primary">
-										Agent deployed. Team: Marketing. Skills: notion, slack.
-										Permissions: read-write. Status: running.
-									</p>
-								</motion.div>
+			<div className="w-full max-w-xs rounded-xl border border-border/60 bg-white p-4 shadow-sm">
+				{/* Header */}
+				<div className="mb-3 flex items-center justify-between">
+					<div className="flex items-center gap-2">
+						<span className="relative flex">
+							<motion.span
+								key={cfg.dot}
+								initial={{ scale: 0.5 }}
+								animate={{ scale: 1 }}
+								className={`h-2 w-2 rounded-full ${cfg.dot}`}
+							/>
+							{cfg.ping && (
+								<span
+									className={`absolute inset-0 h-2 w-2 animate-ping rounded-full ${cfg.ping}`}
+								/>
 							)}
-						</AnimatePresence>
+						</span>
+						<span className="text-xs font-semibold text-primary">
+							Sales Research Agent
+						</span>
+					</div>
+					<motion.span
+						key={cfg.label}
+						initial={{ scale: 0.9, opacity: 0 }}
+						animate={{ scale: 1, opacity: 1 }}
+						className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${cfg.bg} ${cfg.text}`}
+					>
+						{cfg.label}
+					</motion.span>
+				</div>
+
+				{/* Info */}
+				<div className="mb-3 space-y-1.5 text-[11px] text-muted-foreground">
+					<div className="flex justify-between">
+						<span>Team</span>
+						<span className="text-primary">Sales</span>
+					</div>
+					<div className="flex justify-between">
+						<span>Skills</span>
+						<span className="text-primary">CRM, LinkedIn, Notion</span>
 					</div>
 				</div>
-			</motion.div>
+
+				{/* Boot log / status */}
+				<div className="rounded-lg bg-muted/40 px-3 py-2.5">
+					<AnimatePresence mode="wait">
+						{phase === "idle" && (
+							<motion.div
+								key="idle"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								className="text-[10px] text-muted-foreground/50"
+							>
+								Ready to deploy
+							</motion.div>
+						)}
+						{phase === "booting" && (
+							<motion.div
+								key="booting"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								className="space-y-1"
+							>
+								{bootSteps.slice(0, bootStep + 1).map((step, i) => (
+									<motion.div
+										key={step}
+										initial={{ opacity: 0, y: 4 }}
+										animate={{ opacity: 1, y: 0 }}
+										className="flex items-center gap-1.5 text-[10px]"
+									>
+										{i < bootStep ? (
+											<span className="text-emerald-500">✓</span>
+										) : (
+											<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+										)}
+										<span className="text-muted-foreground">{step}</span>
+									</motion.div>
+								))}
+							</motion.div>
+						)}
+						{phase === "live" && (
+							<motion.div
+								key="live"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								className="space-y-1"
+							>
+								<div className="flex items-center gap-1.5 text-[10px] text-emerald-600">
+									<span>✓</span>
+									<span className="font-medium">
+										Live in 4.2s
+									</span>
+								</div>
+								<div className="text-[10px] text-muted-foreground/50">
+									Preparing briefing for 2pm call…
+								</div>
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
+			</div>
 		</div>
 	);
 }
