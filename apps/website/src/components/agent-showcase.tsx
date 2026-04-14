@@ -142,9 +142,9 @@ function WorkingPhaseDetail({ phase, logVisible }: { phase: AgentPhase; logVisib
   );
 }
 
-/* ── Main showcase ────────────────────────────────────────── */
+/* ── Shared hook for agent cycling ───────────────────────── */
 
-export function AgentShowcase() {
+function useAgentCycle() {
   const [selected, setSelected] = useState(0);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [logVisible, setLogVisible] = useState(0);
@@ -155,8 +155,6 @@ export function AgentShowcase() {
   const agent = agents[selected];
   const phase = agent.phases[phaseIdx] ?? agent.phases[agent.phases.length - 1];
 
-  // Sidebar statuses: selected agent shows real phase, past agents show "working",
-  // future agents show their initial phase (e.g. "boot" for Pipeline Agent)
   const sidebarStatuses: PhaseStatus[] = agents.map((_, i) => {
     if (i === selected) return phase.status;
     if (i < selected) return "working";
@@ -208,6 +206,171 @@ export function AgentShowcase() {
     setPhaseIdx(0);
   }, []);
 
+  return { selected, phaseIdx, logVisible, agent, phase, sidebarStatuses, selectAgent };
+}
+
+/* ── Mobile showcase ─────────────────────────────────────── */
+
+function MobileShowcase() {
+  const { selected, phaseIdx, logVisible, agent, phase, sidebarStatuses, selectAgent } = useAgentCycle();
+  const badge = statusBadge[phase.status];
+  const metric = phase.metric ?? agent.metric;
+
+  return (
+    <div className="mx-auto w-full">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-white shadow-xl shadow-black/8">
+        {/* Agent selector - horizontal scroll */}
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-border/60 bg-muted/60 px-3 py-2.5 scrollbar-none">
+          {agents.map((a, i) => {
+            const sts = sidebarStatuses[i];
+            const ping = dotPing(sts);
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => selectAgent(i)}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors ${
+                  selected === i ? "bg-white shadow-sm" : "hover:bg-white/40"
+                }`}
+              >
+                <span className="relative flex shrink-0">
+                  <motion.span
+                    key={`${a.id}-dot-${sts}`}
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    className={`h-2 w-2 rounded-full ${dotColor(sts)}`}
+                  />
+                  {ping && <span className={`absolute inset-0 h-2 w-2 animate-ping rounded-full ${ping}`} />}
+                </span>
+                <span className="text-xs font-medium text-primary">{a.name.split(" ").slice(0, 2).join(" ")}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Agent detail */}
+        <div className="bg-muted/30 p-4">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${agent.id}-${phaseIdx}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Status + name */}
+              <div className="mb-3 flex items-center gap-2">
+                <motion.span
+                  key={badge.label}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${badge.bg} ${badge.text}`}
+                >
+                  {badge.label}
+                </motion.span>
+                <span className="text-xs text-muted-foreground/50">{agent.role}</span>
+              </div>
+
+              <h3 className="mb-1 text-sm font-semibold text-primary">{agent.name}</h3>
+              <p className="mb-4 text-xs text-muted-foreground">{phase.statusText}</p>
+
+              {/* Phase content - simplified */}
+              {phase.status === "wake" && phase.channels && phase.channels.length > 0 && (
+                <div className="mb-4 rounded-xl bg-muted/50 p-3">
+                  <div className="flex items-start gap-2">
+                    {logos[phase.channels[0].channel] && (
+                      <Image src={logos[phase.channels[0].channel]} alt={phase.channels[0].channel} width={14} height={14} className="mt-0.5 shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-xs text-primary">{phase.channels[0].text}</p>
+                      <span className="text-[10px] text-muted-foreground/40">via {phase.channels[0].channel}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {phase.status === "boot" && phase.log && (
+                <div className="mb-4 rounded-xl bg-muted/50 p-3">
+                  <LiveLog entries={phase.log} visible={Math.min(logVisible, 3)} />
+                </div>
+              )}
+
+              {phase.status === "working" && (
+                <>
+                  {phase.tasks && (
+                    <div className="mb-4 rounded-xl bg-muted/50 p-3">
+                      <div className="space-y-1.5">
+                        {phase.tasks.slice(0, 4).map((t) => (
+                          <div key={t.name} className="flex items-center gap-2 text-xs">
+                            <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${t.done ? "border-emerald-300 bg-emerald-50 text-emerald-500" : "border-border bg-white"}`}>
+                              {t.done && <CheckSvg />}
+                            </span>
+                            <span className={t.done ? "text-muted-foreground/50 line-through" : "text-primary"}>{t.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {phase.log && (
+                    <div className="mb-4 rounded-xl bg-muted/50 p-3">
+                      <LiveLog entries={phase.log} visible={Math.min(logVisible, 3)} />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Tools + Metric row */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {agent.tools.slice(0, 3).map((tool) => (
+                    <span key={tool} className="flex items-center gap-1.5 rounded-md border border-border/60 bg-white px-2 py-1 text-[10px] font-medium text-primary">
+                      {logos[tool] && <Image src={logos[tool]} alt={tool} width={10} height={10} className="shrink-0" />}
+                      {tool}
+                    </span>
+                  ))}
+                  {agent.tools.length > 3 && (
+                    <span className="rounded-md border border-border/60 bg-white px-2 py-1 text-[10px] text-muted-foreground">
+                      +{agent.tools.length - 3}
+                    </span>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={`${metric.value}-${metric.sub}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-lg font-semibold text-primary"
+                    >
+                      {metric.value}
+                    </motion.span>
+                  </AnimatePresence>
+                  <span className="block text-[10px] text-muted-foreground/50">{metric.sub}</span>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex items-center justify-between border-t border-border/60 bg-muted/60 px-3 py-2">
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {agents.length} agents online
+          </span>
+          <span className="text-[11px] text-muted-foreground/40">189 tasks today</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Desktop showcase ────────────────────────────────────── */
+
+function DesktopShowcase() {
+  const { selected, phaseIdx, logVisible, agent, phase, sidebarStatuses, selectAgent } = useAgentCycle();
+
   const phaseChannels = phase.channels ?? [];
   const visibleChannels =
     phase.status === "working" || phase.status === "boot"
@@ -249,7 +412,7 @@ export function AgentShowcase() {
         {/* Body */}
         <div className="flex" style={{ aspectRatio: "16 / 9" }}>
           {/* Sidebar */}
-          <div className="hidden w-52 shrink-0 border-r border-border/60 bg-muted/60 md:flex md:flex-col">
+          <div className="flex w-52 shrink-0 flex-col border-r border-border/60 bg-muted/60">
             <div className="flex-1 p-3">
               <div className="mb-3 flex items-center justify-between px-1">
                 <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">Agents</span>
@@ -311,9 +474,9 @@ export function AgentShowcase() {
 
           {/* Main content */}
           <div className="relative flex-1 overflow-hidden bg-muted">
-            <div className="absolute inset-0 grid grid-cols-1 gap-4 p-4 md:grid-cols-12 md:gap-5 md:p-5">
+            <div className="absolute inset-0 grid grid-cols-12 gap-5 p-5">
               {/* Detail card */}
-              <div className="overflow-hidden md:col-span-7">
+              <div className="overflow-hidden col-span-7">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`${agent.id}-${phaseIdx}`}
@@ -348,7 +511,7 @@ export function AgentShowcase() {
               </div>
 
               {/* Right column */}
-              <div className="flex flex-col gap-4 overflow-hidden md:col-span-5">
+              <div className="flex flex-col gap-4 overflow-hidden col-span-5">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`tools-${agent.id}`}
@@ -449,8 +612,8 @@ export function AgentShowcase() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {agents.length} agents
             </span>
-            <span className="hidden text-muted-foreground/30 sm:inline">·</span>
-            <span className="hidden sm:inline">189 tasks completed today</span>
+            <span className="text-muted-foreground/30">·</span>
+            <span>189 tasks completed today</span>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-white/80 px-3 py-1.5">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="text-muted-foreground/40">
@@ -461,5 +624,20 @@ export function AgentShowcase() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── Exported component ──────────────────────────────────── */
+
+export function AgentShowcase() {
+  return (
+    <>
+      <div className="block md:hidden">
+        <MobileShowcase />
+      </div>
+      <div className="hidden md:block">
+        <DesktopShowcase />
+      </div>
+    </>
   );
 }

@@ -33,11 +33,6 @@ const footerLinks = [
 		links: [
 			{ id: 12, title: "About", url: "/about" },
 			{ id: 13, title: "Blog", url: "#" },
-		],
-	},
-	{
-		title: "Legal",
-		links: [
 			{ id: 14, title: "Privacy", url: "/privacy" },
 			{ id: 15, title: "Terms", url: "/terms" },
 		],
@@ -131,10 +126,9 @@ export function FooterSection() {
 					href="https://status.harrokrog.com"
 					target="_blank"
 					rel="noopener noreferrer"
-					className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
+					className="text-xs text-muted-foreground transition-colors hover:text-primary"
 				>
-					<span className="h-2 w-2 rounded-full bg-emerald-500" />
-					System Status
+					Status
 				</a>
 				<span className="text-xs text-muted-foreground">
 					Made in Hamburg — &copy; 2026 Office OS GmbH

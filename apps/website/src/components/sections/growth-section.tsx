@@ -24,10 +24,10 @@ const items = [
 					</div>
 					<div className="text-center">
 						<p className="font-mono text-5xl font-bold text-primary">
-							&lt;5ms
+							&lt;5s
 						</p>
 						<p className="mt-2 text-sm text-muted-foreground">
-							cold start time
+							cold start — 60x faster than VMs
 						</p>
 					</div>
 				</div>

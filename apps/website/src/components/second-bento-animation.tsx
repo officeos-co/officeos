@@ -15,11 +15,12 @@ export function SecondBentoAnimation() {
 			<div className="pointer-events-none absolute bottom-0 left-0 z-20 h-20 w-full bg-gradient-to-t from-background to-transparent"></div>
 			<div className="pointer-events-none absolute top-0 left-0 z-20 h-20 w-full bg-gradient-to-b from-background to-transparent"></div>
 
-			<div className="absolute top-1/2 left-1/2 z-30 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 rounded-full bg-secondary p-2 md:top-auto md:bottom-0">
-				<span className="font-mono text-sm font-bold text-white">OS</span>
-			</div>
 			<div className="relative flex h-full w-full items-center justify-center overflow-hidden">
 				<div className="relative flex h-full w-full translate-y-0 items-center justify-center md:translate-y-32">
+					<div className="absolute z-30 flex size-16 items-center justify-center rounded-full bg-secondary p-2">
+						<span className="font-mono text-sm font-bold text-white">OS</span>
+					</div>
+
 					<OrbitingCircles
 						index={0}
 						iconSize={60}

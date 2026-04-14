@@ -76,11 +76,9 @@ export default function SkillsPage() {
 							isolated contexts.
 						</p>
 						<p className="mt-4">
-							Cold start for skill execution is{" "}
-							<strong className="text-primary">under 5ms</strong>.
 							Skills are pre-loaded at runtime boot and ready to
 							execute immediately. There&apos;s no container spin-up,
-							no cold function invocation, no waiting for a sandbox to
+							no VM provisioning, no waiting for a sandbox to
 							initialize. When an agent calls a skill, the action
 							executes and returns results in the same request cycle.
 						</p>
