@@ -45,3 +45,9 @@ User opens the dashboard, creates an agent. The backend provisions a CouchDB vau
 - When working on long running tasks do iterative commits but not when working on main only when in a separate branch.
   Dont make the committs too small the goal should be at every commit it should be in a usable state its totally fine if for a large tast you structure it only in 3 commits except 10
 - When changing the database schema make sure to apply the migration
+
+## Skill rules
+
+- **No channel-specific skills.** Slack, Discord, Teams, Telegram, WhatsApp, Twilio SMS, iMessage, Intercom etc. are handled by native channel integrations — never create skills for them.
+- **No prompt-only skills.** Every skill must wrap a real CLI, SDK, or API. Pure prompt-based "skills" (planning templates, review checklists, research frameworks, productivity workflows) are not skills — they are agent behavior and belong in the agent's personality/system prompt, not in the skill registry.
+- **Spec-driven workflow.** For every new skill: (1) get the CLI/SDK reference from the source repo, (2) write the SKILL.md spec replicating 100% of the relevant surface, (3) create tests, (4) implement.

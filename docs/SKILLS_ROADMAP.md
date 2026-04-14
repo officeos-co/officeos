@@ -8,16 +8,14 @@
 
 ## 1. Agent Core & Memory
 
+> Prompt-only skills (self-improving, ontology, deep-research, prompt-guard) removed — skills must wrap a real CLI/SDK/API.
+
 1. **browser** — Headless browser automation via Playwright with accessibility tree snapshots (85K downloads) `harro-skills/skill-browser` **DONE**
-2. **self-improving** — Captures learnings, errors, and corrections for continuous agent improvement (384K downloads) `harro-skills/skill-self-improving` TODO
-3. **ontology** — Typed knowledge graph for structured agent memory — Person, Project, Task, Event, Document (162K downloads) `harro-skills/skill-ontology` TODO
-4. **deep-research** — Multi-step research with planning decomposition and source synthesis `harro-skills/skill-deep-research` TODO
-5. **web-search** — Unified multi-engine search: Google, Bing, Reddit, arXiv, HN and more (116K downloads) `harro-skills/skill-web-search` TODO
-6. **web-scraper** — Extract structured data from web pages with anti-bot bypass (6.7K downloads) `harro-skills/skill-web-scraper` TODO
-7. **perplexity** — AI-powered deep search via Perplexity API `harro-skills/skill-perplexity` TODO
-8. **exa** — Neural semantic search and content extraction via Exa AI (25K downloads) `harro-skills/skill-exa` TODO
-9. **prompt-guard** — Prompt injection detection and defense, multi-language, multi-vector (22K downloads) `harro-skills/skill-prompt-guard` TODO
-10. **api-gateway** — Connect to 100+ APIs with managed OAuth: Google, Microsoft, Slack, HubSpot, etc. (67K downloads) `harro-skills/skill-api-gateway` TODO
+2. **web-search** — Unified multi-engine search: Google, Bing, Reddit, arXiv, HN and more (116K downloads) `harro-skills/skill-web-search` TODO
+3. **web-scraper** — Extract structured data from web pages with anti-bot bypass (6.7K downloads) `harro-skills/skill-web-scraper` TODO
+4. **perplexity** — AI-powered deep search via Perplexity API `harro-skills/skill-perplexity` TODO
+5. **exa** — Neural semantic search and content extraction via Exa AI (25K downloads) `harro-skills/skill-exa` TODO
+6. **api-gateway** — Connect to 100+ APIs with managed OAuth: Google, Microsoft, Slack, HubSpot, etc. (67K downloads) `harro-skills/skill-api-gateway` TODO
 
 ## 2. Productivity & Tasks
 
@@ -29,23 +27,15 @@
 16. **asana** — Task and project management via Asana REST API `harro-skills/skill-asana` TODO
 17. **clickup** — Tasks, docs, time tracking, and comments via ClickUp API `harro-skills/skill-clickup` TODO
 18. **trello** — Board, list, and card management via Trello API `harro-skills/skill-trello` TODO
-19. **planning** — Manus-style file-based planning to organize and track complex tasks (15K downloads) `harro-skills/skill-planning` TODO
-20. **productivity** — Energy management, time blocking, goals, projects, tasks, habits, reviews (18K downloads) `harro-skills/skill-productivity` TODO
-21. **google-calendar** — Google Calendar event management via Google API `harro-skills/skill-google-calendar` TODO
+19. **google-calendar** — Google Calendar event management via Google API `harro-skills/skill-google-calendar` TODO
 22. **excel** — Read, write, edit, and format Excel/.xlsx with formulas and formatting (52K downloads) `harro-skills/skill-excel` TODO
 
-## 3. Communication & Messaging
+## 3. Communication & Email
 
-23. **slack** — Send/read messages, manage channels, threads, and reactions via Slack API `harro-skills/skill-slack` TODO
-24. **discord** — Server, channel, and message management — send, react, upload, manage (29K downloads) `harro-skills/skill-discord` TODO
-25. **teams** — Microsoft Teams messaging, channels, and meeting management `harro-skills/skill-teams` TODO
-26. **gmail** — Gmail read, send, search, label, and draft management (5.7K downloads) `harro-skills/skill-gmail` TODO
-27. **imap-smtp-email** — Read and send email via IMAP/SMTP, works with any email provider (37K downloads) `harro-skills/skill-imap-smtp-email` TODO
-28. **telegram** — Send/receive messages, manage channels via Telegram Bot API `harro-skills/skill-telegram` TODO
-29. **whatsapp** — WhatsApp Business API messaging `harro-skills/skill-whatsapp` TODO
-30. **twilio-sms** — Send and receive SMS via Twilio API `harro-skills/skill-twilio-sms` TODO
-31. **imessage** — iMessage/SMS CLI for listing chats, history, watching, and sending (13K downloads) `harro-skills/skill-imessage` TODO
-32. **intercom** — Customer messaging, conversations, and user management via Intercom API `harro-skills/skill-intercom` TODO
+> Channel-specific skills (Slack, Discord, Teams, Telegram, WhatsApp, Twilio SMS, iMessage, Intercom) removed — native channel integrations handle messaging.
+
+23. **gmail** — Gmail read, send, search, label, and draft management (5.7K downloads) `harro-skills/skill-gmail` TODO
+24. **imap-smtp-email** — Read and send email via IMAP/SMTP, works with any email provider (37K downloads) `harro-skills/skill-imap-smtp-email` TODO
 
 ## 4. Developer Tools & Git
 
@@ -57,8 +47,7 @@
 38. **jenkins** — Jenkins CI/CD job management via REST API `harro-skills/skill-jenkins` TODO
 39. **azure-devops** — Azure DevOps projects, repos, PRs, work items, and builds `harro-skills/skill-azure-devops` TODO
 40. **sentry** — Error tracking, issue management, and release monitoring via Sentry API `harro-skills/skill-sentry` TODO
-41. **code-review** — Automated PR review: security, performance, and style analysis `harro-skills/skill-code-review` TODO
-42. **playwright** — Full browser automation via Playwright MCP — navigate, click, fill, screenshot (26K downloads) `harro-skills/skill-playwright` TODO
+41. **playwright** — Full browser automation via Playwright MCP — navigate, click, fill, screenshot (26K downloads) `harro-skills/skill-playwright` TODO
 
 ## 5. Cloud & Infrastructure
 
@@ -82,7 +71,6 @@
 57. **supabase** — Supabase database, auth, vector search, and storage operations `harro-skills/skill-supabase` TODO
 58. **firebase** — Firebase Firestore, Auth, and Cloud Functions management `harro-skills/skill-firebase` TODO
 59. **s3** — AWS S3 bucket and object operations (upload, download, list, delete) `harro-skills/skill-s3` TODO
-60. **data-analysis** — Query databases, generate reports, spreadsheets, and visualizations (25K downloads) `harro-skills/skill-data-analysis` TODO
 
 ## 7. CRM & Sales
 
@@ -97,9 +85,7 @@
 
 ## 8. Marketing & Content
 
-69. **market-research** — Market sizing, segmentation, competitor mapping, pricing, demand validation (16K downloads) `harro-skills/skill-market-research` TODO
-70. **seo-writer** — SEO-optimized blog posts, articles, landing pages with keyword integration (8.8K downloads) `harro-skills/skill-seo-writer` TODO
-71. **twitter** — X/Twitter — search posts, read timelines, compose and post tweets (9.4K downloads) `harro-skills/skill-twitter` TODO
+69. **twitter** — X/Twitter — search posts, read timelines, compose and post tweets (9.4K downloads) `harro-skills/skill-twitter` TODO
 72. **linkedin** — LinkedIn profile data, post sharing, and ad management via API (9.5K downloads) `harro-skills/skill-linkedin` TODO
 73. **social-scheduler** — Schedule posts to 28+ channels: X, LinkedIn, Reddit, Instagram, TikTok, etc. (8.5K downloads) `harro-skills/skill-social-scheduler` TODO
 74. **google-analytics** — Google Analytics 4 — tracking setup, reports, and audience data `harro-skills/skill-google-analytics` TODO
@@ -125,8 +111,7 @@
 88. **posthog** — PostHog product analytics — events, funnels, and feature flags `harro-skills/skill-posthog` TODO
 89. **prometheus** — Prometheus metric queries and alert rule management `harro-skills/skill-prometheus` TODO
 90. **log-search** — Unified log search across Loki, Elasticsearch, and CloudWatch `harro-skills/skill-log-search` TODO
-91. **topic-monitor** — Monitor topics and proactively alert on important developments (8.2K downloads) `harro-skills/skill-topic-monitor` TODO
-92. **newrelic** — New Relic APM, infrastructure, and log management `harro-skills/skill-newrelic` TODO
+91. **newrelic** — New Relic APM, infrastructure, and log management `harro-skills/skill-newrelic` TODO
 
 ## 11. Finance & Payments
 
@@ -146,8 +131,8 @@
 
 ## Totals
 
-- 100 skills across 12 categories
-- 5 done, 95 to implement
+- 79 skills across 12 categories (10 channel skills + 11 prompt-only skills removed)
+- 5 done, 74 to implement
 - Top by ClawhHub downloads: self-improving (384K), ontology (162K), web-search (116K), crypto (109K), image-gen (85K), browser (85K), obsidian (80K), api-gateway (67K), word (58K), excel (52K)
 
 ## Data Sources
@@ -165,15 +150,11 @@
 ### 1. Agent Core & Memory
 
 1. **browser** (DONE) — OSS: [microsoft/playwright](https://github.com/microsoft/playwright). Playwright MCP: `@anthropic/mcp-server-playwright`
-2. **self-improving** — ClawhHub: [pskoett/self-improving-agent](https://clawhub.ai/pskoett/self-improving-agent) — OSS: [peterskoett/self-improving-agent](https://github.com/peterskoett/self-improving-agent). ⚠️ SKILL.md-only (prompt-based), no CLI
-3. **ontology** — ClawhHub: [oswalpalash/ontology](https://clawhub.ai/oswalpalash/ontology) — ⚠️ NO OSS CLI. SKILL.md-only, local JSONL graph file
-4. **deep-research** — ClawhHub: [parags/deep-research-pro](https://clawhub.ai/parags/deep-research-pro) — ⚠️ NO OSS CLI. SKILL.md-only research workflow
-5. **web-search** — ClawhHub: [billyutw/web-search](https://clawhub.ai/billyutw/web-search) — OSS: DuckDuckGo API / [searxng/searxng](https://github.com/searxng/searxng). Alt: `robbyczgw-cla/web-search-plus` uses Serper + Tavily
-6. **web-scraper** — OSS: [apify/crawlee](https://github.com/apify/crawlee) or [AlessandroZanella/mcp-server-webscraper](https://github.com/AlessandroZanella/mcp-server-webscraper). Crawlee is the main OSS scraping framework
-7. **perplexity** — ClawhHub: [zats/perplexity](https://clawhub.ai/zats/perplexity) — ⚠️ PROPRIETARY API. Perplexity API is closed
-8. **exa** — ⚠️ PROPRIETARY API. Exa AI API is closed, SDK exists but API is proprietary
-9. **prompt-guard** — ⚠️ NO OSS CLI. SKILL.md-only, multiple prompt injection detection libs exist but no standard CLI
-10. **api-gateway** — ClawhHub: [byungkyu/api-gateway](https://clawhub.ai/byungkyu/api-gateway) — OSS: [maton-ai/api-gateway-skill](https://github.com/maton-ai/api-gateway-skill). Maton platform is commercial
+2. **web-search** — ClawhHub: [billyutw/web-search](https://clawhub.ai/billyutw/web-search) — OSS: DuckDuckGo API / [searxng/searxng](https://github.com/searxng/searxng). Alt: `robbyczgw-cla/web-search-plus` uses Serper + Tavily
+3. **web-scraper** — OSS: [apify/crawlee](https://github.com/apify/crawlee) or [AlessandroZanella/mcp-server-webscraper](https://github.com/AlessandroZanella/mcp-server-webscraper). Crawlee is the main OSS scraping framework
+4. **perplexity** — ClawhHub: [zats/perplexity](https://clawhub.ai/zats/perplexity) — ⚠️ PROPRIETARY API. Perplexity API is closed
+5. **exa** — ⚠️ PROPRIETARY API. Exa AI API is closed, SDK exists but API is proprietary
+6. **api-gateway** — ClawhHub: [byungkyu/api-gateway](https://clawhub.ai/byungkyu/api-gateway) — OSS: [maton-ai/api-gateway-skill](https://github.com/maton-ai/api-gateway-skill). Maton platform is commercial
 
 ### 2. Productivity & Tasks
 
@@ -185,23 +166,15 @@
 16. **asana** — OSS: [Asana/node-asana](https://github.com/Asana/node-asana). Official Asana SDK
 17. **clickup** — ⚠️ No official OSS SDK. REST API only
 18. **trello** — OSS: [norberteder/trello](https://github.com/norberteder/trello). Community Node.js client, Trello API is REST-based
-19. **planning** — ⚠️ NO OSS CLI. SKILL.md-only, file-based planning system
-20. **productivity** — ClawhHub: [ivangdavila/productivity](https://clawhub.ai/ivangdavila/productivity) — ⚠️ NO OSS CLI. SKILL.md-only, markdown templates for `~/productivity/`
-21. **google-calendar** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Official Google API client
+19. **google-calendar** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Official Google API client
 22. **excel** — ClawhHub: [ivangdavila/excel-xlsx](https://clawhub.ai/ivangdavila/excel-xlsx) — OSS: [exceljs/exceljs](https://github.com/exceljs/exceljs) (MIT) or [SheetJS/sheetjs](https://github.com/SheetJS/sheetjs) (Apache-2.0)
 
-### 3. Communication & Messaging
+### 3. Communication & Email
 
-23. **slack** — ClawhHub: [steipete/slack](https://clawhub.ai/steipete/slack) — OSS: [slackapi/node-slack-sdk](https://github.com/slackapi/node-slack-sdk). Official Slack SDK (MIT)
-24. **discord** — OSS: [discordjs/discord.js](https://github.com/discordjs/discord.js). Official Discord.js (Apache-2.0)
-25. **teams** — OSS: [microsoftgraph/msgraph-sdk-javascript](https://github.com/microsoftgraph/msgraph-sdk-javascript). Microsoft Graph SDK
-26. **gmail** — ClawhHub: [byungkyu/gmail](https://clawhub.ai/byungkyu/gmail) — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Official Google API client
-27. **imap-smtp-email** — ClawhHub: [gzlicanyi/imap-smtp-email](https://clawhub.ai/gzlicanyi/imap-smtp-email) — OSS: [nodemailer/nodemailer](https://github.com/nodemailer/nodemailer) + [mscdex/node-imap](https://github.com/mscdex/node-imap). Both MIT
-28. **telegram** — ClawhHub: [codedao12/telegram](https://clawhub.ai/codedao12/telegram) — OSS: [yagop/node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api) or [telegraf/telegraf](https://github.com/telegraf/telegraf). Both OSS
-29. **whatsapp** — ⚠️ PROPRIETARY API. WhatsApp Business API is closed/commercial. Community: [AkamaiDAO/mcp-whatsapp](https://github.com/AkamaiDAO/mcp-whatsapp) uses unofficial libs
-30. **twilio-sms** — OSS: [twilio/twilio-node](https://github.com/twilio/twilio-node). Official Twilio SDK (MIT)
-31. **imessage** — ⚠️ NO OSS CLI (macOS-only). Requires macOS AppleScript/SQLite access, community MCP exists but fragile
-32. **intercom** — ⚠️ NO OFFICIAL OSS SDK. Intercom has REST API but no maintained Node.js SDK
+> Channel-specific skills removed — native channel integrations.
+
+23. **gmail** — ClawhHub: [byungkyu/gmail](https://clawhub.ai/byungkyu/gmail) — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). Official Google API client
+24. **imap-smtp-email** — ClawhHub: [gzlicanyi/imap-smtp-email](https://clawhub.ai/gzlicanyi/imap-smtp-email) — OSS: [nodemailer/nodemailer](https://github.com/nodemailer/nodemailer) + [mscdex/node-imap](https://github.com/mscdex/node-imap). Both MIT
 
 ### 4. Developer Tools & Git
 
@@ -213,8 +186,7 @@
 38. **jenkins** — OSS: [Jenkins built-in CLI](https://www.jenkins.io/doc/book/managing/cli/). Jenkins is OSS (MIT)
 39. **azure-devops** — OSS: [Azure/azure-devops-cli-extension](https://github.com/Azure/azure-devops-cli-extension). Official CLI extension
 40. **sentry** — OSS: [getsentry/sentry-cli](https://github.com/getsentry/sentry-cli). Official Sentry CLI (BSD-3)
-41. **code-review** — ⚠️ NO OSS CLI. SKILL.md-only, custom review logic
-42. **playwright** — OSS: [microsoft/playwright](https://github.com/microsoft/playwright). Playwright (Apache-2.0)
+41. **playwright** — OSS: [microsoft/playwright](https://github.com/microsoft/playwright). Playwright (Apache-2.0)
 
 ### 5. Cloud & Infrastructure
 
@@ -238,7 +210,6 @@
 57. **supabase** — OSS: [supabase/cli](https://github.com/supabase/cli) + [supabase/supabase-js](https://github.com/supabase/supabase-js). CLI + SDK (both MIT)
 58. **firebase** — OSS: [firebase/firebase-tools](https://github.com/firebase/firebase-tools). Firebase CLI (MIT)
 59. **s3** — OSS: [aws/aws-cli](https://github.com/aws/aws-cli) (`aws s3`). Part of AWS CLI
-60. **data-analysis** — ⚠️ NO OSS CLI. SKILL.md-only, orchestrates DB queries + visualization
 
 ### 7. CRM & Sales
 
@@ -253,9 +224,7 @@
 
 ### 8. Marketing & Content
 
-69. **market-research** — ⚠️ NO OSS CLI. SKILL.md-only, pure prompt-based research framework
-70. **seo-writer** — ⚠️ NO OSS CLI. SKILL.md-only, pure prompt-based content generation
-71. **twitter** — ⚠️ PROPRIETARY API. X/Twitter API is paid/restricted. Community: [PLhery/node-twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2)
+69. **twitter** — ⚠️ PROPRIETARY API. X/Twitter API is paid/restricted. Community: [PLhery/node-twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2)
 72. **linkedin** — ⚠️ PROPRIETARY API. LinkedIn API is restricted/commercial, no public OSS SDK with full access
 73. **social-scheduler** — ⚠️ NO OSS CLI. Wraps multiple commercial APIs (Buffer, Hootsuite)
 74. **google-analytics** — OSS: [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client). GA4 Data API via Google SDK
@@ -281,8 +250,7 @@
 88. **posthog** — OSS: [PostHog/posthog-js](https://github.com/PostHog/posthog-js). Official SDK (MIT)
 89. **prometheus** — OSS: [prometheus/prometheus](https://github.com/prometheus/prometheus). PromQL HTTP API (Apache-2.0)
 90. **log-search** — ⚠️ NO SINGLE OSS CLI. Multi-backend (Loki/ES/CloudWatch), each has its own client
-91. **topic-monitor** — ⚠️ NO OSS CLI. SKILL.md-only, prompt-based monitoring workflow
-92. **newrelic** — OSS: [newrelic/node-newrelic](https://github.com/newrelic/node-newrelic). Official Node.js agent (Apache-2.0), API via REST
+91. **newrelic** — OSS: [newrelic/node-newrelic](https://github.com/newrelic/node-newrelic). Official Node.js agent (Apache-2.0), API via REST
 
 ### 11. Finance & Payments
 
@@ -315,13 +283,8 @@
 - **18. trello** — [norberteder/trello](https://github.com/norberteder/trello)
 - **21. google-calendar** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
 - **22. excel** — [exceljs/exceljs](https://github.com/exceljs/exceljs)
-- **23. slack** — [slackapi/node-slack-sdk](https://github.com/slackapi/node-slack-sdk)
-- **24. discord** — [discordjs/discord.js](https://github.com/discordjs/discord.js)
-- **25. teams** — [microsoftgraph/msgraph-sdk-javascript](https://github.com/microsoftgraph/msgraph-sdk-javascript)
-- **26. gmail** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
-- **27. imap-smtp-email** — [nodemailer/nodemailer](https://github.com/nodemailer/nodemailer) + [mscdex/node-imap](https://github.com/mscdex/node-imap)
-- **28. telegram** — [telegraf/telegraf](https://github.com/telegraf/telegraf)
-- **30. twilio-sms** — [twilio/twilio-node](https://github.com/twilio/twilio-node)
+- **23. gmail** — [googleapis/google-api-nodejs-client](https://github.com/googleapis/google-api-nodejs-client)
+- **24. imap-smtp-email** — [nodemailer/nodemailer](https://github.com/nodemailer/nodemailer) + [mscdex/node-imap](https://github.com/mscdex/node-imap)
 - **33. github** — [octokit/octokit.js](https://github.com/octokit/octokit.js) + [cli/cli](https://github.com/cli/cli) (DONE)
 - **34. git** — [git/git](https://github.com/git/git)
 - **35. gitlab** — [profclems/glab](https://github.com/profclems/glab)
@@ -380,7 +343,6 @@
 - **8. exa** — Exa AI API (closed)
 - **10. api-gateway** — [maton-ai/api-gateway-skill](https://github.com/maton-ai/api-gateway-skill), Maton platform is commercial
 - **15. jira** — Atlassian REST API, no official Node.js SDK
-- **29. whatsapp** — WhatsApp Business API (restricted)
 - **71. twitter** — X/Twitter API (paid, restricted). Community: [PLhery/node-twitter-api-v2](https://github.com/PLhery/node-twitter-api-v2)
 - **72. linkedin** — LinkedIn API (restricted, no public access)
 - **76. canva** — Canva Connect API (closed)
@@ -388,29 +350,11 @@
 - **97. image-gen** — DALL-E/Gemini APIs (commercial). SD has OSS models but APIs are commercial
 - **100. speech (TTS)** — ElevenLabs API (commercial). STT via Whisper is OSS
 
-**Total: 11 skills**
-
-### ⚠️ Prompt-only / No CLI — agent behavior, no external tool to wrap
-
-- **2. self-improving** — agent learning loop
-- **3. ontology** — local JSONL graph, custom format
-- **4. deep-research** — multi-step prompt workflow
-- **9. prompt-guard** — prompt injection rules
-- **19. planning** — file-based task tracking
-- **20. productivity** — markdown templates
-- **41. code-review** — review checklist/rules
-- **60. data-analysis** — orchestration prompt
-- **69. market-research** — research framework
-- **70. seo-writer** — content generation prompts
-- **91. topic-monitor** — monitoring workflow
-
-**Total: 11 skills**
+**Total: 10 skills**
 
 ### ⚠️ No maintained OSS SDK — need to write raw REST client
 
 - **17. clickup** — no official SDK
-- **31. imessage** — macOS-only, AppleScript/SQLite, fragile
-- **32. intercom** — no maintained Node.js SDK
 - **36. bitbucket** — no official CLI
 - **65. freshdesk** — no SDK
 - **66. attio** — no SDK
@@ -420,7 +364,7 @@
 - **94. quickbooks** — no full SDK
 - **99. screenshot** — no dominant tool
 
-**Total: 11 skills**
+**Total: 9 skills**
 
 ---
 

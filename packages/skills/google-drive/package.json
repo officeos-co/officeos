@@ -1,0 +1,17 @@
+{
+  "name": "@harro/skill-google-drive",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "skill.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "dependencies": {
+    "@harro/skill-sdk": "file:../../skill-sdk"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
