@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-mono: var(--font-geist-mono);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-status-operational: var(--status-operational);
+  --color-status-degraded: var(--status-degraded);
+  --color-status-down: var(--status-down);
+  --color-status-operational-bg: var(--status-operational-bg);
+  --color-status-degraded-bg: var(--status-degraded-bg);
+  --color-status-down-bg: var(--status-down-bg);
+}
+
+:root {
+  --background: oklch(97.5% 0.002 247.84);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --border: oklch(0.922 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --status-operational: oklch(0.55 0.17 145);
+  --status-degraded: oklch(0.75 0.18 75);
+  --status-down: oklch(0.577 0.245 27.325);
+  --status-operational-bg: oklch(0.55 0.17 145 / 0.1);
+  --status-degraded-bg: oklch(0.75 0.18 75 / 0.1);
+  --status-down-bg: oklch(0.577 0.245 27.325 / 0.1);
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

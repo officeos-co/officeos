@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────────
+# Enterprise Agent OS — status (Next.js status page)
+#
+# Public-facing status page. Monitors website, dashboard, and API.
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-status-prod
+  namespace: default
+  labels:
+    app: eaos-status-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-status-prod
+  template:
+    metadata:
+      labels:
+        app: eaos-status-prod
+    spec:
+      containers:
+        - name: status
+          image: harkro123/eaos-status:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-status-prod
+  namespace: default
+  labels:
+    app: eaos-status-prod
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-status-prod
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
