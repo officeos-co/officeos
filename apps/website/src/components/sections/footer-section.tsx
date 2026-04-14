@@ -9,23 +9,37 @@ const footerLinks = [
 	{
 		title: "Product",
 		links: [
-			{ id: 1, title: "Features", url: "#features" },
-			{ id: 2, title: "Docs", url: "https://docs.harrokrog.com" },
-			{ id: 7, title: "Status", url: "https://status.harrokrog.com" },
+			{ id: 1, title: "Platform", url: "/product/platform" },
+			{ id: 2, title: "Knowledge Graph", url: "/product/knowledge-graph" },
+			{ id: 3, title: "Skills & SDK", url: "/product/skills" },
+			{ id: 4, title: "Integrations", url: "/product/integrations" },
+			{ id: 5, title: "Security", url: "/product/security" },
+			{ id: 6, title: "Pricing", url: "/pricing" },
+			{ id: 16, title: "Docs", url: "https://docs.harrokrog.com" },
+		],
+	},
+	{
+		title: "Solutions",
+		links: [
+			{ id: 7, title: "Sales Intelligence", url: "/solutions/sales-intelligence" },
+			{ id: 8, title: "Customer Success", url: "/solutions/customer-success" },
+			{ id: 9, title: "Competitive Intelligence", url: "/solutions/competitive-intelligence" },
+			{ id: 10, title: "Contract Review", url: "/solutions/contract-review" },
+			{ id: 11, title: "Content Strategy", url: "/solutions/content-strategy" },
 		],
 	},
 	{
 		title: "Company",
 		links: [
-			{ id: 3, title: "About", url: "/about" },
-			{ id: 4, title: "Blog", url: "#" },
+			{ id: 12, title: "About", url: "/about" },
+			{ id: 13, title: "Blog", url: "#" },
 		],
 	},
 	{
 		title: "Legal",
 		links: [
-			{ id: 5, title: "Privacy", url: "/privacy" },
-			{ id: 6, title: "Terms", url: "/terms" },
+			{ id: 14, title: "Privacy", url: "/privacy" },
+			{ id: 15, title: "Terms", url: "/terms" },
 		],
 	},
 ];
@@ -41,7 +55,7 @@ export function FooterSection() {
 
 	return (
 		<footer id="footer" className="w-full pb-0">
-			<div className="flex flex-col p-10 md:flex-row md:items-center md:justify-between">
+			<div className="flex flex-col p-10 md:flex-row md:items-start md:justify-between">
 				<div className="mx-0 flex max-w-xs flex-col items-start justify-start gap-y-5">
 					<Link href="/" className="flex items-center gap-2">
 						<p className="font-semibold text-primary text-xl">Office OS</p>
@@ -77,7 +91,7 @@ export function FooterSection() {
 					</div>
 				</div>
 				<div className="pt-5 md:w-1/2">
-					<div className="flex flex-col items-start justify-start gap-y-5 md:flex-row md:items-center md:justify-between lg:pl-10">
+					<div className="flex flex-col items-start justify-start gap-y-5 md:flex-row md:items-start md:justify-between lg:pl-10">
 						{footerLinks.map((column, columnIndex) => (
 							<ul key={columnIndex} className="flex flex-col gap-y-2">
 								<li className="mb-2 font-semibold text-primary text-sm">
