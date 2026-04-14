@@ -233,7 +233,7 @@ function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
       {/* Bottom section */}
       <div className="mt-auto border-t border-sidebar-border px-4 py-3">
         <a
-          href="https://status.harrokrog.com"
+          href="https://status.officeos.co"
           target="_blank"
           rel="noopener noreferrer"
           className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -245,7 +245,7 @@ function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
           System Status
         </a>
         <a
-          href="https://docs.harrokrog.com"
+          href="https://docs.officeos.co"
           target="_blank"
           rel="noopener noreferrer"
           className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -373,7 +373,7 @@ function OrgSettingsSidebar({ onBack }: { onBack: () => void }) {
 
       <div className="border-t border-sidebar-border px-4 py-3">
         <a
-          href="https://docs.harrokrog.com"
+          href="https://docs.officeos.co"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"

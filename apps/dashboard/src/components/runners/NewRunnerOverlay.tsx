@@ -50,25 +50,30 @@ export function NewRunnerOverlay({ open, onClose }: NewRunnerOverlayProps) {
 
   const copyCommand = () => {
     if (!result) return;
-    const cmd = `docker run -e PLATFORM_URL=https://api.harrokrog.com -e REGISTRATION_TOKEN=${result.registrationToken} harkro123/skill-runner`;
+    const cmd = `docker run -e PLATFORM_URL=https://api.officeos.co -e REGISTRATION_TOKEN=${result.registrationToken} harkro123/skill-runner`;
     navigator.clipboard.writeText(cmd);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <Modal open={open} title={result ? "Runner created" : "New runner"} onClose={handleClose}>
+    <Modal
+      open={open}
+      title={result ? "Runner created" : "New runner"}
+      onClose={handleClose}
+    >
       {result ? (
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Runner <strong className="text-foreground">{result.name}</strong> created.
-            Copy the command below. The registration token is shown only once.
+            Runner <strong className="text-foreground">{result.name}</strong>{" "}
+            created. Copy the command below. The registration token is shown
+            only once.
           </p>
 
           <div className="rounded-lg border border-border bg-secondary p-3">
             <code className="block whitespace-pre-wrap break-all font-mono text-xs text-emerald-600">
               docker run \{"\n"}
-              {"  "}-e PLATFORM_URL=https://api.harrokrog.com \{"\n"}
+              {"  "}-e PLATFORM_URL=https://api.officeos.co \{"\n"}
               {"  "}-e REGISTRATION_TOKEN={result.registrationToken} \{"\n"}
               {"  "}harkro123/skill-runner
             </code>
@@ -76,10 +81,16 @@ export function NewRunnerOverlay({ open, onClose }: NewRunnerOverlayProps) {
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={copyCommand}>
-              {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+              {copied ? (
+                <Check className="mr-1.5 h-3.5 w-3.5" />
+              ) : (
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+              )}
               {copied ? "Copied" : "Copy command"}
             </Button>
-            <Button size="sm" onClick={handleClose}>Done</Button>
+            <Button size="sm" onClick={handleClose}>
+              Done
+            </Button>
           </div>
         </div>
       ) : (
@@ -98,7 +109,12 @@ export function NewRunnerOverlay({ open, onClose }: NewRunnerOverlayProps) {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClose}
+            >
               Cancel
             </Button>
             <Button type="submit" size="sm" disabled={submitting}>

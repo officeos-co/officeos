@@ -17,10 +17,8 @@ const OVERALL_LABELS: Record<ServiceStatus, string> = {
 
 function StatusBadge({ status }: { status: ServiceStatus }) {
   const colors: Record<ServiceStatus, string> = {
-    operational:
-      "bg-status-operational-bg text-status-operational",
-    degraded:
-      "bg-status-degraded-bg text-status-degraded",
+    operational: "bg-status-operational-bg text-status-operational",
+    degraded: "bg-status-degraded-bg text-status-degraded",
     down: "bg-status-down-bg text-status-down",
   };
 
@@ -44,8 +42,10 @@ function StatusBadge({ status }: { status: ServiceStatus }) {
 
 function OverallBanner({ status }: { status: ServiceStatus }) {
   const styles: Record<ServiceStatus, string> = {
-    operational: "bg-status-operational-bg border-status-operational/20 text-status-operational",
-    degraded: "bg-status-degraded-bg border-status-degraded/20 text-status-degraded",
+    operational:
+      "bg-status-operational-bg border-status-operational/20 text-status-operational",
+    degraded:
+      "bg-status-degraded-bg border-status-degraded/20 text-status-degraded",
     down: "bg-status-down-bg border-status-down/20 text-status-down",
   };
 
@@ -175,10 +175,10 @@ export default function StatusPage() {
         <p>
           &copy; 2026 Office OS GmbH &middot;{" "}
           <a
-            href="https://harrokrog.com"
+            href="https://officeos.co"
             className="underline underline-offset-2 hover:text-foreground"
           >
-            harrokrog.com
+            officeos.co
           </a>
         </p>
       </footer>

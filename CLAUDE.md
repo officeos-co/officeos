@@ -8,7 +8,7 @@ Further context about what we are buildig is in /Users/harrokrog/Documents/Optim
 ```
 apps/backend/         C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, vault, K8s orchestration
 apps/dashboard/        Next.js 16 + React 19 — Mission Control dashboard
-apps/website/            Next.js 15 + Bun + shadcn — public landing page (harrokrog.com)
+apps/website/            Next.js 15 + Bun + shadcn — public landing page (officeos.co)
 packages/zeroclaw-core/  Rust agent runtime — turn loop, tool execution, memory, channels
 packages/skill-sdk/      @harro/skill-sdk — TypeScript SDK for defining skills (defineSkill + Zod)
 packages/skill-runtime/  Node.js skill execution service — loads bundled skills, exposes HTTP API
@@ -40,7 +40,7 @@ User opens the dashboard, creates an agent. The backend provisions a CouchDB vau
 - One concern per PR.
 - No K8s env vars for app config — use `appsettings.json` baked into the image.
 - Docker images push to Docker Hub under `harkro123/` — `:latest` tag only, no SHA tags.
-- Prod hostnames: `dashboard.harrokrog.com` (frontend), `api.harrokrog.com` (backend).
+- Prod hostnames: `dashboard.officeos.co` (frontend), `api.officeos.co` (backend).
 - Update docs/ if changes have been done or major feature has been added. Same for CLAUDE.md prompt if its relevant to the prompt
 - When working on long running tasks do iterative commits but not when working on main only when in a separate branch.
   Dont make the committs too small the goal should be at every commit it should be in a usable state its totally fine if for a large tast you structure it only in 3 commits except 10

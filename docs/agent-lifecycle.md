@@ -57,14 +57,14 @@ Ready to chat
 
 ## Status lifecycle
 
-| Status | Meaning | How it's set |
-|--------|---------|-------------|
-| `pending` | Record created, deployment in progress | `AgentService.CreateAsync` |
-| `running` | Pod deployed successfully | After K8s resources created |
-| `failed` | Deployment or vault seeding threw | Catch block in CreateAsync |
-| `not_found` | Pod doesn't exist in K8s | Live refresh via `GetStatusAsync` |
-| `stopped` | Pod phase is "Succeeded" | Live refresh |
-| `unknown` | Can't determine (e.g. local dev) | `NullAgentDeployer` |
+| Status      | Meaning                                | How it's set                      |
+| ----------- | -------------------------------------- | --------------------------------- |
+| `pending`   | Record created, deployment in progress | `AgentService.CreateAsync`        |
+| `running`   | Pod deployed successfully              | After K8s resources created       |
+| `failed`    | Deployment or vault seeding threw      | Catch block in CreateAsync        |
+| `not_found` | Pod doesn't exist in K8s               | Live refresh via `GetStatusAsync` |
+| `stopped`   | Pod phase is "Succeeded"               | Live refresh                      |
+| `unknown`   | Can't determine (e.g. local dev)       | `NullAgentDeployer`               |
 
 **Status sync:** `AgentService.GetAsync` and `ListAsync` call `IAgentDeployer.GetStatusAsync(podName)` inline. If the K8s status differs from the DB, the DB is updated via `UpdateStatusAsync`. Frontend polls every 10s — stale status corrects itself within one poll cycle.
 
@@ -92,7 +92,7 @@ Frontend removes agent from list
 The dashboard doesn't connect directly to agent pods. Instead:
 
 ```
-Browser WebSocket → wss://api.harrokrog.com/api/agents/{id}/ws
+Browser WebSocket → wss://api.officeos.co/api/agents/{id}/ws
     ↓
 Backend proxy (AgentProxyEndpoints.cs):
   - Looks up serviceUrl from agent record
@@ -103,15 +103,16 @@ Agent pod zeroclaw gateway
 ```
 
 This means:
+
 - Pods don't need public ingress.
 - The backend can validate agent existence before proxying.
-- Dashboard code uses `agentWsUrl()` which picks `ws://localhost:5080` or `wss://api.harrokrog.com` based on hostname.
+- Dashboard code uses `agentWsUrl()` which picks `ws://localhost:5080` or `wss://api.officeos.co` based on hostname.
 
 ## Pod resource defaults
 
-| Resource | Request | Limit |
-|----------|---------|-------|
-| Memory | 64Mi | 512Mi |
-| CPU | 100m | 2 cores |
-| PVC | 1Gi (ReadWriteOnce) | — |
-| Image | `harkro123/zeroclaw:latest` | `imagePullPolicy: Always` |
+| Resource | Request                     | Limit                     |
+| -------- | --------------------------- | ------------------------- |
+| Memory   | 64Mi                        | 512Mi                     |
+| CPU      | 100m                        | 2 cores                   |
+| PVC      | 1Gi (ReadWriteOnce)         | —                         |
+| Image    | `harkro123/zeroclaw:latest` | `imagePullPolicy: Always` |

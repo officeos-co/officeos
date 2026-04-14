@@ -31,10 +31,14 @@ export default function LimitsPage() {
               {FREE_LIMITS.map((row, i) => (
                 <tr
                   key={row.resource}
-                  className={i < FREE_LIMITS.length - 1 ? "border-b border-border" : ""}
+                  className={
+                    i < FREE_LIMITS.length - 1 ? "border-b border-border" : ""
+                  }
                 >
                   <td className="px-4 py-3 font-medium">{row.resource}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{row.limit}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {row.limit}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -43,7 +47,7 @@ export default function LimitsPage() {
         <p className="mt-4 text-[13px] text-muted-foreground">
           Need higher limits?{" "}
           <a
-            href="mailto:harro@harrokrog.com"
+            href="mailto:harro@officeos.co"
             className="text-foreground underline underline-offset-2 hover:text-primary"
           >
             Contact us to increase limits

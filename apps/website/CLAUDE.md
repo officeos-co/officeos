@@ -1,6 +1,6 @@
 # website — Next.js 16 + Bun
 
-Public landing page at harrokrog.com.
+Public landing page at officeos.co.
 
 ## Commands
 

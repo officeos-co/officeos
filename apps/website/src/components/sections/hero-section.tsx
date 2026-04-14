@@ -26,7 +26,7 @@ export function HeroSection() {
           </div>
           <div className="flex flex-row items-center justify-center gap-2.5">
             <Link
-              href="https://dashboard.harrokrog.com"
+              href="https://dashboard.officeos.co"
               className="btn-glow flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-6 text-sm font-normal tracking-wide text-primary-foreground transition-all ease-out hover:bg-secondary/80 active:scale-95"
             >
               Start Free

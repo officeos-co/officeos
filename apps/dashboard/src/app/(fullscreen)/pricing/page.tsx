@@ -100,7 +100,7 @@ const teamPlans = [
     description: "Unlimited agents, custom budget",
     hasBillingToggle: false,
     cta: "Contact us",
-    ctaHref: "mailto:harro@harrokrog.com",
+    ctaHref: "mailto:harro@officeos.co",
     disabled: false,
     features: {
       prefix: "Everything in Team and:",
@@ -147,8 +147,7 @@ function BillingToggle({
             : "text-muted-foreground hover:text-foreground",
         )}
       >
-        Yearly{" "}
-        <span className="text-primary font-medium">· Save 20%</span>
+        Yearly <span className="text-primary font-medium">· Save 20%</span>
       </button>
     </div>
   );
@@ -250,7 +249,7 @@ function PlanCard({
         >
           {plan.cta}
         </a>
-      ) : (plan.key === "pro" || plan.key === "team") ? (
+      ) : plan.key === "pro" || plan.key === "team" ? (
         <button
           type="button"
           onClick={handleSubscribe}
@@ -269,7 +268,9 @@ function PlanCard({
       {/* Features */}
       <div className="border-t border-border pt-4 flex-1">
         {"prefix" in plan.features && plan.features.prefix && (
-          <p className="text-xs text-muted-foreground mb-3">{plan.features.prefix}</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            {plan.features.prefix}
+          </p>
         )}
         <ul className="space-y-2">
           {plan.features.base.map((f) => (
@@ -326,7 +327,8 @@ export default function PricingPage() {
             Plans that grow with you
           </h1>
           <p className="text-muted-foreground text-base">
-            Self-hosted Kubernetes deployment. Full system control. Scale as your agent fleet grows.
+            Self-hosted Kubernetes deployment. Full system control. Scale as
+            your agent fleet grows.
           </p>
         </div>
 

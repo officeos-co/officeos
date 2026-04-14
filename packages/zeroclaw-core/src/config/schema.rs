@@ -1397,7 +1397,7 @@ pub struct SkillsConfig {
     /// Automatic skill self-improvement after successful skill usage.
     #[serde(default)]
     pub skill_improvement: SkillImprovementConfig,
-    /// Base URL of the EAOS backend (e.g. `https://dashboard.harrokrog.com`).
+    /// Base URL of the EAOS backend (e.g. `https://dashboard.officeos.co`).
     /// When set, the agent pulls its live capability list from
     /// `{backend_url}/api/capabilities` at the start of every turn
     /// instead of loading on-disk skills. Leave unset for local/disk mode.

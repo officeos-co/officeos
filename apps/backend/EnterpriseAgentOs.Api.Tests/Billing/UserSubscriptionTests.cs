@@ -39,7 +39,7 @@ public sealed class UserSubscriptionTests
                 ProYearlyPriceId = proYearlyPriceId,
                 Enabled = false,
             },
-            new FrontendConfig("https://dashboard.harrokrog.com"),
+            new FrontendConfig("https://dashboard.officeos.co"),
             CreateDb(),
             NullLogger<UserBillingService>.Instance);
 

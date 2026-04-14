@@ -12,7 +12,7 @@ public sealed class WorkOsAuthServiceTests
         {
             ApiKey = "sk_test_placeholder",
             ClientId = "client_placeholder",
-            RedirectUri = "https://api.harrokrog.com/api/sso/callback",
+            RedirectUri = "https://api.officeos.co/api/sso/callback",
             Enabled = enabled,
         };
 

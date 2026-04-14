@@ -14,7 +14,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: "Office OS",
   legalName: "Office OS GmbH",
-  url: "https://www.harrokrog.com",
+  url: "https://www.officeos.co",
   description:
     "AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.",
   foundingDate: "2025",
@@ -30,7 +30,7 @@ const webSiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Office OS",
-  url: "https://www.harrokrog.com",
+  url: "https://www.officeos.co",
 };
 
 const softwareJsonLd = {
@@ -41,7 +41,7 @@ const softwareJsonLd = {
   operatingSystem: "Kubernetes",
   description:
     "Deploy autonomous AI agents across your company. Enterprise knowledge graph, custom skills SDK, self-hosted Kubernetes runtime, and full credential isolation.",
-  url: "https://www.harrokrog.com",
+  url: "https://www.officeos.co",
   offers: {
     "@type": "Offer",
     price: "0",

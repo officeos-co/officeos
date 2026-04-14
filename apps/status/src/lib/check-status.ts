@@ -18,17 +18,17 @@ export interface StatusResponse {
 const services = [
   {
     name: "Website",
-    url: "https://www.harrokrog.com",
+    url: "https://www.officeos.co",
     description: "Public landing page",
   },
   {
     name: "Dashboard",
-    url: "https://dashboard.harrokrog.com",
+    url: "https://dashboard.officeos.co",
     description: "Mission Control dashboard",
   },
   {
     name: "API",
-    url: "https://api.harrokrog.com/health",
+    url: "https://api.officeos.co/health",
     description: "Backend API",
   },
 ];

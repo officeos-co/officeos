@@ -60,7 +60,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Production:MinioBucket"] = "test-skills",
                 ["Production:WorkOsApiKey"] = "WORKOS_API_KEY_PLACEHOLDER",
                 ["Production:WorkOsClientId"] = "WORKOS_CLIENT_ID_PLACEHOLDER",
-                ["Production:WorkOsRedirectUri"] = "https://api.harrokrog.com/api/sso/callback",
+                ["Production:WorkOsRedirectUri"] = "https://api.officeos.co/api/sso/callback",
                 ["Production:WorkOsEnabled"] = "false",
                 ["Production:Stripe:SecretKey"] = "STRIPE_SECRET_KEY_PLACEHOLDER",
                 ["Production:Stripe:WebhookSecret"] = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",

@@ -36,7 +36,7 @@ Dashboard (Next.js)  ──REST/WS──▶  Backend (C# .NET)  ──K8s API─
 
 **Create an agent:**
 
-Open `https://dashboard.harrokrog.com`, configure a provider API key, click "+ New agent", pick a model, done. The agent is live in ~20 seconds.
+Open `https://dashboard.officeos.co`, configure a provider API key, click "+ New agent", pick a model, done. The agent is live in ~20 seconds.
 
 **Chat with it:**
 

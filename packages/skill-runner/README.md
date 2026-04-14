@@ -11,13 +11,13 @@
 
 ## How it differs from skill-runtime
 
-| | **skill-runtime** | **skill-runner** |
-|---|---|---|
-| **Transport** | HTTP server (`:3001`) | Poll-based client |
-| **Initiated by** | Backend calls runtime | Runner polls backend |
-| **Deployment** | Sidecar in K8s | Anywhere (edge, local, VM) |
-| **Skill sync** | Rebuild + redeploy | Hot-sync from platform |
-| **Browser support** | Playwright built in | No browser skill |
+|                     | **skill-runtime**     | **skill-runner**           |
+| ------------------- | --------------------- | -------------------------- |
+| **Transport**       | HTTP server (`:3001`) | Poll-based client          |
+| **Initiated by**    | Backend calls runtime | Runner polls backend       |
+| **Deployment**      | Sidecar in K8s        | Anywhere (edge, local, VM) |
+| **Skill sync**      | Rebuild + redeploy    | Hot-sync from platform     |
+| **Browser support** | Playwright built in   | No browser skill           |
 
 The **skill-runtime** is the primary executor inside the cluster. The **skill-runner** is for remote/edge execution — it can run on a user's machine, a DigitalOcean droplet, or any environment that can reach the backend API.
 
@@ -58,27 +58,28 @@ npm run build    # Bundles client + all skills from packages/skills/
 ```
 
 The build process:
+
 1. `build.js` — esbuild bundles the runner client (`dist/client.js`) and each skill from `packages/skills/` into `dist/skills/`
 2. Skills are discovered automatically — any directory in `packages/skills/` with a `skill.ts` gets bundled
 
 ## Run
 
 ```bash
-PLATFORM_URL=https://api.harrokrog.com REGISTRATION_TOKEN=<token> node dist/client.js
+PLATFORM_URL=https://api.officeos.co REGISTRATION_TOKEN=<token> node dist/client.js
 ```
 
 ### Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `PLATFORM_URL` | yes | Backend API URL (e.g. `https://api.harrokrog.com`) |
-| `REGISTRATION_TOKEN` | yes | Token for runner authentication with the backend |
+| Variable             | Required | Description                                      |
+| -------------------- | -------- | ------------------------------------------------ |
+| `PLATFORM_URL`       | yes      | Backend API URL (e.g. `https://api.officeos.co`) |
+| `REGISTRATION_TOKEN` | yes      | Token for runner authentication with the backend |
 
 ### Docker
 
 ```bash
 docker build -f packages/skill-runner/Dockerfile -t eaos-skill-runner .
-docker run -e PLATFORM_URL=https://api.harrokrog.com -e REGISTRATION_TOKEN=<token> eaos-skill-runner
+docker run -e PLATFORM_URL=https://api.officeos.co -e REGISTRATION_TOKEN=<token> eaos-skill-runner
 ```
 
 The image is published to `harkro123/eaos-skill-runner:latest` via CI.

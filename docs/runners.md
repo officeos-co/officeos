@@ -20,12 +20,12 @@ Customer Network                    EAOS Platform
 
 ## Why polling (not tunnels)
 
-| Approach | Downside |
-|----------|----------|
+| Approach          | Downside                                            |
+| ----------------- | --------------------------------------------------- |
 | Cloudflare Tunnel | Extra dependency, customer must install + configure |
-| Tailscale | VPN complexity, network-level access is overkill |
-| WebSocket relay | Persistent connection to maintain, reconnect logic |
-| **Polling** | Simple, stateless, works behind any firewall |
+| Tailscale         | VPN complexity, network-level access is overkill    |
+| WebSocket relay   | Persistent connection to maintain, reconnect logic  |
+| **Polling**       | Simple, stateless, works behind any firewall        |
 
 The runner makes outbound HTTPS requests to our API every 3 seconds. That's it. No special network config, no persistent connections, no third-party dependencies.
 
@@ -39,7 +39,7 @@ GitHub-style browser-based authentication. No manual token copy-paste.
 
 ```bash
 docker run \
-  -e PLATFORM_URL=https://api.harrokrog.com \
+  -e PLATFORM_URL=https://api.officeos.co \
   harkro123/skill-runner
 ```
 
@@ -49,7 +49,7 @@ The runner displays a URL and a short code. The user opens the URL in their brow
 
 ```bash
 docker run \
-  -e PLATFORM_URL=https://api.harrokrog.com \
+  -e PLATFORM_URL=https://api.officeos.co \
   -e REGISTRATION_TOKEN=sr_xxxx \
   harkro123/skill-runner
 ```
@@ -85,6 +85,7 @@ Runner stores auth token locally, starts polling for jobs
 ```
 
 **Security:**
+
 - Device codes expire after 15 minutes
 - User codes are 8 characters (XXXX-XXXX), ambiguity-free charset (no 0/O/1/I/L)
 - Rate limiting: 428 `slow_down` if runner polls faster than every 5 seconds
@@ -92,15 +93,15 @@ Runner stores auth token locally, starts polling for jobs
 
 **Database model (`DeviceCodeRecord`):**
 
-| Column | Description |
-|--------|-------------|
-| `DeviceCode` | UUID, unique, high-entropy |
-| `UserCode` | 8-char human-readable code (unique index) |
-| `UserId` | FK to UserRecord (null until approved) |
-| `Status` | `pending`, `approved`, `expired` |
-| `RunnerName` | Optional runner name from initial request |
-| `ExpiresAt` | 15 minutes from creation |
-| `LastPolledAt` | Rate limiting tracker |
+| Column         | Description                               |
+| -------------- | ----------------------------------------- |
+| `DeviceCode`   | UUID, unique, high-entropy                |
+| `UserCode`     | 8-char human-readable code (unique index) |
+| `UserId`       | FK to UserRecord (null until approved)    |
+| `Status`       | `pending`, `approved`, `expired`          |
+| `RunnerName`   | Optional runner name from initial request |
+| `ExpiresAt`    | 15 minutes from creation                  |
+| `LastPolledAt` | Rate limiting tracker                     |
 
 ### Registration (token — legacy)
 
@@ -132,10 +133,10 @@ Runner client.ts main loop:
 
 ### Status tracking
 
-| Status | Meaning |
-|--------|---------|
-| `pending` | Created in dashboard, not yet registered |
-| `online` | Registered, heartbeat within 90s |
+| Status    | Meaning                                                   |
+| --------- | --------------------------------------------------------- |
+| `pending` | Created in dashboard, not yet registered                  |
+| `online`  | Registered, heartbeat within 90s                          |
 | `offline` | Heartbeat stale (>90s), marked by RunnerJobTimeoutService |
 
 ## Job dispatch (backend)
@@ -160,6 +161,7 @@ Singleton service with `ConcurrentDictionary<Guid, TaskCompletionSource<RunnerJo
 ### RunnerJobTimeoutService
 
 `BackgroundService` running every 30s:
+
 - Fails pending jobs past their claim deadline
 - Fails running jobs older than 120s
 - Marks runners offline if heartbeat > 90s stale
@@ -203,83 +205,83 @@ Skill is now available for job execution
 
 ### Dashboard-facing (session auth)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST /api/runners` | Create runner, returns registration token (shown once) |
-| `GET /api/runners` | List runners with status/heartbeat |
-| `GET /api/runners/{id}` | Runner detail + recent jobs |
-| `DELETE /api/runners/{id}` | Delete runner |
+| Method                     | Path                                                   | Description |
+| -------------------------- | ------------------------------------------------------ | ----------- |
+| `POST /api/runners`        | Create runner, returns registration token (shown once) |
+| `GET /api/runners`         | List runners with status/heartbeat                     |
+| `GET /api/runners/{id}`    | Runner detail + recent jobs                            |
+| `DELETE /api/runners/{id}` | Delete runner                                          |
 
 ### Runner-facing (token auth)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST /api/runner/register` | Exchange registration token for auth token (legacy) |
-| `GET /api/runner/jobs` | Poll for pending job (claims atomically, returns 1 or 204) |
-| `POST /api/runner/jobs/{id}/result` | Post execution result |
-| `POST /api/runner/heartbeat` | Update heartbeat timestamp |
-| `GET /api/runner/skills` | List available custom skills with updatedAt timestamps |
-| `GET /api/runner/skills/{name}/download` | Download skill zip from MinIO |
+| Method                                   | Path                                                       | Description |
+| ---------------------------------------- | ---------------------------------------------------------- | ----------- |
+| `POST /api/runner/register`              | Exchange registration token for auth token (legacy)        |
+| `GET /api/runner/jobs`                   | Poll for pending job (claims atomically, returns 1 or 204) |
+| `POST /api/runner/jobs/{id}/result`      | Post execution result                                      |
+| `POST /api/runner/heartbeat`             | Update heartbeat timestamp                                 |
+| `GET /api/runner/skills`                 | List available custom skills with updatedAt timestamps     |
+| `GET /api/runner/skills/{name}/download` | Download skill zip from MinIO                              |
 
 ### Device authorization (no auth / session auth)
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST /api/runner/device/code` | None | Generate device_code + user_code |
-| `POST /api/runner/device/token` | None | Poll for approval (returns auth token when approved) |
-| `GET /api/runner/device/verify` | Session | Browser page showing code for user to approve |
-| `POST /api/runner/device/approve` | Session | User approves the device code |
+| Method                            | Path    | Auth                                                 | Description |
+| --------------------------------- | ------- | ---------------------------------------------------- | ----------- |
+| `POST /api/runner/device/code`    | None    | Generate device_code + user_code                     |
+| `POST /api/runner/device/token`   | None    | Poll for approval (returns auth token when approved) |
+| `GET /api/runner/device/verify`   | Session | Browser page showing code for user to approve        |
+| `POST /api/runner/device/approve` | Session | User approves the device code                        |
 
 ## Database models
 
 ### `RunnerRecord`
 
-| Column | Description |
-|--------|-------------|
-| `Id` | Primary key |
-| `OwnerId` | FK to UserRecord |
-| `Name` | Human-readable name |
-| `Status` | `pending`, `online`, `offline` |
+| Column                  | Description                            |
+| ----------------------- | -------------------------------------- |
+| `Id`                    | Primary key                            |
+| `OwnerId`               | FK to UserRecord                       |
+| `Name`                  | Human-readable name                    |
+| `Status`                | `pending`, `online`, `offline`         |
 | `RegistrationTokenHash` | SHA-256 of one-time registration token |
-| `AuthTokenHash` | SHA-256 of long-lived auth token |
-| `LastHeartbeatAt` | Last heartbeat timestamp |
-| `Version` | Runner version string |
+| `AuthTokenHash`         | SHA-256 of long-lived auth token       |
+| `LastHeartbeatAt`       | Last heartbeat timestamp               |
+| `Version`               | Runner version string                  |
 
 ### `RunnerJobRecord`
 
-| Column | Description |
-|--------|-------------|
-| `Id` | Primary key |
-| `RunnerId` | FK to RunnerRecord |
-| `Status` | `pending`, `running`, `completed`, `failed` |
-| `Payload` | JSON: `{ skill, action, params }` |
-| `Result` | JSON: `{ success, result, error }` |
-| `ClaimDeadline` | Job must be claimed before this time |
+| Column          | Description                                 |
+| --------------- | ------------------------------------------- |
+| `Id`            | Primary key                                 |
+| `RunnerId`      | FK to RunnerRecord                          |
+| `Status`        | `pending`, `running`, `completed`, `failed` |
+| `Payload`       | JSON: `{ skill, action, params }`           |
+| `Result`        | JSON: `{ success, result, error }`          |
+| `ClaimDeadline` | Job must be claimed before this time        |
 
 ## Runner container (`packages/skill-runner/`)
 
 Based on the skill-runtime architecture but runs as a polling client instead of an HTTP server.
 
-| File | Purpose |
-|------|---------|
-| `src/client.ts` | Main polling loop (register → poll → execute → result → heartbeat) |
-| `src/executor.ts` | SkillExecutor (reused from skill-runtime) |
-| `src/sandbox.ts` | Sandboxed context creation |
-| `build.js` | esbuild config (bundles client + skills) |
-| `Dockerfile` | Production image (`harkro123/skill-runner`) |
+| File              | Purpose                                                            |
+| ----------------- | ------------------------------------------------------------------ |
+| `src/client.ts`   | Main polling loop (register → poll → execute → result → heartbeat) |
+| `src/executor.ts` | SkillExecutor (reused from skill-runtime)                          |
+| `src/sandbox.ts`  | Sandboxed context creation                                         |
+| `build.js`        | esbuild config (bundles client + skills)                           |
+| `Dockerfile`      | Production image (`harkro123/skill-runner`)                        |
 
 Skills are bundled into the runner image at build time (same esbuild process as skill-runtime). Customers can add their own skills by extending the Dockerfile or mounting a volume.
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `Entities/Runners/RunnersController.cs` | Dashboard runner CRUD |
-| `Entities/Runners/RunnerApiController.cs` | Runner polling API |
-| `Entities/Runners/RunnerJobWaiter.cs` | TCS bridge for synchronous dispatch |
-| `Entities/Runners/RunnerJobTimeoutService.cs` | Background cleanup |
-| `Entities/Runners/RunnerAuthAttribute.cs` | Runner bearer token validation |
-| `Entities/Runners/DeviceAuthController.cs` | RFC 8628 device authorization flow |
-| `Entities/Skills/AgentSkillsController.cs` | Runner dispatch in SkillExec |
-| `packages/skill-runner/src/client.ts` | Runner polling client |
-| `apps/dashboard/src/app/runners/page.tsx` | Runner management page |
+| File                                          | Purpose                             |
+| --------------------------------------------- | ----------------------------------- |
+| `Entities/Runners/RunnersController.cs`       | Dashboard runner CRUD               |
+| `Entities/Runners/RunnerApiController.cs`     | Runner polling API                  |
+| `Entities/Runners/RunnerJobWaiter.cs`         | TCS bridge for synchronous dispatch |
+| `Entities/Runners/RunnerJobTimeoutService.cs` | Background cleanup                  |
+| `Entities/Runners/RunnerAuthAttribute.cs`     | Runner bearer token validation      |
+| `Entities/Runners/DeviceAuthController.cs`    | RFC 8628 device authorization flow  |
+| `Entities/Skills/AgentSkillsController.cs`    | Runner dispatch in SkillExec        |
+| `packages/skill-runner/src/client.ts`         | Runner polling client               |
+| `apps/dashboard/src/app/runners/page.tsx`     | Runner management page              |

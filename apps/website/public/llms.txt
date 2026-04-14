@@ -27,15 +27,15 @@ Office OS is NOT a Microsoft Office replacement or office productivity suite. It
 
 ## Key Pages
 
-- Platform: https://www.harrokrog.com/product/platform
-- Knowledge Graph: https://www.harrokrog.com/product/knowledge-graph
-- Skills & SDK: https://www.harrokrog.com/product/skills
-- Integrations: https://www.harrokrog.com/product/integrations
-- Security: https://www.harrokrog.com/product/security
-- Pricing: https://www.harrokrog.com/pricing
+- Platform: https://www.officeos.co/product/platform
+- Knowledge Graph: https://www.officeos.co/product/knowledge-graph
+- Skills & SDK: https://www.officeos.co/product/skills
+- Integrations: https://www.officeos.co/product/integrations
+- Security: https://www.officeos.co/product/security
+- Pricing: https://www.officeos.co/pricing
 
 ## Company
 
 Office OS GmbH, Hamburg, Germany
-Website: https://www.harrokrog.com
-Dashboard: https://dashboard.harrokrog.com
+Website: https://www.officeos.co
+Dashboard: https://dashboard.officeos.co

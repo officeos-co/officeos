@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const backendUrl =
   process.env.NODE_ENV === "production"
-    ? "https://api.harrokrog.com"
+    ? "https://api.officeos.co"
     : "http://localhost:5080";
 
 const nextConfig: NextConfig = {
