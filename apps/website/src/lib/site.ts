@@ -1,9 +1,9 @@
 export const siteConfig = {
   name: "Office OS",
-  url: "https://harrokrog.com",
-  description: "Deploy, connect, and control AI agents from one platform.",
+  url: "https://www.harrokrog.com",
+  description:
+    "Office OS is an AI agent platform that deploys autonomous agents across your company — with enterprise knowledge, custom skills, and full infrastructure control.",
   links: {
-    twitter: "https://x.com/officeos",
     github: "https://github.com/officeos",
   },
 };

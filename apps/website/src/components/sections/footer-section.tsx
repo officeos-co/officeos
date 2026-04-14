@@ -32,7 +32,6 @@ const footerLinks = [
 		title: "Company",
 		links: [
 			{ id: 12, title: "About", url: "/about" },
-			{ id: 13, title: "Blog", url: "#" },
 			{ id: 14, title: "Privacy", url: "/privacy" },
 			{ id: 15, title: "Terms", url: "/terms" },
 		],
@@ -41,8 +40,6 @@ const footerLinks = [
 
 const socialLinks = {
 	github: "https://github.com/officeos",
-	linkedin: "https://linkedin.com/company/officeos",
-	twitter: "https://x.com/officeos",
 };
 
 export function FooterSection() {
@@ -66,22 +63,6 @@ export function FooterSection() {
 							className="hover:text-primary transition-colors"
 						>
 							GitHub
-						</a>
-						<a
-							href={socialLinks.linkedin}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="hover:text-primary transition-colors"
-						>
-							LinkedIn
-						</a>
-						<a
-							href={socialLinks.twitter}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="hover:text-primary transition-colors"
-						>
-							X
 						</a>
 					</div>
 				</div>

@@ -1,0 +1,41 @@
+# Office OS
+
+> AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.
+
+Office OS is NOT a Microsoft Office replacement or office productivity suite. It is a Kubernetes-native platform for deploying and managing autonomous AI agents in enterprise environments.
+
+## What Office OS Does
+
+- Deploys AI agents that work 24/7 across your organization
+- Each agent has access to an enterprise knowledge graph (contracts, docs, past decisions)
+- Custom skills defined in TypeScript with a Skill SDK
+- Agents connect to channels: Slack, Email, WhatsApp, Teams, Discord, Telegram
+- Cron jobs for recurring tasks (competitor monitoring, CRM sync, briefings)
+- Credential isolation — agent pods never see raw API keys
+- Self-hosted on your Kubernetes infrastructure
+- Sandboxed execution in V8 isolates
+- Full audit trail for every tool call, LLM request, and credential access
+- Supports OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, OpenRouter, Ollama
+
+## Use Cases
+
+- Sales Lead Research — automated briefings before every sales call
+- Customer Success — intelligent ticket handling with full context
+- Competitive Intelligence — daily monitoring of 20+ competitors
+- Contract Review — compliance checking against internal policies
+- Content Strategy — research-driven content planning
+
+## Key Pages
+
+- Platform: https://www.harrokrog.com/product/platform
+- Knowledge Graph: https://www.harrokrog.com/product/knowledge-graph
+- Skills & SDK: https://www.harrokrog.com/product/skills
+- Integrations: https://www.harrokrog.com/product/integrations
+- Security: https://www.harrokrog.com/product/security
+- Pricing: https://www.harrokrog.com/pricing
+
+## Company
+
+Office OS GmbH, Hamburg, Germany
+Website: https://www.harrokrog.com
+Dashboard: https://dashboard.harrokrog.com

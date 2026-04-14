@@ -10,7 +10,7 @@ const faqItems = [
 	{
 		question: "What is Office OS?",
 		answer:
-			"Office OS is a platform for deploying and managing AI agents across your organization. Each team gets their own agents with dedicated skills, permissions, and knowledge graph access.",
+			"Office OS is an AI agent platform — not an office suite or Microsoft Office replacement. It lets you deploy autonomous AI agents that work across your company: researching leads, handling support, monitoring competitors, reviewing contracts, and more. Each agent gets dedicated skills, permissions, and access to your organization's knowledge graph.",
 	},
 	{
 		question: "How do skills work?",

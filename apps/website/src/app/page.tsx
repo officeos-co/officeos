@@ -9,9 +9,80 @@ import { Navbar } from "@/components/sections/navbar";
 import { TrustSection } from "@/components/sections/trust-section";
 import { CalModal } from "@/components/cal-modal";
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Office OS",
+  legalName: "Office OS GmbH",
+  url: "https://www.harrokrog.com",
+  description:
+    "AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.",
+  foundingDate: "2025",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Hamburg",
+    addressCountry: "DE",
+  },
+  sameAs: ["https://github.com/officeos"],
+};
+
+const webSiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Office OS",
+  url: "https://www.harrokrog.com",
+};
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Office OS",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Kubernetes",
+  description:
+    "Deploy autonomous AI agents across your company. Enterprise knowledge graph, custom skills SDK, self-hosted Kubernetes runtime, and full credential isolation.",
+  url: "https://www.harrokrog.com",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "Free tier includes 3 agents. Bring your own API keys.",
+  },
+  featureList: [
+    "Enterprise Knowledge Graph",
+    "Custom Skills SDK (TypeScript)",
+    "Channel Integration (Slack, Email, WhatsApp, Teams)",
+    "Cron Jobs & Scheduling",
+    "Central Credential Management",
+    "One-Click Deployment",
+    "Rust-based Runtime",
+    "Self-Hosted Kubernetes",
+    "Sandboxed Execution",
+    "Full Audit Trail",
+  ],
+};
+
 export default function Home() {
   return (
     <div className="relative mx-auto max-w-7xl border-x">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(organizationJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(webSiteJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(softwareJsonLd),
+        }}
+      />
       <div className="absolute top-0 left-6 z-10 block h-full w-px border-border border-l"></div>
       <div className="absolute top-0 right-6 z-10 block h-full w-px border-border border-r"></div>
       <Navbar />

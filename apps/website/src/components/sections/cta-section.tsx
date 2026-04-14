@@ -8,9 +8,9 @@ export function CTASection() {
 		>
 			<div className="w-full">
 				<div className="relative z-20 flex h-[400px] w-full flex-col items-center justify-center gap-6 overflow-hidden rounded-xl border border-border bg-accent shadow-xl md:h-[400px]">
-					<h1 className="max-w-xs text-center font-medium text-4xl text-primary tracking-tighter md:max-w-xl md:text-5xl">
+					<h2 className="max-w-xs text-center font-medium text-4xl text-primary tracking-tighter md:max-w-xl md:text-5xl">
 						Ready to deploy your first agent?
-					</h1>
+					</h2>
 					<p className="max-w-md text-center text-muted-foreground">
 						Start free with your own API keys. No credit card required.
 					</p>
