@@ -111,7 +111,7 @@ export function FooterSection() {
 						className="h-full w-full"
 						squareSize={2}
 						gridGap={tablet ? 2 : 3}
-						color="#6B7280"
+						color="var(--muted-foreground)"
 						maxOpacity={0.3}
 						flickerChance={0.1}
 					/>
