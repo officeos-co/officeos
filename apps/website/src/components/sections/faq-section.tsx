@@ -5,11 +5,36 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "@/components/ui/accordion";
-import { siteConfig } from "@/lib/config";
+
+const faqItems = [
+	{
+		question: "What is Office OS?",
+		answer:
+			"Office OS is a platform for deploying and managing AI agents across your organization. Each team gets their own agents with dedicated skills, permissions, and knowledge graph access.",
+	},
+	{
+		question: "How do skills work?",
+		answer:
+			"Skills are TypeScript modules executed in sandboxed V8 isolates. You define them with the Skill SDK using Zod schemas, and they run on your infrastructure with access to internal APIs and services.",
+	},
+	{
+		question: "Can I run agents on my own infrastructure?",
+		answer:
+			"Yes. Office OS is Kubernetes-native and designed for self-hosted deployment. Agent pods run on your cluster with full access to your network.",
+	},
+	{
+		question: "How are credentials managed?",
+		answer:
+			"All credentials are centrally encrypted and managed in the backend. Agent pods never see raw API keys — the backend injects them per-request through a secure proxy.",
+	},
+	{
+		question: "What LLM providers are supported?",
+		answer:
+			"OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, OpenRouter, and Ollama. You can configure providers per-agent and switch at any time.",
+	},
+];
 
 export function FAQSection() {
-	const { faqSection } = siteConfig;
-
 	return (
 		<section
 			id="faq"
@@ -17,10 +42,10 @@ export function FAQSection() {
 		>
 			<SectionHeader>
 				<h2 className="text-balance text-center font-medium text-3xl tracking-tighter md:text-4xl">
-					{faqSection.title}
+					Frequently Asked Questions
 				</h2>
 				<p className="text-balance text-center font-medium text-muted-foreground">
-					{faqSection.description}
+					Common questions about Office OS and how it works.
 				</p>
 			</SectionHeader>
 
@@ -30,7 +55,7 @@ export function FAQSection() {
 					collapsible
 					className="grid w-full gap-2 border-b-0"
 				>
-					{faqSection.faQitems.map((faq, index) => (
+					{faqItems.map((faq, index) => (
 						<AccordionItem
 							key={index}
 							value={index.toString()}

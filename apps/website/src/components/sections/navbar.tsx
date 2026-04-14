@@ -4,7 +4,6 @@ import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion, useScroll } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { siteConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const INITIAL_WIDTH = "70rem";
@@ -73,9 +72,7 @@ export function Navbar() {
 				>
 					<div className="flex h-[56px] items-center justify-between p-4">
 						<Link href="/" className="flex items-center gap-3">
-							<p className="font-semibold text-lg text-primary">
-								{siteConfig.name}
-							</p>
+							<p className="font-semibold text-lg text-primary">Office OS</p>
 						</Link>
 
 						<div className="flex shrink-0 flex-row items-center gap-1 md:gap-3">
@@ -126,7 +123,7 @@ export function Navbar() {
 								<div className="flex items-center justify-between">
 									<Link href="/" className="flex items-center gap-3">
 										<p className="font-semibold text-lg text-primary">
-											{siteConfig.name}
+											Office OS
 										</p>
 									</Link>
 									<button

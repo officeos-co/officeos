@@ -4,7 +4,37 @@ import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { siteConfig } from "@/lib/config";
+
+const footerLinks = [
+	{
+		title: "Product",
+		links: [
+			{ id: 1, title: "Features", url: "#features" },
+			{ id: 2, title: "Docs", url: "https://docs.harrokrog.com" },
+			{ id: 7, title: "Status", url: "https://status.harrokrog.com" },
+		],
+	},
+	{
+		title: "Company",
+		links: [
+			{ id: 3, title: "About", url: "/about" },
+			{ id: 4, title: "Blog", url: "#" },
+		],
+	},
+	{
+		title: "Legal",
+		links: [
+			{ id: 5, title: "Privacy", url: "/privacy" },
+			{ id: 6, title: "Terms", url: "/terms" },
+		],
+	},
+];
+
+const socialLinks = {
+	github: "https://github.com/officeos",
+	linkedin: "https://linkedin.com/company/officeos",
+	twitter: "https://x.com/officeos",
+};
 
 export function FooterSection() {
 	const tablet = useMediaQuery("(max-width: 1024px)");
@@ -14,16 +44,14 @@ export function FooterSection() {
 			<div className="flex flex-col p-10 md:flex-row md:items-center md:justify-between">
 				<div className="mx-0 flex max-w-xs flex-col items-start justify-start gap-y-5">
 					<Link href="/" className="flex items-center gap-2">
-						<p className="font-semibold text-primary text-xl">
-							{siteConfig.name}
-						</p>
+						<p className="font-semibold text-primary text-xl">Office OS</p>
 					</Link>
 					<p className="font-medium text-muted-foreground tracking-tight">
 						The intelligence layer for AI agents.
 					</p>
 					<div className="flex items-center gap-4 text-muted-foreground">
 						<a
-							href={siteConfig.links.github}
+							href={socialLinks.github}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="hover:text-primary transition-colors"
@@ -31,7 +59,7 @@ export function FooterSection() {
 							GitHub
 						</a>
 						<a
-							href={siteConfig.links.linkedin}
+							href={socialLinks.linkedin}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="hover:text-primary transition-colors"
@@ -39,7 +67,7 @@ export function FooterSection() {
 							LinkedIn
 						</a>
 						<a
-							href={siteConfig.links.twitter}
+							href={socialLinks.twitter}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="hover:text-primary transition-colors"
@@ -50,7 +78,7 @@ export function FooterSection() {
 				</div>
 				<div className="pt-5 md:w-1/2">
 					<div className="flex flex-col items-start justify-start gap-y-5 md:flex-row md:items-center md:justify-between lg:pl-10">
-						{siteConfig.footerLinks.map((column, columnIndex) => (
+						{footerLinks.map((column, columnIndex) => (
 							<ul key={columnIndex} className="flex flex-col gap-y-2">
 								<li className="mb-2 font-semibold text-primary text-sm">
 									{column.title}
