@@ -4,96 +4,95 @@ import { Navbar } from "@/components/sections/navbar";
 import { FooterSection } from "@/components/sections/footer-section";
 
 export const metadata = {
-  title: "Sponsors — OfficeOS",
+  title: "Network — OfficeOS",
   description:
-    "The organizations and partners backing OfficeOS — from Microsoft to EU accessibility initiatives.",
+    "The organizations and programs that have shaped our founder's journey — from Microsoft to EU accessibility initiatives.",
 };
 
-const sponsors = [
+const network = [
   {
     name: "Microsoft Denmark",
     src: "/logos/microsoft.png",
     href: "https://www.microsoft.com/da-dk/about",
     description:
-      "Hosted the Disability Tech Hackathon 2026 at Microsoft Denmark HQ in Lyngby. OfficeOS won first place, earning a spot in the Microsoft for Startups Founders Hub.",
-    highlight: true,
+      "Hosted the Disability Tech Hackathon 2026 where our founder won first place. Through the Microsoft for Startups Founders Hub, provides cloud credits and mentorship.",
   },
   {
     name: "Disability Tech Denmark",
     src: "/logos/disability-tech.png",
     href: "https://disabilitytech.dk/",
     description:
-      "Organized the hackathon that brought together accessibility-focused startups and enterprise partners. Core partner in shaping our accessibility-first approach.",
+      "Organized the hackathon at Microsoft Denmark that brought together accessibility-focused entrepreneurs and enterprise partners.",
   },
   {
     name: "DTU Skylab",
     src: "/logos/dtu-skylab.png",
     href: "https://www.skylab.dtu.dk/",
     description:
-      "Denmark's leading university incubator at the Technical University of Denmark. Provided early-stage mentorship and workspace.",
+      "Denmark's leading university incubator at the Technical University of Denmark. Early-stage mentorship and workspace for our founder.",
   },
   {
     name: "UCPH Lighthouse",
     src: "/logos/ku-lighthouse.png",
     href: "https://lighthouse.ku.dk/en/",
     description:
-      "University of Copenhagen's startup program. Supported go-to-market strategy and academic network access.",
+      "University of Copenhagen's startup program. Go-to-market support and academic network access.",
   },
   {
     name: "AccessibleEU",
     src: "/logos/accessible-eu.png",
     href: "https://accessibleeu.eu/",
     description:
-      "European Commission initiative for digital accessibility. Recognized OfficeOS as a key player in accessible enterprise AI.",
+      "European Commission initiative for digital accessibility. Part of the ecosystem shaping accessible enterprise technology.",
   },
   {
     name: "Siteimprove",
     src: "/logos/siteimprove.png",
     href: "https://siteimprove.ai/",
     description:
-      "Global leader in digital accessibility and content optimization. Strategic partner for accessibility tooling integration.",
+      "Global leader in digital accessibility and content optimization. Hackathon judge and accessibility domain partner.",
   },
   {
     name: "TechBBQ",
     src: "/logos/techbbq.png",
     href: "https://techbbq.dk/",
     description:
-      "Scandinavia's largest startup and innovation summit. Showcased OfficeOS to the Nordic tech ecosystem.",
+      "Scandinavia's largest startup and innovation summit. Platform for connecting with the Nordic tech ecosystem.",
   },
   {
     name: "Danske Ivaerksaettere",
     src: "/logos/danske-ivaerksaettere.png",
     href: "https://dkiv.dk/",
     description:
-      "Denmark's largest entrepreneur network. Provided business development resources and community access.",
+      "Denmark's largest entrepreneur network. Business development resources and community.",
   },
   {
     name: "Elsass Fonden",
     src: "/logos/elsass-fonden.png",
     href: "https://www.elsassfonden.dk/",
     description:
-      "Danish foundation supporting people with cerebral palsy. Grant funding for accessibility-focused AI development.",
+      "Danish foundation supporting people with cerebral palsy. Hackathon partner focused on accessibility innovation.",
   },
   {
     name: "Bevica Legater",
     src: "/logos/bevica.png",
     href: "https://www.bevicafonden.dk/",
     description:
-      "Foundation supporting projects that improve quality of life for people with disabilities. Grant partner.",
+      "Foundation supporting projects that improve quality of life for people with disabilities. Hackathon partner.",
   },
   {
     name: "Videnscenter om Handicap",
     src: "/logos/videnscenter-handicap.png",
     href: "https://videnomhandicap.dk/",
     description:
-      "Danish knowledge center for disability research. Provided domain expertise for accessible agent design.",
+      "Danish knowledge center for disability research. Domain expertise for accessible technology design.",
   },
   {
     name: "Ivaerksaettere med Handicap",
     src: "/logos/ivaerksaettere-med-handicap.png",
     href: "https://www.ivmh.dk/",
     description:
-      "Network for entrepreneurs with disabilities. Community partner and early adopter advocate.",
+      "Network for entrepreneurs with disabilities. Community and advocacy partner.",
   },
 ];
 
@@ -109,11 +108,12 @@ export default function Sponsors() {
         <div className="w-full px-6 pt-20 pb-16 md:pt-28">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-              Our Sponsors &amp; Partners
+              Our Network
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              The organizations that believed in us from day one — funding,
-              mentoring, and opening doors.
+              The organizations and programs that have shaped our
+              founder&apos;s journey — and continue to support the mission
+              behind OfficeOS.
             </p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function Sponsors() {
             <div className="overflow-hidden rounded-xl border border-border">
               <Image
                 src="/GroupPhoto.jpeg"
-                alt="Hackathon winners at Microsoft Denmark"
+                alt="Disability Tech Hackathon at Microsoft Denmark"
                 width={1280}
                 height={853}
                 className="w-full h-auto"
@@ -138,45 +138,44 @@ export default function Sponsors() {
                 First Place — Microsoft Denmark
               </h2>
               <p className="mt-3 mx-auto max-w-2xl text-muted-foreground">
-                OfficeOS won the Disability Tech Hackathon hosted at Microsoft
-                Denmark in Lyngby — competing against teams building
-                accessibility solutions with AI. The win earned a spot in the
-                Microsoft for Startups Founders Hub.
+                Our founder Harro Krog won first place at the Disability Tech
+                Hackathon hosted at Microsoft Denmark in Lyngby. The win earned
+                a spot in the Microsoft for Startups Founders Hub — providing
+                cloud credits, mentorship, and enterprise access that now powers
+                OfficeOS.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Sponsor grid */}
+        {/* Network grid */}
         <div className="w-full px-6 py-16">
           <div className="mx-auto max-w-5xl">
             <h2 className="text-center text-2xl font-bold tracking-tight mb-12">
-              All Partners
+              Organizations &amp; Programs
             </h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {sponsors.map((sponsor) => (
+              {network.map((org) => (
                 <a
-                  key={sponsor.name}
-                  href={sponsor.href}
+                  key={org.name}
+                  href={org.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex flex-col gap-4 rounded-lg border border-border p-6 transition-colors hover:bg-muted/50"
                 >
                   <div className="flex h-10 items-center">
                     <Image
-                      src={sponsor.src}
-                      alt={sponsor.name}
+                      src={org.src}
+                      alt={org.name}
                       width={120}
                       height={40}
                       className="max-h-8 w-auto object-contain"
                     />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-primary">
-                      {sponsor.name}
-                    </h3>
+                    <h3 className="font-semibold text-primary">{org.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                      {sponsor.description}
+                      {org.description}
                     </p>
                   </div>
                 </a>

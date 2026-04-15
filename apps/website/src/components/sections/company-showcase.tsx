@@ -82,7 +82,7 @@ export function CompanyShowcase() {
       onClick={() => router.push("/sponsors")}
     >
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-        Judged &amp; backed by
+        Founder recognized by
       </p>
 
       <div className="relative w-full">
@@ -133,7 +133,7 @@ export function CompanyShowcase() {
               className="absolute inset-0 z-20 flex items-center justify-center"
             >
               <span className="flex items-center gap-2 rounded-full border border-border bg-background/90 px-5 py-2 text-sm font-medium text-primary shadow-sm backdrop-blur-sm">
-                See our sponsors
+                See our network
                 <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </motion.div>
