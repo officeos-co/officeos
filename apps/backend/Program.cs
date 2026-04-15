@@ -119,6 +119,11 @@ builder.Services.AddSingleton(frontendConfig);
 builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
 builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
+// Rate limiting
+var rateLimitingConfig = new RateLimitingConfig();
+envSection.GetSection("RateLimiting").Bind(rateLimitingConfig);
+builder.Services.AddSingleton(rateLimitingConfig);
+
 // GraphQL skill gateway
 builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
 builder.Services

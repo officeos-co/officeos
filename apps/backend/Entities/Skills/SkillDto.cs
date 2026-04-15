@@ -78,6 +78,7 @@ public sealed class RuntimeManifest
     public required string Emoji { get; set; }
     public required string Description { get; set; }
     public required string Doc { get; set; }
+    public string? Category { get; set; }
     public required Dictionary<string, RuntimeActionManifest> Actions { get; set; }
     public required List<RuntimeCredentialField> CredentialFields { get; set; }
 }

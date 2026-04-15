@@ -77,6 +77,7 @@ Entities/{DomainName}/
 | `Vault` | — | — | — | CouchDbVaultClient only |
 | `Audit` | AuditController | AuditService | AuditRepository | GET /api/agents/{id}/audit-log — records every skill execution, redacts secrets in paramsJson |
 | `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector |
+| `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | DB-backed per-agent sliding window counter (AgentRateLimitRecord). Enforced in AgentSkillsController.SkillExec(). Config: RateLimitingConfig (SkillExecPerAgentPerHour, EmailPerAgentPerHour, WindowSeconds). |
 
 ### Naming conventions
 
