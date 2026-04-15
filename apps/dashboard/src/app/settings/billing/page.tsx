@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TopBar } from "@/components/shared/TopBar";
 import { cn } from "@/lib/utils";
+import { isMockEnabled, MOCK_BILLING } from "@/lib/mock-data";
 
 interface UserSubscription {
   plan: string;
@@ -44,6 +45,11 @@ export default function BillingPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isMockEnabled()) {
+      setSub(MOCK_BILLING as UserSubscription);
+      setLoading(false);
+      return;
+    }
     fetch("/api/billing/user/subscription", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setSub(data))

@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAgents } from "@/hooks/useAgents";
 import { useSystemEvents } from "@/hooks/useSystemEvents";
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
-import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +19,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -46,6 +45,7 @@ import {
   User,
   Gauge,
   PanelLeft,
+  PanelLeftClose,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -55,6 +55,7 @@ export function AppSidebar() {
   const { agents } = useAgents();
   const { unacknowledgedCount: errorCount } = useSystemEvents(50);
   const { pendingCount } = useApprovalRequests();
+  const { open, toggleSidebar } = useSidebar();
 
   const runningCount = agents.filter(
     (a) =>
@@ -121,25 +122,24 @@ export function AppSidebar() {
     );
   }
 
+  const ToggleIcon = open ? PanelLeftClose : PanelLeft;
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center justify-between px-2 py-1">
-              <SidebarMenuButton
-                size="lg"
-                render={<Link href="/" />}
-                className="h-8 !p-0"
-              >
-                <span className="text-[14px] font-semibold tracking-tight text-foreground">
-                  AgentOS
-                </span>
-              </SidebarMenuButton>
-              <SidebarTrigger className="h-6 w-6 text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden">
-                <PanelLeft className="h-4 w-4" />
-              </SidebarTrigger>
-            </div>
+            <SidebarMenuButton
+              size="lg"
+              onClick={toggleSidebar}
+              tooltip={open ? "Collapse sidebar" : "Expand sidebar"}
+              className="h-8"
+            >
+              <ToggleIcon className="!h-4 !w-4 shrink-0" />
+              <span className="text-[14px] font-semibold tracking-tight text-foreground">
+                AgentOS
+              </span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -209,14 +209,14 @@ export function AppSidebar() {
                   <img
                     src={user.avatarUrl}
                     alt=""
-                    className="h-7 w-7 rounded-full"
+                    className="h-7 w-7 shrink-0 rounded-full"
                   />
                 ) : (
-                  <div className="grid h-7 w-7 place-items-center rounded-full bg-muted text-[11px] font-medium text-muted-foreground">
+                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[11px] font-medium text-muted-foreground">
                     {(user?.name ?? "U").charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="flex-1 truncate text-left">
+                <div className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
                   <div className="truncate text-[13px] font-medium leading-tight">
                     {user?.name ?? "Local dev"}
                   </div>
@@ -224,7 +224,7 @@ export function AppSidebar() {
                     {user?.email ?? "single-tenant"}
                   </div>
                 </div>
-                <ChevronsUpDown className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
+                <ChevronsUpDown className="ml-auto size-3.5 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-[--radix-dropdown-menu-trigger-width] min-w-48"

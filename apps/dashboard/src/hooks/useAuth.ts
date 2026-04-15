@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import posthog from "posthog-js";
 import type { User } from "@/types/auth";
+import { isMockEnabled, MOCK_USER } from "@/lib/mock-data";
 
 export type { User } from "@/types/auth";
 
@@ -13,6 +14,13 @@ export function useAuth() {
 
   const check = useCallback(async () => {
     setError(null);
+
+    if (isMockEnabled()) {
+      setUser(MOCK_USER);
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
@@ -42,6 +50,11 @@ export function useAuth() {
   }, [check]);
 
   const logout = useCallback(async () => {
+    if (isMockEnabled()) {
+      setUser(null);
+      window.location.href = "/login";
+      return;
+    }
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {

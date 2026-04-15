@@ -5,10 +5,10 @@ import { Plus, Trash2, Power, PowerOff, RefreshCw } from "lucide-react";
 import { TopBar } from "@/components/shared/TopBar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ChannelIcon } from "@/components/shared/ChannelIcon";
 import {
   useChannelConnections,
   type ChannelType,
-  type ChannelConnection,
 } from "@/hooks/useChannelConnections";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,37 +58,57 @@ function ChannelSetupWizard({
 
   if (step === "type") {
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-sm font-medium">Add channel</h2>
-          <p className="text-[12px] text-muted-foreground">Select a platform.</p>
+      <div className="px-6 py-6">
+        <div className="mb-4">
+          <h2 className="text-sm font-medium">Select a platform</h2>
+          <p className="text-[12px] text-muted-foreground mt-0.5">Choose which messaging platform to connect.</p>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {channelTypes.map((t) => (
-            <button
-              key={t.type}
-              type="button"
-              onClick={() => handleSelectType(t)}
-              className="rounded-md border border-border p-3 text-left text-[13px] hover:bg-accent transition-colors"
-            >
-              <div className="font-medium">{t.displayName}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">{t.description}</div>
-            </button>
-          ))}
+
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="text-[12px] font-normal text-muted-foreground w-[32px]" />
+              <TableHead className="text-[12px] font-normal text-muted-foreground">Platform</TableHead>
+              <TableHead className="text-[12px] font-normal text-muted-foreground">Description</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {channelTypes.map((t) => (
+              <TableRow
+                key={t.type}
+                onClick={() => handleSelectType(t)}
+                className="cursor-pointer"
+              >
+                <TableCell>
+                  <ChannelIcon type={t.type} size={18} />
+                </TableCell>
+                <TableCell className="text-[13px] font-medium">{t.displayName}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{t.description}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        <div className="mt-4">
+          <Button variant="ghost" size="sm" onClick={onCancel} className="h-7 text-[12px]">
+            Cancel
+          </Button>
         </div>
-        <Button variant="ghost" size="sm" onClick={onCancel} className="h-7 text-[12px]">
-          Cancel
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-sm font-medium">Configure {selectedType?.displayName}</h2>
+    <div className="px-6 py-6">
+      <div className="mb-6 flex items-center gap-3">
+        <ChannelIcon type={selectedType!.type} size={20} />
+        <div>
+          <h2 className="text-sm font-medium">Configure {selectedType?.displayName}</h2>
+          <p className="text-[12px] text-muted-foreground">Enter the credentials for your integration.</p>
+        </div>
       </div>
-      <div className="space-y-3">
+
+      <div className="max-w-md space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="display-name" className="text-[12px]">Display name</Label>
           <Input
@@ -129,7 +149,7 @@ function ChannelSetupWizard({
           </div>
         ))}
 
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-2">
           <Button size="sm" onClick={handleSubmit} disabled={submitting || !displayName.trim()} className="h-7">
             {submitting ? "Connecting..." : "Connect"}
           </Button>
@@ -176,45 +196,48 @@ export default function ChannelsSettingsPage() {
           ) : undefined
         }
       />
-      <div className="max-w-2xl px-6 py-6">
-        {(error || actionError) && (
-          <div className="mb-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
-            {error || actionError}
-          </div>
-        )}
 
-        {showWizard ? (
-          <ChannelSetupWizard
-            channelTypes={channelTypes}
-            onComplete={handleCreate}
-            onCancel={() => setShowWizard(false)}
-          />
-        ) : loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 py-3">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-3 w-12" />
-              </div>
-            ))}
-          </div>
-        ) : connections.length === 0 ? (
-          <EmptyState
-            title="No channels yet"
-            description="Add a Slack, Telegram, Discord, or other channel."
-            action={
-              <Button size="sm" onClick={() => setShowWizard(true)} className="h-7">
-                Add channel
-              </Button>
-            }
-          />
-        ) : (
+      {(error || actionError) && (
+        <div className="mx-6 mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
+          {error || actionError}
+        </div>
+      )}
+
+      {showWizard ? (
+        <ChannelSetupWizard
+          channelTypes={channelTypes}
+          onComplete={handleCreate}
+          onCancel={() => setShowWizard(false)}
+        />
+      ) : loading ? (
+        <div className="px-6 py-6 space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+      ) : connections.length === 0 ? (
+        <EmptyState
+          title="No channels yet"
+          description="Connect Slack, Telegram, Discord, or other messaging platforms."
+          action={
+            <Button size="sm" onClick={() => setShowWizard(true)} className="h-7">
+              Add channel
+            </Button>
+          }
+        />
+      ) : (
+        <div className="px-6 py-4">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[12px] font-normal text-muted-foreground w-[32px]" />
                 <TableHead className="text-[12px] font-normal text-muted-foreground">Name</TableHead>
-                <TableHead className="text-[12px] font-normal text-muted-foreground">Type</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Platform</TableHead>
                 <TableHead className="text-[12px] font-normal text-muted-foreground">Status</TableHead>
                 <TableHead className="w-[80px]" />
               </TableRow>
@@ -222,8 +245,11 @@ export default function ChannelsSettingsPage() {
             <TableBody>
               {connections.map((conn) => (
                 <TableRow key={conn.id}>
+                  <TableCell>
+                    <ChannelIcon type={conn.channelType} size={16} />
+                  </TableCell>
                   <TableCell className="text-[13px] font-medium">{conn.displayName}</TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">{conn.channelType}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground capitalize">{conn.channelType}</TableCell>
                   <TableCell>
                     <StatusBadge status={conn.enabled ? "online" : "offline"} />
                   </TableCell>
@@ -252,8 +278,8 @@ export default function ChannelsSettingsPage() {
               ))}
             </TableBody>
           </Table>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TopBar } from "@/components/shared/TopBar";
 import { useAuth } from "@/hooks/useAuth";
 import { apiFetch } from "@/hooks/useApi";
+import { isMockEnabled } from "@/lib/mock-data";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,16 @@ export default function ProfilePage() {
   async function handleExport() {
     setExporting(true);
     try {
+      if (isMockEnabled()) {
+        const blob = new Blob([JSON.stringify({ mock: true })], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "eaos-export.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
       const res = await fetch("/api/gdpr/export", { credentials: "include" });
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

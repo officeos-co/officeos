@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch } from "./useApi";
+import { isMockEnabled } from "@/lib/mock-data";
 
 export type SystemEvent = {
   id: string;
@@ -29,8 +30,10 @@ export function useSystemEvents(limit = 50) {
       .finally(() => setLoading(false));
   }, [limit]);
 
-  // SSE stream for real-time updates
+  // SSE stream for real-time updates (skip in mock mode)
   useEffect(() => {
+    if (isMockEnabled()) return;
+
     const es = new EventSource("/api/system-events/stream");
 
     es.onmessage = (e) => {
