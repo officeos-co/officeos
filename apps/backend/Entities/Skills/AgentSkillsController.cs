@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using System.Text.Json;
 using EnterpriseAgentOs.Api.Database.Models;
+using EnterpriseAgentOs.Api.Entities.Audit;
 using EnterpriseAgentOs.Api.Entities.Events;
+using EnterpriseAgentOs.Api.Entities.RateLimiting;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
@@ -16,6 +19,9 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly RunnerJobWaiter _jobWaiter;
     private readonly IBrowserSessionRepository _browserSessions;
     private readonly ISystemEventService _events;
+    private readonly IAuditService _audit;
+    private readonly IRateLimitService _rateLimiter;
+    private readonly ISkillCatalogRepository _catalog;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -27,6 +33,9 @@ public sealed class AgentSkillsController : ControllerBase
         RunnerJobWaiter jobWaiter,
         IBrowserSessionRepository browserSessions,
         ISystemEventService events,
+        IAuditService audit,
+        IRateLimitService rateLimiter,
+        ISkillCatalogRepository catalog,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
@@ -36,6 +45,9 @@ public sealed class AgentSkillsController : ControllerBase
         _jobWaiter = jobWaiter;
         _browserSessions = browserSessions;
         _events = events;
+        _audit = audit;
+        _rateLimiter = rateLimiter;
+        _catalog = catalog;
         _logger = logger;
     }
 
@@ -54,6 +66,40 @@ public sealed class AgentSkillsController : ControllerBase
     [HttpPost("skill-exec")]
     public async Task<IActionResult> SkillExec([FromBody] SkillExecRequest body, CancellationToken ct)
     {
+        var execAgentId = (Guid)HttpContext.Items["agent-id"]!;
+
+        // --- Rate limiting ---
+        var generalDecision = await _rateLimiter.CheckSkillExecAsync(execAgentId, ct);
+        if (!generalDecision.Allowed)
+        {
+            _logger.LogWarning("Rate limit exceeded for agent {AgentId} (skill_exec)", execAgentId);
+            return StatusCode(StatusCodes.Status429TooManyRequests, new
+            {
+                error = "rate_limit_exceeded",
+                retryAfterSeconds = generalDecision.RetryAfterSeconds,
+            });
+        }
+
+        // Check email category rate limit if applicable
+        var skillRecord = await _catalog.GetByNameAsync(body.Skill, ct);
+        if (skillRecord is not null)
+        {
+            var manifest = DeserializeManifestSafe(skillRecord.ManifestJson);
+            if (string.Equals(manifest?.Category, "email", StringComparison.OrdinalIgnoreCase))
+            {
+                var emailDecision = await _rateLimiter.CheckEmailAsync(execAgentId, ct);
+                if (!emailDecision.Allowed)
+                {
+                    _logger.LogWarning("Email rate limit exceeded for agent {AgentId}", execAgentId);
+                    return StatusCode(StatusCodes.Status429TooManyRequests, new
+                    {
+                        error = "email_rate_limit_exceeded",
+                        retryAfterSeconds = emailDecision.RetryAfterSeconds,
+                    });
+                }
+            }
+        }
+
         var runTarget = await _service.GetRunTargetAsync(body.Skill, ct);
         _logger.LogInformation("Agent skill-exec: {Skill}.{Action} (target={RunTarget})",
             body.Skill, body.Action, runTarget);
@@ -88,6 +134,10 @@ public sealed class AgentSkillsController : ControllerBase
             }
         }
 
+        var paramsJson = JsonSerializer.Serialize(body.Params ?? new Dictionary<string, object>());
+        var sw = Stopwatch.StartNew();
+        string? resultSummary = null;
+
         try
         {
             var result = await _runtime.ExecuteAsync(
@@ -97,6 +147,8 @@ public sealed class AgentSkillsController : ControllerBase
                 creds,
                 sessionContext,
                 ct);
+
+            sw.Stop();
 
             // Persist browser session state
             if (string.Equals(body.Skill, "browser", StringComparison.OrdinalIgnoreCase)
@@ -115,7 +167,14 @@ public sealed class AgentSkillsController : ControllerBase
 
             // Strip session metadata from the response to the agent
             if (result.Success)
+            {
+                resultSummary = "success";
+                await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
                 return Ok(new { success = result.Success, result = result.Result });
+            }
+
+            resultSummary = $"error: {result.Error}";
+            await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
             await _events.RecordAsync(new SystemEventRecord
             {
@@ -123,24 +182,40 @@ public sealed class AgentSkillsController : ControllerBase
                 Category = "skill_execution",
                 Message = $"Skill {body.Skill}.{body.Action} failed: {result.Error}",
                 SkillName = body.Skill,
-                AgentId = (Guid)HttpContext.Items["agent-id"]!,
+                AgentId = execAgentId,
                 CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
             });
             return UnprocessableEntity(new { success = result.Success, error = result.Error });
         }
         catch (HttpRequestException ex)
         {
+            sw.Stop();
+            resultSummary = $"error: {ex.Message}";
+            await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
+
             await _events.RecordAsync(new SystemEventRecord
             {
                 Severity = "error",
                 Category = "skill_execution",
                 Message = $"Cloud skill-runtime unreachable for {body.Skill}.{body.Action}: {ex.Message}",
                 SkillName = body.Skill,
-                AgentId = (Guid)HttpContext.Items["agent-id"]!,
+                AgentId = execAgentId,
                 CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
             });
             return StatusCode(StatusCodes.Status502BadGateway,
                 new { error = $"Cloud skill-runtime unreachable: {ex.Message}" });
+        }
+    }
+
+    private async Task RecordAuditAsync(Guid agentId, string skill, string action, string paramsJson, string? resultSummary, long durationMs)
+    {
+        try
+        {
+            await _audit.RecordToolCallAsync(agentId, null, skill, action, paramsJson, resultSummary, durationMs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to record audit entry for {Skill}.{Action}", skill, action);
         }
     }
 
@@ -213,6 +288,25 @@ public sealed class AgentSkillsController : ControllerBase
                     + "The runner may be overloaded, or the skill execution is taking too long. "
                     + "Check the runner logs or try again.",
             });
+        }
+    }
+
+    private static readonly JsonSerializerOptions ManifestJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+    };
+
+    private static RuntimeManifest? DeserializeManifestSafe(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<RuntimeManifest>(json, ManifestJsonOptions);
+        }
+        catch
+        {
+            return null;
         }
     }
 

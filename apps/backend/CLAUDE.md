@@ -75,6 +75,7 @@ Entities/{DomainName}/
 | `AgentSkills` | AgentSkillAssignmentController | — | AgentSkillRepository | |
 | `AgentMemory` | AgentMemoryController | — | — | |
 | `Vault` | — | — | — | CouchDbVaultClient only |
+| `Audit` | AuditController | AuditService | AuditRepository | GET /api/agents/{id}/audit-log — records every skill execution, redacts secrets in paramsJson |
 | `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector |
 
 ### Naming conventions

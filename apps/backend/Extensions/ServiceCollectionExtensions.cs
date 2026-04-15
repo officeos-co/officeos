@@ -17,6 +17,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
         services.AddScoped<ISkillRegistryRepository, SkillRegistryRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
+        services.AddScoped<IAuditRepository, AuditRepository>();
+        services.AddScoped<IRateLimitRepository, RateLimitRepository>();
         return services;
     }
 
@@ -33,6 +35,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IStripeWebhookService, EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService, EnterpriseAgentOs.Api.Entities.Billing.CreditRecordingService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Events.ISystemEventService, EnterpriseAgentOs.Api.Entities.Events.SystemEventService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IRateLimitService, RateLimitService>();
         return services;
     }
 

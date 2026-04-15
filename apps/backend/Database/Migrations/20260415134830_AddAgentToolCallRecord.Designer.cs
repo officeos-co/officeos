@@ -3,6 +3,7 @@ using System;
 using EnterpriseAgentOs.Api.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EnterpriseAgentOs.Api.Database.Migrations
 {
     [DbContext(typeof(EaosDbContext))]
-    partial class EaosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415134830_AddAgentToolCallRecord")]
+    partial class AddAgentToolCallRecord
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -191,36 +194,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.HasIndex("AgentId", "SessionId");
 
                     b.ToTable("AgentMemories");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRateLimitRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BucketKey")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<int>("Count")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("WindowStart")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("AgentId", "BucketKey", "WindowStart")
-                        .IsUnique();
-
-                    b.ToTable("AgentRateLimits");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRecord", b =>
