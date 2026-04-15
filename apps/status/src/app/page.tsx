@@ -173,7 +173,7 @@ export default function StatusPage() {
       {/* Footer */}
       <footer className="mt-16 border-t border-border pt-6 text-center text-xs text-muted-foreground">
         <p>
-          &copy; 2026 OfficeOS GmbH &middot;{" "}
+          &copy; 2026 OfficeOS &middot;{" "}
           <a
             href="https://officeos.co"
             className="underline underline-offset-2 hover:text-foreground"

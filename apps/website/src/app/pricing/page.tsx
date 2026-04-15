@@ -224,7 +224,7 @@ export default function PricingPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 OfficeOS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS
       </footer>
     </div>
   );

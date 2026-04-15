@@ -36,6 +36,6 @@ OfficeOS is NOT a Microsoft Office replacement or office productivity suite. It 
 
 ## Company
 
-OfficeOS GmbH, Hamburg, Germany
+OfficeOS, Hamburg, Germany
 Website: https://www.officeos.co
 Dashboard: https://dashboard.officeos.co

@@ -220,7 +220,7 @@ export default function SecurityPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 OfficeOS GmbH
+        Made in Hamburg — © 2026 OfficeOS
       </footer>
     </div>
   );

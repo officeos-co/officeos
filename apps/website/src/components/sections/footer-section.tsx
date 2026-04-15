@@ -118,7 +118,7 @@ export function FooterSection() {
           className="text-xs text-muted-foreground transition-colors hover:text-primary"
         ></a>
         <span className="text-xs text-muted-foreground">
-          Made in Hamburg — &copy; 2026 OfficeOS GmbH
+          Made in Hamburg — &copy; 2026 OfficeOS
         </span>
       </div>
       <div className="relative z-0 mt-8 h-48 w-full md:h-64">

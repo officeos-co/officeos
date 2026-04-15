@@ -13,7 +13,7 @@ const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "OfficeOS",
-  legalName: "OfficeOS GmbH",
+  legalName: "OfficeOS",
   url: "https://www.officeos.co",
   description:
     "AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.",
