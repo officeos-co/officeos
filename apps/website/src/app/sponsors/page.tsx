@@ -111,9 +111,8 @@ export default function Sponsors() {
               Our Network
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              The organizations and programs that have shaped our
-              founder&apos;s journey — and continue to support the mission
-              behind OfficeOS.
+              The organizations and programs that have shaped our founder&apos;s
+              journey — and continue to support the mission behind OfficeOS.
             </p>
           </div>
         </div>
@@ -198,12 +197,6 @@ export default function Sponsors() {
               className="flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-6 text-sm font-normal text-primary-foreground tracking-wide shadow-sm transition-all hover:bg-secondary/80 active:scale-95"
             >
               Start Free
-            </Link>
-            <Link
-              href="/"
-              className="flex h-9 items-center justify-center whitespace-nowrap rounded-full border border-border px-6 text-sm font-normal tracking-wide transition-all hover:bg-muted active:scale-95"
-            >
-              Back to Home
             </Link>
           </div>
         </div>
