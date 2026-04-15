@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Navbar } from "@/components/sections/navbar";
 import { FooterSection } from "@/components/sections/footer-section";
-import { LinkedInSection } from "@/components/sections/linkedin-section";
 
 export const metadata = {
   title: "Network — OfficeOS",
@@ -184,8 +183,6 @@ export default function Sponsors() {
             </div>
           </div>
         </div>
-
-        <LinkedInSection />
 
         {/* CTA */}
         <div className="w-full px-6 py-16 text-center">
