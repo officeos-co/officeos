@@ -7,6 +7,7 @@
 import { z } from "@harro/skill-sdk";
 import type { ActionDefinition } from "@harro/skill-sdk";
 import { readNote, writeNote, deleteNote } from "../core/client.ts";
+import { enforceGuardrails } from "../core/guardrails.ts";
 import type { VaultCredentials } from "../core/types.ts";
 
 function creds(ctx: { credentials: Record<string, string> }): VaultCredentials {
@@ -45,13 +46,22 @@ export const crud: Record<string, ActionDefinition> = {
   },
 
   create_note: {
-    description: "Create a new note. Fails if the note already exists.",
+    description:
+      "Create a new note. Fails if the note already exists. Returns guardrail warnings if the path violates vault design rules (wrong folder, missing categories, etc.).",
     params: z.object({
       name: z.string().describe("Note name (e.g. my-idea)"),
       content: z.string().default("").describe("Markdown content"),
       folder: z.string().optional().describe("Target folder (e.g. Projects)"),
+      strict: z
+        .boolean()
+        .default(false)
+        .describe("Treat vault rule violations as hard errors instead of warnings"),
     }),
-    returns: z.object({ path: z.string(), created: z.boolean() }),
+    returns: z.object({
+      path: z.string(),
+      created: z.boolean(),
+      warnings: z.array(z.string()).describe("Vault rule violation warnings"),
+    }),
     execute: async (params, ctx) => {
       const c = creds(ctx);
       let name = params.name;
@@ -61,22 +71,40 @@ export const crud: Record<string, ActionDefinition> = {
       // Check if note already exists
       const existing = await readNote(ctx.fetch, c, path);
       if (existing) {
-        throw new Error(`Note already exists: ${path}. Use write_note with force to overwrite.`);
+        throw new Error(`Note already exists: ${path}. Use write_note with force=true to overwrite.`);
       }
 
+      // Vault rule guardrails
+      const warnings = await enforceGuardrails(
+        ctx.fetch,
+        c,
+        path,
+        params.content,
+        params.strict,
+      );
+
       await writeNote(ctx.fetch, c, path, params.content);
-      return { path, created: true };
+      return { path, created: true, warnings };
     },
   },
 
   write_note: {
-    description: "Write (overwrite) a note's content. Creates the note if it does not exist.",
+    description:
+      "Write (overwrite) a note's content. Creates the note if it does not exist. Returns guardrail warnings if the path violates vault design rules.",
     params: z.object({
       path: z.string().describe("Exact path from vault root"),
       content: z.string().describe("New markdown content"),
       force: z.boolean().default(false).describe("Overwrite existing note without warning"),
+      strict: z
+        .boolean()
+        .default(false)
+        .describe("Treat vault rule violations as hard errors instead of warnings"),
     }),
-    returns: z.object({ path: z.string(), written: z.boolean() }),
+    returns: z.object({
+      path: z.string(),
+      written: z.boolean(),
+      warnings: z.array(z.string()).describe("Vault rule violation warnings"),
+    }),
     execute: async (params, ctx) => {
       const c = creds(ctx);
 
@@ -89,8 +117,17 @@ export const crud: Record<string, ActionDefinition> = {
         }
       }
 
+      // Vault rule guardrails
+      const warnings = await enforceGuardrails(
+        ctx.fetch,
+        c,
+        params.path,
+        params.content,
+        params.strict,
+      );
+
       await writeNote(ctx.fetch, c, params.path, params.content);
-      return { path: params.path, written: true };
+      return { path: params.path, written: true, warnings };
     },
   },
 

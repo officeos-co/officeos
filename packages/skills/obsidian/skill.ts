@@ -7,6 +7,7 @@ import { search } from "./cli/search.ts";
 import { tags } from "./cli/tags.ts";
 import { properties } from "./cli/properties.ts";
 import { templates } from "./cli/templates.ts";
+import { relocate } from "./cli/relocate.ts";
 
 export default defineSkill({
   name: "obsidian",
@@ -39,5 +40,6 @@ export default defineSkill({
     ...tags,
     ...properties,
     ...templates,
+    ...relocate,
   },
 });
