@@ -40,6 +40,7 @@ const footerLinks = [
     title: "Company",
     links: [
       { id: 12, title: "About", url: "/about" },
+      { id: 13, title: "Changelog", url: "https://changelog.officeos.co" },
       { id: 14, title: "Privacy", url: "/privacy" },
       { id: 15, title: "Terms", url: "/terms" },
     ],
