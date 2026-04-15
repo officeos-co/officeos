@@ -2,19 +2,9 @@ import { docs } from "@/.source"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { formatDate } from "@/lib/utils"
 
-interface ChangelogEntry {
-  title: string
-  date: string
-  version?: string
-  tags?: string[]
-  body: React.ComponentType
-  _mdx: { path: string }
-}
-
 export default function HomePage() {
-  const entries = [...docs.getPages()] as unknown as { data: ChangelogEntry }[]
-  const sorted = entries.sort((a, b) => {
-    return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  const sorted = [...docs].sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime()
   })
 
   return (
@@ -44,8 +34,8 @@ export default function HomePage() {
       <div className="max-w-5xl mx-auto px-6 lg:px-10 pt-10">
         <div className="relative">
           {sorted.map((entry, i) => {
-            const MDX = entry.data.body
-            const date = new Date(entry.data.date)
+            const MDX = entry.body
+            const date = new Date(entry.date)
             const formattedDate = formatDate(date)
 
             return (
@@ -57,9 +47,9 @@ export default function HomePage() {
                         {formattedDate}
                       </time>
 
-                      {entry.data.version && (
+                      {entry.version && (
                         <div className="inline-flex relative z-10 items-center justify-center w-10 h-10 text-foreground border border-border rounded-lg text-sm font-bold">
-                          {entry.data.version}
+                          {entry.version}
                         </div>
                       )}
                     </div>
@@ -76,13 +66,12 @@ export default function HomePage() {
                     <div className="space-y-6">
                       <div className="relative z-10 flex flex-col gap-2">
                         <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                          {entry.data.title}
+                          {entry.title}
                         </h2>
 
-                        {/* Tags */}
-                        {entry.data.tags && entry.data.tags.length > 0 && (
+                        {entry.tags && entry.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2">
-                            {entry.data.tags.map((tag: string) => (
+                            {entry.tags.map((tag: string) => (
                               <span
                                 key={tag}
                                 className="h-6 w-fit px-2 text-xs font-medium bg-muted text-muted-foreground rounded-full border flex items-center justify-center"
