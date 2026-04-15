@@ -3,6 +3,13 @@ export type Tool = {
   description: string
 }
 
+export type CredentialField = {
+  key: string
+  label: string
+  type: "password" | "text"
+  placeholder: string
+}
+
 export type Integration = {
   name: string
   slug: string
@@ -11,6 +18,8 @@ export type Integration = {
   likes: number
   updatedAgo: string
   tools: Tool[]
+  credentials: CredentialField[]
+  added: boolean
   skillMd: string
 }
 
@@ -39,6 +48,8 @@ export const integrations: Integration[] = [
     description: "Create issues, pull requests, manage repositories, and automate workflows.",
     likes: 342,
     updatedAgo: "2 days ago",
+    added: true,
+    credentials: [{ key: "GITHUB_TOKEN", label: "Personal Access Token", type: "password", placeholder: "ghp_..." }],
     tools: [
       { name: "create_issue", description: "Create a new issue in a repository" },
       { name: "create_pr", description: "Open a pull request from a branch" },
@@ -109,6 +120,8 @@ Requires a GitHub Personal Access Token with \`repo\` scope.
     description: "Search the web and scrape pages for up-to-date information.",
     likes: 218,
     updatedAgo: "5 days ago",
+    added: true,
+    credentials: [],
     tools: [
       { name: "search", description: "Search the web with a query" },
       { name: "scrape_url", description: "Scrape and extract page content" },
@@ -155,6 +168,8 @@ No credentials required.
     description: "Search Google Drive files and list upcoming Google Calendar events.",
     likes: 156,
     updatedAgo: "1 week ago",
+    added: false,
+    credentials: [{ key: "GOOGLE_SERVICE_ACCOUNT", label: "Service Account JSON", type: "text", placeholder: '{"type":"service_account",...}' }],
     tools: [
       { name: "drive_search", description: "Search Drive files by name" },
       { name: "calendar_upcoming", description: "List upcoming calendar events" },
@@ -223,6 +238,8 @@ For schedule/meeting questions:
     description: "Read and write Notion pages, databases, and blocks.",
     likes: 267,
     updatedAgo: "4 days ago",
+    added: true,
+    credentials: [{ key: "NOTION_TOKEN", label: "Integration Token", type: "password", placeholder: "secret_..." }],
     tools: [
       { name: "search", description: "Search pages and databases" },
       { name: "create_page", description: "Create a new page" },
@@ -275,6 +292,8 @@ Requires a Notion integration token. Create one at notion.so/my-integrations.
     description: "Manage issues, projects, and cycles in Linear.",
     likes: 198,
     updatedAgo: "6 days ago",
+    added: false,
+    credentials: [{ key: "LINEAR_API_KEY", label: "API Key", type: "password", placeholder: "lin_api_..." }],
     tools: [
       { name: "create_issue", description: "Create a new issue" },
       { name: "list_issues", description: "List issues with filters" },
@@ -322,6 +341,12 @@ Requires a Linear API key.
     description: "Create and manage Jira issues, sprints, and boards.",
     likes: 87,
     updatedAgo: "1 week ago",
+    added: false,
+    credentials: [
+      { key: "JIRA_URL", label: "Jira URL", type: "text", placeholder: "https://your-org.atlassian.net" },
+      { key: "JIRA_EMAIL", label: "Email", type: "text", placeholder: "you@company.com" },
+      { key: "JIRA_API_TOKEN", label: "API Token", type: "password", placeholder: "" },
+    ],
     tools: [
       { name: "create_issue", description: "Create a new Jira issue" },
       { name: "search", description: "Search issues with JQL" },
@@ -362,6 +387,8 @@ Requires Jira URL, email, and API token.
     description: "Manage contacts, deals, and CRM pipelines in HubSpot.",
     likes: 95,
     updatedAgo: "3 days ago",
+    added: false,
+    credentials: [{ key: "HUBSPOT_TOKEN", label: "Private App Token", type: "password", placeholder: "pat-..." }],
     tools: [
       { name: "create_contact", description: "Create a new contact" },
       { name: "list_contacts", description: "List contacts with filters" },
@@ -404,6 +431,12 @@ Requires a HubSpot private app access token.
     description: "Query records, manage objects, and automate Salesforce workflows.",
     likes: 73,
     updatedAgo: "5 days ago",
+    added: false,
+    credentials: [
+      { key: "SF_CLIENT_ID", label: "Client ID", type: "text", placeholder: "" },
+      { key: "SF_CLIENT_SECRET", label: "Client Secret", type: "password", placeholder: "" },
+      { key: "SF_REFRESH_TOKEN", label: "Refresh Token", type: "password", placeholder: "" },
+    ],
     tools: [
       { name: "query", description: "Execute a SOQL query" },
       { name: "create_record", description: "Create a new record" },

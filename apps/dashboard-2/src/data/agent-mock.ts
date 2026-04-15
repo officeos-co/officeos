@@ -49,8 +49,18 @@ export const mockAgentLogs: AgentLog[] = [
   { id: "log_014", time: Date.now() - 10000, type: "system", content: "Agent idle. Waiting for input.", },
 ]
 
-export const mockMemoryFiles: Record<string, string> = {
-  "USER.md": `# User Context
+export type FileNode = {
+  name: string
+  type: "file" | "folder"
+  children?: FileNode[]
+  content?: string
+}
+
+export const mockFileTree: FileNode[] = [
+  {
+    name: "USER.md",
+    type: "file",
+    content: `# User Context
 
 ## Preferences
 - Prefers concise summaries with bullet points
@@ -63,7 +73,11 @@ export const mockMemoryFiles: Record<string, string> = {
 - Interested in competitive analysis
 - Works on quarterly reports for management
 `,
-  "SOUL.md": `# Agent Personality
+  },
+  {
+    name: "SOUL.md",
+    type: "file",
+    content: `# Agent Personality
 
 ## Core Traits
 - Thorough and methodical in research
@@ -82,7 +96,11 @@ export const mockMemoryFiles: Record<string, string> = {
 - Always indicates confidence level
 - Escalates to human when outside expertise
 `,
-  "AGENT.md": `# Agent Configuration
+  },
+  {
+    name: "AGENT.md",
+    type: "file",
+    content: `# Agent Configuration
 
 ## Identity
 - Name: Research Assistant
@@ -101,4 +119,124 @@ export const mockMemoryFiles: Record<string, string> = {
 - Log all research sources for audit trail
 - Respond within 30 seconds of receiving a message
 `,
-}
+  },
+  {
+    name: "memory",
+    type: "folder",
+    children: [
+      {
+        name: "user_preferences.md",
+        type: "file",
+        content: `---
+name: user_preferences
+type: user
+---
+
+User prefers bullet-point summaries over long paragraphs.
+Always include source URLs when presenting research.
+Timezone is Europe/Berlin — schedule references should use CET/CEST.
+`,
+      },
+      {
+        name: "feedback_no_jargon.md",
+        type: "file",
+        content: `---
+name: feedback_no_jargon
+type: feedback
+---
+
+Avoid technical jargon unless the user uses it first.
+
+**Why:** User explicitly said "keep it simple, I'm not an engineer."
+**How to apply:** Default to plain language. Only use technical terms if the user introduced them in the conversation.
+`,
+      },
+      {
+        name: "project_q2_report.md",
+        type: "file",
+        content: `---
+name: project_q2_report
+type: project
+---
+
+Q2 quarterly report is due by 2026-06-30. User is collecting data on AI agent adoption.
+
+**Why:** Management presentation — needs hard numbers with sources.
+**How to apply:** When researching AI topics, prioritize recent stats (2025-2026) and save relevant findings for the report.
+`,
+      },
+      {
+        name: "reference_notion_workspace.md",
+        type: "file",
+        content: `---
+name: reference_notion_workspace
+type: reference
+---
+
+Company knowledge base is in Notion workspace "Acme Corp".
+Key pages: "Product Roadmap", "Competitive Analysis", "Meeting Notes".
+The "Research Archive" database contains past research summaries.
+`,
+      },
+    ],
+  },
+  {
+    name: "vault",
+    type: "folder",
+    children: [
+      {
+        name: "IDENTITY.md",
+        type: "file",
+        content: `# Identity
+
+I am Research Assistant, an AI agent built to help with research and analysis tasks.
+I work for Acme Corp and report findings through Slack and Notion.
+My primary user is the strategy team.
+`,
+      },
+      {
+        name: "AGENTS.md",
+        type: "file",
+        content: `# Known Agents
+
+## Code Reviewer
+- Handles PR reviews on GitHub
+- Can be asked to review specific files
+
+## Customer Support Bot
+- Handles customer inquiries via Slack
+- Escalates technical issues to engineering
+`,
+      },
+      {
+        name: "context",
+        type: "folder",
+        children: [
+          {
+            name: "company_overview.md",
+            type: "file",
+            content: `# Acme Corp
+
+B2B SaaS company, 50 employees, Series A.
+Products: AgentOS (AI agent platform).
+Key markets: Enterprise, mid-market.
+Competitors: Relevance AI, CrewAI, AutoGen.
+`,
+          },
+          {
+            name: "style_guide.md",
+            type: "file",
+            content: `# Communication Style Guide
+
+- Use "we" when referring to the company
+- Formal but friendly tone
+- Always capitalize product names (AgentOS, not agentOS)
+- Date format: YYYY-MM-DD
+- Currency: EUR unless specified
+`,
+          },
+        ],
+      },
+    ],
+  },
+]

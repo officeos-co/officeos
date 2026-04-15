@@ -7,6 +7,16 @@ export type ChannelPermissions = {
   initiate: "allow" | "ask" | "deny"
 }
 
+export type OnboardingStep = {
+  title: string
+  description: string
+  action: "url" | "qr" | "input" | "copy"
+  value?: string
+  inputKey?: string
+  inputLabel?: string
+  inputPlaceholder?: string
+}
+
 export type Channel = {
   name: string
   slug: string
@@ -17,6 +27,8 @@ export type Channel = {
   updatedAgo: string
   capabilities: string[]
   defaultPermissions: ChannelPermissions
+  added: boolean
+  onboarding: OnboardingStep[]
   skillMd: string
 }
 
@@ -42,7 +54,13 @@ export const channels: Channel[] = [
       "Receive slash commands",
       "React to messages with emoji",
     ],
+    added: true,
     defaultPermissions: { receive: "allow", send: "allow", initiate: "ask" },
+    onboarding: [
+      { title: "Create a Slack App", description: "Go to api.slack.com/apps and create a new app with Socket Mode enabled.", action: "url", value: "https://api.slack.com/apps" },
+      { title: "Install to workspace", description: "Install the app to your Slack workspace and copy the Bot Token.", action: "copy", value: "https://api.slack.com/apps/{app_id}/install-on-team" },
+      { title: "Enter Bot Token", description: "Paste the Bot Token (xoxb-...) from your Slack App settings.", action: "input", inputKey: "SLACK_BOT_TOKEN", inputLabel: "Bot Token", inputPlaceholder: "xoxb-..." },
+    ],
     skillMd: `# Slack Channel
 
 Real-time bidirectional messaging with Slack workspaces via Socket Mode.
@@ -85,7 +103,13 @@ Requires a Slack App with Socket Mode enabled and a Bot Token (\`xoxb-...\`).
       "Reply in channels and threads",
       "Send to any channel the bot has access to",
     ],
+    added: false,
     defaultPermissions: { receive: "allow", send: "allow", initiate: "ask" },
+    onboarding: [
+      { title: "Create a Discord Bot", description: "Go to the Discord Developer Portal and create a new application with a Bot user.", action: "url", value: "https://discord.com/developers/applications" },
+      { title: "Enable intents", description: "Enable Message Content Intent in the Bot settings.", action: "url", value: "https://discord.com/developers/applications" },
+      { title: "Enter Bot Token", description: "Copy the Bot Token from the Bot settings page.", action: "input", inputKey: "DISCORD_BOT_TOKEN", inputLabel: "Bot Token", inputPlaceholder: "" },
+    ],
     skillMd: `# Discord Channel
 
 Real-time messaging with Discord servers via the Gateway WebSocket API.
@@ -120,7 +144,13 @@ Requires a Discord Bot Token with Message Content intent enabled.
       "Send messages to any chat the bot is in",
       "Receive inline queries",
     ],
+    added: false,
     defaultPermissions: { receive: "allow", send: "allow", initiate: "deny" },
+    onboarding: [
+      { title: "Create a Telegram Bot", description: "Message @BotFather on Telegram and use /newbot to create a bot.", action: "url", value: "https://t.me/BotFather" },
+      { title: "Copy the Bot Token", description: "BotFather will give you a token. Copy it below.", action: "input", inputKey: "TELEGRAM_BOT_TOKEN", inputLabel: "Bot Token", inputPlaceholder: "" },
+      { title: "Scan QR code", description: "Share this QR code with users to start messaging your bot.", action: "qr", value: "https://t.me/your_bot_name" },
+    ],
     skillMd: `# Telegram Channel
 
 Bidirectional messaging with Telegram users and groups.
@@ -154,7 +184,13 @@ Requires a Telegram Bot Token from @BotFather.
       "Reply to messages within 24h window",
       "Send template messages outside window",
     ],
+    added: false,
     defaultPermissions: { receive: "allow", send: "ask", initiate: "deny" },
+    onboarding: [
+      { title: "Set up WhatsApp Business API", description: "Create a Meta Business account and set up the WhatsApp Cloud API.", action: "url", value: "https://business.facebook.com" },
+      { title: "Configure webhook", description: "Set this URL as your webhook endpoint in the WhatsApp API settings.", action: "copy", value: "https://api.officeos.co/webhooks/whatsapp/{agent_id}" },
+      { title: "Enter credentials", description: "Enter your WhatsApp Business API credentials.", action: "input", inputKey: "WHATSAPP_TOKEN", inputLabel: "Access Token", inputPlaceholder: "" },
+    ],
     skillMd: `# WhatsApp Channel
 
 Bidirectional messaging via the WhatsApp Business Cloud API.
@@ -189,7 +225,13 @@ Requires WhatsApp Business API credentials and a verified phone number.
       "Reply in conversations",
       "Send proactive messages",
     ],
+    added: false,
     defaultPermissions: { receive: "allow", send: "allow", initiate: "ask" },
+    onboarding: [
+      { title: "Register a Bot Framework app", description: "Create a Bot registration in the Azure Portal.", action: "url", value: "https://portal.azure.com/#create/Microsoft.BotServiceConnectivity" },
+      { title: "Enable Teams channel", description: "In the Bot Channels Registration, add Microsoft Teams as a channel.", action: "url", value: "https://portal.azure.com" },
+      { title: "Enter App credentials", description: "Enter the Microsoft App ID and password.", action: "input", inputKey: "TEAMS_APP_ID", inputLabel: "App ID", inputPlaceholder: "" },
+    ],
     skillMd: `# Microsoft Teams Channel
 
 Bidirectional messaging via the Microsoft Bot Framework.

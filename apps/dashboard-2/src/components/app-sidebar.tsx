@@ -38,6 +38,7 @@ const data = {
         { title: "Quickstart", url: "/quickstart" },
         { title: "Agents", url: "/agents" },
         { title: "Integrations", url: "/integrations" },
+        { title: "Channels", url: "/channels" },
       ],
     },
     {

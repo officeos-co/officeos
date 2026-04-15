@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -234,7 +235,7 @@ export default function QuickstartPage() {
         group="Managed Agents"
         page="Quickstart"
         action={
-          <Button size="sm" disabled={!agentName.trim()} onClick={() => router.push(`/agents/new?boot=true`)}>
+          <Button size="sm" disabled={!agentName.trim()} onClick={() => router.push(`/agents/new?status=booting`)}>
             <RocketIcon />
             Launch agent
           </Button>
@@ -275,8 +276,13 @@ export default function QuickstartPage() {
 
             {/* Integrations (API tools) */}
             <div className="space-y-3">
-              <Label>Integrations</Label>
-              <p className="text-xs text-muted-foreground">API-based tools the agent can call.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Integrations</Label>
+                  <p className="text-xs text-muted-foreground">API-based tools the agent can call.</p>
+                </div>
+                <Link href="/integrations" className="text-xs text-muted-foreground hover:text-foreground">Manage integrations →</Link>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {integrations.map((i) => {
                   const active = selectedIntegrations.has(i.slug)
@@ -294,8 +300,13 @@ export default function QuickstartPage() {
 
             {/* Channels (WebSocket session connectors) */}
             <div className="space-y-3">
-              <Label>Channels</Label>
-              <p className="text-xs text-muted-foreground">Messaging platforms that connect to the agent's session via WebSocket.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Channels</Label>
+                  <p className="text-xs text-muted-foreground">Messaging platforms that connect to the agent's session via WebSocket.</p>
+                </div>
+                <Link href="/channels" className="text-xs text-muted-foreground hover:text-foreground">Manage channels →</Link>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {channels.map((c) => {
                   const active = selectedChannels.has(c.slug)

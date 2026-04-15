@@ -95,7 +95,7 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => window.location.href = "/pricing"}>
+              <DropdownMenuItem onSelect={() => { setTimeout(() => window.location.href = "/pricing", 0) }}>
                 <SparklesIcon />
                 Upgrade to Pro
               </DropdownMenuItem>
