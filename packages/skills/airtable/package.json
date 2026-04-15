@@ -1,0 +1,16 @@
+{
+  "name": "@harro/skill-airtable",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "skill.ts",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@harro/skill-sdk": "file:../../skill-sdk"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
