@@ -10,9 +10,6 @@ import { SearchIcon, HeartIcon } from "lucide-react"
 
 type TypeFilter = "all" | "tool" | "channel"
 
-function countCommands(skillMd: string) {
-  return (skillMd.match(/^### /gm) || []).length
-}
 
 export default function IntegrationsPage() {
   const [search, setSearch] = useState("")
@@ -86,7 +83,7 @@ export default function IntegrationsPage() {
               </div>
               <p className="text-sm line-clamp-2 text-muted-foreground">{integration.description}</p>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span>{countCommands(integration.skillMd)} commands</span>
+                <span>{integration.tools.length} tools</span>
                 <span>·</span>
                 <span className="flex items-center gap-1">
                   <HeartIcon className="size-3" />

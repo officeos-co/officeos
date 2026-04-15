@@ -46,7 +46,8 @@ const data = {
       icon: <ActivityIcon />,
       items: [
         { title: "Logs", url: "/logs" },
-        { title: "Usage & Cost", url: "/usage" },
+        { title: "Usage", url: "/usage" },
+        { title: "Cost", url: "/cost" },
       ],
     },
     {

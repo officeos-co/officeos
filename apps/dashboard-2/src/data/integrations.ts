@@ -1,3 +1,8 @@
+export type Tool = {
+  name: string
+  description: string
+}
+
 export type Integration = {
   name: string
   slug: string
@@ -6,8 +11,20 @@ export type Integration = {
   type: "tool" | "channel"
   likes: number
   updatedAgo: string
+  tools: Tool[]
   skillMd: string
 }
+
+export const builtInTools: Tool[] = [
+  { name: "bash", description: "Execute bash commands" },
+  { name: "read", description: "Read files" },
+  { name: "write", description: "Write files" },
+  { name: "edit", description: "String replacement in files" },
+  { name: "glob", description: "File pattern matching" },
+  { name: "grep", description: "Text search with regex" },
+  { name: "web_fetch", description: "Fetch URL content" },
+  { name: "web_search", description: "Search the web" },
+]
 
 const SOURCE_BASE = "https://github.com/officeos/integrations/tree/main/packages"
 
@@ -24,6 +41,12 @@ export const integrations: Integration[] = [
     type: "tool",
     likes: 342,
     updatedAgo: "2 days ago",
+    tools: [
+      { name: "create_issue", description: "Create a new issue in a repository" },
+      { name: "create_pr", description: "Open a pull request from a branch" },
+      { name: "get_file", description: "Read the contents of a file" },
+      { name: "list_repos", description: "List accessible repositories" },
+    ],
     skillMd: `# GitHub
 
 Create issues, manage pull requests, and read repository files.
@@ -89,6 +112,10 @@ Requires a GitHub Personal Access Token with \`repo\` scope.
     type: "tool",
     likes: 218,
     updatedAgo: "5 days ago",
+    tools: [
+      { name: "search", description: "Search the web with a query" },
+      { name: "scrape_url", description: "Scrape and extract page content" },
+    ],
     skillMd: `# Browser
 
 Search the web and scrape any public page for up-to-date information.
@@ -132,6 +159,10 @@ No credentials required.
     type: "tool",
     likes: 156,
     updatedAgo: "1 week ago",
+    tools: [
+      { name: "drive_search", description: "Search Drive files by name" },
+      { name: "calendar_upcoming", description: "List upcoming calendar events" },
+    ],
     skillMd: `# Google Workspace
 
 Search Google Drive files and list upcoming Google Calendar events.
@@ -197,6 +228,11 @@ For schedule/meeting questions:
     type: "tool",
     likes: 267,
     updatedAgo: "4 days ago",
+    tools: [
+      { name: "search", description: "Search pages and databases" },
+      { name: "create_page", description: "Create a new page" },
+      { name: "append_blocks", description: "Append content blocks to a page" },
+    ],
     skillMd: `# Notion
 
 Connect agents to your Notion workspace — search pages, create new ones, and append content.
@@ -245,6 +281,11 @@ Requires a Notion integration token. Create one at notion.so/my-integrations.
     type: "tool",
     likes: 198,
     updatedAgo: "6 days ago",
+    tools: [
+      { name: "create_issue", description: "Create a new issue" },
+      { name: "list_issues", description: "List issues with filters" },
+      { name: "update_issue", description: "Update an existing issue" },
+    ],
     skillMd: `# Linear
 
 Create, update, and query issues in Linear project management.
@@ -288,6 +329,11 @@ Requires a Linear API key.
     type: "channel",
     likes: 412,
     updatedAgo: "2 days ago",
+    tools: [
+      { name: "send_message", description: "Send a message to a channel" },
+      { name: "list_channels", description: "List available channels" },
+      { name: "read_channel", description: "Read recent messages" },
+    ],
     skillMd: `# Slack
 
 Connect agents to Slack — send messages, read channels, and respond to events.
@@ -330,6 +376,10 @@ Requires a Slack Bot Token (\`xoxb-...\`) with \`chat:write\`, \`channels:read\`
     type: "tool",
     likes: 87,
     updatedAgo: "1 week ago",
+    tools: [
+      { name: "create_issue", description: "Create a new Jira issue" },
+      { name: "search", description: "Search issues with JQL" },
+    ],
     skillMd: `# Jira
 
 Create issues and search with JQL in Jira.
@@ -367,6 +417,12 @@ Requires Jira URL, email, and API token.
     type: "tool",
     likes: 95,
     updatedAgo: "3 days ago",
+    tools: [
+      { name: "create_contact", description: "Create a new contact" },
+      { name: "list_contacts", description: "List contacts with filters" },
+      { name: "create_deal", description: "Create a new deal" },
+      { name: "search", description: "Search across CRM objects" },
+    ],
     skillMd: `# HubSpot
 
 Manage your CRM — create contacts, deals, and search across objects.
@@ -404,6 +460,11 @@ Requires a HubSpot private app access token.
     type: "tool",
     likes: 73,
     updatedAgo: "5 days ago",
+    tools: [
+      { name: "query", description: "Execute a SOQL query" },
+      { name: "create_record", description: "Create a new record" },
+      { name: "update_record", description: "Update an existing record" },
+    ],
     skillMd: `# Salesforce
 
 Query and manage Salesforce CRM records using SOQL.
@@ -445,6 +506,10 @@ Requires Salesforce connected app credentials.
     type: "channel",
     likes: 156,
     updatedAgo: "2 weeks ago",
+    tools: [
+      { name: "send_message", description: "Send a message to a channel" },
+      { name: "list_channels", description: "List server channels" },
+    ],
     skillMd: `# Discord
 
 Connect agents to Discord — send messages and list channels.
@@ -481,6 +546,10 @@ Requires a Discord Bot Token.
     type: "channel",
     likes: 124,
     updatedAgo: "1 week ago",
+    tools: [
+      { name: "send_message", description: "Send a message to a chat" },
+      { name: "read_updates", description: "Poll for new messages" },
+    ],
     skillMd: `# Telegram
 
 Connect agents to Telegram via bot API.
@@ -517,6 +586,10 @@ Requires a Telegram Bot Token from @BotFather.
     type: "channel",
     likes: 201,
     updatedAgo: "4 days ago",
+    tools: [
+      { name: "send_message", description: "Send a message to a phone number" },
+      { name: "read_messages", description: "Read incoming messages" },
+    ],
     skillMd: `# WhatsApp
 
 Connect agents to WhatsApp Business API.
@@ -553,6 +626,11 @@ Requires WhatsApp Business API credentials.
     type: "channel",
     likes: 89,
     updatedAgo: "1 week ago",
+    tools: [
+      { name: "send_message", description: "Send a message to a channel" },
+      { name: "list_channels", description: "List team channels" },
+      { name: "read_channel", description: "Read recent messages" },
+    ],
     skillMd: `# Microsoft Teams
 
 Connect agents to Microsoft Teams channels and chats.
