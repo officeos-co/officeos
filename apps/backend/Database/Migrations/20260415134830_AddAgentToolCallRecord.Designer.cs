@@ -3,6 +3,7 @@ using System;
 using EnterpriseAgentOs.Api.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EnterpriseAgentOs.Api.Database.Migrations
 {
     [DbContext(typeof(EaosDbContext))]
-    partial class EaosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415134830_AddAgentToolCallRecord")]
+    partial class AddAgentToolCallRecord
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -193,36 +196,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("AgentMemories");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRateLimitRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BucketKey")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<int>("Count")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("WindowStart")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("AgentId", "BucketKey", "WindowStart")
-                        .IsUnique();
-
-                    b.ToTable("AgentRateLimits");
-                });
-
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -342,55 +315,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.HasIndex("AgentId", "Timestamp");
 
                     b.ToTable("AgentToolCalls");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.ApprovalRequestRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<Guid>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DecidedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DecidedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ParamsJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ResultJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SkillName")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("ApprovalRequests");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.BrowserSessionRecord", b =>
@@ -723,9 +647,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.Property<string>("EncryptedCredentials")
                         .HasMaxLength(16384)
                         .HasColumnType("character varying(16384)");
-
-                    b.Property<bool?>("RequiresApprovalOverride")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("RunTarget")
                         .HasMaxLength(16)

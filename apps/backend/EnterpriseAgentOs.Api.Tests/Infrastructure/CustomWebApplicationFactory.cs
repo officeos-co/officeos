@@ -15,7 +15,7 @@ using EnterpriseAgentOs.Api.Properties;
 
 namespace EnterpriseAgentOs.Api.Tests.Infrastructure;
 
-public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     static CustomWebApplicationFactory()
     {
@@ -27,6 +27,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         .Build();
 
     public WireMockServer SkillRuntimeMock { get; } = WireMockServer.Start();
+    public WireMockServer LiteLlmMock { get; } = WireMockServer.Start();
 
     public string PostgresConnectionString => _postgres.GetConnectionString();
 
@@ -34,48 +35,55 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         await _postgres.StartAsync();
 
+        // Build the base in-memory config dictionary.
+        var inMemoryConfig = new Dictionary<string, string?>
+        {
+            ["Production:ConnectionString"] = _postgres.GetConnectionString(),
+            ["Production:Kubernetes:Enabled"] = "false",
+            ["Production:Kubernetes:Namespace"] = "default",
+            ["Production:Kubernetes:Image"] = "harkro123/zeroclaw:latest",
+            ["Production:SkillRuntimeUrl"] = SkillRuntimeMock.Url!,
+            ["Production:SkillGatewayUrl"] = SkillRuntimeMock.Url!,
+            ["Production:FrontendOrigin"] = "http://localhost:5173",
+            ["Production:DataProtectionKeyPath"] = Path.Combine(Path.GetTempPath(), $"dp-keys-{Guid.NewGuid():N}"),
+            ["Production:CouchDbUrl"] = "http://localhost:5984",
+            ["Production:CouchDbUser"] = "test",
+            ["Production:CouchDbPassword"] = "test",
+            ["Production:GoogleOAuthClientId"] = "test-client-id",
+            ["Production:GoogleOAuthClientSecret"] = "test-client-secret",
+            ["Production:GoogleOAuthRedirectUri"] = "http://localhost/api/auth/callback/google",
+            ["Production:MinioEndpoint"] = "http://localhost:9000",
+            ["Production:MinioAccessKey"] = "testkey",
+            ["Production:MinioSecretKey"] = "testsecret",
+            ["Production:MinioBucket"] = "test-skills",
+            ["Production:WorkOsApiKey"] = "WORKOS_API_KEY_PLACEHOLDER",
+            ["Production:WorkOsClientId"] = "WORKOS_CLIENT_ID_PLACEHOLDER",
+            ["Production:WorkOsRedirectUri"] = "https://api.officeos.co/api/sso/callback",
+            ["Production:WorkOsEnabled"] = "false",
+            ["Production:Stripe:SecretKey"] = "STRIPE_SECRET_KEY_PLACEHOLDER",
+            ["Production:Stripe:WebhookSecret"] = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
+            ["Production:Stripe:FreePriceId"] = "STRIPE_FREE_PRICE_ID_PLACEHOLDER",
+            ["Production:Stripe:TeamMonthlyPriceId"] = "STRIPE_TEAM_MONTHLY_PRICE_ID_PLACEHOLDER",
+            ["Production:Stripe:TeamYearlyPriceId"] = "STRIPE_TEAM_YEARLY_PRICE_ID_PLACEHOLDER",
+            ["Production:Stripe:TeamOveragePriceId"] = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
+            ["Production:Stripe:Enabled"] = "false",
+            ["Production:LiteLlm:BaseUrl"] = "http://localhost:4000",
+            ["Production:LiteLlm:Enabled"] = "true",
+            ["Production:PlatformKeys:AnthropicApiKey"] = "ANTHROPIC_API_KEY_PLACEHOLDER",
+            ["Production:PlatformKeys:GeminiApiKey"] = "GEMINI_API_KEY_PLACEHOLDER",
+            ["Production:PlatformKeys:XaiApiKey"] = "XAI_API_KEY_PLACEHOLDER",
+            ["Production:PlatformKeys:OpenAiApiKey"] = "OPENAI_PLATFORM_API_KEY_PLACEHOLDER",
+        };
+
+        // Allow subclasses to inject additional or override config keys
+        // (e.g. low rate limits for fast testing) before ValueManager is seeded.
+        SetAdditionalTestConfig(inMemoryConfig);
+
         // Inject test config into ValueManager BEFORE Program.cs runs
         var testConfig = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: true)
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Production:ConnectionString"] = _postgres.GetConnectionString(),
-                ["Production:Kubernetes:Enabled"] = "false",
-                ["Production:Kubernetes:Namespace"] = "default",
-                ["Production:Kubernetes:Image"] = "harkro123/zeroclaw:latest",
-                ["Production:SkillRuntimeUrl"] = SkillRuntimeMock.Url!,
-                ["Production:SkillGatewayUrl"] = SkillRuntimeMock.Url!,
-                ["Production:FrontendOrigin"] = "http://localhost:5173",
-                ["Production:DataProtectionKeyPath"] = Path.Combine(Path.GetTempPath(), $"dp-keys-{Guid.NewGuid():N}"),
-                ["Production:CouchDbUrl"] = "http://localhost:5984",
-                ["Production:CouchDbUser"] = "test",
-                ["Production:CouchDbPassword"] = "test",
-                ["Production:GoogleOAuthClientId"] = "test-client-id",
-                ["Production:GoogleOAuthClientSecret"] = "test-client-secret",
-                ["Production:GoogleOAuthRedirectUri"] = "http://localhost/api/auth/callback/google",
-                ["Production:MinioEndpoint"] = "http://localhost:9000",
-                ["Production:MinioAccessKey"] = "testkey",
-                ["Production:MinioSecretKey"] = "testsecret",
-                ["Production:MinioBucket"] = "test-skills",
-                ["Production:WorkOsApiKey"] = "WORKOS_API_KEY_PLACEHOLDER",
-                ["Production:WorkOsClientId"] = "WORKOS_CLIENT_ID_PLACEHOLDER",
-                ["Production:WorkOsRedirectUri"] = "https://api.officeos.co/api/sso/callback",
-                ["Production:WorkOsEnabled"] = "false",
-                ["Production:Stripe:SecretKey"] = "STRIPE_SECRET_KEY_PLACEHOLDER",
-                ["Production:Stripe:WebhookSecret"] = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
-                ["Production:Stripe:FreePriceId"] = "STRIPE_FREE_PRICE_ID_PLACEHOLDER",
-                ["Production:Stripe:TeamMonthlyPriceId"] = "STRIPE_TEAM_MONTHLY_PRICE_ID_PLACEHOLDER",
-                ["Production:Stripe:TeamYearlyPriceId"] = "STRIPE_TEAM_YEARLY_PRICE_ID_PLACEHOLDER",
-                ["Production:Stripe:TeamOveragePriceId"] = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
-                ["Production:Stripe:Enabled"] = "false",
-                ["Production:LiteLlm:BaseUrl"] = "http://localhost:4000",
-                ["Production:LiteLlm:Enabled"] = "true",
-                ["Production:PlatformKeys:AnthropicApiKey"] = "ANTHROPIC_API_KEY_PLACEHOLDER",
-                ["Production:PlatformKeys:GeminiApiKey"] = "GEMINI_API_KEY_PLACEHOLDER",
-                ["Production:PlatformKeys:XaiApiKey"] = "XAI_API_KEY_PLACEHOLDER",
-                ["Production:PlatformKeys:OpenAiApiKey"] = "OPENAI_PLATFORM_API_KEY_PLACEHOLDER",
-            })
+            .AddInMemoryCollection(inMemoryConfig)
             .Build();
 
         ValueManager.SetConfiguration(testConfig);
@@ -92,6 +100,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     async Task IAsyncLifetime.DisposeAsync()
     {
         SkillRuntimeMock.Stop();
+        LiteLlmMock.Stop();
         await _postgres.DisposeAsync();
     }
 
@@ -115,9 +124,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<SkillRuntimeConfig>();
             services.AddSingleton(new SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
 
-            // Replace LiteLlmConfig with a test-safe value
+            // Replace LiteLlmConfig to point at the WireMock LiteLLM stub
             services.RemoveAll<LiteLlmConfig>();
-            services.AddSingleton(new LiteLlmConfig { BaseUrl = "http://localhost:4000", Enabled = true });
+            services.AddSingleton(new LiteLlmConfig { BaseUrl = LiteLlmMock.Url!, Enabled = true });
         });
     }
+
+    /// <summary>
+    /// Override in a subclass to inject additional config keys or override defaults
+    /// before ValueManager is seeded. Called once per factory instance during
+    /// <see cref="InitializeAsync"/>.
+    /// </summary>
+    protected virtual void SetAdditionalTestConfig(IDictionary<string, string?> config) { }
 }

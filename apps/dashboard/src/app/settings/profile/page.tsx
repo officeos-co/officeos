@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TopBar } from "@/components/shared/TopBar";
 import { useAuth } from "@/hooks/useAuth";
+import { apiFetch } from "@/hooks/useApi";
 import {
   Card,
   CardContent,
@@ -15,14 +16,43 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [name, setName] = useState(user?.name ?? "");
   const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function handleSave() {
     // TODO: wire up to backend
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/gdpr/export", { credentials: "include" });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "eaos-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Permanently delete your account and all associated data? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      await apiFetch("/api/gdpr/purge", { method: "DELETE" });
+      logout();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -67,6 +97,38 @@ export default function ProfilePage() {
               {saved && (
                 <span className="text-sm text-emerald-500">Saved</span>
               )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Your data</CardTitle>
+            <CardDescription>
+              Export or permanently delete all data associated with your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium">Export data</p>
+              <p className="text-[12px] text-muted-foreground">
+                Download a JSON file containing all your account data.
+              </p>
+              <div>
+                <Button variant="outline" onClick={handleExport} disabled={exporting}>
+                  {exporting ? "Exporting…" : "Export data"}
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium">Delete account</p>
+              <p className="text-[12px] text-muted-foreground">
+                Permanently remove your account and all associated data. This action cannot be undone.
+              </p>
+              <div>
+                <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Deleting…" : "Delete account"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

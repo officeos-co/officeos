@@ -24,9 +24,11 @@ import {
   Sparkles,
   Plug,
   Bell,
+  CheckSquare,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useSystemEvents } from "@/hooks/useSystemEvents";
+import { useApprovalRequests } from "@/hooks/useApprovalRequests";
 
 function statusDot(status: string) {
   if (status === "running" || status === "ready" || status === "online")
@@ -111,6 +113,7 @@ function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const { unacknowledgedCount: errorCount } = useSystemEvents(50);
+  const { pendingCount } = useApprovalRequests();
 
   const runningCount = agents.filter(
     (a) =>
@@ -137,6 +140,7 @@ function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
             { href: "/agents", label: "Agents", icon: Bot },
             { href: "/skills", label: "Tools", icon: Wrench },
             { href: "/system-events", label: "Events", icon: Bell },
+            { href: "/approvals", label: "Approvals", icon: CheckSquare },
           ].map((item) => {
             const isActive =
               item.href === "/"
@@ -169,6 +173,11 @@ function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
                 {item.href === "/system-events" && errorCount > 0 && (
                   <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
                     {errorCount > 99 ? "99+" : errorCount}
+                  </span>
+                )}
+                {item.href === "/approvals" && pendingCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-white">
+                    {pendingCount > 99 ? "99+" : pendingCount}
                   </span>
                 )}
               </Link>

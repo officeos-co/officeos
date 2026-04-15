@@ -14,9 +14,13 @@ public sealed class AgentController : ControllerBase
         _vault = vault;
     }
 
+    private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<AgentDto>>> List(CancellationToken ct)
     {
+        if (CurrentUser is null)
+            return Unauthorized();
         var agents = await _service.ListAsync(ct);
         return Ok(agents);
     }

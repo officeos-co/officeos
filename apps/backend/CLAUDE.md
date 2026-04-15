@@ -75,7 +75,11 @@ Entities/{DomainName}/
 | `AgentSkills` | AgentSkillAssignmentController | — | AgentSkillRepository | |
 | `AgentMemory` | AgentMemoryController | — | — | |
 | `Vault` | — | — | — | CouchDbVaultClient only |
-| `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector |
+| `Audit` | AuditController | AuditService | AuditRepository | GET /api/agents/{id}/audit-log — records every skill execution, redacts secrets in paramsJson |
+| `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0 of every request before forwarding. |
+| `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | DB-backed per-agent sliding window counter (AgentRateLimitRecord). Enforced in AgentSkillsController.SkillExec(). Config: RateLimitingConfig (SkillExecPerAgentPerHour, EmailPerAgentPerHour, WindowSeconds). |
+| `Gdpr` | GdprController | IGdprService / GdprService | — | GET /api/gdpr/export (JSON attachment of all user data, no plaintext credentials), DELETE /api/gdpr/purge (cascaded delete of all user data + sessions + user record). Both endpoints require SessionAuth. No new DB models — reads/deletes existing tables. |
+| `ApprovalQueue` | ApprovalController (dashboard: GET/POST /api/approval-requests), AgentApprovalController (agent: GET /api/agents/me/approval-requests/{id}) | IApprovalService / ApprovalService | IApprovalRepository / ApprovalRepository | Human-in-the-loop approval gate for skill execution. ApprovalRequestRecord tracks pending/approved/rejected requests. Enforcement in AgentSkillsController.SkillExec() — checks manifest `requiresApproval` flag and per-skill DB override (SkillCredentialRecord.RequiresApprovalOverride). Override configurable via PUT /api/skills/{name}/approval (resets on re-install). |
 
 ### Naming conventions
 

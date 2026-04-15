@@ -29,6 +29,9 @@ public sealed class EaosDbContext : DbContext
     public DbSet<ChannelConnectionRecord> ChannelConnections => Set<ChannelConnectionRecord>();
     public DbSet<AgentChannelBindingRecord> AgentChannelBindings => Set<AgentChannelBindingRecord>();
     public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
+    public DbSet<AgentToolCallRecord> AgentToolCalls => Set<AgentToolCallRecord>();
+    public DbSet<AgentRateLimitRecord> AgentRateLimits => Set<AgentRateLimitRecord>();
+    public DbSet<ApprovalRequestRecord> ApprovalRequests => Set<ApprovalRequestRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -233,6 +236,37 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(s => s.SkillName);
             e.HasIndex(s => s.AgentId);
             e.Property(s => s.DetailJson).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<AgentToolCallRecord>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => a.AgentId);
+            e.HasIndex(a => new { a.AgentId, a.Timestamp });
+            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
+            e.Property(a => a.Action).IsRequired().HasMaxLength(64);
+            e.Property(a => a.ParamsJson).HasColumnType("text");
+            e.Property(a => a.ResultSummary).HasColumnType("text");
+        });
+
+        modelBuilder.Entity<AgentRateLimitRecord>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => new { r.AgentId, r.BucketKey, r.WindowStart }).IsUnique();
+            e.HasIndex(r => r.AgentId);
+            e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<ApprovalRequestRecord>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => a.AgentId);
+            e.HasIndex(a => a.Status);
+            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
+            e.Property(a => a.Action).IsRequired().HasMaxLength(64);
+            e.Property(a => a.ParamsJson).HasColumnType("text");
+            e.Property(a => a.Status).IsRequired().HasMaxLength(16);
+            e.Property(a => a.ResultJson).HasColumnType("text");
         });
     }
 }

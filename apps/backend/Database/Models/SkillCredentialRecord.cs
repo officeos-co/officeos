@@ -25,4 +25,10 @@ public sealed class SkillCredentialRecord
     /// </summary>
     [MaxLength(16)]
     public string? RunTarget { get; set; }
+
+    /// <summary>
+    /// Operator override for whether this skill requires manual approval before execution.
+    /// When set, this takes precedence over the manifest's requiresApproval flag.
+    /// </summary>
+    public bool? RequiresApprovalOverride { get; set; }
 }

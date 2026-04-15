@@ -13,8 +13,9 @@ import { AgentOverviewPanel } from "./AgentOverviewPanel";
 import { AgentCronsPanel } from "./AgentCronsPanel";
 import { AgentHeartbeatPanel } from "./AgentHeartbeatPanel";
 import { AgentIntegrationsPanel } from "./AgentIntegrationsPanel";
+import { AgentAuditPanel } from "./AgentAuditPanel";
 
-type Tab = "agent" | "chat" | "prompt" | "sessions" | "logs" | "memory" | "cron" | "heartbeat" | "channels";
+type Tab = "agent" | "chat" | "prompt" | "sessions" | "logs" | "memory" | "cron" | "heartbeat" | "channels" | "audit";
 
 type Props = {
   agent: Agent;
@@ -31,9 +32,10 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "channels", label: "Channels" },
   { id: "logs", label: "Logs" },
   { id: "memory", label: "Memory" },
+  { id: "audit", label: "Audit" },
 ];
 
-const ALWAYS_ON_TABS: Tab[] = ["agent", "prompt", "memory", "heartbeat", "channels"];
+const ALWAYS_ON_TABS: Tab[] = ["agent", "prompt", "memory", "heartbeat", "channels", "audit"];
 
 const VALID_TABS = new Set<string>(TABS.map((t) => t.id));
 
@@ -108,6 +110,7 @@ export function AgentDetailTabs({ agent, onAgentUpdated }: Props) {
         {active === "channels" && <AgentIntegrationsPanel agent={agent} />}
         {active === "logs" && <AgentLogsPanel agent={agent} />}
         {active === "memory" && <AgentMemoryPanel agent={agent} />}
+        {active === "audit" && <AgentAuditPanel agent={agent} />}
       </div>
     </div>
   );
