@@ -4,6 +4,8 @@ using System.Text.Json;
 using EnterpriseAgentOs.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
@@ -294,10 +296,22 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
 /// </summary>
 public sealed class RateLimitingWebApplicationFactory : CustomWebApplicationFactory
 {
-    protected override void SetAdditionalTestConfig(IDictionary<string, string?> config)
+    protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
-        // Low limits so test loops only need 3–4 iterations.
-        config["Production:RateLimiting:SkillExecPerAgentPerHour"] = "3";
-        config["Production:RateLimiting:EmailPerAgentPerHour"] = "2";
+        // Call base to get all the standard test overrides (Postgres, vault stub, etc.)
+        base.ConfigureWebHost(builder);
+
+        // Override RateLimitingConfig directly in DI so this factory is immune to
+        // ValueManager static state being overwritten by other test factories.
+        builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<EnterpriseAgentOs.Api.Properties.RateLimitingConfig>();
+            services.AddSingleton(new EnterpriseAgentOs.Api.Properties.RateLimitingConfig
+            {
+                SkillExecPerAgentPerHour = 3,
+                EmailPerAgentPerHour = 2,
+                WindowSeconds = 3600,
+            });
+        });
     }
 }
