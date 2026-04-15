@@ -1,65 +1,50 @@
 import { TopBar } from "@/components/shared/TopBar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const FREE_LIMITS = [
   { resource: "Concurrent agents", limit: "1" },
   { resource: "Tokens / month", limit: "2,000,000" },
   { resource: "Skill executions / month", limit: "Unlimited" },
-  { resource: "LLM providers", limit: "All (OpenAI, Anthropic, Gemini, …)" },
+  { resource: "LLM providers", limit: "All" },
 ];
 
 export default function LimitsPage() {
   return (
     <div>
-      <TopBar
-        title="Limits"
-        subtitle="Current plan limits for your workspace."
-      />
-      <div className="p-6 max-w-2xl">
-        <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                  Resource
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                  Limit (Free tier)
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {FREE_LIMITS.map((row, i) => (
-                <tr
-                  key={row.resource}
-                  className={
-                    i < FREE_LIMITS.length - 1 ? "border-b border-border" : ""
-                  }
-                >
-                  <td className="px-4 py-3 font-medium">{row.resource}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {row.limit}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-4 text-[13px] text-muted-foreground">
+      <TopBar title="Limits" />
+      <div className="max-w-lg px-6 py-6">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="text-[12px] font-normal text-muted-foreground">Resource</TableHead>
+              <TableHead className="text-[12px] font-normal text-muted-foreground">Limit (Free)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {FREE_LIMITS.map((row) => (
+              <TableRow key={row.resource}>
+                <TableCell className="text-[13px] font-medium">{row.resource}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{row.limit}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <p className="mt-4 text-[12px] text-muted-foreground">
           Need higher limits?{" "}
-          <a
-            href="mailto:harro@officeos.co"
-            className="text-foreground underline underline-offset-2 hover:text-primary"
-          >
-            Contact us to increase limits
+          <a href="mailto:harro@officeos.co" className="underline underline-offset-2 hover:text-foreground">
+            Contact us
           </a>{" "}
           or{" "}
-          <a
-            href="/pricing"
-            className="text-foreground underline underline-offset-2 hover:text-primary"
-          >
-            upgrade your plan
-          </a>
-          .
+          <a href="/pricing" className="underline underline-offset-2 hover:text-foreground">
+            upgrade
+          </a>.
         </p>
       </div>
     </div>

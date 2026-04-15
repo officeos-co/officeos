@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle2, Sparkles, Leaf } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { TopBar } from "@/components/shared/TopBar";
 import { cn } from "@/lib/utils";
 
 interface UserSubscription {
@@ -19,35 +22,6 @@ interface UserSubscription {
   periodEnd: string;
   isActive: boolean;
   billingEnabled: boolean;
-}
-
-function CreditUsageBar({
-  used,
-  budget,
-}: {
-  used: number;
-  budget: number;
-}) {
-  const percent = budget > 0 ? Math.min((used / budget) * 100, 100) : 0;
-  const isHigh = percent >= 80;
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{(used / 1_000_000).toFixed(2)}M credits used</span>
-        <span>{(budget / 1_000_000).toFixed(1)}M / month</span>
-      </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all",
-            isHigh ? "bg-amber-500" : "bg-primary",
-          )}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-    </div>
-  );
 }
 
 function formatDate(iso: string) {
@@ -87,14 +61,11 @@ export default function BillingPage() {
         credentials: "include",
         body: JSON.stringify({ plan: "pro", billingCycle: "monthly" }),
       });
-      if (!res.ok) {
-        setError("Could not start checkout. Please try again.");
-        return;
-      }
+      if (!res.ok) { setError("Could not start checkout."); return; }
       const { checkoutUrl } = await res.json();
       window.location.href = checkoutUrl;
     } catch {
-      setError("Could not start checkout. Please try again.");
+      setError("Could not start checkout.");
     } finally {
       setCheckoutLoading(false);
     }
@@ -103,17 +74,12 @@ export default function BillingPage() {
   async function handlePortal() {
     setPortalLoading(true);
     try {
-      const res = await fetch("/api/billing/user/portal", {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        setError("Could not open billing portal. Please try again.");
-        return;
-      }
+      const res = await fetch("/api/billing/user/portal", { credentials: "include" });
+      if (!res.ok) { setError("Could not open billing portal."); return; }
       const { portalUrl } = await res.json();
       window.location.href = portalUrl;
     } catch {
-      setError("Could not open billing portal. Please try again.");
+      setError("Could not open billing portal.");
     } finally {
       setPortalLoading(false);
     }
@@ -129,197 +95,124 @@ export default function BillingPage() {
         credentials: "include",
         body: JSON.stringify({ enabled: !sub.overageEnabled }),
       });
-      if (!res.ok) {
-        setError("Could not update overage setting. Please try again.");
-        return;
-      }
-      setSub((prev) =>
-        prev ? { ...prev, overageEnabled: !prev.overageEnabled } : prev,
-      );
+      if (!res.ok) { setError("Could not update overage setting."); return; }
+      setSub((prev) => prev ? { ...prev, overageEnabled: !prev.overageEnabled } : prev);
     } catch {
-      setError("Could not update overage setting. Please try again.");
+      setError("Could not update overage setting.");
     } finally {
       setOverageLoading(false);
     }
   }
 
   const isPro = sub?.plan === "pro";
-  const PlanIcon = isPro ? Sparkles : Leaf;
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10 space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Billing</h1>
-
-      {/* Checkout success banner */}
-      {checkoutSuccess && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>You&apos;re now on Pro — thanks for subscribing!</span>
-        </div>
-      )}
-
-      {/* Error banner */}
-      {error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {/* Loading state */}
-      {loading && (
-        <div className="space-y-6">
-          {/* Plan card skeleton */}
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-6 w-6 rounded" />
-              <div className="space-y-1.5">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-3 w-40" />
-              </div>
-              <Skeleton className="h-5 w-14 rounded-full ml-auto" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-48" />
-              <div className="space-y-1.5">
-                <div className="flex justify-between">
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-2 w-full rounded-full" />
-              </div>
-            </div>
-            <Skeleton className="h-3 w-56" />
+    <>
+      <TopBar title="Billing" />
+      <div className="max-w-lg px-6 py-6 space-y-6">
+        {checkoutSuccess && (
+          <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5 text-[13px] text-emerald-600">
+            You&apos;re now on Pro.
           </div>
-          {/* Overage toggle skeleton */}
-          <div className="rounded-2xl border border-border bg-card p-5 flex items-start justify-between gap-4">
-            <div className="space-y-1.5">
-              <Skeleton className="h-4 w-44" />
-              <Skeleton className="h-3 w-72" />
-            </div>
-            <Skeleton className="h-6 w-11 rounded-full shrink-0" />
-          </div>
-          {/* Action buttons skeleton */}
-          <div className="flex gap-3">
-            <Skeleton className="h-10 w-36 rounded-xl" />
-            <Skeleton className="h-10 w-44 rounded-xl" />
-          </div>
-        </div>
-      )}
+        )}
 
-      {sub && (
-        <>
-          {/* Current plan card */}
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <PlanIcon className="h-6 w-6 text-primary" />
-              <div>
-                <p className="font-semibold text-foreground capitalize">
-                  {sub.plan} Plan
-                  {sub.billingCycle && sub.plan !== "free" && (
-                    <span className="ml-2 text-xs text-muted-foreground font-normal capitalize">
-                      · {sub.billingCycle}
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {sub.concurrentAgentLimit} concurrent agent{sub.concurrentAgentLimit !== 1 ? "s" : ""}
-                </p>
+        {error && (
+          <div className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="space-y-4">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        )}
+
+        {sub && (
+          <>
+            {/* Plan info */}
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-medium capitalize">{sub.plan} Plan</h2>
+                {sub.isActive && (
+                  <span className="text-[11px] text-emerald-600 font-medium">Active</span>
+                )}
               </div>
-              {sub.isActive && (
-                <span className="ml-auto text-xs rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 font-medium">
-                  Active
-                </span>
-              )}
-            </div>
+              <p className="text-[12px] text-muted-foreground">
+                {sub.concurrentAgentLimit} concurrent agent{sub.concurrentAgentLimit !== 1 ? "s" : ""}
+                {sub.billingCycle && sub.plan !== "free" && ` · ${sub.billingCycle}`}
+              </p>
+            </section>
 
             {/* Credit usage */}
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Credit usage this period</p>
-              <CreditUsageBar
-                used={sub.creditsUsedThisMonth}
-                budget={sub.creditBudgetPerMonth}
-              />
-              {sub.overBudget && !sub.overageEnabled && (
-                <p className="text-xs text-amber-600">
-                  Over budget — enable pay-as-you-go below to continue past your limit.
+            <section className="space-y-2">
+              <div className="flex justify-between text-[12px] text-muted-foreground">
+                <span>{(sub.creditsUsedThisMonth / 1_000_000).toFixed(2)}M used</span>
+                <span>{(sub.creditBudgetPerMonth / 1_000_000).toFixed(1)}M / month</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    sub.creditBudgetPerMonth > 0 && (sub.creditsUsedThisMonth / sub.creditBudgetPerMonth) >= 0.8
+                      ? "bg-amber-500"
+                      : "bg-foreground",
+                  )}
+                  style={{ width: `${sub.creditBudgetPerMonth > 0 ? Math.min((sub.creditsUsedThisMonth / sub.creditBudgetPerMonth) * 100, 100) : 0}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {formatDate(sub.periodStart)} — {formatDate(sub.periodEnd)}
+              </p>
+            </section>
+
+            {/* Overage */}
+            {sub.billingEnabled && (
+              <>
+                <div className="border-t border-border" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[13px] font-medium">Pay-as-you-go overage</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {isPro ? "$3.00" : "$5.00"} per 1M credits over budget.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={sub.overageEnabled}
+                    onCheckedChange={() => handleOverageToggle()}
+                    disabled={overageLoading}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="border-t border-border" />
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {!isPro && sub.billingEnabled && (
+                <Button size="sm" onClick={handleUpgrade} disabled={checkoutLoading} className="h-7">
+                  {checkoutLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                  Upgrade to Pro
+                </Button>
+              )}
+              {sub.billingEnabled && (
+                <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="h-7 text-[12px]">
+                  {portalLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                  Manage subscription
+                </Button>
+              )}
+              {!sub.billingEnabled && (
+                <p className="text-[13px] text-muted-foreground">
+                  Billing is not configured. Contact your administrator.
                 </p>
               )}
             </div>
-
-            {/* Period dates */}
-            <p className="text-xs text-muted-foreground">
-              Period: {formatDate(sub.periodStart)} — {formatDate(sub.periodEnd)}
-            </p>
-          </div>
-
-          {/* Overage toggle */}
-          {sub.billingEnabled && (
-            <div className="rounded-2xl border border-border bg-card p-5 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">Pay-as-you-go overage</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Continue using agents after your monthly credit budget is exhausted.
-                  Billed in arrears at{" "}
-                  {isPro ? "$3.00" : "$5.00"} per 1M credits.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleOverageToggle}
-                disabled={overageLoading}
-                aria-checked={sub.overageEnabled}
-                role="switch"
-                className={cn(
-                  "relative shrink-0 mt-0.5 h-6 w-11 rounded-full border transition-colors focus:outline-none disabled:opacity-60",
-                  sub.overageEnabled
-                    ? "bg-primary border-primary"
-                    : "bg-muted border-border",
-                )}
-              >
-                <span
-                  className={cn(
-                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                    sub.overageEnabled ? "translate-x-5" : "translate-x-0.5",
-                  )}
-                />
-              </button>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {!isPro && sub.billingEnabled && (
-              <button
-                type="button"
-                onClick={handleUpgrade}
-                disabled={checkoutLoading}
-                className="flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {checkoutLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {checkoutLoading ? "Redirecting…" : "Upgrade to Pro"}
-              </button>
-            )}
-
-            {sub.billingEnabled && (
-              <button
-                type="button"
-                onClick={handlePortal}
-                disabled={portalLoading}
-                className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background text-foreground px-5 py-2.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {portalLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {portalLoading ? "Opening portal…" : "Manage subscription"}
-              </button>
-            )}
-
-            {!sub.billingEnabled && (
-              <p className="text-sm text-muted-foreground py-2">
-                Billing is not configured yet. Contact your administrator.
-              </p>
-            )}
-          </div>
-        </>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }

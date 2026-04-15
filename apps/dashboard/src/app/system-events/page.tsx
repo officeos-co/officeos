@@ -1,15 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { TopBar } from "@/components/shared/TopBar";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useSystemEvents } from "@/hooks/useSystemEvents";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Info, XCircle, Check } from "lucide-react";
+import { Check } from "lucide-react";
 
-const severityConfig = {
-  error: { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
-  warning: { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-  info: { icon: Info, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" },
-} as const;
+type SeverityFilter = "all" | "error" | "warning" | "info";
+
+const severityColor: Record<string, string> = {
+  error: "text-red-600",
+  warning: "text-amber-600",
+  info: "text-muted-foreground",
+};
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -24,78 +38,114 @@ function formatTime(iso: string) {
 }
 
 export default function SystemEventsPage() {
-  const { events, loading, acknowledge } = useSystemEvents(100);
+  const { events, loading, unacknowledgedCount, acknowledge } = useSystemEvents(100);
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
+
+  const filteredEvents =
+    severityFilter === "all" ? events : events.filter((e) => e.severity === severityFilter);
 
   return (
     <>
       <TopBar
-        title="System Events"
-        subtitle="Errors, warnings, and system-wide notifications"
+        title="Events"
+        action={
+          <div className="flex items-center gap-1">
+            {(["all", "error", "warning", "info"] as const).map((f) => (
+              <Button
+                key={f}
+                variant="ghost"
+                size="sm"
+                onClick={() => setSeverityFilter(f)}
+                className={cn(
+                  "h-7 text-[12px] capitalize",
+                  severityFilter === f && "bg-accent text-accent-foreground",
+                )}
+              >
+                {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1) + "s"}
+              </Button>
+            ))}
+            {unacknowledgedCount > 0 && (
+              <span className="ml-1 text-[11px] text-red-600 font-medium">
+                {unacknowledgedCount} unack
+              </span>
+            )}
+          </div>
+        }
       />
 
-      <div className="p-8">
+      <div className="px-6 py-4">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-3">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-4 w-64" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
           </div>
-        ) : events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <Info className="mb-3 h-8 w-8" />
-            <p className="text-sm">No system events recorded yet.</p>
-          </div>
+        ) : filteredEvents.length === 0 ? (
+          <EmptyState
+            title={severityFilter === "all" ? "No system events" : `No ${severityFilter} events`}
+            description="Events will appear here in real time."
+            action={
+              severityFilter !== "all" ? (
+                <Button variant="ghost" size="sm" onClick={() => setSeverityFilter("all")}>
+                  Show all
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
-          <div className="flex flex-col gap-2">
-            {events.map((ev) => {
-              const config = severityConfig[ev.severity] ?? severityConfig.info;
-              const Icon = config.icon;
-              return (
-                <div
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[12px] font-normal text-muted-foreground w-[80px]">Severity</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Message</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Category</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Time</TableHead>
+                <TableHead className="w-[40px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEvents.map((ev) => (
+                <TableRow
                   key={ev.id}
-                  className={cn(
-                    "flex items-start gap-3 rounded-lg border p-4 transition-colors",
-                    ev.acknowledged
-                      ? "border-border bg-card/50 opacity-60"
-                      : cn(config.border, config.bg),
-                  )}
+                  className={cn(ev.acknowledged && "opacity-50")}
                 >
-                  <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", config.color)} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-[13px]">
-                      <span className="font-medium text-foreground">
-                        {ev.message}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                      <span>{formatTime(ev.createdAt)}</span>
-                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-                        {ev.category}
-                      </span>
-                      {ev.skillName && (
-                        <span className="rounded bg-muted px-1.5 py-0.5">
-                          {ev.skillName}
-                        </span>
-                      )}
-                      {ev.correlationId && (
-                        <span className="font-mono truncate max-w-[200px]">
-                          {ev.correlationId}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {!ev.acknowledged && (
-                    <button
-                      type="button"
-                      onClick={() => acknowledge(ev.id)}
-                      className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      title="Acknowledge"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  <TableCell>
+                    <span className={cn("text-[12px] font-medium capitalize", severityColor[ev.severity] ?? "text-muted-foreground")}>
+                      {ev.severity}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-[13px]">
+                    {ev.message}
+                    {ev.skillName && (
+                      <span className="ml-2 text-[11px] text-muted-foreground">{ev.skillName}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-[12px] font-mono text-muted-foreground">
+                    {ev.category}
+                  </TableCell>
+                  <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
+                    {formatTime(ev.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    {!ev.acknowledged && (
+                      <button
+                        type="button"
+                        onClick={() => acknowledge(ev.id)}
+                        className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                        title="Acknowledge"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
     </>

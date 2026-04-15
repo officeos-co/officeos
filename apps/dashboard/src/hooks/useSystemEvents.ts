@@ -24,7 +24,7 @@ export function useSystemEvents(limit = 50) {
   // Initial fetch
   useEffect(() => {
     apiFetch<SystemEvent[]>(`/api/system-events?limit=${limit}`)
-      .then(setEvents)
+      .then((data) => setEvents(data ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [limit]);

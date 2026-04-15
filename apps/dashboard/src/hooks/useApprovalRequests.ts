@@ -33,7 +33,7 @@ export function useApprovalRequests() {
       const data = await apiFetch<{ items: ApprovalRequest[]; total: number }>(
         "/api/approval-requests",
       );
-      publish(data.items);
+      publish(data?.items ?? (Array.isArray(data) ? (data as ApprovalRequest[]) : []));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load approval requests");

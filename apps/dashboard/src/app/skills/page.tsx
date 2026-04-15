@@ -3,14 +3,28 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/shared/TopBar";
-import { SkillGridCard } from "@/components/skills/SkillGridCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { UploadSkillOverlay } from "@/components/skills/UploadSkillOverlay";
 import { GitHubSkillOverlay } from "@/components/skills/GitHubSkillOverlay";
 import { useSkills } from "@/hooks/useSkills";
 import { useSkillRegistry } from "@/hooks/useSkillRegistry";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { GitBranch, Upload } from "lucide-react";
+
+function skillStatus(s: { installed: boolean; configured: boolean }): string {
+  if (s.installed && s.configured) return "ready";
+  if (s.installed) return "needs credentials";
+  return "not installed";
+}
 
 export default function SkillsPage() {
   const { skills, loading, error } = useSkills();
@@ -21,7 +35,6 @@ export default function SkillsPage() {
 
   const installed = skills.filter((s) => s.installed).length;
 
-  // Merge registry metadata into skills
   const registryMap = new Map(registryEntries.map((e) => [e.name, e]));
   const enrichedSkills = skills.map((s) => {
     const reg = registryMap.get(s.name);
@@ -35,53 +48,71 @@ export default function SkillsPage() {
       <TopBar
         title="Tools"
         subtitle={`${installed} of ${skills.length} installed`}
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowGitHub(true)} className="h-7 text-[12px]">
+              <GitBranch className="mr-1 h-3 w-3" />
+              GitHub
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowUpload(true)} className="h-7 text-[12px]">
+              <Upload className="mr-1 h-3 w-3" />
+              Upload
+            </Button>
+          </div>
+        }
       />
 
-      <div className="flex gap-2 px-8 pt-4">
-        <Button variant="outline" size="sm" onClick={() => setShowGitHub(true)}>
-          <GitBranch className="mr-1.5 h-3.5 w-3.5" />
-          Connect GitHub Repo
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setShowUpload(true)}>
-          <Upload className="mr-1.5 h-3.5 w-3.5" />
-          Upload Tool
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="px-8 py-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-16" />
-                  </div>
-                </div>
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-3/4" />
-                <Skeleton className="h-8 w-24 rounded-lg mt-2" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : error ? (
-        <div className="mx-8 mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+      {error && (
+        <div className="mx-6 mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
           {error}
         </div>
+      )}
+
+      {loading ? (
+        <div className="px-6 py-6 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className="px-8 py-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {enrichedSkills.map((skill) => (
-              <SkillGridCard
-                key={skill.name}
-                skill={skill}
-                onClick={() => router.push(`/skills/${skill.name}`)}
-              />
-            ))}
-          </div>
+        <div className="px-6 py-4">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[12px] font-normal text-muted-foreground w-[32px]" />
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Name</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Description</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Tools</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {enrichedSkills.map((skill) => (
+                <TableRow
+                  key={skill.name}
+                  onClick={() => router.push(`/skills/${skill.name}`)}
+                  className="cursor-pointer"
+                >
+                  <TableCell className="text-base">{skill.emoji}</TableCell>
+                  <TableCell className="text-[13px] font-medium">{skill.title}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground max-w-[320px] truncate">
+                    {skill.description}
+                  </TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">
+                    {skill.llmTools.length}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={skillStatus(skill)} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 

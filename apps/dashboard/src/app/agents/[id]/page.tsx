@@ -8,6 +8,16 @@ import { Trash2 } from "lucide-react";
 import { AgentDetailTabs } from "@/components/agents/AgentDetailTabs";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { apiFetch } from "@/hooks/useApi";
 import { useAgents, type Agent } from "@/hooks/useAgents";
 
@@ -22,6 +32,7 @@ export default function AgentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const fetchAgent = useCallback(async () => {
     try {
@@ -49,7 +60,6 @@ export default function AgentDetailPage() {
   }, [fetchAgent]);
 
   const handleDelete = async () => {
-    if (!confirm(`Delete agent "${agent?.name}"? This removes the pod, data, and vault.`)) return;
     setDeleting(true);
     try {
       await remove(id);
@@ -167,7 +177,7 @@ export default function AgentDetailPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setDeleteDialogOpen(true)}
                 disabled={deleting}
                 className="flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-2 text-sm text-destructive hover:bg-red-100 disabled:opacity-50 transition-colors"
               >
@@ -208,6 +218,26 @@ export default function AgentDetailPage() {
       <div className="flex-1 overflow-hidden mt-6">
         <AgentDetailTabs agent={agent} onAgentUpdated={fetchAgent} />
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete agent?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the pod, all session data, and the agent vault. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete agent
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

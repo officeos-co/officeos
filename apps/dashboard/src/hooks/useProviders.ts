@@ -23,7 +23,7 @@ export function useProviders() {
     setLoading(true);
     try {
       const data = await apiFetch<Provider[]>("/api/providers");
-      publish(data);
+      publish(data ?? []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load providers");

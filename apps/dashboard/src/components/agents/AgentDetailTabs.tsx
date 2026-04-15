@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import posthog from "posthog-js";
 import type { Agent } from "@/types/agent";
 import { AgentChatPanel } from "./AgentChatPanel";
@@ -70,33 +71,25 @@ export function AgentDetailTabs({ agent, onAgentUpdated }: Props) {
   const isEnabled = (id: Tab) => ALWAYS_ON_TABS.includes(id) || running;
 
   return (
-    <div className="flex h-full flex-col">
+    <Tabs value={active} onValueChange={(v) => setActive(v as Tab)} className="flex h-full flex-col">
       {/* Tab bar — sticky */}
-      <div className="shrink-0 flex gap-1 border-b border-border bg-background px-8">
-        {TABS.map((tab) => {
-          const enabled = isEnabled(tab.id);
-          const isActive = tab.id === active;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              disabled={!enabled}
-              onClick={() => setActive(tab.id)}
-              title={!enabled ? "Available once the agent pod is running" : undefined}
-              className={[
-                "-mb-px border-b-2 px-4 py-3 text-sm transition-colors",
-                isActive
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-                !enabled
-                  ? "cursor-not-allowed opacity-40 hover:text-muted-foreground"
-                  : "",
-              ].join(" ")}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+      <div className="shrink-0 border-b border-border bg-background px-8">
+        <TabsList className="h-auto gap-0 bg-transparent p-0 rounded-none">
+          {TABS.map((tab) => {
+            const enabled = isEnabled(tab.id);
+            return (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                disabled={!enabled}
+                title={!enabled ? "Available once the agent pod is running" : undefined}
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-sm disabled:opacity-40"
+              >
+                {tab.label}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
       </div>
 
       {/* Tab content — scrollable */}
@@ -112,6 +105,6 @@ export function AgentDetailTabs({ agent, onAgentUpdated }: Props) {
         {active === "memory" && <AgentMemoryPanel agent={agent} />}
         {active === "audit" && <AgentAuditPanel agent={agent} />}
       </div>
-    </div>
+    </Tabs>
   );
 }

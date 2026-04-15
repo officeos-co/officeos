@@ -24,17 +24,17 @@ export function AgentsTable({ agents, onDelete }: AgentsTableProps) {
   const router = useRouter();
 
   return (
-    <div className="mx-8 my-6 rounded-lg border border-border">
+    <div className="px-6 py-4">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Provider</TableHead>
-            <TableHead>Model</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="w-[48px]" />
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="text-[12px] font-normal text-muted-foreground">ID</TableHead>
+            <TableHead className="text-[12px] font-normal text-muted-foreground">Name</TableHead>
+            <TableHead className="text-[12px] font-normal text-muted-foreground">Provider</TableHead>
+            <TableHead className="text-[12px] font-normal text-muted-foreground">Model</TableHead>
+            <TableHead className="text-[12px] font-normal text-muted-foreground">Status</TableHead>
+            <TableHead className="text-[12px] font-normal text-muted-foreground">Created</TableHead>
+            <TableHead className="w-[40px]" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -44,16 +44,16 @@ export function AgentsTable({ agents, onDelete }: AgentsTableProps) {
               onClick={() => router.push(`/agents/${agent.id}`)}
               className="cursor-pointer"
             >
-              <TableCell className="font-mono text-xs text-muted-foreground">
+              <TableCell className="font-mono text-[12px] text-muted-foreground">
                 {shortId(agent.id)}
               </TableCell>
-              <TableCell className="font-medium">{agent.name}</TableCell>
-              <TableCell className="text-muted-foreground">{agent.provider}</TableCell>
-              <TableCell className="text-muted-foreground">{agent.model ?? "\u2014"}</TableCell>
+              <TableCell className="text-[13px] font-medium">{agent.name}</TableCell>
+              <TableCell className="text-[13px] text-muted-foreground">{agent.provider}</TableCell>
+              <TableCell className="text-[13px] text-muted-foreground">{agent.model ?? "—"}</TableCell>
               <TableCell>
                 <StatusBadge status={agent.status} />
               </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(agent.createdAt)}</TableCell>
+              <TableCell className="text-[13px] text-muted-foreground">{formatDate(agent.createdAt)}</TableCell>
               <TableCell>
                 <Button
                   variant="ghost"

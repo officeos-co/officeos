@@ -3,60 +3,89 @@
 @import "shadcn/tailwind.css";
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
-  /* Background — clean white */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.15 0.01 260);
+  /* Background — subtle warm gray, not pure white */
+  --background: oklch(0.985 0.002 260);
+  --foreground: oklch(0.13 0.01 260);
 
-  /* Cards / panels — pure white, slight shadow instead of bg diff */
+  /* Cards / panels — white, clean */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 260);
+  --card-foreground: oklch(0.13 0.01 260);
 
   /* Popovers / dropdowns */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 260);
+  --popover-foreground: oklch(0.13 0.01 260);
 
-  /* Primary — indigo accent */
-  --primary: oklch(0.5 0.18 265);
+  /* Primary — neutral dark for buttons, not teal */
+  --primary: oklch(0.2 0.005 260);
   --primary-foreground: oklch(0.99 0 0);
 
-  /* Secondary — neutral surface */
+  /* Secondary — light neutral surface */
   --secondary: oklch(0.965 0.002 260);
   --secondary-foreground: oklch(0.25 0.01 260);
 
   /* Muted — de-emphasized */
-  --muted: oklch(0.965 0.002 260);
-  --muted-foreground: oklch(0.48 0.01 260);
+  --muted: oklch(0.96 0.002 260);
+  --muted-foreground: oklch(0.45 0.01 260);
 
-  /* Accent — very subtle blue tint */
-  --accent: oklch(0.96 0.01 260);
-  --accent-foreground: oklch(0.25 0.01 260);
+  /* Accent — hover/active surface */
+  --accent: oklch(0.955 0.005 260);
+  --accent-foreground: oklch(0.2 0.01 260);
 
   /* Destructive */
   --destructive: oklch(0.55 0.22 27);
 
-  /* Borders — crisp, light */
-  --border: oklch(0.91 0.005 260);
-  --input: oklch(0.91 0.005 260);
-  --ring: oklch(0.5 0.18 265);
+  /* Borders — very subtle */
+  --border: oklch(0.92 0.003 260);
+  --input: oklch(0.92 0.003 260);
+  --ring: oklch(0.2 0.005 260);
 
   /* Charts */
-  --chart-1: oklch(0.5 0.18 265);
-  --chart-2: oklch(0.55 0.14 200);
-  --chart-3: oklch(0.6 0.12 150);
-  --chart-4: oklch(0.5 0.08 100);
-  --chart-5: oklch(0.45 0.05 50);
+  --chart-1: oklch(0.2 0.005 260);
+  --chart-2: oklch(0.45 0.01 260);
+  --chart-3: oklch(0.6 0.01 260);
+  --chart-4: oklch(0.75 0.005 260);
+  --chart-5: oklch(0.88 0.003 260);
 
-  /* Sidebar — warm off-white */
-  --sidebar: oklch(0.975 0.003 80);
-  --sidebar-foreground: oklch(0.15 0.01 260);
-  --sidebar-primary: oklch(0.5 0.18 265);
+  /* Sidebar — same as background, no visual separation */
+  --sidebar: oklch(0.985 0.002 260);
+  --sidebar-foreground: oklch(0.35 0.01 260);
+  --sidebar-primary: oklch(0.13 0.01 260);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.008 265);
-  --sidebar-accent-foreground: oklch(0.15 0.01 260);
-  --sidebar-border: oklch(0.91 0.005 260);
-  --sidebar-ring: oklch(0.5 0.18 265);
+  --sidebar-accent: oklch(0.94 0.003 260);
+  --sidebar-accent-foreground: oklch(0.13 0.01 260);
+  --sidebar-border: oklch(0.92 0.003 260);
+  --sidebar-ring: oklch(0.2 0.005 260);
+}
+
+.dark {
+  --background: oklch(0.09 0.005 260);
+  --foreground: oklch(0.93 0 0);
+  --card: oklch(0.12 0.005 260);
+  --card-foreground: oklch(0.93 0 0);
+  --popover: oklch(0.12 0.005 260);
+  --popover-foreground: oklch(0.93 0 0);
+  --primary: oklch(0.93 0 0);
+  --primary-foreground: oklch(0.09 0 0);
+  --secondary: oklch(0.17 0.005 260);
+  --secondary-foreground: oklch(0.85 0 0);
+  --muted: oklch(0.17 0.005 260);
+  --muted-foreground: oklch(0.55 0.01 260);
+  --accent: oklch(0.17 0.005 260);
+  --accent-foreground: oklch(0.85 0 0);
+  --destructive: oklch(0.6 0.2 27);
+  --border: oklch(0.2 0.005 260);
+  --input: oklch(0.2 0.005 260);
+  --ring: oklch(0.93 0 0);
+  --sidebar: oklch(0.09 0.005 260);
+  --sidebar-foreground: oklch(0.6 0.01 260);
+  --sidebar-primary: oklch(0.93 0 0);
+  --sidebar-primary-foreground: oklch(0.09 0 0);
+  --sidebar-accent: oklch(0.15 0.005 260);
+  --sidebar-accent-foreground: oklch(0.93 0 0);
+  --sidebar-border: oklch(0.2 0.005 260);
+  --sidebar-ring: oklch(0.93 0 0);
 }
 
 /* Backward compat: map old --eaos-* vars to new system */
@@ -70,6 +99,10 @@
   color-scheme: light;
 }
 
+.dark {
+  color-scheme: dark;
+}
+
 html,
 body {
   height: 100%;
@@ -80,7 +113,7 @@ button {
   font: inherit;
 }
 
-/* Smooth scrollbar */
+/* Minimal scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -89,11 +122,11 @@ button {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0 0 0 / 12%);
+  background: oklch(0 0 0 / 8%);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0 0 0 / 22%);
+  background: oklch(0 0 0 / 16%);
 }
 
 @theme inline {

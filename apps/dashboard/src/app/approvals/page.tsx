@@ -3,8 +3,20 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { TopBar } from "@/components/shared/TopBar";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useApprovalRequests, type ApprovalRequest } from "@/hooks/useApprovalRequests";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatRelative(iso: string) {
   const d = new Date(iso);
@@ -22,18 +34,18 @@ function truncateId(id: string) {
   return id.length > 12 ? `${id.slice(0, 8)}…` : id;
 }
 
-function StatusBadge({ status }: { status: "approved" | "rejected" }) {
+function TableSkeleton() {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-        status === "approved"
-          ? "bg-emerald-500/15 text-emerald-500"
-          : "bg-muted text-muted-foreground",
-      )}
-    >
-      {status}
-    </span>
+    <div className="space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 py-3">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -74,152 +86,147 @@ export default function ApprovalsPage() {
     }
   }
 
-  const rows = tab === "pending" ? pendingItems : historyItems;
-
   return (
     <>
-      <TopBar
-        title="Approvals"
-        subtitle="Review and action pending agent approval requests"
-      />
+      <TopBar title="Approvals" />
 
-      <div className="p-8">
-        {/* Tabs */}
-        <div className="mb-6 flex gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
-          {(["pending", "history"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => router.push(`/approvals?tab=${t}`)}
-              className={cn(
-                "rounded-md px-4 py-1.5 text-[13px] font-medium transition-colors capitalize",
-                tab === t
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+      <div className="px-6 py-4">
+        <Tabs
+          value={tab}
+          onValueChange={(val) => router.push(`/approvals?tab=${val}`)}
+        >
+          <TabsList className="h-8">
+            <TabsTrigger value="pending" className="text-[12px] h-6">
+              Pending {pendingItems.length > 0 && `(${pendingItems.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="history" className="text-[12px] h-6">
+              History
+            </TabsTrigger>
+          </TabsList>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
+              {error}
+            </div>
+          )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <p className="text-sm">
-              {tab === "pending" ? "No pending approvals." : "No approval history yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Agent
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Skill · Action
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Params
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Requested
-                  </th>
-                  {tab === "history" && (
-                    <>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Decided
-                      </th>
-                    </>
-                  )}
-                  {tab === "pending" && (
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((req: ApprovalRequest) => {
-                  const isActioning = !!actioning[req.id];
-                  return (
-                    <tr
-                      key={req.id}
-                      className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="px-4 py-3 font-mono text-muted-foreground">
-                        {truncateId(req.agentId)}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        <span className="font-medium">{req.skillName}</span>
-                        <span className="text-muted-foreground"> · {req.action}</span>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-muted-foreground max-w-[240px] truncate">
-                        {req.paramsJson.slice(0, 60)}
-                        {req.paramsJson.length > 60 ? "…" : ""}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                        {formatRelative(req.requestedAt)}
-                      </td>
-                      {tab === "history" && (
-                        <>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={req.status as "approved" | "rejected"} />
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                            {req.decidedAt ? formatRelative(req.decidedAt) : "—"}
-                          </td>
-                        </>
-                      )}
-                      {tab === "pending" && (
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
+          <TabsContent value="pending" className="mt-4">
+            {loading ? (
+              <TableSkeleton />
+            ) : pendingItems.length === 0 ? (
+              <EmptyState
+                title="No pending approvals"
+                description="Agent approval requests will appear here."
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Agent</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Skill / Action</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Params</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Requested</TableHead>
+                    <TableHead className="text-right text-[12px] font-normal text-muted-foreground">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingItems.map((req: ApprovalRequest) => {
+                    const isActioning = !!actioning[req.id];
+                    return (
+                      <TableRow key={req.id}>
+                        <TableCell className="font-mono text-[12px] text-muted-foreground">
+                          {truncateId(req.agentId)}
+                        </TableCell>
+                        <TableCell className="text-[13px]">
+                          <span className="font-medium">{req.skillName}</span>
+                          <span className="text-muted-foreground"> / {req.action}</span>
+                        </TableCell>
+                        <TableCell className="font-mono text-[12px] text-muted-foreground max-w-[200px] truncate">
+                          {req.paramsJson.slice(0, 50)}
+                          {req.paramsJson.length > 50 ? "…" : ""}
+                        </TableCell>
+                        <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
+                          {formatRelative(req.requestedAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
                               disabled={isActioning}
                               onClick={() => handleApprove(req.id)}
-                              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-3 py-1.5 text-[12px] font-medium text-emerald-500 transition-colors hover:bg-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="h-7 text-[12px]"
                             >
-                              {isActioning && actioning[req.id] === "approving" ? (
-                                <span className="h-3 w-3 animate-spin rounded-full border border-emerald-500 border-t-transparent" />
-                              ) : null}
                               Approve
-                            </button>
-                            <button
-                              type="button"
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               disabled={isActioning}
                               onClick={() => handleReject(req.id)}
-                              className="inline-flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="h-7 text-[12px]"
                             >
-                              {isActioning && actioning[req.id] === "rejecting" ? (
-                                <span className="h-3 w-3 animate-spin rounded-full border border-muted-foreground border-t-transparent" />
-                              ) : null}
                               Reject
-                            </button>
+                            </Button>
                           </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-4">
+            {loading ? (
+              <TableSkeleton />
+            ) : historyItems.length === 0 ? (
+              <EmptyState
+                title="No approval history"
+                description="Actioned requests will appear here."
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Agent</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Skill / Action</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Params</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Requested</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-[12px] font-normal text-muted-foreground">Decided</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyItems.map((req: ApprovalRequest) => (
+                    <TableRow key={req.id}>
+                      <TableCell className="font-mono text-[12px] text-muted-foreground">
+                        {truncateId(req.agentId)}
+                      </TableCell>
+                      <TableCell className="text-[13px]">
+                        <span className="font-medium">{req.skillName}</span>
+                        <span className="text-muted-foreground"> / {req.action}</span>
+                      </TableCell>
+                      <TableCell className="font-mono text-[12px] text-muted-foreground max-w-[200px] truncate">
+                        {req.paramsJson.slice(0, 50)}
+                        {req.paramsJson.length > 50 ? "…" : ""}
+                      </TableCell>
+                      <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
+                        {formatRelative(req.requestedAt)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={req.status} />
+                      </TableCell>
+                      <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
+                        {req.decidedAt ? formatRelative(req.decidedAt) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );

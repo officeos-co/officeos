@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/shared/AppShell";
+import { CommandPalette } from "@/components/shared/CommandPalette";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body>
         <AppShell>{children}</AppShell>
+        <CommandPalette />
       </body>
     </html>
   );

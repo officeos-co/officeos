@@ -16,7 +16,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-/** Providers whose keys are managed by the platform — no BYOK allowed. */
 const PLATFORM_KEY_PROVIDERS = new Set(["anthropic", "google", "xai"]);
 
 export default function ProvidersPage() {
@@ -25,49 +24,33 @@ export default function ProvidersPage() {
 
   return (
     <div>
-      <TopBar
-        title="Providers"
-        subtitle="LLM providers — Anthropic, Gemini, and xAI use platform keys. OpenAI supports custom BYOK keys."
-      />
+      <TopBar title="Providers" />
 
       {error && (
-        <div className="mx-8 mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="mx-6 mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
           {error}
         </div>
       )}
 
-      {loading ? (
-        <div className="mx-8 my-6 rounded-lg border border-border">
+      <div className="px-6 py-4">
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+            ))}
+          </div>
+        ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Provider</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Key source</TableHead>
-                <TableHead className="text-right" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-3 w-28" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-8 w-20 rounded-md ml-auto" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <div className="mx-8 my-6 rounded-lg border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Provider</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Key source</TableHead>
-                <TableHead className="text-right" />
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Provider</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Status</TableHead>
+                <TableHead className="text-[12px] font-normal text-muted-foreground">Key source</TableHead>
+                <TableHead className="text-right w-[100px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -75,19 +58,20 @@ export default function ProvidersPage() {
                 const isPlatformManaged = PLATFORM_KEY_PROVIDERS.has(p.name);
                 return (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.displayName}</TableCell>
+                    <TableCell className="text-[13px] font-medium">{p.displayName}</TableCell>
                     <TableCell>
                       <StatusBadge status={p.configured ? "ready" : "not installed"} />
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {isPlatformManaged ? "Platform key" : "Your key (BYOK)"}
+                    <TableCell className="text-[13px] text-muted-foreground">
+                      {isPlatformManaged ? "Platform" : "BYOK"}
                     </TableCell>
                     <TableCell className="text-right">
                       {!isPlatformManaged && (
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={() => setSelected(p)}
+                          className="h-7 text-[12px]"
                         >
                           {p.configured ? "Update" : "Configure"}
                         </Button>
@@ -98,8 +82,8 @@ export default function ProvidersPage() {
               })}
             </TableBody>
           </Table>
-        </div>
-      )}
+        )}
+      </div>
 
       <ProviderConfigureOverlay provider={selected} onClose={() => setSelected(null)} />
     </div>

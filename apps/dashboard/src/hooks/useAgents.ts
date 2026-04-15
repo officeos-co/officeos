@@ -25,7 +25,7 @@ export function useAgents() {
     setLoading(true);
     try {
       const data = await apiFetch<Agent[]>("/api/agents");
-      publish(data);
+      publish(data ?? []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load agents");

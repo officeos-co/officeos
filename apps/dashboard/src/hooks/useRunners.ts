@@ -25,7 +25,7 @@ export function useRunners() {
     setLoading(true);
     try {
       const data = await apiFetch<Runner[]>("/api/runners");
-      publish(data);
+      publish(data ?? []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load runners");

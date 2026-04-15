@@ -18,14 +18,13 @@ export default function AgentsPage() {
     <div>
       <TopBar
         title="Agents"
-        subtitle="Deploy and manage agents running in your workspace."
         action={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-7 w-7 p-0">
               <RefreshCw className="h-3.5 w-3.5" />
             </Button>
-            <Button size="sm" onClick={() => setOverlayOpen(true)}>
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
+            <Button size="sm" onClick={() => setOverlayOpen(true)} className="h-7">
+              <Plus className="mr-1 h-3 w-3" />
               New agent
             </Button>
           </div>
@@ -33,24 +32,23 @@ export default function AgentsPage() {
       />
 
       {error && (
-        <div className="mx-8 mt-6 flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="mx-6 mt-4 flex items-center justify-between rounded-md border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-[13px] text-destructive">
           <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-7 text-[12px]">
             Retry
           </Button>
         </div>
       )}
 
       {loading && agents.length === 0 ? (
-        <div className="px-8 py-6 space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-3 w-64" />
-              </div>
-              <Skeleton className="h-6 w-16 rounded-full" />
+        <div className="px-6 py-6 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 py-3">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-3 w-12" />
             </div>
           ))}
         </div>
@@ -59,8 +57,8 @@ export default function AgentsPage() {
           title="No agents yet"
           description="Create your first agent to get started."
           action={
-            <Button variant="outline" size="sm" onClick={() => setOverlayOpen(true)}>
-              Get started with agents
+            <Button size="sm" onClick={() => setOverlayOpen(true)}>
+              Create agent
             </Button>
           }
         />

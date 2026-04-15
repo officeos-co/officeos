@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Sidebar } from "./Sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
 import { AuthGuard } from "./AuthGuard";
 import type { ReactNode } from "react";
 
@@ -15,10 +16,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard>
-      <div className="flex h-screen w-screen overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
-      </div>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
     </AuthGuard>
   );
 }
