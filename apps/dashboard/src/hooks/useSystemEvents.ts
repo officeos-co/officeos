@@ -64,7 +64,7 @@ export function useSystemEvents(limit = 50) {
     const data = await apiFetch<SystemEvent[]>(
       `/api/system-events?limit=${limit}`
     );
-    setEvents(data);
+    setEvents(data ?? []);
   }, [limit]);
 
   return { events, loading, unacknowledgedCount, acknowledge, refresh };

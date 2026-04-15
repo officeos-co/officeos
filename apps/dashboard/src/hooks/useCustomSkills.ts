@@ -15,7 +15,7 @@ export function useCustomSkills() {
     setLoading(true);
     try {
       const data = await apiFetch<CustomSkill[]>("/api/custom-skills");
-      setSkills(data);
+      setSkills(data ?? []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load custom skills");

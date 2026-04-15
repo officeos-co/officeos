@@ -17,7 +17,7 @@ export function useAgentSkills(agentId: string) {
       const data = await apiFetch<AgentSkillAssignment[]>(
         `/api/agents/${agentId}/skills`,
       );
-      setAssignments(data);
+      setAssignments(data ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load agent skills");
     } finally {
@@ -38,8 +38,8 @@ export function useAgentSkills(agentId: string) {
           body: JSON.stringify({ skillNames }),
         },
       );
-      setAssignments(data);
-      return data;
+      setAssignments(data ?? []);
+      return data ?? [];
     },
     [agentId],
   );
