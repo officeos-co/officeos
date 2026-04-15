@@ -27,6 +27,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         .Build();
 
     public WireMockServer SkillRuntimeMock { get; } = WireMockServer.Start();
+    public WireMockServer LiteLlmMock { get; } = WireMockServer.Start();
 
     public string PostgresConnectionString => _postgres.GetConnectionString();
 
@@ -99,6 +100,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     async Task IAsyncLifetime.DisposeAsync()
     {
         SkillRuntimeMock.Stop();
+        LiteLlmMock.Stop();
         await _postgres.DisposeAsync();
     }
 
@@ -122,9 +124,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.RemoveAll<SkillRuntimeConfig>();
             services.AddSingleton(new SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
 
-            // Replace LiteLlmConfig with a test-safe value
+            // Replace LiteLlmConfig to point at the WireMock LiteLLM stub
             services.RemoveAll<LiteLlmConfig>();
-            services.AddSingleton(new LiteLlmConfig { BaseUrl = "http://localhost:4000", Enabled = true });
+            services.AddSingleton(new LiteLlmConfig { BaseUrl = LiteLlmMock.Url!, Enabled = true });
         });
     }
 
