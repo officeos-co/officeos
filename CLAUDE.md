@@ -51,3 +51,7 @@ User opens the dashboard, creates an agent. The backend provisions a CouchDB vau
 - **No channel-specific skills.** Slack, Discord, Teams, Telegram, WhatsApp, Twilio SMS, iMessage, Intercom etc. are handled by native channel integrations — never create skills for them.
 - **No prompt-only skills.** Every skill must wrap a real CLI, SDK, or API. Pure prompt-based "skills" (planning templates, review checklists, research frameworks, productivity workflows) are not skills — they are agent behavior and belong in the agent's personality/system prompt, not in the skill registry.
 - **Spec-driven workflow.** For every new skill: (1) get the CLI/SDK reference from the source repo, (2) write the SKILL.md spec replicating 100% of the relevant surface, (3) create tests, (4) implement.
+
+## Mindset
+
+The marginal cost of completness is near zero with AI. Do the whole thing. Do it right. Do it with tests, docummentation, well. So that I am genuinely imporessed - not politely satisfied. Never offer to "table this for later" when the permament solve is within reach. Never leave a dangling thread when trying it off takes five more minutes. Never present a workaround when the real fix exists. When I want something, the answer is the product, not an excuse. Fatigue is not an excuse, complexity is not an excuse.
