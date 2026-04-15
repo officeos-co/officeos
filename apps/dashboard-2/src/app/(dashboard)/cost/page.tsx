@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import {
@@ -75,7 +75,7 @@ export default function CostPage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl">
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto w-full">
         {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={groupBy} onValueChange={(v) => { if (v) setGroupBy(v) }}>
@@ -144,7 +144,7 @@ export default function CostPage() {
           <div className="mb-1 text-sm font-medium">Daily cost breakdown</div>
           <div className="text-xs text-muted-foreground mb-4">Total: {usd(totalAll)}</div>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={chartData}>
+            <BarChart data={chartData} barGap={0} barCategoryGap="20%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} width={40} />
@@ -152,11 +152,11 @@ export default function CostPage() {
                 contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--popover)" }}
                 formatter={(value) => usd(Number(value))}
               />
-              <Area type="monotone" dataKey="tokens" name="Tokens" stackId="1" fill="var(--primary)" fillOpacity={0.6} stroke="var(--primary)" strokeWidth={1.5} />
-              <Area type="monotone" dataKey="search" name="Web search" stackId="1" fill="var(--chart-2)" fillOpacity={0.5} stroke="var(--chart-2)" strokeWidth={1.5} />
-              <Area type="monotone" dataKey="code" name="Code exec" stackId="1" fill="var(--chart-3)" fillOpacity={0.4} stroke="var(--chart-3)" strokeWidth={1.5} />
-              <Area type="monotone" dataKey="runtime" name="Runtime" stackId="1" fill="var(--chart-4)" fillOpacity={0.3} stroke="var(--chart-4)" strokeWidth={1.5} />
-            </AreaChart>
+              <Bar dataKey="tokens" name="Tokens" stackId="1" fill="var(--primary)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="search" name="Web search" stackId="1" fill="var(--chart-2)" />
+              <Bar dataKey="code" name="Code exec" stackId="1" fill="var(--chart-3)" />
+              <Bar dataKey="runtime" name="Runtime" stackId="1" fill="var(--chart-4)" radius={[3, 3, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

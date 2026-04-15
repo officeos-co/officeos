@@ -76,7 +76,7 @@ export default function UsagePage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl">
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto w-full">
         {/* Filters */}
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>

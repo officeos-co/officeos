@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -34,20 +35,52 @@ export function NavMain({
 }) {
   const pathname = usePathname()
 
+  // Track which groups are open — auto-open the one containing the active route
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    for (const item of items) {
+      const hasActive = item.items?.some(
+        (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/"),
+      )
+      if (hasActive || item.isActive) initial.add(item.title)
+    }
+    return initial
+  })
+
+  // When pathname changes, auto-open the group containing the new route
+  useEffect(() => {
+    for (const item of items) {
+      const hasActive = item.items?.some(
+        (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/"),
+      )
+      if (hasActive) {
+        setOpenGroups((prev) => {
+          if (prev.has(item.title)) return prev
+          return new Set([...prev, item.title])
+        })
+      }
+    }
+  }, [pathname, items])
+
+  function toggleGroup(title: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(title)) next.delete(title)
+      else next.add(title)
+      return next
+    })
+  }
+
   return (
     <SidebarGroup>
       <SidebarMenu>
         {items.map((item) => {
-          const isGroupActive =
-            item.isActive ||
-            item.items?.some(
-              (sub) =>
-                pathname === sub.url || pathname.startsWith(sub.url + "/"),
-            )
+          const isOpen = openGroups.has(item.title)
           return (
             <Collapsible
               key={item.title}
-              defaultOpen={isGroupActive}
+              open={isOpen}
+              onOpenChange={() => toggleGroup(item.title)}
               className="group/collapsible"
               render={<SidebarMenuItem />}
             >

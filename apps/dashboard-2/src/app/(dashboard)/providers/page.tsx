@@ -202,7 +202,7 @@ export default function ProvidersPage() {
   return (
     <>
       <PageHeader group="Manage" page="Providers" />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-5xl">
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-5xl mx-auto w-full">
         <p className="text-sm text-muted-foreground">
           All providers are active by default with platform-managed keys. Bring your own API key for reduced pricing.
         </p>

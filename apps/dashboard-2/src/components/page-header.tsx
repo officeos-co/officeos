@@ -1,3 +1,4 @@
+import Link from "next/link"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,6 +10,15 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
+const groupRoutes: Record<string, string> = {
+  "Managed Agents": "/agents",
+  "Agents": "/agents",
+  "Analytics": "/logs",
+  "Manage": "/billing",
+  "Integrations": "/integrations",
+  "Channels": "/channels",
+}
+
 export function PageHeader({
   group,
   page,
@@ -18,6 +28,8 @@ export function PageHeader({
   page: string
   action?: React.ReactNode
 }) {
+  const groupHref = group ? groupRoutes[group] ?? "#" : "#"
+
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
       <div className="flex items-center gap-2 px-4 flex-1">
@@ -31,7 +43,9 @@ export function PageHeader({
             {group && (
               <>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">{group}</BreadcrumbLink>
+                  <BreadcrumbLink render={<Link href={groupHref} />}>
+                    {group}
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
               </>

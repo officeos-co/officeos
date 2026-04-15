@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -23,10 +22,10 @@ import {
 } from "@/components/ui/sidebar"
 import {
   ChevronsUpDownIcon,
-  SparklesIcon,
-  BadgeCheckIcon,
-  CreditCardIcon,
   LogOutIcon,
+  HelpCircleIcon,
+  ExternalLinkIcon,
+  ScaleIcon,
 } from "lucide-react"
 
 function Initials(name: string) {
@@ -48,7 +47,6 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const router = useRouter()
 
   return (
     <SidebarMenu>
@@ -59,6 +57,7 @@ export function NavUser({
               <SidebarMenuButton
                 size="lg"
                 className="aria-expanded:bg-muted"
+                onClick={(e) => e.preventDefault()}
               />
             }
           >
@@ -81,37 +80,26 @@ export function NavUser({
             sideOffset={4}
           >
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="rounded-lg">
-                      {Initials(user.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{user.plan}</span>
-                  </div>
-                </div>
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal px-2">
+                {user.name}
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/pricing")}>
-                <SparklesIcon />
-                Upgrade to Pro
+              <DropdownMenuItem onClick={() => window.open("https://www.officeos.co/support", "_blank")}>
+                <HelpCircleIcon />
+                Support
+                <ExternalLinkIcon className="ml-auto size-3 text-muted-foreground" />
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/team")}>
-                <BadgeCheckIcon />
-                Account
+              <DropdownMenuItem onClick={() => window.open("https://officeos.co/privacy", "_blank")}>
+                <ScaleIcon />
+                Privacy Policy
+                <ExternalLinkIcon className="ml-auto size-3 text-muted-foreground" />
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/billing")}>
-                <CreditCardIcon />
-                Billing
+              <DropdownMenuItem onClick={() => window.open("https://officeos.co/terms", "_blank")}>
+                <ScaleIcon />
+                Terms of Service
+                <ExternalLinkIcon className="ml-auto size-3 text-muted-foreground" />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

@@ -14,12 +14,12 @@ import {
 import { PlusIcon, SearchIcon, FilterIcon } from "lucide-react"
 
 const agents = [
-  { id: "agt_a1b2c3", name: "Research Assistant", status: "running", createdAt: Date.now() - 2 * 86400000, updatedAt: Date.now() - 600000 },
-  { id: "agt_b2c3d4", name: "Code Reviewer", status: "running", createdAt: Date.now() - 5 * 86400000, updatedAt: Date.now() - 3600000 },
-  { id: "agt_c3d4e5", name: "Customer Support Bot", status: "running", createdAt: Date.now() - 10 * 86400000, updatedAt: Date.now() - 7200000 },
-  { id: "agt_d4e5f6", name: "Data Pipeline Monitor", status: "pending", createdAt: Date.now() - 86400000, updatedAt: Date.now() - 86400000 },
-  { id: "agt_e5f6a7", name: "Content Writer", status: "stopped", createdAt: Date.now() - 14 * 86400000, updatedAt: Date.now() - 7 * 86400000 },
-  { id: "agt_f6a7b8", name: "Security Scanner", status: "failed", createdAt: Date.now() - 3 * 86400000, updatedAt: Date.now() - 1800000 },
+  { id: "agt_a1b2c3", name: "Research Assistant", status: "running", created: "2 days ago", updated: "10 minutes ago" },
+  { id: "agt_b2c3d4", name: "Code Reviewer", status: "running", created: "5 days ago", updated: "1 hour ago" },
+  { id: "agt_c3d4e5", name: "Customer Support Bot", status: "running", created: "10 days ago", updated: "2 hours ago" },
+  { id: "agt_d4e5f6", name: "Data Pipeline Monitor", status: "pending", created: "1 day ago", updated: "1 day ago" },
+  { id: "agt_e5f6a7", name: "Content Writer", status: "stopped", created: "2 weeks ago", updated: "7 days ago" },
+  { id: "agt_f6a7b8", name: "Security Scanner", status: "failed", created: "3 days ago", updated: "30 minutes ago" },
 ]
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const
@@ -40,17 +40,6 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function timeAgo(ts: number) {
-  const diff = Date.now() - ts
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "just now"
-  if (minutes < 60) return `${minutes} minutes ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hours ago`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} days ago`
-  return `${Math.floor(days / 30)} months ago`
-}
 
 export default function AgentsPage() {
   const router = useRouter()
@@ -140,8 +129,8 @@ export default function AgentsPage() {
                 <td className="px-4 py-3 text-center">
                   <StatusBadge status={agent.status} />
                 </td>
-                <td className="px-4 py-3">{timeAgo(agent.createdAt)}</td>
-                <td className="px-4 py-3">{timeAgo(agent.updatedAt)}</td>
+                <td className="px-4 py-3">{agent.created}</td>
+                <td className="px-4 py-3">{agent.updated}</td>
               </tr>
             ))}
             {filtered.length === 0 && (

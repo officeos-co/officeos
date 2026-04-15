@@ -57,7 +57,7 @@ const data = {
       icon: <SettingsIcon />,
       items: [
         { title: "Providers", url: "/providers" },
-        { title: "API Keys", url: "/api-keys" },
+        { title: "Profile", url: "/profile" },
         { title: "Team", url: "/team" },
         { title: "Billing", url: "/billing" },
       ],
