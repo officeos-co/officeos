@@ -60,13 +60,42 @@ public sealed class SkillService : ISkillService
 
     public async Task<SkillDto?> InstallAsync(string name, CancellationToken ct = default)
     {
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var n = name.Trim().ToLowerInvariant();
+
+        // Refresh the skill manifest from the runtime on each install
+        // so the catalog stays in sync with the current runtime state.
+        var manifests = await _runtime.GetManifestsAsync(ct);
+        var liveManifest = manifests.FirstOrDefault(m =>
+            string.Equals(m.Name.Trim(), n, StringComparison.OrdinalIgnoreCase));
+
+        if (liveManifest is not null)
+        {
+            var manifestJson = JsonSerializer.Serialize(liveManifest, ManifestJsonOptions);
+            var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
+            // UpsertAsync handles both create and update; it will match by Name.
+            await _catalog.UpsertAsync(new Database.Models.SkillRecord
+            {
+                Name = n,
+                Title = liveManifest.Title,
+                Description = liveManifest.Description,
+                Emoji = liveManifest.Emoji,
+                Doc = liveManifest.Doc ?? string.Empty,
+                Source = "builtin",
+                ManifestJson = manifestJson,
+                IsSystem = systemSkills.Contains(n),
+                Status = "active",
+            }, ct);
+        }
+
+        var skill = await _catalog.GetByNameAsync(n, ct);
         if (skill is null)
         {
-            _logger.LogWarning("Install failed: skill {SkillName} not found in catalog", name);
+            _logger.LogWarning("Install failed: skill {SkillName} not found in catalog", n);
             return null;
         }
         var row = await _repository.UpsertAsync(skill.Name, enabled: true, encryptedCredentials: null, ct);
+        // Reset any operator approval override when the skill is (re-)installed.
+        await _repository.SetApprovalOverrideAsync(skill.Name, null, ct);
         _logger.LogInformation("Skill {SkillName} installed", skill.Name);
         return ToDto(skill, row);
     }

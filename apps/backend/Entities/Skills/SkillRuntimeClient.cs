@@ -84,6 +84,23 @@ public sealed class SkillRuntimeClient
     }
 
     /// <summary>
+    /// Fetch all skill manifests from the runtime.
+    /// </summary>
+    public async Task<IReadOnlyList<RuntimeManifest>> GetManifestsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var text = await _http.GetStringAsync($"{_baseUrl}/manifests", ct);
+            return JsonSerializer.Deserialize<List<RuntimeManifest>>(text, JsonOptions) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch manifests from skill-runtime");
+            return [];
+        }
+    }
+
+    /// <summary>
     /// Send skill source files to the runtime for building and hot-loading.
     /// </summary>
     public async Task<JsonElement> BuildAsync(string name, object files, CancellationToken ct = default)
