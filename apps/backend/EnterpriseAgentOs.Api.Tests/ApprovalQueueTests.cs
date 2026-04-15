@@ -316,13 +316,14 @@ public sealed class ApprovalQueueTests : IClassFixture<CustomWebApplicationFacto
     [Fact]
     public async Task ApprovalRequest_SetOverride_SkillDefaultFalseBecomesRequired()
     {
-        SeedGmailManifest(requiresApproval: false);
+        const string skillName = "gmail-override-test";
+        SeedSkillManifest(skillName, requiresApproval: false);
 
         var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
         var agentId = await TestHelpers.CreateAgentAsync(dashClient, $"agent-override-{Guid.NewGuid():N}");
 
-        await dashClient.PostAsJsonAsync("/api/skills/gmail/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/gmail/credentials", new
+        await dashClient.PostAsJsonAsync($"/api/skills/{skillName}/install", new { });
+        await dashClient.PutAsJsonAsync($"/api/skills/{skillName}/credentials", new
         {
             credentials = new Dictionary<string, string>
             {
@@ -331,7 +332,7 @@ public sealed class ApprovalQueueTests : IClassFixture<CustomWebApplicationFacto
         });
 
         // Override: force approval required even though manifest says false
-        var overrideResponse = await dashClient.PutAsJsonAsync("/api/skills/gmail/approval", new
+        var overrideResponse = await dashClient.PutAsJsonAsync($"/api/skills/{skillName}/approval", new
         {
             requiresApproval = true
         });
@@ -339,7 +340,7 @@ public sealed class ApprovalQueueTests : IClassFixture<CustomWebApplicationFacto
 
         // Now executing the skill should be parked, not executed
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
-        var execResponse = await agent.SkillExecAsync("gmail", "send", new { to = "override@example.com", subject = "Override test", body = "Should need approval" });
+        var execResponse = await agent.SkillExecAsync(skillName, "send", new { to = "override@example.com", subject = "Override test", body = "Should need approval" });
 
         Assert.Equal(HttpStatusCode.Accepted, execResponse.StatusCode);
         var body = await execResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -351,14 +352,17 @@ public sealed class ApprovalQueueTests : IClassFixture<CustomWebApplicationFacto
     // Helpers
     // -------------------------------------------------------------------------
 
-    private void SeedGmailManifest(bool requiresApproval)
+    private void SeedGmailManifest(bool requiresApproval) =>
+        SeedSkillManifest("gmail", requiresApproval);
+
+    private void SeedSkillManifest(string skillName, bool requiresApproval)
     {
         var requiresApprovalValue = requiresApproval ? "true" : "false";
 
         var manifest = $$"""
         [
           {
-            "name": "gmail",
+            "name": "{{skillName}}",
             "title": "Gmail",
             "emoji": "📧",
             "description": "Google Gmail integration",
