@@ -120,8 +120,8 @@ export default function PricingPage() {
           <p className="text-muted-foreground">Self-hosted Kubernetes deployment. Full system control.</p>
         </div>
 
-        {/* Tab + billing toggle */}
-        <div className="flex flex-col items-center gap-4 mb-10">
+        {/* Tab toggle */}
+        <div className="flex justify-center mb-10">
           <div className="flex gap-1 rounded-full border border-border bg-muted p-1">
             <button type="button" onClick={() => setTab("individual")}
               className={cn("rounded-full px-5 py-2 text-sm font-medium transition-colors", tab === "individual" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
@@ -130,16 +130,6 @@ export default function PricingPage() {
             <button type="button" onClick={() => setTab("team")}
               className={cn("rounded-full px-5 py-2 text-sm font-medium transition-colors", tab === "team" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               Team & Enterprise
-            </button>
-          </div>
-          <div className="flex gap-1 rounded-full border border-border bg-muted p-0.5 text-xs">
-            <button type="button" onClick={() => setBilling("monthly")}
-              className={cn("rounded-full px-3 py-1 transition-colors", billing === "monthly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-              Monthly
-            </button>
-            <button type="button" onClick={() => setBilling("yearly")}
-              className={cn("rounded-full px-3 py-1 flex items-center gap-1 transition-colors", billing === "yearly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-              Yearly <span className="font-medium text-emerald-600">· Save 20%</span>
             </button>
           </div>
         </div>
@@ -154,6 +144,19 @@ export default function PricingPage() {
             return (
               <div key={plan.key} className="rounded-2xl border border-border bg-card p-8 flex flex-col gap-6 hover:border-primary/30 transition-colors">
                 <Icon className="size-8 text-primary" />
+
+                {plan.price !== null && plan.price.monthly !== 0 && (
+                  <div className="flex gap-1 rounded-full border border-border bg-muted p-0.5 w-fit text-xs">
+                    <button type="button" onClick={() => setBilling("monthly")}
+                      className={cn("rounded-full px-3 py-1 transition-colors", billing === "monthly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                      Monthly
+                    </button>
+                    <button type="button" onClick={() => setBilling("yearly")}
+                      className={cn("rounded-full px-3 py-1 flex items-center gap-1 transition-colors", billing === "yearly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                      Yearly <span className="font-medium text-emerald-600">· Save 20%</span>
+                    </button>
+                  </div>
+                )}
 
                 <div>
                   <h3 className="text-xl font-semibold">{plan.name}</h3>

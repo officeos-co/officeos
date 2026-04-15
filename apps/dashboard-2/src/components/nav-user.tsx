@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -47,6 +48,8 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -95,18 +98,18 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => { setTimeout(() => window.location.href = "/pricing", 0) }}>
+              <DropdownMenuItem onClick={() => router.push("/pricing")}>
                 <SparklesIcon />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => window.location.href = "/team"}>
+              <DropdownMenuItem onClick={() => router.push("/team")}>
                 <BadgeCheckIcon />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => window.location.href = "/billing"}>
+              <DropdownMenuItem onClick={() => router.push("/billing")}>
                 <CreditCardIcon />
                 Billing
               </DropdownMenuItem>
