@@ -41,9 +41,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Production:ConnectionString"] = _postgres.GetConnectionString(),
-                ["Production:KubernetesEnabled"] = "false",
-                ["Production:KubernetesNamespace"] = "default",
-                ["Production:ZeroclawImage"] = "harkro123/zeroclaw:latest",
+                ["Production:Kubernetes:Enabled"] = "false",
+                ["Production:Kubernetes:Namespace"] = "default",
+                ["Production:Kubernetes:Image"] = "harkro123/zeroclaw:latest",
                 ["Production:SkillRuntimeUrl"] = SkillRuntimeMock.Url!,
                 ["Production:SkillGatewayUrl"] = SkillRuntimeMock.Url!,
                 ["Production:FrontendOrigin"] = "http://localhost:5173",
