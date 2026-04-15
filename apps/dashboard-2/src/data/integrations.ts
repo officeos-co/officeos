@@ -8,7 +8,6 @@ export type Integration = {
   slug: string
   logo: string
   description: string
-  type: "tool" | "channel"
   likes: number
   updatedAgo: string
   tools: Tool[]
@@ -38,7 +37,6 @@ export const integrations: Integration[] = [
     slug: "github",
     logo: "/logos/github.svg",
     description: "Create issues, pull requests, manage repositories, and automate workflows.",
-    type: "tool",
     likes: 342,
     updatedAgo: "2 days ago",
     tools: [
@@ -109,7 +107,6 @@ Requires a GitHub Personal Access Token with \`repo\` scope.
     slug: "browser",
     logo: "/logos/browser.svg",
     description: "Search the web and scrape pages for up-to-date information.",
-    type: "tool",
     likes: 218,
     updatedAgo: "5 days ago",
     tools: [
@@ -156,7 +153,6 @@ No credentials required.
     slug: "google-workspace",
     logo: "/logos/google-drive.svg",
     description: "Search Google Drive files and list upcoming Google Calendar events.",
-    type: "tool",
     likes: 156,
     updatedAgo: "1 week ago",
     tools: [
@@ -225,7 +221,6 @@ For schedule/meeting questions:
     slug: "notion",
     logo: "/logos/notion.svg",
     description: "Read and write Notion pages, databases, and blocks.",
-    type: "tool",
     likes: 267,
     updatedAgo: "4 days ago",
     tools: [
@@ -278,7 +273,6 @@ Requires a Notion integration token. Create one at notion.so/my-integrations.
     slug: "linear",
     logo: "/logos/linear.svg",
     description: "Manage issues, projects, and cycles in Linear.",
-    type: "tool",
     likes: 198,
     updatedAgo: "6 days ago",
     tools: [
@@ -322,58 +316,10 @@ Requires a Linear API key.
 `,
   },
   {
-    name: "Slack",
-    slug: "slack",
-    logo: "/logos/slack.svg",
-    description: "Send messages, manage channels, and receive events from Slack.",
-    type: "channel",
-    likes: 412,
-    updatedAgo: "2 days ago",
-    tools: [
-      { name: "send_message", description: "Send a message to a channel" },
-      { name: "list_channels", description: "List available channels" },
-      { name: "read_channel", description: "Read recent messages" },
-    ],
-    skillMd: `# Slack
-
-Connect agents to Slack — send messages, read channels, and respond to events.
-
-## Commands
-
-### Send message
-
-\`\`\`
-slack send_message --channel "#general" --text "Hello from AgentOS"
-\`\`\`
-
-| Argument  | Type   | Required | Default | Description           |
-| --------- | ------ | -------- | ------- | --------------------- |
-| \`channel\` | string | yes      |         | Channel name or ID    |
-| \`text\`    | string | yes      |         | Message text          |
-
-### List channels
-
-\`\`\`
-slack list_channels --limit 50
-\`\`\`
-
-### Read channel
-
-\`\`\`
-slack read_channel --channel "#general" --limit 20
-\`\`\`
-
-## Authentication
-
-Requires a Slack Bot Token (\`xoxb-...\`) with \`chat:write\`, \`channels:read\`, \`channels:history\` scopes.
-`,
-  },
-  {
     name: "Jira",
     slug: "jira",
     logo: "/logos/jira.svg",
     description: "Create and manage Jira issues, sprints, and boards.",
-    type: "tool",
     likes: 87,
     updatedAgo: "1 week ago",
     tools: [
@@ -414,7 +360,6 @@ Requires Jira URL, email, and API token.
     slug: "hubspot",
     logo: "/logos/hubspot.svg",
     description: "Manage contacts, deals, and CRM pipelines in HubSpot.",
-    type: "tool",
     likes: 95,
     updatedAgo: "3 days ago",
     tools: [
@@ -457,7 +402,6 @@ Requires a HubSpot private app access token.
     slug: "salesforce",
     logo: "/logos/salesforce.svg",
     description: "Query records, manage objects, and automate Salesforce workflows.",
-    type: "tool",
     likes: 73,
     updatedAgo: "5 days ago",
     tools: [
@@ -496,173 +440,6 @@ salesforce update_record --object "Account" --id "001..." --fields '{"Industry":
 ## Authentication
 
 Requires Salesforce connected app credentials.
-`,
-  },
-  {
-    name: "Discord",
-    slug: "discord",
-    logo: "/logos/discord.svg",
-    description: "Send messages and manage Discord servers and channels.",
-    type: "channel",
-    likes: 156,
-    updatedAgo: "2 weeks ago",
-    tools: [
-      { name: "send_message", description: "Send a message to a channel" },
-      { name: "list_channels", description: "List server channels" },
-    ],
-    skillMd: `# Discord
-
-Connect agents to Discord — send messages and list channels.
-
-## Commands
-
-### Send message
-
-\`\`\`
-discord send_message --channel "general" --text "Hello from AgentOS"
-\`\`\`
-
-| Argument  | Type   | Required | Default | Description        |
-| --------- | ------ | -------- | ------- | ------------------ |
-| \`channel\` | string | yes      |         | Channel name or ID |
-| \`text\`    | string | yes      |         | Message content    |
-
-### List channels
-
-\`\`\`
-discord list_channels --guild "Server ID"
-\`\`\`
-
-## Authentication
-
-Requires a Discord Bot Token.
-`,
-  },
-  {
-    name: "Telegram",
-    slug: "telegram",
-    logo: "/logos/telegram.svg",
-    description: "Send and receive messages through Telegram bots.",
-    type: "channel",
-    likes: 124,
-    updatedAgo: "1 week ago",
-    tools: [
-      { name: "send_message", description: "Send a message to a chat" },
-      { name: "read_updates", description: "Poll for new messages" },
-    ],
-    skillMd: `# Telegram
-
-Connect agents to Telegram via bot API.
-
-## Commands
-
-### Send message
-
-\`\`\`
-telegram send_message --chat_id "123456" --text "Hello"
-\`\`\`
-
-| Argument  | Type   | Required | Default | Description    |
-| --------- | ------ | -------- | ------- | -------------- |
-| \`chat_id\` | string | yes      |         | Chat or group  |
-| \`text\`    | string | yes      |         | Message text   |
-
-### Read updates
-
-\`\`\`
-telegram read_updates --limit 10
-\`\`\`
-
-## Authentication
-
-Requires a Telegram Bot Token from @BotFather.
-`,
-  },
-  {
-    name: "WhatsApp",
-    slug: "whatsapp",
-    logo: "/logos/whatsapp.svg",
-    description: "Send and receive WhatsApp messages via the Business API.",
-    type: "channel",
-    likes: 201,
-    updatedAgo: "4 days ago",
-    tools: [
-      { name: "send_message", description: "Send a message to a phone number" },
-      { name: "read_messages", description: "Read incoming messages" },
-    ],
-    skillMd: `# WhatsApp
-
-Connect agents to WhatsApp Business API.
-
-## Commands
-
-### Send message
-
-\`\`\`
-whatsapp send_message --to "+1234567890" --text "Hello from AgentOS"
-\`\`\`
-
-| Argument | Type   | Required | Default | Description      |
-| -------- | ------ | -------- | ------- | ---------------- |
-| \`to\`     | string | yes      |         | Phone number     |
-| \`text\`   | string | yes      |         | Message content  |
-
-### Read messages
-
-\`\`\`
-whatsapp read_messages --limit 20
-\`\`\`
-
-## Authentication
-
-Requires WhatsApp Business API credentials.
-`,
-  },
-  {
-    name: "Microsoft Teams",
-    slug: "teams",
-    logo: "/logos/teams.svg",
-    description: "Send messages and manage conversations in Microsoft Teams.",
-    type: "channel",
-    likes: 89,
-    updatedAgo: "1 week ago",
-    tools: [
-      { name: "send_message", description: "Send a message to a channel" },
-      { name: "list_channels", description: "List team channels" },
-      { name: "read_channel", description: "Read recent messages" },
-    ],
-    skillMd: `# Microsoft Teams
-
-Connect agents to Microsoft Teams channels and chats.
-
-## Commands
-
-### Send message
-
-\`\`\`
-teams send_message --channel "General" --text "Update from AgentOS"
-\`\`\`
-
-| Argument  | Type   | Required | Default | Description     |
-| --------- | ------ | -------- | ------- | --------------- |
-| \`channel\` | string | yes      |         | Channel name    |
-| \`text\`    | string | yes      |         | Message content |
-
-### List channels
-
-\`\`\`
-teams list_channels --team "Engineering"
-\`\`\`
-
-### Read channel
-
-\`\`\`
-teams read_channel --channel "General" --limit 20
-\`\`\`
-
-## Authentication
-
-Requires Microsoft Bot Framework app credentials.
 `,
   },
 ]

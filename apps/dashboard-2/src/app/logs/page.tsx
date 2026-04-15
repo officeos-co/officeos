@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { PageHeader } from "@/components/page-header"
-import { Input } from "@/components/ui/input"
+import { LogTable } from "@/components/log-table"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -11,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockLogs } from "@/data/analytics-mock"
+import { mockAgentLogs } from "@/data/agent-mock"
+import type { AgentLog } from "@/data/agent-mock"
 import {
   SearchIcon,
   ChevronLeftIcon,
@@ -19,36 +21,42 @@ import {
   DownloadIcon,
 } from "lucide-react"
 
-function formatTime(ts: number) {
-  return new Date(ts).toLocaleString(undefined, {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit",
-  })
-}
+// Aggregate logs from all agents (mock: duplicate with different agent names)
+const allLogs: (AgentLog & { agentName: string })[] = [
+  ...mockAgentLogs.map((l) => ({ ...l, agentName: "Research Assistant" })),
+  ...mockAgentLogs.slice(0, 5).map((l, i) => ({
+    ...l,
+    id: `log_code_${i}`,
+    time: l.time - 300000,
+    agentName: "Code Reviewer",
+  })),
+  ...mockAgentLogs.slice(0, 3).map((l, i) => ({
+    ...l,
+    id: `log_support_${i}`,
+    time: l.time - 600000,
+    agentName: "Customer Support Bot",
+  })),
+].sort((a, b) => b.time - a.time)
 
-function formatTokens(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-  return n.toString()
-}
-
+const ALL_TYPES = ["All", "tool_call", "tool_result", "channel_in", "channel_out", "message_in", "message_out", "system"] as const
+const ALL_AGENTS = ["All", ...Array.from(new Set(allLogs.map((l) => l.agentName)))]
 const PAGE_SIZES = [10, 25, 50] as const
-const MODELS = ["All", ...Array.from(new Set(mockLogs.map((l) => l.model)))]
-const TYPES = ["All", ...Array.from(new Set(mockLogs.map((l) => l.type)))]
 
 export default function LogsPage() {
   const [search, setSearch] = useState("")
-  const [modelFilter, setModelFilter] = useState("All")
   const [typeFilter, setTypeFilter] = useState("All")
+  const [agentFilter, setAgentFilter] = useState("All")
   const [pageSize, setPageSize] = useState<number>(25)
   const [page, setPage] = useState(0)
 
   const filtered = useMemo(() => {
-    return mockLogs.filter((l) => {
-      if (search && !l.request.toLowerCase().includes(search.toLowerCase()) && !l.id.includes(search)) return false
-      if (modelFilter !== "All" && l.model !== modelFilter) return false
+    return allLogs.filter((l) => {
+      if (search && !l.content.toLowerCase().includes(search.toLowerCase()) && !(l.tool ?? "").includes(search)) return false
       if (typeFilter !== "All" && l.type !== typeFilter) return false
+      if (agentFilter !== "All" && l.agentName !== agentFilter) return false
       return true
     })
-  }, [search, modelFilter, typeFilter])
+  }, [search, typeFilter, agentFilter])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
@@ -71,65 +79,33 @@ export default function LogsPage() {
           <div className="relative flex-1 max-w-sm">
             <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
-              placeholder="Search requests..."
+              placeholder="Search logs..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               className="pl-8"
             />
           </div>
-          <Select value={modelFilter} onValueChange={(v) => { if (v) { setModelFilter(v); setPage(0) } }}>
+          <Select value={agentFilter} onValueChange={(v) => { if (v) { setAgentFilter(v); setPage(0) } }}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Model" />
+              <SelectValue placeholder="Agent" />
             </SelectTrigger>
             <SelectContent>
-              {MODELS.map((m) => <SelectItem key={m} value={m}>{m === "All" ? "All models" : m}</SelectItem>)}
+              {ALL_AGENTS.map((a) => <SelectItem key={a} value={a}>{a === "All" ? "All agents" : a}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={(v) => { if (v) { setTypeFilter(v); setPage(0) } }}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
-              {TYPES.map((t) => <SelectItem key={t} value={t}>{t === "All" ? "All types" : t}</SelectItem>)}
+              {ALL_TYPES.map((t) => <SelectItem key={t} value={t}>{t === "All" ? "All types" : t.replace("_", " ")}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="px-3 py-3 font-medium whitespace-nowrap">Time</th>
-                <th className="px-3 py-3 font-medium">ID</th>
-                <th className="px-3 py-3 font-medium">Model</th>
-                <th className="px-3 py-3 font-medium text-right">Input</th>
-                <th className="px-3 py-3 font-medium text-right">Output</th>
-                <th className="px-3 py-3 font-medium">Type</th>
-                <th className="px-3 py-3 font-medium">Tier</th>
-                <th className="px-3 py-3 font-medium">Request</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((log) => (
-                <tr key={log.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                  <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground text-xs">{formatTime(log.time)}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{log.id}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{log.model}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">{formatTokens(log.inputTokens)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">{formatTokens(log.outputTokens)}</td>
-                  <td className="px-3 py-2.5">
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{log.type}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-xs">{log.serviceTier}</td>
-                  <td className="px-3 py-2.5 text-xs max-w-[200px] truncate text-muted-foreground">{log.request}</td>
-                </tr>
-              ))}
-              {paged.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No logs found.</td></tr>
-              )}
-            </tbody>
-          </table>
+          <LogTable logs={paged} showAgent />
         </div>
 
         {/* Pagination */}
@@ -137,9 +113,7 @@ export default function LogsPage() {
           <div className="flex items-center gap-2 text-muted-foreground">
             <span>Rows per page</span>
             <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
-              <SelectTrigger className="w-[70px] h-8">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
               </SelectContent>

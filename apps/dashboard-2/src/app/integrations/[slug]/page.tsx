@@ -47,13 +47,6 @@ export default function IntegrationDetailPage({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-lg font-semibold">{integration.name}</h1>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
-                integration.type === "channel"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-zinc-100 text-zinc-600"
-              }`}>
-                {integration.type}
-              </span>
             </div>
             <p className="text-sm text-muted-foreground">{integration.description}</p>
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">

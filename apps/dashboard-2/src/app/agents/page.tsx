@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +53,7 @@ function timeAgo(ts: number) {
 }
 
 export default function AgentsPage() {
+  const router = useRouter()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
 
@@ -130,6 +132,7 @@ export default function AgentsPage() {
             {filtered.map((agent) => (
               <tr
                 key={agent.id}
+                onClick={() => router.push(`/agents/${agent.id}`)}
                 className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
               >
                 <td className="px-4 py-3 font-mono text-xs">{agent.id}</td>
