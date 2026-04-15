@@ -95,7 +95,7 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => window.location.href = "/billing"}>
+              <DropdownMenuItem onSelect={() => window.location.href = "/pricing"}>
                 <SparklesIcon />
                 Upgrade to Pro
               </DropdownMenuItem>
