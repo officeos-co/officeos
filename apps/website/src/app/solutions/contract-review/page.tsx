@@ -10,7 +10,7 @@ import {
 import { Navbar } from "@/components/sections/navbar";
 
 export const metadata = {
-  title: "Contract Review Associate — Office OS",
+  title: "Contract Review Associate — OfficeOS",
   description:
     "An AI agent that reviews contracts against internal compliance guidelines, past agreements, and industry regulations — then hands annotated markup to your legal team.",
 };
@@ -207,7 +207,7 @@ export default function ContractReview() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS GmbH
       </footer>
     </div>
   );

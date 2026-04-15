@@ -12,8 +12,8 @@ import { CalModal } from "@/components/cal-modal";
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Office OS",
-  legalName: "Office OS GmbH",
+  name: "OfficeOS",
+  legalName: "OfficeOS GmbH",
   url: "https://www.officeos.co",
   description:
     "AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.",
@@ -29,14 +29,14 @@ const organizationJsonLd = {
 const webSiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Office OS",
+  name: "OfficeOS",
   url: "https://www.officeos.co",
 };
 
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Office OS",
+  name: "OfficeOS",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Kubernetes",
   description:

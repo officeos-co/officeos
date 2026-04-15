@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Deep Integrations — Office OS",
+  title: "Deep Integrations — OfficeOS",
   description:
     "Real API integrations that work like native tools. GitHub, Notion, Google, Slack, browser automation, self-hosted runners, and a unified GraphQL skill interface.",
 };
@@ -40,7 +40,7 @@ export default function IntegrationsPage() {
               </h2>
             </div>
             <p>
-              Office OS ships with a growing set of first-party skills built by
+              OfficeOS ships with a growing set of first-party skills built by
               the core team:{" "}
               <strong className="text-primary">
                 GitHub, Notion, Google, and Obsidian
@@ -148,7 +148,7 @@ export default function IntegrationsPage() {
               </h2>
             </div>
             <p>
-              For integrations that need to access on-premise systems, Office OS
+              For integrations that need to access on-premise systems, OfficeOS
               provides{" "}
               <strong className="text-primary">self-hosted runners</strong> —
               Docker containers that run inside your network and poll the
@@ -186,7 +186,7 @@ export default function IntegrationsPage() {
             </p>
             <p className="mt-4">
               This is the fundamental architectural advantage over managed agent
-              platforms that are limited to MCP server access. Office OS agents
+              platforms that are limited to MCP server access. OfficeOS agents
               have <strong className="text-primary">full system control</strong>{" "}
               — they can interact with any API, any internal service, any tool
               that your organization runs. The integration surface is bounded
@@ -218,7 +218,7 @@ export default function IntegrationsPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 Office OS GmbH
+        Made in Hamburg — © 2026 OfficeOS GmbH
       </footer>
     </div>
   );

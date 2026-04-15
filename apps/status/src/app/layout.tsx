@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Office OS Status",
-  description: "Real-time system status for Office OS services.",
+  title: "OfficeOS Status",
+  description: "Real-time system status for OfficeOS services.",
   robots: { index: true, follow: true },
 };
 

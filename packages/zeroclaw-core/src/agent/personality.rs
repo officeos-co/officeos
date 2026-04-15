@@ -1,7 +1,7 @@
 //! Personality system — loads workspace identity files (SOUL.md, IDENTITY.md,
 //! USER.md, …) and injects them into the system prompt pipeline.
 //!
-//! As of Phase 3 (Office OS architecture) the agent does NOT provision its
+//! As of Phase 3 (OfficeOS architecture) the agent does NOT provision its
 //! own personality files. The dashboard backend renders Jinja2 templates
 //! into the per-agent vault and into a Kubernetes ConfigMap that is mounted
 //! at the agent's workspace directory before the container starts. The

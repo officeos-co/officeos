@@ -2,8 +2,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service — Office OS",
-  description: "Terms and conditions for using the Office OS platform.",
+  title: "Terms of Service — OfficeOS",
+  description: "Terms and conditions for using the OfficeOS platform.",
 };
 
 export default function Terms() {
@@ -18,7 +18,7 @@ export default function Terms() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </Link>
-          <span className="font-medium tracking-tight">Office OS</span>
+          <span className="font-medium tracking-tight">OfficeOS</span>
           <div className="w-16" />
         </div>
       </nav>
@@ -36,7 +36,7 @@ export default function Terms() {
           <section>
             <p>
               These Terms of Service (&quot;Terms&quot;) govern your use of the
-              Office OS platform operated by Harro Krog (Einzelunternehmen,
+              OfficeOS platform operated by Harro Krog (Einzelunternehmen,
               Hamburg, Germany) (&quot;we&quot;, &quot;us&quot;,
               &quot;our&quot;). By creating an account or using the platform,
               you agree to these Terms in their entirety.
@@ -49,12 +49,11 @@ export default function Terms() {
               1. Service Description
             </h2>
             <p>
-              Office OS is a platform for deploying and managing personalized
-              AI agents. The platform enables you to create agents, assign
-              skills, manage credentials, and execute tasks through a central
-              dashboard. Agents run as isolated containers and interact with
-              third-party services through skills and LLM providers you
-              configure.
+              OfficeOS is a platform for deploying and managing personalized AI
+              agents. The platform enables you to create agents, assign skills,
+              manage credentials, and execute tasks through a central dashboard.
+              Agents run as isolated containers and interact with third-party
+              services through skills and LLM providers you configure.
             </p>
           </section>
 
@@ -89,11 +88,11 @@ export default function Terms() {
             </h2>
             <p>
               You acknowledge and accept that autonomous AI agents carry
-              inherent risks, including but not limited to: producing
-              inaccurate or misleading information, executing unintended
-              actions through configured skills, interacting with third-party
-              services in unexpected ways, and generating content that may be
-              inappropriate or incorrect.
+              inherent risks, including but not limited to: producing inaccurate
+              or misleading information, executing unintended actions through
+              configured skills, interacting with third-party services in
+              unexpected ways, and generating content that may be inappropriate
+              or incorrect.
             </p>
             <p className="mt-3">
               <strong className="text-primary">
@@ -117,16 +116,16 @@ export default function Terms() {
                 available&quot; basis without warranties of any kind, either
                 express or implied.
               </strong>{" "}
-              We expressly disclaim all warranties, including but not limited
-              to implied warranties of merchantability, fitness for a
-              particular purpose, accuracy, reliability, non-infringement, and
-              any warranties arising from course of dealing or usage of trade.
+              We expressly disclaim all warranties, including but not limited to
+              implied warranties of merchantability, fitness for a particular
+              purpose, accuracy, reliability, non-infringement, and any
+              warranties arising from course of dealing or usage of trade.
             </p>
             <p className="mt-3">
               We do not warrant that: (a) the platform will be uninterrupted,
               error-free, or secure; (b) agent outputs will be accurate,
-              complete, or reliable; (c) agents will perform as intended in
-              all circumstances; or (d) any defects will be corrected.
+              complete, or reliable; (c) agents will perform as intended in all
+              circumstances; or (d) any defects will be corrected.
             </p>
           </section>
 
@@ -136,28 +135,28 @@ export default function Terms() {
               5. Limitation of Liability
             </h2>
             <p>
-              To the maximum extent permitted by applicable law, we shall not
-              be liable for any indirect, incidental, special, consequential,
-              or punitive damages arising from your use of the platform,
-              including but not limited to damages caused by agent actions,
-              skill executions, LLM outputs, data loss, or service
-              interruptions, regardless of whether we were advised of the
-              possibility of such damages.
+              To the maximum extent permitted by applicable law, we shall not be
+              liable for any indirect, incidental, special, consequential, or
+              punitive damages arising from your use of the platform, including
+              but not limited to damages caused by agent actions, skill
+              executions, LLM outputs, data loss, or service interruptions,
+              regardless of whether we were advised of the possibility of such
+              damages.
             </p>
             <p className="mt-3">
               <strong className="text-primary">
                 Our total aggregate liability for any and all claims arising
-                from or related to these Terms or your use of the platform
-                shall not exceed the total amount you paid to us in the six
-                (6) months preceding the event giving rise to the claim, or
-                one hundred euros (100 EUR), whichever is greater.
+                from or related to these Terms or your use of the platform shall
+                not exceed the total amount you paid to us in the six (6) months
+                preceding the event giving rise to the claim, or one hundred
+                euros (100 EUR), whichever is greater.
               </strong>
             </p>
             <p className="mt-3">
-              Nothing in these Terms excludes or limits our liability for:
-              (a) death or personal injury caused by our negligence; (b) fraud
-              or fraudulent misrepresentation; or (c) any liability that
-              cannot be excluded or limited under applicable law.
+              Nothing in these Terms excludes or limits our liability for: (a)
+              death or personal injury caused by our negligence; (b) fraud or
+              fraudulent misrepresentation; or (c) any liability that cannot be
+              excluded or limited under applicable law.
             </p>
           </section>
 
@@ -167,7 +166,7 @@ export default function Terms() {
               6. Indemnification
             </h2>
             <p>
-              You agree to indemnify, defend, and hold harmless Office OS, its
+              You agree to indemnify, defend, and hold harmless OfficeOS, its
               operator, affiliates, and service providers from and against any
               and all claims, damages, losses, liabilities, costs, and expenses
               (including reasonable legal fees) arising from or related to:
@@ -198,14 +197,14 @@ export default function Terms() {
               7. Third-Party Services
             </h2>
             <p>
-              The platform integrates with third-party LLM providers, APIs,
-              and services as configured by you. We make no representations or
-              warranties regarding the availability, accuracy, or reliability
-              of any third-party service.{" "}
+              The platform integrates with third-party LLM providers, APIs, and
+              services as configured by you. We make no representations or
+              warranties regarding the availability, accuracy, or reliability of
+              any third-party service.{" "}
               <strong className="text-primary">
-                Your use of third-party services through the platform is at
-                your own risk and subject to the terms and conditions of those
-                third parties.
+                Your use of third-party services through the platform is at your
+                own risk and subject to the terms and conditions of those third
+                parties.
               </strong>
             </p>
             <p className="mt-3">
@@ -220,7 +219,7 @@ export default function Terms() {
             <h2 className="text-2xl font-bold tracking-tight text-primary mb-4">
               8. Acceptable Use
             </h2>
-            <p>You agree not to use Office OS to:</p>
+            <p>You agree not to use OfficeOS to:</p>
             <ul className="mt-3 space-y-2 list-disc pl-5">
               <li>
                 Engage in any illegal activity or violate applicable laws and
@@ -304,9 +303,9 @@ export default function Terms() {
               We shall not be liable for any failure or delay in performing our
               obligations under these Terms where such failure or delay results
               from circumstances beyond our reasonable control, including but
-              not limited to: natural disasters, acts of government, internet
-              or infrastructure failures, third-party service outages, cyberattacks,
-              or changes in law or regulation.
+              not limited to: natural disasters, acts of government, internet or
+              infrastructure failures, third-party service outages,
+              cyberattacks, or changes in law or regulation.
             </p>
           </section>
 
@@ -337,7 +336,7 @@ export default function Terms() {
             </p>
             <p className="mt-3">
               These Terms, together with our Privacy Policy, constitute the
-              entire agreement between you and Office OS regarding your use of
+              entire agreement between you and OfficeOS regarding your use of
               the platform and supersede all prior agreements and
               understandings.
             </p>
@@ -376,7 +375,7 @@ export default function Terms() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS
+        Made in Hamburg — &copy; 2026 OfficeOS
       </footer>
     </div>
   );

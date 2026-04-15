@@ -3,7 +3,7 @@ import { Radar, TrendingUp, Users, FileText, Target, Zap } from "lucide-react";
 import { Navbar } from "@/components/sections/navbar";
 
 export const metadata = {
-  title: "Competitive Intelligence Analyst — Office OS",
+  title: "Competitive Intelligence Analyst — OfficeOS",
   description:
     "An AI agent that monitors 20+ competitors daily — press releases, product launches, job postings, social media, earnings calls — and delivers strategic analysis, not summaries.",
 };
@@ -201,7 +201,7 @@ export default function CompetitiveIntelligence() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS GmbH
       </footer>
     </div>
   );

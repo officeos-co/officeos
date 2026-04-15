@@ -3,7 +3,7 @@ import { Navbar } from "@/components/sections/navbar";
 import { Code, Box, Layers, Lock, Upload, Sparkles } from "lucide-react";
 
 export const metadata = {
-  title: "Skills & SDK — Office OS",
+  title: "Skills & SDK — OfficeOS",
   description:
     "TypeScript SDK for defining agent skills with Zod validation. Sandboxed execution, dynamic GraphQL schema, credential isolation, and hot-loading — no Docker rebuild.",
 };
@@ -123,7 +123,7 @@ export default function SkillsPage() {
             </div>
             <p>
               Skills often need API keys — GitHub tokens, Notion integration
-              keys, Google service account credentials. In Office OS, these
+              keys, Google service account credentials. In OfficeOS, these
               credentials are{" "}
               <strong className="text-primary">
                 encrypted in Postgres using ASP.NET Core DataProtection
@@ -220,7 +220,7 @@ export default function SkillsPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 Office OS GmbH
+        Made in Hamburg — © 2026 OfficeOS GmbH
       </footer>
     </div>
   );

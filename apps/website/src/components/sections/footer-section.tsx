@@ -58,7 +58,7 @@ export function FooterSection() {
       <div className="flex flex-col p-10 md:flex-row md:items-start md:justify-between">
         <div className="mx-0 flex max-w-xs flex-col items-start justify-start gap-y-5">
           <Link href="/" className="flex items-center gap-2">
-            <p className="font-semibold text-primary text-xl">Office OS</p>
+            <p className="font-semibold text-primary text-xl">OfficeOS</p>
           </Link>
           <p className="font-medium text-muted-foreground tracking-tight">
             The intelligence layer for AI agents.
@@ -116,18 +116,16 @@ export function FooterSection() {
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground transition-colors hover:text-primary"
-        >
-          Status
-        </a>
+        ></a>
         <span className="text-xs text-muted-foreground">
-          Made in Hamburg — &copy; 2026 Office OS GmbH
+          Made in Hamburg — &copy; 2026 OfficeOS GmbH
         </span>
       </div>
       <div className="relative z-0 mt-8 h-48 w-full md:h-64">
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-40% from-transparent to-background" />
         <div className="absolute inset-0 mx-6">
           <FlickeringGrid
-            text={tablet ? "Office OS" : "Office OS"}
+            text={tablet ? "OfficeOS" : "OfficeOS"}
             fontSize={tablet ? 70 : 90}
             className="h-full w-full"
             squareSize={2}

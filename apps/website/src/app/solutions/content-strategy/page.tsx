@@ -3,7 +3,7 @@ import { PenTool, Search, BarChart3, FileText, Users, Zap } from "lucide-react";
 import { Navbar } from "@/components/sections/navbar";
 
 export const metadata = {
-  title: "Content Strategist — Office OS",
+  title: "Content Strategist — OfficeOS",
   description:
     "An AI agent that researches topics from industry news, customer feedback, and internal knowledge — then develops a differentiated content strategy with drafts ready for review.",
 };
@@ -209,7 +209,7 @@ export default function ContentStrategy() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS GmbH
       </footer>
     </div>
   );

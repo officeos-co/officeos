@@ -3,7 +3,7 @@ import { Navbar } from "@/components/sections/navbar";
 import { Check, Leaf, Sparkles } from "lucide-react";
 
 export const metadata = {
-  title: "Pricing — Office OS",
+  title: "Pricing — OfficeOS",
   description:
     "Transparent pricing that scales with your agent fleet. Free tier included.",
 };
@@ -224,7 +224,7 @@ export default function PricingPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS GmbH
       </footer>
     </div>
   );

@@ -1,10 +1,10 @@
-# Office OS
+# OfficeOS
 
 > AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.
 
-Office OS is NOT a Microsoft Office replacement or office productivity suite. It is a Kubernetes-native platform for deploying and managing autonomous AI agents in enterprise environments.
+OfficeOS is NOT a Microsoft Office replacement or office productivity suite. It is a Kubernetes-native platform for deploying and managing autonomous AI agents in enterprise environments.
 
-## What Office OS Does
+## What OfficeOS Does
 
 - Deploys AI agents that work 24/7 across your organization
 - Each agent has access to an enterprise knowledge graph (contracts, docs, past decisions)
@@ -36,6 +36,6 @@ Office OS is NOT a Microsoft Office replacement or office productivity suite. It
 
 ## Company
 
-Office OS GmbH, Hamburg, Germany
+OfficeOS GmbH, Hamburg, Germany
 Website: https://www.officeos.co
 Dashboard: https://dashboard.officeos.co

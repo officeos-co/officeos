@@ -40,7 +40,7 @@ for skill in "${SKILLS[@]}"; do
   if ! gh repo view "$ORG/$REPO" &>/dev/null; then
     echo "  Creating repo $ORG/$REPO..."
     # Extract description from skill.ts if possible
-    DESC=$(grep -oP '(?<=description:\s*")[^"]+' "$SRC/skill.ts" 2>/dev/null | head -1 || echo "Office OS skill: $skill")
+    DESC=$(grep -oP '(?<=description:\s*")[^"]+' "$SRC/skill.ts" 2>/dev/null | head -1 || echo "OfficeOS skill: $skill")
     gh repo create "$ORG/$REPO" --public --description "$DESC" --license mit
     sleep 1
   fi
@@ -88,7 +88,7 @@ PKGJSON
   # Generate README if it doesn't exist
   if [ ! -f "$WORK/$REPO/README.md" ]; then
     TITLE=$(grep -oP "(?<=title:\s\")[^\"]+" "$SRC/skill.ts" 2>/dev/null | head -1 || echo "$skill")
-    DESC=$(grep -oP '(?<=description:\s*")[^"]+' "$SRC/skill.ts" 2>/dev/null | head -1 || echo "Office OS skill: $skill")
+    DESC=$(grep -oP '(?<=description:\s*")[^"]+' "$SRC/skill.ts" 2>/dev/null | head -1 || echo "OfficeOS skill: $skill")
     cat > "$WORK/$REPO/README.md" <<README
 # @officeos/skill-$skill
 
@@ -100,7 +100,7 @@ $DESC
 eaos skill install $skill
 \`\`\`
 
-Or from the Office OS dashboard under **Skills > Install**.
+Or from the OfficeOS dashboard under **Skills > Install**.
 
 ## License
 

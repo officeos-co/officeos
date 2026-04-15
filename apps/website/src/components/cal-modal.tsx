@@ -42,7 +42,7 @@ export function CalModal() {
         <iframe
           src={CAL_EMBED_URL}
           className="h-[600px] w-full border-0"
-          title="Book a Demo — Office OS"
+          title="Book a Demo — OfficeOS"
           scrolling="no"
           style={{ overflow: "hidden" }}
         />

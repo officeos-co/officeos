@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Enterprise Knowledge Graph — Office OS",
+  title: "Enterprise Knowledge Graph — OfficeOS",
   description:
     "Obsidian-inspired knowledge management for AI agents. Per-agent vaults, CouchDB-backed storage, graph-first discovery, and real-time dashboard editing.",
 };
@@ -42,7 +42,7 @@ export default function KnowledgeGraphPage() {
             <p>
               Traditional enterprise knowledge systems force you into rigid
               hierarchies — folders within folders, taxonomies that become
-              outdated the moment they&apos;re created. Office OS takes a
+              outdated the moment they&apos;re created. OfficeOS takes a
               fundamentally different approach, inspired by Obsidian&apos;s
               graph-based model.
             </p>
@@ -130,7 +130,7 @@ export default function KnowledgeGraphPage() {
               </h2>
             </div>
             <p>
-              Knowledge discovery in Office OS works through{" "}
+              Knowledge discovery in OfficeOS works through{" "}
               <strong className="text-primary">
                 categories over folders, tags over taxonomy
               </strong>
@@ -220,7 +220,7 @@ export default function KnowledgeGraphPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 Office OS GmbH
+        Made in Hamburg — © 2026 OfficeOS GmbH
       </footer>
     </div>
   );

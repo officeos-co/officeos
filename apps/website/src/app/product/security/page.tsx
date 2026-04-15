@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Enterprise Security — Office OS",
+  title: "Enterprise Security — OfficeOS",
   description:
     "Self-hosted, single-tenant architecture. Credentials never leave the backend. Sandboxed execution, pod isolation, encrypted storage, audit trails, and GDPR compliance.",
 };
@@ -40,7 +40,7 @@ export default function SecurityPage() {
               </h2>
             </div>
             <p>
-              Office OS runs entirely on your infrastructure. There is no
+              OfficeOS runs entirely on your infrastructure. There is no
               multi-tenant cloud service, no shared compute, no data leaving
               your network. The platform deploys to your Kubernetes cluster —
               whether that&apos;s on-premise bare metal, a managed cloud
@@ -179,7 +179,7 @@ export default function SecurityPage() {
               </h2>
             </div>
             <p>
-              Office OS includes a built-in{" "}
+              OfficeOS includes a built-in{" "}
               <strong className="text-primary">memory_export tool</strong> for
               data portability — a core GDPR requirement. Users can export all
               data associated with their agents, including conversation history,
@@ -220,7 +220,7 @@ export default function SecurityPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 Office OS GmbH
+        Made in Hamburg — © 2026 OfficeOS GmbH
       </footer>
     </div>
   );

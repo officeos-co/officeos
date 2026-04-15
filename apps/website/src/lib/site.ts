@@ -1,8 +1,8 @@
 export const siteConfig = {
-  name: "Office OS",
+  name: "OfficeOS",
   url: "https://www.officeos.co",
   description:
-    "Office OS is an AI agent platform that deploys autonomous agents across your company — with enterprise knowledge, custom skills, and full infrastructure control.",
+    "OfficeOS is an AI agent platform that deploys autonomous agents across your company — with enterprise knowledge, custom skills, and full infrastructure control.",
   links: {
     github: "https://github.com/officeos",
   },

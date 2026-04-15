@@ -21,10 +21,6 @@ export function CTASection() {
             >
               Start Free
             </Link>
-            <span className="text-sm text-muted-foreground">
-              Free tier includes 3 agents. Bring your own API keys. Cancel
-              anytime.
-            </span>
           </div>
         </div>
       </div>

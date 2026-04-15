@@ -10,7 +10,7 @@ import {
 import { Navbar } from "@/components/sections/navbar";
 
 export const metadata = {
-  title: "Sales Lead Researcher — Office OS",
+  title: "Sales Lead Researcher — OfficeOS",
   description:
     "An AI agent that independently researches every lead before every sales call — LinkedIn, company news, funding rounds, CRM history, and full organizational context.",
 };
@@ -101,7 +101,7 @@ export default function SalesIntelligence() {
               </h2>
             </div>
             <p>
-              This is where Office OS is fundamentally different from a research
+              This is where OfficeOS is fundamentally different from a research
               tool. The agent has access to your organization&apos;s full
               knowledge graph — product roadmaps, pricing decisions, engineering
               capabilities, customer success stories. It generates{" "}
@@ -201,7 +201,7 @@ export default function SalesIntelligence() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS GmbH
       </footer>
     </div>
   );

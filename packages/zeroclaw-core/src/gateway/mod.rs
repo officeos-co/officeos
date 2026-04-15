@@ -22,7 +22,7 @@
 //! and the [`PairingGuard`](crate::security::pairing::PairingGuard).
 //!
 //! Post-Phase 2/4 the historical `webauthn`, `plugins-wasm`, and `tunnel`
-//! submodules have all been deleted: Office OS is now exposed via Kubernetes
+//! submodules have all been deleted: OfficeOS is now exposed via Kubernetes
 //! Service/Ingress rather than per-process tunnels, and these names must not be
 //! referenced.
 //!
@@ -376,7 +376,7 @@ pub async fn run_gateway(
     external_event_tx: Option<tokio::sync::broadcast::Sender<serde_json::Value>>,
 ) -> Result<()> {
     // Phase 4: the old public-bind warning was bare-metal-only and
-    // relied on config.tunnel.provider. Office OS is K8s-deployed, so
+    // relied on config.tunnel.provider. OfficeOS is K8s-deployed, so
     // the pod's service account and Ingress handle external exposure —
     // there is no "tunnel vs raw bind" concern to warn about.
     let _ = host;

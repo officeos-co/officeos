@@ -10,7 +10,7 @@ import {
 import { Navbar } from "@/components/sections/navbar";
 
 export const metadata = {
-  title: "Customer Success Agent — Office OS",
+  title: "Customer Success Agent — OfficeOS",
   description:
     "An AI agent that handles inbound customer requests across Email, WhatsApp, and Chat — not with templates, but with real understanding of each customer's context.",
 };
@@ -203,7 +203,7 @@ export default function CustomerSuccess() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — &copy; 2026 Office OS GmbH
+        Made in Hamburg — &copy; 2026 OfficeOS GmbH
       </footer>
     </div>
   );

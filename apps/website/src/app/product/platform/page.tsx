@@ -3,7 +3,7 @@ import { Navbar } from "@/components/sections/navbar";
 import { Cpu, Zap, Shield, Globe, Terminal, RefreshCw } from "lucide-react";
 
 export const metadata = {
-  title: "Platform Overview — Office OS",
+  title: "Platform Overview — OfficeOS",
   description:
     "Kubernetes-native platform for autonomous AI agents. Lightweight Rust binaries, single-env deployment, real-time status, and multi-provider LLM support.",
 };
@@ -199,7 +199,7 @@ export default function PlatformPage() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 Office OS GmbH
+        Made in Hamburg — © 2026 OfficeOS GmbH
       </footer>
     </div>
   );

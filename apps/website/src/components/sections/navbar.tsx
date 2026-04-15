@@ -214,7 +214,7 @@ export function Navbar() {
         >
           <div className="flex h-[56px] items-center justify-between p-4">
             <Link href="/" className="flex items-center gap-3">
-              <p className="font-semibold text-lg text-primary">Office OS</p>
+              <p className="font-semibold text-lg text-primary">OfficeOS</p>
             </Link>
 
             {/* Desktop nav */}
@@ -311,7 +311,7 @@ export function Navbar() {
                 <div className="flex items-center justify-between">
                   <Link href="/" className="flex items-center gap-3">
                     <p className="font-semibold text-lg text-primary">
-                      Office OS
+                      OfficeOS
                     </p>
                   </Link>
                   <button

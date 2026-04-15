@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "About — Office OS",
+  title: "About — OfficeOS",
   description:
-    "The story behind Office OS — structuring agentic work for organizations.",
+    "The story behind OfficeOS — structuring agentic work for organizations.",
 };
 
 export default function About() {
@@ -20,7 +20,7 @@ export default function About() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </Link>
-          <span className="font-medium tracking-tight">Office OS</span>
+          <span className="font-medium tracking-tight">OfficeOS</span>
           <div className="w-16" />
         </div>
       </nav>
@@ -44,7 +44,7 @@ export default function About() {
           </p>
           <p>
             <strong className="text-primary">
-              Office OS exists to fix that.
+              OfficeOS exists to fix that.
             </strong>{" "}
             We&apos;re building the intelligence layer for autonomous AI agents
             — a Kubernetes-native platform where agents are deployed in seconds,
@@ -97,7 +97,7 @@ export default function About() {
                 Founder &amp; Engineer
               </p>
               <p className="mt-3 max-w-md text-sm text-muted-foreground leading-relaxed">
-                Based in Hamburg. Building Office OS as the obvious next step
+                Based in Hamburg. Building OfficeOS as the obvious next step
                 after seeing how unstructured agentic work is today — agents
                 that don&apos;t know each other, tools that aren&apos;t shared,
                 credentials scattered everywhere.
@@ -145,7 +145,7 @@ export default function About() {
       </main>
 
       <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 Office OS GmbH
+        Made in Hamburg — © 2026 OfficeOS GmbH
       </footer>
     </div>
   );

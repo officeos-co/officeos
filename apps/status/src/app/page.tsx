@@ -97,7 +97,7 @@ export default function StatusPage() {
       <header className="mb-10">
         <div className="flex items-baseline gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-foreground">
-            Office OS
+            OfficeOS
           </h1>
           <span className="text-sm text-muted-foreground">Status</span>
         </div>
@@ -173,7 +173,7 @@ export default function StatusPage() {
       {/* Footer */}
       <footer className="mt-16 border-t border-border pt-6 text-center text-xs text-muted-foreground">
         <p>
-          &copy; 2026 Office OS GmbH &middot;{" "}
+          &copy; 2026 OfficeOS GmbH &middot;{" "}
           <a
             href="https://officeos.co"
             className="underline underline-offset-2 hover:text-foreground"
