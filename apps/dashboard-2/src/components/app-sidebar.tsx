@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -20,17 +19,13 @@ import {
   BotIcon,
   ActivityIcon,
   SettingsIcon,
-  SparklesIcon,
+  BookOpenIcon,
 } from "lucide-react"
 
 const data = {
-  org: {
-    name: "AgentOS",
-    plan: "Free plan",
-  },
   user: {
     name: "Harro Krog",
-    email: "harro@officeos.co",
+    plan: "Free plan",
     avatar: "",
   },
   navMain: [
@@ -72,7 +67,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher org={data.org} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
@@ -81,12 +76,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              render={<Link href="/billing" />}
-              tooltip="Upgrade to Pro"
-              className="text-muted-foreground"
+              tooltip="Documentation"
+              render={
+                <a
+                  href="https://docs.officeos.co"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
             >
-              <SparklesIcon className="text-secondary" />
-              <span>Free plan · <span className="text-secondary font-medium">Upgrade</span></span>
+              <BookOpenIcon />
+              <span>Documentation</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

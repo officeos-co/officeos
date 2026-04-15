@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import {
   Avatar,
   AvatarFallback,
@@ -43,7 +42,7 @@ export function NavUser({
 }: {
   user: {
     name: string
-    email: string
+    plan: string
     avatar: string
   }
 }) {
@@ -68,7 +67,7 @@ export function NavUser({
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs">{user.email}</span>
+              <span className="truncate text-xs text-muted-foreground">{user.plan}</span>
             </div>
             <ChevronsUpDownIcon className="ml-auto size-4" />
           </DropdownMenuTrigger>
@@ -89,7 +88,7 @@ export function NavUser({
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user.plan}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
