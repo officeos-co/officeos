@@ -2,8 +2,17 @@ import { docs } from "@/.source"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { formatDate } from "@/lib/utils"
 
+interface ChangelogEntry {
+  title: string
+  date: string
+  version?: string
+  tags?: string[]
+  body: React.ComponentType
+}
+
 export default function HomePage() {
-  const sorted = [...docs].sort((a, b) => {
+  const entries = docs as unknown as ChangelogEntry[]
+  const sorted = [...entries].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime()
   })
 
