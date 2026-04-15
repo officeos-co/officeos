@@ -1,57 +1,107 @@
 # EnterpriseAgentOS
 
-Kubernetes-native platform for autonomous AI agents. Single-tenant, self-hosted. Trying to get into ycombinator being the intellifence layer for Agents. I see the product as the obvious next iteration after openclaw. Problems of openclaw are that an agent is just a virtrual machine which you have to ssh into really often not just for initialisation or go torugh the web ui. Agents dont know each other. Tools arent centrally logged, tools cant be shared. So our Architecture is the solution. Agents are mostly decoupled in the cloud hosted as npm packages exposing a graphql api. However we still have all the capabilties of openclaw unlike claude managed agents where agents run entirely in the cloud and thus can only access mcp servers. Our architecture can control any software which exposes a graphql api. And still has full system control.
-Further context about what we are buildig is in /Users/harrokrog/Documents/Optimierung/OfficeOS.md for the website we orientate on /Users/harrokrog/Documents/Optimierung/References/YC Website Blueprint.md and we evaluate based on /Users/harrokrog/Documents/Optimierung/Clipping/YC Landing Page Teardown 50 Lessons.md
+Kubernetes-native platform for running autonomous AI agents. Single-tenant, self-hosted.
 
-## Repository layout
+---
+
+## How to work in this repo
+
+**Trust the documentation, not the codebase.** These CLAUDE.md files document every convention, every pattern, every naming rule, and every anti-pattern. Read the relevant CLAUDE.md before touching code — do not explore the codebase to learn conventions. The docs are the source of truth for how to work here.
+
+**Do not read files to understand architecture.** The mental model below and the sub-package CLAUDE.md files explain every data flow, every layer boundary, and every structural pattern. You should not need to read source files to understand how things connect — only to understand specific implementation details when making a change.
+
+**Keep documentation current.** After any change that adds, removes, or modifies a convention, a structural pattern, a naming rule, a new domain/hook/entity, or a new package — update the relevant CLAUDE.md in the same commit. Documentation that falls behind is worse than no documentation. If you added a new backend domain, add it to the domain table. If you added a new dashboard hook, add it to the hook table. If you changed how DI works, update the DI section. This is not optional.
+
+---
+
+## Start here — read the relevant CLAUDE.md before touching any code
+
+| Package | Role | CLAUDE.md |
+|---------|------|-----------|
+| `apps/dashboard/` | The product — operators manage agents, skills, providers here | `apps/dashboard/CLAUDE.md` |
+| `apps/backend/` | Central orchestrator — all state, credentials, K8s control, LLM proxy | `apps/backend/CLAUDE.md` |
+| `apps/website/` | Public landing page only — no backend, pure marketing | `apps/website/CLAUDE.md` |
+| `packages/zeroclaw-core/` | Rust agent binary — runs inside each K8s pod | `packages/zeroclaw-core/CLAUDE.md` |
+| `packages/skills/` | First-party TypeScript skill packages | `packages/skills/CLAUDE.md` |
+| `packages/skill-sdk/` | `@harro/skill-sdk` — `defineSkill`, Zod, type interfaces | `packages/skill-sdk/CLAUDE.md` |
+| `packages/skill-runtime/` | Node.js service that executes skills and serves the HTTP skill API | `packages/skill-runtime/CLAUDE.md` |
+| `k8s/` | Kubernetes manifests only — `backend.yaml`, `frontend.yaml`, `website.yaml` | no CLAUDE.md needed |
+| `docs/` | External user-facing documentation — not developer docs, not agent context | no CLAUDE.md needed |
+
+---
+
+## System mental model
 
 ```
-apps/backend/         C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, vault, K8s orchestration
-apps/dashboard/        Next.js 16 + React 19 — Mission Control dashboard
-apps/website/            Next.js 15 + Bun + shadcn — public landing page (officeos.co)
-packages/zeroclaw-core/  Rust agent runtime — turn loop, tool execution, memory, channels
-packages/skill-sdk/      @harro/skill-sdk — TypeScript SDK for defining skills (defineSkill + Zod)
-packages/skill-runtime/  Node.js skill execution service — loads bundled skills, exposes HTTP API
-packages/skills/         First-party skills (notion, github, google, obsidian) built with the SDK
-packages/obsctl/         Python CLI for Obsidian vault operations (CouchDB backend)
-k8s/                     Kubernetes manifests (backend.yaml, frontend.yaml, website.yaml)
-docs/                    Architecture and system documentation
+Browser
+  └─► apps/dashboard/          Next.js — the product UI
+        └─► apps/backend/       C# ASP.NET Core — single orchestrator, all credentials live here
+              ├─► Postgres       EF Core — agents, providers, skills, sessions, browser cookies
+              │                  Schema source of truth: apps/backend/Database/Models/
+              ├─► CouchDB        Per-agent vault — personality files (SOUL.md, IDENTITY.md, AGENTS.md)
+              ├─► K8s API        Spawns/terminates agent pods, reads live pod status
+              └─► skill-runtime  Node.js — executes TypeScript skills, exposes HTTP API
+
+backend spawns pods running ──► packages/zeroclaw-core/  (Rust binary, image: harkro123/zeroclaw:latest)
+  Pod boots with ZEROCLAW_AGENT_ID only. Calls backend to get everything:
+  provider config, LLM proxy endpoint, GraphQL skill gateway, vault personality files.
+
+apps/website/    Next.js — public landing page. No backend connection. No auth.
 ```
 
-## Architecture (one paragraph)
+**Dashboard = the product.** All operator workflows go through it.  
+**Website = advertising.** Completely separate. No shared code with dashboard.  
+**Backend = single source of truth.** Credentials never leave it.  
+**Agent pods = dumb terminals.** One env var, everything else fetched on boot.  
+**Skills = TypeScript npm packages.** Run in skill-runtime, not in the pod.  
+**Database schema = C#.** `apps/backend/Database/Models/` + EF Core migrations. Always create and apply a migration when changing any model.
 
-User opens the dashboard, creates an agent. The backend provisions a CouchDB vault (personality files), creates a K8s pod running the zeroclaw Rust binary, and stores the agent record in Postgres. The agent pod boots with only `ZEROCLAW_AGENT_ID`, hydrates its workspace from CouchDB, discovers skills via GraphQL introspection, and serves a WebSocket chat gateway. All LLM calls route through the backend's proxy — credentials never leave the backend. Skills are TypeScript modules defined with `@harro/skill-sdk` and executed in a separate Node.js skill-runtime service. The backend generates a dynamic GraphQL schema from runtime manifests via `SkillTypeModule` (HotChocolate `ITypeModule`) — no hardcoded skill knowledge in C#. The agent calls skills through a single `skill_exec` tool that presents a CLI-like interface over GraphQL.
+---
 
-## Key design decisions
+## Skill execution flow
 
-- **Credentials never leave the backend.** Agent pods have no API keys. LLM calls and skill executions are proxied through the backend which injects credentials per-request.
-- **Single env var deployment.** Agent pods receive only `ZEROCLAW_AGENT_ID`. Everything else (provider, model, vault, skills) is derived from that ID by calling the backend.
-- **CouchDB is the vault source of truth.** Personality files live in per-agent CouchDB databases, cached on the pod's PVC.
-- **GraphQL skill gateway.** Skills are defined in TypeScript (`@harro/skill-sdk`), executed in a separate Node.js skill-runtime. The backend generates GraphQL types dynamically from runtime manifests via `SkillTypeModule` (`ITypeModule`). Agents discover skills via introspection and call them through a CLI-style `skill_exec` tool.
-- **Dynamic skill registry.** Skills can be published to a Postgres-backed registry (`SkillRegistryRecord`) and installed into the skill-runtime at boot or on-demand via `/install` and `/uninstall` endpoints. No Docker rebuild needed.
-- **System skills.** Some skills (e.g. `browser`) are always available without manual install or credentials. The backend auto-includes them in the capabilities endpoint.
-- **Browser sessions.** The browser skill uses Playwright in the skill-runtime. The backend transparently manages per-agent sessions and persists cookies in Postgres (`BrowserSessionRecord`). Agents are session-unaware.
-- **Status is live.** `GET /api/agents` calls K8s API inline to refresh pod status. Frontend polls every 10s.
-- **CICD handles everything** no manual commands need to be done. CICD handles building, testing and deploying.
+```
+Agent pod (Rust)
+  → skill_exec tool — parses CLI command, sends GraphQL query to backend
+  → backend SkillTypeModule — dynamic HotChocolate schema, no hardcoded skill knowledge in C#
+  → skill-runtime POST /execute — Zod validates params, injects decrypted credentials + sandboxed fetch
+  → TypeScript skill action — calls real API/CLI/SDK, returns result
+```
+
+---
+
+## CI/CD — push to main, everything deploys automatically
+
+No manual build or deploy commands ever.
+
+| Workflow | Triggers on | Builds | Deploys |
+|----------|-------------|--------|---------|
+| `deploy-backend-prod.yml` | `apps/backend/**`, `k8s/backend.yaml` | Tests → `harkro123/eaos-backend:latest` | `kubectl rollout restart deployment/eaos-backend-prod` |
+| `deploy-dashboard-prod.yml` | `apps/dashboard/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` |
+| `deploy-website-prod.yml` | `apps/website/**`, `k8s/website.yaml` | `harkro123/eaos-website:latest` | `kubectl rollout restart deployment/eaos-website-prod` |
+| `build-zeroclaw-image.yml` | `packages/zeroclaw-core/**` | `harkro123/zeroclaw:latest` | No deploy — new pods pick up `:latest` on next spawn |
+| `build-skill-runtime.yml` | `packages/skill-runtime/**`, `packages/skill-sdk/**`, `packages/skills/**` | `harkro123/eaos-skill-runtime:latest` | Rollout restart + seed manifests to backend DB via `POST /api/internal/seed-manifests` |
+| `publish-skill-sdk.yml` | `packages/skill-sdk/**` | — | npm publish `@harro/skill-sdk` |
+| `sync-skill-repos.yml` | `packages/skills/**` | — | Syncs first-party skills to their individual repos |
+
+CI connects to the cluster via **Tailscale** + `kubectl` with `KUBE_TOKEN`. All images push to Docker Hub under `harkro123/` with `:latest` only.
+
+---
 
 ## Conventions
 
-- Commit after each stage of multi-step work.
-- One concern per PR.
-- No K8s env vars for app config — use `appsettings.json` baked into the image.
-- Docker images push to Docker Hub under `harkro123/` — `:latest` tag only, no SHA tags.
-- Prod hostnames: `dashboard.officeos.co` (frontend), `api.officeos.co` (backend).
-- Update docs/ if changes have been done or major feature has been added. Same for CLAUDE.md prompt if its relevant to the prompt
-- When working on long running tasks do iterative commits but not when working on main only when in a separate branch.
-  Dont make the committs too small the goal should be at every commit it should be in a usable state its totally fine if for a large tast you structure it only in 3 commits except 10
-- When changing the database schema make sure to apply the migration
+- **Commit after each stage** of multi-step work. Each commit must leave the codebase in a working state. Prefer 3 solid commits over 10 small ones.
+- **One concern per PR.**
+- **No K8s env vars for app config.** Use `appsettings.json` baked into the Docker image.
+- **Image registry:** Docker Hub `harkro123/`, `:latest` tag only — no SHA tags.
+- **Prod hostnames:** `dashboard.officeos.co` (dashboard), `api.officeos.co` (backend), `officeos.co` (website).
+- **Schema migrations:** always create and apply an EF Core migration when changing `apps/backend/Database/Models/`.
+- **Update the relevant CLAUDE.md in the same commit** when adding a new domain, hook, entity, convention, or structural pattern. If the docs don't reflect the code, the next agent will do it wrong.
+
+---
 
 ## Skill rules
 
-- **No channel-specific skills.** Slack, Discord, Teams, Telegram, WhatsApp, Twilio SMS, iMessage, Intercom etc. are handled by native channel integrations — never create skills for them.
-- **No prompt-only skills.** Every skill must wrap a real CLI, SDK, or API. Pure prompt-based "skills" (planning templates, review checklists, research frameworks, productivity workflows) are not skills — they are agent behavior and belong in the agent's personality/system prompt, not in the skill registry.
-- **Spec-driven workflow.** For every new skill: (1) get the CLI/SDK reference from the source repo, (2) write the SKILL.md spec replicating 100% of the relevant surface, (3) create tests, (4) implement.
-
-## Mindset
-
-The marginal cost of completness is near zero with AI. Do the whole thing. Do it right. Do it with tests, docummentation, well. So that I am genuinely imporessed - not politely satisfied. Never offer to "table this for later" when the permament solve is within reach. Never leave a dangling thread when trying it off takes five more minutes. Never present a workaround when the real fix exists. When I want something, the answer is the product, not an excuse. Fatigue is not an excuse, complexity is not an excuse.
+- **No channel skills.** Slack, Discord, Teams, Telegram, WhatsApp, Twilio, iMessage — native channel integrations handle messaging. Never build skills for them.
+- **No prompt-only skills.** Every skill must call a real API, CLI, or SDK. Planning templates and review checklists are agent personality — they belong in the agent's system prompt, not the skill registry.
+- **Spec-driven order:** (1) `SKILL.md` spec, (2) tests, (3) implementation.
