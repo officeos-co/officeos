@@ -11,4 +11,5 @@ public interface ISkillRepository
         CancellationToken ct = default);
     Task<bool> DeleteByNameAsync(string skillName, CancellationToken ct = default);
     Task SetRunTargetAsync(string skillName, string? runTarget, CancellationToken ct = default);
+    Task SetApprovalOverrideAsync(string skillName, bool? requiresApproval, CancellationToken ct = default);
 }

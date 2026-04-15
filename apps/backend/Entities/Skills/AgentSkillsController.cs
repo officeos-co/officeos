@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using EnterpriseAgentOs.Api.Database.Models;
+using EnterpriseAgentOs.Api.Entities.ApprovalQueue;
 using EnterpriseAgentOs.Api.Entities.Audit;
 using EnterpriseAgentOs.Api.Entities.Events;
 using EnterpriseAgentOs.Api.Entities.RateLimiting;
@@ -22,6 +23,8 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly IAuditService _audit;
     private readonly IRateLimitService _rateLimiter;
     private readonly ISkillCatalogRepository _catalog;
+    private readonly ISkillRepository _skillRepo;
+    private readonly IApprovalService _approvalService;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -36,6 +39,8 @@ public sealed class AgentSkillsController : ControllerBase
         IAuditService audit,
         IRateLimitService rateLimiter,
         ISkillCatalogRepository catalog,
+        ISkillRepository skillRepo,
+        IApprovalService approvalService,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
@@ -48,6 +53,8 @@ public sealed class AgentSkillsController : ControllerBase
         _audit = audit;
         _rateLimiter = rateLimiter;
         _catalog = catalog;
+        _skillRepo = skillRepo;
+        _approvalService = approvalService;
         _logger = logger;
     }
 
@@ -98,6 +105,17 @@ public sealed class AgentSkillsController : ControllerBase
                     });
                 }
             }
+        }
+
+        // --- Approval gate ---
+        var approvalRequired = await RequiresApprovalAsync(body.Skill, skillRecord, ct);
+        if (approvalRequired)
+        {
+            var approvalParamsJson = JsonSerializer.Serialize(body.Params ?? new Dictionary<string, object>());
+            var approvalRecord = await _approvalService.CreatePendingAsync(execAgentId, body.Skill, body.Action, approvalParamsJson, ct);
+            _logger.LogInformation("Skill {Skill}.{Action} requires approval; created approval request {ApprovalId}",
+                body.Skill, body.Action, approvalRecord.Id);
+            return Accepted(new { status = "approval_pending", approvalRequestId = approvalRecord.Id });
         }
 
         var runTarget = await _service.GetRunTargetAsync(body.Skill, ct);
@@ -308,6 +326,22 @@ public sealed class AgentSkillsController : ControllerBase
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Resolves whether a skill execution requires manual approval.
+    /// DB override (RequiresApprovalOverride) takes precedence over manifest flag.
+    /// </summary>
+    private async Task<bool> RequiresApprovalAsync(string skillName, SkillRecord? skillRecord, CancellationToken ct)
+    {
+        // Check DB override first
+        var credRow = await _skillRepo.GetByNameAsync(skillName, ct);
+        if (credRow?.RequiresApprovalOverride.HasValue == true)
+            return credRow.RequiresApprovalOverride.Value;
+
+        // Fall back to manifest flag
+        var manifest = DeserializeManifestSafe(skillRecord?.ManifestJson);
+        return manifest?.RequiresApproval ?? false;
     }
 
     // --- Legacy per-action routes (dispatch through runtime) ---

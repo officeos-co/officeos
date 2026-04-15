@@ -76,8 +76,9 @@ Entities/{DomainName}/
 | `AgentMemory` | AgentMemoryController | — | — | |
 | `Vault` | — | — | — | CouchDbVaultClient only |
 | `Audit` | AuditController | AuditService | AuditRepository | GET /api/agents/{id}/audit-log — records every skill execution, redacts secrets in paramsJson |
-| `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector |
+| `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0 of every request before forwarding. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | DB-backed per-agent sliding window counter (AgentRateLimitRecord). Enforced in AgentSkillsController.SkillExec(). Config: RateLimitingConfig (SkillExecPerAgentPerHour, EmailPerAgentPerHour, WindowSeconds). |
+| `Gdpr` | GdprController | IGdprService / GdprService | — | GET /api/gdpr/export (JSON attachment of all user data, no plaintext credentials), DELETE /api/gdpr/purge (cascaded delete of all user data + sessions + user record). Both endpoints require SessionAuth. No new DB models — reads/deletes existing tables. |
 
 ### Naming conventions
 

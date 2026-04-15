@@ -31,6 +31,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
     public DbSet<AgentToolCallRecord> AgentToolCalls => Set<AgentToolCallRecord>();
     public DbSet<AgentRateLimitRecord> AgentRateLimits => Set<AgentRateLimitRecord>();
+    public DbSet<ApprovalRequestRecord> ApprovalRequests => Set<ApprovalRequestRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -254,6 +255,18 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(r => new { r.AgentId, r.BucketKey, r.WindowStart }).IsUnique();
             e.HasIndex(r => r.AgentId);
             e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<ApprovalRequestRecord>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => a.AgentId);
+            e.HasIndex(a => a.Status);
+            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
+            e.Property(a => a.Action).IsRequired().HasMaxLength(64);
+            e.Property(a => a.ParamsJson).HasColumnType("text");
+            e.Property(a => a.Status).IsRequired().HasMaxLength(16);
+            e.Property(a => a.ResultJson).HasColumnType("text");
         });
     }
 }

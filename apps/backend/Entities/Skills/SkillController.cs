@@ -2,6 +2,7 @@ using System.Text.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
 using EnterpriseAgentOs.Api.Database.Models;
+using EnterpriseAgentOs.Api.Entities.ApprovalQueue;
 using EnterpriseAgentOs.Api.Entities.Events;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
@@ -12,6 +13,7 @@ public sealed class SkillController : ControllerBase
 {
     private readonly ISkillService _service;
     private readonly ISkillCatalogRepository _catalog;
+    private readonly ISkillRepository _skillRepo;
     private readonly SkillRuntimeClient _runtime;
     private readonly IAmazonS3 _s3;
     private readonly SkillStorageConfig _storage;
@@ -20,6 +22,7 @@ public sealed class SkillController : ControllerBase
     public SkillController(
         ISkillService service,
         ISkillCatalogRepository catalog,
+        ISkillRepository skillRepo,
         SkillRuntimeClient runtime,
         IAmazonS3 s3,
         SkillStorageConfig storage,
@@ -27,6 +30,7 @@ public sealed class SkillController : ControllerBase
     {
         _service = service;
         _catalog = catalog;
+        _skillRepo = skillRepo;
         _runtime = runtime;
         _s3 = s3;
         _storage = storage;
@@ -103,6 +107,17 @@ public sealed class SkillController : ControllerBase
 
         var dto = await _service.SetRunTargetAsync(name, request.RunTarget, ct);
         return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpPut("{name}/approval")]
+    public async Task<IActionResult> SetApprovalOverride(
+        string name,
+        [FromBody] SetApprovalOverrideRequest request,
+        CancellationToken ct)
+    {
+        await _catalog.GetByNameAsync(name, ct); // just verify skill exists (catalog lookup)
+        await _skillRepo.SetApprovalOverrideAsync(name, request.RequiresApproval, ct);
+        return Ok(new { skillName = name, requiresApproval = request.RequiresApproval });
     }
 
     // ---------- user-auth capabilities (dashboard introspection) ----------
