@@ -90,7 +90,7 @@ jobs:
       - name: Seed manifests to backend database
         run: |
           # Port-forward to backend service and POST manifests
-          kubectl port-forward svc/eaos-backend-prod 5099:5000 &
+          kubectl port-forward svc/eaos-backend-prod 5099:8000 &
           PF_PID=$!
           sleep 3
           curl -sf -X POST "http://localhost:5099/api/internal/seed-manifests" \
