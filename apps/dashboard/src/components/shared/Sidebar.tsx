@@ -233,18 +233,6 @@ function MainSidebar({ onOpenOrgSettings }: { onOpenOrgSettings: () => void }) {
       {/* Bottom section */}
       <div className="mt-auto border-t border-sidebar-border px-4 py-3">
         <a
-          href="https://status.officeos.co"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-        >
-          <span className="relative flex h-4 w-4 items-center justify-center">
-            <span className="absolute h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="absolute h-2 w-2 animate-ping rounded-full bg-emerald-500 opacity-75" />
-          </span>
-          System Status
-        </a>
-        <a
           href="https://docs.officeos.co"
           target="_blank"
           rel="noopener noreferrer"
