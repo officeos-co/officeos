@@ -1,65 +1,99 @@
 "use client";
 
-import { motion, useInView } from "motion/react";
-import { useRef } from "react";
+import Image from "next/image";
+import { Marquee } from "@/components/ui/marquee";
 
-const codeLines = [
-  { indent: 0, text: "defineSkill", highlight: true },
-  { indent: 1, text: 'name: "summarize-ticket",' },
-  { indent: 1, text: "input: z.object({" },
-  { indent: 2, text: "ticketId: z.string()," },
-  { indent: 1, text: "})," },
-  { indent: 1, text: "execute: async ({ ticketId }) => {" },
-  { indent: 2, text: "const ticket = await jira.get(ticketId);" },
-  { indent: 2, text: "return summarize(ticket);" },
-  { indent: 1, text: "}," },
-  { indent: 0, text: "});" },
+const desktopColumns = [
+  [
+    { name: "Notion", src: "/logos/notion.svg" },
+    { name: "GitHub", src: "/logos/github.svg" },
+    { name: "Salesforce", src: "/logos/salesforce.svg" },
+    { name: "Linear", src: "/logos/linear.svg" },
+  ],
+  [
+    { name: "Slack", src: "/logos/slack.svg" },
+    { name: "Jira", src: "/logos/jira.svg" },
+    { name: "Google Drive", src: "/logos/google-drive.svg" },
+    { name: "HubSpot", src: "/logos/hubspot.svg" },
+  ],
+  [
+    { name: "Gmail", src: "/logos/gmail.svg" },
+    { name: "Google Calendar", src: "/logos/google-calendar.svg" },
+    { name: "Discord", src: "/logos/discord.svg" },
+    { name: "Teams", src: "/logos/teams.svg" },
+  ],
+];
+
+const mobileExtraColumns = [
+  [
+    { name: "WhatsApp", src: "/logos/whatsapp.svg" },
+    { name: "Telegram", src: "/logos/telegram.svg" },
+    { name: "Browser", src: "/logos/browser.svg" },
+    { name: "Email", src: "/logos/email.svg" },
+  ],
+  [
+    { name: "Google Drive", src: "/logos/google-drive.svg" },
+    { name: "Notion", src: "/logos/notion.svg" },
+    { name: "Jira", src: "/logos/jira.svg" },
+    { name: "Gmail", src: "/logos/gmail.svg" },
+  ],
 ];
 
 export function FifthBentoAnimation() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: false });
-
   return (
-    <div
-      ref={ref}
-      className="flex h-full w-full items-center justify-center p-4"
-    >
-      <div className="pointer-events-none absolute bottom-0 left-0 z-20 h-20 w-full bg-gradient-to-t from-background to-transparent" />
-      <div className="w-full max-w-sm rounded-lg border border-border bg-accent/50 p-4 font-mono text-xs">
-        <div className="mb-3 flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-full bg-red-400/60" />
-          <div className="h-2.5 w-2.5 rounded-full bg-yellow-400/60" />
-          <div className="h-2.5 w-2.5 rounded-full bg-green-400/60" />
-          <span className="ml-2 text-[10px] text-muted-foreground">
-            skill.ts
-          </span>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          {codeLines.map((line, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -8 }}
-              animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -8 }}
-              transition={{ duration: 0.2, delay: i * 0.06 }}
-              className="flex"
-              style={{ paddingLeft: `${line.indent * 16}px` }}
-            >
-              <span className="mr-3 select-none text-muted-foreground/40">
-                {(i + 1).toString().padStart(2, " ")}
-              </span>
-              <span
-                className={
-                  line.highlight
-                    ? "text-secondary font-semibold"
-                    : "text-primary/80"
-                }
+    <div className="relative flex h-full max-h-[280px] w-full items-center justify-center overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-gradient-to-b from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-background to-transparent" />
+
+      <div className="flex h-full justify-center gap-3 px-8 sm:px-0">
+        {desktopColumns.map((tools, colIdx) => (
+          <Marquee
+            key={colIdx}
+            vertical
+            reverse={colIdx % 2 === 1}
+            className="h-full [--duration:25s] [--gap:0.75rem]"
+            repeat={3}
+          >
+            {tools.map((tool) => (
+              <div
+                key={tool.name}
+                className="flex items-center justify-center p-1"
               >
-                {line.text}
-              </span>
-            </motion.div>
-          ))}
-        </div>
+                <Image
+                  src={tool.src}
+                  alt={tool.name}
+                  width={36}
+                  height={36}
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                />
+              </div>
+            ))}
+          </Marquee>
+        ))}
+        {mobileExtraColumns.map((tools, colIdx) => (
+          <Marquee
+            key={`mobile-${colIdx}`}
+            vertical
+            reverse={colIdx % 2 === 0}
+            className="h-full sm:hidden [--duration:25s] [--gap:0.75rem]"
+            repeat={3}
+          >
+            {tools.map((tool) => (
+              <div
+                key={tool.name}
+                className="flex items-center justify-center p-1"
+              >
+                <Image
+                  src={tool.src}
+                  alt={tool.name}
+                  width={36}
+                  height={36}
+                  className="h-8 w-8"
+                />
+              </div>
+            ))}
+          </Marquee>
+        ))}
       </div>
     </div>
   );

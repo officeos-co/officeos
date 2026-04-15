@@ -19,16 +19,16 @@ const items = [
 	{
 		id: 2,
 		content: <FifthBentoAnimation />,
-		title: "Custom Skills (SDK)",
+		title: "Works With Your Stack",
 		description:
-			"Define skills in TypeScript with full type safety. Zod schemas, npm publish, hot-reload into any agent.",
+			"Agents plug into the tools your team already uses. One-click setup, no code required.",
 	},
 	{
 		id: 3,
 		content: <SecondBentoAnimation />,
-		title: "Channel Integration",
+		title: "Meet Your Team Where They Work",
 		description:
-			"Agents meet your team where they work — Slack, Email, WhatsApp, Teams, or any webhook.",
+			"Agents respond in the channels your team already uses — chat, email, or any webhook.",
 	},
 	{
 		id: 4,
