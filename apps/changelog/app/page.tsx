@@ -1,37 +1,21 @@
-import { docs, meta } from "@/.source"
-import { loader } from "fumadocs-core/source"
-import { createMDXSource } from "fumadocs-mdx"
+import { docs } from "@/.source"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useMemo } from "react"
 import { formatDate } from "@/lib/utils"
 
-const source = loader({
-  baseUrl: "/docs",
-  source: createMDXSource(docs, meta),
-})
-
-interface ChangelogData {
+interface ChangelogEntry {
   title: string
   date: string
   version?: string
   tags?: string[]
   body: React.ComponentType
-}
-
-interface ChangelogPage {
-  url: string
-  data: ChangelogData
+  _mdx: { path: string }
 }
 
 export default function HomePage() {
-  const sortedChangelogs = useMemo(() => {
-    const allPages = source.getPages() as ChangelogPage[]
-    return allPages.sort((a, b) => {
-      const dateA = new Date(a.data.date).getTime()
-      const dateB = new Date(b.data.date).getTime()
-      return dateB - dateA
-    })
-  }, [])
+  const entries = [...docs.getPages()] as unknown as { data: ChangelogEntry }[]
+  const sorted = entries.sort((a, b) => {
+    return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+  })
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -59,13 +43,13 @@ export default function HomePage() {
       {/* Timeline */}
       <div className="max-w-5xl mx-auto px-6 lg:px-10 pt-10">
         <div className="relative">
-          {sortedChangelogs.map((changelog) => {
-            const MDX = changelog.data.body
-            const date = new Date(changelog.data.date)
+          {sorted.map((entry, i) => {
+            const MDX = entry.data.body
+            const date = new Date(entry.data.date)
             const formattedDate = formatDate(date)
 
             return (
-              <div key={changelog.url} className="relative">
+              <div key={i} className="relative">
                 <div className="flex flex-col md:flex-row gap-y-6">
                   <div className="md:w-48 flex-shrink-0">
                     <div className="md:sticky md:top-8 pb-10">
@@ -73,9 +57,9 @@ export default function HomePage() {
                         {formattedDate}
                       </time>
 
-                      {changelog.data.version && (
+                      {entry.data.version && (
                         <div className="inline-flex relative z-10 items-center justify-center w-10 h-10 text-foreground border border-border rounded-lg text-sm font-bold">
-                          {changelog.data.version}
+                          {entry.data.version}
                         </div>
                       )}
                     </div>
@@ -92,23 +76,22 @@ export default function HomePage() {
                     <div className="space-y-6">
                       <div className="relative z-10 flex flex-col gap-2">
                         <h2 className="text-2xl font-semibold tracking-tight text-balance">
-                          {changelog.data.title}
+                          {entry.data.title}
                         </h2>
 
                         {/* Tags */}
-                        {changelog.data.tags &&
-                          changelog.data.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {changelog.data.tags.map((tag: string) => (
-                                <span
-                                  key={tag}
-                                  className="h-6 w-fit px-2 text-xs font-medium bg-muted text-muted-foreground rounded-full border flex items-center justify-center"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                        {entry.data.tags && entry.data.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {entry.data.tags.map((tag: string) => (
+                              <span
+                                key={tag}
+                                className="h-6 w-fit px-2 text-xs font-medium bg-muted text-muted-foreground rounded-full border flex items-center justify-center"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="prose dark:prose-invert max-w-none prose-headings:scroll-mt-8 prose-headings:font-semibold prose-a:no-underline prose-headings:tracking-tight prose-headings:text-balance prose-p:tracking-tight prose-p:text-balance">
                         <MDX />

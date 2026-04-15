@@ -4,21 +4,21 @@ import { Feature as FeatureComponent } from "@/components/ui/feature-slideshow";
 const featureItems = [
 	{
 		id: 1,
-		title: "Sandboxed V8 Isolates",
+		title: "Connect Every Tool",
 		content:
-			"Every skill runs in an isolated V8 context. No shared memory, no side effects. Fast cold starts, minimal resource usage.",
+			"Your agents work with Notion, Jira, GitHub, Google, and any service your team already uses. One-click setup from the dashboard.",
 	},
 	{
 		id: 2,
-		title: "Full TypeScript Support",
+		title: "Teach Your Workflows",
 		content:
-			"Define skills with full type safety using the Skill SDK. Zod schemas for inputs and outputs. Publish as npm packages.",
+			"Build custom skills that encode your exact business logic. Not generic templates — your processes, your rules, your data.",
 	},
 	{
 		id: 3,
-		title: "Run on Your Network",
+		title: "Credentials Never Leave",
 		content:
-			"Skills can access internal APIs, databases, and services that have no public endpoint. Your infrastructure, your rules.",
+			"Everything runs on your infrastructure. API keys are encrypted at rest and injected per-request — agents never see them.",
 	},
 ];
 
@@ -30,11 +30,11 @@ export function FeatureSection() {
 		>
 			<SectionHeader>
 				<h2 className="text-balance text-center font-medium text-3xl tracking-tighter md:text-4xl">
-					Your logic. Your network. Not generic MCP.
+					Agents that actually do the work.
 				</h2>
 				<p className="text-balance text-center font-medium text-muted-foreground">
-					MCP servers call APIs. Your agents need to run actual business logic —
-					on your own infrastructure.
+					Other platforms give you chatbots. We give you agents that connect to
+					your tools, follow your processes, and run on your infrastructure.
 				</p>
 			</SectionHeader>
 			<div className="flex h-full w-full items-center justify-center lg:h-[450px]">
