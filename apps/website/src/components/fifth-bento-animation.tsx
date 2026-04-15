@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { motion, useInView } from "motion/react";
+import { useRef } from "react";
 import { Marquee } from "@/components/ui/marquee";
 
 const desktopColumns = [
@@ -40,8 +42,17 @@ const mobileExtraColumns = [
 ];
 
 export function FifthBentoAnimation() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: false });
+
   return (
-    <div className="relative flex h-full max-h-[280px] w-full items-center justify-center overflow-hidden">
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 16 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      className="relative flex h-full max-h-[280px] w-full items-center justify-center overflow-hidden"
+    >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-gradient-to-b from-background to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-background to-transparent" />
 
@@ -95,6 +106,6 @@ export function FifthBentoAnimation() {
           </Marquee>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

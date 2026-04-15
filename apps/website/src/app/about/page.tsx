@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { Navbar } from "@/components/sections/navbar";
+import { FooterSection } from "@/components/sections/footer-section";
 
 export const metadata = {
   title: "About — OfficeOS",
@@ -10,22 +11,13 @@ export const metadata = {
 
 export default function About() {
   return (
-    <div className="min-h-screen bg-background text-primary font-sans">
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
-          <span className="font-medium tracking-tight">OfficeOS</span>
-          <div className="w-16" />
-        </div>
-      </nav>
+    <div className="relative mx-auto max-w-7xl border-x">
+      <div className="absolute top-0 left-6 z-10 block h-full w-px border-border border-l" />
+      <div className="absolute top-0 right-6 z-10 block h-full w-px border-border border-r" />
+      <Navbar />
 
-      <main className="mx-auto max-w-4xl px-6 pt-20 pb-28 md:pt-28">
+      <main className="flex min-h-screen w-full flex-col items-center">
+      <div className="mx-auto max-w-4xl w-full px-6 pt-20 pb-28 md:pt-28">
         <h1 className="text-4xl font-bold tracking-tight text-center md:text-5xl lg:text-6xl">
           The Mission
         </h1>
@@ -111,14 +103,18 @@ export default function About() {
           <div className="relative w-full overflow-hidden rounded-xl border border-border">
             <Image
               src="/GroupPhoto.jpeg"
-              alt="Hackathon winners at Microsoft Denmark"
+              alt="Disability Tech Hackathon at Microsoft Denmark"
               width={1280}
               height={853}
               className="w-full h-auto"
             />
           </div>
           <p className="text-sm text-muted-foreground text-center mt-4">
-            Disability Tech Hackathon 2026 Winners — Microsoft Denmark
+            Disability Tech Hackathon 2026 — First place at Microsoft Denmark
+          </p>
+          <p className="text-sm text-muted-foreground text-center mt-1">
+            Won by our founder Harro Krog, earning a spot in Microsoft for
+            Startups Founders Hub.
           </p>
         </div>
 
@@ -142,11 +138,10 @@ export default function About() {
             </Link>
           </div>
         </div>
+      </div>
       </main>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        Made in Hamburg — © 2026 OfficeOS
-      </footer>
+      <FooterSection />
     </div>
   );
 }
