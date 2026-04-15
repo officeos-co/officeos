@@ -2,7 +2,7 @@
 FROM oven/bun:1 AS deps
 WORKDIR /app
 COPY apps/changelog/package.json ./
-RUN bun install
+RUN bun install --ignore-scripts
 
 FROM oven/bun:1 AS build
 WORKDIR /app
