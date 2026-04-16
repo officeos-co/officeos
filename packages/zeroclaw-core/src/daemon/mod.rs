@@ -85,23 +85,7 @@ pub async fn run(config: Config, host: String, port: u16) -> Result<()> {
         ));
     }
 
-    {
-        if has_supervised_channels(&config) {
-            let channels_cfg = config.clone();
-            handles.push(spawn_component_supervisor(
-                "channels",
-                initial_backoff,
-                max_backoff,
-                move || {
-                    let cfg = channels_cfg.clone();
-                    async move { Box::pin(crate::channels::start_channels(cfg)).await }
-                },
-            ));
-        } else {
-            crate::health::mark_component_ok("channels");
-            tracing::info!("No real-time channels configured; channel supervisor disabled");
-        }
-    }
+    crate::health::mark_component_ok("channels");
 
     // Wire up MQTT SOP listener if configured
     if let Some(ref mqtt_config) = config.channels_config.mqtt {
@@ -881,14 +865,6 @@ fn validate_heartbeat_channel_config(config: &Config, channel: &str) -> Result<(
     }
 
     Ok(())
-}
-
-fn has_supervised_channels(config: &Config) -> bool {
-    config
-        .channels_config
-        .channels_except_webhook()
-        .iter()
-        .any(|(_, ok)| *ok)
 }
 
 #[allow(clippy::unused_async)]
