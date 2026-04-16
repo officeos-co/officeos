@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using EnterpriseAgentOs.Api.Database.Models;
 
 namespace EnterpriseAgentOs.Api.Entities.Events;
 

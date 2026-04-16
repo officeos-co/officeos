@@ -1,6 +1,4 @@
 using System.Net.WebSockets;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 

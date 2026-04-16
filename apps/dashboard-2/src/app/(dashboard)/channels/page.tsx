@@ -18,7 +18,7 @@ export default function ChannelsPage() {
   const { channels } = useChannels()
   const { createChannelConnection } = useCreateChannelConnection()
   const { bindChannelToAgent } = useBindChannelToAgent()
-  const { capture } = useAnalytics()
+  const { trackChannelConnected } = useAnalytics()
   void createChannelConnection
   void bindChannelToAgent
   const [view, setView] = useState<View>("all")
@@ -97,7 +97,7 @@ export default function ChannelsPage() {
           onOpenChange={(open) => { if (!open) setOnboardingChannel(null) }}
           channel={onboardingChannel}
           onComplete={() => {
-            capture("channel_connected", { channel_slug: onboardingChannel.slug })
+            trackChannelConnected(onboardingChannel.slug)
             setConnectedSet((prev) => new Set([...prev, onboardingChannel.slug]))
             setOnboardingChannel(null)
           }}

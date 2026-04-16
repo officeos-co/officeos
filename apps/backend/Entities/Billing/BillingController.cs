@@ -1,6 +1,3 @@
-using EnterpriseAgentOs.Api.Properties;
-using Microsoft.AspNetCore.Mvc;
-
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
 /// <summary>

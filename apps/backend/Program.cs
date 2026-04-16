@@ -1,8 +1,4 @@
-using k8s;
-using Microsoft.AspNetCore.DataProtection;
-using Serilog;
-using Serilog.Events;
-using EnterpriseAgentOs.Api.Middleware;
+
 using EnterpriseAgentOs.Api.Extensions;
 
 const string FrontendCorsPolicy = "dashboard";
@@ -119,7 +115,7 @@ builder.Services.AddSingleton(frontendConfig);
 builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
 builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
-// PostHog analytics — server owns the API key; dashboard-2 proxies via captureEvent mutation
+// PostHog — server owns the API key; dashboard-2 calls use-case-specific track* mutations
 var postHogConfig = new PostHogConfig();
 envSection.GetSection("PostHog").Bind(postHogConfig);
 builder.Services.AddSingleton(postHogConfig);

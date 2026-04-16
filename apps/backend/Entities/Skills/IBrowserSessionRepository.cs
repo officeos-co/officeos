@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Api.Database.Models;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public interface IBrowserSessionRepository

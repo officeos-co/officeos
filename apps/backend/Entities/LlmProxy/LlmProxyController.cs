@@ -1,8 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using EnterpriseAgentOs.Api.Entities.Billing;
-using EnterpriseAgentOs.Api.Properties;
 
 
 namespace EnterpriseAgentOs.Api.Entities.LlmProxy;

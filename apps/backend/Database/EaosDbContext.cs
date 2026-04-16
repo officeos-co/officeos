@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Api.Database.Models;
-
 namespace EnterpriseAgentOs.Api.Database;
 
 public sealed class EaosDbContext : DbContext

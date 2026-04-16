@@ -1,7 +1,3 @@
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Database.Models;
-using Microsoft.EntityFrameworkCore;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class BrowserSessionRepository : IBrowserSessionRepository

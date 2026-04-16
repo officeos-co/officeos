@@ -1,5 +1,4 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Api.Database.Models;
 
 namespace EnterpriseAgentOs.Api.Entities.Audit;
 

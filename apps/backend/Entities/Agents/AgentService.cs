@@ -7,7 +7,7 @@ public sealed class AgentService : IAgentService
     private readonly IAgentDeployer _deployer;
     private readonly IProviderService _providerService;
     private readonly IVaultClient _vault;
-    private readonly IAnalyticsService _analytics;
+    private readonly IPostHogService _analytics;
     private readonly ILogger<AgentService> _logger;
 
     public AgentService(
@@ -15,7 +15,7 @@ public sealed class AgentService : IAgentService
         IAgentDeployer deployer,
         IProviderService providerService,
         IVaultClient vault,
-        IAnalyticsService analytics,
+        IPostHogService analytics,
         ILogger<AgentService> logger)
     {
         _repository = repository;

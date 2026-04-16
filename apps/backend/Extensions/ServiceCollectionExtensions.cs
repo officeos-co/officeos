@@ -64,10 +64,10 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpClient<IVaultClient, CouchDbVaultClient>();
         services.AddHttpClient<SkillRuntimeClient>();
-        // Analytics is HttpClient-first — registering it here gives us a typed
-        // HttpClient and also registers IAnalyticsService -> AnalyticsService in
+        // PostHog is HttpClient-first — registering it here gives us a typed
+        // HttpClient and also registers IPostHogService -> PostHogService in
         // DI, so no separate AddScoped call is required.
-        services.AddHttpClient<IAnalyticsService, AnalyticsService>();
+        services.AddHttpClient<IPostHogService, PostHogService>();
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient("channel-platform");

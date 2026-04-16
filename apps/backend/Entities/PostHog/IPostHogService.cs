@@ -1,6 +1,6 @@
-namespace EnterpriseAgentOs.Api.Entities.Analytics;
+namespace EnterpriseAgentOs.Api.Entities.PostHog;
 
-public interface IAnalyticsService
+public interface IPostHogService
 {
     Task CaptureAsync(
         string distinctId,

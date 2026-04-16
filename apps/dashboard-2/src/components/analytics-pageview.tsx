@@ -12,9 +12,9 @@ import { useAnalytics } from "@/hooks/useAnalytics"
  */
 export function AnalyticsPageview() {
   const pathname = usePathname()
-  const { capture } = useAnalytics()
+  const { trackPageView } = useAnalytics()
   useEffect(() => {
-    capture("$pageview", { path: pathname })
+    trackPageView(pathname)
     // capture is stable enough; depend only on pathname to avoid double-firing
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])

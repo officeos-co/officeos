@@ -1,6 +1,3 @@
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Database.Models;
-
 namespace EnterpriseAgentOs.Api.Entities.RateLimiting;
 
 public sealed class RateLimitRepository : IRateLimitRepository

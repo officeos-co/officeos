@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace EnterpriseAgentOs.Api.Entities.Sso;
 
 public sealed class WorkOsAuthService : IWorkOsAuthService

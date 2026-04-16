@@ -9,7 +9,6 @@ using WireMock.Server;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Agents;
 using EnterpriseAgentOs.Api.Entities.Vault;
 using EnterpriseAgentOs.Api.Properties;
 

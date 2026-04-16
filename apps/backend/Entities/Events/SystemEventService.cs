@@ -1,6 +1,3 @@
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Database.Models;
-
 namespace EnterpriseAgentOs.Api.Entities.Events;
 
 public interface ISystemEventService

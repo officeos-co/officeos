@@ -1,4 +1,3 @@
-using EnterpriseAgentOs.Api.Properties;
 using Stripe;
 
 namespace EnterpriseAgentOs.Api.Entities.Billing;

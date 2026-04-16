@@ -8,7 +8,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
     private readonly IAgentService _agents;
     private readonly IAgentSkillRepository _agentSkills;
     private readonly IChannelRepository _channels;
-    private readonly IAnalyticsService _analytics;
+    private readonly IPostHogService _analytics;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
@@ -16,7 +16,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
         IAgentService agents,
         IAgentSkillRepository agentSkills,
         IChannelRepository channels,
-        IAnalyticsService analytics,
+        IPostHogService analytics,
         ILogger<AgentTemplateService> logger)
     {
         _repo = repo;

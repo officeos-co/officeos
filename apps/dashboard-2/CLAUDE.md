@@ -192,19 +192,30 @@ via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
 
 ### Analytics
 
-PostHog events go through the **backend**, not a client snippet.
-`useAnalytics().capture(name, properties)` calls the `captureEvent`
-GraphQL mutation, which forwards to PostHog using the server-side API key
-(see `apps/backend/Entities/Analytics/`). With `NEXT_PUBLIC_USE_MOCKS=1`
-the hook is a no-op that `console.debug`s the payload. Page-level
-`$pageview` events are emitted globally by `components/analytics-pageview.tsx`
-mounted in the `(dashboard)/layout.tsx`.
+PostHog events go through the **backend**, not a client snippet. Each use-case
+has a dedicated typed GraphQL mutation — there is no generic
+`captureEvent(name, properties)`. `useAnalytics()` in
+`src/hooks/useAnalytics.ts` exposes one function per event:
+
+- `trackPageView(path)`
+- `trackNavClicked(destination)`
+- `trackSkillInstalled(skillName)`
+- `trackSkillConfigured(skillName)`
+- `trackChannelConnected(channelSlug)`
+- `trackAgentCreated({ agentName, provider, template, skillCount, allowSkills, denySkills })`
+
+Each function calls its matching `track*` mutation on the backend, which
+forwards to PostHog using the server-side API key (see
+`apps/backend/Entities/PostHog/`). With `NEXT_PUBLIC_USE_MOCKS=1` every call
+is a `console.debug` no-op. Page-level `$pageview` events are emitted globally
+by `components/analytics-pageview.tsx` mounted in `(dashboard)/layout.tsx`.
 
 **Never install the `posthog-js` snippet in dashboard-2.** All capture goes
 through the backend so the PostHog key never leaves the server.
 
-The legacy event catalog — names and property shapes dashboard-2 must
-preserve — lives at `apps/backend/Entities/Analytics/EVENTS.md`.
+Adding a new event requires a matching backend mutation — see
+`apps/backend/Entities/PostHog/EVENTS.md` for the contract and the full
+catalog.
 
 ### Env
 

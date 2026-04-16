@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace EnterpriseAgentOs.Api.Entities.Analytics;
+namespace EnterpriseAgentOs.Api.Entities.PostHog;
 
 /// <summary>
 /// Forwards dashboard/server events to PostHog. Fire-and-forget: failures are
@@ -11,13 +11,13 @@ namespace EnterpriseAgentOs.Api.Entities.Analytics;
 /// event volume grows we should switch to /batch/ with an in-memory queue +
 /// periodic flush (future optimization).
 /// </summary>
-public sealed class AnalyticsService : IAnalyticsService
+public sealed class PostHogService : IPostHogService
 {
     private readonly HttpClient _http;
     private readonly PostHogConfig _config;
-    private readonly ILogger<AnalyticsService> _logger;
+    private readonly ILogger<PostHogService> _logger;
 
-    public AnalyticsService(HttpClient http, PostHogConfig config, ILogger<AnalyticsService> logger)
+    public PostHogService(HttpClient http, PostHogConfig config, ILogger<PostHogService> logger)
     {
         _http = http;
         _config = config;

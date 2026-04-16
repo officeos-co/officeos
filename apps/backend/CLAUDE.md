@@ -78,7 +78,7 @@ Entities/<Domain>/
 | `LlmProxy` | LlmProxyController | — | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | — | DB-backed per-agent sliding window over AgentRateLimitRecord. Config: RateLimitingConfig. |
 | `Gdpr` | GdprController | IGdprService / GdprService | — | — | GET /api/gdpr/export, DELETE /api/gdpr/purge. Both require SessionAuth. |
-| `Analytics` | — | AnalyticsService | — | — | GraphQL mutations (`captureEvent`, `identifyUser`). Registered via `AddHttpClient<IAnalyticsService, AnalyticsService>()`. See `Entities/Analytics/EVENTS.md`. |
+| `PostHog` | — | PostHogService | — | — | Typed GraphQL mutations per use case (`trackPageView`, `trackNavClicked`, `trackSkillInstalled`, `trackSkillConfigured`, `trackChannelConnected`, `trackAgentCreated`, `identifyUser`) — **no** generic `captureEvent` passthrough. Registered via `AddHttpClient<IPostHogService, PostHogService>()`. See `Entities/PostHog/EVENTS.md`. |
 | `AgentLogs` | — | IAgentLogService / AgentLogService | IAgentLogRepository / AgentLogRepository | — | GraphQL-only domain. Append-only log timeline over `AgentLogRecord`. Publishes to `ITopicEventSender` topic `agent-log:{agentId}`. Has `AgentLogsSubscriptions.cs` for live updates. |
 | `AgentTemplates` | — | IAgentTemplateService / AgentTemplateService | IAgentTemplateRepository / AgentTemplateRepository | — | AgentTemplateSeeder at startup. |
 
@@ -176,9 +176,9 @@ dotnet ef database update
 
 The TypeScript implementation lives in `packages/skills/`.
 
-## Analytics
+## PostHog
 
-PostHog capture is server-side via `IAnalyticsService`. dashboard-2 never holds the API key; it calls `mutation captureEvent` which the backend forwards to PostHog.
+PostHog capture is server-side via `IPostHogService`. dashboard-2 never holds the API key; it calls one of the typed `track*` mutations (e.g. `trackPageView`, `trackAgentCreated`). There is no generic `captureEvent(name, properties)` — every event has a dedicated mutation with a typed input, so the GraphQL schema enumerates every event we fire. See `Entities/PostHog/EVENTS.md` for the full catalog.
 
 ## Anti-patterns
 

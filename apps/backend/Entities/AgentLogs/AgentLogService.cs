@@ -5,13 +5,13 @@ public sealed class AgentLogService : IAgentLogService
     private readonly IAgentLogRepository _repo;
     private readonly ITopicEventSender _sender;
     private readonly IAgentRepository _agents;
-    private readonly IAnalyticsService _analytics;
+    private readonly IPostHogService _analytics;
 
     public AgentLogService(
         IAgentLogRepository repo,
         ITopicEventSender sender,
         IAgentRepository agents,
-        IAnalyticsService analytics)
+        IPostHogService analytics)
     {
         _repo = repo;
         _sender = sender;

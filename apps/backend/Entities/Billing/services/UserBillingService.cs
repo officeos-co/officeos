@@ -1,4 +1,3 @@
-using EnterpriseAgentOs.Api.Properties;
 using Stripe;
 using Stripe.Checkout;
 

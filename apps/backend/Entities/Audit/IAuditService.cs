@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Api.Database.Models;
-
 namespace EnterpriseAgentOs.Api.Entities.Audit;
 
 public interface IAuditService

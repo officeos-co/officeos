@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Api.Properties;
-
 namespace EnterpriseAgentOs.Api.Entities.RateLimiting;
 
 public sealed class RateLimitService : IRateLimitService

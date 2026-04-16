@@ -16,7 +16,7 @@ type View = "all" | "added" | "explore"
 export default function IntegrationsPage() {
   const router = useRouter()
   const { integrations } = useIntegrations()
-  const { capture } = useAnalytics()
+  const { trackSkillInstalled, trackSkillConfigured } = useAnalytics()
   const [search, setSearch] = useState("")
   const [view, setView] = useState<View>("all")
   const [addedSet, setAddedSet] = useState<Set<string>>(() => new Set(integrations.filter((i) => i.added).map((i) => i.slug)))
@@ -40,14 +40,14 @@ export default function IntegrationsPage() {
       setCredDialogSlug(slug)
     } else {
       setAddedSet((prev) => new Set([...prev, slug]))
-      capture("skill_installed", { skill_name: slug })
+      trackSkillInstalled(slug)
     }
   }
 
   function handleCredSave(slug: string) {
     setAddedSet((prev) => new Set([...prev, slug]))
-    capture("skill_configured", { skill_name: slug })
-    capture("skill_installed", { skill_name: slug })
+    trackSkillConfigured(slug)
+    trackSkillInstalled(slug)
   }
 
   return (

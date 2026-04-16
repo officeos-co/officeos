@@ -35,7 +35,7 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
-  const { capture } = useAnalytics();
+  const { trackNavClicked } = useAnalytics();
 
   // All groups open by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(
@@ -102,7 +102,7 @@ export function NavMain({
                         <SidebarMenuSubButton
                           isActive={isActive}
                           render={<Link href={subItem.url} />}
-                          onClick={() => capture("nav_clicked", { destination: subItem.url })}
+                          onClick={() => trackNavClicked(subItem.url)}
                           className="h-9 pl-9 text-sm data-active:bg-sidebar-border data-active:font-medium"
                         >
                           <span>{subItem.title}</span>
