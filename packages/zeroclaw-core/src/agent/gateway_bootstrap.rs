@@ -25,7 +25,59 @@
 //! (`GET /api/agents/{id}/memory/{file}`) instead of CouchDB directly.
 //! The agent never knows CouchDB exists.
 
+use std::collections::HashMap;
+use std::time::Duration;
+
+use serde::Deserialize;
+
 use crate::config::Config;
+
+/// Per-tool allow/deny decision set by the operator on the dashboard
+/// and enforced by `SkillExecTool` before dispatch. There is no "ask"
+/// mode — the agent pod runs unattended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToolPermission {
+    Allow,
+    Deny,
+}
+
+/// Subset of the backend's `AgentBootstrapPayload` relevant to the pod.
+/// Credentials never appear here — provider keys stay behind the LLM
+/// proxy and skill credentials stay behind the GraphQL gateway.
+#[derive(Debug, Clone)]
+pub struct Bootstrap {
+    pub model: String,
+    pub skills: Vec<String>,
+    pub tool_permissions: HashMap<(String, String), ToolPermission>,
+}
+
+#[derive(Deserialize)]
+struct RawPayload {
+    #[serde(default)]
+    provider: Option<RawProvider>,
+    #[serde(default)]
+    skills: Vec<RawSkill>,
+    #[serde(default, rename = "toolPermissions")]
+    tool_permissions: Vec<RawToolPermission>,
+}
+
+#[derive(Deserialize)]
+struct RawProvider {
+    #[serde(default)]
+    model: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct RawSkill {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct RawToolPermission {
+    skill: String,
+    tool: String,
+    mode: String,
+}
 
 /// Default backend URL for in-cluster pods. The k8s Service
 /// `eaos-backend-prod` resolves to the backend Deployment.
@@ -83,7 +135,9 @@ pub fn apply(config: &mut Config) -> Option<String> {
 /// Returns the backend URL for vault proxy calls, or `None` if
 /// gateway bootstrap is not active.
 pub fn backend_url() -> Option<String> {
-    let _ = std::env::var(ENV_AGENT_ID).ok().filter(|s| !s.trim().is_empty())?;
+    let _ = std::env::var(ENV_AGENT_ID)
+        .ok()
+        .filter(|s| !s.trim().is_empty())?;
     Some(
         std::env::var(ENV_BACKEND_URL)
             .ok()
@@ -99,4 +153,106 @@ pub fn agent_id() -> Option<String> {
         .ok()
         .filter(|s| !s.trim().is_empty())
         .map(|s| s.trim().to_string())
+}
+
+/// Fetch the pod-facing bootstrap payload from
+/// `GET {backend_url}/api/agents/{id}` and overlay the parts the pod
+/// can use onto `config`. Never fatal: on any failure the existing
+/// config (env vars / config.toml) remains authoritative so local-dev
+/// workflows keep working.
+///
+/// Returns the per-tool permission map so `SkillExecTool` can enforce
+/// allow/deny before dispatch.
+pub async fn fetch_and_overlay(
+    config: &mut Config,
+    agent_id: &str,
+    backend_url: &str,
+) -> HashMap<(String, String), ToolPermission> {
+    let url = format!("{backend_url}/api/agents/{agent_id}");
+
+    let client = match reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            tracing::warn!(error = %e, "Failed to build bootstrap HTTP client");
+            return HashMap::new();
+        }
+    };
+
+    let response = match client.get(&url).bearer_auth(agent_id).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!(error = %e, url = %url, "Bootstrap fetch failed; using env/config fallback");
+            return HashMap::new();
+        }
+    };
+
+    if !response.status().is_success() {
+        tracing::warn!(status = %response.status(), url = %url, "Bootstrap returned non-2xx; using env/config fallback");
+        return HashMap::new();
+    }
+
+    let payload: RawPayload = match response.json().await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!(error = %e, "Bootstrap response was not valid JSON");
+            return HashMap::new();
+        }
+    };
+
+    // Overlay model from bootstrap (overrides the "backend-managed"
+    // placeholder set by `apply`). The provider stays as `custom:<url>/v1`.
+    if let Some(provider) = payload.provider {
+        if let Some(model) = provider.model {
+            let m = model.trim();
+            if !m.is_empty() {
+                config.default_model = Some(m.to_string());
+            }
+        }
+    }
+
+    // Installed-skills list can be surfaced elsewhere in the future;
+    // for now it's just logged for observability.
+    let skill_names: Vec<String> = payload.skills.into_iter().map(|s| s.name).collect();
+    tracing::info!(
+        skills = ?skill_names,
+        permissions = payload.tool_permissions.len(),
+        "Bootstrap payload applied"
+    );
+
+    let mut perms: HashMap<(String, String), ToolPermission> = HashMap::new();
+    for tp in payload.tool_permissions {
+        let mode = match tp.mode.to_ascii_lowercase().as_str() {
+            "allow" => ToolPermission::Allow,
+            "deny" => ToolPermission::Deny,
+            other => {
+                tracing::warn!(mode = %other, "Unknown tool permission mode — skipping");
+                continue;
+            }
+        };
+        perms.insert(
+            (
+                tp.skill.trim().to_ascii_lowercase(),
+                tp.tool.trim().to_string(),
+            ),
+            mode,
+        );
+    }
+    perms
+}
+
+/// Fetch bootstrap with the current env-var agent_id/backend_url, or
+/// return an empty permission map if gateway bootstrap is not active.
+pub async fn fetch_and_overlay_from_env(
+    config: &mut Config,
+) -> HashMap<(String, String), ToolPermission> {
+    let Some(id) = agent_id() else {
+        return HashMap::new();
+    };
+    let Some(backend) = backend_url() else {
+        return HashMap::new();
+    };
+    fetch_and_overlay(config, &id, &backend).await
 }

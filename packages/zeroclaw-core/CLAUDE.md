@@ -16,11 +16,11 @@ cargo check --tests          # Use this (not plain cargo check) after deleting c
 
 Each pod receives only `ZEROCLAW_AGENT_ID`. The `gateway_bootstrap` module does everything else:
 
-1. Calls `{backend_url}/api/agents/{id}` → gets provider, model, vault location, installed skills
-2. Configures the LLM provider as `custom:{backend_url}/v1` — all LLM calls proxy through the backend
-3. Uses the agent UUID as the bearer token for all backend calls
-4. Fetches personality files from `{backend_url}/api/agents/{id}/memory/*` → caches on PVC at `/zeroclaw-data/workspace`
-5. Discovers skills via GraphQL introspection of `{backend_url}/api/graphql`
+1. `gateway_bootstrap::apply` seeds provider=`custom:{backend_url}/v1`, api_key=agent UUID, workspace=`/zeroclaw-data/workspace`, gateway=0.0.0.0:42617
+2. `gateway_bootstrap::fetch_and_overlay_from_env` calls `GET {backend_url}/api/agents/{id}` (bearer=agent UUID) and overlays the real model from the bootstrap payload; extracts the per-tool allow/deny map. Response contains NO credentials. Fails open — if the backend is unreachable, existing env/config values remain authoritative so local-dev still works.
+3. Fetches personality files from `{backend_url}/api/agents/{id}/memory/*` → caches on PVC at `/zeroclaw-data/workspace`
+4. Discovers skills via GraphQL introspection of `{backend_url}/api/graphql`
+5. `SkillExecTool` is built with the permission map and blocks any dispatch where `(skill, tool)` is set to `Deny` (returns a `ToolResult` error "tool denied by policy"). Missing keys default to allow. There is no "ask" mode — agents run unattended.
 6. Starts the WebSocket gateway on `:42617`
 
 ## Project structure

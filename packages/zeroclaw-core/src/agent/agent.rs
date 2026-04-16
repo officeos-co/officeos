@@ -39,10 +39,10 @@
 //! - `src/daemon/mod.rs` — the production boot path that calls `from_config`.
 //! - `docs/architecture/overview.md` — the big picture.
 
-use crate::agent::gateway_bootstrap;
 use crate::agent::dispatcher::{
     NativeToolDispatcher, ParsedToolCall, ToolDispatcher, ToolExecutionResult, XmlToolDispatcher,
 };
+use crate::agent::gateway_bootstrap;
 use crate::agent::memory_loader::{DefaultMemoryLoader, MemoryLoader};
 use crate::agent::personality;
 use crate::agent::prompt::{PromptContext, SystemPromptBuilder};
@@ -246,7 +246,6 @@ impl AgentBuilder {
         self
     }
 
-
     pub fn auto_save(mut self, auto_save: bool) -> Self {
         self.auto_save = Some(auto_save);
         self
@@ -418,6 +417,12 @@ impl Agent {
         // identity; everything else is resolved at runtime.
         let mut config = config.clone();
         gateway_bootstrap::apply(&mut config);
+
+        // Overlay the bootstrap payload (`GET /api/agents/{id}`): real
+        // model, installed-skills list, and per-tool allow/deny rules.
+        // Falls back silently to the local config when the backend is
+        // unreachable so dev workflows keep working.
+        let tool_permissions = gateway_bootstrap::fetch_and_overlay_from_env(&mut config).await;
 
         let config = &config;
 
@@ -660,9 +665,10 @@ impl Agent {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
         {
-            let skill_exec = crate::tools::skill_exec::SkillExecTool::new(
+            let skill_exec = crate::tools::skill_exec::SkillExecTool::with_permissions(
                 gql_url,
                 config.api_key.clone(),
+                tool_permissions.clone(),
             );
             tools.push(Box::new(skill_exec));
             tracing::info!("skill_exec tool registered (GraphQL backend)");
@@ -808,10 +814,7 @@ impl Agent {
     /// messages if the estimated total exceeds `max_context_tokens`.
     /// Uses the `context_compressor::estimate_tokens` heuristic (~4
     /// chars/token with 1.2x safety margin).
-    fn enforce_token_budget(
-        &self,
-        messages: &mut Vec<crate::providers::traits::ChatMessage>,
-    ) {
+    fn enforce_token_budget(&self, messages: &mut Vec<crate::providers::traits::ChatMessage>) {
         use crate::agent::context_compressor::estimate_tokens;
 
         let budget = self.config.max_context_tokens;

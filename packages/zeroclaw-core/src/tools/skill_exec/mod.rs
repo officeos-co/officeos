@@ -16,14 +16,16 @@ pub mod parser;
 pub mod query_builder;
 pub mod schema_cache;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
 use serde_json::json;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use super::traits::{Tool, ToolResult};
+use crate::agent::gateway_bootstrap::ToolPermission;
 use parser::ParsedCommand;
 use schema_cache::SchemaCache;
 
@@ -34,16 +36,37 @@ pub struct SkillExecTool {
     graphql_url: String,
     bearer_token: Option<String>,
     schema_cache: Arc<Mutex<SchemaCache>>,
+    /// Per-tool allow/deny overrides sourced from the backend bootstrap
+    /// payload (`GET /api/agents/{id}`). Key is `(skill_lowercase, tool)`.
+    /// Absence of a key means "allow" — only explicit `Deny` blocks a
+    /// dispatch. Wrapped in `RwLock` so the capability-refresh cycle
+    /// can swap the map without rebuilding the tool.
+    permissions: Arc<RwLock<HashMap<(String, String), ToolPermission>>>,
 }
 
 impl SkillExecTool {
     pub fn new(graphql_url: String, bearer_token: Option<String>) -> Self {
+        Self::with_permissions(graphql_url, bearer_token, HashMap::new())
+    }
+
+    pub fn with_permissions(
+        graphql_url: String,
+        bearer_token: Option<String>,
+        permissions: HashMap<(String, String), ToolPermission>,
+    ) -> Self {
         let cache = SchemaCache::new(graphql_url.clone(), bearer_token.clone());
         Self {
             graphql_url,
             bearer_token,
             schema_cache: Arc::new(Mutex::new(cache)),
+            permissions: Arc::new(RwLock::new(permissions)),
         }
+    }
+
+    /// Handle to the permission map so the capability-refresh cycle
+    /// can replace its contents when the backend bootstrap is re-fetched.
+    pub fn permissions_handle(&self) -> Arc<RwLock<HashMap<(String, String), ToolPermission>>> {
+        self.permissions.clone()
     }
 }
 
@@ -73,10 +96,7 @@ impl Tool for SkillExecTool {
     }
 
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
-        let command = args
-            .get("command")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let command = args.get("command").and_then(|v| v.as_str()).unwrap_or("");
 
         let parsed = parser::parse(command);
 
@@ -112,6 +132,23 @@ impl Tool for SkillExecTool {
                 action,
                 args: cli_args,
             } => {
+                // Enforce per-tool allow/deny before dispatch. A row in
+                // the permission map with mode=Deny blocks the call; any
+                // other state (Allow, or no row at all) proceeds.
+                {
+                    let perms = self.permissions.read().await;
+                    let key = (skill.to_ascii_lowercase(), action.clone());
+                    if let Some(ToolPermission::Deny) = perms.get(&key) {
+                        return Ok(ToolResult {
+                            success: false,
+                            output: String::new(),
+                            error: Some(format!(
+                                "tool denied by policy: {skill}:{action} is set to deny for this agent"
+                            )),
+                        });
+                    }
+                }
+
                 let gql_query = {
                     let cache = self.schema_cache.lock().await;
                     match query_builder::build_query(&skill, &action, &cli_args, &cache) {
