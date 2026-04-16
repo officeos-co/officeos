@@ -34,12 +34,9 @@ public sealed class RoundTripTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, regResp.StatusCode);
 
         // 3. Install skill and set to runner target
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string> { ["apiKey"] = "test-key" }
-        });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/run-target", new { runTarget = "runner" });
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-key" });
+        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
         // 4. Agent calls skill-exec (starts waiting for runner result)
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
@@ -79,12 +76,9 @@ public sealed class RoundTripTests : IClassFixture<CustomWebApplicationFactory>
         var runner = new MockRunnerClient(_factory.CreateClient());
         await runner.RegisterAsync(regToken);
 
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string> { ["apiKey"] = "k" }
-        });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/run-target", new { runTarget = "runner" });
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
+        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
         var execTask = agent.SkillExecAsync("notion", "search", new { query = "fail" });
@@ -119,12 +113,9 @@ public sealed class RoundTripTests : IClassFixture<CustomWebApplicationFactory>
         var runner2 = new MockRunnerClient(_factory.CreateClient());
         await runner2.RegisterAsync(regToken2);
 
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string> { ["apiKey"] = "k" }
-        });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/run-target", new { runTarget = "runner" });
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
+        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
         _ = agent.SkillExecAsync("notion", "search", new { query = "concurrent" });

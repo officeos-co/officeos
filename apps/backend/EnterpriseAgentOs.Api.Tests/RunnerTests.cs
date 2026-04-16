@@ -16,12 +16,17 @@ public sealed class RunnerTests : IClassFixture<CustomWebApplicationFactory>
     {
         var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/runners", new { name = "my-runner" });
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.NotEqual(Guid.Empty, body.GetProperty("id").GetGuid());
-        var token = body.GetProperty("registrationToken").GetString();
+        const string mutation = @"
+            mutation($name: String!) {
+              createRunner(name: $name) {
+                runner { id }
+                registrationToken
+              }
+            }";
+        var data = await TestHelpers.GraphQLAsync(client, mutation, new { name = "my-runner" });
+        var createRunner = data.GetProperty("createRunner");
+        Assert.NotEqual(Guid.Empty, createRunner.GetProperty("runner").GetProperty("id").GetGuid());
+        var token = createRunner.GetProperty("registrationToken").GetString();
         Assert.NotNull(token);
         Assert.StartsWith("sr_", token);
     }
@@ -100,10 +105,9 @@ public sealed class RunnerTests : IClassFixture<CustomWebApplicationFactory>
         var hbResp = await runner.HeartbeatAsync();
         Assert.Equal(HttpStatusCode.OK, hbResp.StatusCode);
 
-        // Verify runner is still online via dashboard API
-        var listResp = await dashClient.GetAsync("/api/runners");
-        var runners = await listResp.Content.ReadFromJsonAsync<JsonElement>();
-        var found = runners.EnumerateArray()
+        // Verify runner is still online via dashboard GraphQL
+        var data = await TestHelpers.GraphQLAsync(dashClient, "{ runners { id status } }");
+        var found = data.GetProperty("runners").EnumerateArray()
             .FirstOrDefault(r => r.GetProperty("id").GetGuid() == runnerId);
         Assert.Equal("online", found.GetProperty("status").GetString());
     }
@@ -126,12 +130,15 @@ public sealed class RunnerTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateRunner_WithoutAuth_Returns401()
+    public async Task CreateRunner_WithoutAuth_ReturnsError()
     {
         var client = _factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/api/runners", new { name = "no-auth" });
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        const string mutation = @"
+            mutation($name: String!) {
+              createRunner(name: $name) { registrationToken }
+            }";
+        var raw = await TestHelpers.GraphQLRawAsync(client, mutation, new { name = "no-auth" });
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 }

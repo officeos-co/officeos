@@ -33,7 +33,9 @@ public sealed class SkillExecutionTests : IClassFixture<CustomWebApplicationFact
         var agentId = await TestHelpers.CreateAgentAsync(dashClient, "deleted-caps-agent");
 
         // Delete the agent
-        await dashClient.DeleteAsync($"/api/agents/{agentId}");
+        await TestHelpers.GraphQLAsync(dashClient,
+            "mutation($id: UUID!) { deleteAgent(id: $id) }",
+            new { id = agentId });
 
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.GetAsync("/api/agents/me/capabilities");
@@ -74,15 +76,9 @@ public sealed class SkillExecutionTests : IClassFixture<CustomWebApplicationFact
         var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
         var agentId = await TestHelpers.CreateAgentAsync(dashClient);
 
-        // Install and configure the skill via the skills API
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string>
-            {
-                ["apiKey"] = "test-notion-key",
-            }
-        });
+        // Install and configure the skill via dashboard GraphQL
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-notion-key" });
 
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.SkillExecAsync("notion", "search", new { query = "test" });
@@ -103,14 +99,8 @@ public sealed class SkillExecutionTests : IClassFixture<CustomWebApplicationFact
         var agentId = await TestHelpers.CreateAgentAsync(dashClient);
 
         // Install + configure skill
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string>
-            {
-                ["apiKey"] = "test-key",
-            }
-        });
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-key" });
 
         // Reset WireMock execute endpoint to reject connections
         _factory.SkillRuntimeMock.Reset();
@@ -140,12 +130,9 @@ public sealed class SkillExecutionTests : IClassFixture<CustomWebApplicationFact
         var agentId = await TestHelpers.CreateAgentAsync(dashClient);
 
         // Install skill and set to runner target
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string> { ["apiKey"] = "k" }
-        });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/run-target", new { runTarget = "runner" });
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
+        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.SkillExecAsync("notion", "search", new { query = "test" });

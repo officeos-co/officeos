@@ -6,9 +6,10 @@ using EnterpriseAgentOs.Api.Tests.Infrastructure;
 namespace EnterpriseAgentOs.Api.Tests.Billing;
 
 /// <summary>
-/// Integration tests for BillingController endpoints.
-/// Stripe is disabled (Enabled=false) in the test factory, so most POST endpoints
-/// return 503. GET /subscription always returns data from the stub service.
+/// Integration tests for Billing GraphQL (user subscription) + the Stripe webhook
+/// REST endpoint, which remains the only REST endpoint in the Billing domain.
+/// Stripe is disabled (Enabled=false) in the test factory, so the webhook returns 503
+/// and the subscribe mutation surfaces a service-unavailable error.
 /// </summary>
 public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
@@ -16,105 +17,81 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
 
     public BillingControllerTests(CustomWebApplicationFactory factory) => _factory = factory;
 
+    private const string SubscriptionQuery = @"
+        {
+          userSubscription {
+            plan
+            concurrentAgentLimit
+            creditBudgetPerMonth
+            isActive
+          }
+        }";
+
     // -------------------------------------------------------------------------
-    // GET /api/billing/subscription
+    // userSubscription GraphQL query
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task GetSubscription_Returns200WithFreePlan()
+    public async Task GetSubscription_ReturnsFreePlan()
     {
-        var client = _factory.CreateClient();
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var response = await client.GetAsync("/api/billing/subscription");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("free", body.GetProperty("plan").GetString());
-    }
-
-    [Fact]
-    public async Task GetSubscription_ReturnsBillingEnabledFalse_WhenNotConfigured()
-    {
-        var client = _factory.CreateClient();
-
-        var response = await client.GetAsync("/api/billing/subscription");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.False(body.GetProperty("billingEnabled").GetBoolean());
+        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        var sub = data.GetProperty("userSubscription");
+        Assert.Equal("free", sub.GetProperty("plan").GetString());
     }
 
     [Fact]
     public async Task GetSubscription_FreePlan_HasCorrectCreditBudget()
     {
-        var client = _factory.CreateClient();
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var response = await client.GetAsync("/api/billing/subscription");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(500_000L, body.GetProperty("creditBudgetPerMonth").GetInt64());
+        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        Assert.Equal(500_000L, data.GetProperty("userSubscription")
+            .GetProperty("creditBudgetPerMonth").GetInt64());
     }
 
     [Fact]
     public async Task GetSubscription_FreePlan_HasConcurrentAgentLimitOfOne()
     {
-        var client = _factory.CreateClient();
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var response = await client.GetAsync("/api/billing/subscription");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(1, body.GetProperty("concurrentAgentLimit").GetInt32());
+        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        Assert.Equal(1, data.GetProperty("userSubscription")
+            .GetProperty("concurrentAgentLimit").GetInt32());
     }
 
     [Fact]
     public async Task GetSubscription_FreePlan_IsActive()
     {
-        var client = _factory.CreateClient();
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var response = await client.GetAsync("/api/billing/subscription");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.True(body.GetProperty("isActive").GetBoolean());
+        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        Assert.True(data.GetProperty("userSubscription").GetProperty("isActive").GetBoolean());
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/billing/subscribe — disabled returns 503
+    // subscribeUser mutation — disabled surfaces as a GraphQL error
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Subscribe_WhenBillingDisabled_Returns503()
+    public async Task Subscribe_WhenBillingDisabled_ReturnsError()
     {
-        var client = _factory.CreateClient();
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var response = await client.PostAsJsonAsync("/api/billing/subscribe", new
-        {
-            plan = "team",
-            email = "user@example.com",
-        });
+        const string mutation = @"
+            mutation($plan: String!, $billingCycle: String!) {
+              subscribeUser(plan: $plan, billingCycle: $billingCycle) { checkoutUrl }
+            }";
+        var raw = await TestHelpers.GraphQLRawAsync(client, mutation,
+            new { plan = "pro", billingCycle = "monthly" });
 
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Subscribe_WhenBillingDisabled_ReturnsErrorMessage()
-    {
-        var client = _factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync("/api/billing/subscribe", new
-        {
-            plan = "team",
-            email = "user@example.com",
-        });
-
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Billing not configured", body.GetProperty("error").GetString());
+        // Stripe disabled → service throws, which HotChocolate surfaces as a GraphQL error.
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/billing/webhook — disabled returns 503
+    // POST /api/billing/webhook — still REST (Stripe webhook, no auth)
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -142,21 +119,12 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
         Assert.Equal("Billing not configured", body.GetProperty("error").GetString());
     }
 
-    // -------------------------------------------------------------------------
-    // POST /api/billing/webhook — missing signature header
-    // -------------------------------------------------------------------------
-
     [Fact]
-    public async Task Webhook_MissingSignatureHeader_Returns400_WhenBillingEnabled()
+    public async Task Webhook_Endpoint_Exists()
     {
-        // This test exercises the signature-validation branch.
-        // The factory has billing disabled, so we can only verify the 503 path.
-        // When billing is enabled in production, a missing Stripe-Signature must
-        // return 400 (tested here via the stub's disabled-mode fallthrough).
-        // TODO: Add an enabled-billing integration test fixture once Stripe SDK is wired.
+        // The webhook route itself must still be reachable (not 404).
         var client = _factory.CreateClient();
 
-        // Just confirm the endpoint exists and doesn't 404
         var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/api/billing/webhook", content);
 

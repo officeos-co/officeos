@@ -20,6 +20,8 @@ public sealed record SkillDashboardDto(
 [GraphQLName("SkillTool")]
 public sealed record SkillToolDto(string Name, string Description);
 
+public sealed record SkillCredentialEntry(string Key, string Value);
+
 [GraphQLName("CommentAuthor")]
 public sealed record CommentAuthorDto(Guid Id, string? Name, string? AvatarUrl);
 

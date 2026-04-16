@@ -62,16 +62,19 @@ public sealed class GdprTests : IClassFixture<CustomWebApplicationFactory>
         var agentId = await TestHelpers.CreateAgentAsync(dashClient, "purge-test-agent");
 
         // Confirm the agent exists before purge
-        var beforeResponse = await dashClient.GetAsync($"/api/agents/{agentId}");
-        Assert.Equal(HttpStatusCode.OK, beforeResponse.StatusCode);
+        var beforeData = await TestHelpers.GraphQLAsync(
+            dashClient,
+            "query($id: UUID!) { agent(id: $id) { id } }",
+            new { id = agentId });
+        Assert.Equal(JsonValueKind.Object, beforeData.GetProperty("agent").ValueKind);
 
-        // Issue GDPR purge
+        // Issue GDPR purge (still REST)
         var purgeResponse = await dashClient.DeleteAsync("/api/gdpr/purge");
         Assert.Equal(HttpStatusCode.NoContent, purgeResponse.StatusCode);
 
-        // The same session cookie is now invalid — any authenticated request returns 401
-        var afterAuthResponse = await dashClient.GetAsync("/api/agents");
-        Assert.Equal(HttpStatusCode.Unauthorized, afterAuthResponse.StatusCode);
+        // The same session cookie is now invalid — any authenticated GraphQL call errors
+        var afterAuth = await TestHelpers.GraphQLRawAsync(dashClient, "{ agents { id } }");
+        Assert.True(afterAuth.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
 
         // Verify the agent record is gone in the DB
         using var scope = _factory.Services.CreateScope();

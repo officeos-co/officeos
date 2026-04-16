@@ -37,11 +37,10 @@ public sealed class AuditTrailTests : IClassFixture<CustomWebApplicationFactory>
         var execResponse = await agent.SkillExecAsync("notion", "search", new { query = "hello" });
         Assert.Equal(HttpStatusCode.OK, execResponse.StatusCode);
 
-        // Fetch audit log via dashboard auth
-        var auditResponse = await dashClient.GetAsync($"/api/agents/{agentId}/audit-log");
-        Assert.Equal(HttpStatusCode.OK, auditResponse.StatusCode);
-
-        var body = await auditResponse.Content.ReadFromJsonAsync<JsonElement>();
+        // Fetch audit log via dashboard GraphQL
+        var data = await TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+            new { agentId, skip = 0, limit = 50 });
+        var body = data.GetProperty("auditLog");
         var items = body.GetProperty("items");
         var total = body.GetProperty("total").GetInt32();
 
@@ -86,10 +85,9 @@ public sealed class AuditTrailTests : IClassFixture<CustomWebApplicationFactory>
 
         // Execution may succeed or be rejected depending on schema validation;
         // either way an audit record must be written.
-        var auditResponse = await dashClient.GetAsync($"/api/agents/{agentId}/audit-log");
-        Assert.Equal(HttpStatusCode.OK, auditResponse.StatusCode);
-
-        var body = await auditResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var data = await TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+            new { agentId, skip = 0, limit = 50 });
+        var body = data.GetProperty("auditLog");
         var items = body.GetProperty("items");
         Assert.True(items.GetArrayLength() >= 1, "Expected at least one audit entry.");
 
@@ -133,10 +131,9 @@ public sealed class AuditTrailTests : IClassFixture<CustomWebApplicationFactory>
             $"Expected a non-success or proxied-error response, got {status}");
 
         // Audit entry must still be present regardless
-        var auditResponse = await dashClient.GetAsync($"/api/agents/{agentId}/audit-log");
-        Assert.Equal(HttpStatusCode.OK, auditResponse.StatusCode);
-
-        var body = await auditResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var data = await TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+            new { agentId, skip = 0, limit = 50 });
+        var body = data.GetProperty("auditLog");
         var total = body.GetProperty("total").GetInt32();
         var items = body.GetProperty("items");
 
@@ -162,9 +159,11 @@ public sealed class AuditTrailTests : IClassFixture<CustomWebApplicationFactory>
 
         // Unauthenticated client — no cookie
         var anonClient = _factory.CreateClient();
-        var response = await anonClient.GetAsync($"/api/agents/{agentId}/audit-log");
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var raw = await TestHelpers.GraphQLRawAsync(anonClient, AuditLogQuery,
+            new { agentId, skip = 0, limit = 50 });
+        // Dashboard GraphQL endpoint rejects unauthenticated calls via DashboardAuthMiddleware.
+        // The response contains errors and auditLog is not resolved.
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -294,18 +293,24 @@ public sealed class AuditTrailTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     /// <summary>
-    /// Installs the "notion" skill and sets the apiKey credential via the dashboard API.
-    /// This matches the pattern from SkillExecutionTests.
+    /// Installs the "notion" skill and sets the apiKey credential via the dashboard GraphQL.
     /// </summary>
     private static async Task InstallAndConfigureNotionAsync(HttpClient dashClient)
     {
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new Dictionary<string, string>
         {
-            credentials = new Dictionary<string, string>
-            {
-                ["apiKey"] = "test-notion-key",
-            }
+            ["apiKey"] = "test-notion-key",
         });
     }
+
+    private const string AuditLogQuery = @"
+        query($agentId: UUID!, $skip: Int!, $limit: Int!) {
+          auditLog(agentId: $agentId, skip: $skip, limit: $limit) {
+            total
+            items {
+              id agentId skillName action paramsJson resultSummary durationMs timestamp
+            }
+          }
+        }";
 }

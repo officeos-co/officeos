@@ -5,6 +5,85 @@ namespace EnterpriseAgentOs.Api.Entities.Skills.GraphQL;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class SkillDashboardMutations
 {
+    public async Task<bool> InstallSkill(
+        string name,
+        IResolverContext context,
+        [Service] ISkillService skills,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        var dto = await skills.InstallAsync(name, ct);
+        if (dto is null)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage($"Skill '{name}' not found.")
+                    .SetCode("NOT_FOUND")
+                    .Build());
+        }
+        return true;
+    }
+
+    public async Task<bool> UninstallSkill(
+        string name,
+        IResolverContext context,
+        [Service] ISkillService skills,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        var dto = await skills.UninstallAsync(name, ct);
+        if (dto is null)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage($"Skill '{name}' not found.")
+                    .SetCode("NOT_FOUND")
+                    .Build());
+        }
+        return true;
+    }
+
+    public async Task<bool> SetSkillCredentials(
+        string name,
+        IReadOnlyList<SkillCredentialEntry> credentials,
+        IResolverContext context,
+        [Service] ISkillService skills,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        var dict = credentials.ToDictionary(c => c.Key, c => c.Value);
+        var dto = await skills.PutCredentialsAsync(name, dict, ct);
+        if (dto is null)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage($"Skill '{name}' not found.")
+                    .SetCode("NOT_FOUND")
+                    .Build());
+        }
+        return true;
+    }
+
+    public async Task<bool> SetSkillRunTarget(
+        string name,
+        string runTarget,
+        IResolverContext context,
+        [Service] ISkillService skills,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        var dto = await skills.SetRunTargetAsync(name, runTarget, ct);
+        if (dto is null)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage($"Skill '{name}' not found or invalid run target.")
+                    .SetCode("NOT_FOUND")
+                    .Build());
+        }
+        return true;
+    }
+
     public async Task<SkillDashboardDto> LikeSkill(
         Guid skillId,
         IResolverContext context,

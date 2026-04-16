@@ -1,63 +1,71 @@
-using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using EnterpriseAgentOs.Api.Tests.Infrastructure;
 
 namespace EnterpriseAgentOs.Api.Tests.LlmProxy;
 
 /// <summary>
-/// Verifies that configuring API keys for non-OpenAI providers returns 400
-/// and that OpenAI still accepts a key via PUT /api/providers/openai.
+/// Verifies that configuring API keys for non-OpenAI providers returns a GraphQL
+/// error and that OpenAI still accepts a key via the setProviderKey mutation.
+/// All dashboard provider management is now GraphQL (Stage 6).
 /// </summary>
 [Collection("Integration")]
 public sealed class ProvidersControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private readonly HttpClient _client;
+    private readonly CustomWebApplicationFactory _factory;
 
     public ProvidersControllerTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _factory = factory;
     }
+
+    private const string SetProviderKeyMutation = @"
+        mutation($providerName: String!, $apiKey: String!) {
+          setProviderKey(providerName: $providerName, apiKey: $apiKey) {
+            id name configured
+          }
+        }";
 
     [Theory]
     [InlineData("anthropic")]
     [InlineData("google")]
     [InlineData("xai")]
-    public async Task Configure_NonOpenAiProvider_Returns400(string providerName)
+    public async Task Configure_NonOpenAiProvider_ReturnsError(string providerName)
     {
-        var response = await _client.PutAsJsonAsync(
-            $"/api/providers/{providerName}",
-            new { apiKey = "sk-test-key" });
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var raw = await TestHelpers.GraphQLRawAsync(client, SetProviderKeyMutation,
+            new { providerName, apiKey = "sk-test-key" });
 
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("OpenAI", body, StringComparison.OrdinalIgnoreCase);
+        Assert.True(raw.TryGetProperty("errors", out var errors));
+        Assert.True(errors.GetArrayLength() > 0);
+        Assert.Contains("OpenAI", errors.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task Configure_OpenAiProvider_Returns200()
+    public async Task Configure_OpenAiProvider_Succeeds()
     {
-        var response = await _client.PutAsJsonAsync(
-            "/api/providers/openai",
-            new { apiKey = "sk-test-openai-key" });
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var data = await TestHelpers.GraphQLAsync(client, SetProviderKeyMutation,
+            new { providerName = "openai", apiKey = "sk-test-openai-key" });
+
+        var provider = data.GetProperty("setProviderKey");
+        Assert.Equal("openai", provider.GetProperty("name").GetString());
     }
 
     [Fact]
     public async Task List_Providers_NonOpenAi_ShowConfiguredTrue()
     {
-        var response = await _client.GetAsync("/api/providers");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var providers = await response.Content.ReadFromJsonAsync<JsonElement[]>();
-        Assert.NotNull(providers);
+        var data = await TestHelpers.GraphQLAsync(client, "{ providers { name configured } }");
+        var providers = data.GetProperty("providers");
+        Assert.True(providers.GetArrayLength() > 0);
 
         // anthropic, google, xai should all be configured = true (platform keys)
         foreach (var name in new[] { "anthropic", "google", "xai" })
         {
-            var provider = providers.FirstOrDefault(p =>
+            var provider = providers.EnumerateArray().FirstOrDefault(p =>
                 p.GetProperty("name").GetString()
                     ?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
 

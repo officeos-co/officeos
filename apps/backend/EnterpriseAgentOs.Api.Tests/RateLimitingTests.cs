@@ -160,14 +160,8 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
         var agentId = await TestHelpers.CreateAgentAsync(dashClient, $"agent-email-limit-{Guid.NewGuid():N}");
 
         // Install and configure the email skill.
-        await dashClient.PostAsJsonAsync("/api/skills/sendgrid/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/sendgrid/credentials", new
-        {
-            credentials = new Dictionary<string, string>
-            {
-                ["apiKey"] = "test-sendgrid-key",
-            }
-        });
+        await TestHelpers.InstallSkillAsync(dashClient, "sendgrid");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "sendgrid", new() { ["apiKey"] = "test-sendgrid-key" });
 
         var agent = new MockAgentClient(_factory.CreateClient(), agentId);
 
@@ -276,14 +270,8 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
 
     private static async Task InstallNotionSkillAsync(HttpClient dashClient)
     {
-        await dashClient.PostAsJsonAsync("/api/skills/notion/install", new { });
-        await dashClient.PutAsJsonAsync("/api/skills/notion/credentials", new
-        {
-            credentials = new Dictionary<string, string>
-            {
-                ["apiKey"] = "test-notion-key",
-            }
-        });
+        await TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-notion-key" });
     }
 }
 
