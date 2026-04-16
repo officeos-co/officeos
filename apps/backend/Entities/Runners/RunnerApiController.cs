@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using Amazon.S3;
-using Amazon.S3.Model;
 
 namespace EnterpriseAgentOs.Api.Entities.Runners;
 
@@ -16,9 +14,6 @@ public sealed class RunnerApiController : ControllerBase
     private readonly IRunnerRepository _runners;
     private readonly IRunnerJobRepository _jobs;
     private readonly RunnerJobWaiter _waiter;
-    private readonly ICustomSkillRepository _customSkills;
-    private readonly IAmazonS3 _s3;
-    private readonly SkillStorageConfig _storage;
 
     private readonly ILogger<RunnerApiController> _logger;
 
@@ -26,17 +21,11 @@ public sealed class RunnerApiController : ControllerBase
         IRunnerRepository runners,
         IRunnerJobRepository jobs,
         RunnerJobWaiter waiter,
-        ICustomSkillRepository customSkills,
-        IAmazonS3 s3,
-        SkillStorageConfig storage,
         ILogger<RunnerApiController> logger)
     {
         _runners = runners;
         _jobs = jobs;
         _waiter = waiter;
-        _customSkills = customSkills;
-        _s3 = s3;
-        _storage = storage;
         _logger = logger;
     }
 
@@ -151,52 +140,6 @@ public sealed class RunnerApiController : ControllerBase
         return Ok(new { ok = true });
     }
 
-    /// <summary>
-    /// Returns the list of custom skills available for this runner to sync.
-    /// Each entry includes name and lastSyncAt so the runner can skip unchanged skills.
-    /// </summary>
-    [HttpGet("skills")]
-    [RunnerAuth]
-    public async Task<IActionResult> ListSkills(CancellationToken ct)
-    {
-        var skills = await _customSkills.ListAsync(ct);
-        var ready = skills
-            .Where(s => s.BuildStatus == "ready" && !string.IsNullOrEmpty(s.BundlePath))
-            .Select(s => new
-            {
-                name = s.Name,
-                updatedAt = s.LastSyncAt ?? s.CreatedAt,
-            });
-        return Ok(ready);
-    }
-
-    /// <summary>
-    /// Streams the skill zip from MinIO so the runner can download and build it locally.
-    /// </summary>
-    [HttpGet("skills/{name}/download")]
-    [RunnerAuth]
-    public async Task<IActionResult> DownloadSkill(string name, CancellationToken ct)
-    {
-        var skill = await _customSkills.GetByNameAsync(name, ct);
-        if (skill is null || skill.BuildStatus != "ready" || string.IsNullOrEmpty(skill.BundlePath))
-            return NotFound(new { error = $"Skill '{name}' not found or not ready" });
-
-        var s3Key = $"{name}/{name}.zip";
-        try
-        {
-            var response = await _s3.GetObjectAsync(new GetObjectRequest
-            {
-                BucketName = _storage.Bucket,
-                Key = s3Key,
-            }, ct);
-
-            return File(response.ResponseStream, "application/zip", $"{name}.zip");
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return NotFound(new { error = $"Skill archive not found in storage" });
-        }
-    }
 }
 
 public sealed record RegisterRunnerRequest(string RegistrationToken, string? Version = null);

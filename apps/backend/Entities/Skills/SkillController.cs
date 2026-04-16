@@ -2,7 +2,6 @@ using System.Text.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
 using EnterpriseAgentOs.Api.Database.Models;
-using EnterpriseAgentOs.Api.Entities.ApprovalQueue;
 using EnterpriseAgentOs.Api.Entities.Events;
 
 namespace EnterpriseAgentOs.Api.Entities.Skills;
@@ -107,17 +106,6 @@ public sealed class SkillController : ControllerBase
 
         var dto = await _service.SetRunTargetAsync(name, request.RunTarget, ct);
         return dto is null ? NotFound() : Ok(dto);
-    }
-
-    [HttpPut("{name}/approval")]
-    public async Task<IActionResult> SetApprovalOverride(
-        string name,
-        [FromBody] SetApprovalOverrideRequest request,
-        CancellationToken ct)
-    {
-        await _catalog.GetByNameAsync(name, ct); // just verify skill exists (catalog lookup)
-        await _skillRepo.SetApprovalOverrideAsync(name, request.RequiresApproval, ct);
-        return Ok(new { skillName = name, requiresApproval = request.RequiresApproval });
     }
 
     // ---------- user-auth capabilities (dashboard introspection) ----------

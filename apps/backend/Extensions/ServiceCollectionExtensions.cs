@@ -14,12 +14,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IRunnerRepository, RunnerRepository>();
         services.AddScoped<IRunnerJobRepository, RunnerJobRepository>();
-        services.AddScoped<ICustomSkillRepository, CustomSkillRepository>();
         services.AddScoped<ISkillRegistryRepository, SkillRegistryRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IRateLimitRepository, RateLimitRepository>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.ApprovalQueue.IApprovalRepository, EnterpriseAgentOs.Api.Entities.ApprovalQueue.ApprovalRepository>();
         return services;
     }
 
@@ -39,7 +37,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IRateLimitService, RateLimitService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Gdpr.IGdprService, EnterpriseAgentOs.Api.Entities.Gdpr.GdprService>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.ApprovalQueue.IApprovalService, EnterpriseAgentOs.Api.Entities.ApprovalQueue.ApprovalService>();
         return services;
     }
 

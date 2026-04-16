@@ -76,20 +76,4 @@ public sealed class SkillRepository : ISkillRepository
         }
         await _db.SaveChangesAsync(ct);
     }
-
-    public async Task SetApprovalOverrideAsync(string skillName, bool? requiresApproval, CancellationToken ct = default)
-    {
-        var name = skillName.Trim().ToLowerInvariant();
-        var row = await _db.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
-        if (row is null)
-        {
-            row = new SkillCredentialRecord { SkillName = name, RequiresApprovalOverride = requiresApproval };
-            _db.SkillCredentials.Add(row);
-        }
-        else
-        {
-            row.RequiresApprovalOverride = requiresApproval;
-        }
-        await _db.SaveChangesAsync(ct);
-    }
 }

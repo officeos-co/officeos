@@ -94,8 +94,6 @@ public sealed class SkillService : ISkillService
             return null;
         }
         var row = await _repository.UpsertAsync(skill.Name, enabled: true, encryptedCredentials: null, ct);
-        // Reset any operator approval override when the skill is (re-)installed.
-        await _repository.SetApprovalOverrideAsync(skill.Name, null, ct);
         _logger.LogInformation("Skill {SkillName} installed", skill.Name);
         return ToDto(skill, row);
     }

@@ -15,7 +15,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SessionRecord> Sessions => Set<SessionRecord>();
     public DbSet<RunnerRecord> Runners => Set<RunnerRecord>();
     public DbSet<RunnerJobRecord> RunnerJobs => Set<RunnerJobRecord>();
-    public DbSet<CustomSkillRecord> CustomSkills => Set<CustomSkillRecord>();
     public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();
     public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
     public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
@@ -31,7 +30,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
     public DbSet<AgentToolCallRecord> AgentToolCalls => Set<AgentToolCallRecord>();
     public DbSet<AgentRateLimitRecord> AgentRateLimits => Set<AgentRateLimitRecord>();
-    public DbSet<ApprovalRequestRecord> ApprovalRequests => Set<ApprovalRequestRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,13 +87,6 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(j => j.Id);
             e.HasIndex(j => new { j.RunnerId, j.Status });
             e.HasOne(j => j.Runner).WithMany().HasForeignKey(j => j.RunnerId);
-        });
-
-        modelBuilder.Entity<CustomSkillRecord>(e =>
-        {
-            e.HasKey(c => c.Id);
-            e.HasIndex(c => c.Name).IsUnique();
-            e.HasOne(c => c.Owner).WithMany().HasForeignKey(c => c.OwnerId);
         });
 
         modelBuilder.Entity<DeviceCodeRecord>(e =>
@@ -257,16 +248,5 @@ public sealed class EaosDbContext : DbContext
             e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
         });
 
-        modelBuilder.Entity<ApprovalRequestRecord>(e =>
-        {
-            e.HasKey(a => a.Id);
-            e.HasIndex(a => a.AgentId);
-            e.HasIndex(a => a.Status);
-            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
-            e.Property(a => a.Action).IsRequired().HasMaxLength(64);
-            e.Property(a => a.ParamsJson).HasColumnType("text");
-            e.Property(a => a.Status).IsRequired().HasMaxLength(16);
-            e.Property(a => a.ResultJson).HasColumnType("text");
-        });
     }
 }
