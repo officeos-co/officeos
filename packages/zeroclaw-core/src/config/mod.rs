@@ -1,6 +1,10 @@
+pub mod agent_runtime;
 pub mod schema;
 pub mod traits;
 pub mod workspace;
+
+#[allow(unused_imports)]
+pub use agent_runtime::AgentRuntimeConfig;
 
 #[allow(unused_imports)]
 pub use schema::{
