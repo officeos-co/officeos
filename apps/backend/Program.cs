@@ -119,6 +119,11 @@ builder.Services.AddSingleton(frontendConfig);
 builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
 builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
+// PostHog analytics — server owns the API key; dashboard-2 proxies via captureEvent mutation
+var postHogConfig = new PostHogConfig();
+envSection.GetSection("PostHog").Bind(postHogConfig);
+builder.Services.AddSingleton(postHogConfig);
+
 // Rate limiting
 var rateLimitingConfig = new RateLimitingConfig();
 envSection.GetSection("RateLimiting").Bind(rateLimitingConfig);

@@ -29,6 +29,7 @@ Properties/
   FrontendConfig.cs                     Typed config: dashboard origin URL for CORS
   LiteLlmConfig.cs                      Typed config: LiteLLM proxy
   PlatformKeysConfig.cs                 Typed config: platform-owned API keys
+  PostHogConfig.cs                      Typed config: PostHog API key + host (analytics)
 Database/
   EaosDbContext.cs                      EF Core DbContext (Postgres via Npgsql)
   Models/                               EF entity records — this IS the database schema source of truth
@@ -78,6 +79,7 @@ Entities/{DomainName}/
 | `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0 of every request before forwarding. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | DB-backed per-agent sliding window counter (AgentRateLimitRecord). Enforced in AgentSkillsController.SkillExec(). Config: RateLimitingConfig (SkillExecPerAgentPerHour, EmailPerAgentPerHour, WindowSeconds). |
 | `Gdpr` | GdprController | IGdprService / GdprService | — | GET /api/gdpr/export (JSON attachment of all user data, no plaintext credentials), DELETE /api/gdpr/purge (cascaded delete of all user data + sessions + user record). Both endpoints require SessionAuth. No new DB models — reads/deletes existing tables. |
+| `Analytics` | — | AnalyticsService | — | GraphQL mutations only (`captureEvent`, `identifyUser`). HttpClient-first — registered via `AddHttpClient<IAnalyticsService, AnalyticsService>()`. Server also calls `CaptureAsync` directly from `AgentService`, `AgentLogService`, `AgentTemplateService`. See `Entities/Analytics/EVENTS.md` for the full event catalog. |
 | `AgentLogs` | — | IAgentLogService / AgentLogService | IAgentLogRepository / AgentLogRepository | GraphQL-only domain (no REST). Append-only log timeline over `AgentLogRecord`. Dashboard sends messages by appending `MessageIn` rows and subscribes to `agentLogAppended(agentId)` for live updates. Publishes to `ITopicEventSender` topic `agent-log:{agentId}` on every append. Has `GraphQL/` subfolder: AgentLogsQueries, AgentLogsMutations, AgentLogsSubscriptions. |
 
 ### Naming conventions
@@ -186,6 +188,10 @@ Both are registered in `Program.cs`. Never merge them: the agent schema leaks to
 3. No C# types or resolvers needed — `SkillTypeModule` picks up new skills from the runtime manifest automatically.
 
 The TypeScript implementation lives in `packages/skills/`. See `packages/skills/CLAUDE.md`.
+
+## Analytics
+
+PostHog capture is server-side via `IAnalyticsService`. dashboard-2 never holds the API key; it calls `mutation captureEvent` which the backend forwards to PostHog.
 
 ## Anti-patterns
 

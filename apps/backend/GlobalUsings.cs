@@ -21,6 +21,7 @@ global using EnterpriseAgentOs.Api.Entities.Audit;
 global using EnterpriseAgentOs.Api.Entities.RateLimiting;
 global using EnterpriseAgentOs.Api.Entities.AgentTemplates;
 global using EnterpriseAgentOs.Api.Entities.AgentLogs;
+global using EnterpriseAgentOs.Api.Entities.Analytics;
 global using EnterpriseAgentOs.Api.GraphQL;
 global using HotChocolate;
 global using HotChocolate.Types;

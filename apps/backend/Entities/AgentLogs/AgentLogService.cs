@@ -5,12 +5,18 @@ public sealed class AgentLogService : IAgentLogService
     private readonly IAgentLogRepository _repo;
     private readonly ITopicEventSender _sender;
     private readonly IAgentRepository _agents;
+    private readonly IAnalyticsService _analytics;
 
-    public AgentLogService(IAgentLogRepository repo, ITopicEventSender sender, IAgentRepository agents)
+    public AgentLogService(
+        IAgentLogRepository repo,
+        ITopicEventSender sender,
+        IAgentRepository agents,
+        IAnalyticsService analytics)
     {
         _repo = repo;
         _sender = sender;
         _agents = agents;
+        _analytics = analytics;
     }
 
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
@@ -51,6 +57,18 @@ public sealed class AgentLogService : IAgentLogService
         };
 
         // TODO: kick the agent pod
-        return await AppendAsync(record, ct);
+        var saved = await AppendAsync(record, ct);
+
+        await _analytics.CaptureAsync(
+            userId.ToString(),
+            "agent_message_sent",
+            new Dictionary<string, object?>
+            {
+                ["agent_id"] = agentId,
+                ["content_length"] = content?.Length ?? 0,
+            },
+            ct);
+
+        return saved;
     }
 }

@@ -8,6 +8,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
     private readonly IAgentService _agents;
     private readonly IAgentSkillRepository _agentSkills;
     private readonly IChannelRepository _channels;
+    private readonly IAnalyticsService _analytics;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
@@ -15,12 +16,14 @@ public sealed class AgentTemplateService : IAgentTemplateService
         IAgentService agents,
         IAgentSkillRepository agentSkills,
         IChannelRepository channels,
+        IAnalyticsService analytics,
         ILogger<AgentTemplateService> logger)
     {
         _repo = repo;
         _agents = agents;
         _agentSkills = agentSkills;
         _channels = channels;
+        _analytics = analytics;
         _logger = logger;
     }
 
@@ -83,6 +86,18 @@ public sealed class AgentTemplateService : IAgentTemplateService
         }
 
         _logger.LogInformation("Created agent {AgentId} from template {Template}", agent.Id, template.Name);
+
+        await _analytics.CaptureAsync(
+            ownerId.ToString(),
+            "agent_created_from_template",
+            new Dictionary<string, object?>
+            {
+                ["template_id"] = template.Id,
+                ["template_name"] = template.Name,
+                ["agent_id"] = agent.Id,
+            },
+            ct);
+
         return agent;
     }
 

@@ -7,6 +7,7 @@ public sealed class AgentService : IAgentService
     private readonly IAgentDeployer _deployer;
     private readonly IProviderService _providerService;
     private readonly IVaultClient _vault;
+    private readonly IAnalyticsService _analytics;
     private readonly ILogger<AgentService> _logger;
 
     public AgentService(
@@ -14,12 +15,14 @@ public sealed class AgentService : IAgentService
         IAgentDeployer deployer,
         IProviderService providerService,
         IVaultClient vault,
+        IAnalyticsService analytics,
         ILogger<AgentService> logger)
     {
         _repository = repository;
         _deployer = deployer;
         _providerService = providerService;
         _vault = vault;
+        _analytics = analytics;
         _logger = logger;
     }
 
@@ -113,6 +116,20 @@ public sealed class AgentService : IAgentService
             await _repository.UpdateAsync(record, ct);
         }
 
+        if (ownerId is not null)
+        {
+            await _analytics.CaptureAsync(
+                ownerId.Value.ToString(),
+                "agent_created",
+                new Dictionary<string, object?>
+                {
+                    ["agent_id"] = record.Id,
+                    ["provider"] = record.Provider,
+                    ["model"] = record.Model,
+                },
+                ct);
+        }
+
         return ToDto(record);
     }
 
@@ -193,7 +210,18 @@ public sealed class AgentService : IAgentService
             _logger.LogWarning(ex, "Failed to delete vault for agent {AgentId}", id);
         }
 
-        return await _repository.SoftDeleteAsync(id, ct);
+        var deleted = await _repository.SoftDeleteAsync(id, ct);
+
+        if (deleted && record.OwnerId is not null)
+        {
+            await _analytics.CaptureAsync(
+                record.OwnerId.Value.ToString(),
+                "agent_deleted",
+                new Dictionary<string, object?> { ["agent_id"] = id },
+                ct);
+        }
+
+        return deleted;
     }
 
     private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)
