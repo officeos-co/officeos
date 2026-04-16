@@ -10,6 +10,7 @@ public class AgentMutations
         IResolverContext context,
         [Service] IAgentService agents,
         [Service] IAgentSkillRepository agentSkills,
+        [Service] IChannelRepository channels,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -23,9 +24,28 @@ public class AgentMutations
             await agentSkills.AssignAsync(dto.Id, input.IntegrationSlugs, ct);
         }
 
-        // TODO Stage 5b: bind agent to channels (input.ChannelSlugs) once
-        // IChannelRepository exposes a slug-based BindAsync(agentId, slug) helper.
-        // Current IChannelRepository only supports binding via ChannelConnectionId.
+        if (input.ChannelSlugs is { Count: > 0 })
+        {
+            var connections = await channels.ListConnectionsAsync(ct);
+            foreach (var slug in input.ChannelSlugs)
+            {
+                var match = connections.FirstOrDefault(c =>
+                    string.Equals(c.ChannelType, slug, StringComparison.OrdinalIgnoreCase));
+                if (match is null) continue; // silently skip
+                try
+                {
+                    await channels.CreateBindingAsync(new AgentChannelBindingRecord
+                    {
+                        AgentId = dto.Id,
+                        ChannelConnectionId = match.Id,
+                    }, ct);
+                }
+                catch (DbUpdateException)
+                {
+                    // already bound — skip
+                }
+            }
+        }
 
         return dto;
     }

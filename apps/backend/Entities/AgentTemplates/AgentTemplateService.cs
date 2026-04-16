@@ -7,17 +7,20 @@ public sealed class AgentTemplateService : IAgentTemplateService
     private readonly IAgentTemplateRepository _repo;
     private readonly IAgentService _agents;
     private readonly IAgentSkillRepository _agentSkills;
+    private readonly IChannelRepository _channels;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
         IAgentTemplateRepository repo,
         IAgentService agents,
         IAgentSkillRepository agentSkills,
+        IChannelRepository channels,
         ILogger<AgentTemplateService> logger)
     {
         _repo = repo;
         _agents = agents;
         _agentSkills = agentSkills;
+        _channels = channels;
         _logger = logger;
     }
 
@@ -56,10 +59,28 @@ public sealed class AgentTemplateService : IAgentTemplateService
             await _agentSkills.AssignAsync(agent.Id, dto.Integrations, ct);
         }
 
-        // TODO Stage 5b: bind agent to template.Channels once IChannelRepository
-        // exposes a slug-based BindAsync(agentId, slug) helper. Current repo only
-        // supports binding via a pre-existing ChannelConnectionId.
-        _ = dto.Channels;
+        if (dto.Channels.Count > 0)
+        {
+            var connections = await _channels.ListConnectionsAsync(ct);
+            foreach (var slug in dto.Channels)
+            {
+                var match = connections.FirstOrDefault(c =>
+                    string.Equals(c.ChannelType, slug, StringComparison.OrdinalIgnoreCase));
+                if (match is null) continue; // silently skip
+                try
+                {
+                    await _channels.CreateBindingAsync(new AgentChannelBindingRecord
+                    {
+                        AgentId = agent.Id,
+                        ChannelConnectionId = match.Id,
+                    }, ct);
+                }
+                catch (DbUpdateException)
+                {
+                    // already bound — skip
+                }
+            }
+        }
 
         _logger.LogInformation("Created agent {AgentId} from template {Template}", agent.Id, template.Name);
         return agent;
