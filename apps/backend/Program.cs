@@ -169,6 +169,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await ProviderSeeder.SeedAsync(db);
     await SkillSeeder.SeedAsync(scope.ServiceProvider);
+    await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())

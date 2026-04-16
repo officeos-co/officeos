@@ -69,6 +69,7 @@ public sealed class AgentService : IAgentService
             Model = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim(),
             Status = "pending",
             OwnerId = ownerId,
+            Prompt = string.IsNullOrWhiteSpace(request.Prompt) ? null : request.Prompt,
         };
 
         if (record.Model is null)
@@ -152,6 +153,16 @@ public sealed class AgentService : IAgentService
             record.Model = model.Length > 0 ? model : "auto";
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            record.Name = request.Name.Trim();
+        }
+
+        if (request.Prompt is not null)
+        {
+            record.Prompt = request.Prompt.Length == 0 ? null : request.Prompt;
+        }
+
         await _repository.UpdateAsync(record, ct);
         return ToDto(record);
     }
@@ -218,6 +229,6 @@ public sealed class AgentService : IAgentService
         KeylessProviders.Contains(name);
 
     private static AgentDto ToDto(AgentRecord record) =>
-        new(record.Id, record.Name, record.Provider, record.Model, record.Status,
+        new(record.Id, record.Name, record.Provider, record.Model, record.Prompt, record.Status,
             record.PodName, record.ServiceUrl, record.CreatedAt);
 }

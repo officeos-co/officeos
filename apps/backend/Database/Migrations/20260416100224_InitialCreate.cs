@@ -76,6 +76,7 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     Status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     PodName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     ServiceUrl = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Prompt = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     OwnerId = table.Column<Guid>(type: "uuid", nullable: true),

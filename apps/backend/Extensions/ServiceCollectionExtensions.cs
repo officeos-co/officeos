@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IRateLimitRepository, RateLimitRepository>();
+        services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateRepository, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateRepository>();
         return services;
     }
 
@@ -37,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IRateLimitService, RateLimitService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Gdpr.IGdprService, EnterpriseAgentOs.Api.Entities.Gdpr.GdprService>();
+        services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateService, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateService>();
         return services;
     }
 

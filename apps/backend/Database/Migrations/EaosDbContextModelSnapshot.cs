@@ -274,6 +274,9 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("Prompt")
+                        .HasColumnType("text");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(64)

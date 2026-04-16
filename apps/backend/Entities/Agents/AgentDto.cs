@@ -5,6 +5,7 @@ public sealed record AgentDto(
     string Name,
     string Provider,
     string? Model,
+    string? Prompt,
     string Status,
     string? PodName,
     string? ServiceUrl,
@@ -13,4 +14,5 @@ public sealed record AgentDto(
 public sealed record CreateAgentRequest(
     [Required, MinLength(1)] string Name,
     [Required, MinLength(1)] string Provider,
-    string? Model);
+    string? Model,
+    string? Prompt = null);

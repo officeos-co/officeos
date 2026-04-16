@@ -10,4 +10,4 @@ public interface IAgentService
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
 }
 
-public sealed record PatchAgentRequest(string? Provider, string? Model);
+public sealed record PatchAgentRequest(string? Provider, string? Model, string? Name = null, string? Prompt = null);

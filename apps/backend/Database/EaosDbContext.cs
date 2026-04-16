@@ -45,6 +45,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.PodName).HasMaxLength(128);
             e.Property(a => a.ServiceUrl).HasMaxLength(256);
             e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
+            e.Property(a => a.Prompt).HasColumnType("text");
         });
 
         modelBuilder.Entity<ProviderRecord>(e =>
