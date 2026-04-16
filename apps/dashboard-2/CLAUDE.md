@@ -24,7 +24,7 @@ src/
       layout.tsx                  Sidebar shell — SidebarProvider + AppSidebar + SidebarInset
       agents/
         page.tsx                  Agent list — table with search, status filter, pagination
-        [id]/page.tsx             Agent detail — sticky header, URL-driven tabs (agent, logs, memory, cron)
+        [id]/page.tsx             Agent detail — sticky header, URL-driven tabs (agent, logs, memory, cron). Memory tab is a placeholder, mock data pending 1.1 live-pod wiring.
       quickstart/page.tsx         Agent creation — templates sidebar, config form, channel permissions. "Launch agent" calls useCreateAgent and routes to /agents/{id}. There is no /agents/new route.
       integrations/
         page.tsx                  Integration marketplace — cards, add/explore filter, credential dialog

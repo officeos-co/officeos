@@ -56,6 +56,7 @@ export type FileNode = {
   content?: string
 }
 
+// TODO(1.1): wire memory tab to live pod via gateway WebSocket — backend AgentMemory + Vault were removed in 1.0.
 export const mockFileTree: FileNode[] = [
   {
     name: "USER.md",
