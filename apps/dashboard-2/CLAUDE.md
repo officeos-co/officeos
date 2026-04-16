@@ -45,7 +45,7 @@ src/
     team-switcher.tsx             Org header (AgentOS branding)
     page-header.tsx               Shared page header — SidebarTrigger + breadcrumbs + action slot
     log-table.tsx                 Reusable log table — icon, type, source, content, duration, time
-    permission-cards.tsx          Reusable tool/channel permission cards with ask/allow/deny toggles
+    permission-cards.tsx          Reusable permission cards — tool cards cycle allow↔deny only (no ask); channel cards cycle allow↔ask↔deny per dimension.
     credential-dialog.tsx         Dialog overlay for integration credential setup
     channel-onboarding-dialog.tsx Dialog overlay for channel connection wizard
     ui/                           shadcn/ui primitives — all components installed
