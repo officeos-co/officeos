@@ -1,6 +1,6 @@
 using HotChocolate.Resolvers;
 
-namespace EnterpriseAgentOs.Api.GraphQL;
+namespace EnterpriseAgentOs.Api.Middleware;
 
 /// <summary>
 /// GraphQL field middleware that enforces a dashboard session on every resolver call.

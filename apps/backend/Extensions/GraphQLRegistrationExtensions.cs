@@ -1,7 +1,7 @@
 using System.Reflection;
 using HotChocolate.Execution.Configuration;
 
-namespace EnterpriseAgentOs.Api.GraphQL;
+namespace EnterpriseAgentOs.Api.Extensions;
 
 public static class GraphQLRegistrationExtensions
 {

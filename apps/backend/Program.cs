@@ -145,12 +145,12 @@ builder.Services
 
 builder.Services
     .AddGraphQLServer("dashboard")
-    .AddQueryType<EnterpriseAgentOs.Api.GraphQL.GraphQLQueries>()
-    .AddMutationType<EnterpriseAgentOs.Api.GraphQL.GraphQLMutations>()
-    .AddSubscriptionType<EnterpriseAgentOs.Api.GraphQL.GraphQLSubscriptions>()
+    .AddQueryType<EnterpriseAgentOs.Api.GraphQLQueries>()
+    .AddMutationType<EnterpriseAgentOs.Api.GraphQLMutations>()
+    .AddSubscriptionType<EnterpriseAgentOs.Api.GraphQLSubscriptions>()
     .AddInMemorySubscriptions()
     .AddDomainTypeExtensions(typeof(Program).Assembly)
-    .UseField<EnterpriseAgentOs.Api.GraphQL.DashboardAuthMiddleware>()
+    .UseField<EnterpriseAgentOs.Api.Middleware.DashboardAuthMiddleware>()
     .DisableIntrospection(false);
 
 // CORS
