@@ -5,7 +5,6 @@ public sealed class AgentService : IAgentService
     private readonly IAgentRepository _repository;
     private readonly IAgentDeployer _deployer;
     private readonly EnterpriseAgentOs.Api.Entities.Providers.IProviderService _providerService;
-    private readonly EnterpriseAgentOs.Api.Entities.Vault.IVaultClient _vault;
     private readonly EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService _analytics;
     private readonly ILogger<AgentService> _logger;
 
@@ -13,14 +12,12 @@ public sealed class AgentService : IAgentService
         IAgentRepository repository,
         IAgentDeployer deployer,
         EnterpriseAgentOs.Api.Entities.Providers.IProviderService providerService,
-        EnterpriseAgentOs.Api.Entities.Vault.IVaultClient vault,
         EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService analytics,
         ILogger<AgentService> logger)
     {
         _repository = repository;
         _deployer = deployer;
         _providerService = providerService;
-        _vault = vault;
         _analytics = analytics;
         _logger = logger;
     }
@@ -94,12 +91,11 @@ public sealed class AgentService : IAgentService
 
         try
         {
-            await _vault.CreateAgentVaultAsync(record.Id, record.Name, record.Provider, record.Model, ct);
-            _logger.LogInformation("Vault created for agent {AgentId}", record.Id);
-
             // The deployer only sets ZEROCLAW_AGENT_ID. The agent derives
-            // everything else (provider, model, vault, skills) from its
-            // ID by calling back to this backend at runtime.
+            // everything else (provider, model, skills, system prompt) from
+            // its ID by calling back to this backend at runtime. Personality
+            // .md files are embedded in the zeroclaw-core binary — the
+            // backend no longer provisions any per-agent vault.
             var deployment = await _deployer.DeployAsync(record.Id, ct);
 
             record.PodName = deployment.PodName;
@@ -198,15 +194,6 @@ public sealed class AgentService : IAgentService
         {
             _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", record.PodName, id);
             await _deployer.RemoveAsync(record.PodName, ct);
-        }
-
-        try
-        {
-            await _vault.DeleteAgentVaultAsync(id, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete vault for agent {AgentId}", id);
         }
 
         var deleted = await _repository.SoftDeleteAsync(id, ct);

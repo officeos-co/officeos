@@ -54,16 +54,4 @@ public class AgentMemoryMutations
         return count > 0;
     }
 
-    public async Task<EnterpriseAgentOs.Api.Entities.AgentMemory.Types.VaultFileDto> WriteVaultFile(
-        Guid agentId,
-        string path,
-        string content,
-        IResolverContext context,
-        [Service] EnterpriseAgentOs.Api.Entities.Vault.IVaultClient vault,
-        CancellationToken ct)
-    {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        await vault.PutFileAsync(agentId, path, content, ct);
-        return new EnterpriseAgentOs.Api.Entities.AgentMemory.Types.VaultFileDto(path, content);
-    }
 }

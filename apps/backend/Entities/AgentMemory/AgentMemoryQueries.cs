@@ -21,32 +21,4 @@ public class AgentMemoryQueries
         return rows.Select(EnterpriseAgentOs.Api.Entities.AgentMemory.Types.AgentMemoryGraphQLMapper.ToDto).ToList();
     }
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.AgentMemory.Types.VaultFileDto>> GetVaultFiles(
-        Guid agentId,
-        IResolverContext context,
-        [Service] EnterpriseAgentOs.Api.Entities.Vault.IVaultClient vault,
-        CancellationToken ct)
-    {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var fileNames = await vault.ListFilesAsync(agentId, ct);
-        var list = new List<EnterpriseAgentOs.Api.Entities.AgentMemory.Types.VaultFileDto>();
-        foreach (var name in fileNames)
-        {
-            var content = await vault.GetFileAsync(agentId, name, ct);
-            if (content is null) continue;
-            list.Add(new EnterpriseAgentOs.Api.Entities.AgentMemory.Types.VaultFileDto(name, content));
-        }
-        return list;
-    }
-
-    public async Task<string?> GetVaultFile(
-        Guid agentId,
-        string path,
-        IResolverContext context,
-        [Service] EnterpriseAgentOs.Api.Entities.Vault.IVaultClient vault,
-        CancellationToken ct)
-    {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return await vault.GetFileAsync(agentId, path, ct);
-    }
 }

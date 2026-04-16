@@ -63,7 +63,6 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHttpClients(this IServiceCollection services)
     {
-        services.AddHttpClient<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient, EnterpriseAgentOs.Api.Entities.Vault.CouchDbVaultClient>();
         services.AddHttpClient<EnterpriseAgentOs.Api.Entities.Skills.SkillRuntimeClient>();
         // PostHog is HttpClient-first — registering it here gives us a typed
         // HttpClient and also registers IPostHogService -> PostHogService in

@@ -101,10 +101,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.AddDbContext<EnterpriseAgentOs.Api.Database.EaosDbContext>(options =>
                 options.UseNpgsql(_postgres.GetConnectionString()));
 
-            // Replace vault client with a no-op stub
-            services.RemoveAll<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient>();
-            services.AddScoped<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient, StubVaultClient>();
-
             // Replace SkillRuntimeConfig to point at WireMock
             services.RemoveAll<EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig>();
             services.AddSingleton(new EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });

@@ -12,10 +12,6 @@ public sealed record AgentMemoryGqlDto(
     string? SupersededBy,
     DateTime CreatedAt);
 
-public sealed record VaultFileDto(
-    string Path,
-    string Content);
-
 internal static class AgentMemoryGraphQLMapper
 {
     public static AgentMemoryGqlDto ToDto(EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord m) => new(
