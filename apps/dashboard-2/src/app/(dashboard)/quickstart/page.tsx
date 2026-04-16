@@ -22,7 +22,7 @@ import { type Channel, type ChannelPermissions } from "@/data/channels"
 import { useIntegrations } from "@/hooks/useIntegrations"
 import { useChannels } from "@/hooks/useChannels"
 import { useAgentTemplates } from "@/hooks/useAgentTemplates"
-import { useCreateAgentFromTemplate } from "@/hooks/useAgentTemplates"
+import { useCreateAgent } from "@/hooks/useAgents"
 import { useAnalytics } from "@/hooks/useAnalytics"
 import { type Template } from "@/data/agent-templates"
 import {
@@ -170,9 +170,9 @@ export default function QuickstartPage() {
   const { integrations } = useIntegrations()
   const { channels } = useChannels()
   const { templates } = useAgentTemplates()
-  const { createAgentFromTemplate } = useCreateAgentFromTemplate()
-  void createAgentFromTemplate
+  const { createAgent } = useCreateAgent()
   const { trackAgentCreated } = useAnalytics()
+  const [launching, setLaunching] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [agentName, setAgentName] = useState("")
@@ -230,19 +230,33 @@ export default function QuickstartPage() {
         group="Managed Agents"
         page="Quickstart"
         action={
-          <Button size="sm" disabled={!agentName.trim()} onClick={() => {
-            trackAgentCreated({
-              agentName: agentName.trim(),
-              provider: model.split("-")[0] ?? "unknown",
-              template: selectedTemplate?.name ?? "scratch",
-              skillCount: selectedIntegrations.size,
-              allowSkills: Object.values(toolPermissions).filter((p) => p === "allow").length,
-              denySkills: Object.values(toolPermissions).filter((p) => p === "deny").length,
-            })
-            router.push(`/agents/new?status=booting`)
+          <Button size="sm" disabled={!agentName.trim() || launching} onClick={async () => {
+            if (launching) return
+            setLaunching(true)
+            try {
+              const created = await createAgent({
+                name: agentName.trim(),
+                model,
+                systemPrompt: prompt,
+                toolNames: Array.from(selectedIntegrations),
+                channelSlugs: Array.from(selectedChannels),
+              })
+              trackAgentCreated({
+                agentName: agentName.trim(),
+                provider: model.split("-")[0] ?? "unknown",
+                template: selectedTemplate?.name ?? "scratch",
+                skillCount: selectedIntegrations.size,
+                allowSkills: Object.values(toolPermissions).filter((p) => p === "allow").length,
+                denySkills: Object.values(toolPermissions).filter((p) => p === "deny").length,
+              })
+              if (created?.id) router.push(`/agents/${created.id}`)
+            } catch (e) {
+              console.error("Failed to create agent", e)
+              setLaunching(false)
+            }
           }}>
             <RocketIcon />
-            Launch agent
+            {launching ? "Launching..." : "Launch agent"}
           </Button>
         }
       />

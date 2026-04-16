@@ -25,7 +25,7 @@ src/
       agents/
         page.tsx                  Agent list — table with search, status filter, pagination
         [id]/page.tsx             Agent detail — sticky header, URL-driven tabs (agent, logs, memory, cron)
-      quickstart/page.tsx         Agent creation — templates sidebar, config form, tool/channel permissions
+      quickstart/page.tsx         Agent creation — templates sidebar, config form, channel permissions. "Launch agent" calls useCreateAgent and routes to /agents/{id}. There is no /agents/new route.
       integrations/
         page.tsx                  Integration marketplace — cards, add/explore filter, credential dialog
         [slug]/page.tsx           Integration detail — SKILL.md rendered, tools card
@@ -173,6 +173,25 @@ export function useFoo() {
 
 The return shape must be identical in both branches so page/component code does
 not care which mode it's in.
+
+### Hooks
+
+Domain data access always goes through hooks under `src/hooks/`. Current
+hooks:
+
+| Hook | Backing query / mutation | Shape |
+|---|---|---|
+| `useAgents` | `agents` | List rows for /agents |
+| `useAgent(id)` | `agent(id)` | Detail view |
+| `useCreateAgent` | `createAgent(input)` — takes `{ name, model, systemPrompt, toolNames, channelSlugs }`, translates `model` → `provider` at the boundary | Returns `{ id, name }` |
+| `useUpdateAgent` / `useDeleteAgent` | `updateAgent` / `deleteAgent` | — |
+| `useIntegrations` | `skills` (integrations == skills in the backend) | Merges UI-only metadata from `data/integrations.ts` with live catalog |
+| `useSkillComments` / `useLikeSkill` / `useCommentOnSkill` | `skillComments`, `likeSkill`, `commentOnSkill` | — |
+| `useChannels` | `channelTypes` + `channelConnections` | Channel catalog merged with connection state |
+| `useCreateChannelConnection` / `useDeleteChannelConnection` / `useBindChannelToAgent` | matching mutations | — |
+| `useAgentTemplates` / `useCreateAgentFromTemplate` | templates endpoints | — |
+| `useAgentLogs` / `useGlobalLogs` / `useSendAgentMessage` / `useProviders` / `useRunners` / `useBilling` / `useAudit` | respective GraphQL ops | — |
+| `useAnalytics` | typed `track*` mutations — see PostHog section | — |
 
 ### Codegen
 
