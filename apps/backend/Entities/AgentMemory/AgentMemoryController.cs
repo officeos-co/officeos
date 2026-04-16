@@ -198,15 +198,19 @@ public sealed class AgentMemoryController : ControllerBase
     [HttpPost("conversations")]
     public async Task<IActionResult> StoreConversation([FromBody] StoreConversationRequest req, CancellationToken ct)
     {
-        _db.AgentConversations.Add(new AgentConversationRecord
+        var type = req.Role switch
+        {
+            "user" => AgentLogType.MessageIn,
+            "assistant" => AgentLogType.MessageOut,
+            _ => AgentLogType.System,
+        };
+
+        _db.AgentLogs.Add(new AgentLogRecord
         {
             AgentId = AgentId,
-            Role = req.Role,
+            Type = type,
             Content = req.Content,
-            SessionId = req.SessionId,
-            ToolCalls = req.ToolCalls is not null
-                ? JsonSerializer.Serialize(req.ToolCalls)
-                : null,
+            CorrelationId = req.SessionId,
         });
 
         await _db.SaveChangesAsync(ct);
@@ -219,28 +223,31 @@ public sealed class AgentMemoryController : ControllerBase
         [FromQuery] string? sessionId = null,
         CancellationToken ct = default)
     {
-        var q = _db.AgentConversations
+        var q = _db.AgentLogs
             .AsNoTracking()
-            .Where(c => c.AgentId == AgentId);
+            .Where(c => c.AgentId == AgentId &&
+                (c.Type == AgentLogType.MessageIn ||
+                 c.Type == AgentLogType.MessageOut ||
+                 c.Type == AgentLogType.System));
 
         if (!string.IsNullOrWhiteSpace(sessionId))
-            q = q.Where(c => c.SessionId == sessionId);
+            q = q.Where(c => c.CorrelationId == sessionId);
 
         var entries = await q
-            .OrderByDescending(c => c.CreatedAt)
+            .OrderByDescending(c => c.Time)
             .Take(Math.Clamp(limit, 1, 200))
             .ToListAsync(ct);
 
         return Ok(entries.Select(c => new
         {
             c.Id,
-            c.Role,
+            Role = c.Type == AgentLogType.MessageIn ? "user"
+                : c.Type == AgentLogType.MessageOut ? "assistant"
+                : "system",
             c.Content,
-            c.SessionId,
-            ToolCalls = c.ToolCalls is not null
-                ? JsonSerializer.Deserialize<JsonElement>(c.ToolCalls)
-                : (JsonElement?)null,
-            c.CreatedAt,
+            SessionId = c.CorrelationId,
+            ToolCalls = (JsonElement?)null,
+            CreatedAt = c.Time,
         }));
     }
 

@@ -29,23 +29,36 @@ public sealed class AuditService : IAuditService
         long durationMs)
     {
         var redacted = RedactSecrets(paramsJson);
+        var correlationId = Guid.NewGuid().ToString();
+        var now = DateTime.UtcNow;
 
-        var record = new AgentToolCallRecord
+        var toolCall = new AgentLogRecord
         {
             AgentId = agentId,
-            UserId = userId,
-            SkillName = skillName,
-            Action = action,
-            ParamsJson = redacted,
-            ResultSummary = resultSummary,
-            DurationMs = durationMs,
-            Timestamp = DateTime.UtcNow,
+            Time = now,
+            Type = AgentLogType.ToolCall,
+            Tool = action,
+            Integration = skillName,
+            Content = redacted,
+            CorrelationId = correlationId,
         };
 
-        await _repository.AddAsync(record);
+        var toolResult = new AgentLogRecord
+        {
+            AgentId = agentId,
+            Time = now.AddMilliseconds(1),
+            Type = AgentLogType.ToolResult,
+            Tool = action,
+            Integration = skillName,
+            Content = resultSummary ?? string.Empty,
+            DurationMs = (int)Math.Min(durationMs, int.MaxValue),
+            CorrelationId = correlationId,
+        };
+
+        await _repository.AddPairAsync(toolCall, toolResult);
     }
 
-    public async Task<(List<AgentToolCallRecord> Items, int Total)> GetAuditLogAsync(
+    public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(
         Guid agentId, int limit, int offset)
     {
         return await _repository.GetByAgentAsync(agentId, limit, offset);

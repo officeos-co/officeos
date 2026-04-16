@@ -34,13 +34,13 @@ public sealed class AuditController : ControllerBase
         var dtos = items.Select(r => new AuditLogEntryDto(
             r.Id,
             r.AgentId,
-            r.UserId,
-            r.SkillName,
-            r.Action,
-            r.ParamsJson,
-            r.ResultSummary,
-            r.DurationMs,
-            r.Timestamp)).ToList();
+            null,
+            r.Integration ?? string.Empty,
+            r.Tool ?? string.Empty,
+            r.Content,
+            null,
+            r.DurationMs ?? 0,
+            r.Time)).ToList();
 
         return Ok(new AuditLogResponse(dtos, total));
     }

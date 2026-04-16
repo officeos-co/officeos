@@ -18,7 +18,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();
     public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
     public DbSet<AgentCacheRecord> AgentCacheEntries => Set<AgentCacheRecord>();
-    public DbSet<AgentConversationRecord> AgentConversations => Set<AgentConversationRecord>();
     public DbSet<BrowserSessionRecord> BrowserSessions => Set<BrowserSessionRecord>();
     public DbSet<SkillRegistryRecord> SkillRegistry => Set<SkillRegistryRecord>();
     public DbSet<SkillRecord> Skills => Set<SkillRecord>();
@@ -28,7 +27,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<ChannelConnectionRecord> ChannelConnections => Set<ChannelConnectionRecord>();
     public DbSet<AgentChannelBindingRecord> AgentChannelBindings => Set<AgentChannelBindingRecord>();
     public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
-    public DbSet<AgentToolCallRecord> AgentToolCalls => Set<AgentToolCallRecord>();
     public DbSet<AgentRateLimitRecord> AgentRateLimits => Set<AgentRateLimitRecord>();
     public DbSet<SkillLikeRecord> SkillLikes => Set<SkillLikeRecord>();
     public DbSet<SkillCommentRecord> SkillComments => Set<SkillCommentRecord>();
@@ -127,16 +125,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(c => c.Response).IsRequired();
         });
 
-        modelBuilder.Entity<AgentConversationRecord>(e =>
-        {
-            e.HasKey(c => c.Id);
-            e.HasIndex(c => c.AgentId);
-            e.HasIndex(c => new { c.AgentId, c.SessionId });
-            e.Property(c => c.Role).IsRequired().HasMaxLength(32);
-            e.Property(c => c.Content).IsRequired();
-            e.Property(c => c.SessionId).HasMaxLength(256);
-        });
-
         modelBuilder.Entity<BrowserSessionRecord>(e =>
         {
             e.HasKey(b => b.Id);
@@ -232,17 +220,6 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(s => s.SkillName);
             e.HasIndex(s => s.AgentId);
             e.Property(s => s.DetailJson).HasColumnType("text");
-        });
-
-        modelBuilder.Entity<AgentToolCallRecord>(e =>
-        {
-            e.HasKey(a => a.Id);
-            e.HasIndex(a => a.AgentId);
-            e.HasIndex(a => new { a.AgentId, a.Timestamp });
-            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
-            e.Property(a => a.Action).IsRequired().HasMaxLength(64);
-            e.Property(a => a.ParamsJson).HasColumnType("text");
-            e.Property(a => a.ResultSummary).HasColumnType("text");
         });
 
         modelBuilder.Entity<AgentRateLimitRecord>(e =>

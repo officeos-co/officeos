@@ -4,6 +4,6 @@ namespace EnterpriseAgentOs.Api.Entities.Audit;
 
 public interface IAuditRepository
 {
-    Task AddAsync(AgentToolCallRecord record, CancellationToken ct = default);
-    Task<(List<AgentToolCallRecord> Items, int Total)> GetByAgentAsync(Guid agentId, int limit, int offset, CancellationToken ct = default);
+    Task AddPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default);
+    Task<(List<AgentLogRecord> Items, int Total)> GetByAgentAsync(Guid agentId, int limit, int offset, CancellationToken ct = default);
 }

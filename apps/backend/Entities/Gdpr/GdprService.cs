@@ -1,4 +1,5 @@
 using EnterpriseAgentOs.Api.Database;
+using EnterpriseAgentOs.Api.Database.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseAgentOs.Api.Entities.Gdpr;
@@ -39,13 +40,24 @@ public sealed class GdprService : IGdprService
             .Select(a => new GdprAgentDto(a.Id, a.Name, a.Provider, a.Model, a.Status, a.CreatedAt))
             .ToListAsync(ct);
 
-        // Conversations for all user's agents
+        // Conversations for all user's agents — sourced from AgentLogs (message entries).
         var conversations = agentIds.Count == 0
             ? new List<GdprConversationDto>()
-            : await _db.AgentConversations
+            : await _db.AgentLogs
                 .AsNoTracking()
-                .Where(c => agentIds.Contains(c.AgentId))
-                .Select(c => new GdprConversationDto(c.Id, c.AgentId, c.Role, c.Content, c.SessionId, c.CreatedAt))
+                .Where(l => agentIds.Contains(l.AgentId) &&
+                    (l.Type == AgentLogType.MessageIn ||
+                     l.Type == AgentLogType.MessageOut ||
+                     l.Type == AgentLogType.System))
+                .Select(l => new GdprConversationDto(
+                    l.Id,
+                    l.AgentId,
+                    l.Type == AgentLogType.MessageIn ? "user"
+                        : l.Type == AgentLogType.MessageOut ? "assistant"
+                        : "system",
+                    l.Content,
+                    l.CorrelationId,
+                    l.Time))
                 .ToListAsync(ct);
 
         // Memories for all user's agents
@@ -57,14 +69,21 @@ public sealed class GdprService : IGdprService
                 .Select(m => new GdprMemoryDto(m.Id, m.AgentId, m.Key, m.Content, m.Category, m.Namespace, m.CreatedAt))
                 .ToListAsync(ct);
 
-        // Audit log entries for all user's agents
+        // Audit log entries for all user's agents — sourced from AgentLogs (ToolCall entries).
         var auditEntries = agentIds.Count == 0
             ? new List<GdprAuditEntryDto>()
-            : await _db.AgentToolCalls
+            : await _db.AgentLogs
                 .AsNoTracking()
-                .Where(t => agentIds.Contains(t.AgentId))
-                .Select(t => new GdprAuditEntryDto(
-                    t.Id, t.AgentId, t.SkillName, t.Action, t.ParamsJson, t.ResultSummary, t.DurationMs, t.Timestamp))
+                .Where(l => agentIds.Contains(l.AgentId) && l.Type == AgentLogType.ToolCall)
+                .Select(l => new GdprAuditEntryDto(
+                    l.Id,
+                    l.AgentId,
+                    l.Integration ?? string.Empty,
+                    l.Tool ?? string.Empty,
+                    l.Content,
+                    null,
+                    (long)(l.DurationMs ?? 0),
+                    l.Time))
                 .ToListAsync(ct);
 
         // Skill credentials — export metadata only, never plaintext values
@@ -86,14 +105,9 @@ public sealed class GdprService : IGdprService
 
         if (agentIds.Count > 0)
         {
-            // 1. AgentToolCallRecord entries for all user's agents
-            await _db.AgentToolCalls
-                .Where(t => agentIds.Contains(t.AgentId))
-                .ExecuteDeleteAsync(ct);
-
-            // 2. AgentConversationRecord entries for all user's agents
-            await _db.AgentConversations
-                .Where(c => agentIds.Contains(c.AgentId))
+            // 1+2. AgentLogRecord entries for all user's agents (tool calls + messages)
+            await _db.AgentLogs
+                .Where(l => agentIds.Contains(l.AgentId))
                 .ExecuteDeleteAsync(ct);
 
             // 3. AgentMemoryRecord entries for all user's agents

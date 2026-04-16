@@ -13,18 +13,20 @@ public sealed class AuditRepository : IAuditRepository
         _db = db;
     }
 
-    public async Task AddAsync(AgentToolCallRecord record, CancellationToken ct = default)
+    public async Task AddPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
     {
-        _db.AgentToolCalls.Add(record);
+        _db.AgentLogs.Add(toolCall);
+        _db.AgentLogs.Add(toolResult);
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<(List<AgentToolCallRecord> Items, int Total)> GetByAgentAsync(
+    public async Task<(List<AgentLogRecord> Items, int Total)> GetByAgentAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
     {
-        var query = _db.AgentToolCalls
-            .Where(r => r.AgentId == agentId)
-            .OrderByDescending(r => r.Timestamp);
+        // Audit log = ToolCall entries only (one row per skill execution).
+        var query = _db.AgentLogs
+            .Where(r => r.AgentId == agentId && r.Type == AgentLogType.ToolCall)
+            .OrderByDescending(r => r.Time);
 
         var total = await query.CountAsync(ct);
         var items = await query.Skip(offset).Take(limit).ToListAsync(ct);
