@@ -1,30 +1,22 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Api.Database.Models;
 
 namespace EnterpriseAgentOs.Api.Entities.Events;
 
+/// <summary>
+/// System events REST surface. Dashboard list/acknowledge has moved to GraphQL.
+/// Only the SSE stream endpoint — consumed by the dashboard for live push —
+/// remains as REST (SSE is not a natural fit for HotChocolate subscriptions
+/// when the consumer is a plain EventSource).
+/// </summary>
 [ApiController]
 [Route("api/system-events")]
 public sealed class SystemEventsController : ControllerBase
 {
-    private readonly ISystemEventService _events;
     private readonly SystemEventBroadcaster _broadcaster;
 
-    public SystemEventsController(ISystemEventService events, SystemEventBroadcaster broadcaster)
+    public SystemEventsController(SystemEventBroadcaster broadcaster)
     {
-        _events = events;
         _broadcaster = broadcaster;
-    }
-
-    [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<SystemEventRecord>>> List(
-        [FromQuery] int limit = 50,
-        [FromQuery] string? severity = null,
-        [FromQuery] string? category = null,
-        CancellationToken ct = default)
-    {
-        var events = await _events.ListRecentAsync(limit, severity, category, ct);
-        return Ok(events);
     }
 
     [HttpGet("stream")]
@@ -60,12 +52,5 @@ public sealed class SystemEventsController : ControllerBase
         {
             _broadcaster.Unsubscribe(reader);
         }
-    }
-
-    [HttpPost("{id:guid}/acknowledge")]
-    public async Task<IActionResult> Acknowledge(Guid id, CancellationToken ct)
-    {
-        await _events.AcknowledgeAsync(id, ct);
-        return NoContent();
     }
 }

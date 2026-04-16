@@ -61,20 +61,20 @@ Entities/{DomainName}/
 
 | Domain | Has Controller | Has Service | Has Repository | Notes |
 |--------|---------------|-------------|----------------|-------|
-| `Agents` | AgentController | AgentService | AgentRepository | Also has IAgentDeployer, KubernetesAgentDeployer, NullAgentDeployer, AgentProxyEndpoints |
-| `Skills` | SkillController, AgentSkillsController, InternalSkillController | SkillService | SkillRepository, SkillCatalogRepository, BrowserSessionRepository | Also has GraphQL/ subfolder (SkillTypeModule, Query, AgentAuthInterceptor), SkillRuntimeClient, SkillCredentialProtector |
-| `Providers` | ProviderController | ProviderService | ProviderRepository | Also has ProviderKeyProtector, ProviderSeeder, KnownModels |
-| `Runners` | RunnerController, RunnerApiController, DeviceAuthController | — | RunnerRepository, RunnerJobRepository | Has `services/` subfolder: RunnerJobTimeoutService, RunnerJobWaiter |
-| `Auth` | AuthController | — | UserRepository, SessionRepository | Also has SessionAuthMiddleware |
-| `Sso` | SsoController, ScimController | WorkOsAuthService | — | |
-| `Billing` | BillingController | UserBillingService, OrgBillingService, StripeWebhookService, CreditRecordingService | — | Has `services/` subfolder, ModelCostWeights, PlanLimits |
-| `Channels` | ChannelController, AgentChannelController, ChannelWebhooksController | — | ChannelRepository | Has `services/` subfolder: ChannelMessageRouter, ChannelConfigProtector |
-| `Events` | SystemEventsController | SystemEventService | — | Also has SystemEventBroadcaster (singleton) |
-| `SkillRegistry` | SkillRegistryController | — | SkillRegistryRepository | |
-| `AgentSkills` | AgentSkillAssignmentController | — | AgentSkillRepository | |
-| `AgentMemory` | AgentMemoryController | — | — | |
+| `Agents` | — (GraphQL only) | AgentService | AgentRepository | Also has IAgentDeployer, KubernetesAgentDeployer, NullAgentDeployer, AgentProxyEndpoints (browser → pod HTTP/WS passthrough at `/api/agents/{id}/ws` and `/api/agents/{id}/proxy/{**path}`) |
+| `Skills` | SkillController (bundle download only), AgentSkillsController (agent-pod-facing, `[AgentTokenAuth]`), InternalSkillController (CI seed) | SkillService | SkillRepository, SkillCatalogRepository, BrowserSessionRepository | Dashboard catalog/install/credentials are GraphQL only. Also has GraphQL/ subfolder (SkillTypeModule, Query, AgentAuthInterceptor), SkillRuntimeClient, SkillCredentialProtector |
+| `Providers` | — (GraphQL only) | ProviderService | ProviderRepository | Also has ProviderKeyProtector, ProviderSeeder, KnownModels |
+| `Runners` | RunnerApiController (runner-facing), DeviceAuthController (device-code flow) | — | RunnerRepository, RunnerJobRepository | Dashboard runner CRUD is GraphQL only. Has `services/` subfolder: RunnerJobTimeoutService, RunnerJobWaiter |
+| `Auth` | AuthController (OAuth flow + session `/me` + logout) | — | UserRepository, SessionRepository | Also has SessionAuthMiddleware |
+| `Sso` | SsoController (browser OAuth flow), ScimController (machine-to-machine) | WorkOsAuthService | — | |
+| `Billing` | BillingController (Stripe webhook only) | UserBillingService, OrgBillingService, StripeWebhookService, CreditRecordingService | — | Dashboard billing is GraphQL only. Has `services/` subfolder, ModelCostWeights, PlanLimits |
+| `Channels` | ChannelWebhooksController (Slack/Telegram/Discord inbound webhooks) | — | ChannelRepository | Dashboard channel CRUD is GraphQL only. Has `services/` subfolder: ChannelMessageRouter, ChannelConfigProtector |
+| `Events` | SystemEventsController (SSE stream only) | SystemEventService | — | Dashboard list/acknowledge is GraphQL only. Also has SystemEventBroadcaster (singleton) |
+| `SkillRegistry` | SkillRegistryController | — | SkillRegistryRepository | Operator tooling; not hit by dashboard-2 |
+| `AgentSkills` | — (GraphQL only) | — | AgentSkillRepository | |
+| `AgentMemory` | AgentMemoryController (agent-pod-facing, `[AgentTokenAuth]`, `/api/agents/me/...` only) | — | — | |
 | `Vault` | — | — | — | CouchDbVaultClient only |
-| `Audit` | AuditController | AuditService | AuditRepository | GET /api/agents/{id}/audit-log — records every skill execution, redacts secrets in paramsJson |
+| `Audit` | — (GraphQL only) | AuditService | AuditRepository | Records every skill execution, redacts secrets in paramsJson |
 | `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0 of every request before forwarding. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | DB-backed per-agent sliding window counter (AgentRateLimitRecord). Enforced in AgentSkillsController.SkillExec(). Config: RateLimitingConfig (SkillExecPerAgentPerHour, EmailPerAgentPerHour, WindowSeconds). |
 | `Gdpr` | GdprController | IGdprService / GdprService | — | GET /api/gdpr/export (JSON attachment of all user data, no plaintext credentials), DELETE /api/gdpr/purge (cascaded delete of all user data + sessions + user record). Both endpoints require SessionAuth. No new DB models — reads/deletes existing tables. |
