@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'apps/dashboard/**'
+      - 'apps/dashboard-2/**'
       - 'k8s/frontend.yaml'
       - '.github/workflows/deploy-dashboard-prod.yml'
 
@@ -29,7 +29,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/dashboard/Dockerfile
+          file: apps/dashboard-2/Dockerfile
           push: true
           tags: harkro123/eaos-frontend:latest
           cache-from: type=gha,scope=frontend
