@@ -37,6 +37,7 @@ const parseResult = {
 export default defineSkill({
   name: "csv",
   title: "CSV",
+  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z\"/></svg>",
   emoji: "📋",
   description:
     "Parse, transform, and analyse CSV data via a file-proxy service: filter rows, sort, add columns, merge datasets, compute statistics, and export to JSON.",

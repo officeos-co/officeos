@@ -54,6 +54,7 @@ import { payments } from "./cli/payments.ts";
 export default defineSkill({
   name: "stripe",
   title: "Stripe",
+  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"...\"/></svg>",
   emoji: "💳",
   description: "Stripe payments — charges, subscriptions, customers, invoices.",
   doc,
@@ -91,6 +92,7 @@ export const customers: Record<string, ActionDefinition> = {
 - **Use `ctx.fetch` for all HTTP.** Never import `node-fetch`, `axios`, or similar — the runtime injects a sandboxed fetch.
 - **Use `ctx.credentials` for auth.** Never hardcode keys or read from env vars.
 - **Every Zod param must have `.describe()`.** The description is what the agent sees in `--help`. Without it, params are invisible to the agent.
+- **`logo` is required inline SVG.** Every `defineSkill` call must include a `logo` field containing raw `<svg>...</svg>` markup (typically sourced from simpleicons.org). Do not use a URL or file path. `emoji` remains as an optional fallback but is deprecated.
 - **Spec-driven order:** (1) write `SKILL.md`, (2) write tests, (3) implement `core/`, (4) wire `cli/`.
 
 ## File size limits

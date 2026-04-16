@@ -11,6 +11,7 @@ import { aliases } from "./cli/aliases.ts";
 export default defineSkill({
   name: "vercel",
   title: "Vercel",
+  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"m12 1.608 12 20.784H0Z\"/></svg>",
   emoji: "▲",
   description:
     "Manage Vercel projects, deployments, domains, environment variables, logs, teams, checks, aliases, and secrets via the Vercel REST API.",

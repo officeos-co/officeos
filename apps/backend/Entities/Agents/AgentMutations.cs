@@ -29,10 +29,19 @@ public class AgentMutations
                     .Build());
         }
 
-        if (input.IntegrationSlugs is { Count: > 0 })
+        // Installed skills — accept either IntegrationSlugs (legacy) or ToolNames.
+        var toolNames = input.ToolNames is { Count: > 0 }
+            ? input.ToolNames
+            : input.IntegrationSlugs;
+        if (toolNames is { Count: > 0 })
         {
-            await agentSkills.AssignAsync(dto.Id, input.IntegrationSlugs, ct);
+            await agentSkills.AssignAsync(dto.Id, toolNames, ct);
         }
+
+        // TODO(team-a): once the tool-permission storage migration lands,
+        // persist input.ToolPermissions here. Accepted at the schema now so
+        // the dashboard can submit without a second round-trip.
+        _ = input.ToolPermissions;
 
         if (input.ChannelSlugs is { Count: > 0 })
         {
