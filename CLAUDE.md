@@ -80,7 +80,8 @@ No manual build or deploy commands ever.
 | Workflow | Triggers on | Builds | Deploys |
 |----------|-------------|--------|---------|
 | `deploy-backend-prod.yml` | `apps/backend/**`, `k8s/backend.yaml` | Tests → `harkro123/eaos-backend:latest` | `kubectl rollout restart deployment/eaos-backend-prod` |
-| `deploy-dashboard-prod.yml` | `apps/dashboard/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` |
+| `deploy-dashboard-prod.yml` | `apps/dashboard/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` (legacy — dormant) |
+| `deploy-dashboard-2-prod.yml` | `apps/dashboard-2/**`, `k8s/dashboard-2.yaml` | `harkro123/eaos-dashboard-2:latest` | `kubectl rollout restart deployment/eaos-dashboard-2-prod` |
 | `deploy-website-prod.yml` | `apps/website/**`, `k8s/website.yaml` | `harkro123/eaos-website:latest` | `kubectl rollout restart deployment/eaos-website-prod` |
 | `deploy-changelog-prod.yml` | `apps/changelog/**`, `k8s/changelog.yaml` | `harkro123/eaos-changelog:latest` | `kubectl rollout restart deployment/eaos-changelog-prod` |
 | `build-zeroclaw-image.yml` | `packages/zeroclaw-core/**` | `harkro123/zeroclaw:latest` | No deploy — new pods pick up `:latest` on next spawn |
