@@ -9,6 +9,7 @@ public class AgentMutations
         [Service] EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
         [Service] EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository channels,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
         var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -38,6 +39,25 @@ public class AgentMutations
             await agentSkills.AssignAsync(dto.Id, toolNames, ct);
         }
 
+        // Persist per-tool allow/deny overrides. Keys from the dashboard
+        // arrive as "skill:tool"; split here. Rows with no ":" are treated
+        // as skill-level defaults with an empty tool name.
+        if (input.ToolPermissions is { Count: > 0 })
+        {
+            foreach (var tp in input.ToolPermissions)
+            {
+                var (skill, tool) = SplitToolKey(tp.Tool);
+                db.AgentToolPermissions.Add(new EnterpriseAgentOs.Api.Database.Models.AgentToolPermissionRecord
+                {
+                    AgentId = dto.Id,
+                    SkillName = skill,
+                    ToolName = tool,
+                    Permission = tp.Mode,
+                });
+            }
+            await db.SaveChangesAsync(ct);
+        }
+
         if (input.ChannelSlugs is { Count: > 0 })
         {
             var connections = await channels.ListConnectionsAsync(ct);
@@ -62,6 +82,14 @@ public class AgentMutations
         }
 
         return dto;
+    }
+
+    private static (string Skill, string Tool) SplitToolKey(string key)
+    {
+        var k = (key ?? string.Empty).Trim();
+        var idx = k.IndexOf(':');
+        if (idx <= 0) return (k.ToLowerInvariant(), string.Empty);
+        return (k[..idx].Trim().ToLowerInvariant(), k[(idx + 1)..].Trim());
     }
 
     public async Task<EnterpriseAgentOs.Api.Entities.Agents.AgentDto> UpdateAgent(

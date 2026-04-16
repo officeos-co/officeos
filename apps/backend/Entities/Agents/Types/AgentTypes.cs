@@ -7,7 +7,17 @@ public sealed record CreateAgentInput(
     string? Prompt,
     List<string>? IntegrationSlugs,
     List<string>? ChannelSlugs,
-    List<string>? ToolNames);
+    List<string>? ToolNames,
+    List<ToolPermissionInput>? ToolPermissions);
+
+/// <summary>
+/// Per-tool allow/deny override submitted alongside agent creation.
+/// `Tool` is the fully-qualified "skill:tool" key (matches the dashboard
+/// permission map); persisted to <c>AgentToolPermissionRecord</c>.
+/// </summary>
+public sealed record ToolPermissionInput(
+    string Tool,
+    EnterpriseAgentOs.Api.Database.Models.ToolPermission Mode);
 
 public sealed record UpdateAgentInput(
     string? Name,
