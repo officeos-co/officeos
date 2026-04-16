@@ -20,3 +20,7 @@ global using EnterpriseAgentOs.Api.Entities.Channels;
 global using EnterpriseAgentOs.Api.Properties;
 global using EnterpriseAgentOs.Api.Entities.Audit;
 global using EnterpriseAgentOs.Api.Entities.RateLimiting;
+global using EnterpriseAgentOs.Api.GraphQL;
+global using HotChocolate;
+global using HotChocolate.Types;
+global using HotChocolate.Subscriptions;

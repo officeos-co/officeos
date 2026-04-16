@@ -124,15 +124,29 @@ var rateLimitingConfig = new RateLimitingConfig();
 envSection.GetSection("RateLimiting").Bind(rateLimitingConfig);
 builder.Services.AddSingleton(rateLimitingConfig);
 
-// GraphQL skill gateway
+// GraphQL — two named schemas share one HotChocolate host:
+//   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
+//   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
+
 builder.Services
-    .AddGraphQLServer()
+    .AddGraphQLServer("agent")
     .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
     .AddTypeModule<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>()
     .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>()
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
+
+builder.Services
+    .AddGraphQLServer("dashboard")
+    .AddQueryType<EnterpriseAgentOs.Api.GraphQL.GraphQLQueries>()
+    .AddMutationType<EnterpriseAgentOs.Api.GraphQL.GraphQLMutations>()
+    .AddSubscriptionType<EnterpriseAgentOs.Api.GraphQL.GraphQLSubscriptions>()
+    .AddInMemorySubscriptions()
+    .AddDomainTypeExtensions(typeof(Program).Assembly)
+    .UseField<EnterpriseAgentOs.Api.GraphQL.DashboardAuthMiddleware>()
+    .DisableIntrospection(false);
 
 // CORS
 builder.Services.AddCors(options =>
@@ -186,7 +200,8 @@ app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 app.MapAgentProxyEndpoints();
-app.MapGraphQL("/api/graphql");
+app.MapGraphQL("/api/graphql", schemaName: "agent");
+app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard");
 app.MapControllers();
 
 app.Run();

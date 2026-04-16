@@ -116,6 +116,44 @@ dotnet ef database update
 
 **Always create and apply a migration when changing any model.** The app runs `db.Database.MigrateAsync()` at startup — if the schema doesn't match, it crashes.
 
+## GraphQL conventions
+
+The backend exposes **two named HotChocolate schemas** from a single host:
+
+| Endpoint | Schema name | Auth | Consumers | Shape |
+|----------|-------------|------|-----------|-------|
+| `POST /api/graphql` | `agent` | `AgentAuthInterceptor` (Bearer agent-uuid) | Agent pods (zeroclaw-core) | Dynamic — `SkillTypeModule` generates per-skill action fields from runtime manifests. |
+| `POST /api/dashboard/graphql` | `dashboard` | `DashboardAuthMiddleware` reads `HttpContext.Items["User"]` set by `SessionAuthMiddleware` | Dashboard (`apps/dashboard-2/`) | Static — one file per domain, auto-registered via `AddDomainTypeExtensions`. |
+
+Both are registered in `Program.cs`. Never merge them: the agent schema leaks tool names into introspection and must stay isolated from dashboard operators.
+
+### Root types and per-domain extensions
+
+- Root types live in `/apps/backend/GraphQL/`:
+  - `GraphQLQueries.cs` — `public class GraphQLQueries { ... }`
+  - `GraphQLMutations.cs` — `public class GraphQLMutations { ... }`
+  - `GraphQLSubscriptions.cs` — `public class GraphQLSubscriptions { ... }`
+- Per-domain files live in `Entities/{Domain}/GraphQL/`:
+  - `{Domain}Queries.cs` — `[ExtendObjectType(typeof(GraphQLQueries))] public class {Domain}Queries { ... }`
+  - `{Domain}Mutations.cs` — `[ExtendObjectType(typeof(GraphQLMutations))] public class {Domain}Mutations { ... }`
+  - `{Domain}Subscriptions.cs` — `[ExtendObjectType(typeof(GraphQLSubscriptions))] public class {Domain}Subscriptions { ... }` (only when the domain has live subscriptions)
+  - `{Domain}Types.cs` — any `ObjectType<T>` descriptors or input records specific to the domain
+- `AddDomainTypeExtensions(typeof(Program).Assembly)` scans for `[ExtendObjectType]` classes and auto-registers them. **No central list. Adding a new domain = create the file, rebuild, done.**
+
+### Resolver conventions
+
+- Each resolver method receives services via `[Service] IFooService foo` parameters.
+- Reading the authenticated dashboard user: `context.GetUser()` (from `DashboardAuthContextExtensions`).
+- Throwing for authorization failures: `throw new GraphQLException(...)` with a `"code"` extension (e.g. `"UNAUTHENTICATED"`, `"FORBIDDEN"`, `"NOT_FOUND"`).
+- Input types: records in `{Domain}Types.cs` or inline; keep names `Create{Entity}Input`, `Update{Entity}Input`.
+- Subscriptions use `ITopicEventSender` + `[Subscribe]` + `[Topic]`. Topic keys must include the resource id (e.g. `$"agent-log:{agentId}"`).
+
+### What belongs where
+
+- **Dashboard schema:** anything the operator UI needs. Business logic lives in services (as before). Queries/mutations are thin adapters.
+- **Agent schema:** only dynamic skill action fields. Do not add dashboard concerns here.
+- **REST still exists for:** OAuth callbacks, SSE (`/api/system-events/stream`), Stripe webhooks, the agent-proxy passthrough, runner device-code flow, and internal seed endpoints. See Stage 6 deletion list in `/Users/harrokrog/.claude/plans/memoized-orbiting-graham.md`.
+
 ## Architecture patterns
 
 - **Controller → Service → Repository.** Controllers are thin — they validate input, call the service, return the result. Business logic lives in services. Data access lives in repositories. Controllers never call repositories directly.
