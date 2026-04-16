@@ -23,6 +23,10 @@ src/
 
 **`defineSkill(def: SkillDefinition): SkillDefinition`** — identity function that provides TypeScript inference. Skills call this to get typed autocomplete.
 
+**`SkillDefinition.logo`** — **required** raw inline SVG markup (e.g. `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="..."/></svg>`) used as the dashboard logo. Must be inline SVG — not a URL, not a file path, not an emoji. Typically sourced from simpleicons.org.
+
+**`SkillDefinition.emoji`** — optional deprecated fallback. Kept for backwards compatibility; new skills should rely on `logo` only.
+
 **`z`** — Zod re-export. Skills use this for param schemas. Every param must have `.describe()`.
 
 **`SkillContext`** — runtime context injected by skill-runtime into every `execute()` call:
