@@ -157,9 +157,11 @@ pub fn agent_id() -> Option<String> {
 
 /// Fetch the pod-facing bootstrap payload from
 /// `GET {backend_url}/api/agents/{id}` and overlay the parts the pod
-/// can use onto `config`. Never fatal: on any failure the existing
-/// config (env vars / config.toml) remains authoritative so local-dev
-/// workflows keep working.
+/// can use onto `config`. Never fatal: on any failure the pod keeps
+/// the defaults seeded by [`apply`] (backend-managed provider,
+/// placeholder model, workspace on PVC). The pod never reads a local
+/// `config.toml` — in pod mode `Config::load_or_init` returns an
+/// in-memory default and `save()` is a no-op.
 ///
 /// Returns the per-tool permission map so `SkillExecTool` can enforce
 /// allow/deny before dispatch.
@@ -184,13 +186,13 @@ pub async fn fetch_and_overlay(
     let response = match client.get(&url).bearer_auth(agent_id).send().await {
         Ok(r) => r,
         Err(e) => {
-            tracing::warn!(error = %e, url = %url, "Bootstrap fetch failed; using env/config fallback");
+            tracing::warn!(error = %e, url = %url, "Bootstrap fetch failed; keeping defaults from gateway_bootstrap::apply");
             return HashMap::new();
         }
     };
 
     if !response.status().is_success() {
-        tracing::warn!(status = %response.status(), url = %url, "Bootstrap returned non-2xx; using env/config fallback");
+        tracing::warn!(status = %response.status(), url = %url, "Bootstrap returned non-2xx; keeping defaults from gateway_bootstrap::apply");
         return HashMap::new();
     }
 

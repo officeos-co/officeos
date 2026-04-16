@@ -8255,6 +8255,33 @@ fn read_codex_openai_api_key() -> Option<String> {
 
 impl Config {
     pub async fn load_or_init() -> Result<Self> {
+        // Pod mode: if `ZEROCLAW_AGENT_ID` is set, the agent is running
+        // inside a K8s pod and MUST derive all runtime config from the
+        // backend bootstrap payload (`GET /api/agents/{id}`), never from
+        // a local `config.toml`. We return an in-memory `Config::default()`
+        // here; `gateway_bootstrap::apply` + `fetch_and_overlay` in main
+        // then overlay the backend-managed fields (provider, model, skills,
+        // tool permissions, gateway bind, workspace dir). No directories
+        // are created and no config file is read or written.
+        //
+        // See `packages/zeroclaw-core/CLAUDE.md` — "How an agent pod boots".
+        if std::env::var("ZEROCLAW_AGENT_ID")
+            .ok()
+            .is_some_and(|v| !v.trim().is_empty())
+        {
+            tracing::info!(
+                "Pod mode detected (ZEROCLAW_AGENT_ID set) — skipping config.toml; \
+                 all runtime config comes from backend bootstrap payload"
+            );
+            let mut config = Config::default();
+            // These get overwritten by gateway_bootstrap::apply, but set
+            // sensible pod defaults in case that's skipped in tests.
+            config.workspace_dir = std::path::PathBuf::from("/zeroclaw-data/workspace");
+            // config_path is left at its Default (empty PathBuf) — nothing
+            // on disk is authoritative in pod mode and `save()` is a no-op.
+            return Ok(config);
+        }
+
         let (default_zeroclaw_dir, default_workspace_dir) = default_config_and_workspace_dirs()?;
 
         let (zeroclaw_dir, workspace_dir, resolution_source) =
@@ -9443,7 +9470,6 @@ impl Config {
             }
         }
 
-
         // Skill Gateway backend URL: ZEROCLAW_SKILLS_BACKEND_URL
         //   When set, Agent::turn refreshes its tool list from
         //   `{url}/api/agents/me/capabilities` at the start of every turn.
@@ -9742,6 +9768,20 @@ impl Config {
     }
 
     pub async fn save(&self) -> Result<()> {
+        // Pod mode: `ZEROCLAW_AGENT_ID` is set. The backend is the source
+        // of truth — no on-disk `config.toml` is maintained in the pod.
+        // Runtime mutations (e.g. gateway pairing, channel edits) are
+        // either not used in pod mode or must be pushed back to the
+        // backend. Persisting locally would be misleading because the
+        // PVC survives restarts but the file is never read on boot.
+        if std::env::var("ZEROCLAW_AGENT_ID")
+            .ok()
+            .is_some_and(|v| !v.trim().is_empty())
+        {
+            tracing::debug!("Pod mode — Config::save() is a no-op; backend is source of truth");
+            return Ok(());
+        }
+
         // Encrypt secrets before serialization
         let mut config_to_save = self.clone();
         let config_path = self.resolve_config_path_for_save().await?;
