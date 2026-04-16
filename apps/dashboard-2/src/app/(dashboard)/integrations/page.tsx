@@ -8,6 +8,7 @@ import { CredentialDialog } from "@/components/credential-dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useIntegrations } from "@/hooks/useIntegrations"
+import { useAnalytics } from "@/hooks/useAnalytics"
 import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, KeyRoundIcon } from "lucide-react"
 
 type View = "all" | "added" | "explore"
@@ -15,6 +16,7 @@ type View = "all" | "added" | "explore"
 export default function IntegrationsPage() {
   const router = useRouter()
   const { integrations } = useIntegrations()
+  const { capture } = useAnalytics()
   const [search, setSearch] = useState("")
   const [view, setView] = useState<View>("all")
   const [addedSet, setAddedSet] = useState<Set<string>>(() => new Set(integrations.filter((i) => i.added).map((i) => i.slug)))
@@ -38,11 +40,14 @@ export default function IntegrationsPage() {
       setCredDialogSlug(slug)
     } else {
       setAddedSet((prev) => new Set([...prev, slug]))
+      capture("skill_installed", { skill_name: slug })
     }
   }
 
   function handleCredSave(slug: string) {
     setAddedSet((prev) => new Set([...prev, slug]))
+    capture("skill_configured", { skill_name: slug })
+    capture("skill_installed", { skill_name: slug })
   }
 
   return (

@@ -8,6 +8,7 @@ import { ChannelOnboardingDialog } from "@/components/channel-onboarding-dialog"
 import { Button } from "@/components/ui/button"
 import { type Channel } from "@/data/channels"
 import { useChannels, useCreateChannelConnection, useBindChannelToAgent } from "@/hooks/useChannels"
+import { useAnalytics } from "@/hooks/useAnalytics"
 import { PlusIcon, CheckIcon, RadioIcon } from "lucide-react"
 
 type View = "all" | "connected" | "available"
@@ -17,6 +18,7 @@ export default function ChannelsPage() {
   const { channels } = useChannels()
   const { createChannelConnection } = useCreateChannelConnection()
   const { bindChannelToAgent } = useBindChannelToAgent()
+  const { capture } = useAnalytics()
   void createChannelConnection
   void bindChannelToAgent
   const [view, setView] = useState<View>("all")
@@ -95,6 +97,7 @@ export default function ChannelsPage() {
           onOpenChange={(open) => { if (!open) setOnboardingChannel(null) }}
           channel={onboardingChannel}
           onComplete={() => {
+            capture("channel_connected", { channel_slug: onboardingChannel.slug })
             setConnectedSet((prev) => new Set([...prev, onboardingChannel.slug]))
             setOnboardingChannel(null)
           }}

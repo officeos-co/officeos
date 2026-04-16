@@ -190,6 +190,22 @@ via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
 - **Do not move the mock check into the Apollo link.** Apollo must behave
   normally for auth/session; mocking is a hook-layer concern.
 
+### Analytics
+
+PostHog events go through the **backend**, not a client snippet.
+`useAnalytics().capture(name, properties)` calls the `captureEvent`
+GraphQL mutation, which forwards to PostHog using the server-side API key
+(see `apps/backend/Entities/Analytics/`). With `NEXT_PUBLIC_USE_MOCKS=1`
+the hook is a no-op that `console.debug`s the payload. Page-level
+`$pageview` events are emitted globally by `components/analytics-pageview.tsx`
+mounted in the `(dashboard)/layout.tsx`.
+
+**Never install the `posthog-js` snippet in dashboard-2.** All capture goes
+through the backend so the PostHog key never leaves the server.
+
+The legacy event catalog — names and property shapes dashboard-2 must
+preserve — lives at `apps/backend/Entities/Analytics/EVENTS.md`.
+
 ### Env
 
 See `.env.local.example`:

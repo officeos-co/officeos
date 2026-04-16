@@ -18,6 +18,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { ChevronRightIcon } from "lucide-react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function NavMain({
   items,
@@ -34,6 +35,7 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
+  const { capture } = useAnalytics();
 
   // All groups open by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(
@@ -100,6 +102,7 @@ export function NavMain({
                         <SidebarMenuSubButton
                           isActive={isActive}
                           render={<Link href={subItem.url} />}
+                          onClick={() => capture("nav_clicked", { destination: subItem.url })}
                           className="h-9 pl-9 text-sm data-active:bg-sidebar-border data-active:font-medium"
                         >
                           <span>{subItem.title}</span>

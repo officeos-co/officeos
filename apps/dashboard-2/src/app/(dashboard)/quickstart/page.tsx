@@ -23,6 +23,7 @@ import { useIntegrations } from "@/hooks/useIntegrations"
 import { useChannels } from "@/hooks/useChannels"
 import { useAgentTemplates } from "@/hooks/useAgentTemplates"
 import { useCreateAgentFromTemplate } from "@/hooks/useAgentTemplates"
+import { useAnalytics } from "@/hooks/useAnalytics"
 import { type Template } from "@/data/agent-templates"
 import {
   SearchIcon,
@@ -171,6 +172,7 @@ export default function QuickstartPage() {
   const { templates } = useAgentTemplates()
   const { createAgentFromTemplate } = useCreateAgentFromTemplate()
   void createAgentFromTemplate
+  const { capture } = useAnalytics()
   const [search, setSearch] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [agentName, setAgentName] = useState("")
@@ -228,7 +230,17 @@ export default function QuickstartPage() {
         group="Managed Agents"
         page="Quickstart"
         action={
-          <Button size="sm" disabled={!agentName.trim()} onClick={() => router.push(`/agents/new?status=booting`)}>
+          <Button size="sm" disabled={!agentName.trim()} onClick={() => {
+            capture("agent_created", {
+              agent_name: agentName.trim(),
+              provider: model.split("-")[0] ?? "unknown",
+              template: selectedTemplate?.name ?? "scratch",
+              skill_count: selectedIntegrations.size,
+              allow_skills: Object.values(toolPermissions).filter((p) => p === "allow").length,
+              deny_skills: Object.values(toolPermissions).filter((p) => p === "deny").length,
+            })
+            router.push(`/agents/new?status=booting`)
+          }}>
             <RocketIcon />
             Launch agent
           </Button>
