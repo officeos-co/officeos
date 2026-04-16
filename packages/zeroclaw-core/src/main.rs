@@ -17,7 +17,6 @@ mod approval;
 mod auth;
 mod channels;
 mod cli_input;
-mod commands;
 mod config;
 mod cost;
 mod cron;
