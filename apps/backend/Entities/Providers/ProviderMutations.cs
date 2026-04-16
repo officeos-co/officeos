@@ -11,6 +11,14 @@ public class ProviderMutations
         CancellationToken ct)
     {
         _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        if (!string.Equals(providerName, "openai", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage($"Only OpenAI keys are user-configurable. '{providerName}' is served via the platform key.")
+                    .SetCode("VALIDATION")
+                    .Build());
+        }
         var dto = await providers.ConfigureAsync(providerName, apiKey, ct);
         if (dto is null)
         {

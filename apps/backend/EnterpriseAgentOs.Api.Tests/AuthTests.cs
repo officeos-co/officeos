@@ -6,37 +6,38 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
 
     public AuthTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
+    private const string MeQuery = @"{ me { id email name } }";
+    private const string LogoutMutation = @"mutation { logout }";
+
     [Fact]
-    public async Task GetMe_WithoutCookie_Returns401()
+    public async Task GetMe_WithoutCookie_ReturnsAuthError()
     {
         var client = _factory.CreateClient();
 
-        var response = await client.GetAsync("/api/auth/me");
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("Not authenticated", body.GetProperty("error").GetString());
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     [Fact]
-    public async Task GetMe_WithInvalidSessionToken_Returns401()
+    public async Task GetMe_WithInvalidSessionToken_ReturnsAuthError()
     {
         var client = _factory.CreateClient();
         client.DefaultRequestHeaders.Add("Cookie", "eaos-session=totally-bogus-token");
 
-        var response = await client.GetAsync("/api/auth/me");
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     [Fact]
-    public async Task GetMe_WithExpiredSession_Returns401()
+    public async Task GetMe_WithExpiredSession_ReturnsAuthError()
     {
         var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateExpiredSessionClientAsync(_factory);
 
-        var response = await client.GetAsync("/api/auth/me");
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     [Fact]
@@ -44,31 +45,29 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     {
         var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "authed@example.com", "Auth User");
 
-        var response = await client.GetAsync("/api/auth/me");
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
+        var me = data.GetProperty("me");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("authed@example.com", body.GetProperty("email").GetString());
-        Assert.Equal("Auth User", body.GetProperty("name").GetString());
+        Assert.Equal("authed@example.com", me.GetProperty("email").GetString());
+        Assert.Equal("Auth User", me.GetProperty("name").GetString());
     }
 
     [Fact]
-    public async Task Logout_DeletesSession_SubsequentMeReturns401()
+    public async Task Logout_DeletesSession_SubsequentMeReturnsAuthError()
     {
         var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "logout@example.com");
 
         // Verify logged in
-        var meResp = await client.GetAsync("/api/auth/me");
-        Assert.Equal(HttpStatusCode.OK, meResp.StatusCode);
+        var meData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
+        Assert.Equal("logout@example.com", meData.GetProperty("me").GetProperty("email").GetString());
 
         // Logout
-        var logoutResp = await client.PostAsync("/api/auth/logout", null);
-        Assert.Equal(HttpStatusCode.OK, logoutResp.StatusCode);
+        var logoutData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, LogoutMutation);
+        Assert.True(logoutData.GetProperty("logout").GetBoolean());
 
-        // The server deletes the session from DB. Even with the old cookie,
-        // the middleware won't find the session.
-        var meAfter = await client.GetAsync("/api/auth/me");
-        Assert.Equal(HttpStatusCode.Unauthorized, meAfter.StatusCode);
+        // Server deleted the session — even with the old cookie, me must now error.
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     [Fact]

@@ -29,4 +29,26 @@ public sealed class AuditRepository : IAuditRepository
 
         return (items, total);
     }
+
+    /// <summary>
+    /// Returns the matching ToolResult record (by CorrelationId) for each ToolCall id supplied.
+    /// </summary>
+    public async Task<Dictionary<string, EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>> GetResultsByCorrelationAsync(
+        Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
+    {
+        if (correlationIds.Count == 0)
+            return new Dictionary<string, EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>();
+
+        var rows = await _db.AgentLogs
+            .Where(r => r.AgentId == agentId
+                        && r.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.ToolResult
+                        && r.CorrelationId != null
+                        && correlationIds.Contains(r.CorrelationId))
+            .ToListAsync(ct);
+
+        return rows
+            .Where(r => r.CorrelationId is not null)
+            .GroupBy(r => r.CorrelationId!)
+            .ToDictionary(g => g.Key, g => g.First());
+    }
 }

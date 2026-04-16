@@ -12,10 +12,22 @@ public class AgentMutations
         CancellationToken ct)
     {
         var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var dto = await agents.CreateAsync(
-            new EnterpriseAgentOs.Api.Entities.Agents.CreateAgentRequest(input.Name, input.Provider, input.Model, input.Prompt),
-            ownerId: user.Id,
-            ct);
+        EnterpriseAgentOs.Api.Entities.Agents.AgentDto dto;
+        try
+        {
+            dto = await agents.CreateAsync(
+                new EnterpriseAgentOs.Api.Entities.Agents.CreateAgentRequest(input.Name, input.Provider, input.Model, input.Prompt),
+                ownerId: user.Id,
+                ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage(ex.Message)
+                    .SetCode("VALIDATION")
+                    .Build());
+        }
 
         if (input.IntegrationSlugs is { Count: > 0 })
         {

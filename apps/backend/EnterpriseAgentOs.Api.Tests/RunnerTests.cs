@@ -83,7 +83,7 @@ public sealed class RunnerTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infr
     {
         var runner = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockRunnerClient(_factory.CreateClient());
         // Don't register — no auth token
-        var response = await runner.ListSkillsAsync();
+        var (response, _) = await runner.PollJobAsync();
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -105,23 +105,6 @@ public sealed class RunnerTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infr
         var found = data.GetProperty("runners").EnumerateArray()
             .FirstOrDefault(r => r.GetProperty("id").GetGuid() == runnerId);
         Assert.Equal("online", found.GetProperty("status").GetString());
-    }
-
-    [Fact]
-    public async Task ListSkills_WithRegisteredRunner_Returns200()
-    {
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var (_, regToken) = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateRunnerAsync(dashClient, "skills-list");
-
-        var runner = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockRunnerClient(_factory.CreateClient());
-        await runner.RegisterAsync(regToken);
-
-        var response = await runner.ListSkillsAsync();
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        // No custom skills seeded, so should be empty array
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(0, body.GetArrayLength());
     }
 
     [Fact]

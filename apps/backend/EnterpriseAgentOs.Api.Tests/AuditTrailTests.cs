@@ -189,11 +189,9 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
         }
 
         // Request first page: limit=2, offset=0
-        var auditResponse = await dashClient.GetAsync(
-            $"/api/agents/{agentId}/audit-log?limit=2&offset=0");
-        Assert.Equal(HttpStatusCode.OK, auditResponse.StatusCode);
-
-        var body = await auditResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+            new { agentId, skip = 0, limit = 2 });
+        var body = data.GetProperty("auditLog");
         var items = body.GetProperty("items");
         var total = body.GetProperty("total").GetInt32();
 
@@ -229,10 +227,9 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
         Assert.Equal(HttpStatusCode.OK, execResponse.StatusCode);
 
         // Agent 2's audit log should be empty
-        var agent2AuditResponse = await dashClient.GetAsync($"/api/agents/{agent2Id}/audit-log");
-        Assert.Equal(HttpStatusCode.OK, agent2AuditResponse.StatusCode);
-
-        var body = await agent2AuditResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+            new { agentId = agent2Id, skip = 0, limit = 50 });
+        var body = data.GetProperty("auditLog");
         var total = body.GetProperty("total").GetInt32();
         var items = body.GetProperty("items");
 

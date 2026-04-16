@@ -76,8 +76,15 @@ public sealed class RoundTripTests : IClassFixture<EnterpriseAgentOs.Api.Tests.I
         var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var execTask = agent.SkillExecAsync("notion", "search", new { query = "fail" });
 
-        await Task.Delay(100);
-        var (_, job) = await runner.PollJobAsync();
+        // Poll with retries — when xUnit parallelizes tests, jobs from other tests
+        // may briefly compete; our runner is auth-scoped so only OUR job is claimable here,
+        // but the dispatch may not have committed yet.
+        JsonElement? job = null;
+        for (var i = 0; i < 20 && job is null; i++)
+        {
+            await Task.Delay(100);
+            (_, job) = await runner.PollJobAsync();
+        }
         Assert.NotNull(job);
 
         var jobId = job.Value.GetProperty("id").GetGuid();

@@ -4,12 +4,15 @@ public sealed class ProviderService : IProviderService
 {
     private readonly IProviderRepository _repository;
     private readonly ProviderKeyProtector _protector;
+    private readonly EnterpriseAgentOs.Api.Properties.PlatformKeysConfig _platformKeys;
     private readonly ILogger<ProviderService> _logger;
 
-    public ProviderService(IProviderRepository repository, ProviderKeyProtector protector, ILogger<ProviderService> logger)
+    public ProviderService(IProviderRepository repository, ProviderKeyProtector protector,
+        EnterpriseAgentOs.Api.Properties.PlatformKeysConfig platformKeys, ILogger<ProviderService> logger)
     {
         _repository = repository;
         _protector = protector;
+        _platformKeys = platformKeys;
         _logger = logger;
     }
 
@@ -17,8 +20,22 @@ public sealed class ProviderService : IProviderService
     {
         var records = await _repository.ListAsync(ct);
         _logger.LogDebug("Listed {Count} providers", records.Count);
-        return records.Select(ToDto).ToList();
+        return records.Select(ToDtoWithPlatform).ToList();
     }
+
+    private ProviderDto ToDtoWithPlatform(EnterpriseAgentOs.Api.Database.Models.ProviderRecord record)
+    {
+        var configured = record.Configured || HasPlatformKey(record.Name);
+        return new(record.Id, record.Name, record.DisplayName, configured, record.ConfiguredAt);
+    }
+
+    private bool HasPlatformKey(string name) => name.ToLowerInvariant() switch
+    {
+        "anthropic" => !string.IsNullOrWhiteSpace(_platformKeys.AnthropicApiKey),
+        "google" => !string.IsNullOrWhiteSpace(_platformKeys.GeminiApiKey),
+        "xai" => !string.IsNullOrWhiteSpace(_platformKeys.XaiApiKey),
+        _ => false,
+    };
 
     public async Task<ProviderDto?> ConfigureAsync(string name, string apiKey, CancellationToken ct = default)
     {
