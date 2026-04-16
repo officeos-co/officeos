@@ -21,7 +21,7 @@ public sealed class RunnerAuthAttribute : Attribute, IAsyncAuthorizationFilter
         }
 
         var token = header.Substring("Bearer ".Length).Trim();
-        var hash = Auth.SessionAuthMiddleware.HashToken(token);
+        var hash = SessionAuthMiddleware.HashToken(token);
 
         var repo = http.RequestServices.GetRequiredService<IRunnerRepository>();
         var runner = await repo.GetByAuthTokenHashAsync(hash);

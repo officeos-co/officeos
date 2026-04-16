@@ -41,7 +41,7 @@ public sealed class RunnerApiController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.RegistrationToken))
             return BadRequest(new { error = "registrationToken is required" });
 
-        var hash = Auth.SessionAuthMiddleware.HashToken(body.RegistrationToken);
+        var hash = SessionAuthMiddleware.HashToken(body.RegistrationToken);
         var runner = await _runners.GetByRegistrationTokenHashAsync(hash, ct);
 
         if (runner is null)
@@ -59,7 +59,7 @@ public sealed class RunnerApiController : ControllerBase
 
         // Issue auth token
         var authToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var authHash = Auth.SessionAuthMiddleware.HashToken(authToken);
+        var authHash = SessionAuthMiddleware.HashToken(authToken);
 
         runner.AuthTokenHash = authHash;
         runner.Status = "online";

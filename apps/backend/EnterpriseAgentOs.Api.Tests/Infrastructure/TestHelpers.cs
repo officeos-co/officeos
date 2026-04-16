@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using EnterpriseAgentOs.Api.Database;
 using EnterpriseAgentOs.Api.Database.Models;
 using EnterpriseAgentOs.Api.Entities.Auth;
+using EnterpriseAgentOs.Api.Middleware;
 
 namespace EnterpriseAgentOs.Api.Tests.Infrastructure;
 

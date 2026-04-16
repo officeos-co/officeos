@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Entities.Skills.GraphQL;
+namespace EnterpriseAgentOs.Api.Entities.SkillGateway;
 
 public class Query
 {

@@ -6,7 +6,7 @@ using HotChocolate.Types;
 using HotChocolate.Types.Descriptors;
 using HotChocolate.Types.Descriptors.Definitions;
 
-namespace EnterpriseAgentOs.Api.Entities.Skills.GraphQL;
+namespace EnterpriseAgentOs.Api.Entities.SkillGateway;
 
 /// <summary>
 /// HotChocolate ITypeModule that generates the entire GraphQL skill schema

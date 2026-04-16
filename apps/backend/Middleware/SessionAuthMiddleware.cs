@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EnterpriseAgentOs.Api.Entities.Auth;
+namespace EnterpriseAgentOs.Api.Middleware;
 
 public sealed class SessionAuthMiddleware
 {

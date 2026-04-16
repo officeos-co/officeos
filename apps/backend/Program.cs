@@ -133,13 +133,13 @@ builder.Services.AddSingleton(rateLimitingConfig);
 //   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
 //   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>();
+builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.SkillGateway.SkillTypeModule>();
 
 builder.Services
     .AddGraphQLServer("agent")
-    .AddQueryType<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.Query>()
-    .AddTypeModule<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.SkillTypeModule>()
-    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.Skills.GraphQL.AgentAuthInterceptor>()
+    .AddQueryType<EnterpriseAgentOs.Api.Entities.SkillGateway.Query>()
+    .AddTypeModule<EnterpriseAgentOs.Api.Entities.SkillGateway.SkillTypeModule>()
+    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.SkillGateway.AgentAuthInterceptor>()
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
 

@@ -1,7 +1,7 @@
 using HotChocolate.AspNetCore;
 using HotChocolate.Execution;
 
-namespace EnterpriseAgentOs.Api.Entities.Skills.GraphQL;
+namespace EnterpriseAgentOs.Api.Entities.SkillGateway;
 
 public class AgentAuthInterceptor : DefaultHttpRequestInterceptor
 {
