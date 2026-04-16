@@ -14,14 +14,17 @@ cargo check --tests          # Use this (not plain cargo check) after deleting c
 
 ## How an agent pod boots
 
-Each pod receives only `ZEROCLAW_AGENT_ID`. The `gateway_bootstrap` module does everything else:
+Each pod receives exactly one env var: `ZEROCLAW_AGENT_ID`. No `config.toml` on the PVC is ever consulted — when `ZEROCLAW_AGENT_ID` is set, `Config::load_or_init` short-circuits to an in-memory `Config::default()` (no file I/O, no directories created) and `Config::save()` is a no-op. The backend is the sole source of truth.
 
-1. `gateway_bootstrap::apply` seeds provider=`custom:{backend_url}/v1`, api_key=agent UUID, workspace=`/zeroclaw-data/workspace`, gateway=0.0.0.0:42617
-2. `gateway_bootstrap::fetch_and_overlay_from_env` calls `GET {backend_url}/api/agents/{id}` (bearer=agent UUID) and overlays the real model from the bootstrap payload; extracts the per-tool allow/deny map. Response contains NO credentials. Fails open — if the backend is unreachable, existing env/config values remain authoritative so local-dev still works.
-3. Fetches personality files from `{backend_url}/api/agents/{id}/memory/*` → caches on PVC at `/zeroclaw-data/workspace`
-4. Discovers skills via GraphQL introspection of `{backend_url}/api/graphql`
-5. `SkillExecTool` is built with the permission map and blocks any dispatch where `(skill, tool)` is set to `Deny` (returns a `ToolResult` error "tool denied by policy"). Missing keys default to allow. There is no "ask" mode — agents run unattended.
-6. Starts the WebSocket gateway on `:42617`
+1. `Config::load_or_init` detects pod mode via `ZEROCLAW_AGENT_ID` and returns `Config::default()` with `workspace_dir = /zeroclaw-data/workspace`. Nothing is read from or written to disk.
+2. `gateway_bootstrap::apply` seeds provider=`custom:{backend_url}/v1`, api_key=agent UUID, model=`"backend-managed"` placeholder, gateway=0.0.0.0:42617, skills backend+graphql URLs.
+3. `gateway_bootstrap::fetch_and_overlay_from_env` calls `GET {backend_url}/api/agents/{id}` (bearer=agent UUID) and overlays the real model from the bootstrap payload; extracts the per-tool allow/deny map. Response contains NO credentials. Fails open — if the backend is unreachable the pod keeps the defaults seeded by `apply`; there is no local-file fallback.
+4. Fetches personality files from `{backend_url}/api/agents/{id}/memory/*` → caches on PVC at `/zeroclaw-data/workspace`.
+5. Discovers skills via GraphQL introspection of `{backend_url}/api/graphql`.
+6. `SkillExecTool` is built with the permission map and blocks any dispatch where `(skill, tool)` is set to `Deny` (returns a `ToolResult` error "tool denied by policy"). Missing keys default to allow. There is no "ask" mode — agents run unattended.
+7. Starts the WebSocket gateway on `:42617`.
+
+Local-dev / CLI use (no `ZEROCLAW_AGENT_ID`) still reads `~/.zeroclaw/config.toml` through the legacy path — that branch is orthogonal to pod behavior.
 
 ## Project structure
 
@@ -82,6 +85,7 @@ Changes in these areas need extra care:
 ## Anti-patterns
 
 - Do not add config keys without a concrete use case — the agent derives everything from the backend on boot.
+- Do not reintroduce a `config.toml` read path for pod mode. If `ZEROCLAW_AGENT_ID` is set, the pod must not read, create, or write files under `/zeroclaw-data` other than the workspace/personality cache. All runtime config flows through `gateway_bootstrap::apply` + `fetch_and_overlay_from_env`. New fields go in the backend `AgentBootstrapPayload`, not in on-disk TOML.
 - Do not silently weaken security policy. Any change to `src/security/**` must be explicit and reviewed.
 - Do not bypass failing clippy checks with `#[allow(...)]` without a comment explaining why.
 - Do not add speculative abstractions or premature traits — implement for the concrete case first.
