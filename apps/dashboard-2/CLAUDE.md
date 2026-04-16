@@ -35,7 +35,6 @@ src/
       logs/page.tsx               Global log aggregation — table with agent/type filters, pagination
       usage/page.tsx              Token usage analytics — Recharts bar charts, stat cards
       cost/page.tsx               Cost analytics — stacked bar chart, cost breakdown cards
-      providers/page.tsx          LLM providers — expandable cards, models table, BYOK
       profile/page.tsx            User profile — name, preferences, notification toggles
       team/page.tsx               Organization — name, member table, invite dialog
       billing/page.tsx            Subscription — plan, payment, extra usage, invoices
@@ -72,7 +71,6 @@ Analytics
   └── Cost
 
 Manage
-  ├── Providers
   ├── Profile
   ├── Team
   └── Billing

@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
+import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -14,13 +14,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
   BotIcon,
   ActivityIcon,
   SettingsIcon,
   BookOpenIcon,
-} from "lucide-react"
+} from "lucide-react";
 
 const data = {
   user: {
@@ -56,14 +56,13 @@ const data = {
       url: "#",
       icon: <SettingsIcon />,
       items: [
-        { title: "Providers", url: "/providers" },
         { title: "Profile", url: "/profile" },
         { title: "Team", url: "/team" },
         { title: "Billing", url: "/billing" },
       ],
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -96,5 +95,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
