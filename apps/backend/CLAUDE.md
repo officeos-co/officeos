@@ -78,6 +78,7 @@ Entities/{DomainName}/
 | `LlmProxy` | LlmProxyController | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0 of every request before forwarding. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | DB-backed per-agent sliding window counter (AgentRateLimitRecord). Enforced in AgentSkillsController.SkillExec(). Config: RateLimitingConfig (SkillExecPerAgentPerHour, EmailPerAgentPerHour, WindowSeconds). |
 | `Gdpr` | GdprController | IGdprService / GdprService | — | GET /api/gdpr/export (JSON attachment of all user data, no plaintext credentials), DELETE /api/gdpr/purge (cascaded delete of all user data + sessions + user record). Both endpoints require SessionAuth. No new DB models — reads/deletes existing tables. |
+| `AgentLogs` | — | IAgentLogService / AgentLogService | IAgentLogRepository / AgentLogRepository | GraphQL-only domain (no REST). Append-only log timeline over `AgentLogRecord`. Dashboard sends messages by appending `MessageIn` rows and subscribes to `agentLogAppended(agentId)` for live updates. Publishes to `ITopicEventSender` topic `agent-log:{agentId}` on every append. Has `GraphQL/` subfolder: AgentLogsQueries, AgentLogsMutations, AgentLogsSubscriptions. |
 
 ### Naming conventions
 
