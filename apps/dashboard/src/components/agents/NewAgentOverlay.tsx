@@ -17,7 +17,7 @@ import type { Skill } from "@/types/skill";
 // Types
 // ---------------------------------------------------------------------------
 
-type PermissionMode = "auto" | "ask";
+type PermissionMode = "allow" | "deny";
 
 type SkillPermission = {
   skillName: string;
@@ -337,19 +337,19 @@ function StepPermissions({
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground">
-        Choose how each tool runs. <strong>Ask me</strong> = approve each use
-        from the Approvals page.
+        Choose which tools the agent can use. <strong>Deny</strong> blocks the
+        tool entirely.
       </p>
 
       {selectedSkills.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No tools selected — all tools will require approval by default.
+          No tools selected.
         </p>
       ) : (
         <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
           {selectedSkills.map((skill) => {
             const perm = permissions.find((p) => p.skillName === skill.name);
-            const mode: PermissionMode = perm?.mode ?? "ask";
+            const mode: PermissionMode = perm?.mode ?? "allow";
             return (
               <div
                 key={skill.name}
@@ -365,30 +365,30 @@ function StepPermissions({
                   <button
                     type="button"
                     onClick={() => {
-                      if (mode !== "auto") onTogglePermission(skill.name);
+                      if (mode !== "allow") onTogglePermission(skill.name);
                     }}
                     className={[
                       "px-3 py-1 text-xs transition-colors",
-                      mode === "auto"
+                      mode === "allow"
                         ? "bg-primary text-primary-foreground"
                         : "bg-background text-muted-foreground hover:bg-muted",
                     ].join(" ")}
                   >
-                    Auto
+                    Allow
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      if (mode !== "ask") onTogglePermission(skill.name);
+                      if (mode !== "deny") onTogglePermission(skill.name);
                     }}
                     className={[
                       "px-3 py-1 text-xs transition-colors",
-                      mode === "ask"
+                      mode === "deny"
                         ? "bg-primary text-primary-foreground"
                         : "bg-background text-muted-foreground hover:bg-muted",
                     ].join(" ")}
                   >
-                    Ask me
+                    Deny
                   </button>
                 </div>
               </div>
@@ -432,8 +432,8 @@ function StepLaunch({
   onBack,
   onLaunch,
 }: Step4Props) {
-  const autoCount = permissions.filter((p) => p.mode === "auto").length;
-  const askCount = permissions.filter((p) => p.mode === "ask").length;
+  const allowCount = permissions.filter((p) => p.mode === "allow").length;
+  const denyCount = permissions.filter((p) => p.mode === "deny").length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -449,12 +449,12 @@ function StepLaunch({
         {selectedSkillNames.size > 0 && (
           <>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Run automatically</span>
-              <span className="font-medium">{autoCount}</span>
+              <span className="text-muted-foreground">Allowed</span>
+              <span className="font-medium">{allowCount}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Require approval</span>
-              <span className="font-medium">{askCount}</span>
+              <span className="text-muted-foreground">Denied</span>
+              <span className="font-medium">{denyCount}</span>
             </div>
           </>
         )}
@@ -521,12 +521,12 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
     }
   }, [open]);
 
-  // Sync permissions list whenever selected skills change — new skills default to "ask"
+  // Sync permissions list whenever selected skills change — new skills default to "allow"
   useEffect(() => {
     setPermissions((prev) => {
       const existing = new Map(prev.map((p) => [p.skillName, p]));
       return Array.from(selectedSkills).map(
-        (name) => existing.get(name) ?? { skillName: name, mode: "ask" },
+        (name) => existing.get(name) ?? { skillName: name, mode: "allow" },
       );
     });
   }, [selectedSkills]);
@@ -571,7 +571,7 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
     setPermissions((prev) =>
       prev.map((p) =>
         p.skillName === skillName
-          ? { ...p, mode: p.mode === "auto" ? "ask" : "auto" }
+          ? { ...p, mode: p.mode === "allow" ? "deny" : "allow" }
           : p,
       ),
     );
@@ -589,11 +589,15 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
         provider: firstProvider,
       });
 
-      if (selectedSkills.size > 0) {
+      const allowedSkills = permissions
+        .filter((p) => p.mode === "allow")
+        .map((p) => p.skillName);
+
+      if (allowedSkills.length > 0) {
         try {
           await apiFetch(`/api/agents/${agent.id}/skills`, {
             method: "POST",
-            body: JSON.stringify({ skillNames: Array.from(selectedSkills) }),
+            body: JSON.stringify({ skillNames: allowedSkills }),
           });
         } catch {
           // Non-fatal: agent created, skills can be assigned later
@@ -601,23 +605,13 @@ export function NewAgentOverlay({ open, onClose }: NewAgentOverlayProps) {
         }
       }
 
-      const askSkills = permissions.filter((p) => p.mode === "ask");
-      await Promise.allSettled(
-        askSkills.map((p) =>
-          apiFetch(`/api/skills/${encodeURIComponent(p.skillName)}/approval`, {
-            method: "PUT",
-            body: JSON.stringify({ requiresApproval: true }),
-          }),
-        ),
-      );
-
       posthog.capture("agent_created", {
         agent_name: name.trim(),
         provider: firstProvider,
         template: selectedTemplate ?? "scratch",
         skill_count: selectedSkills.size,
-        auto_skills: permissions.filter((p) => p.mode === "auto").length,
-        ask_skills: permissions.filter((p) => p.mode === "ask").length,
+        allow_skills: allowedSkills.length,
+        deny_skills: permissions.filter((p) => p.mode === "deny").length,
       });
 
       onClose();

@@ -11,17 +11,23 @@ import {
 
 /* ── Permission types ────────────────────────────────────── */
 
-export type ToolPermission = "ask" | "allow" | "deny"
+export type ToolPermission = "allow" | "deny"
 
-const permissionLabels: Record<ToolPermission, string> = { ask: "Ask", allow: "Always allow", deny: "Deny" }
-const permissionColors: Record<ToolPermission, string> = { ask: "text-muted-foreground", allow: "text-emerald-600", deny: "text-red-500" }
+const permissionLabels: Record<ToolPermission, string> = { allow: "Always allow", deny: "Deny" }
+const permissionColors: Record<ToolPermission, string> = { allow: "text-emerald-600", deny: "text-red-500" }
 
 export function PermissionCycleButton({ value, onChange }: { value: ToolPermission; onChange: (p: ToolPermission) => void }) {
-  const cycle: ToolPermission[] = ["ask", "allow", "deny"]
+  const cycle: ToolPermission[] = ["allow", "deny"]
   return (
-    <button type="button" onClick={() => onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length])} className={`text-xs whitespace-nowrap hover:underline ${permissionColors[value]}`}>
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
+      className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
+    >
       {permissionLabels[value]}
-    </button>
+    </span>
   )
 }
 
@@ -67,6 +73,27 @@ export function ToolPermissionCard({
   )
 }
 
+/* ── Channel permission cycle button (allow/ask/deny) ────── */
+
+type ChannelPerm = "allow" | "ask" | "deny"
+const channelPermLabels: Record<ChannelPerm, string> = { allow: "Allow", ask: "Ask", deny: "Deny" }
+const channelPermColors: Record<ChannelPerm, string> = { allow: "text-emerald-600", ask: "text-muted-foreground", deny: "text-red-500" }
+
+function ChannelPermCycleButton({ value, onChange }: { value: ChannelPerm; onChange: (p: ChannelPerm) => void }) {
+  const cycle: ChannelPerm[] = ["allow", "ask", "deny"]
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
+      className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${channelPermColors[value]}`}
+    >
+      {channelPermLabels[value]}
+    </span>
+  )
+}
+
 /* ── Channel permission card ─────────────────────────────── */
 
 export function ChannelPermissionCard({
@@ -105,7 +132,7 @@ export function ChannelPermissionCard({
               <div className="text-sm">{cp.label}</div>
               <div className="text-xs text-muted-foreground">{cp.desc}</div>
             </div>
-            <PermissionCycleButton
+            <ChannelPermCycleButton
               value={perms[cp.key]}
               onChange={(v) => onChange({ ...perms, [cp.key]: v })}
             />

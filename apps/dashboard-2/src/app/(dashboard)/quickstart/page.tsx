@@ -54,17 +54,23 @@ const templates: Template[] = [
 
 /* ── Permission types ────────────────────────────────────── */
 
-type ToolPermission = "ask" | "allow" | "deny"
+type ToolPermission = "allow" | "deny"
 
-const permissionLabels: Record<ToolPermission, string> = { ask: "Ask", allow: "Always allow", deny: "Deny" }
-const permissionColors: Record<ToolPermission, string> = { ask: "text-muted-foreground", allow: "text-emerald-600", deny: "text-red-500" }
+const permissionLabels: Record<ToolPermission, string> = { allow: "Always allow", deny: "Deny" }
+const permissionColors: Record<ToolPermission, string> = { allow: "text-emerald-600", deny: "text-red-500" }
 
 function PermissionCycleButton({ value, onChange }: { value: ToolPermission; onChange: (p: ToolPermission) => void }) {
-  const cycle: ToolPermission[] = ["ask", "allow", "deny"]
+  const cycle: ToolPermission[] = ["allow", "deny"]
   return (
-    <button type="button" onClick={() => onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length])} className={`text-xs whitespace-nowrap hover:underline ${permissionColors[value]}`}>
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
+      className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
+    >
       {permissionLabels[value]}
-    </button>
+    </span>
   )
 }
 
