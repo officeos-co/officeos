@@ -135,38 +135,6 @@ public sealed class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout(CancellationToken ct)
-    {
-        var cookie = Request.Cookies["eaos-session"];
-        if (!string.IsNullOrEmpty(cookie))
-        {
-            var tokenHash = SessionAuthMiddleware.HashToken(cookie);
-            await _sessions.DeleteAsync(tokenHash, ct);
-        }
-        Response.Cookies.Delete("eaos-session");
-        return Ok(new { ok = true });
-    }
-
-    [HttpGet("me")]
-    public IActionResult Me()
-    {
-        var hasCookie = Request.Cookies.ContainsKey("eaos-session");
-        if (HttpContext.Items["User"] is not UserRecord user)
-        {
-            _logger.LogWarning("GET /auth/me → 401 (cookie present: {HasCookie})", hasCookie);
-            return Unauthorized(new { error = "Not authenticated" });
-        }
-
-        return Ok(new
-        {
-            id = user.Id,
-            email = user.Email,
-            name = user.Name,
-            avatarUrl = user.AvatarUrl,
-        });
-    }
-
     private bool IsLocalhost => Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
 
     private IActionResult RedirectWithError(string message)

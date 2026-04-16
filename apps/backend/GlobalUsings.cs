@@ -27,6 +27,7 @@ global using EnterpriseAgentOs.Api.Middleware;
 global using EnterpriseAgentOs.Api.Entities.Agents.Types;
 global using EnterpriseAgentOs.Api.Entities.Skills.Types;
 global using EnterpriseAgentOs.Api.Entities.AgentSkills.Types;
+global using EnterpriseAgentOs.Api.Entities.Auth.Types;
 global using EnterpriseAgentOs.Api.Entities.Channels.Types;
 global using EnterpriseAgentOs.Api.Entities.Providers.Types;
 global using EnterpriseAgentOs.Api.Entities.Billing.Types;
