@@ -1,9 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────
 # Enterprise Agent OS — backend stack
 #
-# Everything the backend needs to run: RBAC, shared data stores
-# (postgres for v2 primary DB, couchdb for v2 agent vaults),
-# the backend PVC, and the backend Deployment + Service.
+# Everything the backend needs to run: RBAC, the shared Postgres
+# primary DB, the backend PVC, and the backend Deployment + Service.
 #
 # Frontend lives in ./frontend.yaml. Credentials are hardcoded inline
 # to match the self-contained pattern used in docker-compose.yml —

@@ -4,12 +4,16 @@ namespace EnterpriseAgentOs.Api.Entities.Agents;
 /// Pod-facing bootstrap endpoint. A zeroclaw-core pod boots with only
 /// <c>ZEROCLAW_AGENT_ID</c> set; it calls <c>GET /api/agents/{id}</c>
 /// (authenticated by its agent-uuid bearer token) to fetch everything
-/// else it needs: provider + model hints, LLM-proxy endpoint, vault
-/// base URL, installed skills, and per-tool allow/deny overrides.
+/// else it needs: display name, the user-supplied system prompt,
+/// provider/proxy/gateway endpoints, installed skills, and per-tool
+/// allow/deny overrides.
 ///
-/// Credentials are NEVER returned here — the LLM proxy still injects
-/// provider keys per-request, and skill credentials live behind the
-/// skill gateway. This payload is safe to log.
+/// Credentials are NEVER returned here — the LLM proxy injects provider
+/// keys per-request, and skill credentials live behind the skill gateway.
+/// Personality <c>.md</c> templates (SOUL/IDENTITY/AGENTS/BOOTSTRAP) are
+/// embedded inside the zeroclaw-core binary and written to the pod's PVC
+/// on first boot; the backend only ships the system prompt string.
+/// This payload is safe to log.
 /// </summary>
 [ApiController]
 [Route("api/agents")]
@@ -19,21 +23,21 @@ public sealed class AgentBootstrapController : ControllerBase
     private readonly IAgentService _agents;
     private readonly EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository _agentSkills;
     private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
-    private readonly EnterpriseAgentOs.Api.Properties.CouchDbConfig _couch;
     private readonly EnterpriseAgentOs.Api.Properties.LiteLlmConfig _liteLlm;
+    private readonly EnterpriseAgentOs.Api.Properties.SkillGatewayConfig _gateway;
 
     public AgentBootstrapController(
         IAgentService agents,
         EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         EnterpriseAgentOs.Api.Database.EaosDbContext db,
-        EnterpriseAgentOs.Api.Properties.CouchDbConfig couch,
-        EnterpriseAgentOs.Api.Properties.LiteLlmConfig liteLlm)
+        EnterpriseAgentOs.Api.Properties.LiteLlmConfig liteLlm,
+        EnterpriseAgentOs.Api.Properties.SkillGatewayConfig gateway)
     {
         _agents = agents;
         _agentSkills = agentSkills;
         _db = db;
-        _couch = couch;
         _liteLlm = liteLlm;
+        _gateway = gateway;
     }
 
     [HttpGet("{id:guid}")]
@@ -49,6 +53,15 @@ public sealed class AgentBootstrapController : ControllerBase
         var agent = await _agents.GetAsync(id, ct);
         if (agent is null) return NotFound();
 
+        // Fetch the raw record so we can read the persisted system prompt
+        // (AgentDto is the API/Graph-facing projection and exposes `Prompt`
+        // already, but we read the record directly to stay one-hop from the
+        // source of truth).
+        var record = await _db.Agents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (record is null) return NotFound();
+
         var skills = await _agentSkills.ListSkillNamesByAgentAsync(id, ct);
         var permRows = await _db.AgentToolPermissions
             .AsNoTracking()
@@ -59,26 +72,46 @@ public sealed class AgentBootstrapController : ControllerBase
         // in-cluster service hostname when available; fall back to the
         // request's scheme+host which works for local dev.
         var backend = $"{Request.Scheme}://{Request.Host.Value}";
-        var proxyEndpoint = $"{backend}/v1";
+        var proxyUrl = $"{backend}/v1";
+
+        // Skill gateway endpoint — zeroclaw issues GraphQL against this.
+        // Parse host/port out of the configured SkillGateway URL; fall back
+        // to the request host when it's blank (dev).
+        var gatewayHost = Request.Host.Host;
+        var gatewayPort = Request.Host.Port ?? (Request.IsHttps ? 443 : 80);
+        if (!string.IsNullOrWhiteSpace(_gateway.Url)
+            && Uri.TryCreate(_gateway.Url, UriKind.Absolute, out var gwUri))
+        {
+            gatewayHost = gwUri.Host;
+            gatewayPort = gwUri.Port;
+        }
 
         var payload = new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentBootstrapPayload(
             AgentId: id,
-            Name: agent.Name,
+            DisplayName: agent.Name,
+            SystemPrompt: record.Prompt,
             Provider: new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentProviderBootstrap(
-                Backend: backend,
+                Name: agent.Provider,
                 Model: agent.Model ?? "auto",
-                ProxyEndpoint: proxyEndpoint),
-            Vault: new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentVaultBootstrap(
-                BaseUrl: _couch.Url ?? string.Empty),
+                ApiUrl: proxyUrl,
+                TokenRef: null),
+            Proxy: new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentProxyBootstrap(
+                Url: proxyUrl,
+                Token: null),
+            Gateway: new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentGatewayBootstrap(
+                Host: gatewayHost,
+                Port: gatewayPort,
+                TlsCertRef: null),
             Skills: skills
                 .Select(n => new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentInstalledSkillSummary(n))
                 .ToList(),
-            ToolPermissions: permRows
-                .Select(p => new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentBootstrapToolPermission(
-                    Skill: p.SkillName,
-                    Tool: p.ToolName,
-                    Mode: p.Permission.ToString().ToLowerInvariant()))
-                .ToList());
+            ToolPermissions: new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentToolPermissionsBootstrap(
+                permRows
+                    .Select(p => new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentBootstrapToolPermission(
+                        Skill: p.SkillName,
+                        Tool: p.ToolName,
+                        Mode: p.Permission.ToString().ToLowerInvariant()))
+                    .ToList()));
 
         return Ok(payload);
     }
