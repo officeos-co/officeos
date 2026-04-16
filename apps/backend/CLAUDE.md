@@ -60,7 +60,7 @@ Entities/<Domain>/
 
 | Domain | Has Controller | Has Service | Has Repository | Has Types/ | Notes |
 |--------|----------------|-------------|----------------|-----------|-------|
-| `Agents` | AgentBootstrapController (`[AgentTokenAuth]`, `GET /api/agents/{id}` — pod-facing boot payload: provider/model/proxy, vault base URL, installed skills, per-tool allow/deny overrides; NO credentials) | AgentService | AgentRepository | yes | Also has IAgentDeployer, KubernetesAgentDeployer, NullAgentDeployer, AgentProxyEndpoints (browser → pod HTTP/WS passthrough at `/api/agents/{id}/ws` and `/api/agents/{id}/proxy/{**path}`). `createAgent(input.toolPermissions)` persists `AgentToolPermissionRecord` rows (modes: `Allow`/`Deny` — no `Ask`); dashboard reads them back via `getAgentSkills(agentId)`. |
+| `Agents` | AgentBootstrapController (`[AgentTokenAuth]`, `GET /api/agents/{id}` — pod-facing boot payload: displayName, systemPrompt, provider/model, proxy, gateway, installed skills, per-tool allow/deny overrides; NO credentials, NO personality .md files — those are embedded in zeroclaw-core and written locally on first boot) | AgentService | AgentRepository | yes | Also has IAgentDeployer, KubernetesAgentDeployer, NullAgentDeployer, AgentProxyEndpoints (browser → pod HTTP/WS passthrough at `/api/agents/{id}/ws` and `/api/agents/{id}/proxy/{**path}`). `createAgent(input.toolPermissions)` persists `AgentToolPermissionRecord` rows (modes: `Allow`/`Deny` — no `Ask`); dashboard reads them back via `getAgentSkills(agentId)`. |
 | `Skills` | SkillController (bundle download), AgentSkillsController (agent-pod-facing, `[AgentTokenAuth]`), InternalSkillController (CI seed) | SkillService | SkillRepository, SkillCatalogRepository, BrowserSessionRepository | yes | Dashboard catalog/install/credentials are GraphQL only. SkillRuntimeClient, SkillCredentialProtector, AgentBackendTokenProtector, AgentTokenAuthAttribute all live here. |
 | `SkillGateway` | — | — | — | — | Agent-pod dynamic GraphQL gateway. Contains SkillTypeModule (ITypeModule generating per-skill action fields from runtime manifests), Query (placeholder root), AgentAuthInterceptor. Wired in `Program.cs` onto the `agent` schema only — never the dashboard schema. |
 | `Providers` | — | ProviderService | ProviderRepository | yes | ProviderKeyProtector, ProviderSeeder, KnownModels |
@@ -73,8 +73,6 @@ Entities/<Domain>/
 | `Events` | SystemEventsController (SSE stream) | SystemEventService | — | — | SystemEventBroadcaster (singleton) |
 | `SkillRegistry` | SkillRegistryController | — | SkillRegistryRepository | — | Operator tooling |
 | `AgentSkills` | — | — | AgentSkillRepository | yes | |
-| `AgentMemory` | AgentMemoryController (`[AgentTokenAuth]`, `/api/agents/me/...`) | — | — | yes | |
-| `Vault` | — | — | — | — | CouchDbVaultClient only |
 | `Audit` | — | AuditService | AuditRepository | yes | Records every skill execution, redacts secrets in paramsJson |
 | `LlmProxy` | LlmProxyController | — | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | — | DB-backed per-agent sliding window over AgentRateLimitRecord. Config: RateLimitingConfig. |
