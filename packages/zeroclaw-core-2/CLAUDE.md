@@ -19,11 +19,11 @@ cargo check --tests          # After deletions — not plain cargo check.
 A pod boots with exactly two env vars — `ZEROCLAW_AGENT_ID`, `BACKEND_URL` — then:
 
 1. `GET {BACKEND_URL}/api/agents/{id}` with `Authorization: Bearer {agent_id}`.
-2. Writes embedded personality templates (`SOUL.md`, `IDENTITY.md`, `AGENTS.md`, `BOOTSTRAP.md`) into `memory_dir` if absent. Substitutes `{{prompt}}` in `BOOTSTRAP.md` with the system prompt from the bootstrap payload.
+2. Writes embedded personality templates (`SOUL.md`, `IDENTITY.md`, `BOOTSTRAP.md`) into `memory_dir` if absent. Substitutes `{{prompt}}` in `BOOTSTRAP.md` with the system prompt from the bootstrap payload.
 3. Starts a WebSocket gateway on `gateway.host:gateway.port` from the payload.
 4. Runs the agent turn loop: on a user message, it composes the system prompt fresh from `memory_dir` via trait-based sections, POSTs `{BACKEND_URL}/v1/chat/completions` (SSE streamed), dispatches tool calls, and loops until the assistant returns no tool calls.
 
-Tools kept: `skill_exec`, `memory_store`, `memory_recall`, `memory_forget`, `ask_user`, `shell`, `file_read`, `file_write`, `file_edit`, `http_request`, `web_fetch`, `content_search`, `glob_search`, `tool_search`. Nothing else.
+Tools kept: `skill_exec`, `memory_store`, `memory_recall`, `memory_forget`, `ask_user`, `shell`, `file_read`, `file_write`, `file_edit`, `http_request`, `web_fetch`, `content_search`, `glob_search`. Nothing else. `tool_search` is DROPPED — discovery is `skill_exec --help`.
 
 ## What this crate does NOT do
 
@@ -60,3 +60,4 @@ Every file's purpose is listed in the "File layout" section of `API.md`. The tre
 - **Do not read or write files under `/zeroclaw-data` outside `memory_dir`.**
 - **Do not add tool-approval flows.** Tool approval is a backend concern. Here we enforce Allow/Deny from the bootstrap payload, that's it.
 - **Do not forget to update `API.md`** when adding a new tool, prompt section, error variant, or WS message type. Docs drift is the thing we are trying to escape.
+- **Do not add default-value fallbacks.** Every runtime value is either provided by the bootstrap payload / env (panic on missing) or a hardcoded constant. No `.unwrap_or_default()`, no `Default::default()` on config structs, no silent `.unwrap_or("localhost".into())`. See API.md §1 and §19.

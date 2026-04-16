@@ -10,11 +10,15 @@ All references to "the legacy crate" below point to `packages/zeroclaw-core/`. T
 
 `zeroclaw-agent` is a single Rust binary that runs inside a Kubernetes pod. One pod = one agent. It receives a single env var pair at boot, hydrates its runtime configuration from the backend, serves a WebSocket gateway for operators, and runs an LLM-driven tool loop until each user turn completes.
 
+### No default-value fallbacks (global rule)
+
+Every runtime value is either (a) provided in the bootstrap payload or env and MUST be present — panic with a clear error if missing — or (b) a hardcoded constant in the binary. **No** `.unwrap_or_default()`, **no** `Default::default()` on config structs, **no** user-configurable settings with silent fallbacks. If you're tempted to write `.unwrap_or("localhost".into())`, STOP: either it comes from the payload or it's a constant. This rule applies everywhere — bootstrap parsing, env parsing, tool parameter parsing, WS protocol parsing.
+
 ### 1.0 does
 
 - Boot from `ZEROCLAW_AGENT_ID` + `BACKEND_URL`. Nothing else.
 - Fetch `AgentBootstrapPayload` from `GET {BACKEND_URL}/api/agents/{id}` using `Authorization: Bearer {agent_id}`.
-- Write embedded personality templates (`SOUL.md`, `IDENTITY.md`, `AGENTS.md`, `BOOTSTRAP.md`) to `memory_dir` on first boot, idempotently. Substitute `{{prompt}}` in `BOOTSTRAP.md` with `systemPrompt` from the payload.
+- Write embedded personality templates (`SOUL.md`, `IDENTITY.md`, `BOOTSTRAP.md`) to `memory_dir` on first boot, idempotently. Substitute `{{prompt}}` in `BOOTSTRAP.md` with `systemPrompt` from the payload.
 - Serve a WebSocket gateway on `gateway.host:gateway.port` (from payload).
 - Execute the agent turn loop against `POST {BACKEND_URL}/v1/chat/completions` (OpenAI-compatible, SSE streamed).
 - Dispatch tool calls, including `skill_exec` which hits `POST {BACKEND_URL}/api/graphql`.
@@ -189,14 +193,15 @@ pub enum Permission { Allow, Deny }
 
 ### 5.1 Embedded templates
 
-Four `.md` files are compiled into the binary via `include_str!`:
+Three `.md` files are compiled into the binary via `include_str!`:
 
 | Template | Purpose | Contains `{{prompt}}` substitution? |
 |----------|---------|-------------------------------------|
 | `SOUL.md` | Agent-agnostic core values / voice | no |
 | `IDENTITY.md` | Placeholder — the dashboard overwrites this file with agent-specific identity. 1.0 ships a generic stub. | no |
-| `AGENTS.md` | Describes the multi-agent collaboration model (empty in 1.0 single-agent mode; kept for forward compat). | no |
 | `BOOTSTRAP.md` | Operator's system prompt injection point. Contains the literal string `{{prompt}}` where `payload.system_prompt` is written. | **yes** |
+
+`AGENTS.md` is dropped from 1.0 entirely — multi-agent collaboration is not a 1.0 concern.
 
 ### 5.2 Idempotent write
 
@@ -229,9 +234,9 @@ pub struct PromptContext<'a> {
 Default section order (port of the legacy `SystemPromptBuilder::with_defaults`, minus `ChannelMediaSection`):
 
 1. `DateTimeSection` — current local date + time + ISO 8601 + tz.
-2. `IdentitySection` — concatenates the 4 personality `.md` files from `memory_dir` in this order: `SOUL.md`, `IDENTITY.md`, `AGENTS.md`, `BOOTSTRAP.md`. Truncates each file to 20_000 chars with a `[... truncated]` marker. Missing files are silently skipped (lenient loader; the strict check happens once at boot in `bootstrap.rs`).
+2. `IdentitySection` — concatenates the 3 personality `.md` files from `memory_dir` in this order: `SOUL.md`, `IDENTITY.md`, `BOOTSTRAP.md`. Truncates each file to 20_000 chars with a `[... truncated]` marker. Missing files are silently skipped (lenient loader; the strict check happens once at boot in `bootstrap.rs`).
 3. `ToolHonestySection` — static text warning the model never to fabricate tool results.
-4. `ToolsSection` — lists every registered tool's name, description, and JSON schema. Emitted only when the LLM call is *not* using native tool calling (it always does in 1.0, so this section yields empty).
+4. `ToolsSection` — always yields empty in 1.0. Native tool calling is always on; tools are delivered via the `tools` array on each LLM request, never inlined in the system prompt. Kept as a registered section purely so the section list structurally mirrors the legacy builder; its `build` returns `Ok(String::new())`.
 5. `SafetySection` — static safety rules; no autonomy levels in 1.0.
 6. `SkillsSection` — lists installed skills by name so the model knows what `skill_exec --help` will surface.
 7. `WorkspaceSection` — `Working directory: {memory_dir}`.
@@ -243,7 +248,7 @@ Sections that produce empty output are dropped. Final output is sections joined 
 
 ### 5.4 Strict boot check
 
-At boot (not per-turn), assert that `SOUL.md`, `IDENTITY.md`, and `BOOTSTRAP.md` exist and are non-empty in `memory_dir`. If any are missing after the template write step, panic. `AGENTS.md` is optional in 1.0 (single-agent).
+At boot (not per-turn), assert that `SOUL.md`, `IDENTITY.md`, and `BOOTSTRAP.md` exist and are non-empty in `memory_dir`. If any are missing after the template write step, panic.
 
 ---
 
@@ -390,19 +395,15 @@ No TLS on the pod itself; TLS is terminated upstream by the backend's `/api/agen
 
 ### 8.2 Auth
 
-First non-handshake WS frame from the client MUST be:
+The agent UUID bearer is passed as a **query parameter** on the WebSocket upgrade URL:
 
-```json
-{"type": "hello", "token": "<agent_uuid>"}
+```
+ws://{gateway_host}:{gateway_port}/ws?token=<agent_uuid>
 ```
 
-If `token` ≠ `agent_id`, the server closes with code 4401 and reason `"unauthorized"`. On success, the server replies:
+If `token` is missing or ≠ `agent_id`, the server rejects the upgrade with HTTP `401 Unauthorized` (no WS connection established). There is **no `hello` handshake frame** — the client connects and sends `user_message` directly.
 
-```json
-{"type": "welcome", "agent_id": "<uuid>", "display_name": "..."}
-```
-
-Legacy header-based / subprotocol-based auth is dropped. The WS is behind the backend's `/api/agents/{id}/ws` proxy which already validated the dashboard session; an explicit agent-UUID handshake closes the remaining trust gap on the pod.
+Query param chosen over upgrade header: browsers cannot set custom headers on `WebSocket` constructors, so the query-param path works uniformly for the dashboard's `new WebSocket(url)` and for `tokio-tungstenite` clients.
 
 ### 8.3 Message envelope
 
@@ -412,7 +413,6 @@ All frames are JSON text. Every frame has a `type` string. Additional fields are
 
 | `type` | Fields | Meaning |
 |--------|--------|---------|
-| `hello` | `token: string` | First frame. See §8.2. |
 | `user_message` | `text: string`, `id?: string` | Start a new turn. `id` is a client-chosen correlation id (echoed in all downstream events). |
 | `ask_user_response` | `id: string`, `response: string` | Reply to a pending `ask_user_prompt` (the `id` matches the server's prompt id). |
 | `cancel` | `id?: string` | Cancel the current turn. If `id` is given, cancel only if it matches the active turn. |
@@ -421,7 +421,6 @@ All frames are JSON text. Every frame has a `type` string. Additional fields are
 
 | `type` | Fields | Meaning |
 |--------|--------|---------|
-| `welcome` | `agent_id: string`, `display_name: string` | Sent once after successful `hello`. |
 | `assistant_delta` | `turn_id: string`, `text: string` | Incremental assistant text. |
 | `tool_call_start` | `turn_id: string`, `call_id: string`, `tool: string`, `args: object` | A tool is about to run. |
 | `tool_call_result` | `turn_id: string`, `call_id: string`, `tool: string`, `success: bool`, `output: string`, `error?: string` | Tool finished. |
@@ -432,8 +431,7 @@ All frames are JSON text. Every frame has a `type` string. Additional fields are
 ### 8.6 Example session
 
 ```
-C → S: {"type":"hello","token":"123e4567-..."}
-S → C: {"type":"welcome","agent_id":"123e4567-...","display_name":"Harro"}
+(client opens ws://.../ws?token=123e4567-...)
 C → S: {"type":"user_message","id":"t1","text":"list my files"}
 S → C: {"type":"assistant_delta","turn_id":"t1","text":"Sure, "}
 S → C: {"type":"tool_call_start","turn_id":"t1","call_id":"call_01","tool":"shell","args":{"command":"ls"}}
@@ -646,14 +644,9 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Returns:** newline-separated sorted list of relative paths (max 1000).
 - **Copy-from map:** lift-with-minor-changes from `packages/zeroclaw-core/src/tools/glob_search.rs`.
 
-### 10.14 `tool_search`
+### 10.14 `tool_search` — DROPPED
 
-- **Name:** `tool_search`
-- **Description:** `Search across available skills (via skill_exec introspection) to find skills matching a keyword.`
-- **Parameters:** `{query: string, max_results?: int=5}`.
-- **Returns:** pretty-printed list of matching skills with a one-line summary each.
-- **Behaviour:** **repurposed from legacy.** The legacy `tool_search.rs` is coupled to the deferred-MCP subsystem; in 1.0, `tool_search` queries the `skill_exec` schema cache for skill/action names matching `query` and returns them. Does NOT activate deferred MCP tools (there is no MCP in 1.0).
-- **Copy-from map:** **rewrite** — ~60 lines over the schema cache.
+Dropped from 1.0 entirely. Skill discovery is done exclusively via `skill_exec --help` at root, skill, or action level. The LLM is taught this pattern in the system prompt.
 
 ---
 
@@ -665,7 +658,6 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 {memory_dir}/
   SOUL.md                    Personality — always present after boot.
   IDENTITY.md                Personality — always present after boot.
-  AGENTS.md                  Personality — always present after boot (may be empty).
   BOOTSTRAP.md               Personality — always present after boot, with the operator's system prompt substituted in.
   core/                      Category directory, created lazily by memory_store.
     preferences.md
@@ -810,12 +802,14 @@ The backend's `/api/agents/{id}/proxy/*` passthrough lets operators scrape stder
 - Interactive CLI prompts.
 - Binary self-update.
 - Any embedding-based vector memory.
+- `tool_search` tool — dropped. `skill_exec --help` is the sole skill-discovery surface.
+- Default-value fallbacks for any runtime config (see §1 Overview). Every value is explicit or the process panics.
 
 ---
 
 ## 16. File layout
 
-Final `src/` tree, ~28 Rust files plus 4 embedded `.md` templates. Keep it flat.
+Final `src/` tree, ~26 Rust files plus 3 embedded `.md` templates. Keep it flat.
 
 ```
 packages/zeroclaw-core-2/
@@ -843,11 +837,10 @@ packages/zeroclaw-core-2/
       templates/
         SOUL.md
         IDENTITY.md
-        AGENTS.md
         BOOTSTRAP.md
     gateway/
       mod.rs                `serve(config, agent_factory).await` — starts Axum app on host:port.
-      ws.rs                 Axum WS upgrade handler, `hello` handshake, per-connection `Agent` lifecycle.
+      ws.rs                 Axum WS upgrade handler with `?token=` query-param auth, per-connection `Agent` lifecycle.
       protocol.rs           Client/server message enums with `#[serde(tag = "type")]` — the wire types.
       ask_user_bridge.rs    Oneshot bridge so `ask_user` tool reaches the active WS connection.
     memory/
@@ -869,7 +862,6 @@ packages/zeroclaw-core-2/
       web_fetch.rs
       content_search.rs
       glob_search.rs
-      tool_search.rs
   tests/
     bootstrap_integration.rs
     turn_loop_integration.rs
@@ -891,7 +883,7 @@ Phase 2 delivers these tests against the spec. Each is end-to-end against local 
 | 1 | `bootstrap_fetches_and_builds_runtime_config` | `GET /api/agents/{id}` with correct headers, JSON parse, `RuntimeConfig` fields populated. Uses `wiremock` serving a canned `AgentBootstrapPayload`. |
 | 2 | `bootstrap_retries_on_5xx_up_to_ten_times` | First 9 responses are 503, 10th is 200; verifies the pod boots successfully and backoff caps at 30s. |
 | 3 | `bootstrap_panics_on_401` | No retry on unauthorized. |
-| 4 | `personality_templates_written_on_first_boot` | Empty `memory_dir` → all 4 `.md` files exist after boot, `{{prompt}}` substituted. |
+| 4 | `personality_templates_written_on_first_boot` | Empty `memory_dir` → all 3 `.md` files exist after boot, `{{prompt}}` substituted. |
 | 5 | `personality_templates_skip_when_present` | Pre-populate `SOUL.md` with custom content → unchanged after boot. |
 | 6 | `turn_loop_streams_assistant_text_only` | Mock LLM returns 3 content chunks + stop. WS receives 3 `assistant_delta` + `turn_complete`, no tool calls. |
 | 7 | `turn_loop_dispatches_tool_and_continues` | Mock LLM returns `shell` tool call, then (after tool result) a plain text completion. WS receives `tool_call_start`, `tool_call_result`, `assistant_delta`, `turn_complete`. |
@@ -899,7 +891,7 @@ Phase 2 delivers these tests against the spec. Each is end-to-end against local 
 | 9 | `turn_loop_breaks_on_exact_repeat_loop` | LLM repeats the same `shell` call 3× with the same args → detector emits `Break`, WS receives `error { code: "LOOP" }` then `turn_complete`. |
 | 10 | `skill_exec_denied_by_policy` | Bootstrap says `{skill: "notion", tool: "search", mode: "deny"}` → tool dispatch returns `success=false` with the deny message; no GraphQL call to the backend. |
 | 11 | `skill_exec_help_uses_cache` | First `--help` triggers one introspection POST; second `--help` triggers zero. |
-| 12 | `ws_hello_handshake_rejects_wrong_token` | Client sends `hello` with a non-matching UUID → server closes with 4401. |
+| 12 | `ws_rejects_wrong_token_query_param` | Client connects with `?token=<wrong>` → server rejects the upgrade with HTTP 401. |
 | 13 | `ws_user_message_while_in_flight_errors` | Second `user_message` during an active turn → server sends `error { code: "BAD_REQUEST" }`. |
 | 14 | `ask_user_round_trip` | Tool emits `ask_user_prompt`, client sends `ask_user_response`, tool returns the response text to the LLM. |
 | 15 | `ask_user_timeout` | No `ask_user_response` within `timeout_secs` → tool returns `success=false, error="timed out"`. |
@@ -910,7 +902,7 @@ These are **the Phase 3 TDD targets.** Phase 3 is complete when all 15 go green 
 
 ## 18. Copy-from-zeroclaw-core map
 
-Summary: **14 files lift-with-minor-changes, 13 adapt, 9 rewrite.** See per-item breakdown below.
+Summary: numbers are indicative; consult the tables below for the authoritative breakdown.
 
 ### Lift (minor import rewiring + strip `SecurityPolicy`/`RuntimeAdapter` unless noted)
 
@@ -926,10 +918,9 @@ Summary: **14 files lift-with-minor-changes, 13 adapt, 9 rewrite.** See per-item
 | `src/agent/history.rs` | `src/agent/history.rs` |
 | `src/tools/skill_exec.rs::parser` | `src/tools/skill_exec/parser.rs` |
 | `src/tools/skill_exec.rs::query_builder` | `src/tools/skill_exec/query_builder.rs` |
-| `src/personality/templates/SOUL.md` | `src/agent/personality_templates/SOUL.md` (if present; else write fresh) |
-| `src/personality/templates/IDENTITY.md` | ditto |
-| `src/personality/templates/AGENTS.md` | ditto |
-| `src/personality/templates/BOOTSTRAP.md` | ditto |
+| `src/personality/templates/SOUL.md` | `apps/backend/Entities/Vault/Templates/SOUL.md` (lift verbatim) |
+| `src/personality/templates/IDENTITY.md` | `apps/backend/Entities/Vault/Templates/IDENTITY.md` (strip `{{agent_name}}` etc. — 1.0 ships a generic stub) |
+| `src/personality/templates/BOOTSTRAP.md` | NEW — author fresh with a clearly present `{{prompt}}` token |
 
 ### Adapt (medium changes — strip legacy features, re-thread config types)
 
@@ -959,43 +950,45 @@ Summary: **14 files lift-with-minor-changes, 13 adapt, 9 rewrite.** See per-item
 | `src/bootstrap.rs` | Legacy `agent/gateway_bootstrap.rs` carries provider-seeding that 1.0 drops. |
 | `src/env.rs` | Legacy config loader handles too many surfaces. Here: two env vars. |
 | `src/gateway/mod.rs` | Axum app wiring — fresh. |
-| `src/gateway/ws.rs` | New handshake (§8.2); legacy had pairing/subprotocol/query-token logic. |
+| `src/gateway/ws.rs` | Query-param auth (§8.2); legacy had pairing/subprotocol/header logic. |
 | `src/gateway/ask_user_bridge.rs` | Replaces channel-based `ask_user`. |
-| `src/tools/tool_search.rs` | Repurposed for skill-schema search (§10.14). Legacy implementation was MCP-deferred. |
 | `src/tools/ask_user.rs` | Channel-free, WS-bridged impl. |
 
 ---
 
-## 19. Open questions (must be resolved before Phase 2)
+## 19. Resolved design questions
 
-These came up while studying the current code. Phase 2 tests assume the **first** option of each unless a human resolves otherwise.
+Phase 2 kickoff resolved every open question in Phase 1. Resolutions are baked into the body of this document; this section records the decisions for traceability.
 
-1. **LLM endpoint: `/v1/chat/completions` vs `/v1/messages`.**
-   The Phase 1 brief says the pod calls `POST {BACKEND_URL}/v1/messages` (Anthropic-style), but `apps/backend/Entities/LlmProxy/LlmProxyController.cs` only exposes `POST /v1/chat/completions` (OpenAI-compatible). This spec assumes **`/v1/chat/completions`**. Confirm that is correct, or add `/v1/messages` on the backend and we'll refactor §7.
+1. **LLM endpoint — RESOLVED: `POST {backend_url}/v1/chat/completions` (OpenAI-compatible).**
+   Request body follows OpenAI Chat Completions shape (`messages`, `tools`, `stream: true`, `tool_choice: "auto"`). SSE response uses OpenAI `data:` frames with `delta.content`, `delta.tool_calls`, and `finish_reason`. Authorization header is `Bearer {agent_id}`. All Anthropic-style `/v1/messages` references are removed from this spec.
 
-2. **Tool-schema delivery: native tool calling vs embedded in prompt.**
-   The legacy `ToolsSection` emits tool schemas in the system prompt when `native_tool_calling == false`. 1.0 assumes the backend always supports native function calling and `ToolsSection` always yields empty. Confirm every target model (Anthropic, OpenAI, LiteLLM-routed Gemini) supports OpenAI `tools` / `tool_choice` through the proxy.
+2. **Tool-schema delivery — RESOLVED: native tool calling always on.**
+   `ToolsSection` of the system prompt always yields empty. Tool schemas are delivered on every LLM request via the `tools` array, not inlined in the system prompt. The backend's LLM proxy is responsible for translating to each provider's native tool-calling API.
 
-3. **`memory_dir` path.**
-   This spec uses `/zeroclaw-data/memory` (sibling of legacy `/zeroclaw-data/workspace`). Do we want to reuse `/zeroclaw-data/workspace` for forward compatibility with existing PVCs, or is a fresh path fine since PVCs are per-agent and new crates come with new deployments?
+3. **`memory_dir` path — RESOLVED: `/zeroclaw-data/memory`.**
+   Fresh path; PVCs are per-agent and 1.0 deploys are new.
 
-4. **Gateway handshake auth.**
-   §8.2 drops the header/subprotocol/query-token paths in favour of a mandatory `hello` first frame with the agent UUID. The backend proxy `/api/agents/{id}/ws` already gates on dashboard session; the `hello` check is belt-and-braces. Confirm or switch to proxy-only trust.
+4. **Gateway handshake — RESOLVED: no `hello` frame.**
+   The client connects and sends `user_message` directly. The agent UUID bearer is passed as a **WebSocket URL query parameter** (`?token=<uuid>`), not as an upgrade header (browsers cannot set custom headers on `new WebSocket(url)`). Missing or mismatched token → the upgrade is rejected with HTTP 401 before any WS frames are exchanged.
 
-5. **Gateway port default.**
-   Legacy Dockerfile bakes `port = 42617`. 1.0 reads port strictly from `payload.gateway.port`. If the backend ever returns 0 / negative, boot panics. Acceptable?
+5. **Gateway port — RESOLVED: strictly from the bootstrap payload.**
+   `payload.gateway.port` must be a non-zero positive integer in `1..=65535`. `0`, missing, or negative → `Error::BootstrapPayload` at boot. No default. No fallback.
 
-6. **`tool_search` semantics.**
-   Repurposed from MCP-deferred to skill-schema-search. Is that the right product call, or should `tool_search` be dropped entirely from 1.0 and the LLM rely on `skill_exec --help`?
+6. **`tool_search` tool — RESOLVED: DROPPED.**
+   Skill discovery is done exclusively via `skill_exec --help` (root / skill / action levels). `tool_search` is removed from the tool catalog, file layout, copy-from map, integration test plan, and prompt sections.
 
-7. **Personality `AGENTS.md`.**
-   Currently a noop in single-agent mode. Keep the file for forward compat, or drop until multi-agent ships?
+7. **Personality `AGENTS.md` — RESOLVED: DROPPED.**
+   Embedded templates are SOUL.md, IDENTITY.md, BOOTSTRAP.md (three files, not four). The `AGENTS.md` notion of multi-agent collaboration is deferred until multi-agent actually ships.
 
-8. **Retry budget on bootstrap.**
-   10 attempts, 1→30s cap. Reasonable for K8s restartPolicy? Or drop to 5 and rely on pod restart?
+8. **Bootstrap retry budget — RESOLVED: 10 attempts, 1→30s exponential cap.** Already in §3.3.
 
-9. **`skill_exec` schema cache TTL.**
-   Legacy caches forever. 1.0 inherits that. If an operator installs a new skill while the pod is running, the pod won't see it until restart. Is that acceptable, or do we need a backend `schema_version` header to invalidate?
+9. **`skill_exec` schema cache TTL — RESOLVED: forever (no invalidation).** Already in §10.1. Operators restart the pod to pick up newly installed skills.
 
-10. **`shell` tool in the runtime image.**
-    Dockerfile installs `bash`, `git`, `ripgrep`, `curl`. Anything else the operator needs by default? Should we ship a node runtime for ad-hoc scripts, or keep it minimal?
+10. **`shell` runtime image deps — RESOLVED: bash, git, ripgrep, curl.** Already in the Dockerfile. No node runtime by default.
+
+### Global rule derived from these resolutions
+
+> **No default-value fallbacks.** Every runtime value is either (a) provided in the bootstrap payload or env and must be present — panic with a clear error if missing — or (b) a hardcoded constant in the binary. No `.unwrap_or_default()`, no `Default::default()` on config structs, no user-configurable settings with silent fallbacks. If you're tempted to write `.unwrap_or("localhost".into())`, STOP: either it comes from the payload or it's a constant.
+
+This rule is echoed in §1 Overview and §15 Non-Goals so it cannot be missed when reading either section in isolation.
