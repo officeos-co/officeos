@@ -28,9 +28,10 @@ gateway_bootstrap::apply(config)
   - Sets skills.graphql_url: {backend_url}/api/graphql
   - Sets workspace: /zeroclaw-data/workspace
   ↓
-vault_bootstrap::hydrate(workspace_dir)
-  - Fetches SOUL.md, IDENTITY.md, AGENTS.md from backend
-  - Caches on PVC (skips if cached)
+personality_bootstrap::seed(workspace_dir, system_prompt)
+  - Personality templates embedded in the binary via include_str!
+  - Writes each template to workspace only if it does not already exist
+  - Substitutes {{prompt}} in BOOTSTRAP.md with the bootstrap payload's systemPrompt
   ↓
 personality::load_personality_strict(workspace_dir)
   - Validates required files exist and are non-empty
@@ -111,7 +112,7 @@ Sections are registered via `SystemPromptBuilder::with_defaults()` and rendered 
 | File | Purpose |
 |------|---------|
 | `src/agent/gateway_bootstrap.rs` | Single-env-var config derivation |
-| `src/agent/vault_bootstrap.rs` | CouchDB/backend vault hydration |
+| `src/agent/personality_bootstrap.rs` | Seeds embedded personality templates onto the pod PVC on first boot |
 | `src/agent/agent.rs` | Agent struct, turn loop, capability refresh |
 | `src/agent/prompt.rs` | System prompt builder |
 | `src/agent/personality.rs` | Personality file loader |

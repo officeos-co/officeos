@@ -20,7 +20,6 @@
 ## 2. Productivity & Tasks
 
 11. **notion** — Notion page, database, and block operations `harro-skills/skill-notion` **DONE**
-12. **obsidian** — Obsidian vault operations via CouchDB (80K downloads) `harro-skills/skill-obsidian` **DONE**
 13. **todoist** — Task and project management via Todoist API `harro-skills/skill-todoist` TODO
 14. **linear** — Issue tracking, project management, and sprint workflows via Linear API `harro-skills/skill-linear` TODO
 15. **jira** — Jira issue and project management via Atlassian REST API `harro-skills/skill-jira` TODO
@@ -133,7 +132,7 @@
 
 - 79 skills across 12 categories (10 channel skills + 11 prompt-only skills removed)
 - 5 done, 74 to implement
-- Top by ClawhHub downloads: self-improving (384K), ontology (162K), web-search (116K), crypto (109K), image-gen (85K), browser (85K), obsidian (80K), api-gateway (67K), word (58K), excel (52K)
+- Top by ClawhHub downloads: self-improving (384K), ontology (162K), web-search (116K), crypto (109K), image-gen (85K), browser (85K), api-gateway (67K), word (58K), excel (52K)
 
 ## Data Sources
 
@@ -159,7 +158,6 @@
 ### 2. Productivity & Tasks
 
 11. **notion** (DONE) — OSS: [makenotion/notion-sdk-js](https://github.com/makenotion/notion-sdk-js). Official Notion SDK
-12. **obsidian** (DONE) — Custom (CouchDB). Our own implementation
 13. **todoist** — OSS: [Doist/todoist-api-typescript](https://github.com/Doist/todoist-api-typescript). Official Todoist SDK
 14. **linear** — OSS: [linear/linear](https://github.com/linear/linear). Official Linear SDK (MIT)
 15. **jira** — REST API; no official CLI. Community: [go-jira/jira](https://github.com/go-jira/jira)
@@ -276,7 +274,6 @@
 - **5. web-search** — [searxng/searxng](https://github.com/searxng/searxng)
 - **6. web-scraper** — [apify/crawlee](https://github.com/apify/crawlee)
 - **11. notion** — [makenotion/notion-sdk-js](https://github.com/makenotion/notion-sdk-js) (DONE)
-- **12. obsidian** — Custom CouchDB (DONE)
 - **13. todoist** — [Doist/todoist-api-typescript](https://github.com/Doist/todoist-api-typescript)
 - **14. linear** — [linear/linear](https://github.com/linear/linear)
 - **16. asana** — [Asana/node-asana](https://github.com/Asana/node-asana)
