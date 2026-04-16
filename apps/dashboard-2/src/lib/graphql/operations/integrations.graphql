@@ -1,0 +1,32 @@
+query Skills {
+  skills {
+    id
+    name
+    title
+    description
+    emoji
+    sourceCodeUrl
+    doc
+    status
+    likes
+    likedByMe
+    commentsCount
+    tools {
+      name
+      description
+    }
+  }
+}
+
+query SkillComments($skillId: UUID!) {
+  skillComments(skillId: $skillId) {
+    id
+    body
+    createdAt
+    author {
+      id
+      name
+      avatarUrl
+    }
+  }
+}

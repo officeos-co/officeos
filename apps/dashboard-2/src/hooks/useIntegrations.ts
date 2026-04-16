@@ -35,14 +35,15 @@ const SKILLS_QUERY = gql`
 `
 
 const SKILL_COMMENTS_QUERY = gql`
-  query SkillComments($skillId: String!) {
+  query SkillComments($skillId: UUID!) {
     skillComments(skillId: $skillId) {
       id
-      content
+      body
       createdAt
       author {
         id
         name
+        avatarUrl
       }
     }
   }
@@ -124,13 +125,13 @@ export function useSkillComments(skillId: string): {
   if (USE_MOCKS) return { comments: [], loading: false }
   const raw: Array<{
     id: string
-    content: string
+    body: string
     createdAt: string
     author?: { name: string | null } | null
   }> = data?.skillComments ?? []
   const comments: SkillComment[] = raw.map((c) => ({
     id: c.id,
-    content: c.content,
+    content: c.body,
     createdAt: c.createdAt,
     authorName: c.author?.name ?? "Unknown",
   }))

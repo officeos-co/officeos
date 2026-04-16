@@ -142,18 +142,45 @@ export function useAgent(id: string): {
   return { agent, loading, error: error ?? undefined }
 }
 
+/**
+ * Input shape that maps onto backend `CreateAgentInput`. The dashboard thinks
+ * in terms of `systemPrompt` + `toolNames` + `channelSlugs`; we translate to
+ * `prompt` / `toolNames` / `channelSlugs` at the boundary. `provider` is
+ * derived from the model prefix (claude- → anthropic, gpt- → openai, etc.).
+ */
+export type CreateAgentHookInput = {
+  name: string
+  model: string
+  systemPrompt: string
+  toolNames: string[]
+  channelSlugs: string[]
+}
+
+function providerFromModel(model: string): string {
+  if (model.startsWith("claude-")) return "anthropic"
+  if (model.startsWith("gpt-") || model.startsWith("o")) return "openai"
+  if (model.startsWith("gemini-")) return "google"
+  return "anthropic"
+}
+
 export function useCreateAgent() {
   const [fn, state] = useMutation(CREATE_AGENT)
   return {
-    createAgent: async (input: {
-      name: string
-      model: string
-      prompt: string
-      integrations: string[]
-      channels: string[]
-    }) => {
-      if (USE_MOCKS) return { id: `agt_mock_${Date.now().toString(36)}`, name: input.name }
-      const { data } = await fn({ variables: { input } })
+    createAgent: async (input: CreateAgentHookInput) => {
+      if (USE_MOCKS)
+        return { id: `agt_mock_${Date.now().toString(36)}`, name: input.name }
+      const { data } = await fn({
+        variables: {
+          input: {
+            name: input.name,
+            provider: providerFromModel(input.model),
+            model: input.model,
+            prompt: input.systemPrompt,
+            toolNames: input.toolNames,
+            channelSlugs: input.channelSlugs,
+          },
+        },
+      })
       return data?.createAgent as { id: string; name: string }
     },
     ...state,

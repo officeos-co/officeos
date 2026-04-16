@@ -1,0 +1,25 @@
+query ChannelsAndTypes {
+  channelTypes {
+    type
+    displayName
+    description
+  }
+  channelConnections {
+    id
+    channelType
+    displayName
+    enabled
+    createdAt
+  }
+}
+
+mutation CreateChannelConnection($input: CreateChannelConnectionInput!) {
+  createChannelConnection(input: $input) {
+    id
+    channelType
+  }
+}
+
+mutation DeleteChannelConnection($id: UUID!) {
+  deleteChannelConnection(id: $id)
+}
