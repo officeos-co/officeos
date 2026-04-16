@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -13,12 +12,12 @@ import {
   ExternalLinkIcon,
 } from "lucide-react"
 
-import { useBilling } from "@/hooks/useBilling"
+import { useBilling, useSetExtraUsageEnabled } from "@/hooks/useBilling"
 
 export default function BillingPage() {
   const router = useRouter()
-  const { billing: mockBilling } = useBilling()
-  const [autoReload, setAutoReload] = useState(mockBilling.extraUsage.autoReload)
+  const { billing } = useBilling()
+  const { setExtraUsageEnabled } = useSetExtraUsageEnabled()
 
   return (
     <>
@@ -32,8 +31,8 @@ export default function BillingPage() {
                 <SparklesIcon className="size-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-base font-semibold">{mockBilling.plan} plan</h2>
-                <p className="text-sm text-muted-foreground">{mockBilling.planDescription}</p>
+                <h2 className="text-base font-semibold capitalize">{billing.plan} plan</h2>
+                <p className="text-sm text-muted-foreground">{billing.planDescription}</p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => router.push("/pricing")}>
@@ -41,20 +40,41 @@ export default function BillingPage() {
             </Button>
           </div>
 
-          {/* Cancellation / renewal notice */}
-          {mockBilling.canceledAt ? (
+          {billing.canceledAt ? (
             <div className="mt-4 flex items-center justify-between rounded-xl border border-border px-4 py-3">
               <div className="flex items-center gap-3">
                 <CalendarIcon className="size-4 text-muted-foreground" />
-                <span className="text-sm">Your subscription will be canceled on {mockBilling.canceledAt}.</span>
+                <span className="text-sm">Your subscription will be canceled on {billing.canceledAt}.</span>
               </div>
               <Button variant="outline" size="sm">Resubscribe</Button>
             </div>
           ) : (
             <p className="mt-3 text-xs text-muted-foreground">
-              Renews on {mockBilling.renewsAt}
+              Renews on {billing.renewsAt}
             </p>
           )}
+        </section>
+
+        <Separator />
+
+        {/* Current usage */}
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Current usage</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-semibold">
+                {billing.creditsUsedThisMonth.toLocaleString()} / {billing.creditBudgetPerMonth.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                credits this period · {billing.creditsRemaining.toLocaleString()} remaining
+              </p>
+            </div>
+            {billing.overBudget && (
+              <span className="rounded bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
+                Over budget
+              </span>
+            )}
+          </div>
         </section>
 
         <Separator />
@@ -65,7 +85,7 @@ export default function BillingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CreditCardIcon className="size-5 text-muted-foreground" />
-              <span className="text-sm">{mockBilling.payment.brand} •••• {mockBilling.payment.last4}</span>
+              <span className="text-sm">{billing.payment.brand} •••• {billing.payment.last4}</span>
             </div>
             <Button variant="outline" size="sm">Update</Button>
           </div>
@@ -73,29 +93,24 @@ export default function BillingPage() {
 
         <Separator />
 
-        {/* Extra usage */}
+        {/* Extra usage — simple on/off toggle (replaces old auto-reload card) */}
         <section>
           <h3 className="text-sm font-semibold mb-1">Extra usage</h3>
           <p className="text-xs text-muted-foreground mb-4">
-            Buy extra credits so your agents can keep running when you hit a limit.
+            When enabled, usage above your monthly credit budget is billed at your plan&apos;s metered rate so your agents keep running.
           </p>
-
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-lg font-semibold">€{mockBilling.extraUsage.balance.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">Current balance</p>
-            </div>
-            <Button variant="outline" size="sm">
-              Buy more
-            </Button>
-          </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Auto-reload</p>
-              <p className="text-xs text-muted-foreground">Automatically buy more credits when your balance is low.</p>
+              <p className="text-sm font-medium">Extra usage</p>
+              <p className="text-xs text-muted-foreground">
+                {billing.extraUsageEnabled ? "Enabled — overage billed via Stripe." : "Disabled — agents stop when budget is exhausted."}
+              </p>
             </div>
-            <Switch checked={autoReload} onCheckedChange={setAutoReload} />
+            <Switch
+              checked={billing.extraUsageEnabled}
+              onCheckedChange={(v) => setExtraUsageEnabled(v)}
+            />
           </div>
         </section>
 
@@ -104,30 +119,43 @@ export default function BillingPage() {
         {/* Invoices */}
         <section>
           <h3 className="text-sm font-semibold mb-3">Invoices</h3>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="px-0 py-2.5 font-medium">Date</th>
-                <th className="px-0 py-2.5 font-medium">Total</th>
-                <th className="px-0 py-2.5 font-medium">Status</th>
-                <th className="px-0 py-2.5 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockBilling.invoices.map((inv) => (
-                <tr key={inv.date} className="border-b last:border-0">
-                  <td className="px-0 py-2.5">{inv.date}</td>
-                  <td className="px-0 py-2.5">{inv.total}</td>
-                  <td className="px-0 py-2.5 text-muted-foreground">{inv.status}</td>
-                  <td className="px-0 py-2.5">
-                    <button type="button" className="text-sm hover:underline flex items-center gap-1">
-                      View <ExternalLinkIcon className="size-3" />
-                    </button>
-                  </td>
+          {billing.invoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No invoices yet.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="px-0 py-2.5 font-medium">Date</th>
+                  <th className="px-0 py-2.5 font-medium">Total</th>
+                  <th className="px-0 py-2.5 font-medium">Status</th>
+                  <th className="px-0 py-2.5 font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {billing.invoices.map((inv) => (
+                  <tr key={inv.id} className="border-b last:border-0">
+                    <td className="px-0 py-2.5">{inv.date}</td>
+                    <td className="px-0 py-2.5">{inv.total}</td>
+                    <td className="px-0 py-2.5 text-muted-foreground">{inv.status}</td>
+                    <td className="px-0 py-2.5">
+                      {inv.hostedUrl ? (
+                        <a
+                          href={inv.hostedUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm hover:underline flex items-center gap-1"
+                        >
+                          View <ExternalLinkIcon className="size-3" />
+                        </a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
     </>

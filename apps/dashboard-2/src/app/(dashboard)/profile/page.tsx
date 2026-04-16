@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,21 +15,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useProfile, useUpdateProfile, type NotificationPrefs } from "@/hooks/useProfile"
 
 export default function ProfilePage() {
-  const [fullName, setFullName] = useState("Harro Krog")
-  const [displayName, setDisplayName] = useState("Harro")
-  const [workFunction, setWorkFunction] = useState("")
+  const { profile, loading } = useProfile()
+  const { updateProfile } = useUpdateProfile()
+
+  const [fullName, setFullName] = useState("")
+  const [displayName, setDisplayName] = useState("")
+  const [timezone, setTimezone] = useState("")
   const [preferences, setPreferences] = useState("")
-  const [notifyCompletions, setNotifyCompletions] = useState(false)
-  const [notifyEmails, setNotifyEmails] = useState(false)
-  const [notifyDispatch, setNotifyDispatch] = useState(false)
+  const [prefs, setPrefs] = useState<NotificationPrefs>({
+    taskCompletions: false,
+    email: false,
+    channelMessages: false,
+  })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!loading) {
+      setFullName(profile.name ?? "")
+      setDisplayName(profile.displayName ?? "")
+      setTimezone(profile.timezone ?? "")
+      setPrefs(profile.notificationPrefs)
+    }
+  }, [loading, profile])
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await updateProfile({
+        name: fullName,
+        displayName,
+        timezone,
+        notificationPrefs: prefs,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updatePref(key: keyof NotificationPrefs, value: boolean) {
+    const next = { ...prefs, [key]: value }
+    setPrefs(next)
+    await updateProfile({ notificationPrefs: next })
+  }
+
+  const initials = (fullName || profile.email || "?")
+    .split(/\s+|@/)
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
 
   return (
     <>
-      <PageHeader group="Manage" page="Profile" />
+      <PageHeader
+        group="Manage"
+        page="Profile"
+        action={
+          <Button size="sm" onClick={handleSave} disabled={saving || loading}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        }
+      />
       <div className="flex flex-1 flex-col gap-8 p-4 pt-0 max-w-3xl mx-auto w-full">
-        {/* Profile section */}
         <section>
           <h2 className="text-base font-semibold mb-4">Profile</h2>
           <div className="space-y-4">
@@ -37,7 +89,7 @@ export default function ProfilePage() {
                 <Label>Full name</Label>
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground shrink-0">
-                    {fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                    {initials}
                   </div>
                   <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
@@ -49,21 +101,19 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label>What best describes your work?</Label>
-              <Select value={workFunction} onValueChange={(v) => { if (v) setWorkFunction(v) }}>
+              <Label>Timezone</Label>
+              <Select value={timezone} onValueChange={(v) => { if (v) setTimezone(v) }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your work function" />
+                  <SelectValue placeholder="Select your timezone" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="engineering">Engineering</SelectItem>
-                  <SelectItem value="product">Product</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="data">Data Science</SelectItem>
-                  <SelectItem value="operations">Operations</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="UTC">UTC</SelectItem>
+                  <SelectItem value="Europe/Amsterdam">Europe/Amsterdam</SelectItem>
+                  <SelectItem value="Europe/London">Europe/London</SelectItem>
+                  <SelectItem value="America/New_York">America/New_York</SelectItem>
+                  <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                  <SelectItem value="Asia/Tokyo">Asia/Tokyo</SelectItem>
+                  <SelectItem value="Asia/Singapore">Asia/Singapore</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -83,7 +133,6 @@ export default function ProfilePage() {
 
         <Separator />
 
-        {/* Notifications section */}
         <section>
           <h2 className="text-base font-semibold mb-4">Notifications</h2>
           <div className="space-y-0">
@@ -94,7 +143,10 @@ export default function ProfilePage() {
                   Get notified when an agent has finished a task. Useful for long-running tool calls and research.
                 </p>
               </div>
-              <Switch checked={notifyCompletions} onCheckedChange={setNotifyCompletions} />
+              <Switch
+                checked={prefs.taskCompletions}
+                onCheckedChange={(v) => updatePref("taskCompletions", v)}
+              />
             </div>
             <div className="flex items-start justify-between py-4 border-b border-border">
               <div>
@@ -103,7 +155,10 @@ export default function ProfilePage() {
                   Get an email when an agent needs your approval or has completed a scheduled task.
                 </p>
               </div>
-              <Switch checked={notifyEmails} onCheckedChange={setNotifyEmails} />
+              <Switch
+                checked={prefs.email}
+                onCheckedChange={(v) => updatePref("email", v)}
+              />
             </div>
             <div className="flex items-start justify-between py-4">
               <div>
@@ -112,7 +167,10 @@ export default function ProfilePage() {
                   Get a push notification when a channel message requires your attention.
                 </p>
               </div>
-              <Switch checked={notifyDispatch} onCheckedChange={setNotifyDispatch} />
+              <Switch
+                checked={prefs.channelMessages}
+                onCheckedChange={(v) => updatePref("channelMessages", v)}
+              />
             </div>
           </div>
         </section>

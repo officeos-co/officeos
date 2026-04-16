@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,39 +14,45 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PlusIcon, Trash2Icon } from "lucide-react"
-
-type Member = {
-  id: string
-  name: string
-  email: string
-  role: "Owner" | "Admin" | "Member"
-  joinedAgo: string
-}
-
-const mockMembers: Member[] = [
-  { id: "1", name: "Harro Krog", email: "harro@officeos.co", role: "Owner", joinedAgo: "6 months ago" },
-  { id: "2", name: "Anna Schmidt", email: "anna@officeos.co", role: "Admin", joinedAgo: "3 months ago" },
-  { id: "3", name: "Max Weber", email: "max@officeos.co", role: "Member", joinedAgo: "1 month ago" },
-]
+import {
+  useOrganization,
+  useInviteMember,
+  useRemoveMember,
+  useRenameOrg,
+} from "@/hooks/useOrganization"
 
 export default function TeamPage() {
-  const [members, setMembers] = useState(mockMembers)
+  const { organization, loading } = useOrganization()
+  const { inviteMember } = useInviteMember()
+  const { removeMember } = useRemoveMember()
+  const { renameOrg } = useRenameOrg()
+
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
-  const [orgName, setOrgName] = useState("Acme Corp")
+  const [orgName, setOrgName] = useState("")
 
-  function handleInvite() {
-    const newMember: Member = {
-      id: `m_${Date.now()}`,
-      name: inviteEmail.split("@")[0],
-      email: inviteEmail,
-      role: "Member",
-      joinedAgo: "just now",
-    }
-    setMembers([...members, newMember])
+  useEffect(() => {
+    if (!loading) setOrgName(organization.name)
+  }, [loading, organization.name])
+
+  async function handleInvite() {
+    if (!inviteEmail.includes("@")) return
+    await inviteMember({ email: inviteEmail, role: "Member" })
     setInviteEmail("")
     setInviteOpen(false)
   }
+
+  async function handleRemove(memberId: string) {
+    await removeMember(memberId)
+  }
+
+  async function handleRenameBlur() {
+    if (orgName && orgName !== organization.name) {
+      await renameOrg(orgName)
+    }
+  }
+
+  const members = organization.members
 
   return (
     <>
@@ -61,18 +67,20 @@ export default function TeamPage() {
         }
       />
       <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
-        {/* Organization */}
         <section>
           <h3 className="text-sm font-semibold mb-3">Organization</h3>
           <div className="space-y-2 max-w-sm">
             <Label>Organization name</Label>
-            <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+            <Input
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              onBlur={handleRenameBlur}
+            />
           </div>
         </section>
 
         <Separator />
 
-        {/* Members */}
         <section>
           <h3 className="text-sm font-semibold mb-3">Members ({members.length})</h3>
           <table className="w-full text-sm">
@@ -88,12 +96,17 @@ export default function TeamPage() {
             <tbody>
               {members.map((m) => (
                 <tr key={m.id} className="border-b last:border-0">
-                  <td className="px-0 py-2.5 font-medium">{m.name}</td>
+                  <td className="px-0 py-2.5 font-medium">{m.name ?? m.email.split("@")[0]}</td>
                   <td className="px-0 py-2.5 text-muted-foreground">{m.email}</td>
                   <td className="px-0 py-2.5">
                     <span className={`rounded bg-muted px-1.5 py-0.5 text-xs ${m.role === "Owner" ? "font-medium" : ""}`}>
                       {m.role}
                     </span>
+                    {m.status === "invited" && (
+                      <span className="ml-2 rounded bg-amber-100 text-amber-900 px-1.5 py-0.5 text-xs">
+                        invited
+                      </span>
+                    )}
                   </td>
                   <td className="px-0 py-2.5 text-muted-foreground">{m.joinedAgo}</td>
                   <td className="px-0 py-2.5">
@@ -102,7 +115,7 @@ export default function TeamPage() {
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => setMembers(members.filter((x) => x.id !== m.id))}
+                        onClick={() => handleRemove(m.id)}
                       >
                         <Trash2Icon className="size-3.5" />
                       </Button>
@@ -115,12 +128,11 @@ export default function TeamPage() {
         </section>
       </div>
 
-      {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Invite team member</DialogTitle>
-            <DialogDescription>They'll receive an email invitation to join your organization.</DialogDescription>
+            <DialogDescription>They&apos;ll receive an email invitation to join your organization.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="space-y-1.5">

@@ -35,9 +35,9 @@ src/
       logs/page.tsx               Global log aggregation — table with agent/type filters, pagination
       usage/page.tsx              Token usage analytics — Recharts bar charts, stat cards
       cost/page.tsx               Cost analytics — stacked bar chart, cost breakdown cards
-      profile/page.tsx            User profile — name, preferences, notification toggles
-      team/page.tsx               Organization — name, member table, invite dialog
-      billing/page.tsx            Subscription — plan, payment, extra usage, invoices
+      profile/page.tsx            User profile — name, timezone, notification toggles (wired via useProfile / useUpdateProfile)
+      team/page.tsx               Organization — rename, member table, invite/remove (wired via useOrganization / useInviteMember / useRemoveMember / useRenameOrg)
+      billing/page.tsx            Subscription — plan, payment, current usage, simple extra-usage on/off Switch (useBilling / useSetExtraUsageEnabled), invoices synced from Stripe
   components/
     app-sidebar.tsx               Sidebar with 3 nav groups + docs link + user menu
     nav-main.tsx                  Collapsible nav groups with active route detection
