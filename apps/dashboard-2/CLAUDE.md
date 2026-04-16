@@ -143,12 +143,58 @@ Colors match the website (`apps/website/`):
 - Do not add state management libraries. React useState is sufficient for the alpha.
 - Do not create pages without `max-w-*` + `mx-auto`. Content should never stretch to full viewport width.
 
-## Wiring to backend (next step)
+## Backend wiring
 
-When connecting to the real backend:
+The dashboard talks to the backend exclusively over GraphQL at
+`POST {NEXT_PUBLIC_API_URL}/api/dashboard/graphql` (subscriptions over WS at the
+same path). Apollo is configured in `src/lib/graphql/client.ts` and provided to
+the tree via `src/app/providers.tsx` (wrapped inside `layout.tsx`). Session auth
+rides on cookies via `credentials: "include"`.
 
-1. Create `hooks/` directory following Pattern 1 (pub-sub) and Pattern 2 (simple fetch) from dashboard v1's CLAUDE.md.
-2. Replace mock data imports with hook calls.
-3. Add `AuthGuard` wrapper in the `(dashboard)/layout.tsx`.
-4. Add `apiFetch` with the backend base URL.
-5. Wire the pricing page CTA buttons to Stripe checkout via `/api/billing/user/subscribe`.
+### Mock toggle
+
+`NEXT_PUBLIC_USE_MOCKS=1` → hooks return `data/*.ts` fixtures; no network calls.
+Unset / any other value → hooks call GraphQL via `apolloClient`.
+
+The toggle is checked at the **hook layer**, not the client layer — so Apollo is
+always mounted (it can still run auth/session side-effects) while individual
+hooks short-circuit to mocks. Every hook file follows the same shape:
+
+```ts
+import { USE_MOCKS } from "@/lib/graphql/mock-mode"
+
+export function useFoo() {
+  if (USE_MOCKS) {
+    return { data: mockFoo, loading: false, error: null }
+  }
+  return useGeneratedFooQuery(...)
+}
+```
+
+The return shape must be identical in both branches so page/component code does
+not care which mode it's in.
+
+### Codegen
+
+`bun run codegen` regenerates typed operations + hooks into
+`src/lib/graphql/generated/` (requires the backend running on `:5000`, override
+via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
+`src/lib/graphql/operations/`. Regenerate after any backend schema change.
+
+### Rules
+
+- **Do not import from `src/data/` outside hooks.** Pages and components read
+  domain data only through hooks so the mock toggle flips cleanly and Stage 8
+  can migrate one domain at a time without touching UI code.
+- **Do not add AuthGuard yet** — that lands after hooks are wired.
+- **Do not move the mock check into the Apollo link.** Apollo must behave
+  normally for auth/session; mocking is a hook-layer concern.
+
+### Env
+
+See `.env.local.example`:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_USE_MOCKS=1
+```
