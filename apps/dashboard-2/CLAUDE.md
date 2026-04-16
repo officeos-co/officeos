@@ -104,7 +104,7 @@ User card (name + plan → dropdown)
 
 **Overlays for configuration.** Credential setup (integrations) and onboarding wizards (channels) use shadcn `Dialog`. Never inline forms.
 
-**Permission model.** Tool permissions cycle through ask → allow → deny per tool. Channel permissions have 3 dimensions: receive, send, initiate. Both use the shared `permission-cards.tsx` components.
+**Permission model.** Tool permissions are strictly allow/deny per tool (no ask) and persist via `createAgent(input.toolPermissions)` / `setAgentToolPermission`. Channel permissions still have 3 dimensions (receive, send, initiate) and allow/ask/deny values. Both use the shared `permission-cards.tsx` components.
 
 **Status badges.** Use the showcase-style pattern: `rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest` with colored backgrounds (emerald=running, amber=pending, red=failed, zinc=stopped).
 
@@ -183,7 +183,7 @@ hooks:
 |---|---|---|
 | `useAgents` | `agents` | List rows for /agents |
 | `useAgent(id)` | `agent(id)` | Detail view |
-| `useCreateAgent` | `createAgent(input)` — takes `{ name, model, systemPrompt, toolNames, channelSlugs }`, translates `model` → `provider` at the boundary | Returns `{ id, name }` |
+| `useCreateAgent` | `createAgent(input)` — takes `{ name, model, systemPrompt, toolNames, toolPermissions, channelSlugs }`, translates `model` → `provider` at the boundary. `toolPermissions` is `Array<{ tool: "skill:tool", mode: "ALLOW" \| "DENY" }>` (no `ASK`). | Returns `{ id, name }` |
 | `useUpdateAgent` / `useDeleteAgent` | `updateAgent` / `deleteAgent` | — |
 | `useIntegrations` | `skills` (integrations == skills in the backend) | Merges UI-only metadata from `data/integrations.ts` with live catalog |
 | `useSkillComments` / `useLikeSkill` / `useCommentOnSkill` | `skillComments`, `likeSkill`, `commentOnSkill` | — |

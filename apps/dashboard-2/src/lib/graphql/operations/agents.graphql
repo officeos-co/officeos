@@ -19,6 +19,9 @@ query Agent($id: UUID!) {
   }
 }
 
+# CreateAgentInput accepts optional toolPermissions: [ToolPermissionInput!]
+# where ToolPermissionInput = { tool: String!, mode: ToolPermission! }
+# ToolPermission enum is ALLOW | DENY (no ASK).
 mutation CreateAgent($input: CreateAgentInput!) {
   createAgent(input: $input) {
     id

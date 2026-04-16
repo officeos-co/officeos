@@ -153,6 +153,8 @@ export type CreateAgentHookInput = {
   model: string
   systemPrompt: string
   toolNames: string[]
+  /** Per-tool allow/deny overrides. `tool` is a "skill:tool" key. */
+  toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>
   channelSlugs: string[]
 }
 
@@ -177,6 +179,7 @@ export function useCreateAgent() {
             model: input.model,
             prompt: input.systemPrompt,
             toolNames: input.toolNames,
+            toolPermissions: input.toolPermissions,
             channelSlugs: input.channelSlugs,
           },
         },

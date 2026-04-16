@@ -234,11 +234,22 @@ export default function QuickstartPage() {
             if (launching) return
             setLaunching(true)
             try {
+              // Build the toolPermissions list: explicit per-tool overrides
+              // plus group-level defaults that differ from the implicit
+              // "allow" baseline. Keys are "prefix:toolname".
+              const tpList: Array<{ tool: string; mode: "ALLOW" | "DENY" }> = []
+              for (const [key, mode] of Object.entries(toolPermissions)) {
+                tpList.push({ tool: key, mode: mode === "deny" ? "DENY" : "ALLOW" })
+              }
+              for (const [prefix, mode] of Object.entries(groupPermissions)) {
+                if (mode === "deny") tpList.push({ tool: prefix, mode: "DENY" })
+              }
               const created = await createAgent({
                 name: agentName.trim(),
                 model,
                 systemPrompt: prompt,
                 toolNames: Array.from(selectedIntegrations),
+                toolPermissions: tpList,
                 channelSlugs: Array.from(selectedChannels),
               })
               trackAgentCreated({
