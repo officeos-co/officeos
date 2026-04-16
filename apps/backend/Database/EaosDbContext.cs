@@ -30,6 +30,11 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
     public DbSet<AgentToolCallRecord> AgentToolCalls => Set<AgentToolCallRecord>();
     public DbSet<AgentRateLimitRecord> AgentRateLimits => Set<AgentRateLimitRecord>();
+    public DbSet<SkillLikeRecord> SkillLikes => Set<SkillLikeRecord>();
+    public DbSet<SkillCommentRecord> SkillComments => Set<SkillCommentRecord>();
+    public DbSet<AgentLogRecord> AgentLogs => Set<AgentLogRecord>();
+    public DbSet<AgentToolPermissionRecord> AgentToolPermissions => Set<AgentToolPermissionRecord>();
+    public DbSet<AgentTemplateRecord> AgentTemplates => Set<AgentTemplateRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -248,5 +253,58 @@ public sealed class EaosDbContext : DbContext
             e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
         });
 
+        modelBuilder.Entity<SkillLikeRecord>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.HasIndex(l => new { l.UserId, l.SkillId }).IsUnique();
+            e.HasIndex(l => l.SkillId);
+            e.HasOne(l => l.Skill).WithMany().HasForeignKey(l => l.SkillId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SkillCommentRecord>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.SkillId);
+            e.HasIndex(c => new { c.SkillId, c.CreatedAt });
+            e.Property(c => c.Body).HasColumnType("text");
+            e.HasOne(c => c.Skill).WithMany().HasForeignKey(c => c.SkillId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentLogRecord>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.HasIndex(l => l.AgentId);
+            e.HasIndex(l => new { l.AgentId, l.Time });
+            e.HasIndex(l => l.CorrelationId);
+            e.Property(l => l.Content).HasColumnType("text");
+            e.Property(l => l.Type).HasConversion<string>().HasMaxLength(32);
+            e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentToolPermissionRecord>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.AgentId, p.SkillName, p.ToolName }).IsUnique();
+            e.HasIndex(p => p.AgentId);
+            e.Property(p => p.Permission).HasConversion<string>().HasMaxLength(16);
+            e.HasOne(p => p.Agent).WithMany().HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentTemplateRecord>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => t.Name).IsUnique();
+            e.Property(t => t.Prompt).HasColumnType("text");
+            e.Property(t => t.IntegrationsJson).HasColumnType("text");
+            e.Property(t => t.ChannelsJson).HasColumnType("text");
+            e.HasOne(t => t.Owner).WithMany().HasForeignKey(t => t.OwnerId);
+        });
+
+        modelBuilder.Entity<SkillRecord>(e =>
+        {
+            e.Property(s => s.SourceCodeUrl).HasMaxLength(512);
+        });
     }
 }
