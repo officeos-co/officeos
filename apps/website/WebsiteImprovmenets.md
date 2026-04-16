@@ -15,3 +15,5 @@
 15. Implement links to linkedin my personal one, org github and x
 16. Remove ambiguity. I actually dont know if that is anywhere but its really important to look for synonyms, mononyms in contrast to target audience. And remove all if found
 17. Pricing page dosent match our website styling. Make it look better also its two pages stacked upon each other we want it like /Users/harrokrog/Desktop/EnterpriseAgentOs/apps/dashboard/src/app/(fullscreen)/pricing/page.tsx
+
+- https://ai-beavers.com/ should be added to the community of supporters
