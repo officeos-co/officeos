@@ -10,12 +10,12 @@ namespace EnterpriseAgentOs.Api.Entities.Billing;
 public sealed class BillingController : ControllerBase
 {
     private readonly IStripeWebhookService _webhook;
-    private readonly StripeConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.StripeConfig _config;
     private readonly ILogger<BillingController> _logger;
 
     public BillingController(
         IStripeWebhookService webhook,
-        StripeConfig config,
+        EnterpriseAgentOs.Api.Properties.StripeConfig config,
         ILogger<BillingController> logger)
     {
         _webhook = webhook;

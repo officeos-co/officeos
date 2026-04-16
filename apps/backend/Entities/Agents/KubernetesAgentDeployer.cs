@@ -1,6 +1,3 @@
-using k8s;
-using k8s.Models;
-
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed class KubernetesAgentDeployer : IAgentDeployer
@@ -11,17 +8,17 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
 
     private readonly IKubernetes _k8s;
     private readonly ILogger<KubernetesAgentDeployer> _logger;
-    private readonly KubernetesConfig _config;
-    private readonly CouchDbConfig _couch;
-    private readonly SkillGatewayConfig _skillGateway;
+    private readonly EnterpriseAgentOs.Api.Properties.KubernetesConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.CouchDbConfig _couch;
+    private readonly EnterpriseAgentOs.Api.Properties.SkillGatewayConfig _skillGateway;
     private readonly string _namespace;
     private readonly string _image;
 
     public KubernetesAgentDeployer(
         IKubernetes k8s,
-        KubernetesConfig config,
-        CouchDbConfig couch,
-        SkillGatewayConfig skillGateway,
+        EnterpriseAgentOs.Api.Properties.KubernetesConfig config,
+        EnterpriseAgentOs.Api.Properties.CouchDbConfig couch,
+        EnterpriseAgentOs.Api.Properties.SkillGatewayConfig skillGateway,
         ILogger<KubernetesAgentDeployer> logger)
     {
         _k8s = k8s;

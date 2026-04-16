@@ -1,53 +1,49 @@
-using EnterpriseAgentOs.Api.Entities.PostHog;
-using EnterpriseAgentOs.Api.Middleware;
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Mutations;
 
 // One mutation per dashboard-2 use case. The GraphQL schema lists every event
 // we ever fire — no generic `captureEvent(name, properties)` escape hatch.
-[ExtendObjectType(typeof(GraphQLMutations))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class PostHogMutations
 {
     public Task<bool> TrackPageView(
-        TrackPageViewInput input,
+        EnterpriseAgentOs.Api.Entities.PostHog.TrackPageViewInput input,
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
         => Capture(context, posthog, "$pageview", new() { ["path"] = input.Path }, ct);
 
     public Task<bool> TrackNavClicked(
-        TrackNavClickedInput input,
+        EnterpriseAgentOs.Api.Entities.PostHog.TrackNavClickedInput input,
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
         => Capture(context, posthog, "nav_clicked", new() { ["destination"] = input.Destination }, ct);
 
     public Task<bool> TrackSkillInstalled(
-        TrackSkillInstalledInput input,
+        EnterpriseAgentOs.Api.Entities.PostHog.TrackSkillInstalledInput input,
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
         => Capture(context, posthog, "skill_installed", new() { ["skill_name"] = input.SkillName }, ct);
 
     public Task<bool> TrackSkillConfigured(
-        TrackSkillConfiguredInput input,
+        EnterpriseAgentOs.Api.Entities.PostHog.TrackSkillConfiguredInput input,
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
         => Capture(context, posthog, "skill_configured", new() { ["skill_name"] = input.SkillName }, ct);
 
     public Task<bool> TrackChannelConnected(
-        TrackChannelConnectedInput input,
+        EnterpriseAgentOs.Api.Entities.PostHog.TrackChannelConnectedInput input,
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
         => Capture(context, posthog, "channel_connected", new() { ["channel_slug"] = input.ChannelSlug }, ct);
 
     public Task<bool> TrackAgentCreated(
-        TrackAgentCreatedInput input,
+        EnterpriseAgentOs.Api.Entities.PostHog.TrackAgentCreatedInput input,
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
         => Capture(context, posthog, "agent_created", new()
         {
@@ -61,10 +57,10 @@ public class PostHogMutations
 
     public async Task<bool> IdentifyUser(
         IResolverContext context,
-        [Service] IPostHogService posthog,
+        [Service] EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var traits = new Dictionary<string, object?>
         {
             ["email"] = user.Email,
@@ -76,12 +72,12 @@ public class PostHogMutations
 
     private static async Task<bool> Capture(
         IResolverContext context,
-        IPostHogService posthog,
+        EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService posthog,
         string eventName,
         Dictionary<string, object?> properties,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         await posthog.CaptureAsync(user.Id.ToString(), eventName, properties, ct);
         return true;
     }

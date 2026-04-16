@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc.Filters;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 /// <summary>
@@ -33,7 +31,7 @@ public sealed class AgentTokenAuthAttribute : Attribute, IAsyncAuthorizationFilt
             return;
         }
 
-        var db = http.RequestServices.GetRequiredService<EaosDbContext>();
+        var db = http.RequestServices.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
         var exists = await db.Agents
             .AsNoTracking()
             .AnyAsync(a => a.Id == agentId && !a.IsDeleted);

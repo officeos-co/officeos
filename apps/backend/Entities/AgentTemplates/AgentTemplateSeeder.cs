@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.AgentTemplates;
 
 /// <summary>
@@ -48,7 +46,7 @@ public static class AgentTemplateSeeder
         var logger = services.GetRequiredService<ILogger<IAgentTemplateService>>();
         foreach (var s in Builtins)
         {
-            await repo.UpsertAsync(new AgentTemplateRecord
+            await repo.UpsertAsync(new EnterpriseAgentOs.Api.Database.Models.AgentTemplateRecord
             {
                 Name = s.Name,
                 Description = s.Description,

@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.SkillRegistry;
 
 [ApiController]
@@ -7,12 +5,12 @@ namespace EnterpriseAgentOs.Api.Entities.SkillRegistry;
 public sealed class SkillRegistryController : ControllerBase
 {
     private readonly ISkillRegistryRepository _repo;
-    private readonly SkillRuntimeClient _runtime;
+    private readonly EnterpriseAgentOs.Api.Entities.Skills.SkillRuntimeClient _runtime;
     private readonly ILogger<SkillRegistryController> _logger;
 
     public SkillRegistryController(
         ISkillRegistryRepository repo,
-        SkillRuntimeClient runtime,
+        EnterpriseAgentOs.Api.Entities.Skills.SkillRuntimeClient runtime,
         ILogger<SkillRegistryController> logger)
     {
         _repo = repo;
@@ -20,7 +18,7 @@ public sealed class SkillRegistryController : ControllerBase
         _logger = logger;
     }
 
-    private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
+    private EnterpriseAgentOs.Api.Database.Models.UserRecord? CurrentUser => HttpContext.Items["User"] as EnterpriseAgentOs.Api.Database.Models.UserRecord;
 
     /// <summary>
     /// List all skills in the registry.
@@ -57,7 +55,7 @@ public sealed class SkillRegistryController : ControllerBase
         if (existing is not null)
             return Conflict(new { error = $"Skill '{body.Name}' already exists in the registry" });
 
-        var record = new SkillRegistryRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord
         {
             Name = body.Name.Trim().ToLowerInvariant(),
             Version = body.Version ?? "1.0.0",

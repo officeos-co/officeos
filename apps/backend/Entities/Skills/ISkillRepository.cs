@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public interface ISkillRepository
 {
-    Task<IReadOnlyList<SkillCredentialRecord>> ListAsync(CancellationToken ct = default);
-    Task<SkillCredentialRecord?> GetByNameAsync(string skillName, CancellationToken ct = default);
-    Task<SkillCredentialRecord> UpsertAsync(
+    Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord>> ListAsync(CancellationToken ct = default);
+    Task<EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord?> GetByNameAsync(string skillName, CancellationToken ct = default);
+    Task<EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord> UpsertAsync(
         string skillName,
         bool? enabled,
         string? encryptedCredentials,

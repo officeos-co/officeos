@@ -28,7 +28,7 @@ public sealed class RunnerJobTimeoutService : BackgroundService
             try
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
-                var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
+                var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
                 var jobRepo = scope.ServiceProvider.GetRequiredService<IRunnerJobRepository>();
 
                 // Fail stale jobs

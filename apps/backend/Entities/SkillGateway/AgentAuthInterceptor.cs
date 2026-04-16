@@ -1,14 +1,11 @@
-using HotChocolate.AspNetCore;
-using HotChocolate.Execution;
-
 namespace EnterpriseAgentOs.Api.Entities.SkillGateway;
 
 public class AgentAuthInterceptor : DefaultHttpRequestInterceptor
 {
     public override async ValueTask OnCreateAsync(
         HttpContext context,
-        IRequestExecutor requestExecutor,
-        OperationRequestBuilder requestBuilder,
+        HotChocolate.Execution.IRequestExecutor requestExecutor,
+        HotChocolate.Execution.OperationRequestBuilder requestBuilder,
         CancellationToken cancellationToken)
     {
         var auth = context.Request.Headers.Authorization.FirstOrDefault();
@@ -23,7 +20,7 @@ public class AgentAuthInterceptor : DefaultHttpRequestInterceptor
             throw new GraphQLException("Invalid agent token format.");
         }
 
-        var db = context.RequestServices.GetRequiredService<EaosDbContext>();
+        var db = context.RequestServices.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
         var exists = await db.Agents.AnyAsync(a => a.Id == agentId && !a.IsDeleted, cancellationToken);
         if (!exists)
         {

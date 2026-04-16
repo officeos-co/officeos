@@ -2,14 +2,14 @@ namespace EnterpriseAgentOs.Api.Entities.AgentSkills;
 
 public sealed class AgentSkillRepository : IAgentSkillRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public AgentSkillRepository(EaosDbContext db)
+    public AgentSkillRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<AgentSkillRecord>> ListByAgentAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.AgentSkillRecord>> ListByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
         return await _db.AgentSkills
             .AsNoTracking()
@@ -41,7 +41,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
             var normalized = name.Trim().ToLowerInvariant();
             if (existingSet.Contains(normalized)) continue;
 
-            _db.AgentSkills.Add(new AgentSkillRecord
+            _db.AgentSkills.Add(new EnterpriseAgentOs.Api.Database.Models.AgentSkillRecord
             {
                 AgentId = agentId,
                 SkillName = normalized,

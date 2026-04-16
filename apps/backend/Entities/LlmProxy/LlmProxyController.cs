@@ -1,8 +1,3 @@
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-
-
 namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 
 /// <summary>
@@ -19,25 +14,25 @@ namespace EnterpriseAgentOs.Api.Entities.LlmProxy;
 /// to record normalized credits against the agent owner's billing subscription.
 /// </summary>
 [ApiController]
-[AgentTokenAuth]
+[EnterpriseAgentOs.Api.Entities.Skills.AgentTokenAuth]
 public sealed class LlmProxyController : ControllerBase
 {
-    private readonly IAgentService _agents;
-    private readonly IProviderService _providers;
+    private readonly EnterpriseAgentOs.Api.Entities.Agents.IAgentService _agents;
+    private readonly EnterpriseAgentOs.Api.Entities.Providers.IProviderService _providers;
     private readonly LlmProviderDispatcher _dispatcher;
-    private readonly LiteLlmConfig _liteLlm;
-    private readonly PlatformKeysConfig _platformKeys;
-    private readonly ICreditRecordingService _creditRecording;
+    private readonly EnterpriseAgentOs.Api.Properties.LiteLlmConfig _liteLlm;
+    private readonly EnterpriseAgentOs.Api.Properties.PlatformKeysConfig _platformKeys;
+    private readonly EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService _creditRecording;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmProxyController> _logger;
 
     public LlmProxyController(
-        IAgentService agents,
-        IProviderService providers,
+        EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
+        EnterpriseAgentOs.Api.Entities.Providers.IProviderService providers,
         LlmProviderDispatcher dispatcher,
-        LiteLlmConfig liteLlm,
-        PlatformKeysConfig platformKeys,
-        ICreditRecordingService creditRecording,
+        EnterpriseAgentOs.Api.Properties.LiteLlmConfig liteLlm,
+        EnterpriseAgentOs.Api.Properties.PlatformKeysConfig platformKeys,
+        EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService creditRecording,
         IHttpClientFactory httpFactory,
         ILogger<LlmProxyController> logger)
     {

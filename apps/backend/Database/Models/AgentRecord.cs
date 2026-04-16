@@ -1,4 +1,3 @@
-
 namespace EnterpriseAgentOs.Api.Database.Models;
 
 public sealed class AgentRecord

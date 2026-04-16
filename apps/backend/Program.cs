@@ -1,6 +1,3 @@
-
-using EnterpriseAgentOs.Api.Extensions;
-
 const string FrontendCorsPolicy = "dashboard";
 
 Log.Logger = new LoggerConfiguration()
@@ -21,7 +18,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Data Protection
-var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");
+var dpKeyPath = EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("DataProtectionKeyPath");
 var dpKeyDir = System.IO.Path.IsPathRooted(dpKeyPath)
     ? dpKeyPath
     : System.IO.Path.Combine(Directory.GetCurrentDirectory(), dpKeyPath);
@@ -32,45 +29,44 @@ builder.Services
     .SetApplicationName("EnterpriseAgentOs.Api");
 
 // Database
-builder.Services.AddDbContext<EaosDbContext>(options =>
-    options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
+builder.Services.AddDbContext<EnterpriseAgentOs.Api.Database.EaosDbContext>(options =>
+    options.UseNpgsql(EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("ConnectionString")));
 
 // DI — services, repositories, protectors, HTTP clients
-builder.Services
-    .AddRepositories()
-    .AddApplicationServices()
-    .AddBackgroundServices()
-    .AddProtectors()
-    .AddHttpClients();
+EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddHttpClients(
+    EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddProtectors(
+        EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddBackgroundServices(
+            EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddApplicationServices(
+                EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddRepositories(builder.Services)))));
 
 // Infrastructure configs — bind from nested appsettings sections
-var envSection = ValueManager.GetConfiguration().GetSection(ValueManager.GetEnvironmentName());
+var envSection = EnterpriseAgentOs.Api.Properties.ValueManager.GetConfiguration().GetSection(EnterpriseAgentOs.Api.Properties.ValueManager.GetEnvironmentName());
 
-var kubernetesConfig = new KubernetesConfig();
+var kubernetesConfig = new EnterpriseAgentOs.Api.Properties.KubernetesConfig();
 envSection.GetSection("Kubernetes").Bind(kubernetesConfig);
 builder.Services.AddSingleton(kubernetesConfig);
 
-var couchDbConfig = new CouchDbConfig();
+var couchDbConfig = new EnterpriseAgentOs.Api.Properties.CouchDbConfig();
 envSection.GetSection("CouchDb").Bind(couchDbConfig);
 builder.Services.AddSingleton(couchDbConfig);
 
-var skillGatewayConfig = new SkillGatewayConfig { RefreshSeconds = 30 };
+var skillGatewayConfig = new EnterpriseAgentOs.Api.Properties.SkillGatewayConfig { RefreshSeconds = 30 };
 envSection.GetSection("SkillGateway").Bind(skillGatewayConfig);
 builder.Services.AddSingleton(skillGatewayConfig);
 
-var skillRuntimeConfig = new SkillRuntimeConfig();
+var skillRuntimeConfig = new EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig();
 envSection.GetSection("SkillRuntime").Bind(skillRuntimeConfig);
 builder.Services.AddSingleton(skillRuntimeConfig);
 
-var googleOAuthConfig = new GoogleOAuthConfig();
+var googleOAuthConfig = new EnterpriseAgentOs.Api.Properties.GoogleOAuthConfig();
 envSection.GetSection("GoogleOAuth").Bind(googleOAuthConfig);
 builder.Services.AddSingleton(googleOAuthConfig);
 
-var workOsConfig = new WorkOsConfig();
+var workOsConfig = new EnterpriseAgentOs.Api.Properties.WorkOsConfig();
 envSection.GetSection("WorkOs").Bind(workOsConfig);
 builder.Services.AddSingleton(workOsConfig);
 
-var skillStorageConfig = new SkillStorageConfig();
+var skillStorageConfig = new EnterpriseAgentOs.Api.Properties.SkillStorageConfig();
 envSection.GetSection("Minio").Bind(skillStorageConfig);
 builder.Services.AddSingleton(skillStorageConfig);
 builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
@@ -96,32 +92,32 @@ if (kubernetesConfig.Enabled)
             : KubernetesClientConfiguration.BuildDefaultConfig();
         return new Kubernetes(config);
     });
-    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
+    builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Agents.IAgentDeployer, EnterpriseAgentOs.Api.Entities.Agents.KubernetesAgentDeployer>();
 }
 else
 {
-    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
+    builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Agents.IAgentDeployer, EnterpriseAgentOs.Api.Entities.Agents.NullAgentDeployer>();
 }
 
 // Billing
-var stripeConfig = new StripeConfig();
+var stripeConfig = new EnterpriseAgentOs.Api.Properties.StripeConfig();
 envSection.GetSection("Stripe").Bind(stripeConfig);
 builder.Services.AddSingleton(stripeConfig);
 
-var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
+var frontendConfig = new EnterpriseAgentOs.Api.Properties.FrontendConfig(EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("FrontendOrigin"));
 builder.Services.AddSingleton(frontendConfig);
 
 // LLM
-builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<LiteLlmConfig>() ?? new LiteLlmConfig());
-builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
+builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<EnterpriseAgentOs.Api.Properties.LiteLlmConfig>() ?? new EnterpriseAgentOs.Api.Properties.LiteLlmConfig());
+builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<EnterpriseAgentOs.Api.Properties.PlatformKeysConfig>() ?? new EnterpriseAgentOs.Api.Properties.PlatformKeysConfig());
 
 // PostHog — server owns the API key; dashboard-2 calls use-case-specific track* mutations
-var postHogConfig = new PostHogConfig();
+var postHogConfig = new EnterpriseAgentOs.Api.Properties.PostHogConfig();
 envSection.GetSection("PostHog").Bind(postHogConfig);
 builder.Services.AddSingleton(postHogConfig);
 
 // Rate limiting
-var rateLimitingConfig = new RateLimitingConfig();
+var rateLimitingConfig = new EnterpriseAgentOs.Api.Properties.RateLimitingConfig();
 envSection.GetSection("RateLimiting").Bind(rateLimitingConfig);
 builder.Services.AddSingleton(rateLimitingConfig);
 
@@ -139,13 +135,14 @@ builder.Services
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
 
-builder.Services
+var dashboardGql = builder.Services
     .AddGraphQLServer("dashboard")
     .AddQueryType<EnterpriseAgentOs.Api.GraphQLQueries>()
     .AddMutationType<EnterpriseAgentOs.Api.GraphQLMutations>()
     .AddSubscriptionType<EnterpriseAgentOs.Api.GraphQLSubscriptions>()
-    .AddInMemorySubscriptions()
-    .AddDomainTypeExtensions(typeof(Program).Assembly)
+    .AddInMemorySubscriptions();
+EnterpriseAgentOs.Api.Extensions.GraphQLRegistrationExtensions.AddDomainTypeExtensions(
+    dashboardGql, typeof(Program).Assembly)
     .UseField<EnterpriseAgentOs.Api.Middleware.DashboardAuthMiddleware>()
     .DisableIntrospection(false);
 
@@ -155,7 +152,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins(ValueManager.GetValue<string>("FrontendOrigin"))
+            .WithOrigins(EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("FrontendOrigin"))
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -166,11 +163,11 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
     await db.Database.MigrateAsync();
-    await ProviderSeeder.SeedAsync(db);
-    await SkillSeeder.SeedAsync(scope.ServiceProvider);
-    await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
+    await EnterpriseAgentOs.Api.Entities.Providers.ProviderSeeder.SeedAsync(db);
+    await EnterpriseAgentOs.Api.Entities.Skills.SkillSeeder.SeedAsync(scope.ServiceProvider);
+    await EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())
@@ -179,7 +176,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
@@ -188,20 +185,20 @@ app.UseSerilogRequestLogging(options =>
         diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString() ?? "");
         if (httpContext.Items.TryGetValue("agent-id", out var agentId) && agentId is not null)
             diagnosticContext.Set("AgentId", agentId);
-        if (httpContext.Items["User"] is UserRecord user)
+        if (httpContext.Items["User"] is EnterpriseAgentOs.Api.Database.Models.UserRecord user)
             diagnosticContext.Set("UserId", user.Id);
     };
 });
 
 app.UseCors(FrontendCorsPolicy);
-app.UseMiddleware<SessionAuthMiddleware>();
+app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware>();
 
 app.UseWebSockets();
 
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
-app.MapAgentProxyEndpoints();
+EnterpriseAgentOs.Api.Entities.Agents.AgentProxyEndpoints.MapAgentProxyEndpoints(app);
 app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard");
 app.MapControllers();

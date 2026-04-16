@@ -1,48 +1,46 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Queries;
 
-[ExtendObjectType(typeof(GraphQLQueries))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
 public class ChannelQueries
 {
-    public async Task<IReadOnlyList<ChannelConnectionGqlDto>> GetChannelConnections(
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelConnectionGqlDto>> GetChannelConnections(
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var rows = await repo.ListConnectionsAsync(ct);
-        return rows.Select(ChannelGraphQLMapper.ToDto).ToList();
+        return rows.Select(EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto).ToList();
     }
 
-    public async Task<ChannelConnectionGqlDto?> GetChannelConnection(
+    public async Task<EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelConnectionGqlDto?> GetChannelConnection(
         Guid id,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var row = await repo.GetConnectionAsync(id, ct);
-        return row is null ? null : ChannelGraphQLMapper.ToDto(row);
+        return row is null ? null : EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto(row);
     }
 
-    public IReadOnlyList<ChannelTypeGqlDto> GetChannelTypes(
+    public IReadOnlyList<EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelTypeGqlDto> GetChannelTypes(
         IResolverContext context)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
-        return ChannelTypes.All
-            .Select(t => new ChannelTypeGqlDto(t.Type, t.DisplayName, t.Description))
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        return EnterpriseAgentOs.Api.Entities.Channels.ChannelTypes.All
+            .Select(t => new EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelTypeGqlDto(t.Type, t.DisplayName, t.Description))
             .ToList();
     }
 
-    public async Task<IReadOnlyList<AgentChannelBindingGqlDto>> GetAgentChannelBindings(
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.Channels.Types.AgentChannelBindingGqlDto>> GetAgentChannelBindings(
         Guid agentId,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var rows = await repo.ListBindingsAsync(agentId, ct);
-        return rows.Select(ChannelGraphQLMapper.ToDto).ToList();
+        return rows.Select(EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto).ToList();
     }
 }

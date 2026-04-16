@@ -1,11 +1,3 @@
-using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Database.Models;
-using EnterpriseAgentOs.Api.Middleware;
-
 namespace EnterpriseAgentOs.Api.Tests.Infrastructure;
 
 public static class TestHelpers
@@ -71,14 +63,14 @@ public static class TestHelpers
         string name = "Test User")
     {
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
+        var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
 
         email ??= $"test-{Guid.NewGuid():N}@example.com";
 
-        var user = new UserRecord
+        var user = new EnterpriseAgentOs.Api.Database.Models.UserRecord
         {
             Email = email,
             Name = name,
@@ -86,7 +78,7 @@ public static class TestHelpers
         };
         db.Users.Add(user);
 
-        var session = new SessionRecord
+        var session = new EnterpriseAgentOs.Api.Database.Models.SessionRecord
         {
             UserId = user.Id,
             TokenHash = tokenHash,
@@ -153,12 +145,12 @@ public static class TestHelpers
     public static async Task<HttpClient> CreateExpiredSessionClientAsync(CustomWebApplicationFactory factory)
     {
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
+        var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
 
-        var user = new UserRecord
+        var user = new EnterpriseAgentOs.Api.Database.Models.UserRecord
         {
             Email = $"expired-{Guid.NewGuid():N}@example.com",
             Name = "Expired User",
@@ -166,7 +158,7 @@ public static class TestHelpers
         };
         db.Users.Add(user);
 
-        var session = new SessionRecord
+        var session = new EnterpriseAgentOs.Api.Database.Models.SessionRecord
         {
             UserId = user.Id,
             TokenHash = tokenHash,

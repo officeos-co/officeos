@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Api.Entities.AgentSkills.Types;
 public sealed record AgentToolPermissionDto(
     string SkillName,
     string ToolName,
-    ToolPermission Permission);
+    EnterpriseAgentOs.Api.Database.Models.ToolPermission Permission);
 
 public sealed record AgentSkillDto(
     string SkillName,

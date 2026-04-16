@@ -1,9 +1,3 @@
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Billing;
-using EnterpriseAgentOs.Api.Properties;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
-
 namespace EnterpriseAgentOs.Api.Tests.Billing;
 
 /// <summary>
@@ -13,19 +7,19 @@ namespace EnterpriseAgentOs.Api.Tests.Billing;
 /// </summary>
 public sealed class UserSubscriptionTests
 {
-    private static EaosDbContext CreateDb()
+    private static EnterpriseAgentOs.Api.Database.EaosDbContext CreateDb()
     {
-        var opts = new DbContextOptionsBuilder<EaosDbContext>()
+        var opts = new DbContextOptionsBuilder<EnterpriseAgentOs.Api.Database.EaosDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EaosDbContext(opts);
+        return new EnterpriseAgentOs.Api.Database.EaosDbContext(opts);
     }
 
-    private static UserBillingService CreateService(
+    private static EnterpriseAgentOs.Api.Entities.Billing.UserBillingService CreateService(
         string proMonthlyPriceId = "price_pro_monthly",
         string proYearlyPriceId = "price_pro_yearly") =>
         new(
-            new StripeConfig
+            new EnterpriseAgentOs.Api.Properties.StripeConfig
             {
                 SecretKey = "STRIPE_SECRET_KEY_PLACEHOLDER",
                 WebhookSecret = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
@@ -39,9 +33,9 @@ public sealed class UserSubscriptionTests
                 ProYearlyPriceId = proYearlyPriceId,
                 Enabled = false,
             },
-            new FrontendConfig("https://dashboard.officeos.co"),
+            new EnterpriseAgentOs.Api.Properties.FrontendConfig("https://dashboard.officeos.co"),
             CreateDb(),
-            NullLogger<UserBillingService>.Instance);
+            NullLogger<EnterpriseAgentOs.Api.Entities.Billing.UserBillingService>.Instance);
 
     // -------------------------------------------------------------------------
     // Default subscription for a new user
@@ -78,8 +72,8 @@ public sealed class UserSubscriptionTests
 
         var sub = await svc.GetSubscriptionAsync(Guid.NewGuid());
 
-        Assert.Equal(PlanLimits.IndividualFree.ConcurrentAgents, sub.ConcurrentAgentLimit);
-        Assert.Equal(PlanLimits.IndividualFree.CreditsPerMonth, sub.CreditBudgetPerMonth);
+        Assert.Equal(EnterpriseAgentOs.Api.Entities.Billing.PlanLimits.IndividualFree.ConcurrentAgents, sub.ConcurrentAgentLimit);
+        Assert.Equal(EnterpriseAgentOs.Api.Entities.Billing.PlanLimits.IndividualFree.CreditsPerMonth, sub.CreditBudgetPerMonth);
     }
 
     [Fact]

@@ -1,4 +1,3 @@
-
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public interface IAgentService

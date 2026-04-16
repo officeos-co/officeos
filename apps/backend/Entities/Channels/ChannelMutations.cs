@@ -1,20 +1,18 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Mutations;
 
-[ExtendObjectType(typeof(GraphQLMutations))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class ChannelMutations
 {
-    public async Task<ChannelConnectionGqlDto> CreateChannelConnection(
-        CreateChannelConnectionInput input,
+    public async Task<EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelConnectionGqlDto> CreateChannelConnection(
+        EnterpriseAgentOs.Api.Entities.Channels.Types.CreateChannelConnectionInput input,
         IResolverContext context,
-        [Service] IChannelRepository repo,
-        [Service] ChannelConfigProtector protector,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.ChannelConfigProtector protector,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
 
-        if (ChannelTypes.GetByType(input.ChannelType) is null)
+        if (EnterpriseAgentOs.Api.Entities.Channels.ChannelTypes.GetByType(input.ChannelType) is null)
         {
             throw new GraphQLException(
                 ErrorBuilder.New()
@@ -29,7 +27,7 @@ public class ChannelMutations
             encrypted = protector.Protect(input.ConfigJson);
         }
 
-        var record = new ChannelConnectionRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.ChannelConnectionRecord
         {
             ChannelType = input.ChannelType.ToLowerInvariant(),
             DisplayName = input.DisplayName,
@@ -38,18 +36,18 @@ public class ChannelMutations
         };
 
         var created = await repo.CreateConnectionAsync(record, ct);
-        return ChannelGraphQLMapper.ToDto(created);
+        return EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto(created);
     }
 
-    public async Task<ChannelConnectionGqlDto> UpdateChannelConnection(
+    public async Task<EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelConnectionGqlDto> UpdateChannelConnection(
         Guid id,
-        UpdateChannelConnectionInput input,
+        EnterpriseAgentOs.Api.Entities.Channels.Types.UpdateChannelConnectionInput input,
         IResolverContext context,
-        [Service] IChannelRepository repo,
-        [Service] ChannelConfigProtector protector,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.ChannelConfigProtector protector,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
 
         var updated = await repo.UpdateConnectionAsync(id, row =>
         {
@@ -69,28 +67,28 @@ public class ChannelMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return ChannelGraphQLMapper.ToDto(updated);
+        return EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto(updated);
     }
 
     public async Task<bool> DeleteChannelConnection(
         Guid id,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await repo.DeleteConnectionAsync(id, ct);
     }
 
-    public async Task<AgentChannelBindingGqlDto> BindChannelToAgent(
+    public async Task<EnterpriseAgentOs.Api.Entities.Channels.Types.AgentChannelBindingGqlDto> BindChannelToAgent(
         Guid agentId,
         Guid channelConnectionId,
-        ChannelBindingConfigInput? config,
+        EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelBindingConfigInput? config,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
 
         var connection = await repo.GetConnectionAsync(channelConnectionId, ct);
         if (connection is null)
@@ -102,25 +100,25 @@ public class ChannelMutations
                     .Build());
         }
 
-        var record = new AgentChannelBindingRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.AgentChannelBindingRecord
         {
             AgentId = agentId,
             ChannelConnectionId = channelConnectionId,
-            Config = config is null ? null : ChannelGraphQLMapper.SerializeConfig(config),
+            Config = config is null ? null : EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.SerializeConfig(config),
         };
 
         var created = await repo.CreateBindingAsync(record, ct);
-        return ChannelGraphQLMapper.ToDto(created);
+        return EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto(created);
     }
 
     public async Task<bool> UnbindChannelFromAgent(
         Guid agentId,
         Guid channelConnectionId,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
 
         var bindings = await repo.ListBindingsAsync(agentId, ct);
         var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
@@ -128,15 +126,15 @@ public class ChannelMutations
         return await repo.DeleteBindingAsync(match.Id, ct);
     }
 
-    public async Task<AgentChannelBindingGqlDto> UpdateChannelBindingConfig(
+    public async Task<EnterpriseAgentOs.Api.Entities.Channels.Types.AgentChannelBindingGqlDto> UpdateChannelBindingConfig(
         Guid agentId,
         Guid channelConnectionId,
-        ChannelBindingConfigInput config,
+        EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelBindingConfigInput config,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
 
         var bindings = await repo.ListBindingsAsync(agentId, ct);
         var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
@@ -152,7 +150,7 @@ public class ChannelMutations
         var updated = await repo.UpdateBindingAsync(match.Id, row =>
         {
             if (row.AgentId != agentId) return;
-            row.Config = ChannelGraphQLMapper.SerializeConfig(config);
+            row.Config = EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.SerializeConfig(config);
         }, ct);
 
         if (updated is null)
@@ -163,6 +161,6 @@ public class ChannelMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return ChannelGraphQLMapper.ToDto(updated);
+        return EnterpriseAgentOs.Api.Entities.Channels.Types.ChannelGraphQLMapper.ToDto(updated);
     }
 }

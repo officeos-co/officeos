@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class SkillService : ISkillService
@@ -14,7 +12,7 @@ public sealed class SkillService : ISkillService
 
     private readonly ISkillRepository _repository;
     private readonly ISkillCatalogRepository _catalog;
-    private readonly IAgentSkillRepository _agentSkills;
+    private readonly EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository _agentSkills;
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
     private readonly ILogger<SkillService> _logger;
@@ -22,7 +20,7 @@ public sealed class SkillService : ISkillService
     public SkillService(
         ISkillRepository repository,
         ISkillCatalogRepository catalog,
-        IAgentSkillRepository agentSkills,
+        EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         SkillCredentialProtector protector,
         SkillRuntimeClient runtime,
         ILogger<SkillService> logger)
@@ -235,13 +233,13 @@ public sealed class SkillService : ISkillService
         return row?.RunTarget ?? "cloud";
     }
 
-    private static RuntimeManifest DeserializeManifest(SkillRecord skill)
+    private static RuntimeManifest DeserializeManifest(EnterpriseAgentOs.Api.Database.Models.SkillRecord skill)
     {
         return JsonSerializer.Deserialize<RuntimeManifest>(skill.ManifestJson, ManifestJsonOptions)
             ?? throw new InvalidOperationException($"Failed to deserialize manifest for skill '{skill.Name}'");
     }
 
-    private static SkillDto ToDto(SkillRecord skill, SkillCredentialRecord? row)
+    private static SkillDto ToDto(EnterpriseAgentOs.Api.Database.Models.SkillRecord skill, EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord? row)
     {
         var manifest = DeserializeManifest(skill);
         var isSystem = skill.IsSystem || SystemSkills.Contains(skill.Name);

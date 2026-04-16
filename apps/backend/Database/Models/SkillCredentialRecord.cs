@@ -4,7 +4,7 @@ namespace EnterpriseAgentOs.Api.Database.Models;
 /// Global-per-installation install state + encrypted credentials for a
 /// first-party skill. One row per skill name. Credentials are a JSON
 /// blob wrapped with the DataProtection pipeline — see
-/// <see cref="EnterpriseAgentOs.Api.Entities.Skills.SkillCredentialProtector"/>.
+/// <see cref="SkillCredentialProtector"/>.
 /// </summary>
 public sealed class SkillCredentialRecord
 {

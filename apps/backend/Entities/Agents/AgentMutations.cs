@@ -1,21 +1,19 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Mutations;
 
-[ExtendObjectType(typeof(GraphQLMutations))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class AgentMutations
 {
-    public async Task<AgentDto> CreateAgent(
-        CreateAgentInput input,
+    public async Task<EnterpriseAgentOs.Api.Entities.Agents.AgentDto> CreateAgent(
+        EnterpriseAgentOs.Api.Entities.Agents.Types.CreateAgentInput input,
         IResolverContext context,
-        [Service] IAgentService agents,
-        [Service] IAgentSkillRepository agentSkills,
-        [Service] IChannelRepository channels,
+        [Service] EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
+        [Service] EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
+        [Service] EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository channels,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dto = await agents.CreateAsync(
-            new CreateAgentRequest(input.Name, input.Provider, input.Model, input.Prompt),
+            new EnterpriseAgentOs.Api.Entities.Agents.CreateAgentRequest(input.Name, input.Provider, input.Model, input.Prompt),
             ownerId: user.Id,
             ct);
 
@@ -34,7 +32,7 @@ public class AgentMutations
                 if (match is null) continue; // silently skip
                 try
                 {
-                    await channels.CreateBindingAsync(new AgentChannelBindingRecord
+                    await channels.CreateBindingAsync(new EnterpriseAgentOs.Api.Database.Models.AgentChannelBindingRecord
                     {
                         AgentId = dto.Id,
                         ChannelConnectionId = match.Id,
@@ -50,17 +48,17 @@ public class AgentMutations
         return dto;
     }
 
-    public async Task<AgentDto> UpdateAgent(
+    public async Task<EnterpriseAgentOs.Api.Entities.Agents.AgentDto> UpdateAgent(
         Guid id,
-        UpdateAgentInput input,
+        EnterpriseAgentOs.Api.Entities.Agents.Types.UpdateAgentInput input,
         IResolverContext context,
-        [Service] IAgentService agents,
+        [Service] EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dto = await agents.PatchAsync(
             id,
-            new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
+            new EnterpriseAgentOs.Api.Entities.Agents.PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
             ct);
         if (dto is null)
         {
@@ -76,10 +74,10 @@ public class AgentMutations
     public async Task<bool> DeleteAgent(
         Guid id,
         IResolverContext context,
-        [Service] IAgentService agents,
+        [Service] EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await agents.DeleteAsync(id, ct);
     }
 }

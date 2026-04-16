@@ -1,14 +1,12 @@
-using Stripe;
-
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
 public sealed class OrgBillingService : IOrgBillingService
 {
-    private readonly StripeConfig _config;
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Properties.StripeConfig _config;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly ILogger<OrgBillingService> _logger;
 
-    public OrgBillingService(StripeConfig config, EaosDbContext db, ILogger<OrgBillingService> logger)
+    public OrgBillingService(EnterpriseAgentOs.Api.Properties.StripeConfig config, EnterpriseAgentOs.Api.Database.EaosDbContext db, ILogger<OrgBillingService> logger)
     {
         _config = config;
         _db = db;

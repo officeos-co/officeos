@@ -1,8 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Vault;
 
 public sealed class CouchDbVaultClient : IVaultClient
@@ -11,7 +6,7 @@ public sealed class CouchDbVaultClient : IVaultClient
     private readonly ILogger<CouchDbVaultClient> _logger;
     private readonly string _baseUrl;
 
-    public CouchDbVaultClient(HttpClient http, CouchDbConfig config, ILogger<CouchDbVaultClient> logger)
+    public CouchDbVaultClient(HttpClient http, EnterpriseAgentOs.Api.Properties.CouchDbConfig config, ILogger<CouchDbVaultClient> logger)
     {
         _http = http;
         _logger = logger;

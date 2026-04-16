@@ -1,15 +1,12 @@
-using Stripe;
-using Stripe.Checkout;
-
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
 public sealed class StripeWebhookService : IStripeWebhookService
 {
-    private readonly StripeConfig _config;
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Properties.StripeConfig _config;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly ILogger<StripeWebhookService> _logger;
 
-    public StripeWebhookService(StripeConfig config, EaosDbContext db, ILogger<StripeWebhookService> logger)
+    public StripeWebhookService(EnterpriseAgentOs.Api.Properties.StripeConfig config, EnterpriseAgentOs.Api.Database.EaosDbContext db, ILogger<StripeWebhookService> logger)
     {
         _config = config;
         _db = db;

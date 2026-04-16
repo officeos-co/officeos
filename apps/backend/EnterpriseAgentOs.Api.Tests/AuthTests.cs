@@ -1,15 +1,10 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-
 namespace EnterpriseAgentOs.Api.Tests;
 
-public sealed class AuthTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
-    public AuthTests(CustomWebApplicationFactory factory) => _factory = factory;
+    public AuthTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     [Fact]
     public async Task GetMe_WithoutCookie_Returns401()
@@ -37,7 +32,7 @@ public sealed class AuthTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetMe_WithExpiredSession_Returns401()
     {
-        var client = await TestHelpers.CreateExpiredSessionClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateExpiredSessionClientAsync(_factory);
 
         var response = await client.GetAsync("/api/auth/me");
 
@@ -47,7 +42,7 @@ public sealed class AuthTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetMe_WithValidSession_ReturnsUserInfo()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory, "authed@example.com", "Auth User");
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "authed@example.com", "Auth User");
 
         var response = await client.GetAsync("/api/auth/me");
 
@@ -60,7 +55,7 @@ public sealed class AuthTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task Logout_DeletesSession_SubsequentMeReturns401()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory, "logout@example.com");
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "logout@example.com");
 
         // Verify logged in
         var meResp = await client.GetAsync("/api/auth/me");

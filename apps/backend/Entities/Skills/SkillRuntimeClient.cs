@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 /// <summary>
@@ -12,7 +10,7 @@ public sealed class SkillRuntimeClient
     private readonly ILogger<SkillRuntimeClient> _logger;
     private readonly string _baseUrl;
 
-    public SkillRuntimeClient(HttpClient http, SkillRuntimeConfig config, ILogger<SkillRuntimeClient> logger)
+    public SkillRuntimeClient(HttpClient http, EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig config, ILogger<SkillRuntimeClient> logger)
     {
         _http = http;
         _logger = logger;

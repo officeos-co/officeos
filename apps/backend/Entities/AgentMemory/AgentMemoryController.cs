@@ -1,15 +1,13 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.AgentMemory;
 
 [ApiController]
 [Route("api/agents/me")]
-[AgentTokenAuth]
+[EnterpriseAgentOs.Api.Entities.Skills.AgentTokenAuth]
 public sealed class AgentMemoryController : ControllerBase
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public AgentMemoryController(EaosDbContext db) => _db = db;
+    public AgentMemoryController(EnterpriseAgentOs.Api.Database.EaosDbContext db) => _db = db;
 
     private Guid AgentId => (Guid)HttpContext.Items["agent-id"]!;
 
@@ -32,7 +30,7 @@ public sealed class AgentMemoryController : ControllerBase
         }
         else
         {
-            _db.AgentMemories.Add(new AgentMemoryRecord
+            _db.AgentMemories.Add(new EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord
             {
                 AgentId = AgentId,
                 Key = req.Key,
@@ -147,7 +145,7 @@ public sealed class AgentMemoryController : ControllerBase
         }
         else
         {
-            _db.AgentCacheEntries.Add(new AgentCacheRecord
+            _db.AgentCacheEntries.Add(new EnterpriseAgentOs.Api.Database.Models.AgentCacheRecord
             {
                 AgentId = AgentId,
                 CacheKey = req.CacheKey,
@@ -200,12 +198,12 @@ public sealed class AgentMemoryController : ControllerBase
     {
         var type = req.Role switch
         {
-            "user" => AgentLogType.MessageIn,
-            "assistant" => AgentLogType.MessageOut,
-            _ => AgentLogType.System,
+            "user" => EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageIn,
+            "assistant" => EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageOut,
+            _ => EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
         };
 
-        _db.AgentLogs.Add(new AgentLogRecord
+        _db.AgentLogs.Add(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
         {
             AgentId = AgentId,
             Type = type,
@@ -226,9 +224,9 @@ public sealed class AgentMemoryController : ControllerBase
         var q = _db.AgentLogs
             .AsNoTracking()
             .Where(c => c.AgentId == AgentId &&
-                (c.Type == AgentLogType.MessageIn ||
-                 c.Type == AgentLogType.MessageOut ||
-                 c.Type == AgentLogType.System));
+                (c.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageIn ||
+                 c.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageOut ||
+                 c.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.System));
 
         if (!string.IsNullOrWhiteSpace(sessionId))
             q = q.Where(c => c.CorrelationId == sessionId);
@@ -241,8 +239,8 @@ public sealed class AgentMemoryController : ControllerBase
         return Ok(entries.Select(c => new
         {
             c.Id,
-            Role = c.Type == AgentLogType.MessageIn ? "user"
-                : c.Type == AgentLogType.MessageOut ? "assistant"
+            Role = c.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageIn ? "user"
+                : c.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageOut ? "assistant"
                 : "system",
             c.Content,
             SessionId = c.CorrelationId,
@@ -253,7 +251,7 @@ public sealed class AgentMemoryController : ControllerBase
 
     // ── DTOs ─────────────────────────────────────────────────────────
 
-    private static object ToDto(AgentMemoryRecord m) => new
+    private static object ToDto(EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord m) => new
     {
         m.Id,
         m.Key,

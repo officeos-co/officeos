@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Gdpr;
 
 [ApiController]
@@ -13,7 +11,7 @@ public sealed class GdprController : ControllerBase
         _gdpr = gdpr;
     }
 
-    private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
+    private EnterpriseAgentOs.Api.Database.Models.UserRecord? CurrentUser => HttpContext.Items["User"] as EnterpriseAgentOs.Api.Database.Models.UserRecord;
 
     /// <summary>
     /// GET /api/gdpr/export

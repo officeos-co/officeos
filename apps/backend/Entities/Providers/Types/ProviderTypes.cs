@@ -9,6 +9,6 @@ public sealed record ProviderGqlDto(
 
 internal static class ProviderGraphQLMapper
 {
-    public static ProviderGqlDto ToDto(ProviderDto p) =>
+    public static ProviderGqlDto ToDto(EnterpriseAgentOs.Api.Entities.Providers.ProviderDto p) =>
         new(p.Id, p.Name, p.DisplayName, p.Configured, p.ConfiguredAt);
 }

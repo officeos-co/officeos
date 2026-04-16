@@ -1,12 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
-
 namespace EnterpriseAgentOs.Api.Tests;
 
 /// <summary>
@@ -33,12 +24,12 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
     {
         SeedEmailManifest(); // sets up /manifests and /execute stubs
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, $"agent-under-limit-{Guid.NewGuid():N}");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, $"agent-under-limit-{Guid.NewGuid():N}");
 
         await InstallNotionSkillAsync(dashClient);
 
-        var agent = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
 
         // Fire exactly 3 requests — the configured per-agent limit.
         for (var i = 0; i < 3; i++)
@@ -57,12 +48,12 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
     {
         SeedEmailManifest();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, $"agent-over-limit-{Guid.NewGuid():N}");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, $"agent-over-limit-{Guid.NewGuid():N}");
 
         await InstallNotionSkillAsync(dashClient);
 
-        var agent = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
 
         // Consume all 3 allowed executions.
         for (var i = 0; i < 3; i++)
@@ -95,15 +86,15 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
     {
         SeedEmailManifest();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var agentId1 = await TestHelpers.CreateAgentAsync(dashClient, $"agent1-isolation-{Guid.NewGuid():N}");
-        var agentId2 = await TestHelpers.CreateAgentAsync(dashClient, $"agent2-isolation-{Guid.NewGuid():N}");
+        var agentId1 = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, $"agent1-isolation-{Guid.NewGuid():N}");
+        var agentId2 = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, $"agent2-isolation-{Guid.NewGuid():N}");
 
         await InstallNotionSkillAsync(dashClient);
 
-        var agent1 = new MockAgentClient(_factory.CreateClient(), agentId1);
-        var agent2 = new MockAgentClient(_factory.CreateClient(), agentId2);
+        var agent1 = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId1);
+        var agent2 = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId2);
 
         // Exhaust agent1's limit.
         for (var i = 0; i < 3; i++)
@@ -154,14 +145,14 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
     {
         SeedEmailManifest();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, $"agent-email-limit-{Guid.NewGuid():N}");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, $"agent-email-limit-{Guid.NewGuid():N}");
 
         // Install and configure the email skill.
-        await TestHelpers.InstallSkillAsync(dashClient, "sendgrid");
-        await TestHelpers.SetSkillCredentialsAsync(dashClient, "sendgrid", new() { ["apiKey"] = "test-sendgrid-key" });
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "sendgrid");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "sendgrid", new() { ["apiKey"] = "test-sendgrid-key" });
 
-        var agent = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
 
         // Consume exactly 2 email sends — the configured email hard limit.
         for (var i = 0; i < 2; i++)
@@ -268,8 +259,8 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
 
     private static async Task InstallNotionSkillAsync(HttpClient dashClient)
     {
-        await TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-notion-key" });
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-notion-key" });
     }
 }
 
@@ -278,9 +269,9 @@ public sealed class RateLimitingTests : IClassFixture<RateLimitingWebApplication
 /// Uses 3 skill executions per hour and 2 email sends per hour so tests
 /// don't need to fire 60 (or 10) real requests.
 ///
-/// All other config is inherited from <see cref="CustomWebApplicationFactory"/>.
+/// All other config is inherited from <see cref="EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory"/>.
 /// </summary>
-public sealed class RateLimitingWebApplicationFactory : CustomWebApplicationFactory
+public sealed class RateLimitingWebApplicationFactory : EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory
 {
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {

@@ -1,26 +1,24 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Queries;
 
-[ExtendObjectType(typeof(GraphQLQueries))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
 public class AgentQueries
 {
-    public Task<IReadOnlyList<AgentDto>> GetAgents(
+    public Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.Agents.AgentDto>> GetAgents(
         IResolverContext context,
-        [Service] IAgentService agents,
+        [Service] EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         return agents.ListAsync(ct);
     }
 
-    public async Task<AgentDto?> GetAgent(
+    public async Task<EnterpriseAgentOs.Api.Entities.Agents.AgentDto?> GetAgent(
         Guid id,
         IResolverContext context,
-        [Service] IAgentService agents,
+        [Service] EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await agents.GetAsync(id, ct);
     }
 }

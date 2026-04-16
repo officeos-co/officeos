@@ -1,25 +1,23 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Queries;
 
-[ExtendObjectType(typeof(GraphQLQueries))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
 public class AuditQueries
 {
-    public async Task<AuditLogPage> GetAuditLog(
+    public async Task<EnterpriseAgentOs.Api.Entities.Audit.Types.AuditLogPage> GetAuditLog(
         Guid agentId,
         int skip,
         int limit,
         IResolverContext context,
-        [Service] IAuditService audit,
+        [Service] EnterpriseAgentOs.Api.Entities.Audit.IAuditService audit,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var capped = Math.Clamp(limit <= 0 ? 50 : limit, 1, 100);
         var offset = Math.Max(skip, 0);
 
         var (items, total) = await audit.GetAuditLogAsync(agentId, capped, offset);
 
-        var dtos = items.Select(r => new AuditEntry(
+        var dtos = items.Select(r => new EnterpriseAgentOs.Api.Entities.Audit.Types.AuditEntry(
             r.Id,
             r.AgentId,
             null,
@@ -30,6 +28,6 @@ public class AuditQueries
             r.DurationMs ?? 0,
             r.Time)).ToList();
 
-        return new AuditLogPage(dtos, total);
+        return new EnterpriseAgentOs.Api.Entities.Audit.Types.AuditLogPage(dtos, total);
     }
 }

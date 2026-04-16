@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-
 namespace EnterpriseAgentOs.Api.Entities.Runners;
 
 /// <summary>
@@ -11,7 +9,7 @@ namespace EnterpriseAgentOs.Api.Entities.Runners;
 [Route("api/runner/device")]
 public sealed class DeviceAuthController : ControllerBase
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly IRunnerRepository _runners;
 
     private static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(15);
@@ -19,14 +17,14 @@ public sealed class DeviceAuthController : ControllerBase
 
     private readonly ILogger<DeviceAuthController> _logger;
 
-    public DeviceAuthController(EaosDbContext db, IRunnerRepository runners, ILogger<DeviceAuthController> logger)
+    public DeviceAuthController(EnterpriseAgentOs.Api.Database.EaosDbContext db, IRunnerRepository runners, ILogger<DeviceAuthController> logger)
     {
         _db = db;
         _runners = runners;
         _logger = logger;
     }
 
-    private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
+    private EnterpriseAgentOs.Api.Database.Models.UserRecord? CurrentUser => HttpContext.Items["User"] as EnterpriseAgentOs.Api.Database.Models.UserRecord;
 
     /// <summary>
     /// Runner CLI calls this to start the device flow.
@@ -39,7 +37,7 @@ public sealed class DeviceAuthController : ControllerBase
         var deviceCode = Guid.NewGuid().ToString("N");
         var userCode = GenerateUserCode();
 
-        var record = new DeviceCodeRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.DeviceCodeRecord
         {
             DeviceCode = deviceCode,
             UserCode = userCode,
@@ -110,11 +108,11 @@ public sealed class DeviceAuthController : ControllerBase
 
         // Approved — create the runner and issue an auth token
         var runnerName = record.RunnerName ?? $"runner-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
-        var registrationTokenHash = SessionAuthMiddleware.HashToken(Guid.NewGuid().ToString());
+        var registrationTokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(Guid.NewGuid().ToString());
         var runner = await _runners.CreateAsync(record.UserId.Value, runnerName, registrationTokenHash, ct);
 
         var authToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var authHash = SessionAuthMiddleware.HashToken(authToken);
+        var authHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(authToken);
 
         runner.AuthTokenHash = authHash;
         runner.Status = "online";

@@ -1,15 +1,10 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-
 namespace EnterpriseAgentOs.Api.Tests.Auth;
 
-public sealed class ScimControllerTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class ScimControllerTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
-    public ScimControllerTests(CustomWebApplicationFactory factory) => _factory = factory;
+    public ScimControllerTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     [Fact]
     public async Task ProvisionUser_WhenScimDisabled_Returns503()

@@ -1,5 +1,3 @@
-using System.Threading.Channels;
-
 namespace EnterpriseAgentOs.Api.Entities.Events;
 
 /// <summary>
@@ -9,9 +7,9 @@ namespace EnterpriseAgentOs.Api.Entities.Events;
 public sealed class SystemEventBroadcaster
 {
     private readonly Lock _lock = new();
-    private readonly List<Channel<SystemEventRecord>> _subscribers = [];
+    private readonly List<Channel<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord>> _subscribers = [];
 
-    public void Publish(SystemEventRecord ev)
+    public void Publish(EnterpriseAgentOs.Api.Database.Models.SystemEventRecord ev)
     {
         lock (_lock)
         {
@@ -27,9 +25,9 @@ public sealed class SystemEventBroadcaster
         }
     }
 
-    public ChannelReader<SystemEventRecord> Subscribe()
+    public ChannelReader<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord> Subscribe()
     {
-        var channel = Channel.CreateBounded<SystemEventRecord>(
+        var channel = Channel.CreateBounded<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord>(
             new BoundedChannelOptions(256)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
@@ -45,7 +43,7 @@ public sealed class SystemEventBroadcaster
         return channel.Reader;
     }
 
-    public void Unsubscribe(ChannelReader<SystemEventRecord> reader)
+    public void Unsubscribe(ChannelReader<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord> reader)
     {
         lock (_lock)
         {

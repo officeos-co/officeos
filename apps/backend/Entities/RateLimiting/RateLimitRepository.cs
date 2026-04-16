@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Api.Entities.RateLimiting;
 
 public sealed class RateLimitRepository : IRateLimitRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public RateLimitRepository(EaosDbContext db)
+    public RateLimitRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db)
     {
         _db = db;
     }
@@ -25,7 +25,7 @@ public sealed class RateLimitRepository : IRateLimitRepository
 
         if (row is null)
         {
-            row = new AgentRateLimitRecord
+            row = new EnterpriseAgentOs.Api.Database.Models.AgentRateLimitRecord
             {
                 AgentId = agentId,
                 BucketKey = bucketKey,

@@ -1,26 +1,23 @@
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-
 namespace EnterpriseAgentOs.Api.Tests;
 
-public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class AgentLifecycleTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
-    public AgentLifecycleTests(CustomWebApplicationFactory factory) => _factory = factory;
+    public AgentLifecycleTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     private const string AgentFields = "id name provider status";
 
     [Fact]
     public async Task CreateAgent_ReturnsCreatedWithPendingOrRunningStatus()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
               createAgent(input: $input) { id name provider status }
             }";
-        var data = await TestHelpers.GraphQLAsync(client, mutation, new
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, mutation, new
         {
             input = new
             {
@@ -44,11 +41,11 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task ListAgents_ReturnsCreatedAgents()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        await TestHelpers.CreateAgentAsync(client, "list-test-1", "ollama");
-        await TestHelpers.CreateAgentAsync(client, "list-test-2", "ollama");
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-1", "ollama");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-2", "ollama");
 
-        var data = await TestHelpers.GraphQLAsync(client, "{ agents { id name } }");
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, "{ agents { id name } }");
         var agents = data.GetProperty("agents");
         Assert.True(agents.GetArrayLength() >= 2);
     }
@@ -56,10 +53,10 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task GetAgent_ById_ReturnsAgent()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(client, "get-test", "ollama");
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(client, "get-test", "ollama");
 
-        var data = await TestHelpers.GraphQLAsync(
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
             client,
             "query($id: UUID!) { agent(id: $id) { id name } }",
             new { id = agentId });
@@ -72,9 +69,9 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task GetAgent_NonExistent_ReturnsNull()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await TestHelpers.GraphQLAsync(
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
             client,
             "query($id: UUID!) { agent(id: $id) { id } }",
             new { id = Guid.NewGuid() });
@@ -85,17 +82,17 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task DeleteAgent_SoftDeletes_ThenExcludedFromList()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(client, "delete-test", "ollama");
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(client, "delete-test", "ollama");
 
-        var delData = await TestHelpers.GraphQLAsync(
+        var delData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
             client,
             "mutation($id: UUID!) { deleteAgent(id: $id) }",
             new { id = agentId });
         Assert.True(delData.GetProperty("deleteAgent").GetBoolean());
 
         // GET by ID now returns null (soft-deleted)
-        var getData = await TestHelpers.GraphQLAsync(
+        var getData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
             client,
             "query($id: UUID!) { agent(id: $id) { id } }",
             new { id = agentId });
@@ -105,9 +102,9 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task DeleteAgent_NonExistent_ReturnsFalse()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await TestHelpers.GraphQLAsync(
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
             client,
             "mutation($id: UUID!) { deleteAgent(id: $id) }",
             new { id = Guid.NewGuid() });
@@ -118,14 +115,14 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task CreateAgent_WithUnconfiguredProvider_ReturnsError()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
         // openai provider needs an API key configured; in test DB it won't have one
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
               createAgent(input: $input) { id }
             }";
-        var response = await TestHelpers.GraphQLRawAsync(client, mutation, new
+        var response = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, mutation, new
         {
             input = new
             {
@@ -146,13 +143,13 @@ public sealed class AgentLifecycleTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task CreateAgent_WithInvalidModel_ReturnsError()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
               createAgent(input: $input) { id }
             }";
-        var response = await TestHelpers.GraphQLRawAsync(client, mutation, new
+        var response = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, mutation, new
         {
             input = new
             {

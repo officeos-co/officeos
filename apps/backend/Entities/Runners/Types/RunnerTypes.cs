@@ -20,9 +20,9 @@ public sealed record CreateRunnerResult(RunnerDto Runner, string RegistrationTok
 
 public static class RunnerGraphQLMapper
 {
-    public static RunnerDto ToDto(this RunnerRecord r) =>
+    public static RunnerDto ToDto(this EnterpriseAgentOs.Api.Database.Models.RunnerRecord r) =>
         new(r.Id, r.Name, r.Status, r.LastHeartbeatAt, r.Version, r.CreatedAt);
 
-    public static RunnerJobDto ToDto(this RunnerJobRecord j) =>
+    public static RunnerJobDto ToDto(this EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord j) =>
         new(j.Id, j.RunnerId, j.Status, j.CreatedAt, j.StartedAt, j.CompletedAt);
 }

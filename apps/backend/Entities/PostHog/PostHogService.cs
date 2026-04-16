@@ -1,6 +1,3 @@
-using System.Text;
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.PostHog;
 
 /// <summary>
@@ -14,10 +11,10 @@ namespace EnterpriseAgentOs.Api.Entities.PostHog;
 public sealed class PostHogService : IPostHogService
 {
     private readonly HttpClient _http;
-    private readonly PostHogConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.PostHogConfig _config;
     private readonly ILogger<PostHogService> _logger;
 
-    public PostHogService(HttpClient http, PostHogConfig config, ILogger<PostHogService> logger)
+    public PostHogService(HttpClient http, EnterpriseAgentOs.Api.Properties.PostHogConfig config, ILogger<PostHogService> logger)
     {
         _http = http;
         _config = config;

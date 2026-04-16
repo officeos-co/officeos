@@ -1,14 +1,12 @@
-using Stripe;
-
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
 public sealed class CreditRecordingService : ICreditRecordingService
 {
-    private readonly StripeConfig _config;
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Properties.StripeConfig _config;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly ILogger<CreditRecordingService> _logger;
 
-    public CreditRecordingService(StripeConfig config, EaosDbContext db, ILogger<CreditRecordingService> logger)
+    public CreditRecordingService(EnterpriseAgentOs.Api.Properties.StripeConfig config, EnterpriseAgentOs.Api.Database.EaosDbContext db, ILogger<CreditRecordingService> logger)
     {
         _config = config;
         _db = db;

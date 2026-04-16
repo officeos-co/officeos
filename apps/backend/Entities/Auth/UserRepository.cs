@@ -2,17 +2,17 @@ namespace EnterpriseAgentOs.Api.Entities.Auth;
 
 public sealed class UserRepository : IUserRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public UserRepository(EaosDbContext db) => _db = db;
+    public UserRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db) => _db = db;
 
-    public async Task<UserRecord> UpsertByGoogleSubjectAsync(
+    public async Task<EnterpriseAgentOs.Api.Database.Models.UserRecord> UpsertByGoogleSubjectAsync(
         string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
         if (user is null)
         {
-            user = new UserRecord
+            user = new EnterpriseAgentOs.Api.Database.Models.UserRecord
             {
                 GoogleSubjectId = googleSubjectId,
                 Email = email,
@@ -32,6 +32,6 @@ public sealed class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task<UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
 }

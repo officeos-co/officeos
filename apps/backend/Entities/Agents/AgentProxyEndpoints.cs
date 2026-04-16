@@ -1,5 +1,3 @@
-using System.Net.WebSockets;
-
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public static class AgentProxyEndpoints

@@ -4,12 +4,12 @@ namespace EnterpriseAgentOs.Api.Entities.Sso;
 [Route("api/sso")]
 public sealed class SsoController : ControllerBase
 {
-    private readonly WorkOsConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.WorkOsConfig _config;
     private readonly IWorkOsAuthService _workOs;
     private readonly ILogger<SsoController> _logger;
 
     public SsoController(
-        WorkOsConfig config,
+        EnterpriseAgentOs.Api.Properties.WorkOsConfig config,
         IWorkOsAuthService workOs,
         ILogger<SsoController> logger)
     {

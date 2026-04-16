@@ -2,28 +2,28 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public interface ISkillCatalogRepository
 {
-    Task<IReadOnlyList<SkillRecord>> ListAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<SkillRecord>> ListActiveAsync(CancellationToken ct = default);
-    Task<SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default);
-    Task<SkillRecord> UpsertAsync(SkillRecord record, CancellationToken ct = default);
+    Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SkillRecord>> ListAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SkillRecord>> ListActiveAsync(CancellationToken ct = default);
+    Task<EnterpriseAgentOs.Api.Database.Models.SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default);
+    Task<EnterpriseAgentOs.Api.Database.Models.SkillRecord> UpsertAsync(EnterpriseAgentOs.Api.Database.Models.SkillRecord record, CancellationToken ct = default);
     Task<bool> DeleteByNameAsync(string name, CancellationToken ct = default);
 }
 
 public sealed class SkillCatalogRepository : ISkillCatalogRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public SkillCatalogRepository(EaosDbContext db)
+    public SkillCatalogRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<SkillRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SkillRecord>> ListAsync(CancellationToken ct = default)
     {
         return await _db.Skills.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<SkillRecord>> ListActiveAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SkillRecord>> ListActiveAsync(CancellationToken ct = default)
     {
         return await _db.Skills.AsNoTracking()
             .Where(s => s.Status == "active")
@@ -31,13 +31,13 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
             .ToListAsync(ct);
     }
 
-    public async Task<SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
         return await _db.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
     }
 
-    public async Task<SkillRecord> UpsertAsync(SkillRecord record, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SkillRecord> UpsertAsync(EnterpriseAgentOs.Api.Database.Models.SkillRecord record, CancellationToken ct = default)
     {
         var existing = await _db.Skills.FirstOrDefaultAsync(s => s.Name == record.Name, ct);
         if (existing is null)

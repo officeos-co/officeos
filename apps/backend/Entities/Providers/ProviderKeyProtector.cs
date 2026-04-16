@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.DataProtection;
-
 namespace EnterpriseAgentOs.Api.Entities.Providers;
 
 public sealed class ProviderKeyProtector

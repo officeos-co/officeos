@@ -1,17 +1,15 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Mutations;
 
-[ExtendObjectType(typeof(GraphQLMutations))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class SkillMutations
 {
     public async Task<bool> InstallSkill(
         string name,
         IResolverContext context,
-        [Service] ISkillService skills,
+        [Service] EnterpriseAgentOs.Api.Entities.Skills.ISkillService skills,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dto = await skills.InstallAsync(name, ct);
         if (dto is null)
         {
@@ -27,10 +25,10 @@ public class SkillMutations
     public async Task<bool> UninstallSkill(
         string name,
         IResolverContext context,
-        [Service] ISkillService skills,
+        [Service] EnterpriseAgentOs.Api.Entities.Skills.ISkillService skills,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dto = await skills.UninstallAsync(name, ct);
         if (dto is null)
         {
@@ -45,12 +43,12 @@ public class SkillMutations
 
     public async Task<bool> SetSkillCredentials(
         string name,
-        IReadOnlyList<SkillCredentialEntry> credentials,
+        IReadOnlyList<EnterpriseAgentOs.Api.Entities.Skills.Types.SkillCredentialEntry> credentials,
         IResolverContext context,
-        [Service] ISkillService skills,
+        [Service] EnterpriseAgentOs.Api.Entities.Skills.ISkillService skills,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dict = credentials.ToDictionary(c => c.Key, c => c.Value);
         var dto = await skills.PutCredentialsAsync(name, dict, ct);
         if (dto is null)
@@ -68,10 +66,10 @@ public class SkillMutations
         string name,
         string runTarget,
         IResolverContext context,
-        [Service] ISkillService skills,
+        [Service] EnterpriseAgentOs.Api.Entities.Skills.ISkillService skills,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dto = await skills.SetRunTargetAsync(name, runTarget, ct);
         if (dto is null)
         {
@@ -84,13 +82,13 @@ public class SkillMutations
         return true;
     }
 
-    public async Task<SkillDashboardDto> LikeSkill(
+    public async Task<EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardDto> LikeSkill(
         Guid skillId,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = await db.Skills.FirstOrDefaultAsync(s => s.Id == skillId, ct)
             ?? throw NotFound(skillId);
 
@@ -98,19 +96,19 @@ public class SkillMutations
             .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == user.Id, ct);
         if (existing is null)
         {
-            db.SkillLikes.Add(new SkillLikeRecord { SkillId = skillId, UserId = user.Id });
+            db.SkillLikes.Add(new EnterpriseAgentOs.Api.Database.Models.SkillLikeRecord { SkillId = skillId, UserId = user.Id });
             await db.SaveChangesAsync(ct);
         }
-        return SkillDashboardMapper.ToDto(skill);
+        return EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardMapper.ToDto(skill);
     }
 
-    public async Task<SkillDashboardDto> UnlikeSkill(
+    public async Task<EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardDto> UnlikeSkill(
         Guid skillId,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = await db.Skills.FirstOrDefaultAsync(s => s.Id == skillId, ct)
             ?? throw NotFound(skillId);
 
@@ -121,17 +119,17 @@ public class SkillMutations
             db.SkillLikes.Remove(existing);
             await db.SaveChangesAsync(ct);
         }
-        return SkillDashboardMapper.ToDto(skill);
+        return EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardMapper.ToDto(skill);
     }
 
-    public async Task<SkillCommentDto> CommentOnSkill(
+    public async Task<EnterpriseAgentOs.Api.Entities.Skills.Types.SkillCommentDto> CommentOnSkill(
         Guid skillId,
         string body,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         if (string.IsNullOrWhiteSpace(body))
         {
             throw new GraphQLException(
@@ -140,7 +138,7 @@ public class SkillMutations
         var exists = await db.Skills.AnyAsync(s => s.Id == skillId, ct);
         if (!exists) throw NotFound(skillId);
 
-        var record = new SkillCommentRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.SkillCommentRecord
         {
             SkillId = skillId,
             UserId = user.Id,
@@ -150,16 +148,16 @@ public class SkillMutations
         await db.SaveChangesAsync(ct);
 
         record.User = user;
-        return SkillDashboardMapper.ToDto(record);
+        return EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardMapper.ToDto(record);
     }
 
     public async Task<bool> DeleteSkillComment(
         Guid commentId,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var comment = await db.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
         if (comment is null) return false;
         if (comment.UserId != user.Id)
@@ -172,20 +170,20 @@ public class SkillMutations
         return true;
     }
 
-    public async Task<SkillDashboardDto> SetSkillSourceCodeUrl(
+    public async Task<EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardDto> SetSkillSourceCodeUrl(
         Guid skillId,
         string? url,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = await db.Skills.FirstOrDefaultAsync(s => s.Id == skillId, ct)
             ?? throw NotFound(skillId);
         skill.SourceCodeUrl = string.IsNullOrWhiteSpace(url) ? null : url.Trim();
         skill.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
-        return SkillDashboardMapper.ToDto(skill);
+        return EnterpriseAgentOs.Api.Entities.Skills.Types.SkillDashboardMapper.ToDto(skill);
     }
 
     private static GraphQLException NotFound(Guid id) =>

@@ -1,26 +1,25 @@
-
 namespace EnterpriseAgentOs.Api.Entities.Providers;
 
 public sealed class ProviderRepository : IProviderRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public ProviderRepository(EaosDbContext db)
+    public ProviderRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<ProviderRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.ProviderRecord>> ListAsync(CancellationToken ct = default)
     {
         return await _db.Providers.AsNoTracking().OrderBy(p => p.DisplayName).ToListAsync(ct);
     }
 
-    public async Task<ProviderRecord?> GetByNameAsync(string name, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.ProviderRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         return await _db.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
     }
 
-    public async Task SaveAsync(ProviderRecord record, CancellationToken ct = default)
+    public async Task SaveAsync(EnterpriseAgentOs.Api.Database.Models.ProviderRecord record, CancellationToken ct = default)
     {
         await _db.SaveChangesAsync(ct);
     }

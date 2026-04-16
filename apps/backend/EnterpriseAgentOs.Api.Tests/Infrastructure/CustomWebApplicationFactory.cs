@@ -1,17 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Testcontainers.PostgreSql;
-using WireMock.Server;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
-using EnterpriseAgentOs.Api.Database;
-using EnterpriseAgentOs.Api.Entities.Vault;
-using EnterpriseAgentOs.Api.Properties;
-
 namespace EnterpriseAgentOs.Api.Tests.Infrastructure;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
@@ -85,7 +71,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             .AddInMemoryCollection(inMemoryConfig)
             .Build();
 
-        ValueManager.SetConfiguration(testConfig);
+        EnterpriseAgentOs.Api.Properties.ValueManager.SetConfiguration(testConfig);
 
         // Seed WireMock with a default manifests endpoint (empty list)
         SkillRuntimeMock
@@ -110,22 +96,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         builder.ConfigureServices(services =>
         {
             // Replace EF Core to use Testcontainers Postgres
-            services.RemoveAll<DbContextOptions<EaosDbContext>>();
-            services.RemoveAll<EaosDbContext>();
-            services.AddDbContext<EaosDbContext>(options =>
+            services.RemoveAll<DbContextOptions<EnterpriseAgentOs.Api.Database.EaosDbContext>>();
+            services.RemoveAll<EnterpriseAgentOs.Api.Database.EaosDbContext>();
+            services.AddDbContext<EnterpriseAgentOs.Api.Database.EaosDbContext>(options =>
                 options.UseNpgsql(_postgres.GetConnectionString()));
 
             // Replace vault client with a no-op stub
-            services.RemoveAll<IVaultClient>();
-            services.AddScoped<IVaultClient, StubVaultClient>();
+            services.RemoveAll<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient>();
+            services.AddScoped<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient, StubVaultClient>();
 
             // Replace SkillRuntimeConfig to point at WireMock
-            services.RemoveAll<SkillRuntimeConfig>();
-            services.AddSingleton(new SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
+            services.RemoveAll<EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig>();
+            services.AddSingleton(new EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
 
             // Replace LiteLlmConfig to point at the WireMock LiteLLM stub
-            services.RemoveAll<LiteLlmConfig>();
-            services.AddSingleton(new LiteLlmConfig { BaseUrl = LiteLlmMock.Url!, Enabled = true });
+            services.RemoveAll<EnterpriseAgentOs.Api.Properties.LiteLlmConfig>();
+            services.AddSingleton(new EnterpriseAgentOs.Api.Properties.LiteLlmConfig { BaseUrl = LiteLlmMock.Url!, Enabled = true });
         });
     }
 

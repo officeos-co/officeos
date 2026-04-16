@@ -1,16 +1,15 @@
-
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed class AgentRepository : IAgentRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public AgentRepository(EaosDbContext db)
+    public AgentRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<AgentRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.AgentRecord>> ListAsync(CancellationToken ct = default)
     {
         return await _db.Agents
             .AsNoTracking()
@@ -19,18 +18,18 @@ public sealed class AgentRepository : IAgentRepository
             .ToListAsync(ct);
     }
 
-    public async Task<AgentRecord?> GetAsync(Guid id, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.AgentRecord?> GetAsync(Guid id, CancellationToken ct = default)
     {
         return await _db.Agents.FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, ct);
     }
 
-    public async Task AddAsync(AgentRecord record, CancellationToken ct = default)
+    public async Task AddAsync(EnterpriseAgentOs.Api.Database.Models.AgentRecord record, CancellationToken ct = default)
     {
         await _db.Agents.AddAsync(record, ct);
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(AgentRecord record, CancellationToken ct = default)
+    public async Task UpdateAsync(EnterpriseAgentOs.Api.Database.Models.AgentRecord record, CancellationToken ct = default)
     {
         _db.Agents.Update(record);
         await _db.SaveChangesAsync(ct);

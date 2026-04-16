@@ -1,16 +1,14 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Queries;
 
-[ExtendObjectType(typeof(GraphQLQueries))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
 public class AgentTemplateQueries
 {
-    public Task<IReadOnlyList<AgentTemplateDto>> GetAgentTemplates(
+    public Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateDto>> GetAgentTemplates(
         IResolverContext context,
-        [Service] IAgentTemplateService templates,
+        [Service] EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateService templates,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         return templates.ListAsync(ct);
     }
 }

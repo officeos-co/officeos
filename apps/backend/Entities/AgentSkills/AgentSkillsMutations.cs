@@ -1,18 +1,16 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Mutations;
 
-[ExtendObjectType(typeof(GraphQLMutations))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class AgentSkillsMutations
 {
     public async Task<bool> AssignSkillToAgent(
         Guid agentId,
         string skillName,
         IResolverContext context,
-        [Service] IAgentSkillRepository agentSkills,
+        [Service] EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         await agentSkills.AssignAsync(agentId, new[] { skillName }, ct);
         return true;
     }
@@ -21,23 +19,23 @@ public class AgentSkillsMutations
         Guid agentId,
         string skillName,
         IResolverContext context,
-        [Service] IAgentSkillRepository agentSkills,
+        [Service] EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await agentSkills.RemoveAsync(agentId, skillName, ct);
     }
 
-    public async Task<AgentToolPermissionDto> SetAgentToolPermission(
+    public async Task<EnterpriseAgentOs.Api.Entities.AgentSkills.Types.AgentToolPermissionDto> SetAgentToolPermission(
         Guid agentId,
         string skillName,
         string toolName,
-        ToolPermission permission,
+        EnterpriseAgentOs.Api.Database.Models.ToolPermission permission,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] EnterpriseAgentOs.Api.Database.EaosDbContext db,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = skillName.Trim().ToLowerInvariant();
         var tool = toolName.Trim();
 
@@ -47,7 +45,7 @@ public class AgentSkillsMutations
 
         if (existing is null)
         {
-            existing = new AgentToolPermissionRecord
+            existing = new EnterpriseAgentOs.Api.Database.Models.AgentToolPermissionRecord
             {
                 AgentId = agentId,
                 SkillName = skill,
@@ -62,6 +60,6 @@ public class AgentSkillsMutations
             existing.UpdatedAt = DateTime.UtcNow;
         }
         await db.SaveChangesAsync(ct);
-        return new AgentToolPermissionDto(existing.SkillName, existing.ToolName, existing.Permission);
+        return new EnterpriseAgentOs.Api.Entities.AgentSkills.Types.AgentToolPermissionDto(existing.SkillName, existing.ToolName, existing.Permission);
     }
 }

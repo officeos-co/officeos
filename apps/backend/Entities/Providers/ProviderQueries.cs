@@ -1,25 +1,23 @@
-using HotChocolate.Resolvers;
-
 namespace EnterpriseAgentOs.Api.Queries;
 
-[ExtendObjectType(typeof(GraphQLQueries))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
 public class ProviderQueries
 {
-    public async Task<IReadOnlyList<ProviderGqlDto>> GetProviders(
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.Providers.Types.ProviderGqlDto>> GetProviders(
         IResolverContext context,
-        [Service] IProviderService providers,
+        [Service] EnterpriseAgentOs.Api.Entities.Providers.IProviderService providers,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         var rows = await providers.ListAsync(ct);
-        return rows.Select(ProviderGraphQLMapper.ToDto).ToList();
+        return rows.Select(EnterpriseAgentOs.Api.Entities.Providers.Types.ProviderGraphQLMapper.ToDto).ToList();
     }
 
     public IReadOnlyList<string> GetProviderModels(
         string providerName,
         IResolverContext context)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
-        return KnownModels.For(providerName);
+        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        return EnterpriseAgentOs.Api.Entities.Providers.KnownModels.For(providerName);
     }
 }

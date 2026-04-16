@@ -2,13 +2,13 @@ namespace EnterpriseAgentOs.Api.Entities.Runners;
 
 public sealed class RunnerRepository : IRunnerRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public RunnerRepository(EaosDbContext db) => _db = db;
+    public RunnerRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db) => _db = db;
 
-    public async Task<RunnerRecord> CreateAsync(Guid ownerId, string name, string registrationTokenHash, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerRecord> CreateAsync(Guid ownerId, string name, string registrationTokenHash, CancellationToken ct)
     {
-        var runner = new RunnerRecord
+        var runner = new EnterpriseAgentOs.Api.Database.Models.RunnerRecord
         {
             OwnerId = ownerId,
             Name = name,
@@ -19,22 +19,22 @@ public sealed class RunnerRepository : IRunnerRepository
         return runner;
     }
 
-    public async Task<List<RunnerRecord>> ListByOwnerAsync(Guid ownerId, CancellationToken ct)
+    public async Task<List<EnterpriseAgentOs.Api.Database.Models.RunnerRecord>> ListByOwnerAsync(Guid ownerId, CancellationToken ct)
         => await _db.Runners.Where(r => r.OwnerId == ownerId).OrderByDescending(r => r.CreatedAt).ToListAsync(ct);
 
-    public async Task<RunnerRecord?> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerRecord?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.Runners.FirstOrDefaultAsync(r => r.Id == id, ct);
 
-    public async Task<RunnerRecord?> GetByRegistrationTokenHashAsync(string hash, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerRecord?> GetByRegistrationTokenHashAsync(string hash, CancellationToken ct)
         => await _db.Runners.FirstOrDefaultAsync(r => r.RegistrationTokenHash == hash, ct);
 
-    public async Task<RunnerRecord?> GetByAuthTokenHashAsync(string hash, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerRecord?> GetByAuthTokenHashAsync(string hash, CancellationToken ct)
         => await _db.Runners.FirstOrDefaultAsync(r => r.AuthTokenHash == hash, ct);
 
-    public async Task<List<RunnerRecord>> GetOnlineRunnersAsync(CancellationToken ct)
+    public async Task<List<EnterpriseAgentOs.Api.Database.Models.RunnerRecord>> GetOnlineRunnersAsync(CancellationToken ct)
         => await _db.Runners.Where(r => r.Status == "online").ToListAsync(ct);
 
-    public async Task UpdateAsync(RunnerRecord runner, CancellationToken ct)
+    public async Task UpdateAsync(EnterpriseAgentOs.Api.Database.Models.RunnerRecord runner, CancellationToken ct)
     {
         _db.Runners.Update(runner);
         await _db.SaveChangesAsync(ct);

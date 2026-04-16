@@ -1,22 +1,20 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.AgentTemplates;
 
 public sealed class AgentTemplateService : IAgentTemplateService
 {
     private readonly IAgentTemplateRepository _repo;
-    private readonly IAgentService _agents;
-    private readonly IAgentSkillRepository _agentSkills;
-    private readonly IChannelRepository _channels;
-    private readonly IPostHogService _analytics;
+    private readonly EnterpriseAgentOs.Api.Entities.Agents.IAgentService _agents;
+    private readonly EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository _agentSkills;
+    private readonly EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository _channels;
+    private readonly EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService _analytics;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
         IAgentTemplateRepository repo,
-        IAgentService agents,
-        IAgentSkillRepository agentSkills,
-        IChannelRepository channels,
-        IPostHogService analytics,
+        EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
+        EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
+        EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository channels,
+        EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService analytics,
         ILogger<AgentTemplateService> logger)
     {
         _repo = repo;
@@ -39,7 +37,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
         return row is null ? null : ToDto(row);
     }
 
-    public async Task<AgentDto> CreateAgentFromTemplateAsync(
+    public async Task<EnterpriseAgentOs.Api.Entities.Agents.AgentDto> CreateAgentFromTemplateAsync(
         Guid templateId,
         string name,
         string provider,
@@ -53,7 +51,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
         var dto = ToDto(template);
 
         var agent = await _agents.CreateAsync(
-            new CreateAgentRequest(name, provider, model, template.Prompt),
+            new EnterpriseAgentOs.Api.Entities.Agents.CreateAgentRequest(name, provider, model, template.Prompt),
             ownerId: ownerId,
             ct);
 
@@ -72,7 +70,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
                 if (match is null) continue; // silently skip
                 try
                 {
-                    await _channels.CreateBindingAsync(new AgentChannelBindingRecord
+                    await _channels.CreateBindingAsync(new EnterpriseAgentOs.Api.Database.Models.AgentChannelBindingRecord
                     {
                         AgentId = agent.Id,
                         ChannelConnectionId = match.Id,
@@ -101,7 +99,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
         return agent;
     }
 
-    internal static AgentTemplateDto ToDto(AgentTemplateRecord record)
+    internal static AgentTemplateDto ToDto(EnterpriseAgentOs.Api.Database.Models.AgentTemplateRecord record)
     {
         var integrations = Deserialize(record.IntegrationsJson);
         var channels = Deserialize(record.ChannelsJson);

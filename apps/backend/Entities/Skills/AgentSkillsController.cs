@@ -1,23 +1,19 @@
-using System.Diagnostics;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Entities.Events;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 [ApiController]
 [Route("api/agents/me")]
-[AgentTokenAuth]
+[EnterpriseAgentOs.Api.Entities.Skills.AgentTokenAuth]
 public sealed class AgentSkillsController : ControllerBase
 {
     private readonly ISkillService _service;
     private readonly SkillRuntimeClient _runtime;
-    private readonly IRunnerRepository _runners;
-    private readonly IRunnerJobRepository _runnerJobs;
-    private readonly RunnerJobWaiter _jobWaiter;
+    private readonly EnterpriseAgentOs.Api.Entities.Runners.IRunnerRepository _runners;
+    private readonly EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository _runnerJobs;
+    private readonly EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter _jobWaiter;
     private readonly IBrowserSessionRepository _browserSessions;
-    private readonly ISystemEventService _events;
-    private readonly IAuditService _audit;
-    private readonly IRateLimitService _rateLimiter;
+    private readonly EnterpriseAgentOs.Api.Entities.Events.ISystemEventService _events;
+    private readonly EnterpriseAgentOs.Api.Entities.Audit.IAuditService _audit;
+    private readonly EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService _rateLimiter;
     private readonly ISkillCatalogRepository _catalog;
     private readonly ISkillRepository _skillRepo;
 
@@ -26,13 +22,13 @@ public sealed class AgentSkillsController : ControllerBase
     public AgentSkillsController(
         ISkillService service,
         SkillRuntimeClient runtime,
-        IRunnerRepository runners,
-        IRunnerJobRepository runnerJobs,
-        RunnerJobWaiter jobWaiter,
+        EnterpriseAgentOs.Api.Entities.Runners.IRunnerRepository runners,
+        EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository runnerJobs,
+        EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter jobWaiter,
         IBrowserSessionRepository browserSessions,
-        ISystemEventService events,
-        IAuditService audit,
-        IRateLimitService rateLimiter,
+        EnterpriseAgentOs.Api.Entities.Events.ISystemEventService events,
+        EnterpriseAgentOs.Api.Entities.Audit.IAuditService audit,
+        EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService rateLimiter,
         ISkillCatalogRepository catalog,
         ISkillRepository skillRepo,
         ILogger<AgentSkillsController> logger)
@@ -176,7 +172,7 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {result.Error}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _events.RecordAsync(new SystemEventRecord
+            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
             {
                 Severity = "error",
                 Category = "skill_execution",
@@ -193,7 +189,7 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {ex.Message}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _events.RecordAsync(new SystemEventRecord
+            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
             {
                 Severity = "error",
                 Category = "skill_execution",
@@ -255,7 +251,7 @@ public sealed class AgentSkillsController : ControllerBase
             if (result.Success)
                 return Ok(new { success = true, result = result.Result });
 
-            await _events.RecordAsync(new SystemEventRecord
+            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
             {
                 Severity = "error",
                 Category = "skill_execution",
@@ -274,7 +270,7 @@ public sealed class AgentSkillsController : ControllerBase
         catch (TimeoutException)
         {
             _jobWaiter.Remove(job.Id);
-            await _events.RecordAsync(new SystemEventRecord
+            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
             {
                 Severity = "error",
                 Category = "skill_execution",

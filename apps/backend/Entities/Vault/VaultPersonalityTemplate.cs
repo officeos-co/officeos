@@ -58,14 +58,14 @@ public static class VaultPersonalityTemplate
         foreach (var file in templateFiles)
         {
             var path = System.IO.Path.Combine(TemplateDirectory, file);
-            if (!File.Exists(path))
+            if (!System.IO.File.Exists(path))
             {
                 throw new FileNotFoundException(
                     $"Vault personality template not found: {path}. " +
                     "Templates must be present in Entities/Vault/Templates and copied to output.",
                     path);
             }
-            var raw = File.ReadAllText(path);
+            var raw = System.IO.File.ReadAllText(path);
             foreach (var (token, value) in tokens)
             {
                 raw = raw.Replace(token, value);

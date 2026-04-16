@@ -1,8 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-
 namespace EnterpriseAgentOs.Api.Tests.Billing;
 
 /// <summary>
@@ -11,11 +6,11 @@ namespace EnterpriseAgentOs.Api.Tests.Billing;
 /// Stripe is disabled (Enabled=false) in the test factory, so the webhook returns 503
 /// and the subscribe mutation surfaces a service-unavailable error.
 /// </summary>
-public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class BillingControllerTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
-    public BillingControllerTests(CustomWebApplicationFactory factory) => _factory = factory;
+    public BillingControllerTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     private const string SubscriptionQuery = @"
         {
@@ -34,9 +29,9 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetSubscription_ReturnsFreePlan()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         var sub = data.GetProperty("userSubscription");
         Assert.Equal("free", sub.GetProperty("plan").GetString());
     }
@@ -44,9 +39,9 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetSubscription_FreePlan_HasCorrectCreditBudget()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         Assert.Equal(500_000L, data.GetProperty("userSubscription")
             .GetProperty("creditBudgetPerMonth").GetInt64());
     }
@@ -54,9 +49,9 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetSubscription_FreePlan_HasConcurrentAgentLimitOfOne()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         Assert.Equal(1, data.GetProperty("userSubscription")
             .GetProperty("concurrentAgentLimit").GetInt32());
     }
@@ -64,9 +59,9 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task GetSubscription_FreePlan_IsActive()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await TestHelpers.GraphQLAsync(client, SubscriptionQuery);
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         Assert.True(data.GetProperty("userSubscription").GetProperty("isActive").GetBoolean());
     }
 
@@ -77,13 +72,13 @@ public sealed class BillingControllerTests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task Subscribe_WhenBillingDisabled_ReturnsError()
     {
-        var client = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
         const string mutation = @"
             mutation($plan: String!, $billingCycle: String!) {
               subscribeUser(plan: $plan, billingCycle: $billingCycle) { checkoutUrl }
             }";
-        var raw = await TestHelpers.GraphQLRawAsync(client, mutation,
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, mutation,
             new { plan = "pro", billingCycle = "monthly" });
 
         // Stripe disabled → service throws, which HotChocolate surfaces as a GraphQL error.

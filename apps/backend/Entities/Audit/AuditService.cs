@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Audit;
 
 public sealed class AuditService : IAuditService
@@ -31,22 +29,22 @@ public sealed class AuditService : IAuditService
         var correlationId = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
 
-        var toolCall = new AgentLogRecord
+        var toolCall = new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
         {
             AgentId = agentId,
             Time = now,
-            Type = AgentLogType.ToolCall,
+            Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.ToolCall,
             Tool = action,
             Integration = skillName,
             Content = redacted,
             CorrelationId = correlationId,
         };
 
-        var toolResult = new AgentLogRecord
+        var toolResult = new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
         {
             AgentId = agentId,
             Time = now.AddMilliseconds(1),
-            Type = AgentLogType.ToolResult,
+            Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.ToolResult,
             Tool = action,
             Integration = skillName,
             Content = resultSummary ?? string.Empty,
@@ -57,7 +55,7 @@ public sealed class AuditService : IAuditService
         await _repository.AddPairAsync(toolCall, toolResult);
     }
 
-    public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(
+    public async Task<(List<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord> Items, int Total)> GetAuditLogAsync(
         Guid agentId, int limit, int offset)
     {
         return await _repository.GetByAgentAsync(agentId, limit, offset);

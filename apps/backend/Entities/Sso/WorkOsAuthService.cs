@@ -2,10 +2,10 @@ namespace EnterpriseAgentOs.Api.Entities.Sso;
 
 public sealed class WorkOsAuthService : IWorkOsAuthService
 {
-    private readonly WorkOsConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.WorkOsConfig _config;
     private readonly ILogger<WorkOsAuthService> _logger;
 
-    public WorkOsAuthService(WorkOsConfig config, ILogger<WorkOsAuthService> logger)
+    public WorkOsAuthService(EnterpriseAgentOs.Api.Properties.WorkOsConfig config, ILogger<WorkOsAuthService> logger)
     {
         _config = config;
         _logger = logger;

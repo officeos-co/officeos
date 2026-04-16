@@ -1,21 +1,20 @@
-
 namespace EnterpriseAgentOs.Api.Entities.Agents;
 
 public sealed class AgentService : IAgentService
 {
     private readonly IAgentRepository _repository;
     private readonly IAgentDeployer _deployer;
-    private readonly IProviderService _providerService;
-    private readonly IVaultClient _vault;
-    private readonly IPostHogService _analytics;
+    private readonly EnterpriseAgentOs.Api.Entities.Providers.IProviderService _providerService;
+    private readonly EnterpriseAgentOs.Api.Entities.Vault.IVaultClient _vault;
+    private readonly EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService _analytics;
     private readonly ILogger<AgentService> _logger;
 
     public AgentService(
         IAgentRepository repository,
         IAgentDeployer deployer,
-        IProviderService providerService,
-        IVaultClient vault,
-        IPostHogService analytics,
+        EnterpriseAgentOs.Api.Entities.Providers.IProviderService providerService,
+        EnterpriseAgentOs.Api.Entities.Vault.IVaultClient vault,
+        EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService analytics,
         ILogger<AgentService> logger)
     {
         _repository = repository;
@@ -65,7 +64,7 @@ public sealed class AgentService : IAgentService
             }
         }
 
-        var record = new AgentRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.AgentRecord
         {
             Name = request.Name.Trim(),
             Provider = request.Provider.Trim().ToLowerInvariant(),
@@ -81,9 +80,9 @@ public sealed class AgentService : IAgentService
             // inference time based on request complexity and agent provider family.
             record.Model = "auto";
         }
-        else if (!KnownModels.IsValid(record.Model))
+        else if (!EnterpriseAgentOs.Api.Entities.Providers.KnownModels.IsValid(record.Model))
         {
-            var allowed = string.Join(", ", KnownModels.SupportedModels);
+            var allowed = string.Join(", ", EnterpriseAgentOs.Api.Entities.Providers.KnownModels.SupportedModels);
             throw new InvalidOperationException(
                 $"Model '{record.Model}' is not a known model. " +
                 $"Allowed: {allowed}");
@@ -162,7 +161,7 @@ public sealed class AgentService : IAgentService
         if (request.Model is not null)
         {
             var model = request.Model.Trim();
-            if (model.Length > 0 && !KnownModels.IsValid(model))
+            if (model.Length > 0 && !EnterpriseAgentOs.Api.Entities.Providers.KnownModels.IsValid(model))
             {
                 throw new InvalidOperationException(
                     $"Model '{model}' is not a known model.");
@@ -224,7 +223,7 @@ public sealed class AgentService : IAgentService
         return deleted;
     }
 
-    private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)
+    private async Task RefreshStatusAsync(EnterpriseAgentOs.Api.Database.Models.AgentRecord record, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(record.PodName)) return;
         try
@@ -256,7 +255,7 @@ public sealed class AgentService : IAgentService
     private static bool IsKeylessProvider(string name) =>
         KeylessProviders.Contains(name);
 
-    private static AgentDto ToDto(AgentRecord record) =>
+    private static AgentDto ToDto(EnterpriseAgentOs.Api.Database.Models.AgentRecord record) =>
         new(record.Id, record.Name, record.Provider, record.Model, record.Prompt, record.Status,
             record.PodName, record.ServiceUrl, record.CreatedAt);
 }

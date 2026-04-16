@@ -2,13 +2,13 @@ namespace EnterpriseAgentOs.Api.Entities.Runners;
 
 public sealed class RunnerJobRepository : IRunnerJobRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public RunnerJobRepository(EaosDbContext db) => _db = db;
+    public RunnerJobRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db) => _db = db;
 
-    public async Task<RunnerJobRecord> CreateAsync(Guid runnerId, string payload, TimeSpan claimTimeout, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord> CreateAsync(Guid runnerId, string payload, TimeSpan claimTimeout, CancellationToken ct)
     {
-        var job = new RunnerJobRecord
+        var job = new EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord
         {
             RunnerId = runnerId,
             Payload = payload,
@@ -19,7 +19,7 @@ public sealed class RunnerJobRepository : IRunnerJobRepository
         return job;
     }
 
-    public async Task<RunnerJobRecord?> ClaimNextAsync(Guid runnerId, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord?> ClaimNextAsync(Guid runnerId, CancellationToken ct)
     {
         var job = await _db.RunnerJobs
             .Where(j => j.RunnerId == runnerId && j.Status == "pending")
@@ -34,16 +34,16 @@ public sealed class RunnerJobRepository : IRunnerJobRepository
         return job;
     }
 
-    public async Task<RunnerJobRecord?> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.RunnerJobs.FirstOrDefaultAsync(j => j.Id == id, ct);
 
-    public async Task UpdateAsync(RunnerJobRecord job, CancellationToken ct)
+    public async Task UpdateAsync(EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord job, CancellationToken ct)
     {
         _db.RunnerJobs.Update(job);
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<List<RunnerJobRecord>> GetRecentByRunnerAsync(Guid runnerId, int limit, CancellationToken ct)
+    public async Task<List<EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord>> GetRecentByRunnerAsync(Guid runnerId, int limit, CancellationToken ct)
         => await _db.RunnerJobs
             .Where(j => j.RunnerId == runnerId)
             .OrderByDescending(j => j.CreatedAt)

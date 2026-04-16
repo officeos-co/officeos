@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.DataProtection;
-
 namespace EnterpriseAgentOs.Api.Entities.Channels;
 
 public sealed class ChannelConfigProtector

@@ -1,45 +1,38 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
-
 namespace EnterpriseAgentOs.Api.Tests;
 
 /// <summary>
 /// End-to-end tests that exercise the full flow: dashboard creates agent + runner,
 /// agent calls skill-exec, runner claims job, posts result, agent gets result.
 /// </summary>
-public sealed class RoundTripTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class RoundTripTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
-    public RoundTripTests(CustomWebApplicationFactory factory) => _factory = factory;
+    public RoundTripTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     [Fact]
     public async Task FullRunnerRoundTrip_AgentCallsSkillExec_RunnerCompletesJob()
     {
         SeedNotionManifest();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
         // 1. Create agent
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, "roundtrip-agent");
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "roundtrip-agent");
 
         // 2. Create and register runner
-        var (_, regToken) = await TestHelpers.CreateRunnerAsync(dashClient, "roundtrip-runner");
-        var runner = new MockRunnerClient(_factory.CreateClient());
+        var (_, regToken) = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateRunnerAsync(dashClient, "roundtrip-runner");
+        var runner = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockRunnerClient(_factory.CreateClient());
         var regResp = await runner.RegisterAsync(regToken, "1.0.0");
         Assert.Equal(HttpStatusCode.OK, regResp.StatusCode);
 
         // 3. Install skill and set to runner target
-        await TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-key" });
-        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-key" });
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
         // 4. Agent calls skill-exec (starts waiting for runner result)
-        var agent = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var execTask = agent.SkillExecAsync("notion", "search", new { query = "roundtrip" });
 
         // 5. Runner polls for job (small delay to let the job be created)
@@ -69,18 +62,18 @@ public sealed class RoundTripTests : IClassFixture<CustomWebApplicationFactory>
     {
         SeedNotionManifest();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, "roundtrip-fail-agent");
-        var (_, regToken) = await TestHelpers.CreateRunnerAsync(dashClient, "roundtrip-fail-runner");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "roundtrip-fail-agent");
+        var (_, regToken) = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateRunnerAsync(dashClient, "roundtrip-fail-runner");
 
-        var runner = new MockRunnerClient(_factory.CreateClient());
+        var runner = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockRunnerClient(_factory.CreateClient());
         await runner.RegisterAsync(regToken);
 
-        await TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
-        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
-        var agent = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var execTask = agent.SkillExecAsync("notion", "search", new { query = "fail" });
 
         await Task.Delay(100);
@@ -101,23 +94,23 @@ public sealed class RoundTripTests : IClassFixture<CustomWebApplicationFactory>
     {
         SeedNotionManifest();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, "concurrent-agent");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "concurrent-agent");
 
         // Create two runners
-        var (_, regToken1) = await TestHelpers.CreateRunnerAsync(dashClient, "concurrent-runner-1");
-        var (_, regToken2) = await TestHelpers.CreateRunnerAsync(dashClient, "concurrent-runner-2");
+        var (_, regToken1) = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateRunnerAsync(dashClient, "concurrent-runner-1");
+        var (_, regToken2) = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateRunnerAsync(dashClient, "concurrent-runner-2");
 
-        var runner1 = new MockRunnerClient(_factory.CreateClient());
+        var runner1 = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockRunnerClient(_factory.CreateClient());
         await runner1.RegisterAsync(regToken1);
-        var runner2 = new MockRunnerClient(_factory.CreateClient());
+        var runner2 = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockRunnerClient(_factory.CreateClient());
         await runner2.RegisterAsync(regToken2);
 
-        await TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
-        await TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
 
-        var agent = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         _ = agent.SkillExecAsync("notion", "search", new { query = "concurrent" });
 
         await Task.Delay(100);

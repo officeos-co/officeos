@@ -53,6 +53,6 @@ public sealed class ProviderService : IProviderService
         return _protector.Unprotect(record.EncryptedApiKey);
     }
 
-    private static ProviderDto ToDto(ProviderRecord record) =>
+    private static ProviderDto ToDto(EnterpriseAgentOs.Api.Database.Models.ProviderRecord record) =>
         new(record.Id, record.Name, record.DisplayName, record.Configured, record.ConfiguredAt);
 }

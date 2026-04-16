@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Runners;
 
 /// <summary>
@@ -29,7 +26,7 @@ public sealed class RunnerApiController : ControllerBase
         _logger = logger;
     }
 
-    private RunnerRecord? CurrentRunner => HttpContext.Items["Runner"] as RunnerRecord;
+    private EnterpriseAgentOs.Api.Database.Models.RunnerRecord? CurrentRunner => HttpContext.Items["Runner"] as EnterpriseAgentOs.Api.Database.Models.RunnerRecord;
 
     /// <summary>
     /// Runner registers with its one-time registration token.
@@ -41,7 +38,7 @@ public sealed class RunnerApiController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.RegistrationToken))
             return BadRequest(new { error = "registrationToken is required" });
 
-        var hash = SessionAuthMiddleware.HashToken(body.RegistrationToken);
+        var hash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(body.RegistrationToken);
         var runner = await _runners.GetByRegistrationTokenHashAsync(hash, ct);
 
         if (runner is null)
@@ -59,7 +56,7 @@ public sealed class RunnerApiController : ControllerBase
 
         // Issue auth token
         var authToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var authHash = SessionAuthMiddleware.HashToken(authToken);
+        var authHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(authToken);
 
         runner.AuthTokenHash = authHash;
         runner.Status = "online";

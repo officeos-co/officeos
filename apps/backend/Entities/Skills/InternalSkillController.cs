@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 [ApiController]
@@ -56,7 +54,7 @@ public sealed class InternalSkillController : ControllerBase
 
             if (existing is null)
             {
-                await _catalog.UpsertAsync(new SkillRecord
+                await _catalog.UpsertAsync(new EnterpriseAgentOs.Api.Database.Models.SkillRecord
                 {
                     Name = name,
                     Title = manifest.Title,

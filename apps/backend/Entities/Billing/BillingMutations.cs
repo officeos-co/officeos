@@ -1,19 +1,18 @@
 // Dashboard mutation set — add more from Entities/Billing/BillingController.cs as dashboard-2 needs them
-using HotChocolate.Resolvers;
 
 namespace EnterpriseAgentOs.Api.Mutations;
 
-[ExtendObjectType(typeof(GraphQLMutations))]
+[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class BillingMutations
 {
-    public async Task<SubscribeResultDto> SubscribeUser(
+    public async Task<EnterpriseAgentOs.Api.Entities.Billing.Types.SubscribeResultDto> SubscribeUser(
         string plan,
         string billingCycle,
         IResolverContext context,
-        [Service] IUserBillingService userBilling,
+        [Service] EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         if (plan != "free" && plan != "pro")
         {
             throw new GraphQLException(
@@ -33,15 +32,15 @@ public class BillingMutations
 
         var checkoutUrl = await userBilling.CreateCheckoutSessionAsync(
             user.Id, user.Email, plan, billingCycle, ct);
-        return new SubscribeResultDto(checkoutUrl);
+        return new EnterpriseAgentOs.Api.Entities.Billing.Types.SubscribeResultDto(checkoutUrl);
     }
 
-    public async Task<UserSubscriptionDto> CancelUserSubscription(
+    public async Task<EnterpriseAgentOs.Api.Entities.Billing.Types.UserSubscriptionDto> CancelUserSubscription(
         IResolverContext context,
-        [Service] IUserBillingService userBilling,
+        [Service] EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         // IUserBillingService has no dedicated cancel method; Stripe portal handles
         // cancellation via CreatePortalSessionAsync. For dashboard parity we expose a
         // mutation that disables overage and returns the current subscription.
@@ -50,24 +49,24 @@ public class BillingMutations
         await userBilling.EnableOverageAsync(user.Id, user.Email, false, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        return new UserSubscriptionDto(
+        return new EnterpriseAgentOs.Api.Entities.Billing.Types.UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,
             sub.OverageEnabled, sub.PeriodStart, sub.PeriodEnd, sub.IsActive);
     }
 
-    public async Task<UserSubscriptionDto> ToggleOverage(
+    public async Task<EnterpriseAgentOs.Api.Entities.Billing.Types.UserSubscriptionDto> ToggleOverage(
         bool enabled,
         IResolverContext context,
-        [Service] IUserBillingService userBilling,
+        [Service] EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        return new UserSubscriptionDto(
+        return new EnterpriseAgentOs.Api.Entities.Billing.Types.UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,

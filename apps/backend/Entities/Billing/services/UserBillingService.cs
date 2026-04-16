@@ -1,19 +1,16 @@
-using Stripe;
-using Stripe.Checkout;
-
 namespace EnterpriseAgentOs.Api.Entities.Billing;
 
 public sealed class UserBillingService : IUserBillingService
 {
-    private readonly StripeConfig _config;
-    private readonly FrontendConfig _frontend;
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Properties.StripeConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.FrontendConfig _frontend;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly ILogger<UserBillingService> _logger;
 
     public UserBillingService(
-        StripeConfig config,
-        FrontendConfig frontend,
-        EaosDbContext db,
+        EnterpriseAgentOs.Api.Properties.StripeConfig config,
+        EnterpriseAgentOs.Api.Properties.FrontendConfig frontend,
+        EnterpriseAgentOs.Api.Database.EaosDbContext db,
         ILogger<UserBillingService> logger)
     {
         _config = config;

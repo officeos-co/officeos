@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.DataProtection;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class AgentBackendTokenProtector

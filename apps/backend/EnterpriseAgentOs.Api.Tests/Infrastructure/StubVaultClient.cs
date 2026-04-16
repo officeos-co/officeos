@@ -1,11 +1,9 @@
-using EnterpriseAgentOs.Api.Entities.Vault;
-
 namespace EnterpriseAgentOs.Api.Tests.Infrastructure;
 
 /// <summary>
 /// No-op vault client for integration tests. Avoids needing a real CouchDB.
 /// </summary>
-public sealed class StubVaultClient : IVaultClient
+public sealed class StubVaultClient : EnterpriseAgentOs.Api.Entities.Vault.IVaultClient
 {
     public Task CreateAgentVaultAsync(Guid agentId, string agentName, string provider, string? model, CancellationToken ct = default)
         => Task.CompletedTask;

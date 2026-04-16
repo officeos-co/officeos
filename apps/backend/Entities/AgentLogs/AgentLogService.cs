@@ -4,14 +4,14 @@ public sealed class AgentLogService : IAgentLogService
 {
     private readonly IAgentLogRepository _repo;
     private readonly ITopicEventSender _sender;
-    private readonly IAgentRepository _agents;
-    private readonly IPostHogService _analytics;
+    private readonly EnterpriseAgentOs.Api.Entities.Agents.IAgentRepository _agents;
+    private readonly EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService _analytics;
 
     public AgentLogService(
         IAgentLogRepository repo,
         ITopicEventSender sender,
-        IAgentRepository agents,
-        IPostHogService analytics)
+        EnterpriseAgentOs.Api.Entities.Agents.IAgentRepository agents,
+        EnterpriseAgentOs.Api.Entities.PostHog.IPostHogService analytics)
     {
         _repo = repo;
         _sender = sender;
@@ -19,7 +19,7 @@ public sealed class AgentLogService : IAgentLogService
         _analytics = analytics;
     }
 
-    public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
+    public Task<List<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
         => _repo.ListAsync(agentId, before, limit, ct);
 
     public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default)
@@ -31,14 +31,14 @@ public sealed class AgentLogService : IAgentLogService
         return new GlobalLogsPage(items, total);
     }
 
-    public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord> AppendAsync(EnterpriseAgentOs.Api.Database.Models.AgentLogRecord record, CancellationToken ct = default)
     {
         var saved = await _repo.AppendAsync(record, ct);
         await _sender.SendAsync($"agent-log:{saved.AgentId}", saved.ToDto(), ct);
         return saved;
     }
 
-    public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
     {
         var agent = await _agents.GetAsync(agentId, ct)
             ?? throw new GraphQLException(
@@ -47,11 +47,11 @@ public sealed class AgentLogService : IAgentLogService
                     .SetCode("NOT_FOUND")
                     .Build());
 
-        var record = new AgentLogRecord
+        var record = new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
         {
             AgentId = agent.Id,
             Time = DateTime.UtcNow,
-            Type = AgentLogType.MessageIn,
+            Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.MessageIn,
             Content = content,
             CorrelationId = Guid.NewGuid().ToString(),
         };

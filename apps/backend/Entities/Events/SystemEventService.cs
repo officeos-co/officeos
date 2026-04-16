@@ -2,26 +2,26 @@ namespace EnterpriseAgentOs.Api.Entities.Events;
 
 public interface ISystemEventService
 {
-    Task<SystemEventRecord> RecordAsync(SystemEventRecord ev, CancellationToken ct = default);
-    Task<IReadOnlyList<SystemEventRecord>> ListRecentAsync(
+    Task<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord> RecordAsync(EnterpriseAgentOs.Api.Database.Models.SystemEventRecord ev, CancellationToken ct = default);
+    Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord>> ListRecentAsync(
         int limit = 50, string? severity = null, string? category = null, CancellationToken ct = default);
     Task AcknowledgeAsync(Guid id, CancellationToken ct = default);
 }
 
 public sealed class SystemEventService : ISystemEventService
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly SystemEventBroadcaster _broadcaster;
     private readonly ILogger<SystemEventService> _logger;
 
-    public SystemEventService(EaosDbContext db, SystemEventBroadcaster broadcaster, ILogger<SystemEventService> logger)
+    public SystemEventService(EnterpriseAgentOs.Api.Database.EaosDbContext db, SystemEventBroadcaster broadcaster, ILogger<SystemEventService> logger)
     {
         _db = db;
         _broadcaster = broadcaster;
         _logger = logger;
     }
 
-    public async Task<SystemEventRecord> RecordAsync(SystemEventRecord ev, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord> RecordAsync(EnterpriseAgentOs.Api.Database.Models.SystemEventRecord ev, CancellationToken ct = default)
     {
         _db.SystemEvents.Add(ev);
         await _db.SaveChangesAsync(ct);
@@ -31,7 +31,7 @@ public sealed class SystemEventService : ISystemEventService
         return ev;
     }
 
-    public async Task<IReadOnlyList<SystemEventRecord>> ListRecentAsync(
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SystemEventRecord>> ListRecentAsync(
         int limit = 50, string? severity = null, string? category = null, CancellationToken ct = default)
     {
         var query = _db.SystemEvents.AsQueryable();

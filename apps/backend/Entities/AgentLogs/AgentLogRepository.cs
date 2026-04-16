@@ -2,11 +2,11 @@ namespace EnterpriseAgentOs.Api.Entities.AgentLogs;
 
 public sealed class AgentLogRepository : IAgentLogRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public AgentLogRepository(EaosDbContext db) => _db = db;
+    public AgentLogRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db) => _db = db;
 
-    public async Task<List<AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
+    public async Task<List<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
     {
         var q = _db.AgentLogs.Where(l => l.AgentId == agentId);
         if (before.HasValue) q = q.Where(l => l.Time < before.Value);
@@ -14,7 +14,7 @@ public sealed class AgentLogRepository : IAgentLogRepository
     }
 
     public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
-        string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
+        string? search, string? agentName, EnterpriseAgentOs.Api.Database.Models.AgentLogType? type, int skip, int limit, CancellationToken ct = default)
     {
         var q = from l in _db.AgentLogs
                 join a in _db.Agents on l.AgentId equals a.Id
@@ -41,13 +41,13 @@ public sealed class AgentLogRepository : IAgentLogRepository
         return (rows.Select(x => new GlobalLogRow(x.Log, x.AgentName)).ToList(), total);
     }
 
-    public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord> AppendAsync(EnterpriseAgentOs.Api.Database.Models.AgentLogRecord record, CancellationToken ct = default)
     {
         _db.AgentLogs.Add(record);
         await _db.SaveChangesAsync(ct);
         return record;
     }
 
-    public Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public Task<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => _db.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
 }

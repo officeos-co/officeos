@@ -6,9 +6,9 @@ public sealed class RateLimitService : IRateLimitService
     private const string EmailBucket = "email";
 
     private readonly IRateLimitRepository _repository;
-    private readonly RateLimitingConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.RateLimitingConfig _config;
 
-    public RateLimitService(IRateLimitRepository repository, RateLimitingConfig config)
+    public RateLimitService(IRateLimitRepository repository, EnterpriseAgentOs.Api.Properties.RateLimitingConfig config)
     {
         _repository = repository;
         _config = config;

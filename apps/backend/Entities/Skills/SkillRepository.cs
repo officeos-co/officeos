@@ -2,25 +2,25 @@ namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 public sealed class SkillRepository : ISkillRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public SkillRepository(EaosDbContext db)
+    public SkillRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<SkillCredentialRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord>> ListAsync(CancellationToken ct = default)
     {
         return await _db.SkillCredentials.AsNoTracking().OrderBy(s => s.SkillName).ToListAsync(ct);
     }
 
-    public async Task<SkillCredentialRecord?> GetByNameAsync(string skillName, CancellationToken ct = default)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord?> GetByNameAsync(string skillName, CancellationToken ct = default)
     {
         var name = skillName.Trim().ToLowerInvariant();
         return await _db.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
     }
 
-    public async Task<SkillCredentialRecord> UpsertAsync(
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord> UpsertAsync(
         string skillName,
         bool? enabled,
         string? encryptedCredentials,
@@ -30,7 +30,7 @@ public sealed class SkillRepository : ISkillRepository
         var row = await _db.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
         if (row is null)
         {
-            row = new SkillCredentialRecord
+            row = new EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord
             {
                 SkillName = name,
                 Enabled = enabled ?? false,
@@ -67,7 +67,7 @@ public sealed class SkillRepository : ISkillRepository
         var row = await _db.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
         if (row is null)
         {
-            row = new SkillCredentialRecord { SkillName = name, RunTarget = runTarget };
+            row = new EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord { SkillName = name, RunTarget = runTarget };
             _db.SkillCredentials.Add(row);
         }
         else

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc.Filters;
-
 namespace EnterpriseAgentOs.Api.Entities.Runners;
 
 /// <summary>
@@ -21,7 +19,7 @@ public sealed class RunnerAuthAttribute : Attribute, IAsyncAuthorizationFilter
         }
 
         var token = header.Substring("Bearer ".Length).Trim();
-        var hash = SessionAuthMiddleware.HashToken(token);
+        var hash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(token);
 
         var repo = http.RequestServices.GetRequiredService<IRunnerRepository>();
         var runner = await repo.GetByAuthTokenHashAsync(hash);

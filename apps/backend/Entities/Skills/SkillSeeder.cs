@@ -12,7 +12,7 @@ public static class SkillSeeder
     public static async Task SeedAsync(IServiceProvider services)
     {
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("SkillSeeder");
-        var db = services.GetRequiredService<EaosDbContext>();
+        var db = services.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
 
         var builtinCount = await db.Skills.CountAsync(s => s.Source == "builtin");
         if (builtinCount > 0)
@@ -23,7 +23,7 @@ public static class SkillSeeder
 
         logger.LogWarning("No builtin skills in database — falling back to runtime manifest fetch (this should only happen on first deployment)");
 
-        var config = services.GetRequiredService<SkillRuntimeConfig>();
+        var config = services.GetRequiredService<EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig>();
         IReadOnlyList<RuntimeManifest> manifests;
         try
         {
@@ -62,7 +62,7 @@ public static class SkillSeeder
         {
             var name = manifest.Name.Trim().ToLowerInvariant();
             var manifestJson = System.Text.Json.JsonSerializer.Serialize(manifest, jsonOptions);
-            db.Skills.Add(new SkillRecord
+            db.Skills.Add(new EnterpriseAgentOs.Api.Database.Models.SkillRecord
             {
                 Name = name,
                 Title = manifest.Title,

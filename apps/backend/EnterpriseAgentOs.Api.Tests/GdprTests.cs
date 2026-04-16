@@ -1,22 +1,14 @@
-using System.Net;
-using System.Text.Json;
-using EnterpriseAgentOs.Api.Tests.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
-using EnterpriseAgentOs.Api.Database;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
-
 namespace EnterpriseAgentOs.Api.Tests;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GDPR compliance tests
 // ─────────────────────────────────────────────────────────────────────────────
 
-public sealed class GdprTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
-    public GdprTests(CustomWebApplicationFactory factory) => _factory = factory;
+    public GdprTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     // ── 1. Export returns user data ──────────────────────────────────────────
 
@@ -24,8 +16,8 @@ public sealed class GdprTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GdprExport_ReturnsUserDataAsJson()
     {
         var email = $"gdpr-export-{Guid.NewGuid():N}@example.com";
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
-        await TestHelpers.CreateAgentAsync(dashClient, "export-test-agent");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
+        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "export-test-agent");
 
         var response = await dashClient.GetAsync("/api/gdpr/export");
 
@@ -57,11 +49,11 @@ public sealed class GdprTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GdprPurge_DeletesAllUserData()
     {
         var email = $"gdpr-purge-{Guid.NewGuid():N}@example.com";
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, "purge-test-agent");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "purge-test-agent");
 
         // Confirm the agent exists before purge
-        var beforeData = await TestHelpers.GraphQLAsync(
+        var beforeData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
             dashClient,
             "query($id: UUID!) { agent(id: $id) { id } }",
             new { id = agentId });
@@ -72,12 +64,12 @@ public sealed class GdprTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.NoContent, purgeResponse.StatusCode);
 
         // The same session cookie is now invalid — any authenticated GraphQL call errors
-        var afterAuth = await TestHelpers.GraphQLRawAsync(dashClient, "{ agents { id } }");
+        var afterAuth = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(dashClient, "{ agents { id } }");
         Assert.True(afterAuth.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
 
         // Verify the agent record is gone in the DB
         using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
         var agentInDb = await db.Agents.FindAsync(agentId);
         Assert.Null(agentInDb);
     }
@@ -98,15 +90,15 @@ public sealed class GdprTests : IClassFixture<CustomWebApplicationFactory>
 // LLM prompt-injection guardrail tests
 // ─────────────────────────────────────────────────────────────────────────────
 
-public sealed class GuardrailTests : IClassFixture<CustomWebApplicationFactory>
+public sealed class GuardrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
 
     // Minimal valid JSON response that satisfies the proxy's streaming reader
     private const string FakeLlmResponse =
         """{"id":"test","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"usage":{"total_tokens":10}}""";
 
-    public GuardrailTests(CustomWebApplicationFactory factory)
+    public GuardrailTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory)
     {
         _factory = factory;
 
@@ -139,10 +131,10 @@ public sealed class GuardrailTests : IClassFixture<CustomWebApplicationFactory>
     {
         _factory.LiteLlmMock.ResetLogEntries();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, "guardrail-agent-1");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "guardrail-agent-1");
 
-        var agentClient = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agentClient = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agentClient.ChatCompletionAsync(new
         {
             model = "claude-sonnet-4-6",
@@ -182,12 +174,12 @@ public sealed class GuardrailTests : IClassFixture<CustomWebApplicationFactory>
     {
         _factory.LiteLlmMock.ResetLogEntries();
 
-        var dashClient = await TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await TestHelpers.CreateAgentAsync(dashClient, "guardrail-agent-2");
+        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "guardrail-agent-2");
 
         const string originalSystemContent = "You are a helpful assistant for enterprise tasks.";
 
-        var agentClient = new MockAgentClient(_factory.CreateClient(), agentId);
+        var agentClient = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agentClient.ChatCompletionAsync(new
         {
             model = "claude-sonnet-4-6",

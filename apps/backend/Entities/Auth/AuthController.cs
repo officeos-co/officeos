@@ -1,21 +1,17 @@
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Auth;
 
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthController : ControllerBase
 {
-    private readonly GoogleOAuthConfig _oauth;
+    private readonly EnterpriseAgentOs.Api.Properties.GoogleOAuthConfig _oauth;
     private readonly IUserRepository _users;
     private readonly ISessionRepository _sessions;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
-        GoogleOAuthConfig oauth,
+        EnterpriseAgentOs.Api.Properties.GoogleOAuthConfig oauth,
         IUserRepository users,
         ISessionRepository sessions,
         IHttpClientFactory httpFactory,
@@ -111,7 +107,7 @@ public sealed class AuthController : ControllerBase
 
             // Create session
             var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-            var tokenHash = SessionAuthMiddleware.HashToken(sessionToken);
+            var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
             await _sessions.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
             _logger.LogInformation("OAuth: session created for {Email}, hash prefix {HashPrefix}...",
                 email, tokenHash[..8]);

@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-
 namespace EnterpriseAgentOs.Api.Middleware;
 
 public sealed class SessionAuthMiddleware
@@ -55,7 +52,7 @@ public sealed class SessionAuthMiddleware
             var decoded = Uri.UnescapeDataString(cookie);
             var tokenHash = HashToken(decoded);
 
-            var sessionRepo = context.RequestServices.GetRequiredService<ISessionRepository>();
+            var sessionRepo = context.RequestServices.GetRequiredService<EnterpriseAgentOs.Api.Entities.Auth.ISessionRepository>();
             var session = await sessionRepo.GetByTokenHashAsync(tokenHash);
 
             if (session is null)

@@ -1,6 +1,3 @@
-using System.Text;
-using System.Text.Json;
-
 namespace EnterpriseAgentOs.Api.Entities.Channels;
 
 /// <summary>
@@ -79,7 +76,7 @@ public sealed class ChannelMessageRouter
     /// Send a reply back through the platform API.
     /// </summary>
     public async Task SendPlatformReplyAsync(
-        ChannelConnectionRecord connection,
+        EnterpriseAgentOs.Api.Database.Models.ChannelConnectionRecord connection,
         string channelId,
         string text,
         CancellationToken ct = default)
@@ -104,7 +101,7 @@ public sealed class ChannelMessageRouter
         }
     }
 
-    public Dictionary<string, string> GetDecryptedConfig(ChannelConnectionRecord connection)
+    public Dictionary<string, string> GetDecryptedConfig(EnterpriseAgentOs.Api.Database.Models.ChannelConnectionRecord connection)
     {
         if (string.IsNullOrEmpty(connection.EncryptedConfig))
             return new Dictionary<string, string>();

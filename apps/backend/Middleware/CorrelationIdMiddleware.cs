@@ -1,5 +1,3 @@
-using Serilog.Context;
-
 namespace EnterpriseAgentOs.Api.Middleware;
 
 public sealed class CorrelationIdMiddleware

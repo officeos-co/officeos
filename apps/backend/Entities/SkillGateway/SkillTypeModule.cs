@@ -1,14 +1,7 @@
-using System.Text.Json;
-using HotChocolate.Execution.Configuration;
-using HotChocolate.Language;
-using HotChocolate.Resolvers;
-using HotChocolate.Types.Descriptors;
-using HotChocolate.Types.Descriptors.Definitions;
-
 namespace EnterpriseAgentOs.Api.Entities.SkillGateway;
 
 /// <summary>
-/// HotChocolate ITypeModule that generates the entire GraphQL skill schema
+/// HotChocolate HotChocolate.Execution.Configuration.ITypeModule that generates the entire GraphQL skill schema
 /// dynamically from skill-runtime manifests. The backend has zero hardcoded
 /// knowledge of specific skills — it reads manifests at startup and generates
 /// query fields, argument types, and return types from them.
@@ -19,7 +12,7 @@ namespace EnterpriseAgentOs.Api.Entities.SkillGateway;
 /// Resolvers call SkillRuntimeClient.ExecuteAsync() to dispatch
 /// execution to the skill-runtime Node.js service.
 /// </summary>
-public sealed class SkillTypeModule : ITypeModule
+public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.ITypeModule
 {
     private readonly IServiceProvider _services;
 
@@ -37,20 +30,20 @@ public sealed class SkillTypeModule : ITypeModule
         var types = new List<ITypeSystemMember>();
 
         using var scope = _services.CreateScope();
-        var catalog = scope.ServiceProvider.GetRequiredService<ISkillCatalogRepository>();
+        var catalog = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Entities.Skills.ISkillCatalogRepository>();
         var records = await catalog.ListActiveAsync(ct);
         var manifests = records
             .Select(r =>
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<RuntimeManifest>(r.ManifestJson,
+                    return JsonSerializer.Deserialize<EnterpriseAgentOs.Api.Entities.Skills.RuntimeManifest>(r.ManifestJson,
                         new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
                 }
                 catch { return null; }
             })
             .Where(m => m is not null)
-            .Cast<RuntimeManifest>()
+            .Cast<EnterpriseAgentOs.Api.Entities.Skills.RuntimeManifest>()
             .ToList();
 
         var queryExtDef = new ObjectTypeDefinition("Query");
@@ -92,7 +85,7 @@ public sealed class SkillTypeModule : ITypeModule
                     }
 
                     // Get credentials for this skill
-                    var svc = ctx.Service<ISkillService>();
+                    var svc = ctx.Service<EnterpriseAgentOs.Api.Entities.Skills.ISkillService>();
                     var creds = await svc.GetDecryptedCredentialsAsync(skillName, ctx.RequestAborted);
                     if (creds is null)
                     {
@@ -101,7 +94,7 @@ public sealed class SkillTypeModule : ITypeModule
                     }
 
                     // Dispatch to skill runtime
-                    var client = ctx.Service<SkillRuntimeClient>();
+                    var client = ctx.Service<EnterpriseAgentOs.Api.Entities.Skills.SkillRuntimeClient>();
                     var result = await client.ExecuteAsync(
                         skillName, actionKey, parameters, creds, ct: ctx.RequestAborted);
 

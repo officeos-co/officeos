@@ -5,7 +5,7 @@ public sealed record AgentLogDto(
     Guid AgentId,
     string? AgentName,
     DateTime Time,
-    AgentLogType Type,
+    EnterpriseAgentOs.Api.Database.Models.AgentLogType Type,
     string? Tool,
     string? Integration,
     string? Channel,
@@ -18,7 +18,7 @@ public sealed record AgentLogDto(
 public sealed record GlobalLogFiltersInput(
     string? Search = null,
     string? AgentName = null,
-    AgentLogType? Type = null,
+    EnterpriseAgentOs.Api.Database.Models.AgentLogType? Type = null,
     int Skip = 0,
     int Limit = 50);
 
@@ -26,7 +26,7 @@ public sealed record GlobalLogsPage(IReadOnlyList<AgentLogDto> Items, int Total)
 
 public sealed record AppendAgentLogInput(
     Guid AgentId,
-    AgentLogType Type,
+    EnterpriseAgentOs.Api.Database.Models.AgentLogType Type,
     string Content,
     string? Tool = null,
     string? Integration = null,
@@ -35,7 +35,7 @@ public sealed record AppendAgentLogInput(
 
 public static class AgentLogMapper
 {
-    public static AgentLogDto ToDto(this AgentLogRecord r, string? agentName = null) => new(
+    public static AgentLogDto ToDto(this EnterpriseAgentOs.Api.Database.Models.AgentLogRecord r, string? agentName = null) => new(
         r.Id, r.AgentId, agentName, r.Time, r.Type,
         r.Tool, r.Integration, r.Channel, r.Content,
         r.DurationMs, r.InputTokens, r.OutputTokens, r.CorrelationId);

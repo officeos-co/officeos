@@ -1,6 +1,3 @@
-using Amazon.S3;
-using Amazon.S3.Model;
-
 namespace EnterpriseAgentOs.Api.Entities.Skills;
 
 /// <summary>
@@ -14,12 +11,12 @@ public sealed class SkillController : ControllerBase
 {
     private readonly ISkillCatalogRepository _catalog;
     private readonly IAmazonS3 _s3;
-    private readonly SkillStorageConfig _storage;
+    private readonly EnterpriseAgentOs.Api.Properties.SkillStorageConfig _storage;
 
     public SkillController(
         ISkillCatalogRepository catalog,
         IAmazonS3 s3,
-        SkillStorageConfig storage)
+        EnterpriseAgentOs.Api.Properties.SkillStorageConfig storage)
     {
         _catalog = catalog;
         _s3 = s3;

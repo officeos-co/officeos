@@ -1,6 +1,3 @@
-using System.Reflection;
-using HotChocolate.Execution.Configuration;
-
 namespace EnterpriseAgentOs.Api.Extensions;
 
 public static class GraphQLRegistrationExtensions
@@ -11,8 +8,8 @@ public static class GraphQLRegistrationExtensions
     /// every domain own its own <c>*Queries.cs</c> / <c>*Mutations.cs</c> / <c>*Subscriptions.cs</c>
     /// files and have them auto-register without a central list.
     /// </summary>
-    public static IRequestExecutorBuilder AddDomainTypeExtensions(
-        this IRequestExecutorBuilder builder,
+    public static HotChocolate.Execution.Configuration.IRequestExecutorBuilder AddDomainTypeExtensions(
+        this HotChocolate.Execution.Configuration.IRequestExecutorBuilder builder,
         Assembly assembly)
     {
         var extensions = assembly.GetTypes()

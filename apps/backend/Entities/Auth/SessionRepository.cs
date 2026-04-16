@@ -2,13 +2,13 @@ namespace EnterpriseAgentOs.Api.Entities.Auth;
 
 public sealed class SessionRepository : ISessionRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
 
-    public SessionRepository(EaosDbContext db) => _db = db;
+    public SessionRepository(EnterpriseAgentOs.Api.Database.EaosDbContext db) => _db = db;
 
-    public async Task<SessionRecord> CreateAsync(Guid userId, string tokenHash, DateTime expiresAt, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SessionRecord> CreateAsync(Guid userId, string tokenHash, DateTime expiresAt, CancellationToken ct)
     {
-        var session = new SessionRecord
+        var session = new EnterpriseAgentOs.Api.Database.Models.SessionRecord
         {
             UserId = userId,
             TokenHash = tokenHash,
@@ -19,7 +19,7 @@ public sealed class SessionRepository : ISessionRepository
         return session;
     }
 
-    public async Task<SessionRecord?> GetByTokenHashAsync(string tokenHash, CancellationToken ct)
+    public async Task<EnterpriseAgentOs.Api.Database.Models.SessionRecord?> GetByTokenHashAsync(string tokenHash, CancellationToken ct)
         => await _db.Sessions.Include(s => s.User).FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
 
     public async Task DeleteAsync(string tokenHash, CancellationToken ct)

@@ -4,12 +4,12 @@ namespace EnterpriseAgentOs.Api.Entities.Sso;
 [Route("api/scim/v2")]
 public sealed class ScimController : ControllerBase
 {
-    private readonly WorkOsConfig _config;
+    private readonly EnterpriseAgentOs.Api.Properties.WorkOsConfig _config;
     private readonly IWorkOsAuthService _workOs;
     private readonly ILogger<ScimController> _logger;
 
     public ScimController(
-        WorkOsConfig config,
+        EnterpriseAgentOs.Api.Properties.WorkOsConfig config,
         IWorkOsAuthService workOs,
         ILogger<ScimController> logger)
     {
