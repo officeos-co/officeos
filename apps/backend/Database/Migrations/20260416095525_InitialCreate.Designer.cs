@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EnterpriseAgentOs.Api.Database.Migrations
 {
     [DbContext(typeof(EaosDbContext))]
-    [Migration("20260413082636_AddAgentSkills")]
-    partial class AddAgentSkills
+    [Migration("20260416095525_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -70,7 +70,7 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("AgentCacheEntries");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentConversationRecord", b =>
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentChannelBindingRecord", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -79,32 +79,83 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.Property<Guid>("AgentId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Content")
-                        .IsRequired()
+                    b.Property<Guid>("ChannelConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Config")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Role")
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChannelConnectionId");
+
+                    b.HasIndex("AgentId", "ChannelConnectionId")
+                        .IsUnique();
+
+                    b.ToTable("AgentChannelBindings");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentLogRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int?>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Integration")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int?>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Tool")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
-
-                    b.Property<string>("SessionId")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("ToolCalls")
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AgentId");
 
-                    b.HasIndex("AgentId", "SessionId");
+                    b.HasIndex("CorrelationId");
 
-                    b.ToTable("AgentConversations");
+                    b.HasIndex("AgentId", "Time");
+
+                    b.ToTable("AgentLogs");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord", b =>
@@ -163,6 +214,36 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.HasIndex("AgentId", "SessionId");
 
                     b.ToTable("AgentMemories");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRateLimitRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BucketKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("WindowStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("AgentId", "BucketKey", "WindowStart")
+                        .IsUnique();
+
+                    b.ToTable("AgentRateLimits");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRecord", b =>
@@ -242,6 +323,93 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("AgentSkills");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentTemplateRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChannelsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("IntegrationsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsBuiltin")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("AgentTemplates");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentToolPermissionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Permission")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("SkillName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ToolName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("AgentId", "SkillName", "ToolName")
+                        .IsUnique();
+
+                    b.ToTable("AgentToolPermissions");
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.BrowserSessionRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -272,59 +440,39 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("BrowserSessions");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.CustomSkillRecord", b =>
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.ChannelConnectionRecord", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("BuildError")
-                        .HasColumnType("text");
-
-                    b.Property<string>("BuildStatus")
+                    b.Property<string>("ChannelType")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<string>("BundlePath")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("GitHubBranch")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("GitHubRepoUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<DateTime?>("LastSyncAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<Guid>("OwnerId")
+                    b.Property<Guid?>("CreatedById")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Source")
+                    b.Property<string>("DisplayName")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("EncryptedConfig")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("CreatedById");
 
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("CustomSkills");
+                    b.ToTable("ChannelConnections");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.DeviceCodeRecord", b =>
@@ -522,6 +670,39 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("Sessions");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillCommentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkillId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("SkillId", "CreatedAt");
+
+                    b.ToTable("SkillComments");
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillCredentialRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -553,6 +734,225 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("SkillCredentials");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillLikeRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkillId");
+
+                    b.HasIndex("UserId", "SkillId")
+                        .IsUnique();
+
+                    b.ToTable("SkillLikes");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BuildError")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BundleS3Key")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Doc")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Emoji")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("GitHubBranch")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("GitHubRepoUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("SourceCodeUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("Skills");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BundleUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ManifestJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("NpmPackage")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid?>("PublishedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("PublishedById");
+
+                    b.ToTable("SkillRegistry");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SystemEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Acknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("AgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetailJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("SkillName")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Severity");
+
+                    b.HasIndex("SkillName");
+
+                    b.ToTable("SystemEvents");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.UserRecord", b =>
@@ -713,15 +1113,63 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.ToTable("UserSubscriptions");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.CustomSkillRecord", b =>
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentChannelBindingRecord", b =>
                 {
-                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "Owner")
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.AgentRecord", "Agent")
                         .WithMany()
-                        .HasForeignKey("OwnerId")
+                        .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.ChannelConnectionRecord", "ChannelConnection")
+                        .WithMany()
+                        .HasForeignKey("ChannelConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("ChannelConnection");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentLogRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.AgentRecord", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentTemplateRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId");
+
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentToolPermissionRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.AgentRecord", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.ChannelConnectionRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById");
+
+                    b.Navigation("CreatedBy");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.DeviceCodeRecord", b =>
@@ -764,6 +1212,62 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillCommentRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.SkillRecord", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Skill");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillLikeRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.SkillRecord", "Skill")
+                        .WithMany()
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Skill");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId");
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Api.Database.Models.UserRecord", "PublishedBy")
+                        .WithMany()
+                        .HasForeignKey("PublishedById");
+
+                    b.Navigation("PublishedBy");
                 });
 #pragma warning restore 612, 618
         }
