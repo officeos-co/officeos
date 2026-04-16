@@ -38,11 +38,6 @@ public class AgentMutations
             await agentSkills.AssignAsync(dto.Id, toolNames, ct);
         }
 
-        // TODO(team-a): once the tool-permission storage migration lands,
-        // persist input.ToolPermissions here. Accepted at the schema now so
-        // the dashboard can submit without a second round-trip.
-        _ = input.ToolPermissions;
-
         if (input.ChannelSlugs is { Count: > 0 })
         {
             var connections = await channels.ListConnectionsAsync(ct);

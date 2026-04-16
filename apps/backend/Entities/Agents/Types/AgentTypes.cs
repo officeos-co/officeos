@@ -7,17 +7,7 @@ public sealed record CreateAgentInput(
     string? Prompt,
     List<string>? IntegrationSlugs,
     List<string>? ChannelSlugs,
-    List<string>? ToolNames,
-    List<ToolPermissionInput>? ToolPermissions);
-
-/// <summary>
-/// Per-tool permission override for a created agent.
-/// NOTE: Persistence lands with Team A's migration; for now this is accepted
-/// at the mutation and wired through to storage in a follow-up.
-/// </summary>
-public sealed record ToolPermissionInput(
-    string Tool,
-    string Mode); // "allow" | "ask" | "deny"
+    List<string>? ToolNames);
 
 public sealed record UpdateAgentInput(
     string? Name,
