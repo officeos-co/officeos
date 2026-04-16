@@ -1,0 +1,156 @@
+# dashboard-2 — Next.js 16 + Bun + shadcn sidebar-07
+
+Alpha dashboard. Built from scratch on shadcn's sidebar-07 template. All data is mock — no backend wiring yet.
+
+## Commands
+
+```bash
+bun install
+bun run dev          # Dev server on :3000
+bun run build        # Production build
+npx tsc --noEmit     # Type check only
+```
+
+## Project structure
+
+```
+src/
+  app/
+    layout.tsx                    Root layout — fonts, TooltipProvider. No sidebar here.
+    page.tsx                      Redirects to /agents
+    globals.css                   Design tokens (oklch), matches website color system
+    pricing/page.tsx              Fullscreen pricing page — no sidebar (outside route group)
+    (dashboard)/
+      layout.tsx                  Sidebar shell — SidebarProvider + AppSidebar + SidebarInset
+      agents/
+        page.tsx                  Agent list — table with search, status filter, pagination
+        [id]/page.tsx             Agent detail — sticky header, URL-driven tabs (agent, logs, memory, cron)
+      quickstart/page.tsx         Agent creation — templates sidebar, config form, tool/channel permissions
+      integrations/
+        page.tsx                  Integration marketplace — cards, add/explore filter, credential dialog
+        [slug]/page.tsx           Integration detail — SKILL.md rendered, tools card
+      channels/
+        page.tsx                  Channel marketplace — cards, connect/available filter, onboarding dialog
+        [slug]/page.tsx           Channel detail — capabilities, documentation
+      logs/page.tsx               Global log aggregation — table with agent/type filters, pagination
+      usage/page.tsx              Token usage analytics — Recharts bar charts, stat cards
+      cost/page.tsx               Cost analytics — stacked bar chart, cost breakdown cards
+      providers/page.tsx          LLM providers — expandable cards, models table, BYOK
+      profile/page.tsx            User profile — name, preferences, notification toggles
+      team/page.tsx               Organization — name, member table, invite dialog
+      billing/page.tsx            Subscription — plan, payment, extra usage, invoices
+  components/
+    app-sidebar.tsx               Sidebar with 3 nav groups + docs link + user menu
+    nav-main.tsx                  Collapsible nav groups with active route detection
+    nav-user.tsx                  User dropdown — support, legal links, logout
+    team-switcher.tsx             Org header (AgentOS branding)
+    page-header.tsx               Shared page header — SidebarTrigger + breadcrumbs + action slot
+    log-table.tsx                 Reusable log table — icon, type, source, content, duration, time
+    permission-cards.tsx          Reusable tool/channel permission cards with ask/allow/deny toggles
+    credential-dialog.tsx         Dialog overlay for integration credential setup
+    channel-onboarding-dialog.tsx Dialog overlay for channel connection wizard
+    ui/                           shadcn/ui primitives — all components installed
+  data/
+    integrations.ts               Integration definitions — tools, credentials, SKILL.md, added state
+    channels.ts                   Channel definitions — onboarding steps, permissions, capabilities
+    agent-mock.ts                 Mock agent detail, log entries, file tree for memory
+    analytics-mock.ts             Mock data for logs, usage, cost pages
+```
+
+## Sidebar structure
+
+```
+Managed Agents (collapsible, auto-opens on active route)
+  ├── Quickstart
+  ├── Agents
+  ├── Integrations
+  └── Channels
+
+Analytics
+  ├── Logs
+  ├── Usage
+  └── Cost
+
+Manage
+  ├── Providers
+  ├── Profile
+  ├── Team
+  └── Billing
+
+───────────────
+Documentation (external link)
+User card (name + plan → dropdown)
+```
+
+## Data model separation
+
+**Integrations** = API-based tools agents call (GitHub, Notion, Linear, etc.)
+
+- Have `tools: Tool[]` with name + description
+- Have `credentials: CredentialField[]` for setup
+- Have `added: boolean` state
+- Have `skillMd` for documentation
+
+**Channels** = WebSocket/webhook session connectors (Slack, Discord, Telegram, etc.)
+
+- Have `capabilities: string[]` describing what they can do
+- Have `onboarding: OnboardingStep[]` for guided setup (url, qr, copy, input steps)
+- Have `defaultPermissions: ChannelPermissions` (receive/send/initiate → allow/ask/deny)
+- Have `added: boolean` state
+
+**These are fundamentally different.** Integrations are request/response APIs. Channels are persistent bidirectional connections that integrate into the agent's session.
+
+## Key patterns
+
+**Tab routing via URL params.** Agent detail uses `?tab=agent|logs|memory|cron`. Use `<Link>` with query params, not JS state.
+
+**Overlays for configuration.** Credential setup (integrations) and onboarding wizards (channels) use shadcn `Dialog`. Never inline forms.
+
+**Permission model.** Tool permissions cycle through ask → allow → deny per tool. Channel permissions have 3 dimensions: receive, send, initiate. Both use the shared `permission-cards.tsx` components.
+
+**Status badges.** Use the showcase-style pattern: `rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest` with colored backgrounds (emerald=running, amber=pending, red=failed, zinc=stopped).
+
+**Centered max-width.** All content pages use `max-w-{size} mx-auto w-full`. Agent detail uses `max-w-6xl`. Settings pages use `max-w-3xl`. Analytics use `max-w-4xl`.
+
+**Charts.** Use Recharts (already installed). Bar charts for usage/cost, stacked bars for cost breakdown.
+
+**Markdown rendering.** Use `react-markdown` + `remark-gfm` for SKILL.md and memory files. Styled via Tailwind `prose` classes.
+
+## Design system
+
+Colors match the website (`apps/website/`):
+
+- `--background`: warm off-white `oklch(98.46% 0.002 247.84)`
+- `--primary`: near-black `oklch(0.205 0 0)` — buttons, text
+- `--secondary`: teal `oklch(55% 0.15 220)` — accent, org icon
+- Font: Geist Sans via `--font-geist-sans`
+- Radius: `0.625rem`
+- All colors use oklch
+
+## Key rules
+
+- **All data is mock.** `data/*.ts` files contain hardcoded mock data. When wiring to the backend, replace these with hooks following the patterns from dashboard v1.
+- **shadcn/ui for all primitives.** Button, Input, Dialog, Select, Switch, Tabs, etc. — never build custom.
+- **`"use client"` on interactive pages.** Any page with useState, useEffect, or event handlers.
+- **Server components for static pages.** Placeholder pages and layouts stay as server components.
+- **No overview/dashboard page.** `/` redirects to `/agents`. Every page serves a specific purpose.
+- **Reuse shared components.** `LogTable`, `ToolPermissionCard`, `ChannelPermissionCard`, `CredentialDialog`, `ChannelOnboardingDialog`, `PageHeader` — don't duplicate.
+
+## Anti-patterns
+
+- Do not add an overview/home dashboard page. It's a useless aggregation layer.
+- Do not mix integrations and channels in the same data model. They are fundamentally different (API vs WebSocket).
+- Do not inline credential forms or onboarding wizards. Use Dialog overlays.
+- Do not use `Date.now()` in mock data at module level. It causes hydration mismatches. Use static strings.
+- Do not add state management libraries. React useState is sufficient for the alpha.
+- Do not create pages without `max-w-*` + `mx-auto`. Content should never stretch to full viewport width.
+
+## Wiring to backend (next step)
+
+When connecting to the real backend:
+
+1. Create `hooks/` directory following Pattern 1 (pub-sub) and Pattern 2 (simple fetch) from dashboard v1's CLAUDE.md.
+2. Replace mock data imports with hook calls.
+3. Add `AuthGuard` wrapper in the `(dashboard)/layout.tsx`.
+4. Add `apiFetch` with the backend base URL.
+5. Wire the pricing page CTA buttons to Stripe checkout via `/api/billing/user/subscribe`.
