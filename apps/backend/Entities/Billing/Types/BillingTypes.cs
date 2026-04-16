@@ -54,3 +54,33 @@ public sealed record UsageSummaryDto(
 /// <summary>Dashboard-facing subscribe response — returns the Stripe checkout URL.</summary>
 public sealed record SubscribeResultDto(
     string CheckoutUrl);
+
+public sealed record InvoicePayload(
+    string Id,
+    DateTime Date,
+    string Total,
+    string Currency,
+    string Status,
+    string? HostedUrl,
+    string? PdfUrl);
+
+/// <summary>
+/// Unified billing payload for the dashboard /billing page. Replaces the
+/// old "extra usage auto-reload" knob with a simple `extraUsageEnabled`
+/// on/off toggle (backed by Stripe metered overage item).
+/// </summary>
+public sealed record BillingPayload(
+    string Plan,
+    string PlanDescription,
+    string Status,
+    string BillingCycle,
+    DateTime PeriodStart,
+    DateTime PeriodEnd,
+    long CreditBudgetPerMonth,
+    long CreditsUsedThisMonth,
+    long CreditsRemaining,
+    bool OverBudget,
+    bool ExtraUsageEnabled,
+    string? PaymentBrand,
+    string? PaymentLast4,
+    IReadOnlyList<InvoicePayload> Invoices);

@@ -56,6 +56,24 @@ public class BillingMutations
             sub.OverageEnabled, sub.PeriodStart, sub.PeriodEnd, sub.IsActive);
     }
 
+    /// <summary>
+    /// Turns extra-usage (Stripe metered overage) on or off. Replaces the
+    /// previous "auto-reload" card in the billing UI with a single boolean
+    /// toggle — when on, usage above the credit budget is billed metered.
+    /// </summary>
+    public async Task<bool> SetExtraUsageEnabled(
+        bool enabled,
+        IResolverContext context,
+        [Service] EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService userBilling,
+        CancellationToken ct)
+    {
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
+        var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
+        return sub.OverageEnabled;
+    }
+
+    [Obsolete("Use setExtraUsageEnabled. Kept for backwards compatibility.")]
     public async Task<EnterpriseAgentOs.Api.Entities.Billing.Types.UserSubscriptionDto> ToggleOverage(
         bool enabled,
         IResolverContext context,

@@ -13,4 +13,12 @@ public sealed class UserRecord
     public string GoogleSubjectId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
+
+    // Profile fields — editable via AuthMutations.updateProfile
+    [MaxLength(128)]
+    public string? DisplayName { get; set; }
+    [MaxLength(64)]
+    public string? Timezone { get; set; }
+    /// <summary>JSON blob of notification preferences, e.g. {"taskCompletions":true,"email":false,"channelMessages":true}.</summary>
+    public string? NotificationPrefsJson { get; set; }
 }

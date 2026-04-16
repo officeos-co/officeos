@@ -9,6 +9,34 @@ public class AuthMutations
     /// Requires a valid session to invoke (enforced by DashboardAuthMiddleware);
     /// anonymous callers should instead simply drop their cookie client-side.
     /// </summary>
+    /// <summary>
+    /// Updates editable profile fields on the authenticated user.
+    /// Any null field is left unchanged.
+    /// </summary>
+    public async Task<EnterpriseAgentOs.Api.Entities.Auth.Types.UserPayload> UpdateProfile(
+        EnterpriseAgentOs.Api.Entities.Auth.Types.UpdateProfileInput input,
+        IResolverContext context,
+        [Service] EnterpriseAgentOs.Api.Entities.Auth.IUserRepository users,
+        CancellationToken ct)
+    {
+        var caller = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = await users.UpdateProfileAsync(
+            caller.Id,
+            input.Name,
+            input.DisplayName,
+            input.Timezone,
+            input.NotificationPrefsJson,
+            ct);
+        return new EnterpriseAgentOs.Api.Entities.Auth.Types.UserPayload(
+            user.Id,
+            user.Email,
+            user.Name,
+            user.AvatarUrl,
+            user.DisplayName,
+            user.Timezone,
+            user.NotificationPrefsJson);
+    }
+
     public async Task<bool> Logout(
         IResolverContext context,
         [Service] EnterpriseAgentOs.Api.Entities.Auth.ISessionRepository sessions,

@@ -4,4 +4,11 @@ public interface IUserRepository
 {
     Task<EnterpriseAgentOs.Api.Database.Models.UserRecord> UpsertByGoogleSubjectAsync(string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct = default);
     Task<EnterpriseAgentOs.Api.Database.Models.UserRecord?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<EnterpriseAgentOs.Api.Database.Models.UserRecord> UpdateProfileAsync(
+        Guid id,
+        string? name,
+        string? displayName,
+        string? timezone,
+        string? notificationPrefsJson,
+        CancellationToken ct = default);
 }

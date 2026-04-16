@@ -34,4 +34,22 @@ public sealed class UserRepository : IUserRepository
 
     public async Task<EnterpriseAgentOs.Api.Database.Models.UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+
+    public async Task<EnterpriseAgentOs.Api.Database.Models.UserRecord> UpdateProfileAsync(
+        Guid id,
+        string? name,
+        string? displayName,
+        string? timezone,
+        string? notificationPrefsJson,
+        CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
+            ?? throw new InvalidOperationException($"user {id} not found");
+        if (name is not null) user.Name = name;
+        if (displayName is not null) user.DisplayName = displayName;
+        if (timezone is not null) user.Timezone = timezone;
+        if (notificationPrefsJson is not null) user.NotificationPrefsJson = notificationPrefsJson;
+        await _db.SaveChangesAsync(ct);
+        return user;
+    }
 }

@@ -7,4 +7,7 @@ public interface IUserBillingService
     Task<string> CreateCheckoutSessionAsync(Guid userId, string email, string plan, string billingCycle, CancellationToken ct = default);
     Task<string> CreatePortalSessionAsync(Guid userId, string email, CancellationToken ct = default);
     Task EnableOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default);
+    Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.Billing.Types.InvoicePayload>> ListInvoicesAsync(
+        Guid userId,
+        CancellationToken ct = default);
 }

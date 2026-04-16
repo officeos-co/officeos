@@ -77,6 +77,40 @@ public class BillingQueries
         };
     }
 
+    /// <summary>
+    /// Unified billing info for the dashboard /billing page. Plan, current
+    /// usage, extra-usage on/off (replaces old auto-reload), invoices synced
+    /// from Stripe.
+    /// </summary>
+    public async Task<EnterpriseAgentOs.Api.Entities.Billing.Types.BillingPayload> Billing(
+        IResolverContext context,
+        [Service] EnterpriseAgentOs.Api.Entities.Billing.IUserBillingService userBilling,
+        CancellationToken ct)
+    {
+        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
+        var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
+        var invoices = await userBilling.ListInvoicesAsync(user.Id, ct);
+        var planDescription = sub.Plan == "pro"
+            ? "3 concurrent agents, 10M credits/month"
+            : "1 concurrent agent, 500k credits/month";
+        return new EnterpriseAgentOs.Api.Entities.Billing.Types.BillingPayload(
+            sub.Plan,
+            planDescription,
+            sub.IsActive ? "active" : "canceled",
+            sub.BillingCycle,
+            sub.PeriodStart,
+            sub.PeriodEnd,
+            sub.CreditBudgetPerMonth,
+            sub.CreditsUsedThisMonth,
+            remaining,
+            overBudget,
+            sub.OverageEnabled,
+            null,
+            null,
+            invoices);
+    }
+
     public async Task<EnterpriseAgentOs.Api.Entities.Billing.Types.UsageSummaryDto> GetTokenUsage(
         string? range,
         IResolverContext context,

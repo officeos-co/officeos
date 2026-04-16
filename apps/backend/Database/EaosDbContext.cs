@@ -31,6 +31,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord> AgentLogs => Set<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.AgentToolPermissionRecord> AgentToolPermissions => Set<EnterpriseAgentOs.Api.Database.Models.AgentToolPermissionRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.AgentTemplateRecord> AgentTemplates => Set<EnterpriseAgentOs.Api.Database.Models.AgentTemplateRecord>();
+    public DbSet<EnterpriseAgentOs.Api.Database.Models.OrganizationRecord> Organizations => Set<EnterpriseAgentOs.Api.Database.Models.OrganizationRecord>();
+    public DbSet<EnterpriseAgentOs.Api.Database.Models.OrgMemberRecord> OrgMembers => Set<EnterpriseAgentOs.Api.Database.Models.OrgMemberRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -281,6 +283,22 @@ public sealed class EaosDbContext : DbContext
         modelBuilder.Entity<EnterpriseAgentOs.Api.Database.Models.SkillRecord>(e =>
         {
             e.Property(s => s.SourceCodeUrl).HasMaxLength(512);
+        });
+
+        modelBuilder.Entity<EnterpriseAgentOs.Api.Database.Models.OrganizationRecord>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.Name).IsRequired().HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<EnterpriseAgentOs.Api.Database.Models.OrgMemberRecord>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => new { m.OrganizationId, m.Email }).IsUnique();
+            e.HasIndex(m => m.UserId);
+            e.Property(m => m.Email).IsRequired().HasMaxLength(256);
+            e.Property(m => m.Role).IsRequired().HasMaxLength(16);
+            e.Property(m => m.Status).IsRequired().HasMaxLength(16);
         });
     }
 }

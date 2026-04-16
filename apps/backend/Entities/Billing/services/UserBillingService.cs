@@ -134,6 +134,35 @@ public sealed class UserBillingService : IUserBillingService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.Entities.Billing.Types.InvoicePayload>> ListInvoicesAsync(
+        Guid userId, CancellationToken ct = default)
+    {
+        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        if (sub?.StripeCustomerId is null || !_config.Enabled)
+        {
+            return Array.Empty<EnterpriseAgentOs.Api.Entities.Billing.Types.InvoicePayload>();
+        }
+        try
+        {
+            var invoices = await new InvoiceService().ListAsync(
+                new InvoiceListOptions { Customer = sub.StripeCustomerId, Limit = 24 },
+                cancellationToken: ct);
+            return invoices.Data.Select(i => new EnterpriseAgentOs.Api.Entities.Billing.Types.InvoicePayload(
+                i.Id,
+                i.Created,
+                ((decimal)i.Total / 100m).ToString("0.00"),
+                (i.Currency ?? "eur").ToUpperInvariant(),
+                i.Status ?? "unknown",
+                i.HostedInvoiceUrl,
+                i.InvoicePdf)).ToList();
+        }
+        catch (StripeException ex)
+        {
+            _logger.LogWarning(ex, "Stripe invoice list failed for user {UserId}", userId);
+            return Array.Empty<EnterpriseAgentOs.Api.Entities.Billing.Types.InvoicePayload>();
+        }
+    }
+
     private async Task<string> GetOrCreateCustomerAsync(Guid userId, string email, CancellationToken ct)
     {
         var existing = await _db.UserSubscriptions

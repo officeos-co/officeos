@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitRepository, EnterpriseAgentOs.Api.Entities.RateLimiting.RateLimitRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateRepository, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogRepository, EnterpriseAgentOs.Api.Entities.AgentLogs.AgentLogRepository>();
+        services.AddScoped<EnterpriseAgentOs.Api.Entities.Organizations.IOrganizationRepository, EnterpriseAgentOs.Api.Entities.Organizations.OrganizationRepository>();
         return services;
     }
 
