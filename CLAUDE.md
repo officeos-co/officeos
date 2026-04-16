@@ -40,13 +40,17 @@ Browser
         └─► apps/backend/       C# ASP.NET Core — single orchestrator, all credentials live here
               ├─► Postgres       EF Core — agents, providers, skills, sessions, browser cookies
               │                  Schema source of truth: apps/backend/Database/Models/
-              ├─► CouchDB        Per-agent vault — personality files (SOUL.md, IDENTITY.md, AGENTS.md)
               ├─► K8s API        Spawns/terminates agent pods, reads live pod status
               └─► skill-runtime  Node.js — executes TypeScript skills, exposes HTTP API
 
 backend spawns pods running ──► packages/zeroclaw-core/  (Rust binary, image: harkro123/zeroclaw:latest)
   Pod boots with ZEROCLAW_AGENT_ID only. Calls backend to get everything:
-  provider config, LLM proxy endpoint, GraphQL skill gateway, vault personality files.
+  provider config, LLM proxy endpoint, GraphQL skill gateway, and the user-supplied systemPrompt.
+
+  Personality `.md` templates (SOUL.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, ...) are embedded
+  in the zeroclaw-core binary via `include_str!` and seeded locally to the pod's PVC on first boot.
+  Backend ships `systemPrompt` only; the pod substitutes it into BOOTSTRAP.md at seed time.
+  There is no shared vault — no CouchDB, no cross-agent personality store.
 
 apps/website/    Next.js — public landing page. No backend connection. No auth.
 apps/changelog/  Next.js — public changelog. Reads .md files. No backend. No auth.
