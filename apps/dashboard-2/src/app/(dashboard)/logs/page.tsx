@@ -12,8 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockAgentLogs } from "@/data/agent-mock"
-import type { AgentLog } from "@/data/agent-mock"
+import { useGlobalLogs } from "@/hooks/useGlobalLogs"
 import {
   SearchIcon,
   ChevronLeftIcon,
@@ -21,28 +20,12 @@ import {
   DownloadIcon,
 } from "lucide-react"
 
-// Aggregate logs from all agents (mock: duplicate with different agent names)
-const allLogs: (AgentLog & { agentName: string })[] = [
-  ...mockAgentLogs.map((l) => ({ ...l, agentName: "Research Assistant" })),
-  ...mockAgentLogs.slice(0, 5).map((l, i) => ({
-    ...l,
-    id: `log_code_${i}`,
-    time: l.time - 300000,
-    agentName: "Code Reviewer",
-  })),
-  ...mockAgentLogs.slice(0, 3).map((l, i) => ({
-    ...l,
-    id: `log_support_${i}`,
-    time: l.time - 600000,
-    agentName: "Customer Support Bot",
-  })),
-].sort((a, b) => b.time - a.time)
-
 const ALL_TYPES = ["All", "tool_call", "tool_result", "channel_in", "channel_out", "message_in", "message_out", "system"] as const
-const ALL_AGENTS = ["All", ...Array.from(new Set(allLogs.map((l) => l.agentName)))]
 const PAGE_SIZES = [10, 25, 50] as const
 
 export default function LogsPage() {
+  const { logs: allLogs } = useGlobalLogs()
+  const ALL_AGENTS = ["All", ...Array.from(new Set(allLogs.map((l) => l.agentName)))]
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("All")
   const [agentFilter, setAgentFilter] = useState("All")
@@ -56,7 +39,7 @@ export default function LogsPage() {
       if (agentFilter !== "All" && l.agentName !== agentFilter) return false
       return true
     })
-  }, [search, typeFilter, agentFilter])
+  }, [search, typeFilter, agentFilter, allLogs])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)

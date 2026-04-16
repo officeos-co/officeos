@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockDailyUsage } from "@/data/analytics-mock"
+import { useUsage } from "@/hooks/useBilling"
 import {
   DownloadIcon,
   ChevronLeftIcon,
@@ -40,12 +40,13 @@ function formatDate(d: string) {
 }
 
 export default function UsagePage() {
+  const { dailyUsage: mockDailyUsage } = useUsage()
   const [range, setRange] = useState<string>("Month to date")
   const [groupBy, setGroupBy] = useState<string>("Day")
   const [model, setModel] = useState("All")
 
   const days = rangeDays(range)
-  const data = useMemo(() => mockDailyUsage.slice(-days), [days])
+  const data = useMemo(() => mockDailyUsage.slice(-days), [days, mockDailyUsage])
 
   const totals = useMemo(() => ({
     inputTokens: data.reduce((s, d) => s + d.inputTokens, 0),

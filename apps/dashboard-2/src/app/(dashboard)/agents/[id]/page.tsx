@@ -30,9 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockAgent, mockAgentLogs, mockFileTree, type FileNode } from "@/data/agent-mock"
-import { integrations, builtInTools, sourceUrl } from "@/data/integrations"
-import { channels, type ChannelPermissions } from "@/data/channels"
+import { mockFileTree, type FileNode } from "@/data/agent-mock"
+import { builtInTools, sourceUrl } from "@/data/integrations"
+import { type ChannelPermissions } from "@/data/channels"
+import { useAgent } from "@/hooks/useAgents"
+import { useAgentLogs } from "@/hooks/useAgentLogs"
+import { useSendAgentMessage } from "@/hooks/useSendAgentMessage"
+import { useIntegrations } from "@/hooks/useIntegrations"
+import { useChannels } from "@/hooks/useChannels"
 import {
   SendIcon,
   ClockIcon,
@@ -77,7 +82,11 @@ type TabKey = (typeof TABS)[number]["key"]
 
 /* ── Agent tab (mirrors quickstart) ──────────────────────── */
 
-function AgentTab() {
+function AgentTab({ agentId }: { agentId: string }) {
+  const { agent } = useAgent(agentId)
+  const { integrations } = useIntegrations()
+  const { channels } = useChannels()
+  const mockAgent = agent ?? { id: agentId, name: "", model: "claude-sonnet-4-6", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
   const [agentName, setAgentName] = useState(mockAgent.name)
   const [prompt, setPrompt] = useState(mockAgent.prompt)
   const [model, setModel] = useState(mockAgent.model)
@@ -233,17 +242,24 @@ function AgentTab() {
 
 /* ── Logs tab ────────────────────────────────────────────── */
 
-function LogsTab() {
+function LogsTab({ agentId }: { agentId: string }) {
   const [message, setMessage] = useState("")
+  const { logs } = useAgentLogs(agentId)
+  const { sendAgentMessage } = useSendAgentMessage()
+  const submit = () => {
+    if (!message.trim()) return
+    sendAgentMessage(agentId, message)
+    setMessage("")
+  }
   return (
     <div className="flex flex-col flex-1 pt-4">
       <div className="flex-1 overflow-x-auto">
-        <LogTable logs={mockAgentLogs} />
+        <LogTable logs={logs} />
       </div>
       <div className="border-t border-border p-3 mt-4">
         <div className="flex items-center gap-2 max-w-3xl mx-auto">
-          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Send a message to the agent..." className="flex-1" onKeyDown={(e) => { if (e.key === "Enter" && message.trim()) setMessage("") }} />
-          <Button size="icon" disabled={!message.trim()} onClick={() => setMessage("")}><SendIcon className="size-4" /></Button>
+          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Send a message to the agent..." className="flex-1" onKeyDown={(e) => { if (e.key === "Enter" && message.trim()) submit() }} />
+          <Button size="icon" disabled={!message.trim()} onClick={submit}><SendIcon className="size-4" /></Button>
         </div>
       </div>
     </div>
@@ -599,6 +615,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const searchParams = useSearchParams()
   const router = useRouter()
   const initialStatus = searchParams.get("status")
+  const { agent } = useAgent(id)
+  const mockAgent = agent ?? { id, name: "", model: "", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
   const [agentStatus, setAgentStatus] = useState(initialStatus === "booting" ? "booting" : mockAgent.status)
   const tab = (searchParams.get("tab") as TabKey) ?? "agent"
 
@@ -667,8 +685,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex flex-1 flex-col px-4 max-w-6xl mx-auto w-full">
         <div className="flex-1 flex flex-col">
-          {tab === "agent" && <AgentTab />}
-          {tab === "logs" && <LogsTab />}
+          {tab === "agent" && <AgentTab agentId={id} />}
+          {tab === "logs" && <LogsTab agentId={id} />}
           {tab === "memory" && <MemoryTab />}
           {tab === "cron" && <CronTab />}
         </div>

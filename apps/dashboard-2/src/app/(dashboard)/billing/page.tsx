@@ -13,30 +13,11 @@ import {
   ExternalLinkIcon,
 } from "lucide-react"
 
-const mockBilling = {
-  plan: "Pro",
-  planDescription: "3 concurrent agents, 10M credits/month",
-  status: "active" as const,
-  renewsAt: "May 16, 2026",
-  canceledAt: null as string | null,
-  payment: {
-    brand: "Visa",
-    last4: "5594",
-  },
-  extraUsage: {
-    balance: 84.99,
-    autoReload: false,
-  },
-  invoices: [
-    { date: "Apr 1, 2026", total: "€107,10", status: "Paid" },
-    { date: "Mar 1, 2026", total: "€49,00", status: "Paid" },
-    { date: "Feb 1, 2026", total: "€49,00", status: "Paid" },
-    { date: "Jan 1, 2026", total: "€49,00", status: "Paid" },
-  ],
-}
+import { useBilling } from "@/hooks/useBilling"
 
 export default function BillingPage() {
   const router = useRouter()
+  const { billing: mockBilling } = useBilling()
   const [autoReload, setAutoReload] = useState(mockBilling.extraUsage.autoReload)
 
   return (

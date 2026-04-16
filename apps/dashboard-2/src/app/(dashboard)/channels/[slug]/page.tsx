@@ -7,7 +7,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { channels, channelSourceUrl } from "@/data/channels"
+import { channelSourceUrl } from "@/data/channels"
+import { useChannels } from "@/hooks/useChannels"
 import { ExternalLinkIcon, HeartIcon, RadioIcon } from "lucide-react"
 
 export default function ChannelDetailPage({
@@ -16,9 +17,13 @@ export default function ChannelDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(params)
+  const { channels, loading } = useChannels()
   const channel = channels.find((c) => c.slug === slug)
 
-  if (!channel) return notFound()
+  if (!channel) {
+    if (loading) return null
+    return notFound()
+  }
 
   const source = channelSourceUrl(channel.slug)
 

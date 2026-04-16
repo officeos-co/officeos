@@ -7,13 +7,14 @@ import { PageHeader } from "@/components/page-header"
 import { CredentialDialog } from "@/components/credential-dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { integrations } from "@/data/integrations"
+import { useIntegrations } from "@/hooks/useIntegrations"
 import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, KeyRoundIcon } from "lucide-react"
 
 type View = "all" | "added" | "explore"
 
 export default function IntegrationsPage() {
   const router = useRouter()
+  const { integrations } = useIntegrations()
   const [search, setSearch] = useState("")
   const [view, setView] = useState<View>("all")
   const [addedSet, setAddedSet] = useState<Set<string>>(() => new Set(integrations.filter((i) => i.added).map((i) => i.slug)))

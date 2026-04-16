@@ -6,13 +6,19 @@ import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { ChannelOnboardingDialog } from "@/components/channel-onboarding-dialog"
 import { Button } from "@/components/ui/button"
-import { channels, type Channel } from "@/data/channels"
+import { type Channel } from "@/data/channels"
+import { useChannels, useCreateChannelConnection, useBindChannelToAgent } from "@/hooks/useChannels"
 import { PlusIcon, CheckIcon, RadioIcon } from "lucide-react"
 
 type View = "all" | "connected" | "available"
 
 export default function ChannelsPage() {
   const router = useRouter()
+  const { channels } = useChannels()
+  const { createChannelConnection } = useCreateChannelConnection()
+  const { bindChannelToAgent } = useBindChannelToAgent()
+  void createChannelConnection
+  void bindChannelToAgent
   const [view, setView] = useState<View>("all")
   const [connectedSet, setConnectedSet] = useState<Set<string>>(() => new Set(channels.filter((c) => c.added).map((c) => c.slug)))
   const [onboardingChannel, setOnboardingChannel] = useState<Channel | null>(null)

@@ -7,7 +7,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { integrations, sourceUrl } from "@/data/integrations"
+import { sourceUrl } from "@/data/integrations"
+import { useIntegrations } from "@/hooks/useIntegrations"
 import { ExternalLinkIcon, HeartIcon, DownloadIcon } from "lucide-react"
 
 export default function IntegrationDetailPage({
@@ -16,9 +17,13 @@ export default function IntegrationDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(params)
+  const { integrations, loading } = useIntegrations()
   const integration = integrations.find((i) => i.slug === slug)
 
-  if (!integration) return notFound()
+  if (!integration) {
+    if (loading) return null
+    return notFound()
+  }
 
   const source = sourceUrl(integration.slug)
 
