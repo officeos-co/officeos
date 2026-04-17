@@ -8,13 +8,27 @@ on:
       - 'apps/dashboard-2/**'
       - 'k8s/frontend.yaml'
       - '.github/workflows/deploy-dashboard-prod.yml'
+  workflow_run:
+    workflows: ["Deploy Backend Prod"]
+    types: [completed]
+    branches: [main]
 
 concurrency:
   group: deploy-dashboard-prod
   cancel-in-progress: false
 
 jobs:
+  # Skip if triggered by a failed backend deploy
+  gate:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    steps:
+      - run: echo "Proceeding"
+
   test:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
