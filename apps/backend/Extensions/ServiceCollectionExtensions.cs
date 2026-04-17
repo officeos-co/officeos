@@ -13,7 +13,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Auth.IUserRepository, EnterpriseAgentOs.Api.Entities.Auth.UserRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Auth.ISessionRepository, EnterpriseAgentOs.Api.Entities.Auth.SessionRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository, EnterpriseAgentOs.Api.Entities.Channels.ChannelRepository>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitRepository, EnterpriseAgentOs.Api.Entities.RateLimiting.RateLimitRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateRepository, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogRepository, EnterpriseAgentOs.Api.Entities.AgentLogs.AgentLogRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Organizations.IOrganizationRepository, EnterpriseAgentOs.Api.Entities.Organizations.OrganizationRepository>();
@@ -32,7 +31,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IOrgBillingService, EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IStripeWebhookService, EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService, EnterpriseAgentOs.Api.Entities.Billing.CreditRecordingService>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService, EnterpriseAgentOs.Api.Entities.RateLimiting.RateLimitService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Gdpr.IGdprService, EnterpriseAgentOs.Api.Entities.Gdpr.GdprService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateService, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService, EnterpriseAgentOs.Api.Entities.AgentLogs.AgentLogService>();

@@ -9,8 +9,6 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly SkillRuntimeClient _runtime;
     private readonly IBrowserSessionRepository _browserSessions;
     private readonly EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService _agentLogs;
-    private readonly EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService _rateLimiter;
-    private readonly ISkillCatalogRepository _catalog;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -19,16 +17,12 @@ public sealed class AgentSkillsController : ControllerBase
         SkillRuntimeClient runtime,
         IBrowserSessionRepository browserSessions,
         EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService agentLogs,
-        EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService rateLimiter,
-        ISkillCatalogRepository catalog,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
         _runtime = runtime;
         _browserSessions = browserSessions;
         _agentLogs = agentLogs;
-        _rateLimiter = rateLimiter;
-        _catalog = catalog;
         _logger = logger;
     }
 
@@ -44,38 +38,6 @@ public sealed class AgentSkillsController : ControllerBase
     public async Task<IActionResult> SkillExec([FromBody] SkillExecRequest body, CancellationToken ct)
     {
         var execAgentId = (Guid)HttpContext.Items["agent-id"]!;
-
-        // --- Rate limiting ---
-        var generalDecision = await _rateLimiter.CheckSkillExecAsync(execAgentId, ct);
-        if (!generalDecision.Allowed)
-        {
-            _logger.LogWarning("Rate limit exceeded for agent {AgentId} (skill_exec)", execAgentId);
-            return StatusCode(StatusCodes.Status429TooManyRequests, new
-            {
-                error = "rate_limit_exceeded",
-                retryAfterSeconds = generalDecision.RetryAfterSeconds,
-            });
-        }
-
-        // Check email category rate limit if applicable
-        var skillRecord = await _catalog.GetByNameAsync(body.Skill, ct);
-        if (skillRecord is not null)
-        {
-            var manifest = DeserializeManifestSafe(skillRecord.ManifestJson);
-            if (string.Equals(manifest?.Category, "email", StringComparison.OrdinalIgnoreCase))
-            {
-                var emailDecision = await _rateLimiter.CheckEmailAsync(execAgentId, ct);
-                if (!emailDecision.Allowed)
-                {
-                    _logger.LogWarning("Email rate limit exceeded for agent {AgentId}", execAgentId);
-                    return StatusCode(StatusCodes.Status429TooManyRequests, new
-                    {
-                        error = "email_rate_limit_exceeded",
-                        retryAfterSeconds = emailDecision.RetryAfterSeconds,
-                    });
-                }
-            }
-        }
 
         _logger.LogInformation("Agent skill-exec: {Skill}.{Action}", body.Skill, body.Action);
 
@@ -184,25 +146,6 @@ public sealed class AgentSkillsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to record audit entry for {Skill}.{Action}", skill, action);
-        }
-    }
-
-    private static readonly JsonSerializerOptions ManifestJsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
-    private static RuntimeManifest? DeserializeManifestSafe(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<RuntimeManifest>(json, ManifestJsonOptions);
-        }
-        catch
-        {
-            return null;
         }
     }
 

@@ -112,11 +112,6 @@ var postHogConfig = new EnterpriseAgentOs.Api.Properties.PostHogConfig();
 envSection.GetSection("PostHog").Bind(postHogConfig);
 builder.Services.AddSingleton(postHogConfig);
 
-// Rate limiting
-var rateLimitingConfig = new EnterpriseAgentOs.Api.Properties.RateLimitingConfig();
-envSection.GetSection("RateLimiting").Bind(rateLimitingConfig);
-builder.Services.AddSingleton(rateLimitingConfig);
-
 // GraphQL — two named schemas share one HotChocolate host:
 //   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
 //   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
