@@ -16,6 +16,7 @@ export type ProfilePayload = {
   avatarUrl: string | null
   displayName: string | null
   timezone: string | null
+  preferences: string | null
   notificationPrefs: NotificationPrefs
 }
 
@@ -32,6 +33,7 @@ export const MOCK_PROFILE: ProfilePayload = {
   avatarUrl: null,
   displayName: "Harro",
   timezone: "Europe/Amsterdam",
+  preferences: null,
   notificationPrefs: DEFAULT_PREFS,
 }
 
@@ -44,6 +46,7 @@ export const ME_QUERY = gql`
       avatarUrl
       displayName
       timezone
+      preferences
       notificationPrefsJson
     }
   }
@@ -58,6 +61,7 @@ const UPDATE_PROFILE = gql`
       avatarUrl
       displayName
       timezone
+      preferences
       notificationPrefsJson
     }
   }
@@ -84,6 +88,7 @@ type MeRaw = {
   avatarUrl: string | null
   displayName: string | null
   timezone: string | null
+  preferences: string | null
   notificationPrefsJson: string | null
 }
 
@@ -95,6 +100,7 @@ function toProfile(raw: MeRaw): ProfilePayload {
     avatarUrl: raw.avatarUrl,
     displayName: raw.displayName,
     timezone: raw.timezone,
+    preferences: raw.preferences,
     notificationPrefs: parsePrefs(raw.notificationPrefsJson),
   }
 }
@@ -120,12 +126,14 @@ export function useUpdateProfile() {
       name?: string | null
       displayName?: string | null
       timezone?: string | null
+      preferences?: string | null
       notificationPrefs?: NotificationPrefs
     }): Promise<ProfilePayload> => {
       const payload = {
         name: input.name ?? null,
         displayName: input.displayName ?? null,
         timezone: input.timezone ?? null,
+        preferences: input.preferences ?? null,
         notificationPrefsJson:
           input.notificationPrefs ? JSON.stringify(input.notificationPrefs) : null,
       }
@@ -135,6 +143,7 @@ export function useUpdateProfile() {
           name: payload.name ?? MOCK_PROFILE.name,
           displayName: payload.displayName ?? MOCK_PROFILE.displayName,
           timezone: payload.timezone ?? MOCK_PROFILE.timezone,
+          preferences: payload.preferences ?? MOCK_PROFILE.preferences,
           notificationPrefs: input.notificationPrefs ?? MOCK_PROFILE.notificationPrefs,
         }
       }

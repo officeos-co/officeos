@@ -26,6 +26,7 @@ public class AuthMutations
             input.DisplayName,
             input.Timezone,
             input.NotificationPrefsJson,
+            input.Preferences,
             ct);
         return new EnterpriseAgentOs.Api.Entities.Auth.Types.UserPayload(
             user.Id,
@@ -34,7 +35,8 @@ public class AuthMutations
             user.AvatarUrl,
             user.DisplayName,
             user.Timezone,
-            user.NotificationPrefsJson);
+            user.NotificationPrefsJson,
+            user.Preferences);
     }
 
     public async Task<bool> Logout(

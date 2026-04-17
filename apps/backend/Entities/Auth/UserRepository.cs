@@ -41,6 +41,7 @@ public sealed class UserRepository : IUserRepository
         string? displayName,
         string? timezone,
         string? notificationPrefsJson,
+        string? preferences,
         CancellationToken ct = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
@@ -49,6 +50,7 @@ public sealed class UserRepository : IUserRepository
         if (displayName is not null) user.DisplayName = displayName;
         if (timezone is not null) user.Timezone = timezone;
         if (notificationPrefsJson is not null) user.NotificationPrefsJson = notificationPrefsJson;
+        if (preferences is not null) user.Preferences = preferences;
         await _db.SaveChangesAsync(ct);
         return user;
     }

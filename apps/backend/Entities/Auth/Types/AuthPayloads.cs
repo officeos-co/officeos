@@ -7,10 +7,12 @@ public sealed record UserPayload(
     string? AvatarUrl,
     string? DisplayName,
     string? Timezone,
-    string? NotificationPrefsJson);
+    string? NotificationPrefsJson,
+    string? Preferences);
 
 public sealed record UpdateProfileInput(
     string? Name,
     string? DisplayName,
     string? Timezone,
-    string? NotificationPrefsJson);
+    string? NotificationPrefsJson,
+    string? Preferences);

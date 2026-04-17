@@ -43,6 +43,7 @@ export default function ProfilePage() {
       setFullName(profile.name ?? "")
       setDisplayName(profile.displayName ?? "")
       setTimezone(profile.timezone ?? "")
+      setPreferences(profile.preferences ?? "")
       setPrefs(profile.notificationPrefs)
     }
   }, [loading, profile])
@@ -54,6 +55,7 @@ export default function ProfilePage() {
         name: fullName,
         displayName,
         timezone,
+        preferences,
         notificationPrefs: prefs,
       })
     } finally {

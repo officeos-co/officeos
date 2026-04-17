@@ -10,5 +10,6 @@ public interface IUserRepository
         string? displayName,
         string? timezone,
         string? notificationPrefsJson,
+        string? preferences,
         CancellationToken ct = default);
 }

@@ -22,6 +22,7 @@ public class AuthQueries
             user.AvatarUrl,
             user.DisplayName,
             user.Timezone,
-            user.NotificationPrefsJson);
+            user.NotificationPrefsJson,
+            user.Preferences);
     }
 }

@@ -71,6 +71,41 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     }
 
     [Fact]
+    public async Task UpdateProfile_Preferences_PersistsAndReturnsInMe()
+    {
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "prefs@example.com", "Prefs User");
+
+        // Update profile with preferences
+        const string updateMutation = @"
+            mutation($input: UpdateProfileInput!) {
+              updateProfile(input: $input) {
+                id displayName timezone preferences notificationPrefsJson
+              }
+            }";
+
+        var updateData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
+            client, updateMutation, new
+            {
+                input = new
+                {
+                    displayName = "Prefs",
+                    timezone = "Europe/Amsterdam",
+                    preferences = "Keep explanations brief and to the point",
+                }
+            });
+
+        var updated = updateData.GetProperty("updateProfile");
+        Assert.Equal("Prefs", updated.GetProperty("displayName").GetString());
+        Assert.Equal("Keep explanations brief and to the point", updated.GetProperty("preferences").GetString());
+
+        // Verify me query also returns preferences
+        const string meQuery = @"{ me { id email preferences } }";
+        var meData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, meQuery);
+        var me = meData.GetProperty("me");
+        Assert.Equal("Keep explanations brief and to the point", me.GetProperty("preferences").GetString());
+    }
+
+    [Fact]
     public async Task GoogleLogin_RedirectsToGoogleOAuth()
     {
         var client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
