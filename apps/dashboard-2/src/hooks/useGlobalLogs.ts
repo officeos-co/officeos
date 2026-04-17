@@ -18,28 +18,33 @@ const GLOBAL_LOGS_QUERY = gql`
   query GlobalLogs(
     $search: String
     $agentName: String
-    $type: String
+    $type: AgentLogType
     $skip: Int
     $limit: Int
   ) {
     globalLogs(
-      search: $search
-      agentName: $agentName
-      type: $type
-      skip: $skip
-      limit: $limit
+      filters: {
+        search: $search
+        agentName: $agentName
+        type: $type
+        skip: $skip
+        limit: $limit
+      }
     ) {
-      id
-      time
-      type
-      tool
-      integration
-      channel
-      content
-      durationMs
-      inputTokens
-      outputTokens
-      agentName
+      items {
+        id
+        time
+        type
+        tool
+        integration
+        channel
+        content
+        durationMs
+        inputTokens
+        outputTokens
+        agentName
+      }
+      total
     }
   }
 `
@@ -98,7 +103,7 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
     inputTokens?: number | null
     outputTokens?: number | null
     agentName: string
-  }> = data?.globalLogs ?? []
+  }> = data?.globalLogs?.items ?? []
   const logs: GlobalLog[] = raw.map((r) => ({
     id: r.id,
     time:
