@@ -12,9 +12,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository, EnterpriseAgentOs.Api.Entities.AgentSkills.AgentSkillRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Auth.IUserRepository, EnterpriseAgentOs.Api.Entities.Auth.UserRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Auth.ISessionRepository, EnterpriseAgentOs.Api.Entities.Auth.SessionRepository>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.Runners.IRunnerRepository, EnterpriseAgentOs.Api.Entities.Runners.RunnerRepository>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository, EnterpriseAgentOs.Api.Entities.Runners.RunnerJobRepository>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.SkillRegistry.ISkillRegistryRepository, EnterpriseAgentOs.Api.Entities.SkillRegistry.SkillRegistryRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository, EnterpriseAgentOs.Api.Entities.Channels.ChannelRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitRepository, EnterpriseAgentOs.Api.Entities.RateLimiting.RateLimitRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateRepository, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateRepository>();
@@ -44,8 +41,6 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
-        services.AddSingleton<EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter>();
-        services.AddHostedService<EnterpriseAgentOs.Api.Entities.Runners.RunnerJobTimeoutService>();
         return services;
     }
 

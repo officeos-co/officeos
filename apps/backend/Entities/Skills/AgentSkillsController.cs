@@ -7,40 +7,28 @@ public sealed class AgentSkillsController : ControllerBase
 {
     private readonly ISkillService _service;
     private readonly SkillRuntimeClient _runtime;
-    private readonly EnterpriseAgentOs.Api.Entities.Runners.IRunnerRepository _runners;
-    private readonly EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository _runnerJobs;
-    private readonly EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter _jobWaiter;
     private readonly IBrowserSessionRepository _browserSessions;
     private readonly EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService _agentLogs;
     private readonly EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService _rateLimiter;
     private readonly ISkillCatalogRepository _catalog;
-    private readonly ISkillRepository _skillRepo;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
     public AgentSkillsController(
         ISkillService service,
         SkillRuntimeClient runtime,
-        EnterpriseAgentOs.Api.Entities.Runners.IRunnerRepository runners,
-        EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository runnerJobs,
-        EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter jobWaiter,
         IBrowserSessionRepository browserSessions,
         EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService agentLogs,
         EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService rateLimiter,
         ISkillCatalogRepository catalog,
-        ISkillRepository skillRepo,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
         _runtime = runtime;
-        _runners = runners;
-        _runnerJobs = runnerJobs;
-        _jobWaiter = jobWaiter;
         _browserSessions = browserSessions;
         _agentLogs = agentLogs;
         _rateLimiter = rateLimiter;
         _catalog = catalog;
-        _skillRepo = skillRepo;
         _logger = logger;
     }
 
@@ -52,10 +40,6 @@ public sealed class AgentSkillsController : ControllerBase
         return Ok(response);
     }
 
-    /// <summary>
-    /// Generic skill execution endpoint — routes to cloud skill-runtime
-    /// or a self-hosted runner based on the skill's run target setting.
-    /// </summary>
     [HttpPost("skill-exec")]
     public async Task<IActionResult> SkillExec([FromBody] SkillExecRequest body, CancellationToken ct)
     {
@@ -93,21 +77,13 @@ public sealed class AgentSkillsController : ControllerBase
             }
         }
 
-        var runTarget = await _service.GetRunTargetAsync(body.Skill, ct);
-        _logger.LogInformation("Agent skill-exec: {Skill}.{Action} (target={RunTarget})",
-            body.Skill, body.Action, runTarget);
+        _logger.LogInformation("Agent skill-exec: {Skill}.{Action}", body.Skill, body.Action);
 
-        if (runTarget == "runner")
-        {
-            return await DispatchToRunnerAsync(body, ct);
-        }
-
-        // Cloud execution (default)
         var creds = await _service.GetDecryptedCredentialsAsync(body.Skill, ct);
         if (creds is null)
         {
             _logger.LogWarning("Skill {Skill} not configured for cloud execution", body.Skill);
-            return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured. Configure credentials on the Skills page, or set it to run on a self-hosted runner." });
+            return Conflict(new { error = $"Skill '{body.Skill}' is not installed or not configured. Configure credentials on the Skills page." });
         }
 
         // Browser session injection
@@ -158,7 +134,6 @@ public sealed class AgentSkillsController : ControllerBase
                 }
             }
 
-            // Strip session metadata from the response to the agent
             if (result.Success)
             {
                 resultSummary = "success";
@@ -212,80 +187,6 @@ public sealed class AgentSkillsController : ControllerBase
         }
     }
 
-    private async Task<IActionResult> DispatchToRunnerAsync(SkillExecRequest body, CancellationToken ct)
-    {
-        // Find any online runner
-        var onlineRunners = await _runners.GetOnlineRunnersAsync(ct);
-        if (onlineRunners.Count == 0)
-        {
-            _logger.LogWarning("No online runners available for skill {Skill}", body.Skill);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                error = $"Skill '{body.Skill}' is configured to run on a self-hosted runner, but no runners are currently online. "
-                    + "Start a runner with `docker run -e PLATFORM_URL=... -e REGISTRATION_TOKEN=... harkro123/skill-runner`, "
-                    + "or switch the skill back to cloud execution on the Skills page.",
-            });
-        }
-
-        // Pick the runner with the most recent heartbeat (most responsive)
-        var runner = onlineRunners.OrderByDescending(r => r.LastHeartbeatAt).First();
-
-        var payload = JsonSerializer.Serialize(new
-        {
-            skill = body.Skill,
-            action = body.Action,
-            @params = body.Params ?? new Dictionary<string, object>(),
-        });
-
-        var job = await _runnerJobs.CreateAsync(runner.Id, payload, TimeSpan.FromSeconds(60), ct);
-        _logger.LogInformation("Dispatched job {JobId} to runner {RunnerId} ({RunnerName}) for {Skill}.{Action}",
-            job.Id, runner.Id, runner.Name, body.Skill, body.Action);
-        var tcs = _jobWaiter.Register(job.Id);
-
-        try
-        {
-            var result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(30), ct);
-            if (result.Success)
-                return Ok(new { success = true, result = result.Result });
-
-            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
-            {
-                AgentId = (Guid)HttpContext.Items["agent-id"]!,
-                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
-                Content = $"Runner skill {body.Skill}.{body.Action} failed on '{runner.Name}': {result.Error}",
-                Integration = body.Skill,
-                Tool = body.Action,
-                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
-            });
-            return UnprocessableEntity(new
-            {
-                success = false,
-                error = result.Error,
-                executedBy = "runner",
-                runnerName = runner.Name,
-            });
-        }
-        catch (TimeoutException)
-        {
-            _jobWaiter.Remove(job.Id);
-            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
-            {
-                AgentId = (Guid)HttpContext.Items["agent-id"]!,
-                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
-                Content = $"Runner '{runner.Name}' timed out executing {body.Skill}.{body.Action} (30s limit)",
-                Integration = body.Skill,
-                Tool = body.Action,
-                CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
-            });
-            return StatusCode(StatusCodes.Status504GatewayTimeout, new
-            {
-                error = $"Runner '{runner.Name}' did not complete the job within 30 seconds. "
-                    + "The runner may be overloaded, or the skill execution is taking too long. "
-                    + "Check the runner logs or try again.",
-            });
-        }
-    }
-
     private static readonly JsonSerializerOptions ManifestJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -321,7 +222,6 @@ public sealed class AgentSkillsController : ControllerBase
         }
         try
         {
-            // Convert JsonElement body to dictionary for the runtime
             var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText())
                 ?? new Dictionary<string, object>();
             var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct: ct);

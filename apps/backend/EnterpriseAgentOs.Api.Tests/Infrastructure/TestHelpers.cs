@@ -118,28 +118,6 @@ public static class TestHelpers
     }
 
     /// <summary>
-    /// Creates a runner via the dashboard GraphQL and returns its id and registration token.
-    /// </summary>
-    public static async Task<(Guid Id, string RegistrationToken)> CreateRunnerAsync(
-        HttpClient client,
-        string name = "test-runner")
-    {
-        const string mutation = @"
-            mutation($name: String!) {
-              createRunner(name: $name) {
-                runner { id }
-                registrationToken
-              }
-            }";
-        var data = await GraphQLAsync(client, mutation, new { name });
-        var createRunner = data.GetProperty("createRunner");
-        return (
-            createRunner.GetProperty("runner").GetProperty("id").GetGuid(),
-            createRunner.GetProperty("registrationToken").GetString()!
-        );
-    }
-
-    /// <summary>
     /// Seeds a user + expired session and returns an HttpClient with that cookie.
     /// </summary>
     public static async Task<HttpClient> CreateExpiredSessionClientAsync(CustomWebApplicationFactory factory)
@@ -195,12 +173,4 @@ public static class TestHelpers
         await GraphQLAsync(client, mutation, new { name, credentials = entries });
     }
 
-    public static async Task SetSkillRunTargetAsync(HttpClient client, string name, string runTarget)
-    {
-        const string mutation =
-            @"mutation($name: String!, $runTarget: String!) {
-                setSkillRunTarget(name: $name, runTarget: $runTarget)
-              }";
-        await GraphQLAsync(client, mutation, new { name, runTarget });
-    }
 }

@@ -98,68 +98,6 @@ public sealed class SkillRuntimeClient
         }
     }
 
-    /// <summary>
-    /// Send skill source files to the runtime for building and hot-loading.
-    /// </summary>
-    public async Task<JsonElement> BuildAsync(string name, object files, CancellationToken ct = default)
-    {
-        var body = JsonSerializer.Serialize(new { name, files });
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/build");
-        req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
-        using var resp = await _http.SendAsync(req, ct);
-
-        if (!resp.IsSuccessStatusCode)
-        {
-            var errorText = await resp.Content.ReadAsStringAsync(ct);
-            _logger.LogError("Skill build failed for {SkillName} (HTTP {StatusCode}): {Error}",
-                name, (int)resp.StatusCode, Trim(errorText, 200));
-            throw new HttpRequestException($"Build failed (HTTP {(int)resp.StatusCode}): {Trim(errorText, 500)}");
-        }
-
-        var text = await resp.Content.ReadAsStringAsync(ct);
-
-        _logger.LogInformation("Skill {SkillName} built successfully", name);
-        return JsonSerializer.Deserialize<JsonElement>(text);
-    }
-
-    /// <summary>
-    /// Install a skill from the registry into the runtime.
-    /// </summary>
-    public async Task InstallFromRegistryAsync(string name, string? npmPackage, string? bundleUrl, CancellationToken ct = default)
-    {
-        var payload = JsonSerializer.Serialize(new { name, npmPackage, bundleUrl });
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/install");
-        req.Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-        using var resp = await _http.SendAsync(req, ct);
-
-        if (!resp.IsSuccessStatusCode)
-        {
-            var errorText = await resp.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException($"Install failed (HTTP {(int)resp.StatusCode}): {Trim(errorText, 500)}");
-        }
-
-
-        _logger.LogInformation("Skill {SkillName} installed from registry", name);
-    }
-
-    /// <summary>
-    /// Uninstall a skill from the runtime.
-    /// </summary>
-    public async Task UninstallFromRegistryAsync(string name, CancellationToken ct = default)
-    {
-        var payload = JsonSerializer.Serialize(new { name });
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/uninstall");
-        req.Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
-        using var resp = await _http.SendAsync(req, ct);
-
-        if (!resp.IsSuccessStatusCode)
-        {
-            var errorText = await resp.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("Skill {SkillName} uninstall failed (HTTP {StatusCode}): {Error}",
-                name, (int)resp.StatusCode, Trim(errorText, 200));
-        }
-    }
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

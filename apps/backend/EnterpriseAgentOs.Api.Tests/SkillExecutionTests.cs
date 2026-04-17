@@ -115,27 +115,6 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
     }
 
     [Fact]
-    public async Task SkillExec_RunnerTargetNoRunnersOnline_Returns503()
-    {
-        SeedNotionManifest();
-
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
-
-        // Install skill and set to runner target
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "k" });
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillRunTargetAsync(dashClient, "notion", "runner");
-
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
-        var response = await agent.SkillExecAsync("notion", "search", new { query = "test" });
-
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Contains("no runners", body.GetProperty("error").GetString(), StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public async Task SkillExec_WithoutBearerToken_Returns401()
     {
         var client = _factory.CreateClient();
