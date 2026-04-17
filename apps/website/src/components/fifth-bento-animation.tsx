@@ -24,6 +24,18 @@ const desktopColumns = [
     { name: "Discord", src: "/logos/discord.svg" },
     { name: "Teams", src: "/logos/teams.svg" },
   ],
+  [
+    { name: "WhatsApp", src: "/logos/whatsapp.svg" },
+    { name: "Telegram", src: "/logos/telegram.svg" },
+    { name: "Email", src: "/logos/email.svg" },
+    { name: "Browser", src: "/logos/browser.svg" },
+  ],
+  [
+    { name: "GitHub", src: "/logos/github.svg" },
+    { name: "Linear", src: "/logos/linear.svg" },
+    { name: "Jira", src: "/logos/jira.svg" },
+    { name: "Notion", src: "/logos/notion.svg" },
+  ],
 ];
 
 const mobileExtraColumns = [
@@ -55,14 +67,16 @@ export function FifthBentoAnimation() {
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-gradient-to-b from-background to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-background to-transparent" />
 
-      <div className="flex h-full justify-center gap-3 px-8 sm:px-0">
+      <div className="flex h-full w-full justify-center gap-4 px-8 sm:px-4">
         {desktopColumns.map((tools, colIdx) => (
           <Marquee
             key={colIdx}
             vertical
             reverse={colIdx % 2 === 1}
-            className="h-full [--duration:25s] [--gap:0.75rem]"
+            className={`h-full [--duration:25s] [--gap:0.75rem] ${colIdx >= 3 ? "hidden md:flex" : ""}`}
             repeat={3}
           >
             {tools.map((tool) => (

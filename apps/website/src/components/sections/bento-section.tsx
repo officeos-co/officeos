@@ -1,55 +1,67 @@
 "use client";
 
 import { SectionHeader } from "@/components/section-header";
-import { FirstBentoAnimation } from "@/components/first-bento-animation";
 import { SecondBentoAnimation } from "@/components/second-bento-animation";
 import { ThirdBentoAnimation } from "@/components/third-bento-animation";
 import { FourthBentoAnimation } from "@/components/fourth-bento-animation";
 import { FifthBentoAnimation } from "@/components/fifth-bento-animation";
 import { SixthBentoAnimation } from "@/components/sixth-bento-animation";
+import { DeploymentSwimLane } from "@/components/deployment-swim-lane";
 
 const items = [
 	{
 		id: 1,
-		content: <ThirdBentoAnimation />,
-		title: "Enterprise Knowledge Graph",
-		description:
-			"Every agent taps into your company's knowledge. Contracts, docs, past decisions — always in context.",
-	},
-	{
-		id: 2,
-		content: <FifthBentoAnimation />,
-		title: "Works With Your Stack",
-		description:
-			"Agents plug into the tools your team already uses. One-click setup, no code required.",
-	},
-	{
-		id: 3,
 		content: <SecondBentoAnimation />,
 		title: "Meet Your Team Where They Work",
 		description:
 			"Agents respond in the channels your team already uses — chat, email, or any webhook.",
+		wide: true,
+		className: "md:col-span-2 lg:col-span-2",
 	},
 	{
-		id: 4,
+		id: 2,
+		content: <ThirdBentoAnimation />,
+		title: "Enterprise Knowledge Graph",
+		description:
+			"Every agent taps into your company's knowledge. Contracts, docs, past decisions — always in context.",
+		wide: false,
+		className: "lg:col-span-1",
+	},
+	{
+		id: 3,
 		content: <FourthBentoAnimation once={false} />,
 		title: "Cron Jobs",
 		description:
 			"Schedule recurring tasks. Agents scan, report, sync, and brief — autonomously, on your timeline.",
+		wide: false,
+		className: "lg:col-span-1",
+	},
+	{
+		id: 4,
+		content: <FifthBentoAnimation />,
+		title: "Works With Your Stack",
+		description:
+			"Agents plug into the tools your team already uses. One-click setup, no code required.",
+		wide: true,
+		className: "md:col-span-2 lg:col-span-2",
 	},
 	{
 		id: 5,
+		content: <DeploymentSwimLane />,
+		title: "Deploy a Fleet in Seconds",
+		description:
+			"Spin up dozens of agents in parallel. Each pod boots, loads skills, comes online — ready to work while the next is still starting.",
+		wide: true,
+		className: "md:col-span-2 lg:col-span-2",
+	},
+	{
+		id: 6,
 		content: <SixthBentoAnimation />,
 		title: "Central Credentials",
 		description:
 			"API keys and secrets managed once in the backend. Agent pods never see raw credentials.",
-	},
-	{
-		id: 6,
-		content: <FirstBentoAnimation />,
-		title: "One-Click Deployment",
-		description:
-			"Deploy a new agent in under a minute. Select a team, assign skills, set permissions — done.",
+		wide: false,
+		className: "lg:col-span-1",
 	},
 ];
 
@@ -77,12 +89,12 @@ export function BentoSection() {
 					{items.map((item) => (
 						<div
 							key={item.id}
-							className="group relative flex min-h-[420px] cursor-pointer flex-col items-start justify-end p-0.5 before:absolute before:top-0 before:-left-0.5 before:z-10 before:h-screen before:w-px before:bg-border before:content-[''] after:absolute after:-top-0.5 after:left-0 after:z-10 after:h-px after:w-screen after:bg-border after:content-['']"
+							className={`group relative flex min-h-[420px] cursor-pointer flex-col items-start justify-end p-0.5 before:absolute before:top-0 before:-left-0.5 before:z-10 before:h-full before:w-px before:bg-border before:content-[''] after:absolute after:-top-0.5 after:left-0 after:z-10 after:h-px after:w-full after:bg-border after:content-[''] ${item.className}`}
 						>
 							<div className="relative flex size-full h-full items-center justify-center overflow-hidden">
 								{item.content}
 							</div>
-							<div className="flex-1 flex-col gap-2 p-6">
+							<div className={`flex-1 flex-col gap-2 p-6 ${item.wide ? "lg:max-w-2xl" : ""}`}>
 								<h3 className="font-semibold text-lg tracking-tighter">
 									{item.title}
 								</h3>
