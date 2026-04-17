@@ -16,7 +16,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository, EnterpriseAgentOs.Api.Entities.Runners.RunnerJobRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.SkillRegistry.ISkillRegistryRepository, EnterpriseAgentOs.Api.Entities.SkillRegistry.SkillRegistryRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Channels.IChannelRepository, EnterpriseAgentOs.Api.Entities.Channels.ChannelRepository>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.Audit.IAuditRepository, EnterpriseAgentOs.Api.Entities.Audit.AuditRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitRepository, EnterpriseAgentOs.Api.Entities.RateLimiting.RateLimitRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateRepository, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateRepository>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogRepository, EnterpriseAgentOs.Api.Entities.AgentLogs.AgentLogRepository>();
@@ -36,8 +35,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IOrgBillingService, EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.IStripeWebhookService, EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService, EnterpriseAgentOs.Api.Entities.Billing.CreditRecordingService>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.Events.ISystemEventService, EnterpriseAgentOs.Api.Entities.Events.SystemEventService>();
-        services.AddScoped<EnterpriseAgentOs.Api.Entities.Audit.IAuditService, EnterpriseAgentOs.Api.Entities.Audit.AuditService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService, EnterpriseAgentOs.Api.Entities.RateLimiting.RateLimitService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.Gdpr.IGdprService, EnterpriseAgentOs.Api.Entities.Gdpr.GdprService>();
         services.AddScoped<EnterpriseAgentOs.Api.Entities.AgentTemplates.IAgentTemplateService, EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateService>();
@@ -48,7 +45,6 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
         services.AddSingleton<EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter>();
-        services.AddSingleton<EnterpriseAgentOs.Api.Entities.Events.SystemEventBroadcaster>();
         services.AddHostedService<EnterpriseAgentOs.Api.Entities.Runners.RunnerJobTimeoutService>();
         return services;
     }

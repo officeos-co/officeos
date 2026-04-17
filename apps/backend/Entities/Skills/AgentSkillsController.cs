@@ -11,8 +11,7 @@ public sealed class AgentSkillsController : ControllerBase
     private readonly EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository _runnerJobs;
     private readonly EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter _jobWaiter;
     private readonly IBrowserSessionRepository _browserSessions;
-    private readonly EnterpriseAgentOs.Api.Entities.Events.ISystemEventService _events;
-    private readonly EnterpriseAgentOs.Api.Entities.Audit.IAuditService _audit;
+    private readonly EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService _agentLogs;
     private readonly EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService _rateLimiter;
     private readonly ISkillCatalogRepository _catalog;
     private readonly ISkillRepository _skillRepo;
@@ -26,8 +25,7 @@ public sealed class AgentSkillsController : ControllerBase
         EnterpriseAgentOs.Api.Entities.Runners.IRunnerJobRepository runnerJobs,
         EnterpriseAgentOs.Api.Entities.Runners.RunnerJobWaiter jobWaiter,
         IBrowserSessionRepository browserSessions,
-        EnterpriseAgentOs.Api.Entities.Events.ISystemEventService events,
-        EnterpriseAgentOs.Api.Entities.Audit.IAuditService audit,
+        EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService agentLogs,
         EnterpriseAgentOs.Api.Entities.RateLimiting.IRateLimitService rateLimiter,
         ISkillCatalogRepository catalog,
         ISkillRepository skillRepo,
@@ -39,8 +37,7 @@ public sealed class AgentSkillsController : ControllerBase
         _runnerJobs = runnerJobs;
         _jobWaiter = jobWaiter;
         _browserSessions = browserSessions;
-        _events = events;
-        _audit = audit;
+        _agentLogs = agentLogs;
         _rateLimiter = rateLimiter;
         _catalog = catalog;
         _skillRepo = skillRepo;
@@ -172,13 +169,13 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {result.Error}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
+            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
             {
-                Severity = "error",
-                Category = "skill_execution",
-                Message = $"Skill {body.Skill}.{body.Action} failed: {result.Error}",
-                SkillName = body.Skill,
                 AgentId = execAgentId,
+                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
+                Content = $"Skill {body.Skill}.{body.Action} failed: {result.Error}",
+                Integration = body.Skill,
+                Tool = body.Action,
                 CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
             });
             return UnprocessableEntity(new { success = result.Success, error = result.Error });
@@ -189,13 +186,13 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {ex.Message}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
+            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
             {
-                Severity = "error",
-                Category = "skill_execution",
-                Message = $"Cloud skill-runtime unreachable for {body.Skill}.{body.Action}: {ex.Message}",
-                SkillName = body.Skill,
                 AgentId = execAgentId,
+                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
+                Content = $"Cloud skill-runtime unreachable for {body.Skill}.{body.Action}: {ex.Message}",
+                Integration = body.Skill,
+                Tool = body.Action,
                 CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
             });
             return StatusCode(StatusCodes.Status502BadGateway,
@@ -207,7 +204,7 @@ public sealed class AgentSkillsController : ControllerBase
     {
         try
         {
-            await _audit.RecordToolCallAsync(agentId, null, skill, action, paramsJson, resultSummary, durationMs);
+            await _agentLogs.RecordToolCallAsync(agentId, null, skill, action, paramsJson, resultSummary, durationMs);
         }
         catch (Exception ex)
         {
@@ -251,12 +248,13 @@ public sealed class AgentSkillsController : ControllerBase
             if (result.Success)
                 return Ok(new { success = true, result = result.Result });
 
-            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
+            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
             {
-                Severity = "error",
-                Category = "skill_execution",
-                Message = $"Runner skill {body.Skill}.{body.Action} failed on '{runner.Name}': {result.Error}",
-                SkillName = body.Skill,
+                AgentId = (Guid)HttpContext.Items["agent-id"]!,
+                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
+                Content = $"Runner skill {body.Skill}.{body.Action} failed on '{runner.Name}': {result.Error}",
+                Integration = body.Skill,
+                Tool = body.Action,
                 CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
             });
             return UnprocessableEntity(new
@@ -270,12 +268,13 @@ public sealed class AgentSkillsController : ControllerBase
         catch (TimeoutException)
         {
             _jobWaiter.Remove(job.Id);
-            await _events.RecordAsync(new EnterpriseAgentOs.Api.Database.Models.SystemEventRecord
+            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
             {
-                Severity = "error",
-                Category = "skill_execution",
-                Message = $"Runner '{runner.Name}' timed out executing {body.Skill}.{body.Action} (30s limit)",
-                SkillName = body.Skill,
+                AgentId = (Guid)HttpContext.Items["agent-id"]!,
+                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
+                Content = $"Runner '{runner.Name}' timed out executing {body.Skill}.{body.Action} (30s limit)",
+                Integration = body.Skill,
+                Tool = body.Action,
                 CorrelationId = Response.Headers["X-Correlation-Id"].FirstOrDefault(),
             });
             return StatusCode(StatusCodes.Status504GatewayTimeout, new

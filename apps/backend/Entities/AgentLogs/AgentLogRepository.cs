@@ -48,6 +48,44 @@ public sealed class AgentLogRepository : IAgentLogRepository
         return record;
     }
 
+    public async Task AppendPairAsync(EnterpriseAgentOs.Api.Database.Models.AgentLogRecord toolCall, EnterpriseAgentOs.Api.Database.Models.AgentLogRecord toolResult, CancellationToken ct = default)
+    {
+        _db.AgentLogs.Add(toolCall);
+        _db.AgentLogs.Add(toolResult);
+        await _db.SaveChangesAsync(ct);
+    }
+
     public Task<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => _db.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
+
+    public async Task<(List<EnterpriseAgentOs.Api.Database.Models.AgentLogRecord> Items, int Total)> GetToolCallsAsync(
+        Guid agentId, int limit, int offset, CancellationToken ct = default)
+    {
+        var query = _db.AgentLogs
+            .Where(r => r.AgentId == agentId && r.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.ToolCall)
+            .OrderByDescending(r => r.Time);
+
+        var total = await query.CountAsync(ct);
+        var items = await query.Skip(offset).Take(limit).ToListAsync(ct);
+        return (items, total);
+    }
+
+    public async Task<Dictionary<string, EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>> GetResultsByCorrelationAsync(
+        Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
+    {
+        if (correlationIds.Count == 0)
+            return new Dictionary<string, EnterpriseAgentOs.Api.Database.Models.AgentLogRecord>();
+
+        var rows = await _db.AgentLogs
+            .Where(r => r.AgentId == agentId
+                        && r.Type == EnterpriseAgentOs.Api.Database.Models.AgentLogType.ToolResult
+                        && r.CorrelationId != null
+                        && correlationIds.Contains(r.CorrelationId))
+            .ToListAsync(ct);
+
+        return rows
+            .Where(r => r.CorrelationId is not null)
+            .GroupBy(r => r.CorrelationId!)
+            .ToDictionary(g => g.Key, g => g.First());
+    }
 }

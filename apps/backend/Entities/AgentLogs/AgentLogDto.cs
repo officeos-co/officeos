@@ -33,6 +33,20 @@ public sealed record AppendAgentLogInput(
     string? Channel = null,
     string? CorrelationId = null);
 
+// Audit types (merged from Entities/Audit)
+public sealed record AuditEntry(
+    Guid Id,
+    Guid AgentId,
+    Guid? UserId,
+    string SkillName,
+    string Action,
+    string ParamsJson,
+    string? ResultSummary,
+    long DurationMs,
+    DateTime Timestamp);
+
+public sealed record AuditLogPage(IReadOnlyList<AuditEntry> Items, int Total);
+
 public static class AgentLogMapper
 {
     public static AgentLogDto ToDto(this EnterpriseAgentOs.Api.Database.Models.AgentLogRecord r, string? agentName = null) => new(
