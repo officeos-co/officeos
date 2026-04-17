@@ -39,7 +39,7 @@ pub struct FieldInfo {
     pub description: Option<String>,
     #[serde(default)]
     pub args: Vec<ArgInfo>,
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default)]
     pub field_type: TypeRef,
 }
 
@@ -53,7 +53,7 @@ pub struct ArgInfo {
     pub default_value: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct TypeRef {
     pub name: Option<String>,
     pub kind: Option<String>,
