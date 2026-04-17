@@ -1,4 +1,4 @@
-// Dashboard mutation set — add more from Entities/Billing/BillingController.cs as dashboard-2 needs them
+// Dashboard mutation set — add more from Entities/Billing/BillingController.cs as dashboard needs them
 
 namespace EnterpriseAgentOs.Api.Mutations;
 

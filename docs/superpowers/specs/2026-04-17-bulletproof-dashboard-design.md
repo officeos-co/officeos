@@ -1,11 +1,11 @@
-# Bulletproof React Refactor — dashboard-2
+# Bulletproof React Refactor — dashboard
 
 **Date:** 2026-04-17
-**Scope:** `apps/dashboard-2/src/` only
+**Scope:** `apps/dashboard/src/` only
 
 ## Goal
 
-Reorganize dashboard-2 from flat `hooks/`, `data/`, `components/` folders into Bulletproof React feature-based architecture. Routes stay in `app/` as thin wrappers; business logic moves into `src/features/`.
+Reorganize dashboard from flat `hooks/`, `data/`, `components/` folders into Bulletproof React feature-based architecture. Routes stay in `app/` as thin wrappers; business logic moves into `src/features/`.
 
 ## Feature modules
 

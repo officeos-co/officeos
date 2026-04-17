@@ -1,4 +1,4 @@
-# dashboard-2 — Next.js 16 + Bun + shadcn sidebar-07
+# dashboard — Next.js 16 + Bun + shadcn sidebar-07
 
 Alpha dashboard. Built from scratch on shadcn's sidebar-07 template. Backend wiring in progress — auth, profile, billing, and org hooks are live.
 
@@ -243,7 +243,7 @@ forwards to PostHog using the server-side API key (see
 is a `console.debug` no-op. Page-level `$pageview` events are emitted globally
 by `components/analytics-pageview.tsx` mounted in `(dashboard)/layout.tsx`.
 
-**Never install the `posthog-js` snippet in dashboard-2.** All capture goes
+**Never install the `posthog-js` snippet in dashboard.** All capture goes
 through the backend so the PostHog key never leaves the server.
 
 Adding a new event requires a matching backend mutation — see

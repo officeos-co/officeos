@@ -82,7 +82,7 @@ No manual build or deploy commands ever.
 | Workflow | Triggers on | Builds | Deploys |
 |----------|-------------|--------|---------|
 | `deploy-backend-prod.yml` | `apps/backend/**`, `k8s/backend.yaml` | Tests → `harkro123/eaos-backend:latest` | `kubectl rollout restart deployment/eaos-backend-prod` |
-| `deploy-dashboard-prod.yml` | `apps/dashboard-2/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` |
+| `deploy-dashboard-prod.yml` | `apps/dashboard/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` |
 | `deploy-website-prod.yml` | `apps/website/**`, `changelog/**`, `k8s/website.yaml` | `harkro123/eaos-website:latest` | `kubectl rollout restart deployment/eaos-website-prod` |
 | `build-zeroclaw-image.yml` | `packages/agent-core/**` | `harkro123/zeroclaw:latest` | No deploy — new pods pick up `:latest` on next spawn |
 | `build-skill-runtime.yml` | `packages/skill-runtime/**`, `packages/skill-sdk/**`, `packages/skills/**` | `harkro123/eaos-skill-runtime:latest` | Rollout restart + seed manifests to backend DB via `POST /api/internal/seed-manifests` |

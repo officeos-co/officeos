@@ -4,7 +4,7 @@ Source of truth for every PostHog event the product fires. Each use-case has
 a dedicated GraphQL mutation (no generic `captureEvent(name, properties)`
 escape hatch) — the schema is the contract.
 
-## Client-fired events (dashboard-2 → backend → PostHog)
+## Client-fired events (dashboard → backend → PostHog)
 
 | Event name | Mutation | Input fields | Trigger |
 |------------|----------|--------------|---------|
@@ -15,7 +15,7 @@ escape hatch) — the schema is the contract.
 | `channel_connected` | `trackChannelConnected` | `channelSlug` | `app/(dashboard)/channels/page.tsx` — onboarding complete |
 | `agent_created` | `trackAgentCreated` | `agentName, provider, template, skillCount, allowSkills, denySkills` | `app/(dashboard)/quickstart/page.tsx` — Launch button |
 
-The dashboard hook is `useAnalytics()` in `apps/dashboard-2/src/hooks/useAnalytics.ts`;
+The dashboard hook is `useAnalytics()` in `apps/dashboard/src/hooks/useAnalytics.ts`;
 it exposes one typed function per mutation (`trackPageView`, `trackNavClicked`, …).
 With `NEXT_PUBLIC_USE_MOCKS=1` every call is a `console.debug` no-op.
 
@@ -40,13 +40,13 @@ resolves.
 
 `mutation identifyUser` — no input, reads the session user and calls
 `IPostHogService.IdentifyAsync` with `{ email, name }`. The legacy
-`posthog.identify(userId, …)` client call in dashboard v1 is gone; dashboard-2
+`posthog.identify(userId, …)` client call in dashboard v1 is gone; dashboard
 never holds the PostHog key.
 
 ## Adding a new event
 
 1. Add a typed input record + mutation to `Entities/PostHog/PostHogMutations.cs`.
-2. Add a corresponding `track*` helper in `apps/dashboard-2/src/hooks/useAnalytics.ts`.
+2. Add a corresponding `track*` helper in `apps/dashboard/src/hooks/useAnalytics.ts`.
 3. Call the helper from the relevant component.
 4. Document it in the table above.
 

@@ -98,7 +98,7 @@ The backend exposes **two named HotChocolate schemas** from a single host:
 | Endpoint | Schema name | Auth | Consumers | Shape |
 |----------|-------------|------|-----------|-------|
 | `POST /api/graphql` | `agent` | `AgentAuthInterceptor` (Bearer agent-uuid) | Agent pods (zeroclaw-core) | Dynamic — `SkillTypeModule` (in `Entities/SkillGateway/`) generates per-skill action fields from runtime manifests. |
-| `POST /api/dashboard/graphql` | `dashboard` | `DashboardAuthMiddleware` reads `HttpContext.Items["User"]` set by `SessionAuthMiddleware` | Dashboard (`apps/dashboard-2/`) | Static — one file per domain, auto-registered via `AddDomainTypeExtensions`. |
+| `POST /api/dashboard/graphql` | `dashboard` | `DashboardAuthMiddleware` reads `HttpContext.Items["User"]` set by `SessionAuthMiddleware` | Dashboard (`apps/dashboard/`) | Static — one file per domain, auto-registered via `AddDomainTypeExtensions`. |
 
 Both are wired in `Program.cs`. Never merge them: the agent schema leaks tool names into introspection and must stay isolated from dashboard operators.
 
@@ -177,7 +177,7 @@ The TypeScript implementation lives in `packages/skills/`.
 
 ## PostHog
 
-PostHog capture is server-side via `IPostHogService`. dashboard-2 never holds the API key; it calls one of the typed `track*` mutations (e.g. `trackPageView`, `trackAgentCreated`). There is no generic `captureEvent(name, properties)` — every event has a dedicated mutation with a typed input, so the GraphQL schema enumerates every event we fire. See `Entities/PostHog/EVENTS.md` for the full catalog.
+PostHog capture is server-side via `IPostHogService`. dashboard never holds the API key; it calls one of the typed `track*` mutations (e.g. `trackPageView`, `trackAgentCreated`). There is no generic `captureEvent(name, properties)` — every event has a dedicated mutation with a typed input, so the GraphQL schema enumerates every event we fire. See `Entities/PostHog/EVENTS.md` for the full catalog.
 
 ## Anti-patterns
 

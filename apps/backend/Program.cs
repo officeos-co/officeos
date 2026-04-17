@@ -106,7 +106,7 @@ builder.Services.AddSingleton(frontendConfig);
 // LLM
 builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<EnterpriseAgentOs.Api.Properties.PlatformKeysConfig>() ?? new EnterpriseAgentOs.Api.Properties.PlatformKeysConfig());
 
-// PostHog — server owns the API key; dashboard-2 calls use-case-specific track* mutations
+// PostHog — server owns the API key; dashboard calls use-case-specific track* mutations
 var postHogConfig = new EnterpriseAgentOs.Api.Properties.PostHogConfig();
 envSection.GetSection("PostHog").Bind(postHogConfig);
 builder.Services.AddSingleton(postHogConfig);

@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.Mutations;
 
-// One mutation per dashboard-2 use case. The GraphQL schema lists every event
+// One mutation per dashboard use case. The GraphQL schema lists every event
 // we ever fire — no generic `captureEvent(name, properties)` escape hatch.
 [ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
 public class PostHogMutations

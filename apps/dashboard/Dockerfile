@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1.7
 FROM oven/bun:1 AS deps
 WORKDIR /app
-COPY apps/dashboard-2/package.json apps/dashboard-2/bun.lock* ./
+COPY apps/dashboard/package.json apps/dashboard/bun.lock* ./
 RUN bun install
 
 FROM oven/bun:1 AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY apps/dashboard-2/. ./
+COPY apps/dashboard/. ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 

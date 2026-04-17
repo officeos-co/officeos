@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.Entities.PostHog;
 
-// One input record per tracked use-case in dashboard-2. Keep them flat and
+// One input record per tracked use-case in dashboard. Keep them flat and
 // strongly typed — the goal is to make the GraphQL schema the source of truth
 // for which events exist, not a generic string/JSON wrapper.
 

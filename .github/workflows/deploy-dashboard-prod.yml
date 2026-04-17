@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'apps/dashboard-2/**'
+      - 'apps/dashboard/**'
       - 'k8s/frontend.yaml'
       - '.github/workflows/deploy-dashboard-prod.yml'
   # Re-run after backend deploys so contract tests validate the new schema
@@ -39,7 +39,7 @@ jobs:
               echo "run_tests=false" >> "$GITHUB_OUTPUT"
             else
               # Only re-run if dashboard files also changed in that commit
-              DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/dashboard-2/ k8s/frontend.yaml || true)
+              DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/dashboard/ k8s/frontend.yaml || true)
               if [ -n "$DASH_CHANGED" ]; then
                 echo "run_pipeline=true" >> "$GITHUB_OUTPUT"
                 echo "run_tests=true" >> "$GITHUB_OUTPUT"
@@ -71,11 +71,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        working-directory: apps/dashboard-2
+        working-directory: apps/dashboard
         run: bun install --frozen-lockfile
 
       - name: Run contract tests
-        working-directory: apps/dashboard-2
+        working-directory: apps/dashboard
         run: bun test src/__tests__/graphql-contracts.test.ts
         env:
           GRAPHQL_SCHEMA_URL: https://api.officeos.co/api/dashboard/graphql
@@ -100,7 +100,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/dashboard-2/Dockerfile
+          file: apps/dashboard/Dockerfile
           push: true
           tags: harkro123/eaos-frontend:latest
           cache-from: type=gha,scope=frontend
