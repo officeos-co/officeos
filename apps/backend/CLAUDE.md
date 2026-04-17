@@ -73,12 +73,12 @@ Entities/<Domain>/
 | `Events` | SystemEventsController (SSE stream) | SystemEventService | — | — | SystemEventBroadcaster (singleton) |
 | `SkillRegistry` | SkillRegistryController | — | SkillRegistryRepository | — | Operator tooling |
 | `AgentSkills` | — | — | AgentSkillRepository | yes | |
-| `Audit` | — | AuditService | AuditRepository | yes | Records every skill execution, redacts secrets in paramsJson |
+| `Audit` | — | — | — | — | **Merged into AgentLogs.** Secret redaction and tool-call recording now live in `AgentLogService`. The `auditLog` GraphQL query is in `AgentLogsQueries.cs`. |
 | `LlmProxy` | LlmProxyController | — | — | — | LlmProviderDispatcher, SmartRouter, AnthropicTranslator, PromptCacheInjector. Injects anti-prompt-injection guardrail system message at position 0. |
 | `RateLimiting` | — | IRateLimitService / RateLimitService | IRateLimitRepository / RateLimitRepository | — | DB-backed per-agent sliding window over AgentRateLimitRecord. Config: RateLimitingConfig. |
 | `Gdpr` | GdprController | IGdprService / GdprService | — | — | GET /api/gdpr/export, DELETE /api/gdpr/purge. Both require SessionAuth. |
 | `PostHog` | — | PostHogService | — | — | Typed GraphQL mutations per use case (`trackPageView`, `trackNavClicked`, `trackSkillInstalled`, `trackSkillConfigured`, `trackChannelConnected`, `trackAgentCreated`, `identifyUser`) — **no** generic `captureEvent` passthrough. Registered via `AddHttpClient<IPostHogService, PostHogService>()`. See `Entities/PostHog/EVENTS.md`. |
-| `AgentLogs` | — | IAgentLogService / AgentLogService | IAgentLogRepository / AgentLogRepository | — | GraphQL-only domain. Append-only log timeline over `AgentLogRecord`. Publishes to `ITopicEventSender` topic `agent-log:{agentId}`. Has `AgentLogsSubscriptions.cs` for live updates. |
+| `AgentLogs` | — | IAgentLogService / AgentLogService | IAgentLogRepository / AgentLogRepository | — | Unified log domain. Append-only timeline over `AgentLogRecord` — messages, tool calls, channel events, system events all in one format. Includes secret redaction (merged from Audit), `auditLog` query, and live subscriptions via `ITopicEventSender` topic `agent-log:{agentId}`. |
 | `AgentTemplates` | — | IAgentTemplateService / AgentTemplateService | IAgentTemplateRepository / AgentTemplateRepository | — | AgentTemplateSeeder at startup. |
 
 ### Naming conventions

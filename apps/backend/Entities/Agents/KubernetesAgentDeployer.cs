@@ -62,12 +62,11 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         };
         await _k8s.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(pvcManifest, _namespace, cancellationToken: ct);
 
-        // Single env var. The agent derives everything else from this ID
-        // by calling the backend (LLM proxy, vault proxy, skills gateway).
-        // Backend URL is hardcoded in the zeroclaw image config.
+        // Two env vars — the only runtime inputs the pod accepts (see API.md §2).
         var env = new List<V1EnvVar>
         {
             new("ZEROCLAW_AGENT_ID", agentId.ToString()),
+            new("BACKEND_URL", $"http://eaos-backend-prod.{_namespace}.svc.cluster.local:8000"),
         };
 
         var podManifest = new V1Pod
@@ -82,7 +81,6 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
                     {
                         Name = "zeroclaw",
                         Image = _image,
-                        Command = new[] { "sh", "-c", "zeroclaw daemon" },
                         Ports = new[] { new V1ContainerPort(ZeroclawPort) },
                         Env = env,
                         Resources = new V1ResourceRequirements
