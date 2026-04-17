@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'packages/zeroclaw-core/**'
+      - 'packages/agent-core/**'
       - '.github/workflows/build-zeroclaw-image.yml'
 
 concurrency:
@@ -30,8 +30,8 @@ jobs:
           # The Dockerfile copies Cargo.toml, src/, web/, etc. without
           # any `packages/zeroclaw-core/` prefix — so the context has
           # to be that directory, not the repo root.
-          context: packages/zeroclaw-core
-          file: packages/zeroclaw-core/Dockerfile
+          context: packages/agent-core
+          file: packages/agent-core/Dockerfile
           push: true
           tags: harkro123/zeroclaw:latest
           cache-from: type=gha,scope=zeroclaw
