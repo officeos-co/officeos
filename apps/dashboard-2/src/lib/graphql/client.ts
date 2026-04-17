@@ -17,14 +17,14 @@ import { createClient } from "graphql-ws"
  * - Subscriptions use graphql-ws over WS at the same path.
  * - `credentials: "include"` sends the dashboard session cookie.
  *
- * The API base URL comes from NEXT_PUBLIC_API_URL (defaults to
- * http://localhost:5000 in dev). WS scheme is derived from it.
+ * Production: https://api.officeos.co
+ * Staging:    http://localhost:5000
  */
 
 const API_URL =
-  (typeof process !== "undefined" &&
-    process.env.NEXT_PUBLIC_API_URL) ||
-  "http://localhost:5000"
+  process.env.NODE_ENV === "production"
+    ? "https://api.officeos.co"
+    : "http://localhost:5000"
 
 const HTTP_ENDPOINT = `${API_URL}/api/dashboard/graphql`
 
