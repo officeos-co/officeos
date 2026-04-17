@@ -8,6 +8,7 @@ on:
       - 'apps/dashboard-2/**'
       - 'k8s/frontend.yaml'
       - '.github/workflows/deploy-dashboard-prod.yml'
+  # Re-run after backend deploys so contract tests validate the new schema
   workflow_run:
     workflows: ["Deploy Backend Prod"]
     types: [completed]
@@ -18,42 +19,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # When triggered by workflow_run, only proceed if the backend deploy succeeded
-  # and the triggering commit also touched dashboard files.
-  check:
+  preflight:
     runs-on: ubuntu-latest
     outputs:
-      should_run: ${{ steps.decide.outputs.should_run }}
+      run_tests: ${{ steps.decide.outputs.run_tests }}
+      run_pipeline: ${{ steps.decide.outputs.run_pipeline }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Decide whether to run
+      - name: Decide what to run
         id: decide
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # Triggered after backend deploy
             if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
-              echo "Backend deploy failed — skipping"
-              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              echo "run_pipeline=false" >> "$GITHUB_OUTPUT"
+              echo "run_tests=false" >> "$GITHUB_OUTPUT"
             else
-              # Check if the backend commit also touched dashboard files
-              CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/dashboard-2/ k8s/frontend.yaml || true)
-              if [ -n "$CHANGED" ]; then
-                echo "Backend deployed and dashboard files changed — running"
-                echo "should_run=true" >> "$GITHUB_OUTPUT"
+              # Only re-run if dashboard files also changed in that commit
+              DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/dashboard-2/ k8s/frontend.yaml || true)
+              if [ -n "$DASH_CHANGED" ]; then
+                echo "run_pipeline=true" >> "$GITHUB_OUTPUT"
+                echo "run_tests=true" >> "$GITHUB_OUTPUT"
               else
-                echo "Backend deployed but no dashboard changes — skipping"
-                echo "should_run=false" >> "$GITHUB_OUTPUT"
+                echo "run_pipeline=false" >> "$GITHUB_OUTPUT"
+                echo "run_tests=false" >> "$GITHUB_OUTPUT"
               fi
+            fi
+          else
+            # push event — always run the pipeline
+            echo "run_pipeline=true" >> "$GITHUB_OUTPUT"
+            # Skip contract tests if backend also changed (they'd fail against the old schema).
+            # The workflow_run trigger will re-run tests after the backend deploys.
+            BACKEND_CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/backend/ || true)
+            if [ -n "$BACKEND_CHANGED" ]; then
+              echo "run_tests=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "run_tests=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
   test:
-    needs: check
-    if: needs.check.outputs.should_run == 'true'
+    needs: preflight
+    if: needs.preflight.outputs.run_pipeline == 'true' && needs.preflight.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,25 +74,6 @@ jobs:
         working-directory: apps/dashboard-2
         run: bun install --frozen-lockfile
 
-      - name: Check if backend also changed
-        id: backend_changed
-        run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/backend/ || true)
-          echo "changed=$( [ -n "$CHANGED" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for backend schema to be live
-        if: steps.backend_changed.outputs.changed == 'true' && github.event_name == 'push'
-        run: |
-          echo "Backend files changed in the same commit — waiting for backend deploy..."
-          for i in $(seq 1 30); do
-            sleep 10
-            echo "Polling backend health (attempt $i/30)..."
-            if curl -sf https://api.officeos.co/health > /dev/null 2>&1; then
-              echo "Backend is healthy"
-              break
-            fi
-          done
-
       - name: Run contract tests
         working-directory: apps/dashboard-2
         run: bun test src/__tests__/graphql-contracts.test.ts
@@ -90,7 +81,11 @@ jobs:
           GRAPHQL_SCHEMA_URL: https://api.officeos.co/api/dashboard/graphql
 
   build:
-    needs: test
+    needs: [preflight, test]
+    if: |
+      always() &&
+      needs.preflight.outputs.run_pipeline == 'true' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
