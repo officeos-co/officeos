@@ -148,7 +148,7 @@ async fn test_gateway_accepts_user_message() {
             "id": "t1"
         });
         ws.send(tokio_tungstenite::tungstenite::Message::Text(
-            msg.to_string().into(),
+            msg.to_string(),
         ))
         .await
         .expect("should send message");
