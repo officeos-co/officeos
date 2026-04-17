@@ -46,10 +46,6 @@ var kubernetesConfig = new EnterpriseAgentOs.Api.Properties.KubernetesConfig();
 envSection.GetSection("Kubernetes").Bind(kubernetesConfig);
 builder.Services.AddSingleton(kubernetesConfig);
 
-var couchDbConfig = new EnterpriseAgentOs.Api.Properties.CouchDbConfig();
-envSection.GetSection("CouchDb").Bind(couchDbConfig);
-builder.Services.AddSingleton(couchDbConfig);
-
 var skillGatewayConfig = new EnterpriseAgentOs.Api.Properties.SkillGatewayConfig { RefreshSeconds = 30 };
 envSection.GetSection("SkillGateway").Bind(skillGatewayConfig);
 builder.Services.AddSingleton(skillGatewayConfig);

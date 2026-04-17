@@ -25,15 +25,6 @@ public record GdprConversationDto(
     string? SessionId,
     DateTime CreatedAt);
 
-public record GdprMemoryDto(
-    Guid Id,
-    Guid AgentId,
-    string Key,
-    string Content,
-    string Category,
-    string Namespace,
-    DateTime CreatedAt);
-
 public record GdprAuditEntryDto(
     Guid Id,
     Guid AgentId,
@@ -57,6 +48,5 @@ public record GdprExportDto(
     GdprUserDto User,
     List<GdprAgentDto> Agents,
     List<GdprConversationDto> Conversations,
-    List<GdprMemoryDto> Memories,
     List<GdprAuditEntryDto> AuditEntries,
     List<GdprSkillCredentialDto> SkillCredentials);

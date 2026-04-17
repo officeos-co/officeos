@@ -31,9 +31,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             ["Production:SkillGatewayUrl"] = SkillRuntimeMock.Url!,
             ["Production:FrontendOrigin"] = "http://localhost:5173",
             ["Production:DataProtectionKeyPath"] = Path.Combine(Path.GetTempPath(), $"dp-keys-{Guid.NewGuid():N}"),
-            ["Production:CouchDbUrl"] = "http://localhost:5984",
-            ["Production:CouchDbUser"] = "test",
-            ["Production:CouchDbPassword"] = "test",
             ["Production:GoogleOAuthClientId"] = "test-client-id",
             ["Production:GoogleOAuthClientSecret"] = "test-client-secret",
             ["Production:GoogleOAuthRedirectUri"] = "http://localhost/api/auth/callback/google",
@@ -100,10 +97,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.RemoveAll<EnterpriseAgentOs.Api.Database.EaosDbContext>();
             services.AddDbContext<EnterpriseAgentOs.Api.Database.EaosDbContext>(options =>
                 options.UseNpgsql(_postgres.GetConnectionString()));
-
-            // Replace vault client with a no-op stub
-            services.RemoveAll<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient>();
-            services.AddScoped<EnterpriseAgentOs.Api.Entities.Vault.IVaultClient, StubVaultClient>();
 
             // Replace SkillRuntimeConfig to point at WireMock
             services.RemoveAll<EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig>();

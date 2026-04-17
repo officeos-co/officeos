@@ -7,7 +7,7 @@ EnterpriseAgentOS is a Kubernetes-native platform for autonomous AI agents. Sing
 
 ## Architecture
 
-User opens the dashboard, creates an agent. The backend provisions a CouchDB vault (personality files), creates a K8s pod running the zeroclaw Rust binary, and stores the agent record in Postgres. The agent pod boots with only `ZEROCLAW_AGENT_ID`, hydrates its workspace from CouchDB, discovers skills via GraphQL introspection, and serves a WebSocket chat gateway.
+User opens the dashboard, creates an agent. The backend creates a K8s pod running the zeroclaw Rust binary and stores the agent record in Postgres. The agent pod boots with only `ZEROCLAW_AGENT_ID`, fetches its bootstrap payload from the backend, seeds embedded personality `.md` templates onto its local PVC, discovers skills via GraphQL introspection, and serves a WebSocket chat gateway.
 
 All LLM calls route through the backend's proxy — credentials never leave the backend. Skills are TypeScript modules defined with `@harro/skill-sdk` and executed in a separate Node.js skill-runtime service.
 
@@ -15,7 +15,7 @@ All LLM calls route through the backend's proxy — credentials never leave the 
 
 - **Credentials never leave the backend.** Agent pods have no API keys.
 - **Single env var deployment.** Agent pods receive only `ZEROCLAW_AGENT_ID`.
-- **CouchDB is the vault source of truth.** Personality files live in per-agent CouchDB databases.
+- **Personality templates are embedded in the pod binary.** Seeded locally to the PVC on first boot; backend ships only the user-supplied `systemPrompt`.
 - **GraphQL skill gateway.** Skills are defined in TypeScript, executed in a separate Node.js runtime.
 - **Status is live.** `GET /api/agents` calls the K8s API inline to refresh pod status.
 
@@ -23,11 +23,11 @@ All LLM calls route through the backend's proxy — credentials never leave the 
 
 | Directory | Description |
 |-----------|-------------|
-| `apps/backend/` | C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, vault, K8s orchestration |
+| `apps/backend/` | C# ASP.NET Core 9 — agent lifecycle, LLM proxy, skill gateway, K8s orchestration |
 | `apps/dashboard/` | Next.js 16 + React 19 — Mission Control dashboard |
 | `apps/website/` | Next.js 15 + Bun + shadcn — public landing page |
 | `packages/zeroclaw-core/` | Rust agent runtime — turn loop, tool execution, memory, channels |
 | `packages/skill-sdk/` | TypeScript SDK for defining skills |
 | `packages/skill-runtime/` | Node.js skill execution service |
-| `packages/skills/` | First-party skills (Notion, GitHub, Google, Obsidian) |
+| `packages/skills/` | First-party skills (Notion, GitHub, Google) |
 | `k8s/` | Kubernetes manifests |

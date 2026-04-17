@@ -56,14 +56,8 @@ public sealed class GdprService : IGdprService
                     l.Time))
                 .ToListAsync(ct);
 
-        // Memories for all user's agents
-        var memories = agentIds.Count == 0
-            ? new List<GdprMemoryDto>()
-            : await _db.AgentMemories
-                .AsNoTracking()
-                .Where(m => agentIds.Contains(m.AgentId))
-                .Select(m => new GdprMemoryDto(m.Id, m.AgentId, m.Key, m.Content, m.Category, m.Namespace, m.CreatedAt))
-                .ToListAsync(ct);
+        // Persistent memory is flat .md files on the agent pod's PVC (owned
+        // by zeroclaw-core) — there is nothing to export from the backend.
 
         // Audit log entries for all user's agents — sourced from AgentLogs (ToolCall entries).
         var auditEntries = agentIds.Count == 0
@@ -88,7 +82,7 @@ public sealed class GdprService : IGdprService
             .Select(s => new GdprSkillCredentialDto(s.Id, s.SkillName, s.Enabled, s.ConfiguredAt))
             .ToListAsync(ct);
 
-        return new GdprExportDto(userDto, agents, conversations, memories, auditEntries, skillCredentials);
+        return new GdprExportDto(userDto, agents, conversations, auditEntries, skillCredentials);
     }
 
     public async Task PurgeAsync(Guid userId, CancellationToken ct = default)
@@ -106,10 +100,8 @@ public sealed class GdprService : IGdprService
                 .Where(l => agentIds.Contains(l.AgentId))
                 .ExecuteDeleteAsync(ct);
 
-            // 3. AgentMemoryRecord entries for all user's agents
-            await _db.AgentMemories
-                .Where(m => agentIds.Contains(m.AgentId))
-                .ExecuteDeleteAsync(ct);
+            // 3. Persistent memory lives on the pod PVC (owned by
+            //    zeroclaw-core). Pod termination below drops the PVC.
 
             // 4. AgentRecord rows owned by user
             await _db.Agents

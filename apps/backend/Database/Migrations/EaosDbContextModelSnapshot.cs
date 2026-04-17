@@ -22,51 +22,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentCacheRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AccessedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CacheKey")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("Response")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TokenCount")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccessedAt");
-
-                    b.HasIndex("AgentId", "CacheKey")
-                        .IsUnique();
-
-                    b.ToTable("AgentCacheEntries");
-                });
-
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentChannelBindingRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -153,64 +108,6 @@ namespace EnterpriseAgentOs.Api.Database.Migrations
                     b.HasIndex("AgentId", "Time");
 
                     b.ToTable("AgentLogs");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<double?>("Importance")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("Namespace")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasDefaultValue("default");
-
-                    b.Property<string>("SessionId")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("SupersededBy")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("AgentId", "Category");
-
-                    b.HasIndex("AgentId", "Key")
-                        .IsUnique();
-
-                    b.HasIndex("AgentId", "SessionId");
-
-                    b.ToTable("AgentMemories");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Api.Database.Models.AgentRateLimitRecord", b =>

@@ -28,25 +28,41 @@ public sealed record UpdateAgentInput(
 /// <summary>
 /// Bootstrap payload returned by <c>GET /api/agents/{id}</c> (agent-pod-facing,
 /// <c>AgentTokenAuth</c>). Contains everything a pod needs to boot without a
-/// local config.toml — provider endpoint hint, vault location, installed skills
-/// summary, and per-tool permissions. NEVER contains credentials.
+/// local config.toml: display name, the user-supplied system prompt (merged
+/// locally into the zeroclaw-core embedded BOOTSTRAP.md), provider/proxy/gateway
+/// endpoints, installed skills summary, and per-tool permissions. NEVER
+/// contains credentials — the LLM proxy injects provider keys per-request and
+/// skill credentials live behind the skill gateway.
 /// </summary>
 public sealed record AgentBootstrapPayload(
     Guid AgentId,
-    string Name,
+    string DisplayName,
+    string? SystemPrompt,
     AgentProviderBootstrap Provider,
-    AgentVaultBootstrap Vault,
+    AgentProxyBootstrap Proxy,
+    AgentGatewayBootstrap Gateway,
     IReadOnlyList<AgentInstalledSkillSummary> Skills,
-    IReadOnlyList<AgentBootstrapToolPermission> ToolPermissions);
+    AgentToolPermissionsBootstrap ToolPermissions);
 
 public sealed record AgentProviderBootstrap(
-    string Backend,
+    string Name,
     string Model,
-    string ProxyEndpoint);
+    string ApiUrl,
+    string? TokenRef);
 
-public sealed record AgentVaultBootstrap(string BaseUrl);
+public sealed record AgentProxyBootstrap(
+    string Url,
+    string? Token);
+
+public sealed record AgentGatewayBootstrap(
+    string Host,
+    int Port,
+    string? TlsCertRef);
 
 public sealed record AgentInstalledSkillSummary(string Name);
+
+public sealed record AgentToolPermissionsBootstrap(
+    IReadOnlyList<AgentBootstrapToolPermission> Entries);
 
 public sealed record AgentBootstrapToolPermission(
     string Skill,

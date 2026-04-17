@@ -14,15 +14,12 @@ AgentService.CreateAsync:
   1. Validate provider is configured (API key exists in DB)
   2. Default model if none selected (first entry in KnownModels)
   3. Validate model belongs to provider (KnownModels.IsValid)
-  4. Insert AgentRecord (status: "pending")
-  5. Seed CouchDB vault:
-     - Create database: eaos-agent-{uuid}
-     - Write SOUL.md, IDENTITY.md, AGENTS.md from templates
-  6. Deploy K8s resources:
+  4. Insert AgentRecord (status: "pending") — includes the user-supplied systemPrompt
+  5. Deploy K8s resources:
      - PVC (1Gi, zeroclaw-data-{short-id})
      - Pod (zeroclaw image, env: ZEROCLAW_AGENT_ID only)
      - ClusterIP Service (port 42617)
-  7. Update record: status="running", podName, serviceUrl
+  6. Update record: status="running", podName, serviceUrl
     ↓
 Frontend polls GET /api/agents every 10s, sees new agent
 ```
@@ -39,10 +36,12 @@ gateway_bootstrap.rs:
   - Sets skills.graphql_url: {backend_url}/api/graphql
   - Sets workspace: /zeroclaw-data/workspace
     ↓
-vault_bootstrap.rs:
-  - Fetches SOUL.md, IDENTITY.md, AGENTS.md from backend memory proxy
-  - Writes to /zeroclaw-data/workspace/
-  - Caches on PVC (subsequent boots skip fetch if files exist)
+personality_bootstrap.rs:
+  - Personality templates (SOUL.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, ...) are
+    embedded in the zeroclaw-core binary via include_str!
+  - On first boot, writes each template to /zeroclaw-data/workspace/ only if the
+    file does not already exist (agent edits survive restarts)
+  - Substitutes {{prompt}} in BOOTSTRAP.md with the systemPrompt from the bootstrap payload
     ↓
 personality.rs:
   - load_personality_strict validates required files exist and are non-empty
@@ -62,7 +61,7 @@ Ready to chat
 | ----------- | -------------------------------------- | --------------------------------- |
 | `pending`   | Record created, deployment in progress | `AgentService.CreateAsync`        |
 | `running`   | Pod deployed successfully              | After K8s resources created       |
-| `failed`    | Deployment or vault seeding threw      | Catch block in CreateAsync        |
+| `failed`    | Deployment threw                       | Catch block in CreateAsync        |
 | `not_found` | Pod doesn't exist in K8s               | Live refresh via `GetStatusAsync` |
 | `stopped`   | Pod phase is "Succeeded"               | Live refresh                      |
 | `unknown`   | Can't determine (e.g. local dev)       | `NullAgentDeployer`               |
@@ -82,8 +81,7 @@ AgentService.DeleteAsync:
      - Delete pod
      - Delete service
      - Delete PVC
-  3. Delete CouchDB vault (DELETE eaos-agent-{uuid})
-  4. Soft-delete record in Postgres (IsDeleted=true)
+  3. Soft-delete record in Postgres (IsDeleted=true)
     ↓
 Frontend removes agent from list
 ```

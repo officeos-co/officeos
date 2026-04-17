@@ -14,8 +14,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<EnterpriseAgentOs.Api.Database.Models.RunnerRecord> Runners => Set<EnterpriseAgentOs.Api.Database.Models.RunnerRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord> RunnerJobs => Set<EnterpriseAgentOs.Api.Database.Models.RunnerJobRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.DeviceCodeRecord> DeviceCodes => Set<EnterpriseAgentOs.Api.Database.Models.DeviceCodeRecord>();
-    public DbSet<EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord> AgentMemories => Set<EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord>();
-    public DbSet<EnterpriseAgentOs.Api.Database.Models.AgentCacheRecord> AgentCacheEntries => Set<EnterpriseAgentOs.Api.Database.Models.AgentCacheRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.BrowserSessionRecord> BrowserSessions => Set<EnterpriseAgentOs.Api.Database.Models.BrowserSessionRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord> SkillRegistry => Set<EnterpriseAgentOs.Api.Database.Models.SkillRegistryRecord>();
     public DbSet<EnterpriseAgentOs.Api.Database.Models.SkillRecord> Skills => Set<EnterpriseAgentOs.Api.Database.Models.SkillRecord>();
@@ -99,31 +97,6 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(d => d.DeviceCode).IsUnique();
             e.HasIndex(d => d.UserCode);
             e.HasOne(d => d.User).WithMany().HasForeignKey(d => d.UserId);
-        });
-
-        modelBuilder.Entity<EnterpriseAgentOs.Api.Database.Models.AgentMemoryRecord>(e =>
-        {
-            e.HasKey(m => m.Id);
-            e.HasIndex(m => m.AgentId);
-            e.HasIndex(m => new { m.AgentId, m.Key }).IsUnique();
-            e.HasIndex(m => new { m.AgentId, m.Category });
-            e.HasIndex(m => new { m.AgentId, m.SessionId });
-            e.Property(m => m.Key).IsRequired().HasMaxLength(512);
-            e.Property(m => m.Content).IsRequired();
-            e.Property(m => m.Category).IsRequired().HasMaxLength(64);
-            e.Property(m => m.Namespace).IsRequired().HasMaxLength(128).HasDefaultValue("default");
-            e.Property(m => m.SessionId).HasMaxLength(256);
-            e.Property(m => m.SupersededBy).HasMaxLength(512);
-        });
-
-        modelBuilder.Entity<EnterpriseAgentOs.Api.Database.Models.AgentCacheRecord>(e =>
-        {
-            e.HasKey(c => c.Id);
-            e.HasIndex(c => new { c.AgentId, c.CacheKey }).IsUnique();
-            e.HasIndex(c => c.AccessedAt);
-            e.Property(c => c.CacheKey).IsRequired().HasMaxLength(128);
-            e.Property(c => c.Model).IsRequired().HasMaxLength(128);
-            e.Property(c => c.Response).IsRequired();
         });
 
         modelBuilder.Entity<EnterpriseAgentOs.Api.Database.Models.BrowserSessionRecord>(e =>

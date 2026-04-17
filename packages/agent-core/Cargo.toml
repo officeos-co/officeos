@@ -1,0 +1,65 @@
+[workspace]
+members = ["."]
+resolver = "2"
+
+[package]
+name = "zeroclaw-agent"
+version = "0.1.0"
+edition = "2021"
+description = "EnterpriseAgentOS agent runtime (1.0 rewrite)."
+license = "MIT OR Apache-2.0"
+rust-version = "1.87"
+
+[[bin]]
+name = "zeroclaw-agent"
+path = "src/main.rs"
+
+[lib]
+name = "zeroclaw_agent"
+path = "src/lib.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# HTTP + SSE
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+eventsource-stream = "0.2"
+
+# Web / WS server
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query", "ws", "macros"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Errors
+anyhow = "1"
+thiserror = "2"
+
+# Logging (stderr only)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter"] }
+
+# Time + IDs
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+hostname = "0.4"
+nanohtml2text = "0.1"
+which = "7"
+glob = "0.3"
+
+[dev-dependencies]
+tempfile = "3"
+wiremock = "0.6"
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

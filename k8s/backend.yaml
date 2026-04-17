@@ -1,9 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────
 # Enterprise Agent OS — backend stack
 #
-# Everything the backend needs to run: RBAC, shared data stores
-# (postgres for v2 primary DB, couchdb for v2 agent vaults),
-# the backend PVC, and the backend Deployment + Service.
+# Everything the backend needs to run: RBAC, the shared Postgres
+# primary DB, the backend PVC, and the backend Deployment + Service.
 #
 # Frontend lives in ./frontend.yaml. Credentials are hardcoded inline
 # to match the self-contained pattern used in docker-compose.yml —
@@ -161,99 +160,6 @@ spec:
     - name: postgres
       port: 5432
       targetPort: 5432
-
----
-# ==============================================================
-# CouchDB (agent vault storage — per-agent databases)
-# ==============================================================
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: eaos-couchdb-data
-  namespace: default
-  labels:
-    app: eaos
-spec:
-  accessModes: ["ReadWriteOnce"]
-  resources:
-    requests:
-      storage: 20Gi
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: eaos-couchdb
-  namespace: default
-  labels:
-    app: eaos-couchdb
-spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: eaos-couchdb
-  template:
-    metadata:
-      labels:
-        app: eaos-couchdb
-    spec:
-      containers:
-        - name: couchdb
-          image: couchdb:3
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: COUCHDB_USER
-              value: eaos
-            - name: COUCHDB_PASSWORD
-              value: eaos
-          ports:
-            - containerPort: 5984
-              name: couchdb
-          volumeMounts:
-            - name: data
-              mountPath: /opt/couchdb/data
-          livenessProbe:
-            httpGet:
-              path: /_up
-              port: 5984
-            initialDelaySeconds: 20
-            periodSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /_up
-              port: 5984
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "50m"
-            limits:
-              memory: "512Mi"
-              cpu: "1000m"
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: eaos-couchdb-data
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: eaos-couchdb
-  namespace: default
-  labels:
-    app: eaos-couchdb
-spec:
-  type: ClusterIP
-  selector:
-    app: eaos-couchdb
-  ports:
-    - name: couchdb
-      port: 5984
-      targetPort: 5984
 
 ---
 # ==============================================================

@@ -9,7 +9,6 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     private readonly IKubernetes _k8s;
     private readonly ILogger<KubernetesAgentDeployer> _logger;
     private readonly EnterpriseAgentOs.Api.Properties.KubernetesConfig _config;
-    private readonly EnterpriseAgentOs.Api.Properties.CouchDbConfig _couch;
     private readonly EnterpriseAgentOs.Api.Properties.SkillGatewayConfig _skillGateway;
     private readonly string _namespace;
     private readonly string _image;
@@ -17,14 +16,12 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     public KubernetesAgentDeployer(
         IKubernetes k8s,
         EnterpriseAgentOs.Api.Properties.KubernetesConfig config,
-        EnterpriseAgentOs.Api.Properties.CouchDbConfig couch,
         EnterpriseAgentOs.Api.Properties.SkillGatewayConfig skillGateway,
         ILogger<KubernetesAgentDeployer> logger)
     {
         _k8s = k8s;
         _logger = logger;
         _config = config;
-        _couch = couch;
         _skillGateway = skillGateway;
         _namespace = config.Namespace;
         _image = config.Image;
