@@ -11,7 +11,9 @@ export interface ChangelogEntry {
 }
 
 export function getChangelogEntries(): ChangelogEntry[] {
-  const changelogDir = path.join(process.cwd(), "changelog");
+  const dockerPath = path.join(process.cwd(), "changelog");
+  const localPath = path.join(process.cwd(), "../../changelog");
+  const changelogDir = fs.existsSync(dockerPath) ? dockerPath : localPath;
 
   if (!fs.existsSync(changelogDir)) {
     return [];
