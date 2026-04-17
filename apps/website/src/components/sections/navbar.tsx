@@ -16,6 +16,7 @@ import {
   PenTool,
 } from "lucide-react";
 import { AnimatePresence, motion, useScroll } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -213,9 +214,23 @@ export function Navbar() {
           )}
         >
           <div className="flex h-[56px] items-center justify-between p-4">
-            <Link href="/" className="flex items-center gap-3">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="flex items-center gap-1"
+            >
+              <Image
+                src="/logo.svg"
+                alt="OfficeOS"
+                width={20}
+                height={20}
+                className="h-[1.125rem] w-[1.125rem]"
+              />
               <p className="font-semibold text-lg text-primary">OfficeOS</p>
-            </Link>
+            </a>
 
             {/* Desktop nav */}
             <div className="hidden items-center gap-1 md:flex">
