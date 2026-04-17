@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'apps/website/**'
+      - 'changelog/**'
       - 'k8s/website.yaml'
       - '.github/workflows/deploy-website-prod.yml'
 

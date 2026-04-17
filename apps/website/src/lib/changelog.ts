@@ -11,7 +11,7 @@ export interface ChangelogEntry {
 }
 
 export function getChangelogEntries(): ChangelogEntry[] {
-  const changelogDir = path.join(process.cwd(), "../../changelog");
+  const changelogDir = path.join(process.cwd(), "changelog");
 
   if (!fs.existsSync(changelogDir)) {
     return [];

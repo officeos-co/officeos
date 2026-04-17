@@ -1,0 +1,51 @@
+namespace EnterpriseAgentOs.Api.Entities.AgentLogs;
+
+/// <summary>
+/// Agent-pod-facing REST endpoint for forwarding log entries.
+/// Authenticated via <c>[AgentTokenAuth]</c> (bearer agent-uuid).
+/// Agent pods call <c>POST /api/agents/me/logs</c> to sync messages,
+/// tool calls, and system events back to the backend timeline.
+/// </summary>
+[ApiController]
+[Route("api/agents/me/logs")]
+[EnterpriseAgentOs.Api.Entities.Skills.AgentTokenAuth]
+public sealed class AgentLogController : ControllerBase
+{
+    private readonly IAgentLogService _logs;
+
+    public AgentLogController(IAgentLogService logs)
+    {
+        _logs = logs;
+    }
+
+    public sealed record ForwardLogInput(
+        string Type,
+        string Content,
+        string? CorrelationId = null);
+
+    [HttpPost]
+    public async Task<ActionResult<AgentLogDto>> Forward(
+        [FromBody] ForwardLogInput input,
+        CancellationToken ct)
+    {
+        var agentId = (Guid)HttpContext.Items["agent-id"]!;
+
+        if (string.IsNullOrWhiteSpace(input.Content))
+            return BadRequest("Content must not be empty.");
+
+        if (!Enum.TryParse<EnterpriseAgentOs.Api.Database.Models.AgentLogType>(input.Type, ignoreCase: true, out var logType))
+            return BadRequest($"Unknown log type: {input.Type}");
+
+        var record = new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
+        {
+            AgentId = agentId,
+            Time = DateTime.UtcNow,
+            Type = logType,
+            Content = input.Content,
+            CorrelationId = input.CorrelationId,
+        };
+
+        var saved = await _logs.AppendAsync(record, ct);
+        return Ok(saved.ToDto());
+    }
+}
