@@ -186,6 +186,7 @@ app.UseSerilogRequestLogging(options =>
     };
 });
 
+app.UseRouting();
 app.UseCors(FrontendCorsPolicy);
 app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware>();
 
@@ -196,7 +197,8 @@ app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 EnterpriseAgentOs.Api.Entities.Agents.AgentProxyEndpoints.MapAgentProxyEndpoints(app);
 app.MapGraphQL("/api/graphql", schemaName: "agent");
-app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard");
+app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
+    .RequireCors(FrontendCorsPolicy);
 app.MapControllers();
 
 app.Run();
