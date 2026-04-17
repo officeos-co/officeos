@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "bun test",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },
@@ -45,6 +46,8 @@
     "@graphql-codegen/typescript": "^4.0.9",
     "@graphql-codegen/typescript-operations": "^4.2.3",
     "@graphql-codegen/typescript-react-apollo": "^4.3.2",
+    "@graphql-tools/utils": "^11.0.1",
+    "@graphql-tools/wrap": "^11.1.14",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
