@@ -12,7 +12,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         .Build();
 
     public WireMockServer SkillRuntimeMock { get; } = WireMockServer.Start();
-    public WireMockServer LiteLlmMock { get; } = WireMockServer.Start();
 
     public string PostgresConnectionString => _postgres.GetConnectionString();
 
@@ -49,8 +48,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             ["Production:Stripe:TeamYearlyPriceId"] = "STRIPE_TEAM_YEARLY_PRICE_ID_PLACEHOLDER",
             ["Production:Stripe:TeamOveragePriceId"] = "STRIPE_TEAM_OVERAGE_PRICE_ID_PLACEHOLDER",
             ["Production:Stripe:Enabled"] = "false",
-            ["Production:LiteLlm:BaseUrl"] = "http://localhost:4000",
-            ["Production:LiteLlm:Enabled"] = "true",
             ["Production:PlatformKeys:AnthropicApiKey"] = "ANTHROPIC_API_KEY_PLACEHOLDER",
             ["Production:PlatformKeys:GeminiApiKey"] = "GEMINI_API_KEY_PLACEHOLDER",
             ["Production:PlatformKeys:XaiApiKey"] = "XAI_API_KEY_PLACEHOLDER",
@@ -82,7 +79,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     async Task IAsyncLifetime.DisposeAsync()
     {
         SkillRuntimeMock.Stop();
-        LiteLlmMock.Stop();
         await _postgres.DisposeAsync();
     }
 
@@ -102,9 +98,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.RemoveAll<EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig>();
             services.AddSingleton(new EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
 
-            // Replace LiteLlmConfig to point at the WireMock LiteLLM stub
-            services.RemoveAll<EnterpriseAgentOs.Api.Properties.LiteLlmConfig>();
-            services.AddSingleton(new EnterpriseAgentOs.Api.Properties.LiteLlmConfig { BaseUrl = LiteLlmMock.Url!, Enabled = true });
         });
     }
 

@@ -87,136 +87,64 @@ public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LLM prompt-injection guardrail tests
+// LLM prompt-injection guardrail tests (unit tests on InjectGuardrail)
 // ─────────────────────────────────────────────────────────────────────────────
 
-public sealed class GuardrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class GuardrailTests
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
-
-    // Minimal valid JSON response that satisfies the proxy's streaming reader
-    private const string FakeLlmResponse =
-        """{"id":"test","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],"usage":{"total_tokens":10}}""";
-
-    public GuardrailTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory)
+    [Fact]
+    public void InjectGuardrail_InsertsSystemMessageAtPosition0()
     {
-        _factory = factory;
+        var body = JsonDocument.Parse("""
+            {"messages":[{"role":"user","content":"hello"}]}
+            """).RootElement.Clone();
 
-        // Stub LiteLlm WireMock to accept any POST to /v1/chat/completions
-        factory.LiteLlmMock
-            .Given(Request.Create().WithPath("/v1/chat/completions").UsingPost())
-            .RespondWith(Response.Create()
-                .WithStatusCode(200)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody(FakeLlmResponse));
+        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProxyController.InjectGuardrail(body);
+        var messages = result.GetProperty("messages");
+
+        Assert.True(messages.GetArrayLength() >= 2);
+
+        var first = messages[0];
+        Assert.Equal("system", first.GetProperty("role").GetString());
+        Assert.Contains("prompt injection", first.GetProperty("content").GetString()!, StringComparison.OrdinalIgnoreCase);
+
+        // Original user message preserved at position 1
+        Assert.Equal("user", messages[1].GetProperty("role").GetString());
+        Assert.Equal("hello", messages[1].GetProperty("content").GetString());
     }
-
-    // ── helper: parse the captured body forwarded to LiteLlm ─────────────────
-
-    private JsonElement GetLastForwardedBody()
-    {
-        var entry = _factory.LiteLlmMock.LogEntries
-            .LastOrDefault(e => e.RequestMessage.Path == "/v1/chat/completions"
-                             && e.RequestMessage.Method == "POST");
-        Assert.NotNull(entry);
-        var bodyText = entry!.RequestMessage.Body;
-        Assert.False(string.IsNullOrWhiteSpace(bodyText));
-        return JsonDocument.Parse(bodyText!).RootElement.Clone();
-    }
-
-    // ── 5. Guardrail injected before user messages ────────────────────────────
 
     [Fact]
-    public async Task LlmProxy_InjectsGuardrailSystemMessage()
+    public void InjectGuardrail_PrecedesExistingSystemPrompt()
     {
-        _factory.LiteLlmMock.ResetLogEntries();
+        const string originalSystem = "You are a helpful assistant for enterprise tasks.";
+        var body = JsonDocument.Parse($$"""
+            {"messages":[{"role":"system","content":"{{originalSystem}}"},{"role":"user","content":"Do something."}]}
+            """).RootElement.Clone();
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "guardrail-agent-1");
+        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProxyController.InjectGuardrail(body);
+        var messages = result.GetProperty("messages");
 
-        var agentClient = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
-        var response = await agentClient.ChatCompletionAsync(new
-        {
-            model = "claude-sonnet-4-6",
-            messages = new[]
-            {
-                new { role = "user", content = "hello" }
-            }
-        });
-
-        // Proxy must succeed or return a proxy-level error (not a 401/404)
-        var status = (int)response.StatusCode;
-        Assert.True(status < 500 || status == 502 || status == 200,
-            $"Unexpected proxy failure: {status}");
-
-        var forwarded = GetLastForwardedBody();
-        var messages = forwarded.GetProperty("messages");
-
-        // First message must be the guardrail system message
-        Assert.True(messages.GetArrayLength() >= 2,
-            "Expected at least the guardrail system message plus the original user message.");
-
-        var firstMsg = messages[0];
-        Assert.Equal("system", firstMsg.GetProperty("role").GetString());
-
-        // The guardrail content must mention prompt injection
-        var content = firstMsg.GetProperty("content");
-        var contentText = content.ValueKind == JsonValueKind.String
-            ? content.GetString()!
-            : content.ToString();
-        Assert.Contains("prompt injection", contentText, StringComparison.OrdinalIgnoreCase);
-    }
-
-    // ── 6. Guardrail precedes existing system prompt ──────────────────────────
-
-    [Fact]
-    public async Task LlmProxy_GuardrailPrecedesExistingSystemPrompt()
-    {
-        _factory.LiteLlmMock.ResetLogEntries();
-
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "guardrail-agent-2");
-
-        const string originalSystemContent = "You are a helpful assistant for enterprise tasks.";
-
-        var agentClient = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
-        var response = await agentClient.ChatCompletionAsync(new
-        {
-            model = "claude-sonnet-4-6",
-            messages = new object[]
-            {
-                new { role = "system", content = originalSystemContent },
-                new { role = "user",   content = "Do something useful." }
-            }
-        });
-
-        var status = (int)response.StatusCode;
-        Assert.True(status < 500 || status == 502 || status == 200,
-            $"Unexpected proxy failure: {status}");
-
-        var forwarded = GetLastForwardedBody();
-        var messages = forwarded.GetProperty("messages");
-
-        // Must have at least 3 messages: guardrail + original system + user
-        Assert.True(messages.GetArrayLength() >= 3,
-            "Expected guardrail system message + original system message + user message.");
+        Assert.True(messages.GetArrayLength() >= 3);
 
         // Position 0: guardrail
-        var guardrail = messages[0];
-        Assert.Equal("system", guardrail.GetProperty("role").GetString());
-        var guardrailContent = guardrail.GetProperty("content");
-        var guardrailText = guardrailContent.ValueKind == JsonValueKind.String
-            ? guardrailContent.GetString()!
-            : guardrailContent.ToString();
-        Assert.Contains("prompt injection", guardrailText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("prompt injection", messages[0].GetProperty("content").GetString()!, StringComparison.OrdinalIgnoreCase);
 
-        // Position 1: original system prompt (may be wrapped by PromptCacheInjector for claude models)
-        var originalSys = messages[1];
-        Assert.Equal("system", originalSys.GetProperty("role").GetString());
-        var originalContent = originalSys.GetProperty("content");
-        var originalText = originalContent.ValueKind == JsonValueKind.String
-            ? originalContent.GetString()!
-            : originalContent.ToString();
-        Assert.Contains(originalSystemContent, originalText, StringComparison.Ordinal);
+        // Position 1: original system prompt
+        Assert.Equal("system", messages[1].GetProperty("role").GetString());
+        Assert.Equal(originalSystem, messages[1].GetProperty("content").GetString());
+
+        // Position 2: user message
+        Assert.Equal("user", messages[2].GetProperty("role").GetString());
+    }
+
+    [Fact]
+    public void InjectGuardrail_NoMessages_ReturnsBodyUnchanged()
+    {
+        var body = JsonDocument.Parse("""{"stream":true}""").RootElement.Clone();
+        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProxyController.InjectGuardrail(body);
+
+        Assert.True(result.TryGetProperty("stream", out var stream));
+        Assert.True(stream.GetBoolean());
+        Assert.False(result.TryGetProperty("messages", out _));
     }
 }

@@ -23,7 +23,6 @@ public sealed class AgentBootstrapController : ControllerBase
     private readonly IAgentService _agents;
     private readonly EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository _agentSkills;
     private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
-    private readonly EnterpriseAgentOs.Api.Properties.LiteLlmConfig _liteLlm;
     private readonly EnterpriseAgentOs.Api.Properties.SkillGatewayConfig _gateway;
     private readonly EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService _logs;
 
@@ -31,14 +30,12 @@ public sealed class AgentBootstrapController : ControllerBase
         IAgentService agents,
         EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         EnterpriseAgentOs.Api.Database.EaosDbContext db,
-        EnterpriseAgentOs.Api.Properties.LiteLlmConfig liteLlm,
         EnterpriseAgentOs.Api.Properties.SkillGatewayConfig gateway,
         EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService logs)
     {
         _agents = agents;
         _agentSkills = agentSkills;
         _db = db;
-        _liteLlm = liteLlm;
         _gateway = gateway;
         _logs = logs;
     }

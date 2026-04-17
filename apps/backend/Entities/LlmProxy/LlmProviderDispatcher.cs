@@ -16,6 +16,7 @@ public sealed class LlmProviderDispatcher
             ["deepseek"] = "https://api.deepseek.com/v1",
             ["xai"] = "https://api.x.ai/v1",
             ["openrouter"] = "https://openrouter.ai/api/v1",
+            ["google"] = "https://generativelanguage.googleapis.com/v1beta/openai",
             ["ollama"] = "http://localhost:11434/v1",
         };
 

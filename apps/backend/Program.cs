@@ -104,7 +104,6 @@ var frontendConfig = new EnterpriseAgentOs.Api.Properties.FrontendConfig(Enterpr
 builder.Services.AddSingleton(frontendConfig);
 
 // LLM
-builder.Services.AddSingleton(envSection.GetSection("LiteLlm").Get<EnterpriseAgentOs.Api.Properties.LiteLlmConfig>() ?? new EnterpriseAgentOs.Api.Properties.LiteLlmConfig());
 builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<EnterpriseAgentOs.Api.Properties.PlatformKeysConfig>() ?? new EnterpriseAgentOs.Api.Properties.PlatformKeysConfig());
 
 // PostHog — server owns the API key; dashboard-2 calls use-case-specific track* mutations

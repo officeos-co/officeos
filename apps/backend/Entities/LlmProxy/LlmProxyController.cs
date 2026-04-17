@@ -20,29 +20,23 @@ public sealed class LlmProxyController : ControllerBase
     private readonly EnterpriseAgentOs.Api.Entities.Agents.IAgentService _agents;
     private readonly EnterpriseAgentOs.Api.Entities.Providers.IProviderService _providers;
     private readonly LlmProviderDispatcher _dispatcher;
-    private readonly EnterpriseAgentOs.Api.Properties.LiteLlmConfig _liteLlm;
     private readonly EnterpriseAgentOs.Api.Properties.PlatformKeysConfig _platformKeys;
     private readonly EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService _creditRecording;
-    private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LlmProxyController> _logger;
 
     public LlmProxyController(
         EnterpriseAgentOs.Api.Entities.Agents.IAgentService agents,
         EnterpriseAgentOs.Api.Entities.Providers.IProviderService providers,
         LlmProviderDispatcher dispatcher,
-        EnterpriseAgentOs.Api.Properties.LiteLlmConfig liteLlm,
         EnterpriseAgentOs.Api.Properties.PlatformKeysConfig platformKeys,
         EnterpriseAgentOs.Api.Entities.Billing.ICreditRecordingService creditRecording,
-        IHttpClientFactory httpFactory,
         ILogger<LlmProxyController> logger)
     {
         _agents = agents;
         _providers = providers;
         _dispatcher = dispatcher;
-        _liteLlm = liteLlm;
         _platformKeys = platformKeys;
         _creditRecording = creditRecording;
-        _httpFactory = httpFactory;
         _logger = logger;
     }
 
@@ -101,26 +95,36 @@ public sealed class LlmProxyController : ControllerBase
             "LLM proxy: agent {AgentId} requested {RequestedModel} → resolved {ResolvedModel} (provider={Provider})",
             agentId, requestedModel, resolvedModel, provider);
 
-        // 5. OpenAI BYOK path: prefer org-configured key, fall back to platform key
-        if (provider.Equals("openai", StringComparison.OrdinalIgnoreCase))
+        // 5. Resolve API key: BYOK (OpenAI only) → platform key fallback
+        var byokKey = provider.Equals("openai", StringComparison.OrdinalIgnoreCase)
+            ? await _providers.GetDecryptedKeyAsync("openai", ct)
+            : null;
+        var effectiveKey = byokKey ?? GetPlatformKeyForModel(resolvedModel);
+
+        if (string.IsNullOrEmpty(effectiveKey))
         {
-            var byokKey = await _providers.GetDecryptedKeyAsync("openai", ct);
-            var effectiveKey = byokKey ?? _platformKeys.OpenAiApiKey;
-            if (!string.IsNullOrEmpty(effectiveKey))
-            {
-                await DispatchViaByokAsync(provider, effectiveKey, resolvedModel, agentId, body, ct);
-                return;
-            }
-            // Fall through to LiteLLM if no key is configured at all
+            _logger.LogWarning("LLM proxy: no API key for provider {Provider} model {Model}", provider, resolvedModel);
+            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
+            await HttpContext.Response.WriteAsJsonAsync(new { error = $"No API key configured for provider '{provider}'" }, ct);
+            return;
         }
 
-        // 6. All other providers → LiteLLM sidecar
-        await DispatchViaLiteLlmAsync(resolvedModel, agentId, body, ct);
+        // 6. Dispatch directly to provider (no LiteLLM sidecar)
+        await DispatchDirectAsync(provider, effectiveKey, resolvedModel, agentId, body, ct);
     }
 
-    // ── BYOK path (OpenAI only) ───────────────────────────────────────────────
+    // ── Direct dispatch (all providers) ─────────────────────────────────────
 
-    private async Task DispatchViaByokAsync(
+    private string GetPlatformKeyForModel(string model) => model switch
+    {
+        var m when m.StartsWith("claude") => _platformKeys.AnthropicApiKey,
+        var m when m.StartsWith("gpt")    => _platformKeys.OpenAiApiKey,
+        var m when m.StartsWith("gemini") => _platformKeys.GeminiApiKey,
+        var m when m.StartsWith("grok")   => _platformKeys.XaiApiKey,
+        _                                  => _platformKeys.AnthropicApiKey, // default
+    };
+
+    private async Task DispatchDirectAsync(
         string provider,
         string apiKey,
         string model,
@@ -145,70 +149,9 @@ public sealed class LlmProxyController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LLM proxy BYOK dispatch failed for provider {Provider}", provider);
+            _logger.LogWarning(ex, "LLM proxy: dispatch failed for provider {Provider} model {Model}", provider, model);
             HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
             await HttpContext.Response.WriteAsJsonAsync(new { error = $"Upstream error: {ex.Message}" }, ct);
-            return;
-        }
-
-        await StreamAndRecordUsageAsync(upstream, agentId, model, ct);
-    }
-
-    // ── LiteLLM path ──────────────────────────────────────────────────────────
-
-    private string GetPlatformKeyForModel(string model) => model switch
-    {
-        var m when m.StartsWith("claude") => _platformKeys.AnthropicApiKey,
-        var m when m.StartsWith("gpt")    => _platformKeys.OpenAiApiKey,
-        var m when m.StartsWith("gemini") => _platformKeys.GeminiApiKey,
-        var m when m.StartsWith("grok")   => _platformKeys.XaiApiKey,
-        _                                  => _platformKeys.AnthropicApiKey, // default
-    };
-
-    private async Task DispatchViaLiteLlmAsync(string model, Guid agentId, JsonElement body, CancellationToken ct)
-    {
-        // Inject cache_control for Claude models before forwarding
-        var cachedBody = PromptCacheInjector.Inject(body, model);
-        if (model.StartsWith("claude", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogDebug(
-                "LLM proxy: prompt caching injected for agent {AgentId} model {Model}",
-                HttpContext.Items.TryGetValue("agent-id", out var id) ? id : "unknown",
-                model);
-        }
-
-        // Replace model in the body, inject platform api_key, keep everything else intact
-        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(cachedBody.GetRawText())
-            ?? new Dictionary<string, JsonElement>();
-        dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
-
-        var platformKey = GetPlatformKeyForModel(model);
-        if (!string.IsNullOrEmpty(platformKey))
-            dict["api_key"] = JsonDocument.Parse($"\"{EscapeJson(platformKey)}\"").RootElement.Clone();
-
-        var json = JsonSerializer.Serialize(dict);
-        var client = _httpFactory.CreateClient("llm-proxy");
-
-        var url = $"{_liteLlm.BaseUrl.TrimEnd('/')}/v1/chat/completions";
-        var req = new HttpRequestMessage(HttpMethod.Post, url)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json"),
-        };
-        // LiteLLM accepts any bearer when no master key is set; using a well-known
-        // platform sentinel keeps the logs clean and allows future master-key adoption.
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "sk-platform");
-        req.Headers.Accept.ParseAdd("text/event-stream");
-
-        HttpResponseMessage upstream;
-        try
-        {
-            upstream = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "LLM proxy: LiteLLM call failed (url={Url} model={Model})", url, model);
-            HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
-            await HttpContext.Response.WriteAsJsonAsync(new { error = $"LiteLLM upstream error: {ex.Message}" }, ct);
             return;
         }
 
@@ -325,7 +268,7 @@ public sealed class LlmProxyController : ControllerBase
     /// of the <c>messages</c> array in the request body. Returns the body unchanged
     /// if it contains no <c>messages</c> array.
     /// </summary>
-    private static JsonElement InjectGuardrail(JsonElement body)
+    internal static JsonElement InjectGuardrail(JsonElement body)
     {
         if (!body.TryGetProperty("messages", out var messages) ||
             messages.ValueKind != JsonValueKind.Array)
