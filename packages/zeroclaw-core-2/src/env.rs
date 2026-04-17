@@ -14,8 +14,28 @@ pub const BACKEND_URL_VAR: &str = "BACKEND_URL";
 /// Phase 3: parse + validate both vars, strip the trailing slash from the
 /// URL, return the pair. Missing or malformed → `Error::Env`.
 pub fn load_env() -> Result<(String, String)> {
-    let _ = (AGENT_ID_VAR, BACKEND_URL_VAR);
-    todo!("Phase 3: read ZEROCLAW_AGENT_ID and BACKEND_URL, validate both")
+    let agent_id = std::env::var(AGENT_ID_VAR)
+        .ok()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| missing(AGENT_ID_VAR))?;
+
+    // Validate UUID format.
+    uuid::Uuid::parse_str(&agent_id)
+        .map_err(|e| Error::Env(format!("{AGENT_ID_VAR} is not a valid UUID: {e}")))?;
+
+    let backend_url = std::env::var(BACKEND_URL_VAR)
+        .ok()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| missing(BACKEND_URL_VAR))?;
+
+    // Validate URL format.
+    reqwest::Url::parse(&backend_url)
+        .map_err(|e| Error::Env(format!("{BACKEND_URL_VAR} is not a valid URL: {e}")))?;
+
+    // Strip trailing slash.
+    let backend_url = backend_url.trim_end_matches('/').to_string();
+
+    Ok((agent_id, backend_url))
 }
 
 /// Convenience wrapper: emit a consistent error when a required env var

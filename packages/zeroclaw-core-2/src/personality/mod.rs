@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// The three personality templates embedded in the binary via
 /// `include_str!`. Order is the canonical load order (also used by the
@@ -26,10 +26,37 @@ pub const PROMPT_TOKEN: &str = "{{prompt}}";
 /// - otherwise, substitute `{{prompt}}` (only meaningful for BOOTSTRAP.md)
 ///   and atomically write it.
 ///
-/// Phase 3: implement atomic-write-if-absent + strict post-check for the
-/// three required files (SOUL, IDENTITY, BOOTSTRAP must exist and be
-/// non-empty afterwards).
+/// After writing, performs a strict check: all three files must exist and
+/// be non-empty.
 pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
-    let _ = (memory_dir, system_prompt);
-    todo!("Phase 3: write missing templates, substitute {{prompt}}, strict check")
+    // Create memory_dir if it doesn't exist.
+    tokio::fs::create_dir_all(memory_dir).await?;
+
+    for &(name, template) in TEMPLATES {
+        let dst = memory_dir.join(name);
+        if dst.exists() {
+            continue;
+        }
+
+        let content = if name == "BOOTSTRAP.md" {
+            template.replace(PROMPT_TOKEN, system_prompt)
+        } else {
+            template.to_string()
+        };
+
+        tokio::fs::write(&dst, &content).await?;
+    }
+
+    // Strict post-check: all three must exist and be non-empty.
+    for &(name, _) in TEMPLATES {
+        let dst = memory_dir.join(name);
+        let meta = tokio::fs::metadata(&dst).await.map_err(|_| {
+            Error::Personality(format!("{name} missing after seed"))
+        })?;
+        if meta.len() == 0 {
+            return Err(Error::Personality(format!("{name} is empty after seed")));
+        }
+    }
+
+    Ok(())
 }
