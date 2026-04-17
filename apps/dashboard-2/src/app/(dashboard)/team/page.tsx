@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { PlusIcon, Trash2Icon } from "lucide-react"
+import { PlusIcon, Trash2Icon, Loader2Icon } from "lucide-react"
 import {
   useOrganization,
   useInviteMember,
@@ -22,7 +23,7 @@ import {
 } from "@/hooks/useOrganization"
 
 export default function TeamPage() {
-  const { organization, loading } = useOrganization()
+  const { organization, loading, error } = useOrganization()
   const { inviteMember } = useInviteMember()
   const { removeMember } = useRemoveMember()
   const { renameOrg } = useRenameOrg()
@@ -32,8 +33,12 @@ export default function TeamPage() {
   const [orgName, setOrgName] = useState("")
 
   useEffect(() => {
-    if (!loading) setOrgName(organization.name)
-  }, [loading, organization.name])
+    if (error) toast.error("Failed to load team", { description: error.message })
+  }, [error])
+
+  useEffect(() => {
+    if (!loading && organization) setOrgName(organization.name)
+  }, [loading, organization])
 
   async function handleInvite() {
     if (!inviteEmail.includes("@")) return
@@ -47,9 +52,31 @@ export default function TeamPage() {
   }
 
   async function handleRenameBlur() {
-    if (orgName && orgName !== organization.name) {
+    if (organization && orgName && orgName !== organization.name) {
       await renameOrg(orgName)
     }
+  }
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader group="Manage" page="Team" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      </>
+    )
+  }
+
+  if (!organization) {
+    return (
+      <>
+        <PageHeader group="Manage" page="Team" />
+        <div className="flex items-center justify-center py-20">
+          <p className="text-sm text-muted-foreground">Unable to load team information.</p>
+        </div>
+      </>
+    )
   }
 
   const members = organization.members

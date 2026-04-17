@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,10 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Loader2Icon } from "lucide-react"
 import { useProfile, useUpdateProfile, type NotificationPrefs } from "@/hooks/useProfile"
 
 export default function ProfilePage() {
-  const { profile, loading } = useProfile()
+  const { profile, loading, error } = useProfile()
   const { updateProfile } = useUpdateProfile()
 
   const [fullName, setFullName] = useState("")
@@ -33,7 +35,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!loading) {
+    if (error) toast.error("Failed to load profile", { description: error.message })
+  }, [error])
+
+  useEffect(() => {
+    if (!loading && profile) {
       setFullName(profile.name ?? "")
       setDisplayName(profile.displayName ?? "")
       setTimezone(profile.timezone ?? "")
@@ -59,6 +65,28 @@ export default function ProfilePage() {
     const next = { ...prefs, [key]: value }
     setPrefs(next)
     await updateProfile({ notificationPrefs: next })
+  }
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader group="Manage" page="Profile" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      </>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <>
+        <PageHeader group="Manage" page="Profile" />
+        <div className="flex items-center justify-center py-20">
+          <p className="text-sm text-muted-foreground">Unable to load profile.</p>
+        </div>
+      </>
+    )
   }
 
   const initials = (fullName || profile.email || "?")

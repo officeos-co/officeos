@@ -21,13 +21,10 @@ import {
   SettingsIcon,
   BookOpenIcon,
 } from "lucide-react";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useBilling } from "@/hooks/useBilling";
 
 const data = {
-  user: {
-    name: "Harro Krog",
-    plan: "Free plan",
-    avatar: "",
-  },
   navMain: [
     {
       title: "Managed Agents",
@@ -65,6 +62,9 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, loading: authLoading } = useAuthContext();
+  const { billing, loading: billingLoading } = useBilling();
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -91,7 +91,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <NavUser user={data.user} />
+        {!authLoading && !billingLoading && user && billing && (
+          <NavUser
+            user={{
+              name: user.name ?? user.email,
+              plan: billing.plan,
+              avatar: user.avatarUrl ?? "",
+            }}
+          />
+        )}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

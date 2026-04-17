@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -10,14 +12,41 @@ import {
   CreditCardIcon,
   CalendarIcon,
   ExternalLinkIcon,
+  Loader2Icon,
 } from "lucide-react"
 
 import { useBilling, useSetExtraUsageEnabled } from "@/hooks/useBilling"
 
 export default function BillingPage() {
   const router = useRouter()
-  const { billing } = useBilling()
+  const { billing, loading, error } = useBilling()
   const { setExtraUsageEnabled } = useSetExtraUsageEnabled()
+
+  useEffect(() => {
+    if (error) toast.error("Failed to load billing", { description: error.message })
+  }, [error])
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader group="Manage" page="Billing" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      </>
+    )
+  }
+
+  if (!billing) {
+    return (
+      <>
+        <PageHeader group="Manage" page="Billing" />
+        <div className="flex items-center justify-center py-20">
+          <p className="text-sm text-muted-foreground">Unable to load billing information.</p>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

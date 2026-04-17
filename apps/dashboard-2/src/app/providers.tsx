@@ -2,6 +2,7 @@
 
 import { ApolloProvider } from "@apollo/client"
 import { apolloClient } from "@/lib/graphql/client"
+import { AuthProvider } from "@/contexts/AuthContext"
 
 /**
  * Client-side provider tree. Keep this thin — any providers that must run
@@ -9,7 +10,11 @@ import { apolloClient } from "@/lib/graphql/client"
  * stays a server component and just wraps children in <Providers>.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
+  return (
+    <ApolloProvider client={apolloClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </ApolloProvider>
+  )
 }
 
 export default Providers

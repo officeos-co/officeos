@@ -121,7 +121,7 @@ function toMember(m: MemberRaw): OrgMember {
 }
 
 export function useOrganization(): {
-  organization: OrganizationPayload
+  organization: OrganizationPayload | null
   loading: boolean
   error?: Error
 } {
@@ -131,7 +131,7 @@ export function useOrganization(): {
     | { id: string; name: string; ownerUserId: string; members: MemberRaw[] }
     | null
     | undefined
-  if (!raw) return { organization: MOCK_ORG, loading, error: error ?? undefined }
+  if (!raw) return { organization: null, loading, error: error ?? undefined }
   const organization: OrganizationPayload = {
     id: raw.id,
     name: raw.name,

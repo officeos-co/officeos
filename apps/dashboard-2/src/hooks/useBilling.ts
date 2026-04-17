@@ -148,14 +148,14 @@ type BillingRaw = {
 }
 
 export function useBilling(): {
-  billing: BillingPayload
+  billing: BillingPayload | null
   loading: boolean
   error?: Error
 } {
   const { data, loading, error } = useQuery(BILLING_QUERY, { skip: USE_MOCKS })
   if (USE_MOCKS) return { billing: legacyToUnified(mockBilling), loading: false }
   const raw = data?.billing as BillingRaw | null | undefined
-  if (!raw) return { billing: legacyToUnified(mockBilling), loading, error: error ?? undefined }
+  if (!raw) return { billing: null, loading, error: error ?? undefined }
   const billing: BillingPayload = {
     plan: raw.plan,
     planDescription: raw.planDescription,

@@ -27,6 +27,7 @@ import {
   ExternalLinkIcon,
   ScaleIcon,
 } from "lucide-react"
+import { useAuthContext } from "@/contexts/AuthContext"
 
 function Initials(name: string) {
   return name
@@ -47,6 +48,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { logout } = useAuthContext()
 
   return (
     <SidebarMenu>
@@ -103,7 +105,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOutIcon />
               Log out
             </DropdownMenuItem>

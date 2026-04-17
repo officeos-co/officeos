@@ -1,91 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ArrowLeft, Leaf, Sparkles } from "lucide-react"
+import { toast } from "sonner"
+import { Check, ArrowLeft, Leaf, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useBilling } from "@/hooks/useBilling"
+import { usePlanLimits, useSubscribe } from "@/hooks/usePricing"
 
 type Tab = "individual" | "team"
 type Billing = "monthly" | "yearly"
 
-const individualPlans = [
-  {
-    key: "free",
-    name: "Free",
-    icon: Leaf,
-    description: "Get started with one agent",
-    price: { monthly: 0, yearly: 0 },
-    cta: "Current plan",
-    current: true,
-    features: [
-      "1 concurrent agent",
-      "500K credits / month included",
-      "Optional pay-as-you-go overage ($5 / 1M credits)",
-      "All providers (OpenAI, Anthropic, Gemini, …)",
-      "Full system control via zeroclaw runtime",
-      "GraphQL skill gateway",
-      "Community support",
-    ],
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    icon: Sparkles,
-    description: "Run up to 3 agents",
-    price: { monthly: 4900, yearly: 47000 },
-    cta: "Upgrade to Pro",
-    current: false,
-    prefix: "Everything in Free and:",
-    features: [
-      "3 concurrent agents",
-      "10M credits / month included",
-      "Optional pay-as-you-go overage ($3 / 1M credits)",
-      "BYOK for 40% discount on token costs",
-      "Smart model routing",
-      "Priority email support",
-      "Custom skill packages",
-    ],
-  },
-]
-
-const teamPlans = [
-  {
-    key: "team",
-    name: "Team",
-    icon: Leaf,
-    description: "Scale to 10 agents",
-    price: { monthly: 19900, yearly: 191000 },
-    cta: "Upgrade to Team",
-    current: false,
-    prefix: "Everything in Pro and:",
-    features: [
-      "10 concurrent agents",
-      "25M credits / month included",
-      "Pay-as-you-go overage ($2.50 / 1M credits)",
-      "SSO (SAML / OIDC)",
-      "Priority email support",
-    ],
-  },
-  {
-    key: "enterprise",
-    name: "Enterprise",
-    icon: Sparkles,
-    description: "Unlimited agents, custom budget",
-    price: null,
-    cta: "Contact us",
-    ctaHref: "mailto:harro@officeos.co",
-    current: false,
-    prefix: "Everything in Team and:",
-    features: [
-      "Custom concurrent agent limit",
-      "Custom token budget",
-      "Invoice / PO billing",
-      "Custom contract & SLA",
-      "Dedicated onboarding",
-      "Slack / phone support",
-    ],
-  },
-]
+function formatCredits(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return n.toString()
+}
 
 function formatPrice(cents: number) {
   return new Intl.NumberFormat("en", {
@@ -96,12 +26,113 @@ function formatPrice(cents: number) {
   }).format(cents / 100)
 }
 
+const INDIVIDUAL_PRICES: Record<string, { monthly: number; yearly: number }> = {
+  free: { monthly: 0, yearly: 0 },
+  pro: { monthly: 4900, yearly: 47000 },
+}
+
+const TEAM_PRICES: Record<string, { monthly: number; yearly: number }> = {
+  team: { monthly: 19900, yearly: 191000 },
+}
+
 export default function PricingPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>("individual")
   const [billing, setBilling] = useState<Billing>("monthly")
+  const { billing: currentBilling, loading: billingLoading, error: billingError } = useBilling()
+  const { planLimits, loading: limitsLoading, error: limitsError } = usePlanLimits()
+  const { subscribe, loading: subscribing } = useSubscribe()
+
+  const loading = billingLoading || limitsLoading
+
+  useEffect(() => {
+    if (billingError) toast.error("Failed to load billing", { description: billingError.message })
+    if (limitsError) toast.error("Failed to load plan limits", { description: limitsError.message })
+  }, [billingError, limitsError])
+
+  const currentPlan = currentBilling?.plan
+
+  const individualPlans = planLimits
+    ? [
+        {
+          key: "free",
+          name: "Free",
+          icon: Leaf,
+          description: "Get started with one agent",
+          price: INDIVIDUAL_PRICES.free,
+          features: [
+            `${planLimits.individualFree.concurrentAgents} concurrent agent`,
+            `${formatCredits(planLimits.individualFree.creditsPerMonth)} credits / month included`,
+            "Optional pay-as-you-go overage ($5 / 1M credits)",
+            "All providers (OpenAI, Anthropic, Gemini, …)",
+            "Full system control via zeroclaw runtime",
+            "GraphQL skill gateway",
+            "Community support",
+          ],
+        },
+        {
+          key: "pro",
+          name: "Pro",
+          icon: Sparkles,
+          description: "Run up to 3 agents",
+          price: INDIVIDUAL_PRICES.pro,
+          prefix: "Everything in Free and:",
+          features: [
+            `${planLimits.individualPro.concurrentAgents} concurrent agents`,
+            `${formatCredits(planLimits.individualPro.creditsPerMonth)} credits / month included`,
+            "Optional pay-as-you-go overage ($3 / 1M credits)",
+            "BYOK for 40% discount on token costs",
+            "Smart model routing",
+            "Priority email support",
+            "Custom skill packages",
+          ],
+        },
+      ]
+    : []
+
+  const teamPlans = planLimits
+    ? [
+        {
+          key: "team",
+          name: "Team",
+          icon: Leaf,
+          description: "Scale to 10 agents",
+          price: TEAM_PRICES.team,
+          prefix: "Everything in Pro and:",
+          features: [
+            `${planLimits.orgTeam.concurrentAgents} concurrent agents`,
+            `${formatCredits(planLimits.orgTeam.creditsPerMonth)} credits / month included`,
+            "Pay-as-you-go overage ($2.50 / 1M credits)",
+            "SSO (SAML / OIDC)",
+            "Priority email support",
+          ],
+        },
+        {
+          key: "enterprise",
+          name: "Enterprise",
+          icon: Sparkles,
+          description: "Unlimited agents, custom budget",
+          price: null,
+          ctaHref: "mailto:harro@officeos.co",
+          prefix: "Everything in Team and:",
+          features: [
+            "Custom concurrent agent limit",
+            "Custom token budget",
+            "Invoice / PO billing",
+            "Custom contract & SLA",
+            "Dedicated onboarding",
+            "Slack / phone support",
+          ],
+        },
+      ]
+    : []
 
   const plans = tab === "individual" ? individualPlans : teamPlans
+
+  async function handleSubscribe(plan: string) {
+    const url = await subscribe(plan, billing)
+    if (url) window.location.href = url
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,82 +165,94 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {plans.map((plan) => {
-            const Icon = plan.icon
-            const isCustom = plan.price === null
-            const price = isCustom ? null : billing === "yearly" ? Math.round(plan.price.yearly / 12) : plan.price.monthly
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          /* Cards */
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {plans.map((plan) => {
+              const Icon = plan.icon
+              const isCustom = plan.price === null
+              const price = isCustom ? null : billing === "yearly" ? Math.round(plan.price!.yearly / 12) : plan.price!.monthly
+              const isCurrent = plan.key === currentPlan
 
-            return (
-              <div key={plan.key} className="rounded-2xl border border-border bg-card p-8 flex flex-col gap-6 hover:border-primary/30 transition-colors">
-                <Icon className="size-8 text-primary" />
+              return (
+                <div key={plan.key} className="rounded-2xl border border-border bg-card p-8 flex flex-col gap-6 hover:border-primary/30 transition-colors">
+                  <Icon className="size-8 text-primary" />
 
-                {plan.price !== null && plan.price.monthly !== 0 && (
-                  <div className="flex gap-1 rounded-full border border-border bg-muted p-0.5 w-fit text-xs">
-                    <button type="button" onClick={() => setBilling("monthly")}
-                      className={cn("rounded-full px-3 py-1 transition-colors", billing === "monthly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                      Monthly
-                    </button>
-                    <button type="button" onClick={() => setBilling("yearly")}
-                      className={cn("rounded-full px-3 py-1 flex items-center gap-1 transition-colors", billing === "yearly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                      Yearly <span className="font-medium text-emerald-600">· Save 20%</span>
-                    </button>
+                  {plan.price !== null && plan.price.monthly !== 0 && (
+                    <div className="flex gap-1 rounded-full border border-border bg-muted p-0.5 w-fit text-xs">
+                      <button type="button" onClick={() => setBilling("monthly")}
+                        className={cn("rounded-full px-3 py-1 transition-colors", billing === "monthly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                        Monthly
+                      </button>
+                      <button type="button" onClick={() => setBilling("yearly")}
+                        className={cn("rounded-full px-3 py-1 flex items-center gap-1 transition-colors", billing === "yearly" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                        Yearly <span className="font-medium text-emerald-600">· Save 20%</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-xl font-semibold">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
                   </div>
-                )}
 
-                <div>
-                  <h3 className="text-xl font-semibold">{plan.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-                </div>
+                  <div className="flex items-start gap-2">
+                    {isCustom ? (
+                      <span className="text-4xl font-bold">Custom</span>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold">{price === 0 ? "Free" : formatPrice(price!)}</span>
+                        {price !== 0 && (
+                          <div className="mt-1 text-xs text-muted-foreground leading-tight">
+                            <div>/ month</div>
+                            <div>{billing === "yearly" ? "billed annually" : "billed monthly"}</div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
 
-                <div className="flex items-start gap-2">
-                  {isCustom ? (
-                    <span className="text-4xl font-bold">Custom</span>
+                  {"ctaHref" in plan && plan.ctaHref ? (
+                    <a href={plan.ctaHref} className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-center hover:bg-primary/90 transition-colors text-sm">
+                      Contact us
+                    </a>
+                  ) : isCurrent ? (
+                    <div className="w-full rounded-xl border border-border text-muted-foreground py-3 font-medium text-sm text-center cursor-default">
+                      Current plan
+                    </div>
                   ) : (
-                    <>
-                      <span className="text-4xl font-bold">{price === 0 ? "Free" : formatPrice(price!)}</span>
-                      {price !== 0 && (
-                        <div className="mt-1 text-xs text-muted-foreground leading-tight">
-                          <div>/ month</div>
-                          <div>{billing === "yearly" ? "billed annually" : "billed monthly"}</div>
-                        </div>
-                      )}
-                    </>
+                    <button
+                      type="button"
+                      disabled={subscribing}
+                      onClick={() => handleSubscribe(plan.key)}
+                      className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {subscribing ? "Redirecting…" : `Upgrade to ${plan.name}`}
+                    </button>
                   )}
-                </div>
 
-                {"ctaHref" in plan && plan.ctaHref ? (
-                  <a href={plan.ctaHref} className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-center hover:bg-primary/90 transition-colors text-sm">
-                    {plan.cta}
-                  </a>
-                ) : plan.current ? (
-                  <div className="w-full rounded-xl border border-border text-muted-foreground py-3 font-medium text-sm text-center cursor-default">
-                    {plan.cta}
+                  <div className="border-t border-border pt-4 flex-1">
+                    {"prefix" in plan && plan.prefix && (
+                      <p className="text-xs text-muted-foreground mb-3">{plan.prefix}</p>
+                    )}
+                    <ul className="space-y-2">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-sm">
+                          <Check className="size-4 text-emerald-500 mt-0.5 shrink-0" />
+                          <span className="text-muted-foreground">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ) : (
-                  <button type="button" className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-sm hover:bg-primary/90 transition-colors">
-                    {plan.cta}
-                  </button>
-                )}
-
-                <div className="border-t border-border pt-4 flex-1">
-                  {"prefix" in plan && plan.prefix && (
-                    <p className="text-xs text-muted-foreground mb-3">{plan.prefix}</p>
-                  )}
-                  <ul className="space-y-2">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm">
-                        <Check className="size-4 text-emerald-500 mt-0.5 shrink-0" />
-                        <span className="text-muted-foreground">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
         <p className="text-center text-xs text-muted-foreground/60 mt-10">
           Prices shown don&apos;t include applicable tax.

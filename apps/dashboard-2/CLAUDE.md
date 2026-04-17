@@ -1,6 +1,6 @@
 # dashboard-2 — Next.js 16 + Bun + shadcn sidebar-07
 
-Alpha dashboard. Built from scratch on shadcn's sidebar-07 template. All data is mock — no backend wiring yet.
+Alpha dashboard. Built from scratch on shadcn's sidebar-07 template. Backend wiring in progress — auth, profile, billing, and org hooks are live.
 
 ## Commands
 
@@ -205,7 +205,7 @@ via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
 - **Do not import from `src/data/` outside hooks.** Pages and components read
   domain data only through hooks so the mock toggle flips cleanly and Stage 8
   can migrate one domain at a time without touching UI code.
-- **Do not add AuthGuard yet** — that lands after hooks are wired.
+- **AuthGuard is wired.** `AuthGuard` wraps `(dashboard)/layout.tsx`. Unauthenticated users redirect to `/login`. In mock mode, `useAuth` returns authenticated automatically.
 - **Do not move the mock check into the Apollo link.** Apollo must behave
   normally for auth/session; mocking is a hook-layer concern.
 

@@ -25,7 +25,7 @@ const DEFAULT_PREFS: NotificationPrefs = {
   channelMessages: false,
 }
 
-const MOCK_PROFILE: ProfilePayload = {
+export const MOCK_PROFILE: ProfilePayload = {
   id: "usr_mock_1",
   email: "harro@officeos.co",
   name: "Harro Krog",
@@ -35,7 +35,7 @@ const MOCK_PROFILE: ProfilePayload = {
   notificationPrefs: DEFAULT_PREFS,
 }
 
-const ME_QUERY = gql`
+export const ME_QUERY = gql`
   query Me {
     me {
       id
@@ -100,14 +100,14 @@ function toProfile(raw: MeRaw): ProfilePayload {
 }
 
 export function useProfile(): {
-  profile: ProfilePayload
+  profile: ProfilePayload | null
   loading: boolean
   error?: Error
 } {
   const { data, loading, error } = useQuery(ME_QUERY, { skip: USE_MOCKS })
   if (USE_MOCKS) return { profile: MOCK_PROFILE, loading: false }
   const raw = data?.me as MeRaw | null | undefined
-  if (!raw) return { profile: MOCK_PROFILE, loading, error: error ?? undefined }
+  if (!raw) return { profile: null, loading, error: error ?? undefined }
   return { profile: toProfile(raw), loading, error: error ?? undefined }
 }
 
