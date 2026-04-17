@@ -21,10 +21,7 @@ import { createClient } from "graphql-ws"
  * Staging:    http://localhost:5000
  */
 
-const API_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://api.officeos.co"
-    : "http://localhost:5000"
+const API_URL = "https://api.officeos.co"
 
 const HTTP_ENDPOINT = `${API_URL}/api/dashboard/graphql`
 
