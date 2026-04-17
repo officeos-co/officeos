@@ -13,10 +13,7 @@ pub enum WsInbound {
         id: Option<String>,
     },
     /// Reply to a pending `ask_user_prompt`.
-    AskUserResponse {
-        id: String,
-        response: String,
-    },
+    AskUserResponse { id: String, response: String },
     /// Cancel the current turn.
     Cancel {
         #[serde(default)]
@@ -29,10 +26,7 @@ pub enum WsInbound {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum WsOutbound {
     /// Incremental assistant text.
-    AssistantDelta {
-        turn_id: String,
-        text: String,
-    },
+    AssistantDelta { turn_id: String, text: String },
     /// A tool is about to run.
     ToolCallStart {
         turn_id: String,
@@ -59,10 +53,7 @@ pub enum WsOutbound {
         choices: Option<Vec<String>>,
     },
     /// End of turn.
-    TurnComplete {
-        turn_id: String,
-        cancelled: bool,
-    },
+    TurnComplete { turn_id: String, cancelled: bool },
     /// Runtime error.
     Error {
         #[serde(skip_serializing_if = "Option::is_none")]

@@ -29,6 +29,7 @@ pub const PROMPT_TOKEN: &str = "{{prompt}}";
 /// After writing, performs a strict check: all three files must exist and
 /// be non-empty.
 pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
+    tracing::info!(path = %memory_dir.display(), "seeding personality files");
     // Create memory_dir if it doesn't exist.
     tokio::fs::create_dir_all(memory_dir).await?;
 
@@ -45,14 +46,15 @@ pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
         };
 
         tokio::fs::write(&dst, &content).await?;
+        tracing::debug!(file = %dst.display(), "wrote personality file");
     }
 
     // Strict post-check: all three must exist and be non-empty.
     for &(name, _) in TEMPLATES {
         let dst = memory_dir.join(name);
-        let meta = tokio::fs::metadata(&dst).await.map_err(|_| {
-            Error::Personality(format!("{name} missing after seed"))
-        })?;
+        let meta = tokio::fs::metadata(&dst)
+            .await
+            .map_err(|_| Error::Personality(format!("{name} missing after seed")))?;
         if meta.len() == 0 {
             return Err(Error::Personality(format!("{name} is empty after seed")));
         }

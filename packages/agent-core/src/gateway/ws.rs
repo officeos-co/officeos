@@ -17,6 +17,7 @@ pub async fn handle_ws(
     agent: Arc<crate::agent::Agent>,
     socket: WebSocket,
 ) {
+    tracing::info!("ws session started");
     let (ws_sink, mut ws_stream) = socket.split();
 
     // Channel for sending outbound WS frames.
@@ -52,7 +53,10 @@ pub async fn handle_ws(
 
         match inbound {
             WsInbound::UserMessage { text, id } => {
+                let turn_id_display = id.as_deref().unwrap_or("none");
+                tracing::info!(turn_id = %turn_id_display, "user message received");
                 if turn_in_flight {
+                    tracing::warn!("user message rejected: turn in flight");
                     let _ = out_tx.send(WsOutbound::Error {
                         turn_id: None,
                         code: "BAD_REQUEST".to_string(),
@@ -63,7 +67,10 @@ pub async fn handle_ws(
 
                 // Sequential loop so the `true` is always overwritten to
                 // `false` at the end of this arm, but retained per API.md §8.7.
-                #[allow(unused_assignments)] { turn_in_flight = true; }
+                #[allow(unused_assignments)]
+                {
+                    turn_in_flight = true;
+                }
                 let turn_id = id.clone();
 
                 let result = agent
@@ -71,6 +78,7 @@ pub async fn handle_ws(
                     .await;
 
                 if let Err(e) = result {
+                    tracing::error!(turn_id = %turn_id_display, error = %e, "turn failed");
                     let _ = out_tx.send(WsOutbound::Error {
                         turn_id: id.clone(),
                         code: "INTERNAL".to_string(),
@@ -80,6 +88,8 @@ pub async fn handle_ws(
                         turn_id: id.unwrap_or_default(),
                         cancelled: false,
                     });
+                } else {
+                    tracing::info!(turn_id = %turn_id_display, "turn complete");
                 }
 
                 turn_in_flight = false;
@@ -101,6 +111,7 @@ pub async fn handle_ws(
     }
 
     // Clean up.
+    tracing::info!("ws session ended");
     drop(out_tx);
     let _ = sink_handle.await;
 }

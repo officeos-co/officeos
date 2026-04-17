@@ -10,8 +10,8 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use zeroclaw_agent::config::{RuntimeConfig, SkillSummary};
-use zeroclaw_agent::tools::Tool;
 use zeroclaw_agent::tools::skill_exec::SkillExecTool;
+use zeroclaw_agent::tools::Tool;
 
 fn test_config(backend_url: &str) -> Arc<RuntimeConfig> {
     Arc::new(RuntimeConfig {
@@ -24,8 +24,12 @@ fn test_config(backend_url: &str) -> Arc<RuntimeConfig> {
         system_prompt: "test".to_string(),
         display_name: "test-agent".to_string(),
         skills: vec![
-            SkillSummary { name: "github".into() },
-            SkillSummary { name: "notion".into() },
+            SkillSummary {
+                name: "github".into(),
+            },
+            SkillSummary {
+                name: "notion".into(),
+            },
         ],
         tool_permissions: HashMap::new(),
     })
@@ -75,10 +79,7 @@ async fn test_skill_exec_help_lists_schema() {
 
     assert!(result.success, "help should succeed");
     // Output should list discovered skills from the introspection.
-    assert!(
-        !result.output.is_empty(),
-        "help output should not be empty"
-    );
+    assert!(!result.output.is_empty(), "help output should not be empty");
 }
 
 /// Wiremock serves a GraphQL mutation response.

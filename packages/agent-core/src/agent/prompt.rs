@@ -31,7 +31,9 @@ pub trait PromptSection: Send + Sync {
 pub struct DateTimeSection;
 
 impl PromptSection for DateTimeSection {
-    fn name(&self) -> &'static str { "datetime" }
+    fn name(&self) -> &'static str {
+        "datetime"
+    }
     fn build(&self, _ctx: &PromptContext<'_>) -> crate::error::Result<String> {
         let now = Local::now();
         let (year, month, day) = (now.year(), now.month(), now.day());
@@ -56,7 +58,9 @@ const MAX_PERSONALITY_CHARS: usize = 20_000;
 pub struct IdentitySection;
 
 impl PromptSection for IdentitySection {
-    fn name(&self) -> &'static str { "identity" }
+    fn name(&self) -> &'static str {
+        "identity"
+    }
     fn build(&self, ctx: &PromptContext<'_>) -> crate::error::Result<String> {
         let mut prompt = String::from(
             "## Project Context\n\n\
@@ -83,7 +87,9 @@ impl PromptSection for IdentitySection {
 pub struct ToolHonestySection;
 
 impl PromptSection for ToolHonestySection {
-    fn name(&self) -> &'static str { "tool_honesty" }
+    fn name(&self) -> &'static str {
+        "tool_honesty"
+    }
     fn build(&self, _ctx: &PromptContext<'_>) -> crate::error::Result<String> {
         Ok(
             "## CRITICAL: Tool Honesty\n\n\
@@ -99,7 +105,9 @@ impl PromptSection for ToolHonestySection {
 pub struct ToolsSection;
 
 impl PromptSection for ToolsSection {
-    fn name(&self) -> &'static str { "tools" }
+    fn name(&self) -> &'static str {
+        "tools"
+    }
     fn build(&self, _ctx: &PromptContext<'_>) -> crate::error::Result<String> {
         Ok(String::new())
     }
@@ -109,16 +117,16 @@ impl PromptSection for ToolsSection {
 pub struct SafetySection;
 
 impl PromptSection for SafetySection {
-    fn name(&self) -> &'static str { "safety" }
+    fn name(&self) -> &'static str {
+        "safety"
+    }
     fn build(&self, _ctx: &PromptContext<'_>) -> crate::error::Result<String> {
-        Ok(
-            "## Safety\n\n\
+        Ok("## Safety\n\n\
              - Do not exfiltrate private data.\n\
              - Do not run destructive commands without asking.\n\
              - Do not bypass oversight or approval mechanisms.\n\
              - Prefer `trash` over `rm`."
-                .into(),
-        )
+            .into())
     }
 }
 
@@ -126,7 +134,9 @@ impl PromptSection for SafetySection {
 pub struct SkillsSection;
 
 impl PromptSection for SkillsSection {
-    fn name(&self) -> &'static str { "skills" }
+    fn name(&self) -> &'static str {
+        "skills"
+    }
     fn build(&self, ctx: &PromptContext<'_>) -> crate::error::Result<String> {
         if ctx.skills.is_empty() {
             return Ok(String::new());
@@ -146,7 +156,9 @@ impl PromptSection for SkillsSection {
 pub struct WorkspaceSection;
 
 impl PromptSection for WorkspaceSection {
-    fn name(&self) -> &'static str { "workspace" }
+    fn name(&self) -> &'static str {
+        "workspace"
+    }
     fn build(&self, ctx: &PromptContext<'_>) -> crate::error::Result<String> {
         Ok(format!(
             "## Workspace\n\nWorking directory: `{}`",
@@ -159,10 +171,12 @@ impl PromptSection for WorkspaceSection {
 pub struct RuntimeSection;
 
 impl PromptSection for RuntimeSection {
-    fn name(&self) -> &'static str { "runtime" }
+    fn name(&self) -> &'static str {
+        "runtime"
+    }
     fn build(&self, _ctx: &PromptContext<'_>) -> crate::error::Result<String> {
-        let host = hostname::get()
-            .map_or_else(|_| "unknown".into(), |h| h.to_string_lossy().to_string());
+        let host =
+            hostname::get().map_or_else(|_| "unknown".into(), |h| h.to_string_lossy().to_string());
         Ok(format!(
             "## Runtime\n\nHost: {host} | OS: {}",
             std::env::consts::OS

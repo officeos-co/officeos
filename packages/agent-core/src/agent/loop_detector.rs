@@ -72,7 +72,9 @@ pub struct LoopDetector {
 }
 
 impl Default for LoopDetector {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LoopDetector {
@@ -163,7 +165,11 @@ impl LoopDetector {
         }
 
         let is_ping_pong = tail.iter().enumerate().all(|(i, r)| {
-            if i % 2 == 0 { &r.name == a_name } else { &r.name == b_name }
+            if i % 2 == 0 {
+                &r.name == a_name
+            } else {
+                &r.name == b_name
+            }
         });
         if !is_ping_pong {
             return None;

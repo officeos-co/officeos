@@ -127,10 +127,14 @@ impl LlmClient {
                 .map_err(|e| Error::Llm(format!("serialize tools: {e}")))?;
         }
 
+        tracing::debug!(url = %url, "sending LLM request");
         let client = reqwest::Client::new();
         let resp = client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.cfg.backend_token))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.cfg.backend_token),
+            )
             .json(&body)
             .send()
             .await
@@ -138,12 +142,12 @@ impl LlmClient {
 
         if !resp.status().is_success() {
             let status = resp.status();
+            tracing::warn!(status = %status, "LLM HTTP error");
             let text = resp.text().await.unwrap_or_default();
-            return Err(Error::Llm(format!(
-                "llm HTTP {status}: {text}"
-            )));
+            return Err(Error::Llm(format!("llm HTTP {status}: {text}")));
         }
 
+        tracing::debug!("LLM response received, streaming SSE");
         let byte_stream = resp.bytes_stream();
         let event_stream = byte_stream.eventsource();
 

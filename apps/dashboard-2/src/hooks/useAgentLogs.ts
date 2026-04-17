@@ -53,6 +53,9 @@ function normaliseType(raw: string | null | undefined): AgentLog["type"] {
     ChannelIn: "channel_in",
     ChannelOut: "channel_out",
     System: "system",
+    AgentStartup: "agent_startup",
+    AgentShutdown: "agent_shutdown",
+    Error: "error",
   }
   return map[v] ?? "system"
 }
@@ -97,6 +100,7 @@ export function useAgentLogs(
   const { data, loading, error } = useQuery(AGENT_LOGS_QUERY, {
     variables: { agentId, limit },
     skip: USE_MOCKS || !agentId,
+    pollInterval: USE_MOCKS ? 0 : 5000,
   })
 
   useSubscription(AGENT_LOG_SUBSCRIPTION, {

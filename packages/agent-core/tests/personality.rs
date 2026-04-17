@@ -29,8 +29,14 @@ async fn test_seed_writes_missing_files() {
     let bootstrap_content = fs::read_to_string(&bootstrap).unwrap();
 
     assert!(!soul_content.is_empty(), "SOUL.md must not be empty");
-    assert!(!identity_content.is_empty(), "IDENTITY.md must not be empty");
-    assert!(!bootstrap_content.is_empty(), "BOOTSTRAP.md must not be empty");
+    assert!(
+        !identity_content.is_empty(),
+        "IDENTITY.md must not be empty"
+    );
+    assert!(
+        !bootstrap_content.is_empty(),
+        "BOOTSTRAP.md must not be empty"
+    );
 
     // BOOTSTRAP.md must contain the substituted prompt, not the token.
     assert!(

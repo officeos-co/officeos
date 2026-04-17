@@ -8,7 +8,9 @@ pub struct ConversationHistory {
 }
 
 impl Default for ConversationHistory {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ConversationHistory {
@@ -49,10 +51,7 @@ impl ConversationHistory {
                 && !protected[i]
                 && !protected[i + 1]
             {
-                let tool_content = self.messages[i + 1]
-                    .content
-                    .as_deref()
-                    .unwrap_or("");
+                let tool_content = self.messages[i + 1].content.as_deref().unwrap_or("");
                 let truncated: String = tool_content.chars().take(100).collect();
                 let summary = format!("[Tool result: {truncated}...]");
                 self.messages[i] = ChatMessage {

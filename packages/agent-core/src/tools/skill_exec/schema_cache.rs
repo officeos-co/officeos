@@ -135,12 +135,7 @@ impl SchemaCache {
                     let skill = &skills[name];
                     let action_names: Vec<_> =
                         skill.actions.iter().map(|a| a.cli_name.as_str()).collect();
-                    let _ = writeln!(
-                        out,
-                        "  {:<14} actions: {}",
-                        name,
-                        action_names.join(", ")
-                    );
+                    let _ = writeln!(out, "  {:<14} actions: {}", name, action_names.join(", "));
                 }
                 out.push_str("\nUsage: <skill> <action> [--flags]\n");
                 out.push_str("Use \"<skill> --help\" for details.\n");
@@ -190,8 +185,7 @@ impl SchemaCache {
                 let Some(skill) = skills.get(skill_name) else {
                     return format!("Unknown skill: {skill_name}");
                 };
-                let Some(action) = skill.actions.iter().find(|a| a.cli_name == *action_name)
-                else {
+                let Some(action) = skill.actions.iter().find(|a| a.cli_name == *action_name) else {
                     return format!(
                         "Unknown action: {action_name}. Use \"{skill_name} --help\" to list actions."
                     );

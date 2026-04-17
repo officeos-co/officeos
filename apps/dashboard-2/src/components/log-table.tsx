@@ -10,6 +10,9 @@ import {
   ArrowUpRightIcon,
   InfoIcon,
   ClockIcon,
+  PlayIcon,
+  SquareIcon,
+  AlertTriangleIcon,
 } from "lucide-react"
 
 function logIcon(log: AgentLog) {
@@ -24,6 +27,9 @@ function logIcon(log: AgentLog) {
   }
   if (log.type === "message_in") return <ArrowDownLeftIcon className="size-4 text-blue-500" />
   if (log.type === "message_out") return <ArrowUpRightIcon className="size-4 text-emerald-500" />
+  if (log.type === "agent_startup") return <PlayIcon className="size-4 text-emerald-500" />
+  if (log.type === "agent_shutdown") return <SquareIcon className="size-4 text-muted-foreground" />
+  if (log.type === "error") return <AlertTriangleIcon className="size-4 text-red-500" />
   return <InfoIcon className="size-4 text-muted-foreground" />
 }
 
@@ -36,6 +42,9 @@ function typeLabel(log: AgentLog) {
     case "message_in": return "Message in"
     case "message_out": return "Message out"
     case "system": return "System"
+    case "agent_startup": return "Startup"
+    case "agent_shutdown": return "Shutdown"
+    case "error": return "Error"
     default: return log.type
   }
 }

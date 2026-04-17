@@ -96,6 +96,7 @@ fn backoff_duration(secs: u64) -> std::time::Duration {
 /// failure, and assemble a `RuntimeConfig`.
 pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeConfig> {
     let url = format!("{backend_url}/api/agents/{agent_id}");
+    tracing::info!("bootstrap request to {url}");
     let client = reqwest::Client::new();
 
     let mut last_err: Option<Error> = None;
@@ -130,7 +131,10 @@ pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeC
             return Err(Error::BootstrapNotFound);
         }
         if status.is_server_error() {
-            tracing::warn!("bootstrap attempt {}: server returned {status}", attempt + 1);
+            tracing::warn!(
+                "bootstrap attempt {}: server returned {status}",
+                attempt + 1
+            );
             last_err = Some(Error::BootstrapPayload(format!("server returned {status}")));
             continue;
         }
@@ -140,6 +144,12 @@ pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeC
             .await
             .map_err(|e| Error::BootstrapPayload(format!("invalid JSON: {e}")))?;
 
+        tracing::info!("bootstrap payload received, building config");
+        tracing::debug!(
+            skill_count = payload.skills.len(),
+            tool_permission_count = payload.tool_permissions.entries.len(),
+            "payload details"
+        );
         return build_config(payload, backend_url);
     }
 
@@ -176,7 +186,9 @@ fn build_config(payload: AgentBootstrapPayload, backend_url: String) -> Result<R
             other => {
                 tracing::warn!(
                     "unknown permission mode '{}' for {}:{}, treating as Deny",
-                    other, entry.skill, entry.tool
+                    other,
+                    entry.skill,
+                    entry.tool
                 );
                 Permission::Deny
             }

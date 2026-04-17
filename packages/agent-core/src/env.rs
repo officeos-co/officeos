@@ -35,6 +35,7 @@ pub fn load_env() -> Result<(String, String)> {
     // Strip trailing slash.
     let backend_url = backend_url.trim_end_matches('/').to_string();
 
+    tracing::info!("environment validated");
     Ok((agent_id, backend_url))
 }
 

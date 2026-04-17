@@ -12,7 +12,9 @@ const DEFAULT_TIMEOUT_SECS: u64 = 30;
 pub struct HttpRequestTool;
 
 impl Default for HttpRequestTool {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl HttpRequestTool {

@@ -1,9 +1,9 @@
 //! Agent — owns history, registry, llm client, config. See API.md §6.
 
-pub mod turn_loop;
-pub mod prompt;
 pub mod history;
 pub mod loop_detector;
+pub mod prompt;
+pub mod turn_loop;
 
 use std::sync::Arc;
 
@@ -40,10 +40,7 @@ impl Agent {
 
     /// Handle an inbound user message — enters the turn loop.
     /// Returns WS events via the provided sender.
-    pub async fn handle_user_message(
-        &self,
-        text: String,
-    ) -> crate::error::Result<()> {
+    pub async fn handle_user_message(&self, text: String) -> crate::error::Result<()> {
         // Create a dummy channel for the simple API (tests that don't use WS).
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         self.handle_user_message_with_ws(text, None, &tx).await

@@ -1,13 +1,13 @@
 //! Local tool integration tests. See API.md §10.
 
 use tempfile::TempDir;
-use zeroclaw_agent::tools::Tool;
-use zeroclaw_agent::tools::shell::ShellTool;
-use zeroclaw_agent::tools::file_write::FileWriteTool;
-use zeroclaw_agent::tools::file_read::FileReadTool;
-use zeroclaw_agent::tools::memory_store::MemoryStoreTool;
-use zeroclaw_agent::tools::memory_recall::MemoryRecallTool;
 use zeroclaw_agent::tools::content_search::ContentSearchTool;
+use zeroclaw_agent::tools::file_read::FileReadTool;
+use zeroclaw_agent::tools::file_write::FileWriteTool;
+use zeroclaw_agent::tools::memory_recall::MemoryRecallTool;
+use zeroclaw_agent::tools::memory_store::MemoryStoreTool;
+use zeroclaw_agent::tools::shell::ShellTool;
+use zeroclaw_agent::tools::Tool;
 
 /// Dispatch shell with `echo hi`. Assert success and output contains "hi".
 #[tokio::test]
@@ -90,7 +90,11 @@ async fn test_content_search_finds_pattern() {
     let tmp = TempDir::new().unwrap();
 
     // Seed some files.
-    std::fs::write(tmp.path().join("notes.txt"), "The quick brown fox jumps over the lazy dog.").unwrap();
+    std::fs::write(
+        tmp.path().join("notes.txt"),
+        "The quick brown fox jumps over the lazy dog.",
+    )
+    .unwrap();
     std::fs::write(tmp.path().join("data.txt"), "No matching content here.").unwrap();
 
     let tool = ContentSearchTool::new(tmp.path().to_path_buf());

@@ -15,18 +15,18 @@ async fn test_bootstrap_roundtrip_ok() {
 
     Mock::given(method("GET"))
         .and(path(format!("/api/agents/{CANNED_AGENT_ID}")))
-        .and(header("Authorization", format!("Bearer {CANNED_AGENT_ID}").as_str()))
+        .and(header(
+            "Authorization",
+            format!("Bearer {CANNED_AGENT_ID}").as_str(),
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(canned_payload()))
         .expect(1)
         .mount(&server)
         .await;
 
-    let cfg = zeroclaw_agent::bootstrap::bootstrap(
-        CANNED_AGENT_ID.to_string(),
-        server.uri(),
-    )
-    .await
-    .expect("bootstrap should succeed");
+    let cfg = zeroclaw_agent::bootstrap::bootstrap(CANNED_AGENT_ID.to_string(), server.uri())
+        .await
+        .expect("bootstrap should succeed");
 
     assert_eq!(cfg.agent_id.to_string(), CANNED_AGENT_ID);
     assert_eq!(cfg.display_name, "test-agent");
@@ -40,11 +40,13 @@ async fn test_bootstrap_roundtrip_ok() {
     // Permission map should be lowercased.
     use zeroclaw_agent::config::Permission;
     assert_eq!(
-        cfg.tool_permissions.get(&("github".into(), "list_issues".into())),
+        cfg.tool_permissions
+            .get(&("github".into(), "list_issues".into())),
         Some(&Permission::Allow)
     );
     assert_eq!(
-        cfg.tool_permissions.get(&("notion".into(), "search".into())),
+        cfg.tool_permissions
+            .get(&("notion".into(), "search".into())),
         Some(&Permission::Deny)
     );
 }
@@ -89,12 +91,9 @@ async fn test_bootstrap_retries_then_succeeds() {
         .mount(&server)
         .await;
 
-    let cfg = zeroclaw_agent::bootstrap::bootstrap(
-        CANNED_AGENT_ID.to_string(),
-        server.uri(),
-    )
-    .await
-    .expect("bootstrap should succeed after retries");
+    let cfg = zeroclaw_agent::bootstrap::bootstrap(CANNED_AGENT_ID.to_string(), server.uri())
+        .await
+        .expect("bootstrap should succeed after retries");
 
     assert_eq!(cfg.agent_id.to_string(), CANNED_AGENT_ID);
 }
@@ -111,11 +110,8 @@ async fn test_bootstrap_exhausts_retries() {
         .mount(&server)
         .await;
 
-    let result = zeroclaw_agent::bootstrap::bootstrap(
-        CANNED_AGENT_ID.to_string(),
-        server.uri(),
-    )
-    .await;
+    let result =
+        zeroclaw_agent::bootstrap::bootstrap(CANNED_AGENT_ID.to_string(), server.uri()).await;
 
     assert!(result.is_err(), "should fail after exhausting retries");
 }

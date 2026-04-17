@@ -29,7 +29,9 @@ struct PendingQuestion {
 }
 
 impl Default for AskUserBridge {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AskUserBridge {

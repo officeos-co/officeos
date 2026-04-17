@@ -1,19 +1,19 @@
 //! Tool registry and catalog. See API.md §9–§10.
 
-pub mod traits;
-pub mod skill_exec;
-pub mod memory_store;
-pub mod memory_recall;
-pub mod memory_forget;
 pub mod ask_user;
-pub mod shell;
+pub mod content_search;
+pub mod file_edit;
 pub mod file_read;
 pub mod file_write;
-pub mod file_edit;
-pub mod http_request;
-pub mod web_fetch;
-pub mod content_search;
 pub mod glob_search;
+pub mod http_request;
+pub mod memory_forget;
+pub mod memory_recall;
+pub mod memory_store;
+pub mod shell;
+pub mod skill_exec;
+pub mod traits;
+pub mod web_fetch;
 
 use std::sync::Arc;
 

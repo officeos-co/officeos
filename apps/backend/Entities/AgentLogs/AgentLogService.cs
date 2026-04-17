@@ -64,8 +64,10 @@ public sealed class AgentLogService : IAgentLogService
             CorrelationId = Guid.NewGuid().ToString(),
         };
 
-        // TODO: kick the agent pod
         var saved = await AppendAsync(record, ct);
+
+        // Kick the agent pod — deliver the message via WebSocket
+        await KickAgentPodAsync(agent, content, record.CorrelationId!, ct);
 
         await _analytics.CaptureAsync(
             userId.ToString(),
@@ -78,6 +80,65 @@ public sealed class AgentLogService : IAgentLogService
             ct);
 
         return saved;
+    }
+
+    // ── Pod kick ─────────────────────────────────────────────────────────
+
+    private async Task KickAgentPodAsync(
+        EnterpriseAgentOs.Api.Database.Models.AgentRecord agent,
+        string content,
+        string correlationId,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(agent.PodName))
+        {
+            _logger.LogWarning("Agent {AgentId} has no pod deployed — message queued only", agent.Id);
+            await AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
+            {
+                AgentId = agent.Id,
+                Time = DateTime.UtcNow,
+                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.System,
+                Content = "Agent pod not deployed, message queued",
+                CorrelationId = correlationId,
+            }, ct);
+            return;
+        }
+
+        try
+        {
+            using var ws = new System.Net.WebSockets.ClientWebSocket();
+            var uri = new Uri($"ws://{agent.PodName}.default.svc.cluster.local:42617/ws?token={agent.Id}");
+            using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            connectCts.CancelAfter(TimeSpan.FromSeconds(5));
+            await ws.ConnectAsync(uri, connectCts.Token);
+
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "user_message",
+                text = content,
+                id = correlationId,
+            });
+            var bytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            await ws.SendAsync(
+                new ArraySegment<byte>(bytes),
+                System.Net.WebSockets.WebSocketMessageType.Text,
+                endOfMessage: true,
+                ct);
+
+            await ws.CloseOutputAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, null, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to deliver message to agent pod {PodName}", agent.PodName);
+            await AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
+            {
+                AgentId = agent.Id,
+                Time = DateTime.UtcNow,
+                Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.Error,
+                Content = $"Failed to deliver message to agent pod: {ex.Message}",
+                CorrelationId = correlationId,
+            }, ct);
+        }
     }
 
     // ── Audit (merged from Entities/Audit) ───────────────────────────────

@@ -65,6 +65,7 @@ pub(crate) async fn run_turn(
         let tool_schemas = registry.chat_tool_schemas();
 
         // Stream LLM response.
+        tracing::info!(turn_id, "starting LLM stream");
         let mut stream = llm.chat_stream(messages, tool_schemas).await?;
 
         let mut assistant_text = String::new();
@@ -115,6 +116,7 @@ pub(crate) async fn run_turn(
         }
 
         if had_error {
+            tracing::warn!(turn_id, "LLM stream error");
             let _ = ws_tx.send(WsOutbound::TurnComplete {
                 turn_id: turn_id.to_string(),
                 cancelled: false,
@@ -139,10 +141,20 @@ pub(crate) async fn run_turn(
         // Push assistant message to history.
         history.push(ChatMessage {
             role: "assistant".to_string(),
-            content: if assistant_text.is_empty() { None } else { Some(assistant_text) },
+            content: if assistant_text.is_empty() {
+                None
+            } else {
+                Some(assistant_text)
+            },
             tool_calls: tool_calls.clone(),
             tool_call_id: None,
         });
+
+        tracing::info!(
+            turn_id,
+            tool_calls = tool_calls.len(),
+            "LLM stream complete"
+        );
 
         // No tool calls → turn complete.
         if tool_calls.is_empty() {
@@ -162,6 +174,7 @@ pub(crate) async fn run_turn(
             });
 
             // Dispatch.
+            tracing::info!(turn_id, tool = %tc.function.name, call_id = %tc.id, "dispatching tool");
             let result = registry.dispatch(&tc.function.name, args.clone()).await;
             let tool_result = match result {
                 Ok(tr) => tr,
@@ -172,12 +185,10 @@ pub(crate) async fn run_turn(
                 },
             };
 
+            tracing::info!(turn_id, tool = %tc.function.name, success = tool_result.success, "tool result");
+
             // Loop detection.
-            let detection = loop_detector.record(
-                &tc.function.name,
-                &args,
-                &tool_result.output,
-            );
+            let detection = loop_detector.record(&tc.function.name, &args, &tool_result.output);
 
             let _ = ws_tx.send(WsOutbound::ToolCallResult {
                 turn_id: turn_id.to_string(),
@@ -206,6 +217,7 @@ pub(crate) async fn run_turn(
             // Handle loop detection results.
             match detection {
                 LoopDetectionResult::Break(msg) => {
+                    tracing::warn!(turn_id, "loop detected: {msg}");
                     let _ = ws_tx.send(WsOutbound::Error {
                         turn_id: Some(turn_id.to_string()),
                         code: "LOOP".to_string(),
@@ -218,6 +230,7 @@ pub(crate) async fn run_turn(
                     return Ok(());
                 }
                 LoopDetectionResult::Block(msg) => {
+                    tracing::warn!(turn_id, "loop detected: {msg}");
                     // Replace last tool result in history with block message.
                     if let Some(last) = history.messages_mut().last_mut() {
                         last.content = Some(format!("BLOCKED: {msg}"));
@@ -233,6 +246,7 @@ pub(crate) async fn run_turn(
         // Continue the loop — LLM will see tool results and respond.
     }
 
+    tracing::info!(turn_id, "turn loop finished");
     let _ = ws_tx.send(WsOutbound::TurnComplete {
         turn_id: turn_id.to_string(),
         cancelled: false,

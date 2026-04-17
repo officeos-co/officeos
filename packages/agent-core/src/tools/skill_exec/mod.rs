@@ -101,6 +101,7 @@ impl Tool for SkillExecTool {
                 action,
                 args: cli_args,
             } => {
+                tracing::info!(skill = %skill, action = %action, "executing skill");
                 // Enforce per-tool allow/deny before dispatch.
                 let key = (skill.to_ascii_lowercase(), action.clone());
                 if let Some(Permission::Deny) = self.cfg.tool_permissions.get(&key) {
@@ -127,7 +128,13 @@ impl Tool for SkillExecTool {
                     }
                 };
 
-                self.execute_graphql(&gql_query).await
+                let result = self.execute_graphql(&gql_query).await;
+                if let Ok(ref tr) = result {
+                    if !tr.success {
+                        tracing::warn!(skill = %skill, action = %action, "skill execution failed");
+                    }
+                }
+                result
             }
         }
     }
@@ -135,10 +142,7 @@ impl Tool for SkillExecTool {
 
 impl SkillExecTool {
     async fn execute_graphql(&self, query: &str) -> anyhow::Result<ToolResult> {
-        let graphql_url = format!(
-            "{}/api/graphql",
-            self.cfg.backend_url.trim_end_matches('/')
-        );
+        let graphql_url = format!("{}/api/graphql", self.cfg.backend_url.trim_end_matches('/'));
 
         let client = match reqwest::Client::builder()
             .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))

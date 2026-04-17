@@ -12,7 +12,9 @@ const DEFAULT_TIMEOUT_SECS: u64 = 30;
 pub struct WebFetchTool;
 
 impl Default for WebFetchTool {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl WebFetchTool {

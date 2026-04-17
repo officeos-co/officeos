@@ -25,19 +25,22 @@ public sealed class AgentBootstrapController : ControllerBase
     private readonly EnterpriseAgentOs.Api.Database.EaosDbContext _db;
     private readonly EnterpriseAgentOs.Api.Properties.LiteLlmConfig _liteLlm;
     private readonly EnterpriseAgentOs.Api.Properties.SkillGatewayConfig _gateway;
+    private readonly EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService _logs;
 
     public AgentBootstrapController(
         IAgentService agents,
         EnterpriseAgentOs.Api.Entities.AgentSkills.IAgentSkillRepository agentSkills,
         EnterpriseAgentOs.Api.Database.EaosDbContext db,
         EnterpriseAgentOs.Api.Properties.LiteLlmConfig liteLlm,
-        EnterpriseAgentOs.Api.Properties.SkillGatewayConfig gateway)
+        EnterpriseAgentOs.Api.Properties.SkillGatewayConfig gateway,
+        EnterpriseAgentOs.Api.Entities.AgentLogs.IAgentLogService logs)
     {
         _agents = agents;
         _agentSkills = agentSkills;
         _db = db;
         _liteLlm = liteLlm;
         _gateway = gateway;
+        _logs = logs;
     }
 
     [HttpGet("{id:guid}")]
@@ -107,6 +110,14 @@ public sealed class AgentBootstrapController : ControllerBase
                         Tool: p.ToolName,
                         Mode: p.Permission.ToString().ToLowerInvariant()))
                     .ToList()));
+
+        await _logs.AppendAsync(new EnterpriseAgentOs.Api.Database.Models.AgentLogRecord
+        {
+            AgentId = id,
+            Time = DateTime.UtcNow,
+            Type = EnterpriseAgentOs.Api.Database.Models.AgentLogType.AgentStartup,
+            Content = $"Agent '{agent.Name}' started (pod bootstrap)",
+        }, ct);
 
         return Ok(payload);
     }

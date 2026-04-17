@@ -13,6 +13,9 @@ public enum AgentLogType
     ChannelIn,
     ChannelOut,
     System,
+    AgentStartup,
+    AgentShutdown,
+    Error,
 }
 
 /// <summary>

@@ -11,7 +11,9 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use zeroclaw_agent::config::RuntimeConfig;
-use zeroclaw_agent::llm::{ChatEvent, ChatMessage, ChatToolSchema, ChatToolSchemaFunction, FinishReason, LlmClient};
+use zeroclaw_agent::llm::{
+    ChatEvent, ChatMessage, ChatToolSchema, ChatToolSchemaFunction, FinishReason, LlmClient,
+};
 
 fn test_config(backend_url: &str) -> Arc<RuntimeConfig> {
     Arc::new(RuntimeConfig {
@@ -76,10 +78,29 @@ async fn test_chat_stream_parses_openai_sse() {
         events.push(event);
     }
 
-    assert!(events.len() >= 3, "expected at least 3 events, got {}", events.len());
-    assert_eq!(events[0], ChatEvent::ContentDelta { text: "Hello".into() });
-    assert_eq!(events[1], ChatEvent::ContentDelta { text: " world".into() });
-    assert_eq!(events[2], ChatEvent::Finish { reason: FinishReason::Stop });
+    assert!(
+        events.len() >= 3,
+        "expected at least 3 events, got {}",
+        events.len()
+    );
+    assert_eq!(
+        events[0],
+        ChatEvent::ContentDelta {
+            text: "Hello".into()
+        }
+    );
+    assert_eq!(
+        events[1],
+        ChatEvent::ContentDelta {
+            text: " world".into()
+        }
+    );
+    assert_eq!(
+        events[2],
+        ChatEvent::Finish {
+            reason: FinishReason::Stop
+        }
+    );
 }
 
 /// Assert POST body has `tools` array in OpenAI format when tools are provided.

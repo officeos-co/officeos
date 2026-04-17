@@ -12,7 +12,7 @@ export type AgentDetail = {
 export type AgentLog = {
   id: string
   time: number
-  type: "tool_call" | "tool_result" | "message_in" | "message_out" | "channel_in" | "channel_out" | "system"
+  type: "tool_call" | "tool_result" | "message_in" | "message_out" | "channel_in" | "channel_out" | "system" | "agent_startup" | "agent_shutdown" | "error"
   tool?: string
   integration?: string
   channel?: string

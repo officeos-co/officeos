@@ -60,6 +60,9 @@ function normaliseType(raw: string | null | undefined): AgentLog["type"] {
     ChannelIn: "channel_in",
     ChannelOut: "channel_out",
     System: "system",
+    AgentStartup: "agent_startup",
+    AgentShutdown: "agent_shutdown",
+    Error: "error",
   }
   return map[raw] ?? "system"
 }
@@ -89,6 +92,7 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
   const { data, loading, error } = useQuery(GLOBAL_LOGS_QUERY, {
     variables: filters,
     skip: USE_MOCKS,
+    pollInterval: USE_MOCKS ? 0 : 5000,
   })
   if (USE_MOCKS) return { logs: mockGlobal, loading: false }
   const raw: Array<{

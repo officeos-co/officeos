@@ -33,28 +33,25 @@ pub async fn serve(
         .route(
             "/ws",
             get(
-                move |ws_upgrade: axum::extract::WebSocketUpgrade,
-                      Query(query): Query<WsQuery>| {
+                move |ws_upgrade: axum::extract::WebSocketUpgrade, Query(query): Query<WsQuery>| {
                     let cfg = cfg_for_ws.clone();
                     let agent = agent_for_ws.clone();
                     async move {
                         // Auth: reject if token missing or wrong.
                         let expected = cfg.agent_id.to_string();
                         match query.token {
-                            Some(ref t) if t == &expected => {}
+                            Some(ref t) if t == &expected => {
+                                tracing::info!("ws connection accepted");
+                            }
                             _ => {
-                                return (
-                                    axum::http::StatusCode::UNAUTHORIZED,
-                                    "unauthorized",
-                                )
+                                tracing::info!("ws connection rejected: unauthorized");
+                                return (axum::http::StatusCode::UNAUTHORIZED, "unauthorized")
                                     .into_response();
                             }
                         }
 
                         ws_upgrade
-                            .on_upgrade(move |socket| {
-                                ws::handle_ws(cfg, agent, socket)
-                            })
+                            .on_upgrade(move |socket| ws::handle_ws(cfg, agent, socket))
                             .into_response()
                     }
                 },

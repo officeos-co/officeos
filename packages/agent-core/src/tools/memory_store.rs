@@ -62,9 +62,8 @@ impl Tool for MemoryStoreTool {
 
         let file_path = dir.join(format!("{key}.md"));
         let now = chrono::Utc::now().to_rfc3339();
-        let file_content = format!(
-            "---\nkey: {key}\ncategory: {category}\ncreated: {now}\n---\n{content}\n"
-        );
+        let file_content =
+            format!("---\nkey: {key}\ncategory: {category}\ncreated: {now}\n---\n{content}\n");
 
         match tokio::fs::write(&file_path, &file_content).await {
             Ok(()) => Ok(ToolResult {

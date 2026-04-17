@@ -26,7 +26,9 @@ fn test_config_with_permissions(
         gateway_port: 9999,
         system_prompt: "You are a test agent.".to_string(),
         display_name: "test-agent".to_string(),
-        skills: vec![SkillSummary { name: "notion".into() }],
+        skills: vec![SkillSummary {
+            name: "notion".into(),
+        }],
         tool_permissions: perms,
     })
 }
@@ -39,9 +41,7 @@ fn sse_text_only(text: &str) -> String {
         "data: {{\"choices\":[{{\"delta\":{{\"content\":\"{text}\"}}}}]}}\n\n"
     ));
     // Finish.
-    body.push_str(
-        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
-    );
+    body.push_str("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n");
     body.push_str("data: [DONE]\n\n");
     body
 }
@@ -60,9 +60,7 @@ fn sse_tool_call(tool_name: &str, args_json: &str, call_id: &str) -> String {
         "data: {{\"choices\":[{{\"delta\":{{\"tool_calls\":[{{\"index\":0,\"function\":{{\"arguments\":\"{escaped_args}\"}}}}]}}}}]}}\n\n"
     ));
     // Finish with tool_calls reason.
-    body.push_str(
-        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n",
-    );
+    body.push_str("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n");
     body.push_str("data: [DONE]\n\n");
     body
 }
@@ -120,9 +118,7 @@ async fn test_tool_call_cycle() {
     let cfg = test_config_with_permissions(&server.uri(), HashMap::new());
     let agent = Agent::new(cfg);
 
-    let result = agent
-        .handle_user_message("list my files".to_string())
-        .await;
+    let result = agent.handle_user_message("list my files".to_string()).await;
     // The shell tool will fail (no /bin/sh in test), but the loop should
     // still complete — tool errors are reported as ToolResult, not panics.
     assert!(result.is_ok());
