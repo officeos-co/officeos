@@ -21,7 +21,8 @@ import { createClient } from "graphql-ws"
  * Staging:    http://localhost:5000
  */
 
-const API_URL = "https://api.officeos.co"
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not set")
 
 const HTTP_ENDPOINT = `${API_URL}/api/dashboard/graphql`
 
@@ -88,7 +89,7 @@ const terminatingLink =
 export const apolloClient = new ApolloClient({
   link: from([errorLink, terminatingLink]),
   cache: new InMemoryCache(),
-  connectToDevTools: process.env.NODE_ENV !== "production",
+  devtools: { enabled: process.env.NODE_ENV !== "production" },
   defaultOptions: {
     watchQuery: { fetchPolicy: "cache-and-network" },
   },
