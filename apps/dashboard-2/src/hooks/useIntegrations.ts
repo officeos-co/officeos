@@ -50,19 +50,19 @@ const SKILL_COMMENTS_QUERY = gql`
 `
 
 const LIKE_SKILL = gql`
-  mutation LikeSkill($skillId: String!) {
+  mutation LikeSkill($skillId: UUID!) {
     likeSkill(skillId: $skillId)
   }
 `
 
 const UNLIKE_SKILL = gql`
-  mutation UnlikeSkill($skillId: String!) {
+  mutation UnlikeSkill($skillId: UUID!) {
     unlikeSkill(skillId: $skillId)
   }
 `
 
 const COMMENT_ON_SKILL = gql`
-  mutation CommentOnSkill($skillId: String!, $content: String!) {
+  mutation CommentOnSkill($skillId: UUID!, $content: String!) {
     commentOnSkill(skillId: $skillId, content: $content) {
       id
       content

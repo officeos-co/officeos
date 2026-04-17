@@ -5,7 +5,6 @@ query Agents {
     model
     status
     createdAt
-    updatedAt
   }
 }
 

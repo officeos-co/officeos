@@ -33,7 +33,7 @@ const CREATE_RUNNER = gql`
 `
 
 const DELETE_RUNNER = gql`
-  mutation DeleteRunner($id: String!) {
+  mutation DeleteRunner($id: UUID!) {
     deleteRunner(id: $id)
   }
 `

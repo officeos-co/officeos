@@ -5,7 +5,7 @@ import { USE_MOCKS } from "@/lib/graphql/mock-mode"
 import { mockAgentLogs, type AgentLog } from "@/data/agent-mock"
 
 const AGENT_LOGS_QUERY = gql`
-  query AgentLogs($agentId: String!, $limit: Int) {
+  query AgentLogs($agentId: UUID!, $limit: Int) {
     agentLogs(agentId: $agentId, limit: $limit) {
       id
       time
@@ -22,7 +22,7 @@ const AGENT_LOGS_QUERY = gql`
 `
 
 const AGENT_LOG_SUBSCRIPTION = gql`
-  subscription AgentLogAppended($agentId: String!) {
+  subscription AgentLogAppended($agentId: UUID!) {
     agentLogAppended(agentId: $agentId) {
       id
       time

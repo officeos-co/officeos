@@ -5,7 +5,7 @@ import { USE_MOCKS } from "@/lib/graphql/mock-mode"
 import { type AgentLog } from "@/data/agent-mock"
 
 const SEND_MESSAGE = gql`
-  mutation SendAgentMessage($agentId: String!, $content: String!) {
+  mutation SendAgentMessage($agentId: UUID!, $content: String!) {
     sendAgentMessage(agentId: $agentId, content: $content) {
       id
       content

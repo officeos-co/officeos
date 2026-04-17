@@ -15,21 +15,18 @@ const AGENTS_QUERY = gql`
       model
       status
       createdAt
-      updatedAt
     }
   }
 `
 
 const AGENT_QUERY = gql`
-  query Agent($id: String!) {
+  query Agent($id: UUID!) {
     agent(id: $id) {
       id
       name
       model
       status
       prompt
-      integrations
-      channels
       createdAt
     }
   }
@@ -45,7 +42,7 @@ const CREATE_AGENT = gql`
 `
 
 const UPDATE_AGENT = gql`
-  mutation UpdateAgent($id: String!, $input: UpdateAgentInput!) {
+  mutation UpdateAgent($id: UUID!, $input: UpdateAgentInput!) {
     updateAgent(id: $id, input: $input) {
       id
       name
@@ -54,7 +51,7 @@ const UPDATE_AGENT = gql`
 `
 
 const DELETE_AGENT = gql`
-  mutation DeleteAgent($id: String!) {
+  mutation DeleteAgent($id: UUID!) {
     deleteAgent(id: $id)
   }
 `
@@ -92,7 +89,6 @@ export function useAgents(): {
     model: string
     status: string
     createdAt?: string
-    updatedAt?: string
   }> = data?.agents ?? []
   const agents: AgentListRow[] = raw.map((a) => ({
     id: a.id,
@@ -100,7 +96,7 @@ export function useAgents(): {
     model: a.model,
     status: (a.status ?? "stopped").toLowerCase(),
     created: humanAgo(a.createdAt),
-    updated: humanAgo(a.updatedAt),
+    updated: humanAgo(a.createdAt),
   }))
   return { agents, loading, error: error ?? undefined }
 }
@@ -122,8 +118,6 @@ export function useAgent(id: string): {
         model: string
         status: string
         prompt: string
-        integrations: string[]
-        channels: string[]
         createdAt?: string
       }
     | null
@@ -135,8 +129,8 @@ export function useAgent(id: string): {
     model: a.model,
     status: (a.status ?? "stopped").toLowerCase(),
     prompt: a.prompt ?? "",
-    integrations: a.integrations ?? [],
-    channels: a.channels ?? [],
+    integrations: [],
+    channels: [],
     createdAt: a.createdAt ? Date.parse(a.createdAt) : Date.now(),
   }
   return { agent, loading, error: error ?? undefined }

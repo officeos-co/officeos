@@ -31,13 +31,13 @@ const CREATE_CONNECTION = gql`
 `
 
 const DELETE_CONNECTION = gql`
-  mutation DeleteChannelConnection($id: String!) {
+  mutation DeleteChannelConnection($id: UUID!) {
     deleteChannelConnection(id: $id)
   }
 `
 
 const BIND_CHANNEL = gql`
-  mutation BindChannelToAgent($connectionId: String!, $agentId: String!) {
+  mutation BindChannelToAgent($connectionId: UUID!, $agentId: UUID!) {
     bindChannelToAgent(connectionId: $connectionId, agentId: $agentId)
   }
 `

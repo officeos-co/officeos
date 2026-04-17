@@ -13,7 +13,7 @@ export type AuditEntry = {
 }
 
 const AUDIT_QUERY = gql`
-  query AuditLog($agentId: String, $skip: Int, $limit: Int) {
+  query AuditLog($agentId: UUID, $skip: Int, $limit: Int) {
     auditLog(agentId: $agentId, skip: $skip, limit: $limit) {
       id
       time
