@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { gql, useMutation, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockAgentsList, type AgentListRow } from "@/data/agents-list-mock"
-import { mockAgent, type AgentDetail } from "@/data/agent-mock"
+import { gql, useMutation, useQuery } from "@apollo/client";
+import { USE_MOCKS } from "@/lib/graphql/mock-mode";
+import { mockAgentsList, type AgentListRow } from "@/data/agents-list-mock";
+import { mockAgent, type AgentDetail } from "@/data/agent-mock";
 
 /* ── Queries / mutations ─────────────────────────────────── */
 
@@ -17,7 +17,7 @@ const AGENTS_QUERY = gql`
       createdAt
     }
   }
-`
+`;
 
 const AGENT_QUERY = gql`
   query Agent($id: UUID!) {
@@ -30,7 +30,7 @@ const AGENT_QUERY = gql`
       createdAt
     }
   }
-`
+`;
 
 const CREATE_AGENT = gql`
   mutation CreateAgent($input: CreateAgentInput!) {
@@ -39,7 +39,7 @@ const CREATE_AGENT = gql`
       name
     }
   }
-`
+`;
 
 const UPDATE_AGENT = gql`
   mutation UpdateAgent($id: UUID!, $input: UpdateAgentInput!) {
@@ -48,48 +48,49 @@ const UPDATE_AGENT = gql`
       name
     }
   }
-`
+`;
 
 const DELETE_AGENT = gql`
   mutation DeleteAgent($id: UUID!) {
     deleteAgent(id: $id)
   }
-`
+`;
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
 function humanAgo(iso: string | number | null | undefined): string {
-  if (!iso) return ""
-  const then = typeof iso === "number" ? iso : Date.parse(iso)
-  if (Number.isNaN(then)) return ""
-  const diffMs = Date.now() - then
-  const m = Math.floor(diffMs / 60000)
-  if (m < 1) return "just now"
-  if (m < 60) return `${m} minute${m === 1 ? "" : "s"} ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`
-  const d = Math.floor(h / 24)
-  if (d < 14) return `${d} day${d === 1 ? "" : "s"} ago`
-  const w = Math.floor(d / 7)
-  return `${w} week${w === 1 ? "" : "s"} ago`
+  if (!iso) return "";
+  const then = typeof iso === "number" ? iso : Date.parse(iso);
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  const m = Math.floor(diffMs / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} minute${m === 1 ? "" : "s"} ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
+  const d = Math.floor(h / 24);
+  if (d < 14) return `${d} day${d === 1 ? "" : "s"} ago`;
+  const w = Math.floor(d / 7);
+  return `${w} week${w === 1 ? "" : "s"} ago`;
 }
 
 /* ── Hooks ───────────────────────────────────────────────── */
 
 export function useAgents(): {
-  agents: AgentListRow[]
-  loading: boolean
-  error?: Error
+  agents: AgentListRow[];
+  loading: boolean;
+  error?: Error;
+  refetch: () => void;
 } {
-  const { data, loading, error } = useQuery(AGENTS_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { agents: mockAgentsList, loading: false }
+  const { data, loading, error, refetch } = useQuery(AGENTS_QUERY, { skip: USE_MOCKS });
+  if (USE_MOCKS) return { agents: mockAgentsList, loading: false, refetch: () => {} };
   const raw: Array<{
-    id: string
-    name: string
-    model: string
-    status: string
-    createdAt?: string
-  }> = data?.agents ?? []
+    id: string;
+    name: string;
+    model: string;
+    status: string;
+    createdAt?: string;
+  }> = data?.agents ?? [];
   const agents: AgentListRow[] = raw.map((a) => ({
     id: a.id,
     name: a.name,
@@ -97,32 +98,32 @@ export function useAgents(): {
     status: (a.status ?? "stopped").toLowerCase(),
     created: humanAgo(a.createdAt),
     updated: humanAgo(a.createdAt),
-  }))
-  return { agents, loading, error: error ?? undefined }
+  }));
+  return { agents, loading, error: error ?? undefined, refetch };
 }
 
 export function useAgent(id: string): {
-  agent: AgentDetail | null
-  loading: boolean
-  error?: Error
+  agent: AgentDetail | null;
+  loading: boolean;
+  error?: Error;
 } {
   const { data, loading, error } = useQuery(AGENT_QUERY, {
     variables: { id },
     skip: USE_MOCKS || !id,
-  })
-  if (USE_MOCKS) return { agent: mockAgent, loading: false }
+  });
+  if (USE_MOCKS) return { agent: mockAgent, loading: false };
   const a = data?.agent as
     | {
-        id: string
-        name: string
-        model: string
-        status: string
-        prompt: string
-        createdAt?: string
+        id: string;
+        name: string;
+        model: string;
+        status: string;
+        prompt: string;
+        createdAt?: string;
       }
     | null
-    | undefined
-  if (!a) return { agent: null, loading, error: error ?? undefined }
+    | undefined;
+  if (!a) return { agent: null, loading, error: error ?? undefined };
   const agent: AgentDetail = {
     id: a.id,
     name: a.name,
@@ -132,8 +133,8 @@ export function useAgent(id: string): {
     integrations: [],
     channels: [],
     createdAt: a.createdAt ? Date.parse(a.createdAt) : Date.now(),
-  }
-  return { agent, loading, error: error ?? undefined }
+  };
+  return { agent, loading, error: error ?? undefined };
 }
 
 /**
@@ -143,28 +144,28 @@ export function useAgent(id: string): {
  * derived from the model prefix (claude- → anthropic, gpt- → openai, etc.).
  */
 export type CreateAgentHookInput = {
-  name: string
-  model: string
-  systemPrompt: string
-  toolNames: string[]
+  name: string;
+  model: string;
+  systemPrompt: string;
+  toolNames: string[];
   /** Per-tool allow/deny overrides. `tool` is a "skill:tool" key. */
-  toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>
-  channelSlugs: string[]
-}
+  toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>;
+  channelSlugs: string[];
+};
 
 function providerFromModel(model: string): string {
-  if (model.startsWith("claude-")) return "anthropic"
-  if (model.startsWith("gpt-") || model.startsWith("o")) return "openai"
-  if (model.startsWith("gemini-")) return "google"
-  return "anthropic"
+  if (model.startsWith("claude-")) return "anthropic";
+  if (model.startsWith("gpt-") || model.startsWith("o")) return "openai";
+  if (model.startsWith("gemini-")) return "google";
+  return "anthropic";
 }
 
 export function useCreateAgent() {
-  const [fn, state] = useMutation(CREATE_AGENT)
+  const [fn, state] = useMutation(CREATE_AGENT);
   return {
     createAgent: async (input: CreateAgentHookInput) => {
       if (USE_MOCKS)
-        return { id: `agt_mock_${Date.now().toString(36)}`, name: input.name }
+        return { id: `agt_mock_${Date.now().toString(36)}`, name: input.name };
       const { data } = await fn({
         variables: {
           input: {
@@ -177,42 +178,42 @@ export function useCreateAgent() {
             channelSlugs: input.channelSlugs,
           },
         },
-      })
-      return data?.createAgent as { id: string; name: string }
+      });
+      return data?.createAgent as { id: string; name: string };
     },
     ...state,
-  }
+  };
 }
 
 export function useUpdateAgent() {
-  const [fn, state] = useMutation(UPDATE_AGENT)
+  const [fn, state] = useMutation(UPDATE_AGENT);
   return {
     updateAgent: async (
       id: string,
       input: Partial<{
-        name: string
-        model: string
-        prompt: string
-        integrations: string[]
-        channels: string[]
+        name: string;
+        model: string;
+        prompt: string;
+        integrations: string[];
+        channels: string[];
       }>,
     ) => {
-      if (USE_MOCKS) return { id, name: input.name ?? mockAgent.name }
-      const { data } = await fn({ variables: { id, input } })
-      return data?.updateAgent as { id: string; name: string }
+      if (USE_MOCKS) return { id, name: input.name ?? mockAgent.name };
+      const { data } = await fn({ variables: { id, input } });
+      return data?.updateAgent as { id: string; name: string };
     },
     ...state,
-  }
+  };
 }
 
 export function useDeleteAgent() {
-  const [fn, state] = useMutation(DELETE_AGENT)
+  const [fn, state] = useMutation(DELETE_AGENT);
   return {
     deleteAgent: async (id: string) => {
-      if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { id } })
-      return Boolean(data?.deleteAgent)
+      if (USE_MOCKS) return true;
+      const { data } = await fn({ variables: { id } });
+      return Boolean(data?.deleteAgent);
     },
     ...state,
-  }
+  };
 }

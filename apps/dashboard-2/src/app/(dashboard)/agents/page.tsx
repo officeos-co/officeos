@@ -9,10 +9,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlusIcon, SearchIcon, FilterIcon } from "lucide-react";
-import { useAgents } from "@/hooks/useAgents";
+import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { useAgents, useDeleteAgent } from "@/hooks/useAgents";
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const;
 
@@ -39,7 +40,8 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AgentsPage() {
   const router = useRouter();
-  const { agents } = useAgents();
+  const { agents, refetch } = useAgents();
+  const { deleteAgent } = useDeleteAgent();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
 
@@ -111,6 +113,7 @@ export default function AgentsPage() {
               </th>
               <th className="px-4 py-3 text-xs font-normal">Created</th>
               <th className="px-4 py-3 text-xs font-normal">Last updated</th>
+              <th className="px-4 py-3 text-xs font-normal w-10"></th>
             </tr>
           </thead>
           <tbody>
@@ -128,12 +131,34 @@ export default function AgentsPage() {
                 </td>
                 <td className="px-4 py-3">{agent.created}</td>
                 <td className="px-4 py-3">{agent.updated}</td>
+                <td className="px-4 py-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={<Button variant="ghost" size="icon" className="size-8" />}
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                      <MoreHorizontalIcon className="size-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={async () => {
+                          await deleteAgent(agent.id);
+                          refetch();
+                        }}
+                      >
+                        <Trash2Icon className="size-4 mr-2" />
+                        Delete agent
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
                   No agents found.
