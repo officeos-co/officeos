@@ -61,16 +61,7 @@ export default function AgentsPage() {
 
   return (
     <>
-      <PageHeader
-        group="Managed Agents"
-        page="Agents"
-        action={
-          <Button size="sm">
-            <PlusIcon />
-            New agent
-          </Button>
-        }
-      />
+      <PageHeader group="Managed Agents" page="Agents" />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
@@ -115,7 +106,9 @@ export default function AgentsPage() {
               <th className="px-4 py-3 text-xs font-normal">ID</th>
               <th className="px-4 py-3 text-xs font-normal">Name</th>
               <th className="px-4 py-3 text-xs font-normal">Model</th>
-              <th className="px-4 py-3 text-xs font-normal text-center">Status</th>
+              <th className="px-4 py-3 text-xs font-normal text-center">
+                Status
+              </th>
               <th className="px-4 py-3 text-xs font-normal">Created</th>
               <th className="px-4 py-3 text-xs font-normal">Last updated</th>
             </tr>
