@@ -107,8 +107,8 @@ impl LlmClient {
     /// POST `/v1/chat/completions` with `stream: true` and an OpenAI-shape
     /// `tools` array. Returns an async stream of `ChatEvent`s.
     ///
-    /// Phase 3: build the body, send the request, parse the SSE stream
-    /// via `eventsource-stream`, map each `data: {...}` into a
+    /// Builds the body, sends the request, parses the SSE stream
+    /// via `eventsource-stream`, maps each `data: {...}` into a
     /// `ChatEvent`. `[DONE]` terminates cleanly without emitting an event.
     pub async fn chat_stream(
         &self,

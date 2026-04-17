@@ -17,16 +17,6 @@ async fn test_ws_serde_roundtrip() {
         other => panic!("expected UserMessage, got: {other:?}"),
     }
 
-    let ask_resp = r#"{"type":"ask_user_response","id":"p1","response":"yes"}"#;
-    let parsed: WsInbound = serde_json::from_str(ask_resp).unwrap();
-    match &parsed {
-        WsInbound::AskUserResponse { id, response } => {
-            assert_eq!(id, "p1");
-            assert_eq!(response, "yes");
-        }
-        other => panic!("expected AskUserResponse, got: {other:?}"),
-    }
-
     let cancel = r#"{"type":"cancel"}"#;
     let parsed: WsInbound = serde_json::from_str(cancel).unwrap();
     match &parsed {
@@ -67,16 +57,6 @@ async fn test_ws_serde_roundtrip() {
     assert_eq!(json["type"], "tool_call_result");
     assert_eq!(json["success"], true);
     assert!(json.get("error").is_none() || json["error"].is_null());
-
-    let ask_prompt = WsOutbound::AskUserPrompt {
-        turn_id: "t1".into(),
-        prompt_id: "p1".into(),
-        question: "Continue?".into(),
-        choices: Some(vec!["yes".into(), "no".into()]),
-    };
-    let json = serde_json::to_value(&ask_prompt).unwrap();
-    assert_eq!(json["type"], "ask_user_prompt");
-    assert_eq!(json["choices"], serde_json::json!(["yes", "no"]));
 
     let complete = WsOutbound::TurnComplete {
         turn_id: "t1".into(),

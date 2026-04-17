@@ -12,8 +12,6 @@ pub enum WsInbound {
         #[serde(default)]
         id: Option<String>,
     },
-    /// Reply to a pending `ask_user_prompt`.
-    AskUserResponse { id: String, response: String },
     /// Cancel the current turn.
     Cancel {
         #[serde(default)]
@@ -43,14 +41,6 @@ pub enum WsOutbound {
         output: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         error: Option<String>,
-    },
-    /// `ask_user` tool is waiting for input.
-    AskUserPrompt {
-        turn_id: String,
-        prompt_id: String,
-        question: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        choices: Option<Vec<String>>,
     },
     /// End of turn.
     TurnComplete { turn_id: String, cancelled: bool },

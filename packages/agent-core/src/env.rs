@@ -11,8 +11,8 @@ pub const BACKEND_URL_VAR: &str = "BACKEND_URL";
 ///
 /// Returns `(agent_id_string, backend_url_without_trailing_slash)`.
 ///
-/// Phase 3: parse + validate both vars, strip the trailing slash from the
-/// URL, return the pair. Missing or malformed → `Error::Env`.
+/// Parses and validates both vars, strips the trailing slash from the
+/// URL, returns the pair. Missing or malformed → `Error::Env`.
 pub fn load_env() -> Result<(String, String)> {
     let agent_id = std::env::var(AGENT_ID_VAR)
         .ok()

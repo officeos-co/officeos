@@ -23,7 +23,7 @@ A pod boots with exactly two env vars — `ZEROCLAW_AGENT_ID`, `BACKEND_URL` —
 3. Starts a WebSocket gateway on `gateway.host:gateway.port` from the payload.
 4. Runs the agent turn loop: on a user message, it composes the system prompt fresh from `memory_dir` via trait-based sections, POSTs `{BACKEND_URL}/v1/chat/completions` (SSE streamed), dispatches tool calls, and loops until the assistant returns no tool calls.
 
-Tools kept: `skill_exec`, `memory_store`, `memory_recall`, `memory_forget`, `ask_user`, `shell`, `file_read`, `file_write`, `file_edit`, `http_request`, `web_fetch`, `content_search`, `glob_search`. Nothing else. `tool_search` is DROPPED — discovery is `skill_exec --help`.
+Tools kept: `skill_exec`, `memory_store`, `memory_recall`, `memory_forget`, `shell`, `file_read`, `file_write`, `file_edit`, `http_request`, `web_fetch`, `content_search`, `glob_search`. Nothing else. `tool_search` is DROPPED — discovery is `skill_exec --help`.
 
 ## What this crate does NOT do
 

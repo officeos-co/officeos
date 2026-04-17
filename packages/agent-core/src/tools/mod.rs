@@ -1,6 +1,5 @@
 //! Tool registry and catalog. See API.md §9–§10.
 
-pub mod ask_user;
 pub mod content_search;
 pub mod file_edit;
 pub mod file_read;
@@ -30,7 +29,7 @@ pub struct ToolRegistry {
 
 impl ToolRegistry {
     /// Build the registry with the full 1.0 tool set.
-    pub fn new(cfg: Arc<RuntimeConfig>, ask_bridge: Arc<ask_user::AskUserBridge>) -> Self {
+    pub fn new(cfg: Arc<RuntimeConfig>) -> Self {
         let workspace = cfg.memory_dir.clone();
 
         let tools: Vec<Arc<dyn Tool>> = vec![
@@ -45,7 +44,6 @@ impl ToolRegistry {
             Arc::new(memory_store::MemoryStoreTool::new(workspace.clone())),
             Arc::new(memory_recall::MemoryRecallTool::new(workspace.clone())),
             Arc::new(memory_forget::MemoryForgetTool::new(workspace)),
-            Arc::new(ask_user::AskUserTool::new(ask_bridge)),
             Arc::new(skill_exec::SkillExecTool::new(cfg.clone())),
         ];
 

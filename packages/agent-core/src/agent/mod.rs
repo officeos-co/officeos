@@ -28,8 +28,7 @@ impl Agent {
     /// Construct an agent bound to the given runtime configuration.
     pub fn new(cfg: Arc<RuntimeConfig>) -> Self {
         let llm = LlmClient::new(cfg.clone());
-        let ask_bridge = Arc::new(crate::tools::ask_user::AskUserBridge::new());
-        let registry = ToolRegistry::new(cfg.clone(), ask_bridge);
+        let registry = ToolRegistry::new(cfg.clone());
         Self {
             cfg,
             llm,

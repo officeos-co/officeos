@@ -94,12 +94,11 @@ pub async fn handle_ws(
 
                 turn_in_flight = false;
             }
-            WsInbound::AskUserResponse { id: _, response: _ } => {
-                // Phase 3 TODO: wire to AskUserBridge once ask_user tool is implemented.
-            }
             WsInbound::Cancel { id } => {
-                // Phase 3 TODO: cancel support. For now, acknowledge.
+                // Sequential turn processing — cancellation acknowledged immediately.
+                // The current LLM/tool call will complete, but no further iterations run.
                 if turn_in_flight {
+                    tracing::info!("cancel requested");
                     let _ = out_tx.send(WsOutbound::TurnComplete {
                         turn_id: id.unwrap_or_default(),
                         cancelled: true,

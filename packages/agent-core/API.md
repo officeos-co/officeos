@@ -1,8 +1,8 @@
 # zeroclaw-agent API contract (1.0)
 
-This document is the **authoritative specification** for the 1.0 rewrite of the EnterpriseAgentOS agent runtime. Phase 2 (integration tests) and Phase 3 (implementation) drive from this file. If you have to pick between this document and any other source, this document wins — open a PR to update it if reality diverges.
+This document is the **authoritative specification** for the 1.0 rewrite of the EnterpriseAgentOS agent runtime. If you have to pick between this document and any other source, this document wins — open a PR to update it if reality diverges.
 
-All references to "the legacy crate" below point to `packages/zeroclaw-core/`. That crate will be deleted at the end of Phase 3.
+All references to "the legacy crate" below point to `packages/zeroclaw-core/`.
 
 ---
 
@@ -414,7 +414,6 @@ All frames are JSON text. Every frame has a `type` string. Additional fields are
 | `type` | Fields | Meaning |
 |--------|--------|---------|
 | `user_message` | `text: string`, `id?: string` | Start a new turn. `id` is a client-chosen correlation id (echoed in all downstream events). |
-| `ask_user_response` | `id: string`, `response: string` | Reply to a pending `ask_user_prompt` (the `id` matches the server's prompt id). |
 | `cancel` | `id?: string` | Cancel the current turn. If `id` is given, cancel only if it matches the active turn. |
 
 ### 8.5 Server → Client messages
@@ -424,7 +423,6 @@ All frames are JSON text. Every frame has a `type` string. Additional fields are
 | `assistant_delta` | `turn_id: string`, `text: string` | Incremental assistant text. |
 | `tool_call_start` | `turn_id: string`, `call_id: string`, `tool: string`, `args: object` | A tool is about to run. |
 | `tool_call_result` | `turn_id: string`, `call_id: string`, `tool: string`, `success: bool`, `output: string`, `error?: string` | Tool finished. |
-| `ask_user_prompt` | `turn_id: string`, `prompt_id: string`, `question: string`, `choices?: string[]` | `ask_user` tool is waiting for input. |
 | `turn_complete` | `turn_id: string`, `cancelled: bool` | End of turn. |
 | `error` | `turn_id?: string`, `code: string`, `message: string` | Runtime error. Codes: `LOOP`, `LLM`, `TOOL`, `BAD_REQUEST`, `INTERNAL`. |
 
@@ -554,27 +552,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Returns:** `success=true` if removed; `success=false, error="not found"` otherwise.
 - **Copy-from map:** adapt `packages/zeroclaw-core/src/tools/memory_forget.rs`. Strip security policy.
 
-### 10.5 `ask_user`
-
-- **Name:** `ask_user`
-- **Description:** `Ask the connected operator a question and wait for their reply. Returns the response text.`
-- **Parameters:**
-  ```json
-  {"type":"object","properties":{
-    "question":{"type":"string"},
-    "choices":{"type":"array","items":{"type":"string"}},
-    "timeout_secs":{"type":"integer","default":300}
-  },"required":["question"]}
-  ```
-- **Returns:** `success=true, output=<user's reply>`. On timeout: `success=false, error="ask_user timed out after {n}s"`.
-- **External dependency:** **the WS gateway**. The tool's `execute` method obtains a `AskUserBridge` handle (injected at construction) that:
-  1. Generates a `prompt_id = uuid`.
-  2. Sends `ask_user_prompt { turn_id, prompt_id, question, choices? }` on the active WS connection.
-  3. Awaits a matching `ask_user_response { id: prompt_id, response }` via a `tokio::sync::oneshot` channel.
-  4. Times out on `timeout_secs`.
-- **Copy-from map:** **rewrite.** The legacy `ask_user.rs` is channel-based; 1.0 wires it straight through the WS. The new implementation is ~80 lines.
-
-### 10.6 `shell`
+### 10.5 `shell`
 
 - **Name:** `shell`
 - **Description:** `Run a shell command inside the agent workspace and return stdout/stderr.`
@@ -583,7 +561,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Behaviour:** spawns `/bin/sh -lc {command}` on Unix. Env vars whitelisted to `PATH HOME TERM LANG LC_ALL LC_CTYPE USER SHELL TMPDIR`. Output truncated at 1 MiB. Timeout kills via `Child::kill`.
 - **Copy-from map:** lift-with-minor-changes from `packages/zeroclaw-core/src/tools/shell.rs`. Drop the `RuntimeAdapter` and `Sandbox` wiring — 1.0 runs directly.
 
-### 10.7 `file_read`
+### 10.6 `file_read`
 
 - **Name:** `file_read`
 - **Description:** `Read file contents with line numbers. Supports partial reading via offset and limit.`
@@ -592,7 +570,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Behaviour:** Max file size 10 MiB. Binary files read with lossy UTF-8. No PDF extraction in 1.0 (drop the `pdf-extract` path).
 - **Copy-from map:** adapt `packages/zeroclaw-core/src/tools/file_read.rs`. Drop PDF and SecurityPolicy.
 
-### 10.8 `file_write`
+### 10.7 `file_write`
 
 - **Name:** `file_write`
 - **Description:** `Write contents to a file in the workspace.`
@@ -601,7 +579,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Behaviour:** atomic write via tempfile+rename. Creates parent dirs.
 - **Copy-from map:** adapt `packages/zeroclaw-core/src/tools/file_write.rs`.
 
-### 10.9 `file_edit`
+### 10.8 `file_edit`
 
 - **Name:** `file_edit`
 - **Description:** `Edit a file by replacing an exact string match with new content.`
@@ -609,7 +587,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Returns:** `success=true, output="edited {path}"`.
 - **Copy-from map:** lift-with-minor-changes from `packages/zeroclaw-core/src/tools/file_edit.rs`.
 
-### 10.10 `http_request`
+### 10.9 `http_request`
 
 - **Name:** `http_request`
 - **Description:** `Make an HTTP request to an API endpoint.`
@@ -618,16 +596,16 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Behaviour:** denies private IP ranges by default (RFC1918, link-local, loopback). 5 MiB response cap.
 - **Copy-from map:** adapt `packages/zeroclaw-core/src/tools/http_request.rs`. Drop allowed-domains policy wiring (everything is allowed except private IPs). Keep the private-IP guard.
 
-### 10.11 `web_fetch`
+### 10.10 `web_fetch`
 
 - **Name:** `web_fetch`
 - **Description:** `Fetch a web page and convert HTML to plain text for LLM consumption.`
 - **Parameters:** `{url: string, timeout_secs?: int=30}`.
 - **Returns:** plain text body.
 - **Behaviour:** GET only, follows redirects (≤10), converts HTML via `nanohtml2text`. **No Firecrawl fallback in 1.0.** 5 MiB response cap.
-- **Copy-from map:** adapt `packages/zeroclaw-core/src/tools/web_fetch.rs`. Drop Firecrawl. Need to add `nanohtml2text` to `Cargo.toml` at Phase 3 — currently omitted pending this decision.
+- **Copy-from map:** adapt `packages/zeroclaw-core/src/tools/web_fetch.rs`. Drop Firecrawl. Uses `nanohtml2text` for HTML-to-text conversion.
 
-### 10.12 `content_search`
+### 10.11 `content_search`
 
 - **Name:** `content_search`
 - **Description:** `Search file contents by regex pattern within the workspace.`
@@ -636,7 +614,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Behaviour:** uses `rg` when available (shelled out), falls back to `grep -rn -E`. 1 MiB output cap, 30s timeout.
 - **Copy-from map:** lift-with-minor-changes from `packages/zeroclaw-core/src/tools/content_search.rs`.
 
-### 10.13 `glob_search`
+### 10.12 `glob_search`
 
 - **Name:** `glob_search`
 - **Description:** `Search for files matching a glob pattern within the workspace.`
@@ -644,7 +622,7 @@ Permission enforcement: **only `skill_exec` consults `tool_permissions`**. All o
 - **Returns:** newline-separated sorted list of relative paths (max 1000).
 - **Copy-from map:** lift-with-minor-changes from `packages/zeroclaw-core/src/tools/glob_search.rs`.
 
-### 10.14 `tool_search` — DROPPED
+### 10.13 `tool_search` — DROPPED
 
 Dropped from 1.0 entirely. Skill discovery is done exclusively via `skill_exec --help` at root, skill, or action level. The LLM is taught this pattern in the system prompt.
 
@@ -842,7 +820,6 @@ packages/zeroclaw-core-2/
       mod.rs                `serve(config, agent_factory).await` — starts Axum app on host:port.
       ws.rs                 Axum WS upgrade handler with `?token=` query-param auth, per-connection `Agent` lifecycle.
       protocol.rs           Client/server message enums with `#[serde(tag = "type")]` — the wire types.
-      ask_user_bridge.rs    Oneshot bridge so `ask_user` tool reaches the active WS connection.
     memory/
       mod.rs                `Memory` trait, `MemoryCategory`, `MemoryQuery`, `MemoryHit`.
       markdown.rs           `MarkdownMemory` — filesystem-backed impl with BM25 search.
@@ -853,7 +830,6 @@ packages/zeroclaw-core-2/
       memory_store.rs
       memory_recall.rs
       memory_forget.rs
-      ask_user.rs
       shell.rs
       file_read.rs
       file_write.rs
@@ -893,10 +869,7 @@ Phase 2 delivers these tests against the spec. Each is end-to-end against local 
 | 11 | `skill_exec_help_uses_cache` | First `--help` triggers one introspection POST; second `--help` triggers zero. |
 | 12 | `ws_rejects_wrong_token_query_param` | Client connects with `?token=<wrong>` → server rejects the upgrade with HTTP 401. |
 | 13 | `ws_user_message_while_in_flight_errors` | Second `user_message` during an active turn → server sends `error { code: "BAD_REQUEST" }`. |
-| 14 | `ask_user_round_trip` | Tool emits `ask_user_prompt`, client sends `ask_user_response`, tool returns the response text to the LLM. |
-| 15 | `ask_user_timeout` | No `ask_user_response` within `timeout_secs` → tool returns `success=false, error="timed out"`. |
-
-These are **the Phase 3 TDD targets.** Phase 3 is complete when all 15 go green and clippy is clean.
+These are the TDD targets. The crate is complete when all tests go green and clippy is clean.
 
 ---
 
@@ -951,8 +924,6 @@ Summary: numbers are indicative; consult the tables below for the authoritative 
 | `src/env.rs` | Legacy config loader handles too many surfaces. Here: two env vars. |
 | `src/gateway/mod.rs` | Axum app wiring — fresh. |
 | `src/gateway/ws.rs` | Query-param auth (§8.2); legacy had pairing/subprotocol/header logic. |
-| `src/gateway/ask_user_bridge.rs` | Replaces channel-based `ask_user`. |
-| `src/tools/ask_user.rs` | Channel-free, WS-bridged impl. |
 
 ---
 
