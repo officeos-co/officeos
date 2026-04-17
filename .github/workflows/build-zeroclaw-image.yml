@@ -1,4 +1,4 @@
-name: Build ZeroClaw Image
+name: Build Agent Core Image
 
 on:
   push:
