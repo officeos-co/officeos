@@ -41,7 +41,7 @@ const footerLinks = [
     links: [
       { id: 12, title: "About", url: "/about" },
       { id: 17, title: "Network", url: "/sponsors" },
-      { id: 13, title: "Changelog", url: "https://changelog.officeos.co" },
+      { id: 13, title: "Changelog", url: "/changelog" },
       { id: 18, title: "Support", url: "/support" },
       { id: 14, title: "Privacy", url: "/privacy" },
       { id: 15, title: "Terms", url: "/terms" },
@@ -113,19 +113,13 @@ export function FooterSection() {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between px-10 pb-6">
-        <a
-          href="https://status.officeos.co"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-muted-foreground transition-colors hover:text-primary"
-        ></a>
+      <div className="flex items-center justify-end px-10 pb-6">
         <span className="text-xs text-muted-foreground">
           Made in Hamburg — &copy; 2026 OfficeOS
         </span>
       </div>
       <div className="relative z-0 mt-8 h-48 w-full md:h-64">
-        <div className="absolute inset-0 z-10 bg-gradient-to-t from-40% from-transparent to-background" />
+        <div className="absolute inset-0 z-10 bg-linear-to-t from-40% from-transparent to-background" />
         <div className="absolute inset-0 mx-6">
           <FlickeringGrid
             text={tablet ? "OfficeOS" : "OfficeOS"}
