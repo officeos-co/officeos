@@ -1,26 +1,26 @@
 "use client";
 
 import { SectionHeader } from "@/components/section-header";
-import { SecondBentoAnimation } from "@/components/second-bento-animation";
-import { ThirdBentoAnimation } from "@/components/third-bento-animation";
-import { FourthBentoAnimation } from "@/components/fourth-bento-animation";
-import { FifthBentoAnimation } from "@/components/fifth-bento-animation";
-import { SixthBentoAnimation } from "@/components/sixth-bento-animation";
+import { ChannelOrbitAnimation } from "@/components/channel-orbit-animation";
+import { KnowledgeGraphAnimation } from "@/components/knowledge-graph-animation";
+import { CronJobsAnimation } from "@/components/cron-jobs-animation";
+import { ToolStackAnimation } from "@/components/tool-stack-animation";
 import { DeploymentSwimLane } from "@/components/deployment-swim-lane";
+import { CredentialsAnimation } from "@/components/credentials-animation";
 
 const items = [
 	{
 		id: 1,
-		content: <SecondBentoAnimation />,
+		content: <ChannelOrbitAnimation />,
 		title: "Meet Your Team Where They Work",
 		description:
-			"Agents respond in the channels your team already uses — chat, email, or any webhook.",
+			"Agents respond in the channels your team already uses — Slack, Teams, WhatsApp, email, or any webhook.",
 		wide: true,
 		className: "md:col-span-2 lg:col-span-2",
 	},
 	{
 		id: 2,
-		content: <ThirdBentoAnimation />,
+		content: <KnowledgeGraphAnimation />,
 		title: "Enterprise Knowledge Graph",
 		description:
 			"Every agent taps into your company's knowledge. Contracts, docs, past decisions — always in context.",
@@ -29,16 +29,16 @@ const items = [
 	},
 	{
 		id: 3,
-		content: <FourthBentoAnimation once={false} />,
-		title: "Cron Jobs",
+		content: <CronJobsAnimation once={false} />,
+		title: "Automated Schedules",
 		description:
-			"Schedule recurring tasks. Agents scan, report, sync, and brief — autonomously, on your timeline.",
+			"Set it and forget it. Agents scan, report, sync, and brief — autonomously, on your timeline.",
 		wide: false,
 		className: "lg:col-span-1",
 	},
 	{
 		id: 4,
-		content: <FifthBentoAnimation />,
+		content: <ToolStackAnimation />,
 		title: "Works With Your Stack",
 		description:
 			"Agents plug into the tools your team already uses. One-click setup, no code required.",
@@ -48,18 +48,18 @@ const items = [
 	{
 		id: 5,
 		content: <DeploymentSwimLane />,
-		title: "Deploy a Fleet in Seconds",
+		title: "Scale to Hundreds of Agents",
 		description:
-			"Spin up dozens of agents in parallel. Each pod boots, loads skills, comes online — ready to work while the next is still starting.",
+			"Launch an entire workforce in seconds. Scale from one agent to hundreds with zero additional infrastructure cost — every agent runs at peak performance, no matter the size of your fleet.",
 		wide: true,
 		className: "md:col-span-2 lg:col-span-2",
 	},
 	{
 		id: 6,
-		content: <SixthBentoAnimation />,
+		content: <CredentialsAnimation />,
 		title: "Central Credentials",
 		description:
-			"API keys and secrets managed once in the backend. Agent pods never see raw credentials.",
+			"API keys and secrets managed once, used everywhere. Your agents stay secure without any manual setup per tool.",
 		wide: false,
 		className: "lg:col-span-1",
 	},

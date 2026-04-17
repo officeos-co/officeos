@@ -15,7 +15,7 @@ const tasks: ScheduledTask[] = [
   { name: "Weekly report", schedule: "Fri 5pm", nextIn: "3d 8h" },
 ];
 
-export function FourthBentoAnimation({
+export function CronJobsAnimation({
   once = false,
 }: {
   startAnimationDelay?: number;

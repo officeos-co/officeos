@@ -9,7 +9,7 @@ function ChannelIcon({ src, alt }: { src: string; alt: string }) {
 	);
 }
 
-export function SecondBentoAnimation() {
+export function ChannelOrbitAnimation() {
 	return (
 		<div className="relative flex h-full w-full items-center justify-center overflow-hidden">
 			<div className="pointer-events-none absolute bottom-0 left-0 z-20 h-20 w-full bg-gradient-to-t from-background to-transparent"></div>
@@ -29,14 +29,13 @@ export function SecondBentoAnimation() {
 						speed={1}
 					>
 						<ChannelIcon src="/logos/slack.svg" alt="Slack" />
-						<ChannelIcon src="/logos/email.svg" alt="Email" />
 						<ChannelIcon src="/logos/teams.svg" alt="Teams" />
 					</OrbitingCircles>
 
 					<OrbitingCircles index={1} iconSize={60} speed={0.5}>
 						<ChannelIcon src="/logos/whatsapp.svg" alt="WhatsApp" />
 						<ChannelIcon src="/logos/discord.svg" alt="Discord" />
-						<ChannelIcon src="/logos/telegram.svg" alt="Telegram" />
+						<ChannelIcon src="/logos/email.svg" alt="Email" />
 					</OrbitingCircles>
 
 					<OrbitingCircles
@@ -46,9 +45,9 @@ export function SecondBentoAnimation() {
 						reverse
 						speed={0.5}
 					>
-						<ChannelIcon src="/logos/github.svg" alt="GitHub" />
-						<ChannelIcon src="/logos/notion.svg" alt="Notion" />
-						<ChannelIcon src="/logos/linear.svg" alt="Linear" />
+						<ChannelIcon src="/logos/telegram.svg" alt="Telegram" />
+						<ChannelIcon src="/logos/whatsapp.svg" alt="WhatsApp" />
+						<ChannelIcon src="/logos/slack.svg" alt="Slack" />
 					</OrbitingCircles>
 				</div>
 			</div>

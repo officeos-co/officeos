@@ -6,7 +6,7 @@ export const logos: Record<string, string> = {
   Gmail: "/logos/gmail.svg",
   Slack: "/logos/slack.svg",
   HubSpot: "/logos/hubspot.svg",
-  Browser: "/logos/browser.svg",
+  Browser: "/logos/chrome.svg",
   WhatsApp: "/logos/whatsapp.svg",
   Telegram: "/logos/telegram.svg",
   Teams: "/logos/teams.svg",

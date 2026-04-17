@@ -53,7 +53,7 @@ function getNode(id: string) {
 	return nodes.find((n) => n.id === id)!;
 }
 
-export function ThirdBentoAnimation() {
+export function KnowledgeGraphAnimation() {
 	const ref = useRef(null);
 	const isInView = useInView(ref, { once: false });
 	const [rotation, setRotation] = useState(0);

@@ -11,49 +11,86 @@ const desktopColumns = [
     { name: "GitHub", src: "/logos/github.svg" },
     { name: "Salesforce", src: "/logos/salesforce.svg" },
     { name: "Linear", src: "/logos/linear.svg" },
+    { name: "Zapier", src: "/logos/zapier.svg" },
+    { name: "Tableau", src: "/logos/tableau.svg" },
+    { name: "MongoDB", src: "/logos/mongodb.svg" },
   ],
   [
-    { name: "Slack", src: "/logos/slack.svg" },
     { name: "Jira", src: "/logos/jira.svg" },
     { name: "Google Drive", src: "/logos/google-drive.svg" },
     { name: "HubSpot", src: "/logos/hubspot.svg" },
+    { name: "Figma", src: "/logos/figma.svg" },
+    { name: "Snowflake", src: "/logos/snowflake.svg" },
+    { name: "Power BI", src: "/logos/powerbi.svg" },
+    { name: "Supabase", src: "/logos/supabase.svg" },
   ],
   [
     { name: "Gmail", src: "/logos/gmail.svg" },
     { name: "Google Calendar", src: "/logos/google-calendar.svg" },
-    { name: "Discord", src: "/logos/discord.svg" },
+    { name: "Stripe", src: "/logos/stripe.svg" },
+    { name: "Google Sheets", src: "/logos/google-sheets.svg" },
+    { name: "Google Meet", src: "/logos/google-meet.svg" },
+    { name: "Google Analytics", src: "/logos/google-analytics.svg" },
+    { name: "Google Docs", src: "/logos/google-docs.svg" },
+  ],
+  [
+    { name: "Confluence", src: "/logos/confluence.svg" },
+    { name: "Airtable", src: "/logos/airtable.svg" },
+    { name: "Intercom", src: "/logos/intercom.svg" },
+    { name: "Zendesk", src: "/logos/zendesk.svg" },
+    { name: "Sentry", src: "/logos/sentry.svg" },
+    { name: "Datadog", src: "/logos/datadog.svg" },
+    { name: "PagerDuty", src: "/logos/pagerduty.svg" },
+  ],
+  [
+    { name: "Trello", src: "/logos/trello.svg" },
+    { name: "Shopify", src: "/logos/shopify.svg" },
+    { name: "Dropbox", src: "/logos/dropbox.svg" },
+    { name: "Asana", src: "/logos/asana.svg" },
+    { name: "Monday", src: "/logos/monday.svg" },
+    { name: "Twilio", src: "/logos/twilio.svg" },
+    { name: "SendGrid", src: "/logos/sendgrid.svg" },
+  ],
+  [
+    { name: "Outlook", src: "/logos/outlook.svg" },
+    { name: "Excel", src: "/logos/excel.svg" },
+    { name: "OneDrive", src: "/logos/onedrive.svg" },
+    { name: "SharePoint", src: "/logos/sharepoint.svg" },
+    { name: "Word", src: "/logos/word.svg" },
+    { name: "PowerPoint", src: "/logos/powerpoint.svg" },
     { name: "Teams", src: "/logos/teams.svg" },
   ],
   [
-    { name: "WhatsApp", src: "/logos/whatsapp.svg" },
-    { name: "Telegram", src: "/logos/telegram.svg" },
-    { name: "Email", src: "/logos/email.svg" },
-    { name: "Browser", src: "/logos/browser.svg" },
-  ],
-  [
-    { name: "GitHub", src: "/logos/github.svg" },
-    { name: "Linear", src: "/logos/linear.svg" },
-    { name: "Jira", src: "/logos/jira.svg" },
-    { name: "Notion", src: "/logos/notion.svg" },
+    { name: "AWS", src: "/logos/aws.svg" },
+    { name: "Azure", src: "/logos/azure.svg" },
+    { name: "Google Cloud", src: "/logos/google-cloud.svg" },
+    { name: "Docker", src: "/logos/docker.svg" },
+    { name: "Kubernetes", src: "/logos/kubernetes.svg" },
+    { name: "Terraform", src: "/logos/terraform.svg" },
+    { name: "Redis", src: "/logos/redis.svg" },
   ],
 ];
 
 const mobileExtraColumns = [
   [
-    { name: "WhatsApp", src: "/logos/whatsapp.svg" },
-    { name: "Telegram", src: "/logos/telegram.svg" },
-    { name: "Browser", src: "/logos/browser.svg" },
-    { name: "Email", src: "/logos/email.svg" },
+    { name: "Outlook", src: "/logos/outlook.svg" },
+    { name: "Excel", src: "/logos/excel.svg" },
+    { name: "SharePoint", src: "/logos/sharepoint.svg" },
+    { name: "Google Docs", src: "/logos/google-docs.svg" },
+    { name: "AWS", src: "/logos/aws.svg" },
+    { name: "Sentry", src: "/logos/sentry.svg" },
   ],
   [
     { name: "Google Drive", src: "/logos/google-drive.svg" },
-    { name: "Notion", src: "/logos/notion.svg" },
-    { name: "Jira", src: "/logos/jira.svg" },
+    { name: "Stripe", src: "/logos/stripe.svg" },
+    { name: "OneDrive", src: "/logos/onedrive.svg" },
     { name: "Gmail", src: "/logos/gmail.svg" },
+    { name: "Azure", src: "/logos/azure.svg" },
+    { name: "Datadog", src: "/logos/datadog.svg" },
   ],
 ];
 
-export function FifthBentoAnimation() {
+export function ToolStackAnimation() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false });
 
@@ -76,7 +113,7 @@ export function FifthBentoAnimation() {
             key={colIdx}
             vertical
             reverse={colIdx % 2 === 1}
-            className={`h-full [--duration:25s] [--gap:0.75rem] ${colIdx >= 3 ? "hidden md:flex" : ""}`}
+            className={`h-full [--duration:55s] [--gap:0.75rem] ${colIdx >= 3 ? "hidden md:flex" : ""}`}
             repeat={3}
           >
             {tools.map((tool) => (
@@ -100,7 +137,7 @@ export function FifthBentoAnimation() {
             key={`mobile-${colIdx}`}
             vertical
             reverse={colIdx % 2 === 0}
-            className="h-full sm:hidden [--duration:25s] [--gap:0.75rem]"
+            className="h-full sm:hidden [--duration:55s] [--gap:0.75rem]"
             repeat={3}
           >
             {tools.map((tool) => (

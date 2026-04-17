@@ -11,7 +11,7 @@ const credentials = [
   { label: "Notion", key: "ntn_••••••••4wP" },
 ];
 
-export function SixthBentoAnimation() {
+export function CredentialsAnimation() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false });
 
