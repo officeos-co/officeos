@@ -24,10 +24,13 @@ const RUNNERS_QUERY = gql`
 `
 
 const CREATE_RUNNER = gql`
-  mutation CreateRunner($input: CreateRunnerInput!) {
-    createRunner(input: $input) {
-      id
-      name
+  mutation CreateRunner($name: String!) {
+    createRunner(name: $name) {
+      runner {
+        id
+        name
+      }
+      registrationToken
     }
   }
 `
@@ -60,9 +63,10 @@ export function useCreateRunner() {
   const [fn, state] = useMutation(CREATE_RUNNER)
   return {
     createRunner: async (input: { name: string }) => {
-      if (USE_MOCKS) return { id: `run_mock_${Date.now().toString(36)}`, name: input.name }
-      const { data } = await fn({ variables: { input } })
-      return data?.createRunner as { id: string; name: string }
+      if (USE_MOCKS) return { id: `run_mock_${Date.now().toString(36)}`, name: input.name, registrationToken: "sr_mock" }
+      const { data } = await fn({ variables: { name: input.name } })
+      const result = data?.createRunner as { runner: { id: string; name: string }; registrationToken: string }
+      return { ...result.runner, registrationToken: result.registrationToken }
     },
     ...state,
   }

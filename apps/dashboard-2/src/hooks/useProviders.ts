@@ -23,21 +23,29 @@ const PROVIDERS_QUERY = gql`
       id
       name
       displayName
-      hasKey
-      models
+      configured
+      configuredAt
     }
   }
 `
 
 const SET_PROVIDER_KEY = gql`
-  mutation SetProviderKey($providerId: String!, $apiKey: String!) {
-    setProviderKey(providerId: $providerId, apiKey: $apiKey)
+  mutation SetProviderKey($providerName: String!, $apiKey: String!) {
+    setProviderKey(providerName: $providerName, apiKey: $apiKey) {
+      id
+      name
+      configured
+    }
   }
 `
 
 const CLEAR_PROVIDER_KEY = gql`
-  mutation ClearProviderKey($providerId: String!) {
-    clearProviderKey(providerId: $providerId)
+  mutation ClearProviderKey($providerName: String!) {
+    clearProviderKey(providerName: $providerName) {
+      id
+      name
+      configured
+    }
   }
 `
 
@@ -53,14 +61,13 @@ export function useProviders(): {
       id: string
       name: string
       displayName: string | null
-      hasKey: boolean
-      models: string[] | null
+      configured: boolean
     }) => ({
       id: p.id,
       name: p.name,
       displayName: p.displayName ?? p.name,
-      hasKey: p.hasKey,
-      models: p.models ?? [],
+      hasKey: p.configured,
+      models: [],
     }),
   )
   return { providers, loading, error: error ?? undefined }
@@ -71,7 +78,7 @@ export function useSetProviderKey() {
   return {
     setProviderKey: async (providerId: string, apiKey: string) => {
       if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { providerId, apiKey } })
+      const { data } = await fn({ variables: { providerName: providerId, apiKey } })
       return Boolean(data?.setProviderKey)
     },
     ...state,
@@ -83,7 +90,7 @@ export function useClearProviderKey() {
   return {
     clearProviderKey: async (providerId: string) => {
       if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { providerId } })
+      const { data } = await fn({ variables: { providerName: providerId } })
       return Boolean(data?.clearProviderKey)
     },
     ...state,

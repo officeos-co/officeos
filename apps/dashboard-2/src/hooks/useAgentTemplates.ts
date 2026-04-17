@@ -19,8 +19,8 @@ const TEMPLATES_QUERY = gql`
 `
 
 const CREATE_FROM_TEMPLATE = gql`
-  mutation CreateAgentFromTemplate($input: CreateAgentFromTemplateInput!) {
-    createAgentFromTemplate(input: $input) {
+  mutation CreateAgentFromTemplate($templateId: UUID!, $name: String!, $provider: String!, $model: String) {
+    createAgentFromTemplate(templateId: $templateId, name: $name, provider: $provider, model: $model) {
       id
       name
     }
@@ -67,7 +67,7 @@ export function useCreateAgentFromTemplate() {
         return { id: `agt_mock_${Date.now().toString(36)}`, name }
       }
       const { data } = await fn({
-        variables: { input: { templateId, name, provider, model } },
+        variables: { templateId, name, provider, model },
       })
       return data?.createAgentFromTemplate as { id: string; name: string }
     },

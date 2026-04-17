@@ -51,21 +51,25 @@ const SKILL_COMMENTS_QUERY = gql`
 
 const LIKE_SKILL = gql`
   mutation LikeSkill($skillId: UUID!) {
-    likeSkill(skillId: $skillId)
+    likeSkill(skillId: $skillId) {
+      id
+    }
   }
 `
 
 const UNLIKE_SKILL = gql`
   mutation UnlikeSkill($skillId: UUID!) {
-    unlikeSkill(skillId: $skillId)
+    unlikeSkill(skillId: $skillId) {
+      id
+    }
   }
 `
 
 const COMMENT_ON_SKILL = gql`
-  mutation CommentOnSkill($skillId: UUID!, $content: String!) {
-    commentOnSkill(skillId: $skillId, content: $content) {
+  mutation CommentOnSkill($skillId: UUID!, $body: String!) {
+    commentOnSkill(skillId: $skillId, body: $body) {
       id
-      content
+      body
     }
   }
 `
@@ -153,8 +157,8 @@ export function useCommentOnSkill() {
   return {
     commentOnSkill: async (skillId: string, content: string) => {
       if (USE_MOCKS) return { id: `cm_${Date.now()}`, content }
-      const { data } = await fn({ variables: { skillId, content } })
-      return data?.commentOnSkill as { id: string; content: string }
+      const { data } = await fn({ variables: { skillId, body: content } })
+      return data?.commentOnSkill as { id: string; body: string }
     },
     ...state,
   }

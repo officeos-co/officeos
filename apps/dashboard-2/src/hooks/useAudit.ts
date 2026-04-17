@@ -13,14 +13,20 @@ export type AuditEntry = {
 }
 
 const AUDIT_QUERY = gql`
-  query AuditLog($agentId: UUID, $skip: Int, $limit: Int) {
+  query AuditLog($agentId: UUID!, $skip: Int!, $limit: Int!) {
     auditLog(agentId: $agentId, skip: $skip, limit: $limit) {
-      id
-      time
-      actor
-      action
-      target
-      detail
+      items {
+        id
+        agentId
+        userId
+        skillName
+        action
+        paramsJson
+        resultSummary
+        durationMs
+        timestamp
+      }
+      total
     }
   }
 `
@@ -37,22 +43,24 @@ export function useAudit(
     skip: USE_MOCKS,
   })
   if (USE_MOCKS) return { entries: mockAudit, loading: false }
-  const entries: AuditEntry[] = (data?.auditLog ?? []).map(
-    (e: {
-      id: string
-      time: string | number
-      actor: string
-      action: string
-      target: string
-      detail: string
-    }) => ({
-      id: e.id,
-      time: typeof e.time === "number" ? e.time : Date.parse(e.time) || Date.now(),
-      actor: e.actor,
-      action: e.action,
-      target: e.target,
-      detail: e.detail,
-    }),
-  )
+  const raw: Array<{
+    id: string
+    agentId: string
+    userId: string | null
+    skillName: string
+    action: string
+    paramsJson: string
+    resultSummary: string | null
+    durationMs: number
+    timestamp: string | number
+  }> = data?.auditLog?.items ?? []
+  const entries: AuditEntry[] = raw.map((e) => ({
+    id: e.id,
+    time: typeof e.timestamp === "number" ? e.timestamp : Date.parse(e.timestamp) || Date.now(),
+    actor: e.skillName,
+    action: e.action,
+    target: e.agentId,
+    detail: e.resultSummary ?? e.paramsJson,
+  }))
   return { entries, loading, error: error ?? undefined }
 }

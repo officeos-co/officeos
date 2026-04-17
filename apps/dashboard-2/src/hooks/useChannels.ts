@@ -37,8 +37,12 @@ const DELETE_CONNECTION = gql`
 `
 
 const BIND_CHANNEL = gql`
-  mutation BindChannelToAgent($connectionId: UUID!, $agentId: UUID!) {
-    bindChannelToAgent(connectionId: $connectionId, agentId: $agentId)
+  mutation BindChannelToAgent($agentId: UUID!, $channelConnectionId: UUID!) {
+    bindChannelToAgent(agentId: $agentId, channelConnectionId: $channelConnectionId) {
+      id
+      agentId
+      channelConnectionId
+    }
   }
 `
 
@@ -128,7 +132,7 @@ export function useBindChannelToAgent() {
   return {
     bindChannelToAgent: async (connectionId: string, agentId: string) => {
       if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { connectionId, agentId } })
+      const { data } = await fn({ variables: { agentId, channelConnectionId: connectionId } })
       return Boolean(data?.bindChannelToAgent)
     },
     ...state,
