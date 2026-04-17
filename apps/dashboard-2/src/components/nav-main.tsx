@@ -18,7 +18,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { ChevronRightIcon } from "lucide-react";
-import { useAnalytics } from "@/hooks/useAnalytics";
+import { useAnalytics } from "@/features/analytics";
 
 export function NavMain({
   items,

@@ -30,14 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockFileTree, type FileNode } from "@/data/agent-mock"
-import { builtInTools, sourceUrl } from "@/data/integrations"
-import { type ChannelPermissions } from "@/data/channels"
-import { useAgent } from "@/hooks/useAgents"
-import { useAgentLogs } from "@/hooks/useAgentLogs"
-import { useSendAgentMessage } from "@/hooks/useSendAgentMessage"
-import { useIntegrations } from "@/hooks/useIntegrations"
-import { useChannels } from "@/hooks/useChannels"
+import { mockFileTree, type FileNode } from "@/features/agents/data/agent-mock"
+import { builtInTools, sourceUrl } from "@/features/agents/data/integrations"
+import { type ChannelPermissions } from "@/features/agents/data/channels"
+import { useAgent } from "@/features/agents"
+import { useAgentLogs } from "@/features/analytics"
+import { useSendAgentMessage } from "@/features/agents"
+import { useIntegrations } from "@/features/agents"
+import { useChannels } from "@/features/agents"
 import {
   SendIcon,
   ClockIcon,

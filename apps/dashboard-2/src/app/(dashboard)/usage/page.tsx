@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useUsage } from "@/hooks/useBilling"
+import { useUsage } from "@/features/analytics"
 import {
   DownloadIcon,
   ChevronLeftIcon,

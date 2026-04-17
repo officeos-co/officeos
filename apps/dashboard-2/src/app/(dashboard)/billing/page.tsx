@@ -15,7 +15,7 @@ import {
   Loader2Icon,
 } from "lucide-react"
 
-import { useBilling, useSetExtraUsageEnabled } from "@/hooks/useBilling"
+import { useBilling, useSetExtraUsageEnabled } from "@/features/manage"
 
 export default function BillingPage() {
   const router = useRouter()

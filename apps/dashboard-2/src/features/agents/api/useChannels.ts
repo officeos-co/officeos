@@ -2,7 +2,7 @@
 
 import { gql, useMutation, useQuery } from "@apollo/client"
 import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { channels as mockChannels, type Channel } from "@/data/channels"
+import { channels as mockChannels, type Channel } from "../data/channels"
 
 const CHANNELS_QUERY = gql`
   query ChannelsAndTypes {

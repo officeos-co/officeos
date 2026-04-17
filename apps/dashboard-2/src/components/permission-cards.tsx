@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import type { Tool } from "@/data/integrations"
-import type { Channel, ChannelPermissions } from "@/data/channels"
+import type { Tool } from "@/features/agents/data/integrations"
+import type { Channel, ChannelPermissions } from "@/features/agents/data/channels"
 import {
   ChevronDownIcon,
   ChevronRightIcon,

@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
-import { useAgents, useDeleteAgent } from "@/hooks/useAgents";
+import { useAgents, useDeleteAgent } from "@/features/agents";
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const;
 

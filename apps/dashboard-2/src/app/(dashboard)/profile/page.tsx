@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2Icon } from "lucide-react"
-import { useProfile, useUpdateProfile, type NotificationPrefs } from "@/hooks/useProfile"
+import { useProfile, useUpdateProfile, type NotificationPrefs } from "@/features/manage"
 
 export default function ProfilePage() {
   const { profile, loading, error } = useProfile()

@@ -3,7 +3,7 @@
 import { useQuery, useMutation, gql } from "@apollo/client"
 import { apolloClient } from "@/lib/graphql/client"
 import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { ME_QUERY, MOCK_PROFILE } from "@/hooks/useProfile"
+import { ME_QUERY, MOCK_PROFILE } from "@/features/manage"
 
 export type AuthUser = {
   id: string

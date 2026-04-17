@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { CredentialField } from "@/data/integrations"
+import type { CredentialField } from "../data/integrations"
 
 export function CredentialDialog({
   open,

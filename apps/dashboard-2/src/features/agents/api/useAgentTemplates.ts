@@ -2,7 +2,7 @@
 
 import { gql, useMutation, useQuery } from "@apollo/client"
 import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockTemplates, type Template } from "@/data/agent-templates"
+import { mockTemplates, type Template } from "../data/agent-templates"
 
 const TEMPLATES_QUERY = gql`
   query AgentTemplates {

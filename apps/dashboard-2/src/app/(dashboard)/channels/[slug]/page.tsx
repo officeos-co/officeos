@@ -7,8 +7,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { channelSourceUrl } from "@/data/channels"
-import { useChannels } from "@/hooks/useChannels"
+import { channelSourceUrl } from "@/features/agents/data/channels"
+import { useChannels } from "@/features/agents"
 import { ExternalLinkIcon, HeartIcon, RadioIcon } from "lucide-react"
 
 export default function ChannelDetailPage({

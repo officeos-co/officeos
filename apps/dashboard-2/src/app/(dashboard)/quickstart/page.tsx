@@ -17,14 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { builtInTools, sourceUrl, type Tool } from "@/data/integrations"
-import { type Channel, type ChannelPermissions } from "@/data/channels"
-import { useIntegrations } from "@/hooks/useIntegrations"
-import { useChannels } from "@/hooks/useChannels"
-import { useAgentTemplates } from "@/hooks/useAgentTemplates"
-import { useCreateAgent } from "@/hooks/useAgents"
-import { useAnalytics } from "@/hooks/useAnalytics"
-import { type Template } from "@/data/agent-templates"
+import { builtInTools, sourceUrl, type Tool } from "@/features/agents/data/integrations"
+import { type Channel, type ChannelPermissions } from "@/features/agents/data/channels"
+import { useIntegrations } from "@/features/agents"
+import { useChannels } from "@/features/agents"
+import { useAgentTemplates } from "@/features/agents"
+import { useCreateAgent } from "@/features/agents"
+import { useAnalytics } from "@/features/analytics"
+import { type Template } from "@/features/agents/data/agent-templates"
 import {
   SearchIcon,
   RocketIcon,

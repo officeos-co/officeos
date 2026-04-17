@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import type { Channel, OnboardingStep } from "@/data/channels"
+import type { Channel, OnboardingStep } from "../data/channels"
 import {
   ExternalLinkIcon,
   CopyIcon,

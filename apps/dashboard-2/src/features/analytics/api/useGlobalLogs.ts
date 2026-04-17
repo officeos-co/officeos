@@ -2,7 +2,8 @@
 
 import { gql, useQuery } from "@apollo/client"
 import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockAgentLogs, type AgentLog } from "@/data/agent-mock"
+import { mockAgentLogs } from "../data/analytics-mock"
+import type { AgentLog } from "@/types/logs"
 
 export type GlobalLogFilters = {
   search?: string

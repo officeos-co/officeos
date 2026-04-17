@@ -1,9 +1,9 @@
 "use client"
 
 import Image from "next/image"
-import { integrations } from "@/data/integrations"
-import { channels } from "@/data/channels"
-import type { AgentLog } from "@/data/agent-mock"
+import { integrations } from "@/features/agents/data/integrations"
+import { channels } from "@/features/agents/data/channels"
+import type { AgentLog } from "@/types/logs"
 import {
   TerminalIcon,
   ArrowDownLeftIcon,

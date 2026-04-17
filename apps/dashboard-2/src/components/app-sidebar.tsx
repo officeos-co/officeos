@@ -22,7 +22,7 @@ import {
   BookOpenIcon,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useBilling } from "@/hooks/useBilling";
+import { useBilling } from "@/features/manage";
 
 const data = {
   navMain: [

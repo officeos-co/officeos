@@ -2,8 +2,8 @@
 
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { USE_MOCKS } from "@/lib/graphql/mock-mode";
-import { mockAgentsList, type AgentListRow } from "@/data/agents-list-mock";
-import { mockAgent, type AgentDetail } from "@/data/agent-mock";
+import { mockAgentsList, type AgentListRow } from "../data/agents-list-mock";
+import { mockAgent, type AgentDetail } from "../data/agent-mock";
 
 /* ── Queries / mutations ─────────────────────────────────── */
 

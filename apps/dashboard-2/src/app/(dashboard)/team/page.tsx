@@ -20,7 +20,7 @@ import {
   useInviteMember,
   useRemoveMember,
   useRenameOrg,
-} from "@/hooks/useOrganization"
+} from "@/features/manage"
 
 export default function TeamPage() {
   const { organization, loading, error } = useOrganization()

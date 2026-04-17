@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { useAnalytics } from "@/hooks/useAnalytics"
+import { useAnalytics } from "@/features/analytics"
 
 /**
  * Fires `$pageview` to the backend whenever the route changes. Kept as a

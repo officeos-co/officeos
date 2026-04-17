@@ -5,7 +5,7 @@ import { USE_MOCKS } from "@/lib/graphql/mock-mode"
 import {
   integrations as mockIntegrations,
   type Integration,
-} from "@/data/integrations"
+} from "../data/integrations"
 
 /*
  * Integrations = skills in the backend. The dashboard does not have a

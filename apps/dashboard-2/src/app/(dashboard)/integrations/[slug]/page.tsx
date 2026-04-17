@@ -7,8 +7,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { sourceUrl } from "@/data/integrations"
-import { useIntegrations } from "@/hooks/useIntegrations"
+import { sourceUrl } from "@/features/agents/data/integrations"
+import { useIntegrations } from "@/features/agents"
 import { ExternalLinkIcon, HeartIcon, DownloadIcon } from "lucide-react"
 
 export default function IntegrationDetailPage({

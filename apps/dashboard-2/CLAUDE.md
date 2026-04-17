@@ -38,7 +38,22 @@ src/
       profile/page.tsx            User profile — name, timezone, notification toggles (wired via useProfile / useUpdateProfile)
       team/page.tsx               Organization — rename, member table, invite/remove (wired via useOrganization / useInviteMember / useRemoveMember / useRenameOrg)
       billing/page.tsx            Subscription — plan, payment, current usage, simple extra-usage on/off Switch (useBilling / useSetExtraUsageEnabled), invoices synced from Stripe
-  components/
+  features/
+    agents/                       Managed Agents domain (Quickstart, Agents, Integrations, Channels)
+      api/                        useAgents, useIntegrations, useChannels, useAgentTemplates, useSendAgentMessage, useProviders
+      components/                 credential-dialog, channel-onboarding-dialog
+      data/                       integrations.ts, channels.ts, agent-mock.ts, agents-list-mock.ts, agent-templates.ts
+      index.ts                    Barrel export
+    analytics/                    Analytics domain (Logs, Usage, Cost)
+      api/                        useAgentLogs, useGlobalLogs, useAnalytics
+      data/                       analytics-mock.ts
+      index.ts                    Barrel export
+    manage/                       Manage domain (Profile, Team, Billing)
+      api/                        useProfile, useOrganization, useBilling, usePricing
+      components/                 login-form
+      data/                       billing-mock.ts
+      index.ts                    Barrel export
+  components/                     Shared components only — used across features
     app-sidebar.tsx               Sidebar with 3 nav groups + docs link + user menu
     nav-main.tsx                  Collapsible nav groups with active route detection
     nav-user.tsx                  User dropdown — support, legal links, logout
@@ -46,14 +61,9 @@ src/
     page-header.tsx               Shared page header — SidebarTrigger + breadcrumbs + action slot
     log-table.tsx                 Reusable log table — icon, type, source, content, duration, time
     permission-cards.tsx          Reusable permission cards — tool cards cycle allow↔deny only (no ask); channel cards cycle allow↔ask↔deny per dimension.
-    credential-dialog.tsx         Dialog overlay for integration credential setup
-    channel-onboarding-dialog.tsx Dialog overlay for channel connection wizard
+    analytics-pageview.tsx        Global PostHog pageview emitter
+    auth-guard.tsx                Auth wrapper for dashboard routes
     ui/                           shadcn/ui primitives — all components installed
-  data/
-    integrations.ts               Integration definitions — tools, credentials, SKILL.md, added state
-    channels.ts                   Channel definitions — onboarding steps, permissions, capabilities
-    agent-mock.ts                 Mock agent detail, log entries, file tree for memory
-    analytics-mock.ts             Mock data for logs, usage, cost pages
 ```
 
 ## Sidebar structure
@@ -127,12 +137,14 @@ Colors match the website (`apps/website/`):
 
 ## Key rules
 
-- **All data is mock.** `data/*.ts` files contain hardcoded mock data. When wiring to the backend, replace these with hooks following the patterns from dashboard v1.
+- **Bulletproof React feature architecture.** Domain logic lives in `src/features/{agents,analytics,manage}/`. Route pages are thin wrappers that import from features. No cross-feature imports.
+- **All data is mock.** `features/*/data/*.ts` files contain hardcoded mock data. When wiring to the backend, replace these with hooks in the feature's `api/` folder.
+- **Import from feature barrels.** Pages and shared components import hooks/components from `@/features/<name>`, not from individual files. Only truly shared hooks (`useAuth`, `use-mobile`) live in top-level `src/hooks/`.
 - **shadcn/ui for all primitives.** Button, Input, Dialog, Select, Switch, Tabs, etc. — never build custom.
 - **`"use client"` on interactive pages.** Any page with useState, useEffect, or event handlers.
 - **Server components for static pages.** Placeholder pages and layouts stay as server components.
 - **No overview/dashboard page.** `/` redirects to `/agents`. Every page serves a specific purpose.
-- **Reuse shared components.** `LogTable`, `ToolPermissionCard`, `ChannelPermissionCard`, `CredentialDialog`, `ChannelOnboardingDialog`, `PageHeader` — don't duplicate.
+- **Reuse shared components.** `LogTable`, `ToolPermissionCard`, `ChannelPermissionCard`, `PageHeader` — don't duplicate. These live in top-level `src/components/`.
 
 ## Anti-patterns
 
@@ -142,6 +154,8 @@ Colors match the website (`apps/website/`):
 - Do not use `Date.now()` in mock data at module level. It causes hydration mismatches. Use static strings.
 - Do not add state management libraries. React useState is sufficient for the alpha.
 - Do not create pages without `max-w-*` + `mx-auto`. Content should never stretch to full viewport width.
+- Do not import across features. `features/agents/` must never import from `features/manage/` or `features/analytics/` (and vice versa). Shared dependencies go in top-level `components/`, `hooks/`, `lib/`, or `types/`.
+- Do not put domain hooks or data in top-level `src/hooks/` or `src/data/`. Those belong in their feature's `api/` or `data/` folder.
 
 ## Backend wiring
 
@@ -153,7 +167,7 @@ rides on cookies via `credentials: "include"`.
 
 ### Mock toggle
 
-`NEXT_PUBLIC_USE_MOCKS=1` → hooks return `data/*.ts` fixtures; no network calls.
+`NEXT_PUBLIC_USE_MOCKS=1` → hooks return `features/*/data/*.ts` fixtures; no network calls.
 Unset / any other value → hooks call GraphQL via `apolloClient`.
 
 The toggle is checked at the **hook layer**, not the client layer — so Apollo is
@@ -176,8 +190,8 @@ not care which mode it's in.
 
 ### Hooks
 
-Domain data access always goes through hooks under `src/hooks/`. Current
-hooks:
+Domain data access goes through hooks in `src/features/*/api/`. Only shared
+auth hooks (`useAuth`, `use-mobile`) remain in `src/hooks/`. Current hooks:
 
 | Hook | Backing query / mutation | Shape |
 |---|---|---|
@@ -202,9 +216,9 @@ via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
 
 ### Rules
 
-- **Do not import from `src/data/` outside hooks.** Pages and components read
-  domain data only through hooks so the mock toggle flips cleanly and Stage 8
-  can migrate one domain at a time without touching UI code.
+- **Do not import hooks from individual feature files.** Import from the feature
+  barrel (`@/features/agents`, not `@/features/agents/api/useAgents`). Data/type
+  imports from `@/features/*/data/` are fine when pages need types or constants.
 - **AuthGuard is wired.** `AuthGuard` wraps `(dashboard)/layout.tsx`. Unauthenticated users redirect to `/login`. In mock mode, `useAuth` returns authenticated automatically.
 - **Do not move the mock check into the Apollo link.** Apollo must behave
   normally for auth/session; mocking is a hook-layer concern.
@@ -214,7 +228,7 @@ via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
 PostHog events go through the **backend**, not a client snippet. Each use-case
 has a dedicated typed GraphQL mutation — there is no generic
 `captureEvent(name, properties)`. `useAnalytics()` in
-`src/hooks/useAnalytics.ts` exposes one function per event:
+`src/features/analytics/api/useAnalytics.ts` exposes one function per event:
 
 - `trackPageView(path)`
 - `trackNavClicked(destination)`

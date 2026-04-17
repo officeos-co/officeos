@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useGlobalLogs } from "@/hooks/useGlobalLogs"
+import { useGlobalLogs } from "@/features/analytics"
 import {
   SearchIcon,
   ChevronLeftIcon,
