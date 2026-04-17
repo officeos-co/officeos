@@ -2,7 +2,10 @@ import { defineSkill, z } from "@harro/skill-sdk";
 
 import doc from "./SKILL.md";
 
-type Ctx = { fetch: typeof globalThis.fetch; credentials: Record<string, string> };
+type Ctx = {
+  fetch: typeof globalThis.fetch;
+  credentials: Record<string, string>;
+};
 
 async function excelProxy(
   ctx: Ctx,
@@ -25,7 +28,7 @@ async function excelProxy(
 export default defineSkill({
   name: "excel",
   title: "Excel",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM8 12h2l1.5 2L13 12h2l-2.5 3.5L15 19h-2l-1.5-2L10 19H8l2.5-3.5L8 12Z\"/></svg>",
+  logo: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM8 12h2l1.5 2L13 12h2l-2.5 3.5L15 19h-2l-1.5-2L10 19H8l2.5-3.5L8 12Z"/></svg>',
   emoji: "\ud83d\udcca",
   description:
     "Create, read, write, format, and export Excel workbooks (.xlsx) with full support for formulas, tables, charts, and data operations via ExcelJS.",
@@ -65,7 +68,9 @@ export default defineSkill({
         sheet_names: z.array(z.string()).describe("List of sheet names"),
       }),
       execute: async (params, ctx) => {
-        return excelProxy(ctx, "open_workbook", undefined, { file_path: params.file_path });
+        return excelProxy(ctx, "open_workbook", undefined, {
+          file_path: params.file_path,
+        });
       },
     },
 
@@ -80,7 +85,9 @@ export default defineSkill({
         file_size: z.number().describe("File size in bytes"),
       }),
       execute: async (params, ctx) => {
-        return excelProxy(ctx, "save_workbook", params.workbook_id, { file_path: params.file_path });
+        return excelProxy(ctx, "save_workbook", params.workbook_id, {
+          file_path: params.file_path,
+        });
       },
     },
 
@@ -127,7 +134,10 @@ export default defineSkill({
       params: z.object({
         workbook_id: z.string().describe("Workbook handle"),
         name: z.string().describe("Sheet name"),
-        position: z.number().optional().describe("Zero-based index to insert at (default: end)"),
+        position: z
+          .number()
+          .optional()
+          .describe("Zero-based index to insert at (default: end)"),
       }),
       returns: z.object({
         name: z.string().describe("Sheet name"),
@@ -151,7 +161,9 @@ export default defineSkill({
         removed: z.boolean().describe("Whether the sheet was removed"),
       }),
       execute: async (params, ctx) => {
-        return excelProxy(ctx, "remove_sheet", params.workbook_id, { name: params.name });
+        return excelProxy(ctx, "remove_sheet", params.workbook_id, {
+          name: params.name,
+        });
       },
     },
 
@@ -179,7 +191,10 @@ export default defineSkill({
       params: z.object({
         workbook_id: z.string().describe("Workbook handle"),
         name: z.string().describe("Sheet to duplicate"),
-        new_name: z.string().optional().describe("Name for the duplicated sheet"),
+        new_name: z
+          .string()
+          .optional()
+          .describe("Name for the duplicated sheet"),
       }),
       returns: z.object({
         name: z.string().describe("New sheet name"),
@@ -204,11 +219,15 @@ export default defineSkill({
         row_count: z.number().describe("Number of rows with data"),
         column_count: z.number().describe("Number of columns with data"),
         state: z.string().describe("Visibility state"),
-        merged_cells: z.array(z.string()).describe("List of merged cell ranges"),
+        merged_cells: z
+          .array(z.string())
+          .describe("List of merged cell ranges"),
         has_autofilter: z.boolean().describe("Whether autofilter is applied"),
       }),
       execute: async (params, ctx) => {
-        return excelProxy(ctx, "get_sheet_info", params.workbook_id, { name: params.name });
+        return excelProxy(ctx, "get_sheet_info", params.workbook_id, {
+          name: params.name,
+        });
       },
     },
 
@@ -223,7 +242,9 @@ export default defineSkill({
       }),
       returns: z.object({
         value: z.unknown().describe("Cell value"),
-        type: z.string().describe("Value type (string, number, date, boolean, formula)"),
+        type: z
+          .string()
+          .describe("Value type (string, number, date, boolean, formula)"),
         formula: z.string().nullable().describe("Formula if applicable"),
         formatted_value: z.string().describe("Display-formatted value"),
       }),
@@ -277,7 +298,9 @@ export default defineSkill({
         sheet: z.string().describe("Sheet name"),
         column: z.string().describe("Column letter (e.g. B)"),
       }),
-      returns: z.array(z.unknown()).describe("List of cell values in the column"),
+      returns: z
+        .array(z.unknown())
+        .describe("List of cell values in the column"),
       execute: async (params, ctx) => {
         return excelProxy(ctx, "get_column", params.workbook_id, {
           sheet: params.sheet,
@@ -293,12 +316,16 @@ export default defineSkill({
         sheet: z.string().describe("Sheet name"),
       }),
       returns: z.object({
-        rows: z.array(z.array(z.unknown())).describe("2D array of all cell values"),
+        rows: z
+          .array(z.array(z.unknown()))
+          .describe("2D array of all cell values"),
         row_count: z.number().describe("Number of rows"),
         column_count: z.number().describe("Number of columns"),
       }),
       execute: async (params, ctx) => {
-        return excelProxy(ctx, "get_all_data", params.workbook_id, { sheet: params.sheet });
+        return excelProxy(ctx, "get_all_data", params.workbook_id, {
+          sheet: params.sheet,
+        });
       },
     },
 
@@ -311,7 +338,10 @@ export default defineSkill({
         sheet: z.string().describe("Sheet name"),
         cell: z.string().describe("Cell reference (e.g. B5)"),
         value: z.unknown().describe("Value to set"),
-        type: z.enum(["string", "number", "date", "boolean", "auto"]).default("auto").describe("Value type"),
+        type: z
+          .enum(["string", "number", "date", "boolean", "auto"])
+          .default("auto")
+          .describe("Value type"),
       }),
       returns: z.object({
         cell: z.string().describe("Cell reference"),
@@ -356,7 +386,10 @@ export default defineSkill({
         workbook_id: z.string().describe("Workbook handle"),
         sheet: z.string().describe("Sheet name"),
         row: z.number().describe("Position to insert at (1-based)"),
-        values: z.array(z.unknown()).optional().describe("Values for the new row"),
+        values: z
+          .array(z.unknown())
+          .optional()
+          .describe("Values for the new row"),
       }),
       returns: z.object({
         row: z.number().describe("Inserted row number"),
@@ -376,7 +409,10 @@ export default defineSkill({
         workbook_id: z.string().describe("Workbook handle"),
         sheet: z.string().describe("Sheet name"),
         column: z.string().describe("Column letter to insert at"),
-        values: z.array(z.unknown()).optional().describe("Values for the new column"),
+        values: z
+          .array(z.unknown())
+          .optional()
+          .describe("Values for the new column"),
       }),
       returns: z.object({
         column: z.string().describe("Inserted column letter"),
@@ -437,14 +473,25 @@ export default defineSkill({
         bold: z.boolean().optional().describe("Bold text"),
         italic: z.boolean().optional().describe("Italic text"),
         font_size: z.number().optional().describe("Font size in points"),
-        font_color: z.string().optional().describe("Font color (hex, e.g. #FF0000)"),
+        font_color: z
+          .string()
+          .optional()
+          .describe("Font color (hex, e.g. #FF0000)"),
         bg_color: z.string().optional().describe("Background fill color (hex)"),
-        number_format: z.string().optional().describe("Number format string (e.g. #,##0.00)"),
-        alignment: z.enum(["left", "center", "right"]).optional().describe("Horizontal alignment"),
+        number_format: z
+          .string()
+          .optional()
+          .describe("Number format string (e.g. #,##0.00)"),
+        alignment: z
+          .enum(["left", "center", "right"])
+          .optional()
+          .describe("Horizontal alignment"),
       }),
       returns: z.object({
         cell: z.string().describe("Formatted cell"),
-        formats_applied: z.array(z.string()).describe("List of applied formats"),
+        formats_applied: z
+          .array(z.string())
+          .describe("List of applied formats"),
       }),
       execute: async (params, ctx) => {
         const { workbook_id, ...rest } = params;
@@ -464,11 +511,16 @@ export default defineSkill({
         font_color: z.string().optional().describe("Font color (hex)"),
         bg_color: z.string().optional().describe("Background fill color (hex)"),
         number_format: z.string().optional().describe("Number format string"),
-        alignment: z.enum(["left", "center", "right"]).optional().describe("Horizontal alignment"),
+        alignment: z
+          .enum(["left", "center", "right"])
+          .optional()
+          .describe("Horizontal alignment"),
       }),
       returns: z.object({
         range: z.string().describe("Formatted range"),
-        formats_applied: z.array(z.string()).describe("List of applied formats"),
+        formats_applied: z
+          .array(z.string())
+          .describe("List of applied formats"),
       }),
       execute: async (params, ctx) => {
         const { workbook_id, ...rest } = params;
@@ -648,7 +700,10 @@ export default defineSkill({
         type: z.enum(["bar", "line", "pie", "scatter"]).describe("Chart type"),
         data_range: z.string().describe("Source data range (e.g. A1:C5)"),
         title: z.string().optional().describe("Chart title"),
-        position: z.string().default("E2").describe("Top-left cell for chart placement"),
+        position: z
+          .string()
+          .default("E2")
+          .describe("Top-left cell for chart placement"),
       }),
       returns: z.object({
         chart_type: z.string().describe("Chart type"),
@@ -695,7 +750,10 @@ export default defineSkill({
         workbook_id: z.string().describe("Workbook handle"),
         sheet: z.string().describe("Sheet name to export"),
         file_path: z.string().describe("Output JSON file path"),
-        headers: z.boolean().default(true).describe("Use first row as object keys"),
+        headers: z
+          .boolean()
+          .default(true)
+          .describe("Use first row as object keys"),
       }),
       returns: z.object({
         file_path: z.string().describe("Output file path"),
@@ -715,8 +773,14 @@ export default defineSkill({
       params: z.object({
         workbook_id: z.string().describe("Workbook handle"),
         file_path: z.string().describe("Output PDF file path"),
-        sheet: z.string().optional().describe("Sheet to export (omit for all sheets)"),
-        orientation: z.enum(["portrait", "landscape"]).default("portrait").describe("Page orientation"),
+        sheet: z
+          .string()
+          .optional()
+          .describe("Sheet to export (omit for all sheets)"),
+        orientation: z
+          .enum(["portrait", "landscape"])
+          .default("portrait")
+          .describe("Page orientation"),
       }),
       returns: z.object({
         file_path: z.string().describe("Output file path"),
@@ -757,7 +821,10 @@ export default defineSkill({
         workbook_id: z.string().describe("Workbook handle"),
         sheet: z.string().describe("Sheet name"),
         column: z.string().describe("Column letter to sort by"),
-        order: z.enum(["ascending", "descending"]).default("ascending").describe("Sort order"),
+        order: z
+          .enum(["ascending", "descending"])
+          .default("ascending")
+          .describe("Sort order"),
         range: z.string().optional().describe("Limit sort to a specific range"),
       }),
       returns: z.object({

@@ -16,19 +16,19 @@ Kubernetes-native platform for running autonomous AI agents. Single-tenant, self
 
 ## Start here — read the relevant CLAUDE.md before touching any code
 
-| Package | Role | CLAUDE.md |
-|---------|------|-----------|
-| `apps/dashboard/` | The product — operators manage agents, skills, providers here | `apps/dashboard/CLAUDE.md` |
-| `apps/backend/` | Central orchestrator — all state, credentials, K8s control, LLM proxy | `apps/backend/CLAUDE.md` |
-| `apps/website/` | Public landing page only — no backend, pure marketing | `apps/website/CLAUDE.md` |
-| `apps/changelog/` | Public changelog — reads `.md` files, no backend, pure static | no CLAUDE.md needed |
-| `packages/zeroclaw-core/` | Rust agent binary — runs inside each K8s pod | `packages/zeroclaw-core/CLAUDE.md` |
-| `packages/skills/` | First-party TypeScript skill packages | `packages/skills/CLAUDE.md` |
-| `packages/skill-sdk/` | `@harro/skill-sdk` — `defineSkill`, Zod, type interfaces | `packages/skill-sdk/CLAUDE.md` |
-| `packages/skill-runtime/` | Node.js service that executes skills and serves the HTTP skill API | `packages/skill-runtime/CLAUDE.md` |
-| `changelog/` | Changelog `.md` content files — read by `apps/changelog/` at build time | no CLAUDE.md needed |
-| `k8s/` | Kubernetes manifests only — `backend.yaml`, `frontend.yaml`, `website.yaml`, `changelog.yaml` | no CLAUDE.md needed |
-| `docs/` | External user-facing documentation — not developer docs, not agent context | no CLAUDE.md needed |
+| Package                   | Role                                                                                          | CLAUDE.md                          |
+| ------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `apps/dashboard/`         | The product — operators manage agents, skills, providers here                                 | `apps/dashboard/CLAUDE.md`         |
+| `apps/backend/`           | Central orchestrator — all state, credentials, K8s control, LLM proxy                         | `apps/backend/CLAUDE.md`           |
+| `apps/website/`           | Public landing page only — no backend, pure marketing                                         | `apps/website/CLAUDE.md`           |
+| `apps/changelog/`         | Public changelog — reads `.md` files, no backend, pure static                                 | no CLAUDE.md needed                |
+| `packages/zeroclaw-core/` | Rust agent binary — runs inside each K8s pod                                                  | `packages/zeroclaw-core/CLAUDE.md` |
+| `packages/skills/`        | First-party TypeScript skill packages                                                         | `packages/skills/CLAUDE.md`        |
+| `packages/skill-sdk/`     | `@harro/skill-sdk` — `defineSkill`, Zod, type interfaces                                      | `packages/skill-sdk/CLAUDE.md`     |
+| `packages/skill-runtime/` | Node.js service that executes skills and serves the HTTP skill API                            | `packages/skill-runtime/CLAUDE.md` |
+| `changelog/`              | Changelog `.md` content files — read by `apps/changelog/` at build time                       | no CLAUDE.md needed                |
+| `k8s/`                    | Kubernetes manifests only — `backend.yaml`, `frontend.yaml`, `website.yaml`, `changelog.yaml` | no CLAUDE.md needed                |
+| `docs/`                   | External user-facing documentation — not developer docs, not agent context                    | no CLAUDE.md needed                |
 
 ---
 
@@ -77,16 +77,16 @@ Agent pod (Rust)
 
 No manual build or deploy commands ever.
 
-| Workflow | Triggers on | Builds | Deploys |
-|----------|-------------|--------|---------|
-| `deploy-backend-prod.yml` | `apps/backend/**`, `k8s/backend.yaml` | Tests → `harkro123/eaos-backend:latest` | `kubectl rollout restart deployment/eaos-backend-prod` |
-| `deploy-dashboard-prod.yml` | `apps/dashboard-2/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` |
-| `deploy-website-prod.yml` | `apps/website/**`, `k8s/website.yaml` | `harkro123/eaos-website:latest` | `kubectl rollout restart deployment/eaos-website-prod` |
-| `deploy-changelog-prod.yml` | `apps/changelog/**`, `k8s/changelog.yaml` | `harkro123/eaos-changelog:latest` | `kubectl rollout restart deployment/eaos-changelog-prod` |
-| `build-zeroclaw-image.yml` | `packages/zeroclaw-core/**` | `harkro123/zeroclaw:latest` | No deploy — new pods pick up `:latest` on next spawn |
-| `build-skill-runtime.yml` | `packages/skill-runtime/**`, `packages/skill-sdk/**`, `packages/skills/**` | `harkro123/eaos-skill-runtime:latest` | Rollout restart + seed manifests to backend DB via `POST /api/internal/seed-manifests` |
-| `publish-skill-sdk.yml` | `packages/skill-sdk/**` | — | npm publish `@harro/skill-sdk` |
-| `sync-skill-repos.yml` | `packages/skills/**` | — | Syncs first-party skills to their individual repos |
+| Workflow                    | Triggers on                                                                | Builds                                  | Deploys                                                                                |
+| --------------------------- | -------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `deploy-backend-prod.yml`   | `apps/backend/**`, `k8s/backend.yaml`                                      | Tests → `harkro123/eaos-backend:latest` | `kubectl rollout restart deployment/eaos-backend-prod`                                 |
+| `deploy-dashboard-prod.yml` | `apps/dashboard-2/**`, `k8s/frontend.yaml`                                 | `harkro123/eaos-frontend:latest`        | `kubectl rollout restart deployment/eaos-frontend-prod`                                |
+| `deploy-website-prod.yml`   | `apps/website/**`, `k8s/website.yaml`                                      | `harkro123/eaos-website:latest`         | `kubectl rollout restart deployment/eaos-website-prod`                                 |
+| `deploy-changelog-prod.yml` | `apps/changelog/**`, `k8s/changelog.yaml`                                  | `harkro123/eaos-changelog:latest`       | `kubectl rollout restart deployment/eaos-changelog-prod`                               |
+| `build-zeroclaw-image.yml`  | `packages/zeroclaw-core/**`                                                | `harkro123/zeroclaw:latest`             | No deploy — new pods pick up `:latest` on next spawn                                   |
+| `build-skill-runtime.yml`   | `packages/skill-runtime/**`, `packages/skill-sdk/**`, `packages/skills/**` | `harkro123/eaos-skill-runtime:latest`   | Rollout restart + seed manifests to backend DB via `POST /api/internal/seed-manifests` |
+| `publish-skill-sdk.yml`     | `packages/skill-sdk/**`                                                    | —                                       | npm publish `@harro/skill-sdk`                                                         |
+| `sync-skill-repos.yml`      | `packages/skills/**`                                                       | —                                       | Syncs first-party skills to their individual repos                                     |
 
 CI connects to the cluster via **Tailscale** + `kubectl` with `KUBE_TOKEN`. All images push to Docker Hub under `harkro123/` with `:latest` only.
 
