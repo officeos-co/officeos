@@ -21,15 +21,12 @@ import { createClient } from "graphql-ws"
  * Staging:    http://localhost:5000
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not set")
+const HTTP_ENDPOINT = "/api/dashboard/graphql"
 
-const HTTP_ENDPOINT = `${API_URL}/api/dashboard/graphql`
-
-function toWsUrl(httpUrl: string): string {
-  if (httpUrl.startsWith("https://")) return "wss://" + httpUrl.slice("https://".length)
-  if (httpUrl.startsWith("http://")) return "ws://" + httpUrl.slice("http://".length)
-  return httpUrl
+function toWsUrl(path: string): string {
+  if (typeof window === "undefined") return path
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
+  return `${proto}//${window.location.host}${path}`
 }
 
 const httpLink = new HttpLink({

@@ -9,7 +9,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/dashboard-2/. ./
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_API_URL=https://api.officeos.co
 RUN bun run build
 
 FROM oven/bun:1-slim AS runtime

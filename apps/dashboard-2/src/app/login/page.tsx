@@ -6,7 +6,7 @@ import { useAuthContext } from "@/contexts/AuthContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.officeos.co"
+const API_URL = ""
 
 function GoogleIcon() {
   return (
