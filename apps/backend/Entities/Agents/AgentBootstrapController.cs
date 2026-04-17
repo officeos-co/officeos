@@ -74,17 +74,12 @@ public sealed class AgentBootstrapController : ControllerBase
         var backend = $"{Request.Scheme}://{Request.Host.Value}";
         var proxyUrl = $"{backend}/v1";
 
-        // Skill gateway endpoint — zeroclaw issues GraphQL against this.
-        // Parse host/port out of the configured SkillGateway URL; fall back
-        // to the request host when it's blank (dev).
-        var gatewayHost = Request.Host.Host;
-        var gatewayPort = Request.Host.Port ?? (Request.IsHttps ? 443 : 80);
-        if (!string.IsNullOrWhiteSpace(_gateway.Url)
-            && Uri.TryCreate(_gateway.Url, UriKind.Absolute, out var gwUri))
-        {
-            gatewayHost = gwUri.Host;
-            gatewayPort = gwUri.Port;
-        }
+        // WebSocket gateway bind address — the pod listens on all interfaces
+        // at the well-known zeroclaw port (42617).  The previous code was
+        // sending the skill-gateway hostname here, which failed SocketAddr
+        // parsing on the Rust side ("invalid socket address syntax").
+        var gatewayHost = "0.0.0.0";
+        var gatewayPort = 42617;
 
         var payload = new EnterpriseAgentOs.Api.Entities.Agents.Types.AgentBootstrapPayload(
             AgentId: id,
