@@ -72,7 +72,7 @@ function StatusBadge({ status }: { status: string }) {
 /* ── Tabs (URL-driven) ───────────────────────────────────── */
 
 const TABS = [
-  { key: "agent", label: "Agent" },
+  { key: "integrations", label: "Integrations" },
   { key: "logs", label: "Logs" },
   { key: "memory", label: "Memory" },
   { key: "cron", label: "Cron" },
@@ -87,9 +87,6 @@ function AgentTab({ agentId }: { agentId: string }) {
   const { integrations } = useIntegrations()
   const { channels } = useChannels()
   const mockAgent = agent ?? { id: agentId, name: "", model: "claude-sonnet-4-6", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
-  const [agentName, setAgentName] = useState(mockAgent.name)
-  const [prompt, setPrompt] = useState(mockAgent.prompt)
-  const [model, setModel] = useState(mockAgent.model)
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set(mockAgent.integrations))
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set(mockAgent.channels))
   const [toolPermissions, setToolPermissions] = useState<Record<string, ToolPermission>>({})
@@ -127,35 +124,6 @@ function AgentTab({ agentId }: { agentId: string }) {
 
   return (
     <div className="pt-4 space-y-6">
-      {/* Name + Model */}
-      <div className="grid grid-cols-[1fr_200px] gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="agent-name">Agent name</Label>
-          <Input id="agent-name" value={agentName} onChange={(e) => setAgentName(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Model</Label>
-          <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-              <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
-              <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
-              <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* System prompt */}
-      <div className="space-y-2">
-        <Label htmlFor="prompt">System prompt</Label>
-        <Textarea id="prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} />
-      </div>
-
-      <Separator />
-
       {/* Integrations */}
       <div className="space-y-3">
         <Label>Integrations</Label>
@@ -618,14 +586,15 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const { agent } = useAgent(id)
   const mockAgent = agent ?? { id, name: "", model: "", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
   const [agentStatus, setAgentStatus] = useState(initialStatus === "booting" ? "booting" : mockAgent.status)
-  const tab = (searchParams.get("tab") as TabKey) ?? "agent"
+  const [model, setModel] = useState(mockAgent.model)
+  const tab = (searchParams.get("tab") as TabKey) ?? "integrations"
 
   // Simulate boot → running transition
   useEffect(() => {
     if (agentStatus === "booting") {
       const t = setTimeout(() => {
         setAgentStatus("running")
-        router.replace(`/agents/${id}?tab=agent`)
+        router.replace(`/agents/${id}?tab=integrations`)
       }, 5000)
       return () => clearTimeout(t)
     }
@@ -658,9 +627,20 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                 <span className="mx-1.5">·</span>
                 <span>Last updated 41 minutes ago</span>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{mockAgent.prompt.slice(0, 120)}{mockAgent.prompt.length > 120 ? "…" : ""}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
+                  <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
+                  <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
+                  <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" size="sm" render={<Link href="/agents" />}>All agents</Button>
             </div>
           </div>
@@ -685,7 +665,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex flex-1 flex-col px-4 max-w-6xl mx-auto w-full">
         <div className="flex-1 flex flex-col">
-          {tab === "agent" && <AgentTab agentId={id} />}
+          {tab === "integrations" && <AgentTab agentId={id} />}
           {tab === "logs" && <LogsTab agentId={id} />}
           {tab === "memory" && <MemoryTab />}
           {tab === "cron" && <CronTab />}
