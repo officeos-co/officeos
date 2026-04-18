@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { ChannelOnboardingDialog } from "@/features/agents"
@@ -9,29 +8,28 @@ import { Button } from "@/components/ui/button"
 import { type Channel } from "@/features/agents/data/channels"
 import { useChannels, useCreateChannelConnection, useBindChannelToAgent } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
-import { PlusIcon, CheckIcon, RadioIcon } from "lucide-react"
+import { PlusIcon, RadioIcon } from "lucide-react"
 
 type View = "all" | "connected" | "available"
 
 export default function ChannelsPage() {
   const router = useRouter()
-  const { channels } = useChannels()
+  const { channels, loading } = useChannels()
   const { createChannelConnection } = useCreateChannelConnection()
   const { bindChannelToAgent } = useBindChannelToAgent()
   const { trackChannelConnected } = useAnalytics()
   void createChannelConnection
   void bindChannelToAgent
   const [view, setView] = useState<View>("all")
-  const [connectedSet, setConnectedSet] = useState<Set<string>>(() => new Set(channels.filter((c) => c.added).map((c) => c.slug)))
   const [onboardingChannel, setOnboardingChannel] = useState<Channel | null>(null)
 
   const filtered = channels.filter((c) => {
-    if (view === "connected" && !connectedSet.has(c.slug)) return false
-    if (view === "available" && connectedSet.has(c.slug)) return false
+    if (view === "connected" && !c.added) return false
+    if (view === "available" && c.added) return false
     return true
   })
 
-  const connectedCount = channels.filter((c) => connectedSet.has(c.slug)).length
+  const connectedCount = channels.filter((c) => c.added).length
 
   return (
     <>
@@ -48,10 +46,11 @@ export default function ChannelsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((channel) => {
-            const isConnected = connectedSet.has(channel.slug)
-            return (
+        {loading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Loading channels...</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((channel) => (
               <button
                 key={channel.slug}
                 type="button"
@@ -59,12 +58,11 @@ export default function ChannelsPage() {
                 className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
               >
                 <div className="flex items-start gap-3">
-                  <Image src={channel.logo} alt={channel.name} width={32} height={32} className="shrink-0" />
+                  <div className="size-8 shrink-0 [&>svg]:size-8" dangerouslySetInnerHTML={{ __html: channel.logo }} />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm">{channel.name}</div>
-                    <div className="text-xs text-muted-foreground">{channel.protocol}</div>
                   </div>
-                  {isConnected ? (
+                  {channel.added ? (
                     <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
                       <RadioIcon className="size-3" /> Live
                     </span>
@@ -75,22 +73,16 @@ export default function ChannelsPage() {
                   )}
                 </div>
                 <p className="text-sm line-clamp-2 text-muted-foreground">{channel.description}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {channel.capabilities.slice(0, 3).map((cap) => (
-                    <span key={cap} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{cap}</span>
-                  ))}
-                </div>
               </button>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="py-8 text-center text-sm text-muted-foreground">No channels found.</div>
         )}
       </div>
 
-      {/* Onboarding overlay */}
       {onboardingChannel && (
         <ChannelOnboardingDialog
           open={!!onboardingChannel}
@@ -98,7 +90,6 @@ export default function ChannelsPage() {
           channel={onboardingChannel}
           onComplete={() => {
             trackChannelConnected(onboardingChannel.slug)
-            setConnectedSet((prev) => new Set([...prev, onboardingChannel.slug]))
             setOnboardingChannel(null)
           }}
         />

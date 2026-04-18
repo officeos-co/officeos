@@ -1,8 +1,5 @@
 "use client"
 
-import Image from "next/image"
-import { integrations } from "@/features/agents/data/integrations"
-import { channels } from "@/features/agents/data/channels"
 import type { AgentLog } from "@/types/logs"
 import {
   TerminalIcon,
@@ -17,13 +14,10 @@ import {
 
 function logIcon(log: AgentLog) {
   if (log.type === "tool_call" || log.type === "tool_result") {
-    const integ = integrations.find((i) => i.slug === log.integration)
-    if (integ) return <Image src={integ.logo} alt={integ.name} width={16} height={16} className="shrink-0" />
     return <TerminalIcon className="size-4 text-muted-foreground" />
   }
   if (log.type === "channel_in" || log.type === "channel_out") {
-    const ch = channels.find((c) => c.slug === log.channel)
-    if (ch) return <Image src={ch.logo} alt={ch.name} width={16} height={16} className="shrink-0" />
+    // channel logos are SVG from backend — not available at log render time
   }
   if (log.type === "message_in") return <ArrowDownLeftIcon className="size-4 text-blue-500" />
   if (log.type === "message_out") return <ArrowUpRightIcon className="size-4 text-emerald-500" />

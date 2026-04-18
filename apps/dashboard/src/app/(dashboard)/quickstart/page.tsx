@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
@@ -17,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { builtInTools, sourceUrl, type Tool } from "@/features/agents/data/integrations"
+import { builtInTools, type Tool } from "@/features/agents/data/integrations"
 import { type Channel, type ChannelPermissions } from "@/features/agents/data/channels"
 import { useIntegrations } from "@/features/agents"
 import { useChannels } from "@/features/agents"
@@ -122,7 +121,7 @@ function ChannelPermissionSection({
   return (
     <div className="rounded-xl border border-border">
       <div className="flex items-center gap-3 px-4 py-3">
-        <Image src={channel.logo} alt={channel.name} width={32} height={32} className="shrink-0 rounded-lg" />
+        <div className="size-8 shrink-0 rounded-lg [&>svg]:size-8" dangerouslySetInnerHTML={{ __html: channel.logo }} />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{channel.name}</div>
           <div className="text-xs text-muted-foreground">{channel.protocol}</div>
@@ -318,7 +317,7 @@ export default function QuickstartPage() {
                   return (
                     <button key={i.slug} type="button" onClick={() => toggleIntegration(i.slug)}
                       className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
-                      <Image src={i.logo} alt={i.name} width={18} height={18} className="shrink-0" />
+                      <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: i.logo }} />
                       <span className="flex-1 truncate">{i.name}</span>
                       {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
                     </button>
@@ -342,7 +341,7 @@ export default function QuickstartPage() {
                   return (
                     <button key={c.slug} type="button" onClick={() => toggleChannel(c.slug)}
                       className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
-                      <Image src={c.logo} alt={c.name} width={18} height={18} className="shrink-0" />
+                      <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: c.logo }} />
                       <span className="flex-1 truncate">{c.name}</span>
                       {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
                     </button>
@@ -367,8 +366,8 @@ export default function QuickstartPage() {
               />
               {activeIntegrations.map((i) => (
                 <ToolPermissionSection
-                  key={i.slug} title={i.name} subtitle={sourceUrl(i.slug).replace("https://github.com/", "")}
-                  icon={<Image src={i.logo} alt={i.name} width={16} height={16} />}
+                  key={i.slug} title={i.name} subtitle={i.sourceCodeUrl.replace("https://github.com/", "")}
+                  icon={<div className="size-4 [&>svg]:size-4" dangerouslySetInnerHTML={{ __html: i.logo }} />}
                   tools={i.tools} permissions={toolPermissions}
                   onToggle={(k, p) => setToolPermissions((prev) => ({ ...prev, [k]: p }))}
                   groupPerm={groupPermissions[i.slug] ?? "allow"}
@@ -418,12 +417,12 @@ export default function QuickstartPage() {
                       <div className="flex items-center gap-1 mt-0.5">
                         {t.integrations.map((slug) => {
                           const i = integrations.find((x) => x.slug === slug)
-                          return i ? <Image key={slug} src={i.logo} alt={i.name} width={14} height={14} className="shrink-0" /> : null
+                          return i ? <div key={slug} className="size-[14px] shrink-0 [&>svg]:size-[14px]" dangerouslySetInnerHTML={{ __html: i.logo }} /> : null
                         })}
                         {t.channels.length > 0 && t.integrations.length > 0 && <span className="text-[10px] text-muted-foreground mx-0.5">·</span>}
                         {t.channels.map((slug) => {
                           const c = channels.find((x) => x.slug === slug)
-                          return c ? <Image key={slug} src={c.logo} alt={c.name} width={14} height={14} className="shrink-0" /> : null
+                          return c ? <div key={slug} className="size-[14px] shrink-0 [&>svg]:size-[14px]" dangerouslySetInnerHTML={{ __html: c.logo }} /> : null
                         })}
                       </div>
                     )}

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -42,7 +41,7 @@ export function CredentialDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <Image src={logo} alt={name} width={24} height={24} className="shrink-0" />
+            <div className="size-6 shrink-0 [&>svg]:size-6" dangerouslySetInnerHTML={{ __html: logo }} />
             <div>
               <DialogTitle className="text-base">Configure {name}</DialogTitle>
               <DialogDescription>Enter credentials to connect.</DialogDescription>

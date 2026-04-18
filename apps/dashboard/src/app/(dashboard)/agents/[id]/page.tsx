@@ -1,7 +1,6 @@
 "use client"
 
 import { use, useState, useEffect } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
@@ -31,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { mockFileTree, type FileNode } from "@/features/agents/data/agent-mock"
-import { builtInTools, sourceUrl } from "@/features/agents/data/integrations"
+import { builtInTools } from "@/features/agents/data/integrations"
 import { type ChannelPermissions } from "@/features/agents/data/channels"
 import { useAgent } from "@/features/agents"
 import { useAgentLogs } from "@/features/analytics"
@@ -133,7 +132,7 @@ function AgentTab({ agentId }: { agentId: string }) {
             return (
               <button key={i.slug} type="button" onClick={() => toggleIntegration(i.slug)}
                 className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
-                <Image src={i.logo} alt={i.name} width={18} height={18} className="shrink-0" />
+                <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: i.logo }} />
                 <span className="flex-1 truncate">{i.name}</span>
                 {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
               </button>
@@ -151,7 +150,7 @@ function AgentTab({ agentId }: { agentId: string }) {
             return (
               <button key={c.slug} type="button" onClick={() => toggleChannel(c.slug)}
                 className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
-                <Image src={c.logo} alt={c.name} width={18} height={18} className="shrink-0" />
+                <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: c.logo }} />
                 <span className="flex-1 truncate">{c.name}</span>
                 {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
               </button>
@@ -176,8 +175,8 @@ function AgentTab({ agentId }: { agentId: string }) {
         />
         {activeIntegrations.map((i) => (
           <ToolPermissionCard
-            key={i.slug} title={i.name} subtitle={sourceUrl(i.slug).replace("https://github.com/", "")}
-            icon={<Image src={i.logo} alt={i.name} width={16} height={16} />}
+            key={i.slug} title={i.name} subtitle={i.sourceCodeUrl.replace("https://github.com/", "")}
+            icon={<div className="size-4 [&>svg]:size-4" dangerouslySetInnerHTML={{ __html: i.logo }} />}
             tools={i.tools} permissions={toolPermissions}
             onToggle={(k, p) => setToolPermissions((prev) => ({ ...prev, [k]: p }))}
             groupPerm={groupPermissions[i.slug] ?? "allow"}

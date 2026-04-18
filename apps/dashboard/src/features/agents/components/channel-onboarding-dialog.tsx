@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -47,10 +46,10 @@ export function ChannelOnboardingDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <Image src={channel.logo} alt={channel.name} width={28} height={28} className="shrink-0" />
+            <div className="size-7 shrink-0 [&>svg]:size-7" dangerouslySetInnerHTML={{ __html: channel.logo }} />
             <div>
               <DialogTitle className="text-base">Connect {channel.name}</DialogTitle>
-              <DialogDescription>{channel.protocol}</DialogDescription>
+              <DialogDescription>Set up {channel.name} integration</DialogDescription>
             </div>
           </div>
         </DialogHeader>
