@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Interfaces.Gdpr;
+namespace EnterpriseAgentOs.Domain.Interfaces.Auth;
 
 public interface IGdprService
 {

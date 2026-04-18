@@ -1,4 +1,6 @@
-namespace EnterpriseAgentOs.Application.DTOs.Gdpr;
+namespace EnterpriseAgentOs.Domain.DTOs.Auth;
+
+// ── Export DTOs ───────────────────────────────────────────────────────────────
 
 public record GdprUserDto(
     Guid Id,
@@ -33,6 +35,9 @@ public record GdprAuditEntryDto(
     long DurationMs,
     DateTime Timestamp);
 
+/// <summary>
+/// Skill credential entry — never includes plaintext credential values.
+/// </summary>
 public record GdprSkillCredentialDto(
     Guid Id,
     string SkillName,

@@ -31,7 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrgBillingService, Application.Services.Billing.OrgBillingService>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<ICreditRecordingService, Application.Services.Billing.CreditRecordingService>();
-        services.AddScoped<IGdprService, Application.Services.Gdpr.GdprService>();
+        services.AddScoped<IGdprService, Application.Services.Auth.GdprService>();
         services.AddScoped<IAgentTemplateService, Application.Services.AgentTemplates.AgentTemplateService>();
         services.AddScoped<IAgentLogService, Application.Services.AgentLogs.AgentLogService>();
         return services;

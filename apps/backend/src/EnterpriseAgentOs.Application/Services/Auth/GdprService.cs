@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Services.Gdpr;
+namespace EnterpriseAgentOs.Application.Services.Auth;
 
 public sealed class GdprService : IGdprService
 {

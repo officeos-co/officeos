@@ -40,7 +40,7 @@ global using EnterpriseAgentOs.Domain.Interfaces.AgentSkills;
 global using EnterpriseAgentOs.Domain.Interfaces.AgentLogs;
 global using EnterpriseAgentOs.Domain.Interfaces.AgentTemplates;
 global using EnterpriseAgentOs.Domain.Interfaces.Billing;
-global using EnterpriseAgentOs.Domain.Interfaces.Gdpr;
+global using EnterpriseAgentOs.Domain.Interfaces.Auth;
 global using EnterpriseAgentOs.Domain.Interfaces.Organizations;
 global using EnterpriseAgentOs.Domain.Interfaces.Channels;
 global using EnterpriseAgentOs.Domain.Interfaces.Sso;
