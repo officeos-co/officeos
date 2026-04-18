@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { SkillDefinition, ActionDefinition, SkillContext, CredentialFieldDefinition } from "./types.js";
+import type { SkillDefinition, ActionDefinition, SkillContext, CredentialFieldDefinition, SkillAuthor, SkillContributor } from "./types.js";
 
 export { z };
-export type { SkillDefinition, ActionDefinition, SkillContext, CredentialFieldDefinition };
+export type { SkillDefinition, ActionDefinition, SkillContext, CredentialFieldDefinition, SkillAuthor, SkillContributor };
 export { createContext } from "./context.js";
 
 /**

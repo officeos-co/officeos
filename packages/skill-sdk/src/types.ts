@@ -50,6 +50,16 @@ export interface CredentialFieldDefinition {
   help?: string;
 }
 
+export interface SkillAuthor {
+  name: string;
+  url?: string;
+}
+
+export interface SkillContributor {
+  name: string;
+  url?: string;
+}
+
 /**
  * A complete skill definition — the unit of packaging and deployment.
  */
@@ -77,4 +87,18 @@ export interface SkillDefinition {
   credentials: Record<string, CredentialFieldDefinition>;
   /** Map of action name → action definition. */
   actions: Record<string, ActionDefinition>;
+  /** Semver version string (e.g. "1.0.0"). */
+  version?: string;
+  /** SPDX license identifier (e.g. "MIT"). */
+  license?: string;
+  /** GitHub repository URL. */
+  repository?: string;
+  /** 1-3 categories from the fixed category list. */
+  categories?: string[];
+  /** Freeform search keywords, max 30. */
+  keywords?: string[];
+  /** Skill author. */
+  author?: SkillAuthor;
+  /** Contributors list. */
+  contributors?: SkillContributor[];
 }
