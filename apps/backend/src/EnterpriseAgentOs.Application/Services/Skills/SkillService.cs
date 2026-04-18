@@ -16,6 +16,11 @@ public sealed class SkillService : ISkillService
     private readonly SkillCredentialProtector _protector;
     private readonly SkillRuntimeClient _runtime;
     private readonly ILogger<SkillService> _logger;
+    private readonly IMemoryCache _cache;
+
+    private static readonly TimeSpan SkillCacheTtl = TimeSpan.FromMinutes(5);
+    private const string SkillListCacheKey = "skills:list";
+    private static string SkillCacheKey(string name) => $"skills:{name}";
 
     public SkillService(
         ISkillRepository repository,
@@ -23,7 +28,8 @@ public sealed class SkillService : ISkillService
         IAgentSkillRepository agentSkills,
         SkillCredentialProtector protector,
         SkillRuntimeClient runtime,
-        ILogger<SkillService> logger)
+        ILogger<SkillService> logger,
+        IMemoryCache cache)
     {
         _repository = repository;
         _catalog = catalog;
@@ -31,29 +37,47 @@ public sealed class SkillService : ISkillService
         _protector = protector;
         _runtime = runtime;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<IReadOnlyList<SkillDto>> ListAsync(CancellationToken ct = default)
     {
+        if (_cache.TryGetValue(SkillListCacheKey, out IReadOnlyList<SkillDto>? cached) && cached is not null)
+            return cached;
+
         var skills = await _catalog.ListActiveAsync(ct);
         var rows = (await _repository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
 
-        return skills
+        var result = skills
             .Select(s =>
             {
                 rows.TryGetValue(s.Name, out var row);
                 return ToDto(s, row);
             })
             .ToList();
+
+        _cache.Set(SkillListCacheKey, (IReadOnlyList<SkillDto>)result,
+            new MemoryCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow = SkillCacheTtl });
+        return result;
     }
 
     public async Task<SkillDto?> GetAsync(string name, CancellationToken ct = default)
     {
+        var key = SkillCacheKey(name);
+        if (_cache.TryGetValue(key, out SkillDto? cached) && cached is not null)
+            return cached;
+
         var skill = await _catalog.GetByNameAsync(name, ct);
         if (skill is null || skill.Status != "active") return null;
         var row = await _repository.GetByNameAsync(skill.Name, ct);
-        return ToDto(skill, row);
+        var dto = ToDto(skill, row);
+
+        _cache.Set(key, dto,
+            new MemoryCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow = SkillCacheTtl });
+        return dto;
     }
 
     public async Task<SkillDto?> InstallAsync(string name, CancellationToken ct = default)
@@ -89,6 +113,8 @@ public sealed class SkillService : ISkillService
         }
         var row = await _repository.UpsertAsync(skill.Name, enabled: true, encryptedCredentials: null, ct);
         _logger.LogInformation("Skill {SkillName} installed", skill.Name);
+        _cache.Remove(SkillListCacheKey);
+        _cache.Remove(SkillCacheKey(skill.Name));
         return ToDto(skill, row);
     }
 
@@ -102,6 +128,8 @@ public sealed class SkillService : ISkillService
         }
         var row = await _repository.UpsertAsync(skill.Name, enabled: false, encryptedCredentials: null, ct);
         _logger.LogInformation("Skill {SkillName} uninstalled", skill.Name);
+        _cache.Remove(SkillListCacheKey);
+        _cache.Remove(SkillCacheKey(skill.Name));
         return ToDto(skill, row);
     }
 
@@ -137,6 +165,8 @@ public sealed class SkillService : ISkillService
         var row = await _repository.UpsertAsync(skill.Name, enabled: null, encryptedCredentials: ciphertext, ct);
         _logger.LogInformation("Credentials updated for skill {SkillName} ({FieldCount} fields)",
             skill.Name, filtered.Count);
+        _cache.Remove(SkillListCacheKey);
+        _cache.Remove(SkillCacheKey(skill.Name));
         return ToDto(skill, row);
     }
 

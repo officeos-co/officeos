@@ -210,24 +210,11 @@ function AgentTab({ agentId }: { agentId: string }) {
 /* ── Logs tab ────────────────────────────────────────────── */
 
 function LogsTab({ agentId }: { agentId: string }) {
-  const [message, setMessage] = useState("")
   const { logs } = useAgentLogs(agentId)
-  const { sendAgentMessage } = useSendAgentMessage()
-  const submit = () => {
-    if (!message.trim()) return
-    sendAgentMessage(agentId, message)
-    setMessage("")
-  }
   return (
     <div className="flex flex-col flex-1 pt-4">
       <div className="flex-1 overflow-x-auto">
         <LogTable logs={logs} />
-      </div>
-      <div className="border-t border-border p-3 mt-4">
-        <div className="flex items-center gap-2 max-w-3xl mx-auto">
-          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Send a message to the agent..." className="flex-1" onKeyDown={(e) => { if (e.key === "Enter" && message.trim()) submit() }} />
-          <Button size="icon" disabled={!message.trim()} onClick={submit}><SendIcon className="size-4" /></Button>
-        </div>
       </div>
     </div>
   )
@@ -582,7 +569,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const searchParams = useSearchParams()
   const router = useRouter()
   const initialStatus = searchParams.get("status")
-  const { agent } = useAgent(id)
+  const { agent, loading: agentLoading } = useAgent(id)
   const { models } = useModels()
   const mockAgent = agent ?? { id, name: "", model: "", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
   const [agentStatus, setAgentStatus] = useState(initialStatus === "booting" ? "booting" : mockAgent.status)
@@ -600,13 +587,21 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     }
   }, [agentStatus, id, router])
 
-  if (agentStatus === "booting") {
+  if (agentStatus === "booting" || (agentLoading && !agent)) {
     return (
       <>
-        <PageHeader group="Agents" page={mockAgent.name} />
+        <PageHeader group="Agents" page={mockAgent.name || "Loading..."} />
         <AgentSkeleton />
       </>
     )
+  }
+
+  const [message, setMessage] = useState("")
+  const { sendAgentMessage } = useSendAgentMessage()
+  const submit = () => {
+    if (!message.trim()) return
+    sendAgentMessage(id, message)
+    setMessage("")
   }
 
   return (
@@ -661,12 +656,20 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-4 max-w-6xl mx-auto w-full">
+      <div className="flex flex-1 flex-col px-4 max-w-6xl mx-auto w-full pb-20">
         <div className="flex-1 flex flex-col">
           {tab === "integrations" && <AgentTab agentId={id} />}
           {tab === "logs" && <LogsTab agentId={id} />}
           {tab === "memory" && <MemoryTab />}
           {tab === "cron" && <CronTab />}
+        </div>
+      </div>
+
+      {/* Sticky chat bar — visible on all tabs */}
+      <div className="sticky bottom-0 z-10 border-t border-border bg-background/80 backdrop-blur-sm p-3">
+        <div className="flex items-center gap-2 max-w-3xl mx-auto">
+          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Send a message to the agent..." className="flex-1" onKeyDown={(e) => { if (e.key === "Enter" && message.trim()) submit() }} />
+          <Button size="icon" disabled={!message.trim()} onClick={submit}><SendIcon className="size-4" /></Button>
         </div>
       </div>
     </>

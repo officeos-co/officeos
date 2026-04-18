@@ -3,25 +3,51 @@ namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class ChannelQueries
 {
+    private static readonly TimeSpan ChannelCacheTtl = TimeSpan.FromMinutes(5);
+    private const string ChannelListCacheKey = "channels:list";
+    private static string ChannelCacheKey(Guid id) => $"channels:{id}";
+
     public async Task<IReadOnlyList<Types.ChannelConnectionGqlDto>> GetChannelConnections(
         IResolverContext context,
         [Service] IChannelRepository repo,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+
+        if (cache.TryGetValue(ChannelListCacheKey, out IReadOnlyList<Types.ChannelConnectionGqlDto>? cached) && cached is not null)
+            return cached;
+
         var rows = await repo.ListConnectionsAsync(ct);
-        return rows.Select(Types.ChannelGraphQLMapper.ToDto).ToList();
+        var result = rows.Select(Types.ChannelGraphQLMapper.ToDto).ToList();
+
+        cache.Set(ChannelListCacheKey, (IReadOnlyList<Types.ChannelConnectionGqlDto>)result,
+            new MemoryCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow = ChannelCacheTtl });
+        return result;
     }
 
     public async Task<Types.ChannelConnectionGqlDto?> GetChannelConnection(
         Guid id,
         IResolverContext context,
         [Service] IChannelRepository repo,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+
+        var key = ChannelCacheKey(id);
+        if (cache.TryGetValue(key, out Types.ChannelConnectionGqlDto? cached) && cached is not null)
+            return cached;
+
         var row = await repo.GetConnectionAsync(id, ct);
-        return row is null ? null : Types.ChannelGraphQLMapper.ToDto(row);
+        if (row is null) return null;
+        var dto = Types.ChannelGraphQLMapper.ToDto(row);
+
+        cache.Set(key, dto,
+            new MemoryCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow = ChannelCacheTtl });
+        return dto;
     }
 
     public IReadOnlyList<Types.ChannelTypeGqlDto> GetChannelTypes(

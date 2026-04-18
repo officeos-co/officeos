@@ -11,24 +11,32 @@ export default function Loading() {
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-9 w-24" />
         </div>
-        <div className="w-full">
-          <div className="border-b py-3 px-4 flex gap-4">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <Skeleton key={i} className="h-3 w-20" />
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left">
+              <th className="px-4 py-3"><Skeleton className="h-3 w-6" /></th>
+              <th className="px-4 py-3"><Skeleton className="h-3 w-12" /></th>
+              <th className="px-4 py-3"><Skeleton className="h-3 w-12" /></th>
+              <th className="px-4 py-3 text-center"><Skeleton className="h-3 w-12 mx-auto" /></th>
+              <th className="px-4 py-3"><Skeleton className="h-3 w-16" /></th>
+              <th className="px-4 py-3"><Skeleton className="h-3 w-20" /></th>
+              <th className="px-4 py-3 w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <tr key={i} className="border-b">
+                <td className="px-4 py-3"><Skeleton className="h-4 w-8" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                <td className="px-4 py-3 text-center"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                <td className="px-4 py-3"><Skeleton className="size-6 rounded" /></td>
+              </tr>
             ))}
-          </div>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="border-b py-3 px-4 flex items-center gap-4">
-              <Skeleton className="h-4 w-8" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-6 w-16 rounded-full" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-6" />
-            </div>
-          ))}
-        </div>
+          </tbody>
+        </table>
       </div>
     </>
   )

@@ -16,6 +16,7 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
 
 // Data Protection
 var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");

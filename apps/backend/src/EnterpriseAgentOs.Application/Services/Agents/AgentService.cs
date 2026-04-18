@@ -7,33 +7,52 @@ public sealed class AgentService : IAgentService
     private readonly IProviderService _providerService;
     private readonly IPostHogService _analytics;
     private readonly ILogger<AgentService> _logger;
+    private readonly IMemoryCache _cache;
+
+    private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
+    private const string AgentListCacheKey = "agents:list";
+    private static string AgentCacheKey(Guid id) => $"agents:{id}";
 
     public AgentService(
         IAgentRepository repository,
         IAgentDeployer deployer,
         IProviderService providerService,
         IPostHogService analytics,
-        ILogger<AgentService> logger)
+        ILogger<AgentService> logger,
+        IMemoryCache cache)
     {
         _repository = repository;
         _deployer = deployer;
         _providerService = providerService;
         _analytics = analytics;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
     {
+        if (_cache.TryGetValue(AgentListCacheKey, out IReadOnlyList<AgentDto>? cached) && cached is not null)
+            return cached;
+
         var records = await _repository.ListAsync(ct);
         _logger.LogDebug("Listing {Count} agents, refreshing pod status", records.Count);
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
-        return records.Select(ToDto).ToList();
+        var result = records.Select(ToDto).ToList();
+
+        _cache.Set(AgentListCacheKey, (IReadOnlyList<AgentDto>)result,
+            new MemoryCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow = AgentCacheTtl });
+        return result;
     }
 
     public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
+        var key = AgentCacheKey(id);
+        if (_cache.TryGetValue(key, out AgentDto? cached) && cached is not null)
+            return cached;
+
         var record = await _repository.GetAsync(id, ct);
         if (record is null)
         {
@@ -41,7 +60,12 @@ public sealed class AgentService : IAgentService
             return null;
         }
         await RefreshStatusAsync(record, ct);
-        return ToDto(record);
+        var dto = ToDto(record);
+
+        _cache.Set(key, dto,
+            new MemoryCacheEntryOptions
+            { AbsoluteExpirationRelativeToNow = AgentCacheTtl });
+        return dto;
     }
 
     public async Task<AgentDto> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, CancellationToken ct = default)
@@ -101,6 +125,9 @@ public sealed class AgentService : IAgentService
             record.Status = "failed";
             await _repository.UpdateAsync(record, ct);
         }
+
+        _cache.Remove(AgentListCacheKey);
+        _cache.Remove(AgentCacheKey(record.Id));
 
         if (ownerId is not null)
         {
@@ -167,6 +194,8 @@ public sealed class AgentService : IAgentService
         }
 
         await _repository.UpdateAsync(record, ct);
+        _cache.Remove(AgentListCacheKey);
+        _cache.Remove(AgentCacheKey(id));
         return ToDto(record);
     }
 
@@ -188,6 +217,8 @@ public sealed class AgentService : IAgentService
         }
 
         var deleted = await _repository.SoftDeleteAsync(id, ct);
+        _cache.Remove(AgentListCacheKey);
+        _cache.Remove(AgentCacheKey(id));
 
         if (deleted && record.OwnerId is not null)
         {

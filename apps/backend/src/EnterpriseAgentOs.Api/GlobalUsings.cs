@@ -14,6 +14,7 @@ global using Microsoft.AspNetCore.Mvc.Filters;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.Caching.Memory;
 global using Microsoft.Extensions.DependencyInjection;
 global using Serilog.Context;
 global using Serilog.Events;

@@ -1,13 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useIntegrations, useInstallSkill } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
-import { SearchIcon, HeartIcon, PlusIcon, CheckIcon } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+
+const PAGE_SIZES = [25, 50, 100] as const
 
 type View = "all" | "installed" | "explore"
 
@@ -18,13 +28,20 @@ export default function IntegrationsPage() {
   const { trackSkillInstalled } = useAnalytics()
   const [search, setSearch] = useState("")
   const [view, setView] = useState<View>("all")
+  const [pageSize, setPageSize] = useState<number>(50)
+  const [page, setPage] = useState(0)
 
-  const filtered = integrations.filter((i) => {
-    if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
-    if (view === "installed" && !i.installed) return false
-    if (view === "explore" && i.installed) return false
-    return true
-  })
+  const filtered = useMemo(() => {
+    return integrations.filter((i) => {
+      if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
+      if (view === "installed" && !i.installed) return false
+      if (view === "explore" && i.installed) return false
+      return true
+    })
+  }, [integrations, search, view])
+
+  const totalPages = Math.ceil(filtered.length / pageSize)
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   const installedCount = integrations.filter((i) => i.installed).length
 
@@ -41,11 +58,11 @@ export default function IntegrationsPage() {
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
             <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input placeholder="Search integrations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+            <Input placeholder="Search integrations..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} className="pl-8" />
           </div>
           <div className="flex items-center rounded-lg border border-border">
             {([["all", "All"], ["installed", `Installed (${installedCount})`], ["explore", "Explore"]] as const).map(([key, label]) => (
-              <button key={key} type="button" onClick={() => setView(key)}
+              <button key={key} type="button" onClick={() => { setView(key); setPage(0) }}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"} ${key === "all" ? "rounded-l-md" : ""} ${key === "explore" ? "rounded-r-md" : ""}`}>
                 {label}
               </button>
@@ -54,10 +71,28 @@ export default function IntegrationsPage() {
         </div>
 
         {loading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">Loading integrations...</div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-3 rounded-xl border border-border p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="size-8 rounded-full shrink-0" />
+                  <div className="flex-1 pt-0.5">
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                  <Skeleton className="h-7 w-14 rounded-md" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((integration) => (
+            {paged.map((integration) => (
               <button
                 key={integration.slug}
                 type="button"
@@ -92,6 +127,32 @@ export default function IntegrationsPage() {
 
         {!loading && filtered.length === 0 && (
           <div className="py-8 text-center text-sm text-muted-foreground">No integrations found.</div>
+        )}
+
+        {/* Pagination */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>Rows per page</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
+                <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-xs">
+                {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}` : "0 results"}
+              </span>
+              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
+                <ChevronRightIcon className="size-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </>

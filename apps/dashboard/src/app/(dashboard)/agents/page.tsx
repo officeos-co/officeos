@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useAgents, useDeleteAgent } from "@/features/agents";
 
@@ -40,7 +41,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AgentsPage() {
   const router = useRouter();
-  const { agents, refetch } = useAgents();
+  const { agents, loading, refetch } = useAgents();
   const { deleteAgent } = useDeleteAgent();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
@@ -117,6 +118,17 @@ export default function AgentsPage() {
             </tr>
           </thead>
           <tbody>
+            {loading && agents.length === 0 && Array.from({ length: 3 }).map((_, i) => (
+              <tr key={i} className="border-b">
+                <td className="px-4 py-3"><Skeleton className="h-4 w-8" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                <td className="px-4 py-3 text-center"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                <td className="px-4 py-3"><Skeleton className="size-6 rounded" /></td>
+              </tr>
+            ))}
             {filtered.map((agent) => (
               <tr
                 key={agent.id}
@@ -155,7 +167,7 @@ export default function AgentsPage() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr>
                 <td
                   colSpan={7}
