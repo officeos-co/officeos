@@ -40,7 +40,7 @@ for skill in "${SKILLS[@]}"; do
   if ! gh repo view "$ORG/$REPO" &>/dev/null; then
     echo "  Creating repo $ORG/$REPO..."
     # Extract description from skill.ts if possible
-    DESC=$(grep -oP '(?<=description:\s*")[^"]+' "$SRC/skill.ts" 2>/dev/null | head -1 || echo "OfficeOS skill: $skill")
+    DESC=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$SRC/skill.json','utf-8')).description)" 2>/dev/null || echo "OfficeOS skill: $skill")
     gh repo create "$ORG/$REPO" --public --description "$DESC" --license mit
     sleep 1
   fi
@@ -61,7 +61,7 @@ for skill in "${SKILLS[@]}"; do
     "$SRC/" "$WORK/$REPO/src/"
 
   # Move key files to repo root for discoverability, keep src/ as well
-  for f in skill.ts SKILL.md icon.svg icon.png; do
+  for f in skill.ts skill.json SKILL.md README.md CHANGELOG.md LICENSE icon.svg icon.png; do
     [ -f "$SRC/$f" ] && cp "$SRC/$f" "$WORK/$REPO/$f"
   done
 
@@ -85,28 +85,6 @@ for skill in "${SKILLS[@]}"; do
 PKGJSON
   fi
 
-  # Generate README if it doesn't exist
-  if [ ! -f "$WORK/$REPO/README.md" ]; then
-    TITLE=$(grep -oP "(?<=title:\s\")[^\"]+" "$SRC/skill.ts" 2>/dev/null | head -1 || echo "$skill")
-    DESC=$(grep -oP '(?<=description:\s*")[^"]+' "$SRC/skill.ts" 2>/dev/null | head -1 || echo "OfficeOS skill: $skill")
-    cat > "$WORK/$REPO/README.md" <<README
-# @officeos/skill-$skill
-
-$DESC
-
-## Install
-
-\`\`\`bash
-eaos skill install $skill
-\`\`\`
-
-Or from the OfficeOS dashboard under **Skills > Install**.
-
-## License
-
-MIT
-README
-  fi
 
   # Check for changes
   cd "$WORK/$REPO"
