@@ -12,9 +12,6 @@ public sealed class SkillRecord
 
     public string Description { get; set; } = string.Empty;
 
-    [MaxLength(8)]
-    public string Emoji { get; set; } = string.Empty;
-
     public string? Doc { get; set; }
 
     /// <summary>"builtin" | "upload" | "github"</summary>
@@ -42,10 +39,6 @@ public sealed class SkillRecord
 
     [MaxLength(128)]
     public string? GitHubBranch { get; set; }
-
-    /// <summary>Public URL (typically GitHub) to the skill's source code — surfaced on the skill detail page.</summary>
-    [MaxLength(512)]
-    public string? SourceCodeUrl { get; set; }
 
     public bool IsSystem { get; set; }
 

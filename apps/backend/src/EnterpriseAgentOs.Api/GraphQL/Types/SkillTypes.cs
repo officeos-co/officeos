@@ -2,17 +2,9 @@ namespace EnterpriseAgentOs.Api.GraphQL.Types;
 
 [GraphQLName("Skill")]
 public sealed record SkillDashboardDto(
-    Guid Id,
-    string Name,
-    string Title,
-    string Description,
-    string Emoji,
-    string? Doc,
-    string? SourceCodeUrl,
-    string Status,
-    string Version,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+    Guid Id, string Name, string Title, string Description,
+    string? Doc, string Status, string Version,
+    DateTime CreatedAt, DateTime UpdatedAt);
 
 [GraphQLName("SkillTool")]
 public sealed record SkillToolDto(string Name, string Description);
@@ -70,6 +62,33 @@ public class SkillDashboardResolvers
         return await db.SkillComments.CountAsync(c => c.SkillId == skill.Id, ct);
     }
 
+    public async Task<string?> GetLogo(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        if (record is null || string.IsNullOrWhiteSpace(record.ManifestJson)) return null;
+        try
+        {
+            var manifest = JsonSerializer.Deserialize<RuntimeManifest>(record.ManifestJson, ManifestJsonOptions);
+            return manifest?.Logo;
+        }
+        catch { return null; }
+    }
+
+    public async Task<bool> GetInstalled(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillRepository repo,
+        CancellationToken ct)
+    {
+        var row = await repo.GetByNameAsync(skill.Name, ct);
+        return row?.Enabled == true;
+    }
+
+    public string GetSourceCodeUrl([Parent] SkillDashboardDto skill)
+        => $"https://github.com/officeos/integrations/tree/main/packages/{skill.Name}";
+
     public async Task<IReadOnlyList<SkillToolDto>> GetTools(
         [Parent] SkillDashboardDto skill,
         [Service] ISkillCatalogRepository catalog,
@@ -95,8 +114,8 @@ public class SkillDashboardResolvers
 internal static class SkillDashboardMapper
 {
     public static SkillDashboardDto ToDto(SkillRecord r) =>
-        new(r.Id, r.Name, r.Title, r.Description, r.Emoji, r.Doc,
-            r.SourceCodeUrl, r.Status, r.Version, r.CreatedAt, r.UpdatedAt);
+        new(r.Id, r.Name, r.Title, r.Description, r.Doc,
+            r.Status, r.Version, r.CreatedAt, r.UpdatedAt);
 
     public static SkillCommentDto ToDto(SkillCommentRecord c) =>
         new(c.Id, c.SkillId, c.Body, c.CreatedAt, c.UpdatedAt,

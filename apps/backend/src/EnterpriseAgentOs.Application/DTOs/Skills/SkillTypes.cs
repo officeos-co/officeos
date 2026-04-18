@@ -6,9 +6,7 @@ public sealed record SkillDashboardDto(
     string Name,
     string Title,
     string Description,
-    string Emoji,
     string? Doc,
-    string? SourceCodeUrl,
     string Status,
     string Version,
     DateTime CreatedAt,
@@ -34,8 +32,8 @@ public sealed record SkillCommentDto(
 internal static class SkillDashboardMapper
 {
     public static SkillDashboardDto ToDto(EnterpriseAgentOs.Domain.Models.SkillRecord r) =>
-        new(r.Id, r.Name, r.Title, r.Description, r.Emoji, r.Doc,
-            r.SourceCodeUrl, r.Status, r.Version, r.CreatedAt, r.UpdatedAt);
+        new(r.Id, r.Name, r.Title, r.Description, r.Doc,
+            r.Status, r.Version, r.CreatedAt, r.UpdatedAt);
 
     public static SkillCommentDto ToDto(EnterpriseAgentOs.Domain.Models.SkillCommentRecord c) =>
         new(c.Id, c.SkillId, c.Body, c.CreatedAt, c.UpdatedAt,

@@ -65,7 +65,6 @@ public static class SkillSeeder
                 Name = name,
                 Title = manifest.Title,
                 Description = manifest.Description,
-                Emoji = manifest.Emoji,
                 Doc = manifest.Doc,
                 Source = "builtin",
                 ManifestJson = manifestJson,

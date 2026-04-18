@@ -59,7 +59,6 @@ public sealed class InternalSkillController : ControllerBase
                     Name = name,
                     Title = manifest.Title,
                     Description = manifest.Description,
-                    Emoji = manifest.Emoji,
                     Doc = manifest.Doc,
                     Source = "builtin",
                     ManifestJson = manifestJson,
@@ -73,7 +72,6 @@ public sealed class InternalSkillController : ControllerBase
             {
                 existing.Title = manifest.Title;
                 existing.Description = manifest.Description;
-                existing.Emoji = manifest.Emoji;
                 existing.Doc = manifest.Doc;
                 existing.ManifestJson = manifestJson;
                 existing.IsSystem = systemSkills.Contains(name);

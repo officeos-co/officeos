@@ -144,7 +144,7 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
           {
             "name": "notion",
             "title": "Notion",
-            "emoji": "N",
+            "logo": "<svg viewBox=\"0 0 24 24\"><path d=\"M0 0h24v24H0z\"/></svg>",
             "description": "Notion workspace",
             "doc": "Access Notion pages and databases",
             "actions": {

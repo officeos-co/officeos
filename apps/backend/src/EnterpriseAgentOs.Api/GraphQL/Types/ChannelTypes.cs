@@ -18,9 +18,7 @@ public sealed record AgentChannelBindingGqlDto(
     DateTime CreatedAt);
 
 public sealed record ChannelTypeGqlDto(
-    string Type,
-    string DisplayName,
-    string Description);
+    string Type, string DisplayName, string Description, string Logo);
 
 // ── Input types ───────────────────────────────────────────────────────────
 

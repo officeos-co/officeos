@@ -39,7 +39,6 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
         {
             existing.Title = record.Title;
             existing.Description = record.Description;
-            existing.Emoji = record.Emoji;
             existing.Doc = record.Doc;
             existing.ManifestJson = record.ManifestJson;
             existing.BundleS3Key = record.BundleS3Key;

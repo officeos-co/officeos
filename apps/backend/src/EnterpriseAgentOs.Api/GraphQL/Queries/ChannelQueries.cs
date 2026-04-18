@@ -29,7 +29,7 @@ public class ChannelQueries
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return ChannelTypes.All
-            .Select(t => new Types.ChannelTypeGqlDto(t.Type, t.DisplayName, t.Description))
+            .Select(t => new Types.ChannelTypeGqlDto(t.Type, t.DisplayName, t.Description, t.Logo))
             .ToList();
     }
 

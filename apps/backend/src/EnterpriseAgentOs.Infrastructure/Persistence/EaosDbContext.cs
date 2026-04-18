@@ -133,7 +133,6 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(s => s.Name).IsUnique();
             e.Property(s => s.Name).IsRequired().HasMaxLength(64);
             e.Property(s => s.Title).IsRequired().HasMaxLength(128);
-            e.Property(s => s.Emoji).HasMaxLength(8);
             e.Property(s => s.ManifestJson).HasColumnType("text");
             e.Property(s => s.Doc).HasColumnType("text");
             e.Property(s => s.BundleS3Key).HasMaxLength(512);
@@ -251,11 +250,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(t => t.IntegrationsJson).HasColumnType("text");
             e.Property(t => t.ChannelsJson).HasColumnType("text");
             e.HasOne(t => t.Owner).WithMany().HasForeignKey(t => t.OwnerId);
-        });
-
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SkillRecord>(e =>
-        {
-            e.Property(s => s.SourceCodeUrl).HasMaxLength(512);
         });
 
         modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.OrganizationRecord>(e =>

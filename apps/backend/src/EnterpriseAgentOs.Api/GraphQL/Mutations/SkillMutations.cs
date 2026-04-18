@@ -170,22 +170,6 @@ public class SkillMutations
         return true;
     }
 
-    public async Task<Types.SkillDashboardDto> SetSkillSourceCodeUrl(
-        Guid skillId,
-        string? url,
-        IResolverContext context,
-        [Service] EaosDbContext db,
-        CancellationToken ct)
-    {
-        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var skill = await db.Skills.FirstOrDefaultAsync(s => s.Id == skillId, ct)
-            ?? throw NotFound(skillId);
-        skill.SourceCodeUrl = string.IsNullOrWhiteSpace(url) ? null : url.Trim();
-        skill.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-        return Types.SkillDashboardMapper.ToDto(skill);
-    }
-
     private static GraphQLException NotFound(Guid id) =>
         new(ErrorBuilder.New().SetMessage($"Skill '{id}' not found.").SetCode("NOT_FOUND").Build());
 

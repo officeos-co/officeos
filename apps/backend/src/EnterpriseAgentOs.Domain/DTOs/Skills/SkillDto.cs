@@ -17,7 +17,6 @@ public sealed record SkillDto(
     string Name,
     string Title,
     string Description,
-    string Emoji,
     bool Installed,
     bool Configured,
     string RunTarget,
@@ -73,7 +72,7 @@ public sealed class RuntimeManifest
 {
     public required string Name { get; set; }
     public required string Title { get; set; }
-    public required string Emoji { get; set; }
+    public string? Logo { get; set; }
     public required string Description { get; set; }
     public required string Doc { get; set; }
     public string? Category { get; set; }
