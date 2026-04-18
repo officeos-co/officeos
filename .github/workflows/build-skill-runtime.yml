@@ -96,7 +96,6 @@ jobs:
           sleep 5
           RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "http://localhost:5099/api/internal/seed-manifests" \
             -H "Content-Type: application/json" \
-            -H "X-Internal-Token: ${{ secrets.INTERNAL_API_TOKEN }}" \
             -d @manifests/all.json)
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')

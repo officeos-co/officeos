@@ -6,16 +6,13 @@ public sealed class InternalSkillController : ControllerBase
 {
     private readonly ISkillCatalogRepository _catalog;
     private readonly ILogger<InternalSkillController> _logger;
-    private readonly string? _internalToken;
 
     public InternalSkillController(
         ISkillCatalogRepository catalog,
-        IConfiguration config,
         ILogger<InternalSkillController> logger)
     {
         _catalog = catalog;
         _logger = logger;
-        _internalToken = config["InternalApiToken"];
     }
 
     /// <summary>
@@ -25,13 +22,6 @@ public sealed class InternalSkillController : ControllerBase
     [HttpPost("seed-manifests")]
     public async Task<IActionResult> SeedManifests([FromBody] List<RuntimeManifest> manifests, CancellationToken ct)
     {
-        // Validate internal token
-        var token = Request.Headers["X-Internal-Token"].FirstOrDefault();
-        if (string.IsNullOrEmpty(_internalToken) || token != _internalToken)
-        {
-            return Unauthorized(new { error = "Invalid or missing X-Internal-Token" });
-        }
-
         if (manifests.Count == 0)
         {
             return BadRequest(new { error = "No manifests provided" });
