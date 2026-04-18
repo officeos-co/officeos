@@ -101,7 +101,7 @@ public class SkillDashboardResolvers
     }
 
     public string GetSourceCodeUrl([Parent] SkillDashboardDto skill)
-        => $"https://github.com/officeos/integrations/tree/main/packages/{skill.Name}";
+        => $"https://github.com/officeos-co/skill-{skill.Name}";
 
     public async Task<IReadOnlyList<SkillToolDto>> GetTools(
         [Parent] SkillDashboardDto skill,
