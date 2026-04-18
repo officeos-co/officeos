@@ -65,11 +65,6 @@ export interface SkillDefinition {
    * with a minimal `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="..."/></svg>` wrapper.
    */
   logo: string;
-  /**
-   * Emoji icon — optional fallback kept for backwards compatibility.
-   * @deprecated Prefer `logo` (inline SVG). Will be removed in a future release.
-   */
-  emoji?: string;
   /** Short description of the skill's purpose. */
   description: string;
   /**
