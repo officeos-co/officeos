@@ -634,6 +634,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="auto">Auto (smart routing)</SelectItem>
                   <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
                   <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
                   <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
