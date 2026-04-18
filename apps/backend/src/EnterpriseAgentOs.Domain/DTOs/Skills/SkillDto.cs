@@ -76,6 +76,15 @@ public sealed class RuntimeManifest
     public required string Description { get; set; }
     public required string Doc { get; set; }
     public string? Category { get; set; }
+    public string? Version { get; set; }
+    public string? License { get; set; }
+    public string? Repository { get; set; }
+    public string[]? Categories { get; set; }
+    public string[]? Keywords { get; set; }
+    public string? Readme { get; set; }
+    public string? Changelog { get; set; }
+    public ManifestAuthor? Author { get; set; }
+    public ManifestContributor[]? Contributors { get; set; }
     public bool RequiresApproval { get; set; }
     public required Dictionary<string, RuntimeActionManifest> Actions { get; set; }
     public required List<RuntimeCredentialField> CredentialFields { get; set; }
@@ -96,4 +105,16 @@ public sealed class RuntimeCredentialField
     public required bool Required { get; set; }
     public string? Placeholder { get; set; }
     public string? Help { get; set; }
+}
+
+public sealed class ManifestAuthor
+{
+    public required string Name { get; set; }
+    public string? Url { get; set; }
+}
+
+public sealed class ManifestContributor
+{
+    public required string Name { get; set; }
+    public string? Url { get; set; }
 }
