@@ -36,7 +36,7 @@ global using EnterpriseAgentOs.Domain.Interfaces.Agents;
 global using EnterpriseAgentOs.Domain.Interfaces.Skills;
 global using EnterpriseAgentOs.Domain.Interfaces.Providers;
 global using EnterpriseAgentOs.Domain.Interfaces.Auth;
-global using EnterpriseAgentOs.Domain.Interfaces.AgentSkills;
+global using EnterpriseAgentOs.Domain.Interfaces.Skills;
 global using EnterpriseAgentOs.Domain.Interfaces.AgentLogs;
 global using EnterpriseAgentOs.Domain.Interfaces.AgentTemplates;
 global using EnterpriseAgentOs.Domain.Interfaces.Billing;

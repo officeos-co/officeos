@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Interfaces.AgentSkills;
+namespace EnterpriseAgentOs.Domain.Interfaces.Skills;
 
 public interface IAgentSkillRepository
 {

@@ -188,4 +188,66 @@ public class SkillMutations
 
     private static GraphQLException NotFound(Guid id) =>
         new(ErrorBuilder.New().SetMessage($"Skill '{id}' not found.").SetCode("NOT_FOUND").Build());
+
+    // ── Agent-skill bindings ─────────────────────────────────────────────────
+
+    public async Task<bool> AssignSkillToAgent(
+        Guid agentId,
+        string skillName,
+        IResolverContext context,
+        [Service] IAgentSkillRepository agentSkills,
+        CancellationToken ct)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        await agentSkills.AssignAsync(agentId, new[] { skillName }, ct);
+        return true;
+    }
+
+    public async Task<bool> UnassignSkillFromAgent(
+        Guid agentId,
+        string skillName,
+        IResolverContext context,
+        [Service] IAgentSkillRepository agentSkills,
+        CancellationToken ct)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        return await agentSkills.RemoveAsync(agentId, skillName, ct);
+    }
+
+    public async Task<Types.AgentToolPermissionDto> SetAgentToolPermission(
+        Guid agentId,
+        string skillName,
+        string toolName,
+        ToolPermission permission,
+        IResolverContext context,
+        [Service] EaosDbContext db,
+        CancellationToken ct)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var skill = skillName.Trim().ToLowerInvariant();
+        var tool = toolName.Trim();
+
+        var existing = await db.AgentToolPermissions
+            .FirstOrDefaultAsync(p =>
+                p.AgentId == agentId && p.SkillName == skill && p.ToolName == tool, ct);
+
+        if (existing is null)
+        {
+            existing = new AgentToolPermissionRecord
+            {
+                AgentId = agentId,
+                SkillName = skill,
+                ToolName = tool,
+                Permission = permission,
+            };
+            db.AgentToolPermissions.Add(existing);
+        }
+        else
+        {
+            existing.Permission = permission;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        await db.SaveChangesAsync(ct);
+        return new Types.AgentToolPermissionDto(existing.SkillName, existing.ToolName, existing.Permission);
+    }
 }
