@@ -115,6 +115,8 @@ export function useIntegrations(): {
     changelog: string | null
     author: { name: string; url?: string | null } | null
     contributors: Array<{ name: string; url?: string | null }> | null
+    createdAt: string | null
+    updatedAt: string | null
     tools: Array<{ name: string; description: string }> | null
   }> = data?.skills ?? []
 
@@ -140,6 +142,8 @@ export function useIntegrations(): {
     changelog: s.changelog ?? null,
     author: s.author ?? null,
     contributors: s.contributors ?? [],
+    createdAt: s.createdAt ?? null,
+    updatedAt: s.updatedAt ?? null,
   }))
 
   return { integrations, loading, error: error ?? undefined }

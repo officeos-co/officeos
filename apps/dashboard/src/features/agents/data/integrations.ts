@@ -42,6 +42,8 @@ export type Integration = {
   changelog: string | null
   author: SkillAuthor | null
   contributors: SkillContributor[]
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export const builtInTools: Tool[] = [

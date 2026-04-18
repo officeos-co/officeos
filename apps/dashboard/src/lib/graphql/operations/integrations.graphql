@@ -27,6 +27,8 @@ query Skills {
       name
       url
     }
+    createdAt
+    updatedAt
     tools {
       name
       description
