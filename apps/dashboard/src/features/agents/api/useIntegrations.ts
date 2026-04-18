@@ -106,6 +106,15 @@ export function useIntegrations(): {
     likes: number
     likedByMe: boolean
     commentsCount: number
+    version: string | null
+    license: string | null
+    repository: string | null
+    categories: string[] | null
+    keywords: string[] | null
+    readme: string | null
+    changelog: string | null
+    author: { name: string; url?: string | null } | null
+    contributors: Array<{ name: string; url?: string | null }> | null
     tools: Array<{ name: string; description: string }> | null
   }> = data?.skills ?? []
 
@@ -122,6 +131,15 @@ export function useIntegrations(): {
     installed: s.installed,
     doc: s.doc ?? "",
     sourceCodeUrl: s.sourceCodeUrl ?? "",
+    version: s.version ?? "1.0.0",
+    license: s.license ?? null,
+    repository: s.repository ?? null,
+    categories: s.categories ?? [],
+    keywords: s.keywords ?? [],
+    readme: s.readme ?? null,
+    changelog: s.changelog ?? null,
+    author: s.author ?? null,
+    contributors: s.contributors ?? [],
   }))
 
   return { integrations, loading, error: error ?? undefined }

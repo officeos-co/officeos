@@ -10,6 +10,16 @@ export type CredentialField = {
   placeholder: string
 }
 
+export type SkillAuthor = {
+  name: string;
+  url?: string | null;
+};
+
+export type SkillContributor = {
+  name: string;
+  url?: string | null;
+};
+
 export type Integration = {
   id: string
   name: string
@@ -23,6 +33,15 @@ export type Integration = {
   installed: boolean
   doc: string
   sourceCodeUrl: string
+  version: string
+  license: string | null
+  repository: string | null
+  categories: string[]
+  keywords: string[]
+  readme: string | null
+  changelog: string | null
+  author: SkillAuthor | null
+  contributors: SkillContributor[]
 }
 
 export const builtInTools: Tool[] = [

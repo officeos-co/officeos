@@ -12,6 +12,21 @@ query Skills {
     likes
     likedByMe
     commentsCount
+    version
+    license
+    repository
+    categories
+    keywords
+    readme
+    changelog
+    author {
+      name
+      url
+    }
+    contributors {
+      name
+      url
+    }
     tools {
       name
       description
