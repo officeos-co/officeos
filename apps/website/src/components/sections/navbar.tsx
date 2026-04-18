@@ -234,7 +234,7 @@ export function Navbar() {
                 className="h-[1.125rem] w-[1.125rem]"
               />
               <p className="font-semibold text-lg text-primary">OfficeOS</p>
-            </a>
+            </Link>
 
             {/* Desktop nav */}
             <div className="hidden items-center gap-1 md:flex">
