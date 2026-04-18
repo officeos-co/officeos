@@ -50,7 +50,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
         Assert.NotNull(logo);
         Assert.StartsWith("<svg", logo);
         var url = skill.GetProperty("sourceCodeUrl").GetString();
-        Assert.Equal("https://github.com/officeos/integrations/tree/main/packages/github", url);
+        Assert.Equal("https://github.com/officeos-co/skill-github", url);
     }
 
     [Fact]
