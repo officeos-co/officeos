@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Api", "EnterpriseAgentOs.Api.csproj", "{0795ABF1-2A53-2214-0989-D7A87767F5E3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Api", "src\EnterpriseAgentOs.Api\EnterpriseAgentOs.Api.csproj", "{0795ABF1-2A53-2214-0989-D7A87767F5E3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Api.Tests", "EnterpriseAgentOs.Api.Tests\EnterpriseAgentOs.Api.Tests.csproj", "{0FFB20F6-63DB-4277-B5F9-C05DB9577DFF}"
 EndProject

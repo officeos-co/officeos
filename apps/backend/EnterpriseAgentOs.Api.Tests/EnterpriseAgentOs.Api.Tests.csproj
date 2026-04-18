@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EnterpriseAgentOs.Api.csproj" />
+    <ProjectReference Include="..\src\EnterpriseAgentOs.Api\EnterpriseAgentOs.Api.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@ Central orchestrator. Owns all state, all credentials, all agent lifecycle, K8s 
 
 ```bash
 dotnet build EnterpriseAgentOs.sln
-dotnet run                    # Dev server on :5000
+dotnet run --project src/EnterpriseAgentOs.Api   # Dev server on :5000
 dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
 ```
 
@@ -43,10 +43,12 @@ EnterpriseAgentOs.sln
 │   ├── Configuration/                      Typed config classes + ValueManager
 │   └── GlobalUsings.cs
 │
-├── EnterpriseAgentOs.Api.csproj           ← References: all three projects
+├── src/EnterpriseAgentOs.Api/              ← References: all three projects
+│   ├── EnterpriseAgentOs.Api.csproj
 │   ├── Program.cs                          Composition root — DI wiring, middleware, endpoint mapping
 │   ├── GraphQlRootTypes.cs                 GraphQLQueries / GraphQLMutations / GraphQLSubscriptions
 │   ├── GlobalUsings.cs
+│   ├── appsettings.json
 │   ├── GraphQL/
 │   │   ├── Queries/<Domain>Queries.cs      [ExtendObjectType(typeof(GraphQLQueries))]
 │   │   ├── Mutations/<Domain>Mutations.cs  [ExtendObjectType(typeof(GraphQLMutations))]

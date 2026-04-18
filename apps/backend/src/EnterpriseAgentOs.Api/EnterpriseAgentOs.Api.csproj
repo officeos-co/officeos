@@ -16,15 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="src\EnterpriseAgentOs.Domain\EnterpriseAgentOs.Domain.csproj" />
-    <ProjectReference Include="src\EnterpriseAgentOs.Application\EnterpriseAgentOs.Application.csproj" />
-    <ProjectReference Include="src\EnterpriseAgentOs.Infrastructure\EnterpriseAgentOs.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="EnterpriseAgentOs.Api.Tests/**" />
-    <!-- Sub-projects under src/ are referenced as ProjectReferences, not compiled directly -->
-    <Compile Remove="src/**" />
+    <ProjectReference Include="..\EnterpriseAgentOs.Domain\EnterpriseAgentOs.Domain.csproj" />
+    <ProjectReference Include="..\EnterpriseAgentOs.Application\EnterpriseAgentOs.Application.csproj" />
+    <ProjectReference Include="..\EnterpriseAgentOs.Infrastructure\EnterpriseAgentOs.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
