@@ -13,7 +13,6 @@ export interface SkillManifest {
   name: string;
   title: string;
   logo: string;
-  emoji?: string;
   description: string;
   doc: string;
   actions: Record<
@@ -112,7 +111,6 @@ export function extractManifest(def: SkillDefinition): SkillManifest {
     name: def.name,
     title: def.title,
     logo: def.logo,
-    emoji: def.emoji,
     doc: def.doc,
     description: def.description,
     actions,
