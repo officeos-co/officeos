@@ -1,0 +1,31 @@
+{
+  "name": "pdf",
+  "title": "PDF",
+  "version": "1.0.0",
+  "description": "Create, read, and manipulate PDF documents via a file-proxy service: extract text, merge, split, add pages and content, rotate pages.",
+  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM8 13h8v2H8v-2Zm0 4h5v2H8v-2Z\\\"/></svg>",
+  "categories": [
+    "Documents"
+  ],
+  "keywords": [],
+  "author": {
+    "name": "OfficeOS Team",
+    "url": "https://officeos.co"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/officeos-co/skill-pdf",
+  "contributors": [
+    {
+      "name": "Harro Krog",
+      "url": "https://github.com/HarKro753"
+    }
+  ],
+  "credentials": {
+    "proxy_url": {
+      "label": "Proxy URL",
+      "kind": "url",
+      "placeholder": "https://your-pdf-proxy.example.com",
+      "help": "Base URL of the PDF file-proxy service that wraps pdf-lib."
+    }
+  }
+}

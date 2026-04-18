@@ -1,0 +1,30 @@
+{
+  "name": "terraform",
+  "title": "Terraform",
+  "version": "1.0.0",
+  "description": "Full Terraform CLI parity: init, plan, apply, destroy, state management, workspaces, imports, validation, formatting, providers, graph, taint/untaint via a command proxy.",
+  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M1.44 0v7.575l6.561 3.79V3.787zm21.12 4.227l-6.561 3.791v7.574l6.56-3.787zM8.72 4.23v7.575l6.561 3.787V8.018zm0 8.405v7.575L15.28 24v-7.578z\\\"/></svg>",
+  "categories": [
+    "Cloud Infrastructure"
+  ],
+  "keywords": [],
+  "author": {
+    "name": "OfficeOS Team",
+    "url": "https://officeos.co"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/officeos-co/skill-terraform",
+  "contributors": [
+    {
+      "name": "Harro Krog",
+      "url": "https://github.com/HarKro753"
+    }
+  ],
+  "credentials": {
+    "proxy_url": {
+      "label": "Terraform Proxy URL",
+      "kind": "text",
+      "placeholder": "http://localhost:9090/exec"
+    }
+  }
+}

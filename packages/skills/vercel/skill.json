@@ -1,0 +1,38 @@
+{
+  "name": "vercel",
+  "title": "Vercel",
+  "version": "1.0.0",
+  "description": "Manage Vercel projects, deployments, domains, environment variables, logs, teams, checks, aliases, and secrets via the Vercel REST API.",
+  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"m12 1.608 12 20.784H0Z\\\"/></svg>",
+  "categories": [
+    "Cloud Infrastructure",
+    "Developer Tools"
+  ],
+  "keywords": [],
+  "author": {
+    "name": "OfficeOS Team",
+    "url": "https://officeos.co"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/officeos-co/skill-vercel",
+  "contributors": [
+    {
+      "name": "Harro Krog",
+      "url": "https://github.com/HarKro753"
+    }
+  ],
+  "credentials": {
+    "token": {
+      "label": "API Token",
+      "kind": "password",
+      "placeholder": "vercel_...",
+      "help": "Vercel API token. Create one at https://vercel.com/account/tokens."
+    },
+    "team_id": {
+      "label": "Team ID (optional)",
+      "kind": "text",
+      "placeholder": "team_...",
+      "help": "Optional. When set, all requests are scoped to this team."
+    }
+  }
+}

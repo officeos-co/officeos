@@ -1,0 +1,31 @@
+{
+  "name": "pipedrive",
+  "title": "Pipedrive",
+  "version": "1.0.0",
+  "description": "Manage your Pipedrive CRM: deals, persons, organizations, activities, pipelines, and stages.",
+  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M4 4h16l-6 8v6l-4 2v-8L4 4Z\\\"/></svg>",
+  "categories": [
+    "CRM"
+  ],
+  "keywords": [],
+  "author": {
+    "name": "OfficeOS Team",
+    "url": "https://officeos.co"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/officeos-co/skill-pipedrive",
+  "contributors": [
+    {
+      "name": "Harro Krog",
+      "url": "https://github.com/HarKro753"
+    }
+  ],
+  "credentials": {
+    "api_token": {
+      "label": "API Token",
+      "kind": "password",
+      "placeholder": "abc123...",
+      "help": "Found under Settings → Personal Preferences → API in your Pipedrive account."
+    }
+  }
+}

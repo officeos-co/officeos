@@ -1,0 +1,43 @@
+{
+  "name": "jira",
+  "title": "Jira",
+  "version": "1.0.0",
+  "description": "Full Jira Cloud project management: issues, projects, boards, sprints, transitions, comments, and JQL search.",
+  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z\\\"/></svg>",
+  "categories": [
+    "Project Management"
+  ],
+  "keywords": [],
+  "author": {
+    "name": "OfficeOS Team",
+    "url": "https://officeos.co"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/officeos-co/skill-jira",
+  "contributors": [
+    {
+      "name": "Harro Krog",
+      "url": "https://github.com/HarKro753"
+    }
+  ],
+  "credentials": {
+    "domain": {
+      "label": "Atlassian Domain",
+      "kind": "text",
+      "placeholder": "yourcompany",
+      "help": "Your Atlassian subdomain (e.g. yourcompany for yourcompany.atlassian.net)"
+    },
+    "email": {
+      "label": "Email",
+      "kind": "text",
+      "placeholder": "you@example.com",
+      "help": "Your Atlassian account email address"
+    },
+    "api_token": {
+      "label": "API Token",
+      "kind": "password",
+      "placeholder": "ATATT3xFfGF0...",
+      "help": "Jira API token from https://id.atlassian.com/manage-profile/security/api-tokens"
+    }
+  }
+}
