@@ -9,6 +9,12 @@ public sealed record SkillDashboardDto(
 [GraphQLName("SkillTool")]
 public sealed record SkillToolDto(string Name, string Description);
 
+[GraphQLName("SkillAuthor")]
+public sealed record SkillAuthorDto(string Name, string? Url);
+
+[GraphQLName("SkillContributor")]
+public sealed record SkillContributorDto(string Name, string? Url);
+
 public sealed record SkillCredentialEntry(string Key, string Value);
 
 [GraphQLName("CommentAuthor")]
@@ -62,19 +68,27 @@ public class SkillDashboardResolvers
         return await db.SkillComments.CountAsync(c => c.SkillId == skill.Id, ct);
     }
 
-    public async Task<string?> GetLogo(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
+    private async Task<RuntimeManifest?> GetManifest(
+        SkillDashboardDto skill,
+        ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
         var record = await catalog.GetByNameAsync(skill.Name, ct);
         if (record is null || string.IsNullOrWhiteSpace(record.ManifestJson)) return null;
         try
         {
-            var manifest = JsonSerializer.Deserialize<RuntimeManifest>(record.ManifestJson, ManifestJsonOptions);
-            return manifest?.Logo;
+            return JsonSerializer.Deserialize<RuntimeManifest>(record.ManifestJson, ManifestJsonOptions);
         }
         catch { return null; }
+    }
+
+    public async Task<string?> GetLogo(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.Logo;
     }
 
     public async Task<bool> GetInstalled(
@@ -94,20 +108,85 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        if (record is null || string.IsNullOrWhiteSpace(record.ManifestJson)) return Array.Empty<SkillToolDto>();
-        try
-        {
-            var manifest = JsonSerializer.Deserialize<RuntimeManifest>(record.ManifestJson, ManifestJsonOptions);
-            if (manifest is null) return Array.Empty<SkillToolDto>();
-            return manifest.Actions
-                .Select(kv => new SkillToolDto(kv.Key, kv.Value.Description))
-                .ToList();
-        }
-        catch
-        {
-            return Array.Empty<SkillToolDto>();
-        }
+        var manifest = await GetManifest(skill, catalog, ct);
+        if (manifest is null) return Array.Empty<SkillToolDto>();
+        return manifest.Actions
+            .Select(kv => new SkillToolDto(kv.Key, kv.Value.Description))
+            .ToList();
+    }
+
+    public async Task<string?> GetLicense(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.License;
+    }
+
+    public async Task<string?> GetRepository(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.Repository;
+    }
+
+    public async Task<IReadOnlyList<string>> GetCategories(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.Categories ?? Array.Empty<string>();
+    }
+
+    public async Task<IReadOnlyList<string>> GetKeywords(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.Keywords ?? Array.Empty<string>();
+    }
+
+    public async Task<string?> GetReadme(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.Readme;
+    }
+
+    public async Task<string?> GetChangelog(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        return manifest?.Changelog;
+    }
+
+    public async Task<SkillAuthorDto?> GetAuthor(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        if (manifest?.Author is null) return null;
+        return new SkillAuthorDto(manifest.Author.Name, manifest.Author.Url);
+    }
+
+    public async Task<IReadOnlyList<SkillContributorDto>> GetContributors(
+        [Parent] SkillDashboardDto skill,
+        [Service] ISkillCatalogRepository catalog,
+        CancellationToken ct)
+    {
+        var manifest = await GetManifest(skill, catalog, ct);
+        if (manifest?.Contributors is null) return Array.Empty<SkillContributorDto>();
+        return manifest.Contributors.Select(c => new SkillContributorDto(c.Name, c.Url)).ToList();
     }
 }
 
