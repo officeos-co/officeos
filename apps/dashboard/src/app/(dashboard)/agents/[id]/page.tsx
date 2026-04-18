@@ -574,6 +574,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const mockAgent = agent ?? { id, name: "", model: "", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
   const [agentStatus, setAgentStatus] = useState(initialStatus === "booting" ? "booting" : mockAgent.status)
   const [model, setModel] = useState(mockAgent.model)
+  const [message, setMessage] = useState("")
+  const { sendAgentMessage } = useSendAgentMessage()
   const tab = (searchParams.get("tab") as TabKey) ?? "integrations"
 
   // Simulate boot → running transition
@@ -595,9 +597,6 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
       </>
     )
   }
-
-  const [message, setMessage] = useState("")
-  const { sendAgentMessage } = useSendAgentMessage()
   const submit = () => {
     if (!message.trim()) return
     sendAgentMessage(id, message)
