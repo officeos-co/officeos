@@ -84,6 +84,7 @@ jobs:
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
           kubectl apply -f k8s/backend.yaml
+          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
           kubectl rollout restart deployment/eaos-skill-runtime
           kubectl rollout status deployment/eaos-skill-runtime --timeout=180s
 
@@ -92,10 +93,17 @@ jobs:
           # Port-forward to backend service and POST manifests
           kubectl port-forward svc/eaos-backend-prod 5099:8000 &
           PF_PID=$!
-          sleep 3
-          curl -sf -X POST "http://localhost:5099/api/internal/seed-manifests" \
+          sleep 5
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "http://localhost:5099/api/internal/seed-manifests" \
             -H "Content-Type: application/json" \
             -H "X-Internal-Token: ${{ secrets.INTERNAL_API_TOKEN }}" \
-            -d @manifests/all.json
+            -d @manifests/all.json)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
           kill $PF_PID || true
+          echo "HTTP $HTTP_CODE — $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Seed manifests failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
           echo "Manifests seeded to database successfully"
