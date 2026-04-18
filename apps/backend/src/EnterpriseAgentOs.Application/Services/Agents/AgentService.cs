@@ -256,7 +256,7 @@ public sealed class AgentService : IAgentService
     private static readonly HashSet<string> KeylessProviders =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "ollama", "anthropic", "google", "xai",
+            "ollama", "anthropic", "google", "xai", "openai",
         };
 
     private static bool IsKeylessProvider(string name) =>

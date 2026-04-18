@@ -117,7 +117,7 @@ public sealed class AgentLifecycleTests : IClassFixture<EnterpriseAgentOs.Api.Te
     {
         var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        // openai provider needs an API key configured; in test DB it won't have one
+        // Use a truly unknown provider that is not in the keyless list and has no key configured
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
               createAgent(input: $input) { id }
@@ -127,7 +127,7 @@ public sealed class AgentLifecycleTests : IClassFixture<EnterpriseAgentOs.Api.Te
             input = new
             {
                 name = "should-fail",
-                provider = "openai",
+                provider = "unknown-provider-xyz",
                 model = (string?)null,
                 prompt = (string?)null,
                 integrationSlugs = (string[]?)null,
@@ -138,6 +138,38 @@ public sealed class AgentLifecycleTests : IClassFixture<EnterpriseAgentOs.Api.Te
         Assert.True(response.TryGetProperty("errors", out var errors));
         Assert.True(errors.GetArrayLength() > 0);
         Assert.Contains("not configured", errors.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("ollama")]
+    [InlineData("anthropic")]
+    [InlineData("google")]
+    [InlineData("xai")]
+    [InlineData("openai")]
+    public async Task CreateAgent_WithKeylessProvider_SucceedsWithoutApiKey(string provider)
+    {
+        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+
+        const string mutation = @"
+            mutation($input: CreateAgentInput!) {
+              createAgent(input: $input) { id name provider status }
+            }";
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, mutation, new
+        {
+            input = new
+            {
+                name = $"keyless-{provider}",
+                provider,
+                model = (string?)null,
+                prompt = (string?)null,
+                integrationSlugs = (string[]?)null,
+                channelSlugs = (string[]?)null,
+            }
+        });
+
+        var agent = data.GetProperty("createAgent");
+        Assert.Equal($"keyless-{provider}", agent.GetProperty("name").GetString());
+        Assert.Equal(provider, agent.GetProperty("provider").GetString());
     }
 
     [Fact]
