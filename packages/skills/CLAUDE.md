@@ -21,10 +21,13 @@ Every skill must follow this exact layout:
 
 ```
 packages/skills/{name}/
-  package.json          Self-contained: bun test, @harro/skill-sdk dep
-  SKILL.md              CLI-style reference doc — what the agent sees when it uses --help
-  REFERENCES.md         Source repo, license, npm package, docs link
-  skill.ts              Entry point — defineSkill() call, ~30 lines max
+  skill.json            Marketplace manifest — single source of truth for metadata
+  skill.ts              Entry point — defineSkill() call, imports from skill.json, ~30 lines max
+  SKILL.md              Agent-facing documentation (runtime injects into agent context)
+  README.md             Human-facing marketplace listing
+  CHANGELOG.md          Version history
+  LICENSE               License file (MIT for first-party)
+  package.json          npm dependencies only — no marketplace metadata
   core/
     client.ts           API client: auth, fetch wrappers, base URLs
     types.ts            Shared TypeScript types
@@ -34,6 +37,31 @@ packages/skills/{name}/
   __tests__/
     {category}.test.ts  Tests using bun:test
 ```
+
+## skill.json — marketplace manifest
+
+Single source of truth for all skill metadata. The `skill.ts` entry point imports this file and spreads it into `defineSkill()`.
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | yes | Unique skill identifier (kebab-case) |
+| `title` | string | yes | Human-readable display name |
+| `version` | string | yes | Semver version (e.g. `"1.0.0"`) |
+| `description` | string | yes | One-line description for marketplace listing |
+| `logo` | string | yes | Inline SVG markup |
+| `categories` | string[] | yes | 1–3 from the fixed category list below |
+| `keywords` | string[] | no | Freeform search terms, max 30 |
+| `author` | `{name, url}` | yes | Primary author |
+| `license` | string | yes | SPDX identifier (e.g. `"MIT"`) |
+| `repository` | string | no | GitHub URL |
+| `contributors` | `[{name, url}]` | no | Additional contributors |
+| `credentials` | object | yes | Credential field definitions for the dashboard |
+
+**Fixed categories (use only these):**
+
+Developer Tools, Version Control, Project Management, CRM, Communication, Productivity, Data & Analytics, Cloud Infrastructure, Marketing, Finance, Support, Security, Monitoring, Database, Documents, AI & ML, E-commerce, HR
 
 ## Architecture pattern — core/cli separation
 
@@ -47,23 +75,19 @@ packages/skills/{name}/
 
 ```typescript
 import { defineSkill } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 import { customers } from "./cli/customers.ts";
 import { payments } from "./cli/payments.ts";
 
 export default defineSkill({
-  name: "stripe",
-  title: "Stripe",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"...\"/></svg>",
-  emoji: "💳",
-  description: "Stripe payments — charges, subscriptions, customers, invoices.",
+  ...manifest,
   doc,
-  credentials: {
-    secret_key: { label: "Secret Key", kind: "password", placeholder: "sk_..." },
-  },
   actions: { ...customers, ...payments },
 });
 ```
+
+All metadata (name, title, logo, description, version, categories, credentials, etc.) lives in `skill.json` and is spread into `defineSkill()`. The `skill.ts` file only adds `doc` and `actions`.
 
 ## cli/{category}.ts pattern
 

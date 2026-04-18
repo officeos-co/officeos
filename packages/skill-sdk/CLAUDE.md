@@ -27,6 +27,19 @@ src/
 
 **`SkillDefinition.emoji`** — **removed**. The `emoji` field has been removed from `SkillDefinition`. All skills must use `logo` (inline SVG). Do not add emoji fields to any skill.
 
+**Marketplace fields on `SkillDefinition`** (all optional except where noted):
+- `version: string` — semver version, sourced from `skill.json`
+- `license: string` — SPDX identifier (e.g. `"MIT"`)
+- `repository: string` — GitHub URL
+- `categories: string[]` — 1–3 fixed marketplace categories
+- `keywords: string[]` — freeform search terms, max 30
+- `author: SkillAuthor` — `{ name: string; url?: string }`
+- `contributors: SkillContributor[]` — `{ name: string; url?: string }[]`
+
+**`SkillAuthor`** — `{ name: string; url?: string }`. Primary author of the skill.
+
+**`SkillContributor`** — `{ name: string; url?: string }`. Additional contributor. Same shape as `SkillAuthor`, exported as a separate type for semantic clarity.
+
 **`z`** — Zod re-export. Skills use this for param schemas. Every param must have `.describe()`.
 
 **`SkillContext`** — runtime context injected by skill-runtime into every `execute()` call:
