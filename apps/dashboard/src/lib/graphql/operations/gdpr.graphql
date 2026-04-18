@@ -1,0 +1,47 @@
+query ExportMyData {
+  exportMyData {
+    user {
+      id
+      email
+      name
+      createdAt
+      lastLoginAt
+    }
+    agents {
+      id
+      name
+      provider
+      model
+      status
+      createdAt
+    }
+    conversations {
+      id
+      agentId
+      role
+      content
+      sessionId
+      createdAt
+    }
+    auditEntries {
+      id
+      agentId
+      skillName
+      action
+      paramsJson
+      resultSummary
+      durationMs
+      timestamp
+    }
+    skillCredentials {
+      id
+      skillName
+      enabled
+      configuredAt
+    }
+  }
+}
+
+mutation PurgeMyData {
+  purgeMyData
+}

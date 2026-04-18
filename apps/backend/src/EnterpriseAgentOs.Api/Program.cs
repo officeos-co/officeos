@@ -120,6 +120,7 @@ builder.Services.AddSingleton<EnterpriseAgentOs.Api.GraphQL.SkillGateway.SkillTy
 builder.Services
     .AddGraphQLServer("agent")
     .AddQueryType<EnterpriseAgentOs.Api.GraphQL.SkillGateway.Query>()
+    .AddMutationType<EnterpriseAgentOs.Api.GraphQL.SkillGateway.AgentSchemaMutations>()
     .AddTypeModule<EnterpriseAgentOs.Api.GraphQL.SkillGateway.SkillTypeModule>()
     .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.GraphQL.SkillGateway.AgentAuthInterceptor>()
     .DisableIntrospection(false)
