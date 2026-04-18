@@ -16,6 +16,7 @@ import { useIntegrations, useInstallSkill } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const PAGE_SIZES = [25, 50, 100] as const
 
@@ -30,15 +31,23 @@ export default function IntegrationsPage() {
   const [view, setView] = useState<View>("all")
   const [pageSize, setPageSize] = useState<number>(50)
   const [page, setPage] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>()
+    integrations.forEach((i) => i.categories.forEach((c) => cats.add(c)))
+    return Array.from(cats).sort()
+  }, [integrations])
 
   const filtered = useMemo(() => {
     return integrations.filter((i) => {
       if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
       if (view === "installed" && !i.installed) return false
       if (view === "explore" && i.installed) return false
+      if (selectedCategory && !i.categories.includes(selectedCategory)) return false
       return true
     })
-  }, [integrations, search, view])
+  }, [integrations, search, view, selectedCategory])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
@@ -69,6 +78,32 @@ export default function IntegrationsPage() {
             ))}
           </div>
         </div>
+
+        {allCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                !selectedCategory ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              All
+            </button>
+            {allCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  cat === selectedCategory ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -115,6 +150,15 @@ export default function IntegrationsPage() {
                   )}
                 </div>
                 <p className="text-sm line-clamp-2 text-muted-foreground">{integration.description}</p>
+                {integration.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {integration.categories.map((cat) => (
+                      <span key={cat} className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>{integration.tools.length} tools</span>
                   <span>·</span>
