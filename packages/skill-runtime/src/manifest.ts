@@ -15,6 +15,13 @@ export interface SkillManifest {
   logo: string;
   description: string;
   doc: string;
+  version?: string;
+  license?: string;
+  repository?: string;
+  categories?: string[];
+  keywords?: string[];
+  author?: { name: string; url?: string };
+  contributors?: { name: string; url?: string }[];
   actions: Record<
     string,
     {
@@ -113,6 +120,13 @@ export function extractManifest(def: SkillDefinition): SkillManifest {
     logo: def.logo,
     doc: def.doc,
     description: def.description,
+    version: def.version,
+    license: def.license,
+    repository: def.repository,
+    categories: def.categories,
+    keywords: def.keywords,
+    author: def.author,
+    contributors: def.contributors,
     actions,
     credentialFields,
   };
