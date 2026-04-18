@@ -174,7 +174,7 @@ app.UseSerilogRequestLogging(options =>
     options.GetLevel = (httpContext, elapsed, ex) =>
     {
         var path = httpContext.Request.Path.Value ?? "";
-        if (path is "/healthz" or "/api/health")
+        if (path is "/api/health")
             return LogEventLevel.Verbose;
         return LogEventLevel.Information;
     };
@@ -196,7 +196,6 @@ app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware>();
 app.UseWebSockets();
 
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
-app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
 EnterpriseAgentOs.Api.Endpoints.AgentProxyEndpoints.MapAgentProxyEndpoints(app);
 app.MapGraphQL("/api/graphql", schemaName: "agent");

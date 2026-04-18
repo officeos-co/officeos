@@ -4,7 +4,6 @@ public sealed class RequestResponseLoggingMiddleware
 {
     private static readonly HashSet<string> ExcludedPaths = new(StringComparer.OrdinalIgnoreCase)
     {
-        "/healthz",
         "/api/health"
     };
 
