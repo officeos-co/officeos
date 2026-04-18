@@ -6,15 +6,15 @@ namespace EnterpriseAgentOs.Api.Tests.Billing;
 /// </summary>
 public sealed class StripeServiceTests
 {
-    private static EnterpriseAgentOs.Api.Database.EaosDbContext CreateDb()
+    private static EaosDbContext CreateDb()
     {
-        var opts = new DbContextOptionsBuilder<EnterpriseAgentOs.Api.Database.EaosDbContext>()
+        var opts = new DbContextOptionsBuilder<EaosDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EnterpriseAgentOs.Api.Database.EaosDbContext(opts);
+        return new EaosDbContext(opts);
     }
 
-    private static EnterpriseAgentOs.Api.Properties.StripeConfig CreateConfig(bool enabled = false) => new()
+    private static StripeConfig CreateConfig(bool enabled = false) => new()
     {
         SecretKey = "STRIPE_SECRET_KEY_PLACEHOLDER",
         WebhookSecret = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
@@ -27,11 +27,11 @@ public sealed class StripeServiceTests
         Enabled = enabled,
     };
 
-    private static EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService CreateOrgService(EnterpriseAgentOs.Api.Database.EaosDbContext? db = null) =>
-        new(CreateConfig(), db ?? CreateDb(), NullLogger<EnterpriseAgentOs.Api.Entities.Billing.OrgBillingService>.Instance);
+    private static OrgBillingService CreateOrgService(EaosDbContext? db = null) =>
+        new(CreateConfig(), db ?? CreateDb(), NullLogger<OrgBillingService>.Instance);
 
-    private static EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService CreateWebhookService(EnterpriseAgentOs.Api.Database.EaosDbContext? db = null) =>
-        new(CreateConfig(), db ?? CreateDb(), NullLogger<EnterpriseAgentOs.Api.Entities.Billing.StripeWebhookService>.Instance);
+    private static StripeWebhookService CreateWebhookService(EaosDbContext? db = null) =>
+        new(CreateConfig(), db ?? CreateDb(), NullLogger<StripeWebhookService>.Instance);
 
     // -------------------------------------------------------------------------
     // GetSubscriptionAsync — tier detection
@@ -105,14 +105,14 @@ public sealed class StripeServiceTests
     [InlineData("claude-opus-4-6", 1000, 75000)]    // weight 75
     public void ModelCostWeights_ToCredits_AppliesCorrectMultiplier(string model, long rawTokens, long expectedCredits)
     {
-        var credits = EnterpriseAgentOs.Api.Entities.Billing.ModelCostWeights.ToCredits(model, rawTokens);
+        var credits = ModelCostWeights.ToCredits(model, rawTokens);
         Assert.Equal(expectedCredits, credits);
     }
 
     [Fact]
     public void ModelCostWeights_UnknownModel_DefaultsToSonnetWeight()
     {
-        var credits = EnterpriseAgentOs.Api.Entities.Billing.ModelCostWeights.ToCredits("unknown-model", 1000);
+        var credits = ModelCostWeights.ToCredits("unknown-model", 1000);
         Assert.Equal(20_000, credits); // default weight = 20
     }
 

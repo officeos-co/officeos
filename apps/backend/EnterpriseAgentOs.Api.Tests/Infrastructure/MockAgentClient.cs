@@ -20,11 +20,11 @@ public sealed class MockAgentClient
     public Guid AgentId => _agentId;
 
     /// <summary>Fetch capabilities (what zeroclaw does on boot + every 30s).</summary>
-    public async Task<EnterpriseAgentOs.Api.Entities.Skills.CapabilitiesResponse> GetCapabilitiesAsync()
+    public async Task<CapabilitiesResponse> GetCapabilitiesAsync()
     {
         var response = await _http.GetAsync("/api/agents/me/capabilities");
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<EnterpriseAgentOs.Api.Entities.Skills.CapabilitiesResponse>())!;
+        return (await response.Content.ReadFromJsonAsync<CapabilitiesResponse>())!;
     }
 
     /// <summary>Execute a skill (what zeroclaw does when LLM returns a tool call).</summary>

@@ -69,7 +69,7 @@ public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
 
         // Verify the agent record is gone in the DB
         using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
         var agentInDb = await db.Agents.FindAsync(agentId);
         Assert.Null(agentInDb);
     }
@@ -99,7 +99,7 @@ public sealed class GuardrailTests
             {"messages":[{"role":"user","content":"hello"}]}
             """).RootElement.Clone();
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProxyController.InjectGuardrail(body);
+        var result = EnterpriseAgentOs.Api.Controllers.LlmProxyController.InjectGuardrail(body);
         var messages = result.GetProperty("messages");
 
         Assert.True(messages.GetArrayLength() >= 2);
@@ -121,7 +121,7 @@ public sealed class GuardrailTests
             {"messages":[{"role":"system","content":"{{originalSystem}}"},{"role":"user","content":"Do something."}]}
             """).RootElement.Clone();
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProxyController.InjectGuardrail(body);
+        var result = EnterpriseAgentOs.Api.Controllers.LlmProxyController.InjectGuardrail(body);
         var messages = result.GetProperty("messages");
 
         Assert.True(messages.GetArrayLength() >= 3);
@@ -141,7 +141,7 @@ public sealed class GuardrailTests
     public void InjectGuardrail_NoMessages_ReturnsBodyUnchanged()
     {
         var body = JsonDocument.Parse("""{"stream":true}""").RootElement.Clone();
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProxyController.InjectGuardrail(body);
+        var result = EnterpriseAgentOs.Api.Controllers.LlmProxyController.InjectGuardrail(body);
 
         Assert.True(result.TryGetProperty("stream", out var stream));
         Assert.True(stream.GetBoolean());

@@ -8,5 +8,13 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\EnterpriseAgentOs.Domain\EnterpriseAgentOs.Domain.csproj" />
+    <!-- Pragmatic: services reference EaosDbContext and Infrastructure helpers directly.
+         This architectural violation will be resolved in a later refactor. -->
+    <ProjectReference Include="..\EnterpriseAgentOs.Infrastructure\EnterpriseAgentOs.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Needed for ITopicEventSender in AgentLogService and GraphQLName attribute in DTOs -->
+    <PackageReference Include="HotChocolate.AspNetCore" Version="14.3.0" />
+    <PackageReference Include="Stripe.net" Version="51.0.0" />
   </ItemGroup>
 </Project>

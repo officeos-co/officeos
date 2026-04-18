@@ -19,7 +19,7 @@ public sealed class PromptCacheInjectorTests
     public void NonClaudeModel_BodyReturnedUnchanged()
     {
         var body = Parse("""{"messages":[{"role":"system","content":"You are helpful"}]}""");
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "gpt-4o");
+        var result = PromptCacheInjector.Inject(body, "gpt-4o");
         Assert.Equal(body.GetRawText(), result.GetRawText());
     }
 
@@ -27,7 +27,7 @@ public sealed class PromptCacheInjectorTests
     public void GeminiModel_BodyReturnedUnchanged()
     {
         var body = Parse("""{"messages":[{"role":"system","content":"You are helpful"}]}""");
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "gemini-2.5-pro");
+        var result = PromptCacheInjector.Inject(body, "gemini-2.5-pro");
         Assert.Equal(body.GetRawText(), result.GetRawText());
     }
 
@@ -44,7 +44,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
+        var result = PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
         var messages = GetMessages(result);
 
         Assert.Equal(1, messages.GetArrayLength());
@@ -80,7 +80,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-haiku-4-5");
+        var result = PromptCacheInjector.Inject(body, "claude-haiku-4-5");
         var content = GetMessages(result)[0].GetProperty("content");
 
         Assert.Equal(2, content.GetArrayLength());
@@ -109,7 +109,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
+        var result = PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
         var messages = GetMessages(result);
 
         // Both system messages get cache_control
@@ -142,7 +142,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
+        var result = PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
         var tools = GetTools(result);
 
         Assert.Equal(2, tools.GetArrayLength());
@@ -166,7 +166,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-haiku-4-5");
+        var result = PromptCacheInjector.Inject(body, "claude-haiku-4-5");
         var tools = GetTools(result);
 
         Assert.Equal(1, tools.GetArrayLength());
@@ -187,7 +187,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
+        var result = PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
         var messages = GetMessages(result);
 
         Assert.Equal(2, messages.GetArrayLength());
@@ -214,7 +214,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
+        var result = PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
 
         // System message gets cache_control
         var sysContent = GetMessages(result)[0].GetProperty("content");
@@ -242,7 +242,7 @@ public sealed class PromptCacheInjectorTests
             }
             """);
 
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
+        var result = PromptCacheInjector.Inject(body, "claude-sonnet-4-6");
         var messages = GetMessages(result);
 
         foreach (var msg in messages.EnumerateArray())
@@ -265,7 +265,7 @@ public sealed class PromptCacheInjectorTests
     public void ClaudeModelCaseInsensitive_Uppercase_AppliesCache()
     {
         var body = Parse("""{"messages":[{"role":"system","content":"Test"}]}""");
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.PromptCacheInjector.Inject(body, "Claude-3-5-Sonnet");
+        var result = PromptCacheInjector.Inject(body, "Claude-3-5-Sonnet");
         var content = GetMessages(result)[0].GetProperty("content");
         Assert.Equal(JsonValueKind.Array, content.ValueKind);
         Assert.True(content[0].TryGetProperty("cache_control", out _));

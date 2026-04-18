@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <Compile Remove="EnterpriseAgentOs.Api.Tests/**" />
+    <!-- Sub-projects under src/ are referenced as ProjectReferences, not compiled directly -->
+    <Compile Remove="src/**" />
   </ItemGroup>
 
   <ItemGroup>

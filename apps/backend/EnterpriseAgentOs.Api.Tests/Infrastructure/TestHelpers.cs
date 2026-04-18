@@ -66,11 +66,11 @@ public static class TestHelpers
         var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
 
         email ??= $"test-{Guid.NewGuid():N}@example.com";
 
-        var user = new EnterpriseAgentOs.Api.Database.Models.UserRecord
+        var user = new UserRecord
         {
             Email = email,
             Name = name,
@@ -78,7 +78,7 @@ public static class TestHelpers
         };
         db.Users.Add(user);
 
-        var session = new EnterpriseAgentOs.Api.Database.Models.SessionRecord
+        var session = new SessionRecord
         {
             UserId = user.Id,
             TokenHash = tokenHash,
@@ -126,9 +126,9 @@ public static class TestHelpers
         var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
 
-        var user = new EnterpriseAgentOs.Api.Database.Models.UserRecord
+        var user = new UserRecord
         {
             Email = $"expired-{Guid.NewGuid():N}@example.com",
             Name = "Expired User",
@@ -136,7 +136,7 @@ public static class TestHelpers
         };
         db.Users.Add(user);
 
-        var session = new EnterpriseAgentOs.Api.Database.Models.SessionRecord
+        var session = new SessionRecord
         {
             UserId = user.Id,
             TokenHash = tokenHash,

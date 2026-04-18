@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Api.Tests.Auth;
 
 public sealed class WorkOsAuthServiceTests
 {
-    private static EnterpriseAgentOs.Api.Entities.Sso.WorkOsAuthService BuildService(bool enabled = true)
+    private static WorkOsAuthService BuildService(bool enabled = true)
     {
-        var config = new EnterpriseAgentOs.Api.Properties.WorkOsConfig
+        var config = new WorkOsConfig
         {
             ApiKey = "sk_test_placeholder",
             ClientId = "client_placeholder",
@@ -12,7 +12,7 @@ public sealed class WorkOsAuthServiceTests
             Enabled = enabled,
         };
 
-        return new EnterpriseAgentOs.Api.Entities.Sso.WorkOsAuthService(config, NullLogger<EnterpriseAgentOs.Api.Entities.Sso.WorkOsAuthService>.Instance);
+        return new WorkOsAuthService(config, NullLogger<WorkOsAuthService>.Instance);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class WorkOsAuthServiceTests
     public async Task HandleScimProvisionAsync_ThrowsNotImplementedException()
     {
         var service = BuildService();
-        var evt = new EnterpriseAgentOs.Api.Entities.Sso.ScimEvent("provision", "ext_123", "user@example.com", "Test User");
+        var evt = new ScimEvent("provision", "ext_123", "user@example.com", "Test User");
 
         await Assert.ThrowsAsync<NotImplementedException>(
             () => service.HandleScimProvisionAsync(evt));
@@ -47,7 +47,7 @@ public sealed class WorkOsAuthServiceTests
     public async Task HandleScimDeprovisionAsync_ThrowsNotImplementedException()
     {
         var service = BuildService();
-        var evt = new EnterpriseAgentOs.Api.Entities.Sso.ScimEvent("deprovision", "ext_123", null, null);
+        var evt = new ScimEvent("deprovision", "ext_123", null, null);
 
         await Assert.ThrowsAsync<NotImplementedException>(
             () => service.HandleScimProvisionAsync(evt));

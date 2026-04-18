@@ -7,19 +7,19 @@ namespace EnterpriseAgentOs.Api.Tests.Billing;
 /// </summary>
 public sealed class UserSubscriptionTests
 {
-    private static EnterpriseAgentOs.Api.Database.EaosDbContext CreateDb()
+    private static EaosDbContext CreateDb()
     {
-        var opts = new DbContextOptionsBuilder<EnterpriseAgentOs.Api.Database.EaosDbContext>()
+        var opts = new DbContextOptionsBuilder<EaosDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new EnterpriseAgentOs.Api.Database.EaosDbContext(opts);
+        return new EaosDbContext(opts);
     }
 
-    private static EnterpriseAgentOs.Api.Entities.Billing.UserBillingService CreateService(
+    private static EnterpriseAgentOs.Application.Services.Billing.UserBillingService CreateService(
         string proMonthlyPriceId = "price_pro_monthly",
         string proYearlyPriceId = "price_pro_yearly") =>
         new(
-            new EnterpriseAgentOs.Api.Properties.StripeConfig
+            new StripeConfig
             {
                 SecretKey = "STRIPE_SECRET_KEY_PLACEHOLDER",
                 WebhookSecret = "STRIPE_WEBHOOK_SECRET_PLACEHOLDER",
@@ -33,9 +33,9 @@ public sealed class UserSubscriptionTests
                 ProYearlyPriceId = proYearlyPriceId,
                 Enabled = false,
             },
-            new EnterpriseAgentOs.Api.Properties.FrontendConfig("https://dashboard.officeos.co"),
+            new FrontendConfig("https://dashboard.officeos.co"),
             CreateDb(),
-            NullLogger<EnterpriseAgentOs.Api.Entities.Billing.UserBillingService>.Instance);
+            NullLogger<EnterpriseAgentOs.Application.Services.Billing.UserBillingService>.Instance);
 
     // -------------------------------------------------------------------------
     // Default subscription for a new user
@@ -72,8 +72,8 @@ public sealed class UserSubscriptionTests
 
         var sub = await svc.GetSubscriptionAsync(Guid.NewGuid());
 
-        Assert.Equal(EnterpriseAgentOs.Api.Entities.Billing.PlanLimits.IndividualFree.ConcurrentAgents, sub.ConcurrentAgentLimit);
-        Assert.Equal(EnterpriseAgentOs.Api.Entities.Billing.PlanLimits.IndividualFree.CreditsPerMonth, sub.CreditBudgetPerMonth);
+        Assert.Equal(PlanLimits.IndividualFree.ConcurrentAgents, sub.ConcurrentAgentLimit);
+        Assert.Equal(PlanLimits.IndividualFree.CreditsPerMonth, sub.CreditBudgetPerMonth);
     }
 
     [Fact]

@@ -65,7 +65,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             .AddInMemoryCollection(inMemoryConfig)
             .Build();
 
-        EnterpriseAgentOs.Api.Properties.ValueManager.SetConfiguration(testConfig);
+        ValueManager.SetConfiguration(testConfig);
 
         // Seed WireMock with a default manifests endpoint (empty list)
         SkillRuntimeMock
@@ -89,14 +89,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         builder.ConfigureServices(services =>
         {
             // Replace EF Core to use Testcontainers Postgres
-            services.RemoveAll<DbContextOptions<EnterpriseAgentOs.Api.Database.EaosDbContext>>();
-            services.RemoveAll<EnterpriseAgentOs.Api.Database.EaosDbContext>();
-            services.AddDbContext<EnterpriseAgentOs.Api.Database.EaosDbContext>(options =>
+            services.RemoveAll<DbContextOptions<EaosDbContext>>();
+            services.RemoveAll<EaosDbContext>();
+            services.AddDbContext<EaosDbContext>(options =>
                 options.UseNpgsql(_postgres.GetConnectionString()));
 
             // Replace SkillRuntimeConfig to point at WireMock
-            services.RemoveAll<EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig>();
-            services.AddSingleton(new EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
+            services.RemoveAll<SkillRuntimeConfig>();
+            services.AddSingleton(new SkillRuntimeConfig { Url = SkillRuntimeMock.Url! });
 
         });
     }

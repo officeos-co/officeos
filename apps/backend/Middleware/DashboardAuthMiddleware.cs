@@ -18,7 +18,7 @@ public sealed class DashboardAuthMiddleware
     public async Task InvokeAsync(IMiddlewareContext context)
     {
         var http = context.Service<IHttpContextAccessor>().HttpContext;
-        var user = http?.Items["User"] as EnterpriseAgentOs.Api.Database.Models.UserRecord;
+        var user = http?.Items["User"] as EnterpriseAgentOs.Domain.Models.UserRecord;
         if (user is null)
         {
             throw new GraphQLException(
@@ -37,10 +37,10 @@ public sealed class DashboardAuthMiddleware
 /// </summary>
 public static class DashboardAuthContextExtensions
 {
-    public static EnterpriseAgentOs.Api.Database.Models.UserRecord GetUser(this IResolverContext context)
+    public static EnterpriseAgentOs.Domain.Models.UserRecord GetUser(this IResolverContext context)
     {
         var http = context.Service<IHttpContextAccessor>().HttpContext;
-        var user = http?.Items["User"] as EnterpriseAgentOs.Api.Database.Models.UserRecord
+        var user = http?.Items["User"] as EnterpriseAgentOs.Domain.Models.UserRecord
             ?? throw new GraphQLException("Unauthenticated.");
         return user;
     }

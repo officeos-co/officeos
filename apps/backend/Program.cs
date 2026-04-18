@@ -18,7 +18,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Data Protection
-var dpKeyPath = EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("DataProtectionKeyPath");
+var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");
 var dpKeyDir = System.IO.Path.IsPathRooted(dpKeyPath)
     ? dpKeyPath
     : System.IO.Path.Combine(Directory.GetCurrentDirectory(), dpKeyPath);
@@ -29,8 +29,8 @@ builder.Services
     .SetApplicationName("EnterpriseAgentOs.Api");
 
 // Database
-builder.Services.AddDbContext<EnterpriseAgentOs.Api.Database.EaosDbContext>(options =>
-    options.UseNpgsql(EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("ConnectionString")));
+builder.Services.AddDbContext<EaosDbContext>(options =>
+    options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
 
 // DI — services, repositories, protectors, HTTP clients
 EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddHttpClients(
@@ -40,29 +40,29 @@ EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddHttpClients(
                 EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddRepositories(builder.Services)))));
 
 // Infrastructure configs — bind from nested appsettings sections
-var envSection = EnterpriseAgentOs.Api.Properties.ValueManager.GetConfiguration().GetSection(EnterpriseAgentOs.Api.Properties.ValueManager.GetEnvironmentName());
+var envSection = ValueManager.GetConfiguration().GetSection(ValueManager.GetEnvironmentName());
 
-var kubernetesConfig = new EnterpriseAgentOs.Api.Properties.KubernetesConfig();
+var kubernetesConfig = new KubernetesConfig();
 envSection.GetSection("Kubernetes").Bind(kubernetesConfig);
 builder.Services.AddSingleton(kubernetesConfig);
 
-var skillGatewayConfig = new EnterpriseAgentOs.Api.Properties.SkillGatewayConfig { RefreshSeconds = 30 };
+var skillGatewayConfig = new SkillGatewayConfig { RefreshSeconds = 30 };
 envSection.GetSection("SkillGateway").Bind(skillGatewayConfig);
 builder.Services.AddSingleton(skillGatewayConfig);
 
-var skillRuntimeConfig = new EnterpriseAgentOs.Api.Properties.SkillRuntimeConfig();
+var skillRuntimeConfig = new SkillRuntimeConfig();
 envSection.GetSection("SkillRuntime").Bind(skillRuntimeConfig);
 builder.Services.AddSingleton(skillRuntimeConfig);
 
-var googleOAuthConfig = new EnterpriseAgentOs.Api.Properties.GoogleOAuthConfig();
+var googleOAuthConfig = new GoogleOAuthConfig();
 envSection.GetSection("GoogleOAuth").Bind(googleOAuthConfig);
 builder.Services.AddSingleton(googleOAuthConfig);
 
-var workOsConfig = new EnterpriseAgentOs.Api.Properties.WorkOsConfig();
+var workOsConfig = new WorkOsConfig();
 envSection.GetSection("WorkOs").Bind(workOsConfig);
 builder.Services.AddSingleton(workOsConfig);
 
-var skillStorageConfig = new EnterpriseAgentOs.Api.Properties.SkillStorageConfig();
+var skillStorageConfig = new SkillStorageConfig();
 envSection.GetSection("Minio").Bind(skillStorageConfig);
 builder.Services.AddSingleton(skillStorageConfig);
 builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
@@ -88,26 +88,26 @@ if (kubernetesConfig.Enabled)
             : KubernetesClientConfiguration.BuildDefaultConfig();
         return new Kubernetes(config);
     });
-    builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Agents.IAgentDeployer, EnterpriseAgentOs.Api.Entities.Agents.KubernetesAgentDeployer>();
+    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
 }
 else
 {
-    builder.Services.AddScoped<EnterpriseAgentOs.Api.Entities.Agents.IAgentDeployer, EnterpriseAgentOs.Api.Entities.Agents.NullAgentDeployer>();
+    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
 }
 
 // Billing
-var stripeConfig = new EnterpriseAgentOs.Api.Properties.StripeConfig();
+var stripeConfig = new StripeConfig();
 envSection.GetSection("Stripe").Bind(stripeConfig);
 builder.Services.AddSingleton(stripeConfig);
 
-var frontendConfig = new EnterpriseAgentOs.Api.Properties.FrontendConfig(EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("FrontendOrigin"));
+var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
 builder.Services.AddSingleton(frontendConfig);
 
 // LLM
-builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<EnterpriseAgentOs.Api.Properties.PlatformKeysConfig>() ?? new EnterpriseAgentOs.Api.Properties.PlatformKeysConfig());
+builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
 // PostHog — server owns the API key; dashboard calls use-case-specific track* mutations
-var postHogConfig = new EnterpriseAgentOs.Api.Properties.PostHogConfig();
+var postHogConfig = new PostHogConfig();
 envSection.GetSection("PostHog").Bind(postHogConfig);
 builder.Services.AddSingleton(postHogConfig);
 
@@ -115,13 +115,13 @@ builder.Services.AddSingleton(postHogConfig);
 //   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
 //   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<EnterpriseAgentOs.Api.Entities.SkillGateway.SkillTypeModule>();
+builder.Services.AddSingleton<EnterpriseAgentOs.Api.GraphQL.SkillGateway.SkillTypeModule>();
 
 builder.Services
     .AddGraphQLServer("agent")
-    .AddQueryType<EnterpriseAgentOs.Api.Entities.SkillGateway.Query>()
-    .AddTypeModule<EnterpriseAgentOs.Api.Entities.SkillGateway.SkillTypeModule>()
-    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.Entities.SkillGateway.AgentAuthInterceptor>()
+    .AddQueryType<EnterpriseAgentOs.Api.GraphQL.SkillGateway.Query>()
+    .AddTypeModule<EnterpriseAgentOs.Api.GraphQL.SkillGateway.SkillTypeModule>()
+    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.GraphQL.SkillGateway.AgentAuthInterceptor>()
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
 
@@ -142,7 +142,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins(EnterpriseAgentOs.Api.Properties.ValueManager.GetValue<string>("FrontendOrigin"))
+            .WithOrigins(ValueManager.GetValue<string>("FrontendOrigin"))
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -153,11 +153,11 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Api.Database.EaosDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
-    await EnterpriseAgentOs.Api.Entities.Providers.ProviderSeeder.SeedAsync(db);
-    await EnterpriseAgentOs.Api.Entities.Skills.SkillSeeder.SeedAsync(scope.ServiceProvider);
-    await EnterpriseAgentOs.Api.Entities.AgentTemplates.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
+    await EnterpriseAgentOs.Application.Services.Providers.ProviderSeeder.SeedAsync(db);
+    await EnterpriseAgentOs.Application.Services.Skills.SkillSeeder.SeedAsync(scope.ServiceProvider);
+    await EnterpriseAgentOs.Application.Services.AgentTemplates.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())
@@ -175,7 +175,7 @@ app.UseSerilogRequestLogging(options =>
         diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString() ?? "");
         if (httpContext.Items.TryGetValue("agent-id", out var agentId) && agentId is not null)
             diagnosticContext.Set("AgentId", agentId);
-        if (httpContext.Items["User"] is EnterpriseAgentOs.Api.Database.Models.UserRecord user)
+        if (httpContext.Items["User"] is UserRecord user)
             diagnosticContext.Set("UserId", user.Id);
     };
 });
@@ -189,7 +189,7 @@ app.UseWebSockets();
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapGet("/healthz", () => Results.Ok(new { ok = true }));
 
-EnterpriseAgentOs.Api.Entities.Agents.AgentProxyEndpoints.MapAgentProxyEndpoints(app);
+EnterpriseAgentOs.Api.Endpoints.AgentProxyEndpoints.MapAgentProxyEndpoints(app);
 app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
     .RequireCors(FrontendCorsPolicy);

@@ -19,7 +19,7 @@ public sealed class SmartRouterTests
     public void ExplicitModel_ReturnsUnchanged()
     {
         var body = BuildBody("hello");
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("gpt-4o", body);
+        var result = SmartRouter.Resolve("gpt-4o", body);
         Assert.Equal("gpt-4o", result);
     }
 
@@ -27,7 +27,7 @@ public sealed class SmartRouterTests
     public void ExplicitModel_ClaudeOpus_ReturnsUnchanged()
     {
         var body = BuildBody("hello");
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("claude-opus-4-6", body);
+        var result = SmartRouter.Resolve("claude-opus-4-6", body);
         Assert.Equal("claude-opus-4-6", result);
     }
 
@@ -38,7 +38,7 @@ public sealed class SmartRouterTests
     {
         // 50 chars is well under SimpleMaxChars (800)
         var body = BuildBody(new string('x', 50));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body);
+        var result = SmartRouter.Resolve("auto", body);
         Assert.Equal("claude-haiku-4-5", result);
     }
 
@@ -47,7 +47,7 @@ public sealed class SmartRouterTests
     {
         // 5 000 chars is above StandardMaxChars (4 000)
         var body = BuildBody(new string('x', 5_000));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body);
+        var result = SmartRouter.Resolve("auto", body);
         Assert.Equal("claude-sonnet-4-6", result);
     }
 
@@ -56,7 +56,7 @@ public sealed class SmartRouterTests
     {
         // 2 000 chars: simple < 800 is false, ≤ 4 000 is true → Standard → sonnet
         var body = BuildBody(new string('x', 2_000));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body);
+        var result = SmartRouter.Resolve("auto", body);
         Assert.Equal("claude-sonnet-4-6", result);
     }
 
@@ -65,7 +65,7 @@ public sealed class SmartRouterTests
     {
         // Short content but > 3 tools → not Simple tier
         var body = BuildBody(new string('x', 100), toolCount: 5);
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body);
+        var result = SmartRouter.Resolve("auto", body);
         Assert.Equal("claude-sonnet-4-6", result);
     }
 
@@ -75,7 +75,7 @@ public sealed class SmartRouterTests
     public void Auto_ShortMessage_OpenAI_ReturnsGptMini()
     {
         var body = BuildBody(new string('x', 50));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body, preferredFamily: "openai");
+        var result = SmartRouter.Resolve("auto", body, preferredFamily: "openai");
         Assert.Equal("gpt-4o-mini", result);
     }
 
@@ -83,7 +83,7 @@ public sealed class SmartRouterTests
     public void Auto_LongMessage_OpenAI_ReturnsGpt4o()
     {
         var body = BuildBody(new string('x', 5_000));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body, preferredFamily: "openai");
+        var result = SmartRouter.Resolve("auto", body, preferredFamily: "openai");
         Assert.Equal("gpt-4o", result);
     }
 
@@ -93,7 +93,7 @@ public sealed class SmartRouterTests
     public void Auto_ShortMessage_Google_ReturnsFlash()
     {
         var body = BuildBody(new string('x', 50));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body, preferredFamily: "google");
+        var result = SmartRouter.Resolve("auto", body, preferredFamily: "google");
         Assert.Equal("gemini-2.5-flash", result);
     }
 
@@ -101,7 +101,7 @@ public sealed class SmartRouterTests
     public void Auto_LongMessage_Google_ReturnsPro()
     {
         var body = BuildBody(new string('x', 5_000));
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body, preferredFamily: "google");
+        var result = SmartRouter.Resolve("auto", body, preferredFamily: "google");
         Assert.Equal("gemini-2.5-pro", result);
     }
 
@@ -111,7 +111,7 @@ public sealed class SmartRouterTests
     public void Auto_EmptyMessages_Anthropic_ReturnsHaiku()
     {
         var body = JsonDocument.Parse("{\"messages\":[]}").RootElement.Clone();
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body);
+        var result = SmartRouter.Resolve("auto", body);
         Assert.Equal("claude-haiku-4-5", result);
     }
 
@@ -119,7 +119,7 @@ public sealed class SmartRouterTests
     public void Auto_NoMessagesProperty_Anthropic_ReturnsHaiku()
     {
         var body = JsonDocument.Parse("{\"stream\":true}").RootElement.Clone();
-        var result = EnterpriseAgentOs.Api.Entities.LlmProxy.SmartRouter.Resolve("auto", body);
+        var result = SmartRouter.Resolve("auto", body);
         Assert.Equal("claude-haiku-4-5", result);
     }
 }

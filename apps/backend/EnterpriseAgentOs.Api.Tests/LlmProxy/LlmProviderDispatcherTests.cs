@@ -12,9 +12,9 @@ public sealed class LlmProviderDispatcherTests
     [InlineData("openrouter")]
     public void IsSupported_AllExpectedProviders_ReturnsTrue(string provider)
     {
-        var dispatcher = new EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProviderDispatcher(
+        var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProviderDispatcher>.Instance);
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<LlmProviderDispatcher>.Instance);
 
         Assert.True(dispatcher.IsSupported(provider));
     }
@@ -22,9 +22,9 @@ public sealed class LlmProviderDispatcherTests
     [Fact]
     public void IsSupported_Google_ReturnsTrue()
     {
-        var dispatcher = new EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProviderDispatcher(
+        var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<EnterpriseAgentOs.Api.Entities.LlmProxy.LlmProviderDispatcher>.Instance);
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<LlmProviderDispatcher>.Instance);
 
         Assert.True(dispatcher.IsSupported("google"));
     }
