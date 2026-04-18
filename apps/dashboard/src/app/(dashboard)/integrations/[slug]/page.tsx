@@ -1,15 +1,29 @@
 "use client"
 
-import { use } from "react"
-import Image from "next/image"
+import { use, useState } from "react"
 import { notFound } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { sourceUrl } from "@/features/agents/data/integrations"
-import { useIntegrations } from "@/features/agents"
-import { ExternalLinkIcon, HeartIcon, DownloadIcon } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  useIntegrations,
+  useSkillComments,
+  useLikeSkill,
+  useCommentOnSkill,
+  useDeleteSkillComment,
+  useInstallSkill,
+  useUninstallSkill,
+} from "@/features/agents"
+import {
+  ExternalLinkIcon,
+  HeartIcon,
+  DownloadIcon,
+  XIcon,
+  SendIcon,
+  Trash2Icon,
+} from "lucide-react"
 
 export default function IntegrationDetailPage({
   params,
@@ -19,13 +33,35 @@ export default function IntegrationDetailPage({
   const { slug } = use(params)
   const { integrations, loading } = useIntegrations()
   const integration = integrations.find((i) => i.slug === slug)
+  const likeSkill = useLikeSkill()
+  const { commentOnSkill } = useCommentOnSkill()
+  const deleteComment = useDeleteSkillComment()
+  const installSkill = useInstallSkill()
+  const uninstallSkill = useUninstallSkill()
+  const { comments, refetch: refetchComments } = useSkillComments(integration?.id ?? "")
+  const [commentBody, setCommentBody] = useState("")
 
   if (!integration) {
     if (loading) return null
     return notFound()
   }
 
-  const source = sourceUrl(integration.slug)
+  async function handleLike() {
+    if (!integration) return
+    await likeSkill(integration.id, !integration.likedByMe)
+  }
+
+  async function handleComment() {
+    if (!integration || !commentBody.trim()) return
+    await commentOnSkill(integration.id, commentBody.trim())
+    setCommentBody("")
+    refetchComments()
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    await deleteComment(commentId)
+    refetchComments()
+  }
 
   return (
     <>
@@ -33,36 +69,41 @@ export default function IntegrationDetailPage({
         group="Integrations"
         page={integration.name}
         action={
-          <Button size="sm">
-            <DownloadIcon />
-            Install
-          </Button>
+          integration.installed ? (
+            <Button size="sm" variant="outline" onClick={() => uninstallSkill(integration.slug)}>
+              <XIcon className="size-4" />
+              Uninstall
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => installSkill(integration.slug)}>
+              <DownloadIcon className="size-4" />
+              Install
+            </Button>
+          )
         }
       />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         {/* Header */}
         <div className="flex items-start gap-4">
-          <Image
-            src={integration.logo}
-            alt={integration.name}
-            width={48}
-            height={48}
-            className="shrink-0 rounded-xl"
-          />
+          <div className="size-12 shrink-0 rounded-xl [&>svg]:size-12" dangerouslySetInnerHTML={{ __html: integration.logo }} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-lg font-semibold">{integration.name}</h1>
             </div>
             <p className="text-sm text-muted-foreground">{integration.description}</p>
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <HeartIcon className="size-3" />
+              <button
+                type="button"
+                onClick={handleLike}
+                className={`flex items-center gap-1 transition-colors hover:text-foreground ${integration.likedByMe ? "text-red-500" : ""}`}
+              >
+                <HeartIcon className={`size-3 ${integration.likedByMe ? "fill-current" : ""}`} />
                 {integration.likes}
-              </span>
+              </button>
               <span>{integration.tools.length} tools</span>
-              <span>Updated {integration.updatedAgo}</span>
+              <span>{integration.commentsCount} comments</span>
               <a
-                href={source}
+                href={integration.sourceCodeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -93,32 +134,85 @@ export default function IntegrationDetailPage({
           ))}
         </div>
 
-        {/* SKILL.md card */}
+        {/* Documentation card */}
+        {integration.doc && (
+          <div className="rounded-xl border border-border bg-card">
+            <div className="px-4 py-3 border-b border-border">
+              <span className="text-sm font-medium">Documentation</span>
+            </div>
+            <div className="p-6">
+              <div className="prose prose-sm max-w-none
+                prose-headings:font-semibold prose-headings:text-foreground
+                prose-h1:text-lg prose-h1:mt-0 prose-h1:mb-3
+                prose-h2:text-sm prose-h2:mt-6 prose-h2:mb-3
+                prose-h3:text-sm prose-h3:font-mono prose-h3:mt-4 prose-h3:mb-2 prose-h3:text-foreground
+                prose-p:text-sm prose-p:leading-relaxed prose-p:text-muted-foreground
+                prose-strong:text-foreground prose-strong:font-medium
+                prose-code:rounded prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:font-mono prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none
+                prose-pre:bg-zinc-950 prose-pre:text-zinc-300 prose-pre:rounded-lg prose-pre:text-xs prose-pre:leading-relaxed
+                prose-table:text-sm prose-table:w-full
+                prose-th:text-left prose-th:font-medium prose-th:text-muted-foreground prose-th:py-2 prose-th:px-3 prose-th:border-b prose-th:border-border
+                prose-td:py-2 prose-td:px-3 prose-td:border-b prose-td:border-border prose-td:text-muted-foreground
+                prose-li:text-sm prose-li:text-muted-foreground
+                prose-ol:text-sm
+                prose-a:text-foreground prose-a:underline prose-a:underline-offset-2
+              ">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {integration.doc}
+                </ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Comments section */}
         <div className="rounded-xl border border-border bg-card">
           <div className="px-4 py-3 border-b border-border">
-            <span className="text-sm font-medium">SKILL.md</span>
+            <span className="text-sm font-medium">Comments</span>
+            <span className="ml-2 text-xs text-muted-foreground">{comments.length}</span>
           </div>
-          <div className="p-6">
-            <div className="prose prose-sm max-w-none
-              prose-headings:font-semibold prose-headings:text-foreground
-              prose-h1:text-lg prose-h1:mt-0 prose-h1:mb-3
-              prose-h2:text-sm prose-h2:mt-6 prose-h2:mb-3
-              prose-h3:text-sm prose-h3:font-mono prose-h3:mt-4 prose-h3:mb-2 prose-h3:text-foreground
-              prose-p:text-sm prose-p:leading-relaxed prose-p:text-muted-foreground
-              prose-strong:text-foreground prose-strong:font-medium
-              prose-code:rounded prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:text-xs prose-code:font-mono prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none
-              prose-pre:bg-zinc-950 prose-pre:text-zinc-300 prose-pre:rounded-lg prose-pre:text-xs prose-pre:leading-relaxed
-              prose-table:text-sm prose-table:w-full
-              prose-th:text-left prose-th:font-medium prose-th:text-muted-foreground prose-th:py-2 prose-th:px-3 prose-th:border-b prose-th:border-border
-              prose-td:py-2 prose-td:px-3 prose-td:border-b prose-td:border-border prose-td:text-muted-foreground
-              prose-li:text-sm prose-li:text-muted-foreground
-              prose-ol:text-sm
-              prose-a:text-foreground prose-a:underline prose-a:underline-offset-2
-            ">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {integration.skillMd}
-              </ReactMarkdown>
+          <div className="p-4 space-y-4">
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={commentBody}
+                onChange={(e) => setCommentBody(e.target.value)}
+                className="min-h-[60px] text-sm"
+              />
+              <Button
+                size="sm"
+                onClick={handleComment}
+                disabled={!commentBody.trim()}
+                className="self-end"
+              >
+                <SendIcon className="size-4" />
+              </Button>
             </div>
+
+            {comments.map((comment) => (
+              <div key={comment.id} className="flex gap-3 border-t border-border pt-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">{comment.author.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{comment.body}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteComment(comment.id)}
+                  className="text-muted-foreground hover:text-foreground transition-colors self-start"
+                >
+                  <Trash2Icon className="size-3" />
+                </button>
+              </div>
+            ))}
+
+            {comments.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-2">No comments yet.</p>
+            )}
           </div>
         </div>
       </div>
