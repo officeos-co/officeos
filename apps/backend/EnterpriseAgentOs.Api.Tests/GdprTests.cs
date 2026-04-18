@@ -19,17 +19,15 @@ public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
         var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
         await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "export-test-agent");
 
-        var response = await dashClient.GetAsync("/api/gdpr/export");
+        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
+            dashClient,
+            "{ exportMyData { user { email } agents { name } } }");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        // Must send a Content-Disposition attachment header
-        var cd = response.Content.Headers.ContentDisposition;
-        Assert.NotNull(cd);
-        Assert.Equal("attachment", cd!.DispositionType, StringComparer.OrdinalIgnoreCase);
-
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains(email, body, StringComparison.Ordinal);
+        var exportedEmail = data.GetProperty("exportMyData")
+            .GetProperty("user")
+            .GetProperty("email")
+            .GetString();
+        Assert.Equal(email, exportedEmail);
     }
 
     // ── 2. Export requires auth ──────────────────────────────────────────────
@@ -38,9 +36,11 @@ public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     public async Task GdprExport_RequiresAuth()
     {
         var anon = _factory.CreateClient();
-        var response = await anon.GetAsync("/api/gdpr/export");
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(
+            anon,
+            "{ exportMyData { user { email } } }");
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     // ── 3. Purge deletes all user data ───────────────────────────────────────
@@ -59,9 +59,11 @@ public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
             new { id = agentId });
         Assert.Equal(JsonValueKind.Object, beforeData.GetProperty("agent").ValueKind);
 
-        // Issue GDPR purge (still REST)
-        var purgeResponse = await dashClient.DeleteAsync("/api/gdpr/purge");
-        Assert.Equal(HttpStatusCode.NoContent, purgeResponse.StatusCode);
+        // Issue GDPR purge via GraphQL
+        var purgeData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
+            dashClient,
+            "mutation { purgeMyData }");
+        Assert.True(purgeData.GetProperty("purgeMyData").GetBoolean());
 
         // The same session cookie is now invalid — any authenticated GraphQL call errors
         var afterAuth = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(dashClient, "{ agents { id } }");
@@ -80,9 +82,11 @@ public sealed class GdprTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     public async Task GdprPurge_RequiresAuth()
     {
         var anon = _factory.CreateClient();
-        var response = await anon.DeleteAsync("/api/gdpr/purge");
+        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(
+            anon,
+            "mutation { purgeMyData }");
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 }
 
