@@ -60,7 +60,7 @@ export interface SkillDefinition {
   title: string;
   /**
    * Raw inline SVG markup used as the skill's logo in the dashboard.
-   * Preferred over `emoji`. Must be a complete `<svg ...>...</svg>` string —
+   * Must be a complete `<svg ...>...</svg>` string —
    * not a URL, not a file path. Typically sourced from simpleicons.org
    * with a minimal `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="..."/></svg>` wrapper.
    */

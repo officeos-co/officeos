@@ -15,7 +15,7 @@ export { createContext } from "./context.js";
  * export default defineSkill({
  *   name: 'notion',
  *   title: 'Notion',
- *   emoji: '📝',
+ *   logo: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="..."/></svg>',
  *   description: 'Search and read Notion pages.',
  *   doc,
  *   credentials: {
