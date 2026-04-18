@@ -18,6 +18,7 @@ import {
 import { AnimatePresence, motion, useScroll } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -161,6 +162,7 @@ function NavDropdown({ links }: { links: typeof productLinks }) {
 }
 
 export function Navbar() {
+  const pathname = usePathname();
   const { scrollY } = useScroll();
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -214,11 +216,13 @@ export function Navbar() {
           )}
         >
           <div className="flex h-[56px] items-center justify-between p-4">
-            <a
-              href="#"
+            <Link
+              href="/"
               onClick={(e) => {
-                e.preventDefault();
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                if (pathname === "/") {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
               }}
               className="flex items-center gap-1"
             >
