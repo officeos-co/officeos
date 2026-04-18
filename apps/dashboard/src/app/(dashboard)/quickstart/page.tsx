@@ -22,7 +22,7 @@ import { type Channel, type ChannelPermissions } from "@/features/agents/data/ch
 import { useIntegrations } from "@/features/agents"
 import { useChannels } from "@/features/agents"
 import { useAgentTemplates } from "@/features/agents"
-import { useCreateAgent } from "@/features/agents"
+import { useCreateAgent, useModels } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { type Template } from "@/features/agents/data/agent-templates"
 import {
@@ -171,13 +171,14 @@ export default function QuickstartPage() {
   const { channels } = useChannels()
   const { templates } = useAgentTemplates()
   const { createAgent } = useCreateAgent()
+  const { models, defaultModelId } = useModels()
   const { trackAgentCreated } = useAnalytics()
   const [launching, setLaunching] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [agentName, setAgentName] = useState("")
   const [prompt, setPrompt] = useState("")
-  const [model, setModel] = useState("auto")
+  const [model, setModel] = useState(defaultModelId)
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(new Set())
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set())
   const [toolPermissions, setToolPermissions] = useState<Record<string, ToolPermission>>({})
@@ -286,12 +287,9 @@ export default function QuickstartPage() {
                 <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">Auto (smart routing)</SelectItem>
-                    <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-                    <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
-                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
-                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                    {models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

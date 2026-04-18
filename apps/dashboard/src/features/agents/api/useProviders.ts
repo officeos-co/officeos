@@ -12,9 +12,9 @@ export type Provider = {
 }
 
 const mockProviders: Provider[] = [
-  { id: "anthropic", name: "anthropic", displayName: "Anthropic", hasKey: true, models: ["claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"] },
-  { id: "openai", name: "openai", displayName: "OpenAI", hasKey: true, models: ["gpt-4o", "gpt-4o-mini"] },
-  { id: "google", name: "google", displayName: "Google", hasKey: false, models: ["gemini-2.5-pro"] },
+  { id: "anthropic", name: "anthropic", displayName: "Anthropic", hasKey: true, models: [] },
+  { id: "openai", name: "openai", displayName: "OpenAI", hasKey: true, models: [] },
+  { id: "google", name: "google", displayName: "Google", hasKey: false, models: [] },
 ]
 
 const PROVIDERS_QUERY = gql`

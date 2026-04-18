@@ -1,0 +1,7 @@
+query SupportedModels {
+  supportedModels {
+    id
+    displayName
+    isDefault
+  }
+}

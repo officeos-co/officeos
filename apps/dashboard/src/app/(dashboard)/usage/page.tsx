@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useUsage } from "@/features/analytics"
+import { useModels } from "@/features/agents"
 import {
   DownloadIcon,
   ChevronLeftIcon,
@@ -41,6 +42,7 @@ function formatDate(d: string) {
 
 export default function UsagePage() {
   const { dailyUsage: mockDailyUsage } = useUsage()
+  const { models } = useModels()
   const [range, setRange] = useState<string>("Month to date")
   const [groupBy, setGroupBy] = useState<string>("Day")
   const [model, setModel] = useState("All")
@@ -86,8 +88,9 @@ export default function UsagePage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All models</SelectItem>
-              <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-              <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
+              {models.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={groupBy} onValueChange={(v) => { if (v) setGroupBy(v) }}>

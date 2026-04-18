@@ -30,4 +30,22 @@ public static class KnownModels
 
     public static bool IsValid(string model) =>
         SupportedModels.Contains(model, StringComparer.OrdinalIgnoreCase);
+
+    public const string DefaultModel = "auto";
+
+    private static readonly Dictionary<string, string> DisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["auto"] = "Auto (smart routing)",
+        ["claude-haiku-4-5"] = "Claude Haiku 4.5",
+        ["claude-sonnet-4-6"] = "Claude Sonnet 4.6",
+        ["claude-opus-4-6"] = "Claude Opus 4.6",
+        ["gpt-4o"] = "GPT-4o",
+        ["gpt-4o-mini"] = "GPT-4o Mini",
+        ["gemini-2.5-pro"] = "Gemini 2.5 Pro",
+        ["gemini-2.5-flash"] = "Gemini 2.5 Flash",
+        ["grok-4"] = "Grok 4",
+    };
+
+    public static string GetDisplayName(string model) =>
+        DisplayNames.TryGetValue(model, out var name) ? name : model;
 }

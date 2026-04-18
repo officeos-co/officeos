@@ -37,7 +37,7 @@ import { useAgent } from "@/features/agents"
 import { useAgentLogs } from "@/features/analytics"
 import { useSendAgentMessage } from "@/features/agents"
 import { useIntegrations } from "@/features/agents"
-import { useChannels } from "@/features/agents"
+import { useChannels, useModels } from "@/features/agents"
 import {
   SendIcon,
   ClockIcon,
@@ -584,6 +584,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const router = useRouter()
   const initialStatus = searchParams.get("status")
   const { agent } = useAgent(id)
+  const { models } = useModels()
   const mockAgent = agent ?? { id, name: "", model: "", status: "stopped", prompt: "", integrations: [] as string[], channels: [] as string[], createdAt: Date.now() }
   const [agentStatus, setAgentStatus] = useState(initialStatus === "booting" ? "booting" : mockAgent.status)
   const [model, setModel] = useState(mockAgent.model)
@@ -634,12 +635,9 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="auto">Auto (smart routing)</SelectItem>
-                  <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-                  <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
-                  <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5</SelectItem>
-                  <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  {models.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" render={<Link href="/agents" />}>All agents</Button>

@@ -145,6 +145,7 @@ Colors match the website (`apps/website/`):
 - **Server components for static pages.** Placeholder pages and layouts stay as server components.
 - **No overview/dashboard page.** `/` redirects to `/agents`. Every page serves a specific purpose.
 - **Reuse shared components.** `LogTable`, `ToolPermissionCard`, `ChannelPermissionCard`, `PageHeader` — don't duplicate. These live in top-level `src/components/`.
+- **No hardcoded backend values in the UI.** Enums, model lists, and any values the backend owns must come from a GraphQL query, never hardcoded `SelectItem` lists. Example: `useModels()` fetches `supportedModels` from the backend — all model dropdowns render from this hook.
 
 ## Anti-patterns
 
@@ -204,6 +205,7 @@ auth hooks (`useAuth`, `use-mobile`) remain in `src/hooks/`. Current hooks:
 | `useChannels` | `channelTypes` + `channelConnections` | Channel catalog merged with connection state |
 | `useCreateChannelConnection` / `useDeleteChannelConnection` / `useBindChannelToAgent` | matching mutations | — |
 | `useAgentTemplates` / `useCreateAgentFromTemplate` | templates endpoints | — |
+| `useModels` | `supportedModels` | `{ models: ModelInfo[], defaultModelId: string }` — all model dropdowns use this, never hardcode model lists |
 | `useAgentLogs` / `useGlobalLogs` / `useSendAgentMessage` / `useProviders` / `useRunners` / `useBilling` / `useAudit` | respective GraphQL ops | — |
 | `useAnalytics` | typed `track*` mutations — see PostHog section | — |
 

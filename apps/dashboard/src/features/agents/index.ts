@@ -4,5 +4,6 @@ export * from "./api/useChannels";
 export * from "./api/useAgentTemplates";
 export * from "./api/useSendAgentMessage";
 export * from "./api/useProviders";
+export * from "./api/useModels";
 export * from "./components/credential-dialog";
 export * from "./components/channel-onboarding-dialog";

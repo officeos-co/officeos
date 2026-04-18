@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useCost } from "@/features/analytics"
+import { useModels } from "@/features/agents"
 import {
   DownloadIcon,
   ChevronLeftIcon,
@@ -39,6 +40,7 @@ function formatDate(d: string) {
 
 export default function CostPage() {
   const { dailyCost: mockDailyCost } = useCost()
+  const { models } = useModels()
   const [range, setRange] = useState<string>("Month to date")
   const [groupBy, setGroupBy] = useState<string>("Day")
   const [model, setModel] = useState("All")
@@ -95,8 +97,9 @@ export default function CostPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
-              <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
-              <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
+              {models.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <div className="flex items-center gap-1 ml-auto">

@@ -20,4 +20,16 @@ public class ProviderQueries
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return Application.Services.Providers.KnownModels.For(providerName);
     }
+
+    public IReadOnlyList<Types.ModelInfoDto> GetSupportedModels(
+        IResolverContext context)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        return Application.Services.Providers.KnownModels.SupportedModels
+            .Select(m => new Types.ModelInfoDto(
+                m,
+                Application.Services.Providers.KnownModels.GetDisplayName(m),
+                m == Application.Services.Providers.KnownModels.DefaultModel))
+            .ToList();
+    }
 }

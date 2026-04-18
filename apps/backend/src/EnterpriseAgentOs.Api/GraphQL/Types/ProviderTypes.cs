@@ -7,6 +7,11 @@ public sealed record ProviderGqlDto(
     bool Configured,
     DateTime? ConfiguredAt);
 
+public sealed record ModelInfoDto(
+    string Id,
+    string DisplayName,
+    bool IsDefault);
+
 internal static class ProviderGraphQLMapper
 {
     public static ProviderGqlDto ToDto(ProviderDto p) =>
