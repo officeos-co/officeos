@@ -6,6 +6,7 @@ COPY apps/backend/src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj src/Ent
 COPY apps/backend/src/EnterpriseAgentOs.Domain/EnterpriseAgentOs.Domain.csproj src/EnterpriseAgentOs.Domain/
 COPY apps/backend/src/EnterpriseAgentOs.Application/EnterpriseAgentOs.Application.csproj src/EnterpriseAgentOs.Application/
 COPY apps/backend/src/EnterpriseAgentOs.Infrastructure/EnterpriseAgentOs.Infrastructure.csproj src/EnterpriseAgentOs.Infrastructure/
+COPY apps/backend/EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj EnterpriseAgentOs.Api.Tests/
 RUN dotnet restore EnterpriseAgentOs.sln
 COPY apps/backend/. ./
 RUN dotnet publish src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
