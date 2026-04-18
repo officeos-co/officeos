@@ -1,0 +1,60 @@
+name: Seed Skill Manifests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/skills/**'
+
+concurrency:
+  group: seed-skill-manifests
+  cancel-in-progress: true
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build manifests from skill.json files
+        run: node scripts/build-manifests.js
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skill-manifests
+          path: dist/manifests/all.json
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Seed manifests to backend database
+        run: |
+          kubectl config set-cluster nova --server=https://tailscale-operator.tail82aae1.ts.net:443 --insecure-skip-tls-verify=true
+          kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
+
+          kubectl port-forward svc/eaos-backend-prod 5099:8000 &
+          PF_PID=$!
+          sleep 5
+
+          RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "http://localhost:5099/api/internal/seed-manifests" \
+            -H "Content-Type: application/json" \
+            -d @dist/manifests/all.json)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          kill $PF_PID || true
+          echo "HTTP $HTTP_CODE — $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Seed manifests failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Manifests seeded successfully"
