@@ -168,8 +168,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.CorrelationIdMiddleware>();
+app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.RequestResponseLoggingMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
+    options.GetLevel = (httpContext, elapsed, ex) =>
+    {
+        var path = httpContext.Request.Path.Value ?? "";
+        if (path is "/healthz" or "/api/health")
+            return LogEventLevel.Verbose;
+        return LogEventLevel.Information;
+    };
     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
     {
         diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? "unknown");
