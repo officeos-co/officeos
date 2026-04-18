@@ -29,7 +29,6 @@ export default defineSkill({
   name: "azure",
   title: "Microsoft Azure",
   logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6 19a5 5 0 0 1-1-9.9A6 6 0 0 1 17 8a4.5 4.5 0 0 1 3 8.5 1 1 0 0 1-.3.2A5 5 0 0 1 18 19H6Z\"/></svg>",
-  emoji: "🔷",
   description:
     "Manage Azure resources via the az CLI proxy: resource groups, VMs, web apps, storage, SQL, AKS, and function apps.",
   doc,

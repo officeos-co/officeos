@@ -108,7 +108,6 @@ export default defineSkill({
   name: "pipedrive",
   title: "Pipedrive",
   logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4 4h16l-6 8v6l-4 2v-8L4 4Z\"/></svg>",
-  emoji: "📊",
   description:
     "Manage your Pipedrive CRM: deals, persons, organizations, activities, pipelines, and stages.",
   doc,
