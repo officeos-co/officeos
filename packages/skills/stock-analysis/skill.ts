@@ -1,5 +1,6 @@
 import { defineSkill, z } from "@harro/skill-sdk";
 
+import manifest from "./skill.json" with { type: "json" };
 // Yahoo Finance v8 / crumb-based endpoints
 const YF_BASE = "https://query1.finance.yahoo.com";
 const YF_BASE2 = "https://query2.finance.yahoo.com";
@@ -72,21 +73,8 @@ function mapQuote(q: any): z.infer<typeof quoteShape> {
 import doc from "./SKILL.md";
 
 export default defineSkill({
-  name: "stock-analysis",
-  title: "Stock Analysis",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M15.8654 8.2789c0 1.3541-1.0978 2.4519-2.452 2.4519-1.354 0-2.4519-1.0978-2.4519-2.452 0-1.354 1.0978-2.4518 2.452-2.4518 1.3541 0 2.4519 1.0977 2.4519 2.4519zM9.75 6H0v4.9038h4.8462v7.2692H9.75Zm8.5962 0H24l-5.1058 12.173h-5.6538z\"/></svg>",
-  description:
-    "Fetch real-time and historical stock data, fundamentals, analyst ratings, and market trends via Yahoo Finance.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "text",
-      placeholder: "http://proxy.example.com:8080",
-      help: "(Optional) HTTP/HTTPS proxy to route Yahoo Finance requests through for rate limit avoidance.",
-    },
-  },
 
   actions: {
     // ── Quotes ─────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { defineSkill, z } from "@harro/skill-sdk";
 
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 type Ctx = {
@@ -26,21 +27,8 @@ async function excelProxy(
 }
 
 export default defineSkill({
-  name: "excel",
-  title: "Excel",
-  logo: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM8 12h2l1.5 2L13 12h2l-2.5 3.5L15 19h-2l-1.5-2L10 19H8l2.5-3.5L8 12Z"/></svg>',
-  description:
-    "Create, read, write, format, and export Excel workbooks (.xlsx) with full support for formulas, tables, charts, and data operations via ExcelJS.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "text",
-      placeholder: "http://localhost:3100/excel",
-      help: "URL of the Excel file proxy service that manages workbook state.",
-    },
-  },
 
   actions: {
     // ── Workbook ──────────────────────────────────────────────────────

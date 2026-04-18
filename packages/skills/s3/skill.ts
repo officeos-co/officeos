@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 // ── AWS Signature Version 4 helpers ──────────────────────────────────────────
@@ -151,33 +152,8 @@ function parseXml(xml: string, tag: string): string[] {
 // ── Skill definition ──────────────────────────────────────────────────────────
 
 export default defineSkill({
-  name: "s3",
-  title: "AWS S3",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6 19a5 5 0 0 1-1-9.9A6 6 0 0 1 17 8a4.5 4.5 0 0 1 3 8.5 1 1 0 0 1-.3.2A5 5 0 0 1 18 19H6Z\"/></svg>",
-  description:
-    "Interact with AWS S3 using the S3 REST API: buckets, objects, presigned URLs, and multipart uploads.",
+  ...manifest,
   doc,
-
-  credentials: {
-    access_key_id: {
-      label: "Access Key ID",
-      kind: "text",
-      placeholder: "AKIAIOSFODNN7EXAMPLE",
-      help: "AWS Access Key ID with S3 permissions.",
-    },
-    secret_access_key: {
-      label: "Secret Access Key",
-      kind: "password",
-      placeholder: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-      help: "AWS Secret Access Key corresponding to the Access Key ID.",
-    },
-    region: {
-      label: "Region",
-      kind: "text",
-      placeholder: "us-east-1",
-      help: "AWS region where your primary buckets live (e.g. us-east-1, eu-west-1).",
-    },
-  },
 
   actions: {
     // ── Buckets ───────────────────────────────────────────────────────

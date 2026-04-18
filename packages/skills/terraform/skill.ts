@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 async function tfExec(
@@ -18,21 +19,8 @@ async function tfExec(
 }
 
 export default defineSkill({
-  name: "terraform",
-  title: "Terraform",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1.44 0v7.575l6.561 3.79V3.787zm21.12 4.227l-6.561 3.791v7.574l6.56-3.787zM8.72 4.23v7.575l6.561 3.787V8.018zm0 8.405v7.575L15.28 24v-7.578z\"/></svg>",
-  description:
-    "Full Terraform CLI parity: init, plan, apply, destroy, state management, workspaces, imports, validation, formatting, providers, graph, taint/untaint via a command proxy.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Terraform Proxy URL",
-      kind: "text",
-      placeholder: "http://localhost:9090/exec",
-      help: "URL of the command proxy endpoint that accepts { command, args } POST requests.",
-    },
-  },
 
   actions: {
     // ── Init ───────────────────────────────────────────────────────────

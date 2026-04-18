@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 type Ctx = { fetch: typeof globalThis.fetch; credentials: Record<string, string> };
@@ -28,21 +29,8 @@ async function proxyPost(ctx: Ctx, path: string, body: unknown, method = "POST")
 }
 
 export default defineSkill({
-  name: "pdf",
-  title: "PDF",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM8 13h8v2H8v-2Zm0 4h5v2H8v-2Z\"/></svg>",
-  description:
-    "Create, read, and manipulate PDF documents via a file-proxy service: extract text, merge, split, add pages and content, rotate pages.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "url",
-      placeholder: "https://your-pdf-proxy.example.com",
-      help: "Base URL of the PDF file-proxy service that wraps pdf-lib.",
-    },
-  },
 
   actions: {
     // ── Documents ──────────────────────────────────────────────────────────

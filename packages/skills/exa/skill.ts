@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 const EXA_API = "https://api.exa.ai";
@@ -38,21 +39,8 @@ const ResultSchema = z.object({
 });
 
 export default defineSkill({
-  name: "exa",
-  title: "Exa",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11 2a9 9 0 1 0 5.3 16.3l4.4 4.4 1.4-1.4-4.4-4.4A9 9 0 0 0 11 2Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z\"/></svg>",
-  description:
-    "Neural search engine for the web. Finds semantically relevant pages, similar content, and retrieves full page text.",
+  ...manifest,
   doc,
-
-  credentials: {
-    api_key: {
-      label: "API Key",
-      kind: "password",
-      placeholder: "exa-...",
-      help: "Your Exa API key from https://dashboard.exa.ai/api-keys",
-    },
-  },
 
   actions: {
     search: {

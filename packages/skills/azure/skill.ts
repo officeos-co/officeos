@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 async function azExec(
@@ -26,21 +27,8 @@ async function azExec(
 }
 
 export default defineSkill({
-  name: "azure",
-  title: "Microsoft Azure",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6 19a5 5 0 0 1-1-9.9A6 6 0 0 1 17 8a4.5 4.5 0 0 1 3 8.5 1 1 0 0 1-.3.2A5 5 0 0 1 18 19H6Z\"/></svg>",
-  description:
-    "Manage Azure resources via the az CLI proxy: resource groups, VMs, web apps, storage, SQL, AKS, and function apps.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "url",
-      placeholder: "https://az-proxy.internal/exec",
-      help: "URL of the az CLI proxy endpoint that executes az commands with service principal credentials.",
-    },
-  },
 
   actions: {
     // ── Resource Groups ───────────────────────────────────────────────

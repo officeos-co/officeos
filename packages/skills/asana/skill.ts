@@ -1,25 +1,13 @@
 import { defineSkill } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 import { workspaces } from "./cli/workspaces.ts";
 import { projects } from "./cli/projects.ts";
 import { tasks } from "./cli/tasks.ts";
 
 export default defineSkill({
-  name: "asana",
-  title: "Asana",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M18.78 12.653c-2.882 0-5.22 2.336-5.22 5.22s2.338 5.22 5.22 5.22 5.22-2.34 5.22-5.22-2.336-5.22-5.22-5.22zm-13.56 0c-2.88 0-5.22 2.337-5.22 5.22s2.338 5.22 5.22 5.22 5.22-2.338 5.22-5.22-2.336-5.22-5.22-5.22zm12-6.525c0 2.883-2.337 5.22-5.22 5.22-2.882 0-5.22-2.337-5.22-5.22 0-2.88 2.338-5.22 5.22-5.22 2.883 0 5.22 2.34 5.22 5.22z\"/></svg>",
-  description:
-    "Full Asana project management: workspaces, projects, tasks, sections, comments, tags, and search.",
+  ...manifest,
   doc,
-
-  credentials: {
-    access_token: {
-      label: "Personal Access Token",
-      kind: "password",
-      placeholder: "1/1234567890:...",
-      help: "Asana Personal Access Token from https://app.asana.com/0/developer-console",
-    },
-  },
 
   actions: { ...workspaces, ...projects, ...tasks },
 });

@@ -1,5 +1,6 @@
 import { defineSkill, z } from "@harro/skill-sdk";
 
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 const ADO_API_VERSION = "7.1";
@@ -91,27 +92,8 @@ function normalizeBranch(branch: string) {
 }
 
 export default defineSkill({
-  name: "azure-devops",
-  title: "Azure DevOps",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6 19a5 5 0 0 1-1-9.9A6 6 0 0 1 17 8a4.5 4.5 0 0 1 3 8.5 1 1 0 0 1-.3.2A5 5 0 0 1 18 19H6Z\"/></svg>",
-  description:
-    "Manage Azure DevOps projects, repositories, pull requests, work items, builds, and pipelines via the Azure DevOps REST API.",
+  ...manifest,
   doc,
-
-  credentials: {
-    organization: {
-      label: "Organization",
-      kind: "text",
-      placeholder: "mycompany",
-      help: "Your Azure DevOps organization name (the part after dev.azure.com/).",
-    },
-    token: {
-      label: "Personal Access Token",
-      kind: "password",
-      placeholder: "…",
-      help: "PAT with appropriate scopes. Create at https://dev.azure.com/{org}/_usersSettings/tokens.",
-    },
-  },
 
   actions: {
     // ── Projects ──────────────────────────────────────────────────────────

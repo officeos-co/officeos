@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 type Ctx = { fetch: typeof globalThis.fetch; credentials: Record<string, string> };
@@ -35,21 +36,8 @@ const positionParams = {
 };
 
 export default defineSkill({
-  name: "powerpoint",
-  title: "PowerPoint",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM9 11h3a2.5 2.5 0 0 1 0 5h-1.5v3H9v-8Zm1.5 1.5v2h1.5a1 1 0 0 0 0-2h-1.5Z\"/></svg>",
-  description:
-    "Create and manipulate Microsoft PowerPoint (.pptx) presentations via a file-proxy service: add slides, text, images, charts, shapes, and export to PDF.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "url",
-      placeholder: "https://your-pptx-proxy.example.com",
-      help: "Base URL of the PowerPoint file-proxy service that wraps PptxGenJS.",
-    },
-  },
 
   actions: {
     // ── Presentations ──────────────────────────────────────────────────────

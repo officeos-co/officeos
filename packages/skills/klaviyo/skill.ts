@@ -1,5 +1,6 @@
 import { defineSkill, z } from "@harro/skill-sdk";
 
+import manifest from "./skill.json" with { type: "json" };
 const BASE = "https://a.klaviyo.com/api";
 const REVISION = "2024-10-15";
 
@@ -94,21 +95,8 @@ function mapList(l: any) {
 import doc from "./SKILL.md";
 
 export default defineSkill({
-  name: "klaviyo",
-  title: "Klaviyo",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Zm2 0v1.4l6 4.1 6-4.1V6H6Zm0 3.8V18h12V9.8l-5.4 3.7a1 1 0 0 1-1.2 0L6 9.8Z\"/></svg>",
-  description:
-    "Manage Klaviyo email marketing: profiles, lists, segments, campaigns, flows, templates, and events.",
+  ...manifest,
   doc,
-
-  credentials: {
-    api_key: {
-      label: "Private API Key",
-      kind: "password",
-      placeholder: "pk_...",
-      help: "Found in Klaviyo Settings → API Keys. Use a private key (starts with pk_).",
-    },
-  },
 
   actions: {
     // ── Profiles ───────────────────────────────────────────────────────

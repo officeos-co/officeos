@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import type { ActionDefinition } from "@harro/skill-sdk";
 import doc from "./SKILL.md";
 
@@ -37,20 +38,8 @@ const imageResultSchema = z.object({
 });
 
 export default defineSkill({
-  name: "web-search",
-  title: "Web Search",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11 2a9 9 0 1 0 5.3 16.3l4.4 4.4 1.4-1.4-4.4-4.4A9 9 0 0 0 11 2Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z\"/></svg>",
-  description: "Self-hosted meta-search engine powered by SearXNG. Searches across multiple engines without tracking.",
+  ...manifest,
   doc,
-
-  credentials: {
-    instance_url: {
-      label: "SearXNG Instance URL",
-      kind: "text",
-      placeholder: "https://search.example.com",
-      help: "Base URL of your SearXNG instance.",
-    },
-  },
 
   actions: {
     search: {

@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 type Ctx = { fetch: typeof globalThis.fetch; credentials: Record<string, string> };
@@ -28,21 +29,8 @@ async function proxyPost(ctx: Ctx, path: string, body: unknown, method = "POST")
 }
 
 export default defineSkill({
-  name: "word",
-  title: "Word",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2 4 4h-4V4ZM9 12h1.5l1 4 1-4H14l1 4 1-4h1.5l-2 7H15l-1-4-1 4h-1.5l-2-7Z\"/></svg>",
-  description:
-    "Create and manipulate Microsoft Word (.docx) documents via a file-proxy service: add paragraphs, tables, images, headings, and export to PDF.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "url",
-      placeholder: "https://your-word-proxy.example.com",
-      help: "Base URL of the Word file-proxy service that wraps the docx library.",
-    },
-  },
 
   actions: {
     // ── Documents ──────────────────────────────────────────────────────────

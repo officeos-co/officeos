@@ -1,4 +1,5 @@
 import { defineSkill, z } from "@harro/skill-sdk";
+import manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
 
 type Ctx = { fetch: typeof globalThis.fetch; credentials: Record<string, string> };
@@ -55,45 +56,8 @@ const attachmentSpec = z.object({
 });
 
 export default defineSkill({
-  name: "imap-smtp-email",
-  title: "IMAP/SMTP Email",
-  logo: "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v.5l8 5 8-5V6H4Zm16 2.3-7.5 4.7a1 1 0 0 1-1 0L4 8.3V18h16V8.3Z\"/></svg>",
-  description:
-    "Read, search, manage, and send email via IMAP and SMTP through a proxy service. Works with Gmail, Outlook, Fastmail, and any standard mail server.",
+  ...manifest,
   doc,
-
-  credentials: {
-    proxy_url: {
-      label: "Proxy URL",
-      kind: "url",
-      placeholder: "https://your-email-proxy.example.com",
-      help: "Base URL of the email proxy service that wraps nodemailer and node-imap.",
-    },
-    imap_host: {
-      label: "IMAP Host",
-      kind: "text",
-      placeholder: "imap.gmail.com",
-      help: "IMAP server hostname. Gmail: imap.gmail.com, Outlook: outlook.office365.com",
-    },
-    smtp_host: {
-      label: "SMTP Host",
-      kind: "text",
-      placeholder: "smtp.gmail.com",
-      help: "SMTP server hostname. Gmail: smtp.gmail.com, Outlook: smtp.office365.com",
-    },
-    email: {
-      label: "Email Address",
-      kind: "text",
-      placeholder: "you@example.com",
-      help: "Your full email address used for authentication and as the From address.",
-    },
-    password: {
-      label: "Password / App Password",
-      kind: "password",
-      placeholder: "xxxx xxxx xxxx xxxx",
-      help: "Your email password or app-specific password. For Gmail with 2FA, use an App Password.",
-    },
-  },
 
   actions: {
     // ── Folders ────────────────────────────────────────────────────────────
