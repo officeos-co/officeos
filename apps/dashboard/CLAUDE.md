@@ -95,16 +95,20 @@ User card (name + plan → dropdown)
 **Integrations** = API-based tools agents call (GitHub, Notion, Linear, etc.)
 
 - Have `tools: Tool[]` with name + description
-- Have `credentials: CredentialField[]` for setup
-- Have `added: boolean` state
-- Have `skillMd` for documentation
+- Have `credentialFields: CredentialField[]` for setup (no client-side `credentials` array)
+- Have `installed: boolean` — real backend state (replaces the old `added` boolean)
+- Have `logo: string` — inline SVG from backend (not a file path, not an emoji)
+- Have `likedByMe: boolean`, `commentsCount: number` — social metadata from backend
+- Have `doc: string | null` — SKILL.md content from backend
+- Have `sourceCodeUrl: string | null` — link to source code
 
 **Channels** = WebSocket/webhook session connectors (Slack, Discord, Telegram, etc.)
 
 - Have `capabilities: string[]` describing what they can do
 - Have `onboarding: OnboardingStep[]` for guided setup (url, qr, copy, input steps)
 - Have `defaultPermissions: ChannelPermissions` (receive/send/initiate → allow/ask/deny)
-- Have `added: boolean` state
+- Have `connected: boolean` — real backend state (replaces the old `added` boolean)
+- Have `logo: string` — inline SVG from backend (not a file path, not an emoji)
 
 **These are fundamentally different.** Integrations are request/response APIs. Channels are persistent bidirectional connections that integrate into the agent's session.
 
@@ -138,7 +142,7 @@ Colors match the website (`apps/website/`):
 ## Key rules
 
 - **Bulletproof React feature architecture.** Domain logic lives in `src/features/{agents,analytics,manage}/`. Route pages are thin wrappers that import from features. No cross-feature imports.
-- **All data is mock.** `features/*/data/*.ts` files contain hardcoded mock data. When wiring to the backend, replace these with hooks in the feature's `api/` folder.
+- **Most data is still mock.** `features/*/data/*.ts` files contain hardcoded mock data. When wiring to the backend, replace these with hooks in the feature's `api/` folder. Note: `integrations.ts` and `channels.ts` in `features/agents/data/` now export **types only** — all mock data has been replaced by real GraphQL hooks (`useIntegrations`, `useChannels`).
 - **Import from feature barrels.** Pages and shared components import hooks/components from `@/features/<name>`, not from individual files. Only truly shared hooks (`useAuth`, `use-mobile`) live in top-level `src/hooks/`.
 - **shadcn/ui for all primitives.** Button, Input, Dialog, Select, Switch, Tabs, etc. — never build custom.
 - **`"use client"` on interactive pages.** Any page with useState, useEffect, or event handlers.
@@ -173,7 +177,11 @@ Unset / any other value → hooks call GraphQL via `apolloClient`.
 
 The toggle is checked at the **hook layer**, not the client layer — so Apollo is
 always mounted (it can still run auth/session side-effects) while individual
-hooks short-circuit to mocks. Every hook file follows the same shape:
+hooks short-circuit to mocks.
+
+**`useIntegrations` and `useChannels` do not use the mock toggle.** They query
+GraphQL directly at all times — the mock fixtures for integrations and channels
+have been removed. Every other hook follows the standard shape:
 
 ```ts
 import { USE_MOCKS } from "@/lib/graphql/mock-mode"
@@ -200,9 +208,11 @@ auth hooks (`useAuth`, `use-mobile`) remain in `src/hooks/`. Current hooks:
 | `useAgent(id)` | `agent(id)` | Detail view |
 | `useCreateAgent` | `createAgent(input)` — takes `{ name, model, systemPrompt, toolNames, toolPermissions, channelSlugs }`, translates `model` → `provider` at the boundary. `toolPermissions` is `Array<{ tool: "skill:tool", mode: "ALLOW" \| "DENY" }>` (no `ASK`). | Returns `{ id, name }` |
 | `useUpdateAgent` / `useDeleteAgent` | `updateAgent` / `deleteAgent` | — |
-| `useIntegrations` | `skills` (integrations == skills in the backend) | Merges UI-only metadata from `data/integrations.ts` with live catalog |
-| `useSkillComments` / `useLikeSkill` / `useCommentOnSkill` | `skillComments`, `likeSkill`, `commentOnSkill` | — |
-| `useChannels` | `channelTypes` + `channelConnections` | Channel catalog merged with connection state |
+| `useIntegrations` | `skills` — queries real GraphQL directly (no mock fallback) | Full skill catalog from backend including `logo`, `installed`, `likedByMe`, `commentsCount`, `doc`, `sourceCodeUrl` |
+| `useInstallSkill` / `useUninstallSkill` | `installSkill` / `uninstallSkill` mutations | — |
+| `useSetSkillCredentials` | `setSkillCredentials` mutation | — |
+| `useSkillComments` / `useLikeSkill` / `useCommentOnSkill` / `useDeleteSkillComment` | `skillComments`, `likeSkill`, `commentOnSkill`, `deleteSkillComment` | — |
+| `useChannels` | `channelTypes` + `channelConnections` — queries real GraphQL | Channel catalog from backend including `logo` (inline SVG), merged with connection state |
 | `useCreateChannelConnection` / `useDeleteChannelConnection` / `useBindChannelToAgent` | matching mutations | — |
 | `useAgentTemplates` / `useCreateAgentFromTemplate` | templates endpoints | — |
 | `useModels` | `supportedModels` | `{ models: ModelInfo[], defaultModelId: string }` — all model dropdowns use this, never hardcode model lists |

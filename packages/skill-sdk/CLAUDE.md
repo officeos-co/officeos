@@ -25,7 +25,7 @@ src/
 
 **`SkillDefinition.logo`** — **required** raw inline SVG markup (e.g. `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="..."/></svg>`) used as the dashboard logo. Must be inline SVG — not a URL, not a file path, not an emoji. Typically sourced from simpleicons.org.
 
-**`SkillDefinition.emoji`** — optional deprecated fallback. Kept for backwards compatibility; new skills should rely on `logo` only.
+**`SkillDefinition.emoji`** — **removed**. The `emoji` field has been removed from `SkillDefinition`. All skills must use `logo` (inline SVG). Do not add emoji fields to any skill.
 
 **`z`** — Zod re-export. Skills use this for param schemas. Every param must have `.describe()`.
 
