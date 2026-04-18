@@ -1,14 +1,14 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
+[ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentTemplateQueries
 {
-    public Task<IReadOnlyList<EnterpriseAgentOs.Domain.DTOs.AgentTemplates.AgentTemplateDto>> GetAgentTemplates(
+    public Task<IReadOnlyList<AgentTemplateDto>> GetAgentTemplates(
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentTemplates.IAgentTemplateService templates,
+        [Service] IAgentTemplateService templates,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return templates.ListAsync(ct);
     }
 }

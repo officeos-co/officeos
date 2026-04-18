@@ -1,18 +1,18 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
+[ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentSkillsQueries
 {
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Api.GraphQL.Types.AgentSkillDto>> GetAgentSkills(
+    public async Task<IReadOnlyList<Types.AgentSkillDto>> GetAgentSkills(
         Guid agentId,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentSkills.IAgentSkillRepository agentSkills,
-        [Service] EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db,
+        [Service] IAgentSkillRepository agentSkills,
+        [Service] EaosDbContext db,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var names = await agentSkills.ListSkillNamesByAgentAsync(agentId, ct);
-        if (names.Count == 0) return Array.Empty<EnterpriseAgentOs.Api.GraphQL.Types.AgentSkillDto>();
+        if (names.Count == 0) return Array.Empty<Types.AgentSkillDto>();
 
         var perms = await db.AgentToolPermissions
             .AsNoTracking()
@@ -26,10 +26,10 @@ public class AgentSkillsQueries
         return names.Select(name =>
         {
             grouped.TryGetValue(name, out var rows);
-            var mapped = (rows ?? new List<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord>())
-                .Select(r => new EnterpriseAgentOs.Api.GraphQL.Types.AgentToolPermissionDto(r.SkillName, r.ToolName, r.Permission))
+            var mapped = (rows ?? new List<AgentToolPermissionRecord>())
+                .Select(r => new Types.AgentToolPermissionDto(r.SkillName, r.ToolName, r.Permission))
                 .ToList();
-            return new EnterpriseAgentOs.Api.GraphQL.Types.AgentSkillDto(name, mapped);
+            return new Types.AgentSkillDto(name, mapped);
         }).ToList();
     }
 }

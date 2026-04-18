@@ -54,7 +54,7 @@ public sealed class InternalSkillController : ControllerBase
 
             if (existing is null)
             {
-                await _catalog.UpsertAsync(new EnterpriseAgentOs.Domain.Models.SkillRecord
+                await _catalog.UpsertAsync(new SkillRecord
                 {
                     Name = name,
                     Title = manifest.Title,

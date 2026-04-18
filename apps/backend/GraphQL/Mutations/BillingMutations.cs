@@ -2,17 +2,17 @@
 
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class BillingMutations
 {
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.SubscribeResultDto> SubscribeUser(
+    public async Task<Types.SubscribeResultDto> SubscribeUser(
         string plan,
         string billingCycle,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Billing.IUserBillingService userBilling,
+        [Service] IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         if (plan != "free" && plan != "pro")
         {
             throw new GraphQLException(
@@ -32,15 +32,15 @@ public class BillingMutations
 
         var checkoutUrl = await userBilling.CreateCheckoutSessionAsync(
             user.Id, user.Email, plan, billingCycle, ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.SubscribeResultDto(checkoutUrl);
+        return new Types.SubscribeResultDto(checkoutUrl);
     }
 
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.UserSubscriptionDto> CancelUserSubscription(
+    public async Task<Types.UserSubscriptionDto> CancelUserSubscription(
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Billing.IUserBillingService userBilling,
+        [Service] IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         // IUserBillingService has no dedicated cancel method; Stripe portal handles
         // cancellation via CreatePortalSessionAsync. For dashboard parity we expose a
         // mutation that disables overage and returns the current subscription.
@@ -49,7 +49,7 @@ public class BillingMutations
         await userBilling.EnableOverageAsync(user.Id, user.Email, false, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.UserSubscriptionDto(
+        return new Types.UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,
@@ -64,27 +64,27 @@ public class BillingMutations
     public async Task<bool> SetExtraUsageEnabled(
         bool enabled,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Billing.IUserBillingService userBilling,
+        [Service] IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         return sub.OverageEnabled;
     }
 
     [Obsolete("Use setExtraUsageEnabled. Kept for backwards compatibility.")]
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.UserSubscriptionDto> ToggleOverage(
+    public async Task<Types.UserSubscriptionDto> ToggleOverage(
         bool enabled,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Billing.IUserBillingService userBilling,
+        [Service] IUserBillingService userBilling,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.UserSubscriptionDto(
+        return new Types.UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,

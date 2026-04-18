@@ -1,16 +1,16 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentLogsMutations
 {
-    public async Task<EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto> SendAgentMessage(
+    public async Task<AgentLogDto> SendAgentMessage(
         Guid agentId,
         string content,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService logs,
+        [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         if (string.IsNullOrWhiteSpace(content))
         {
             throw new GraphQLException(
@@ -20,17 +20,17 @@ public class AgentLogsMutations
                     .Build());
         }
         var saved = await logs.SendMessageAsync(agentId, content, user.Id, ct);
-        return EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogMapper.ToDto(saved);
+        return AgentLogMapper.ToDto(saved);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto> AppendAgentLog(
-        EnterpriseAgentOs.Domain.DTOs.AgentLogs.AppendAgentLogInput input,
+    public async Task<AgentLogDto> AppendAgentLog(
+        AppendAgentLogInput input,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService logs,
+        [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var record = new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var record = new AgentLogRecord
         {
             AgentId = input.AgentId,
             Time = DateTime.UtcNow,
@@ -42,6 +42,6 @@ public class AgentLogsMutations
             CorrelationId = input.CorrelationId,
         };
         var saved = await logs.AppendAsync(record, ct);
-        return EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogMapper.ToDto(saved);
+        return AgentLogMapper.ToDto(saved);
     }
 }

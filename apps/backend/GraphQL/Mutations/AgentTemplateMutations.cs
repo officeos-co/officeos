@@ -1,18 +1,18 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentTemplateMutations
 {
-    public async Task<EnterpriseAgentOs.Domain.DTOs.Agents.AgentDto> CreateAgentFromTemplate(
+    public async Task<AgentDto> CreateAgentFromTemplate(
         Guid templateId,
         string name,
         string provider,
         string? model,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentTemplates.IAgentTemplateService templates,
+        [Service] IAgentTemplateService templates,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         try
         {
             return await templates.CreateAgentFromTemplateAsync(templateId, name, provider, model, user.Id, ct);

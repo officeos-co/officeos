@@ -1,15 +1,15 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class OrganizationsMutations
 {
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.OrgMemberPayload> InviteMember(
-        EnterpriseAgentOs.Api.GraphQL.Types.InviteMemberInput input,
+    public async Task<Types.OrgMemberPayload> InviteMember(
+        Types.InviteMemberInput input,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Organizations.IOrganizationRepository orgs,
+        [Service] IOrganizationRepository orgs,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
         if (org.OwnerUserId != user.Id)
         {
@@ -29,17 +29,17 @@ public class OrganizationsMutations
                 .SetMessage("role must be 'Admin' or 'Member'").SetCode("BAD_INPUT").Build());
         }
         var member = await orgs.AddMemberAsync(org.Id, input.Email.Trim().ToLowerInvariant(), role, "invited", null, ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.OrgMemberPayload(
+        return new Types.OrgMemberPayload(
             member.Id, member.OrganizationId, member.UserId, member.Email, null, member.Role, member.Status, member.CreatedAt);
     }
 
     public async Task<bool> RemoveMember(
         Guid memberId,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Organizations.IOrganizationRepository orgs,
+        [Service] IOrganizationRepository orgs,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
         if (org.OwnerUserId != user.Id)
         {
@@ -58,13 +58,13 @@ public class OrganizationsMutations
         return await orgs.RemoveMemberAsync(memberId, ct);
     }
 
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.OrganizationPayload> RenameOrg(
-        EnterpriseAgentOs.Api.GraphQL.Types.RenameOrgInput input,
+    public async Task<Types.OrganizationPayload> RenameOrg(
+        Types.RenameOrgInput input,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Organizations.IOrganizationRepository orgs,
+        [Service] IOrganizationRepository orgs,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
         if (org.OwnerUserId != user.Id)
         {
@@ -79,9 +79,9 @@ public class OrganizationsMutations
         }
         var renamed = await orgs.RenameAsync(org.Id, input.Name.Trim(), ct);
         var members = await orgs.ListMembersAsync(renamed.Id, ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.OrganizationPayload(
+        return new Types.OrganizationPayload(
             renamed.Id, renamed.Name, renamed.OwnerUserId, renamed.CreatedAt,
-            members.Select(m => new EnterpriseAgentOs.Api.GraphQL.Types.OrgMemberPayload(
+            members.Select(m => new Types.OrgMemberPayload(
                 m.Id, m.OrganizationId, m.UserId, m.Email, null, m.Role, m.Status, m.CreatedAt)).ToList());
     }
 }

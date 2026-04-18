@@ -1,19 +1,19 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Subscriptions;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLSubscriptions))]
+[ExtendObjectType(typeof(GraphQLSubscriptions))]
 public class AgentLogsSubscriptions
 {
     [Subscribe(With = nameof(SubscribeAgentLog))]
-    public EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto AgentLogAppended(
+    public AgentLogDto AgentLogAppended(
         Guid agentId,
-        [EventMessage] EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto log) => log;
+        [EventMessage] AgentLogDto log) => log;
 
-    public async IAsyncEnumerable<EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto> SubscribeAgentLog(
+    public async IAsyncEnumerable<AgentLogDto> SubscribeAgentLog(
         Guid agentId,
         [Service] ITopicEventReceiver receiver,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var src = await receiver.SubscribeAsync<EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto>($"agent-log:{agentId}", ct);
+        var src = await receiver.SubscribeAsync<AgentLogDto>($"agent-log:{agentId}", ct);
         await foreach (var msg in src.ReadEventsAsync().WithCancellation(ct))
         {
             yield return msg;

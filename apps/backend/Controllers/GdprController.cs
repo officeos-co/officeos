@@ -11,7 +11,7 @@ public sealed class GdprController : ControllerBase
         _gdpr = gdpr;
     }
 
-    private EnterpriseAgentOs.Domain.Models.UserRecord? CurrentUser => HttpContext.Items["User"] as EnterpriseAgentOs.Domain.Models.UserRecord;
+    private UserRecord? CurrentUser => HttpContext.Items["User"] as UserRecord;
 
     /// <summary>
     /// GET /api/gdpr/export
@@ -32,7 +32,7 @@ public sealed class GdprController : ControllerBase
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         });
 
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        var bytes = Encoding.UTF8.GetBytes(json);
 
         Response.Headers["Content-Disposition"] = "attachment; filename=\"eaos-export.json\"";
         return File(bytes, "application/json", "eaos-export.json");

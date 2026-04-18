@@ -14,7 +14,7 @@ public sealed record AgentChannelBindingGqlDto(
     Guid AgentId,
     Guid ChannelConnectionId,
     bool Enabled,
-    EnterpriseAgentOs.Domain.Models.ChannelBindingConfig? Config,
+    ChannelBindingConfig? Config,
     DateTime CreatedAt);
 
 public sealed record ChannelTypeGqlDto(
@@ -35,9 +35,9 @@ public sealed record UpdateChannelConnectionInput(
     bool? Enabled);
 
 public sealed record ChannelBindingConfigInput(
-    EnterpriseAgentOs.Domain.Models.ChannelPermission Receive,
-    EnterpriseAgentOs.Domain.Models.ChannelPermission Send,
-    EnterpriseAgentOs.Domain.Models.ChannelPermission Initiate,
+    ChannelPermission Receive,
+    ChannelPermission Send,
+    ChannelPermission Initiate,
     string? DmPolicy,
     string? GroupPolicy,
     List<string>? AllowedUsers,
@@ -56,14 +56,14 @@ internal static class ChannelGraphQLMapper
         PropertyNameCaseInsensitive = true,
     };
 
-    public static ChannelConnectionGqlDto ToDto(EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord r) => new(
+    public static ChannelConnectionGqlDto ToDto(ChannelConnectionRecord r) => new(
         r.Id,
         r.ChannelType,
         r.DisplayName,
         r.Enabled,
         r.CreatedAt);
 
-    public static AgentChannelBindingGqlDto ToDto(EnterpriseAgentOs.Domain.Models.AgentChannelBindingRecord r) => new(
+    public static AgentChannelBindingGqlDto ToDto(AgentChannelBindingRecord r) => new(
         r.Id,
         r.AgentId,
         r.ChannelConnectionId,
@@ -71,12 +71,12 @@ internal static class ChannelGraphQLMapper
         DeserializeConfig(r.Config),
         r.CreatedAt);
 
-    public static EnterpriseAgentOs.Domain.Models.ChannelBindingConfig? DeserializeConfig(string? json)
+    public static ChannelBindingConfig? DeserializeConfig(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
         try
         {
-            return JsonSerializer.Deserialize<EnterpriseAgentOs.Domain.Models.ChannelBindingConfig>(json, JsonOpts);
+            return JsonSerializer.Deserialize<ChannelBindingConfig>(json, JsonOpts);
         }
         catch
         {
@@ -86,7 +86,7 @@ internal static class ChannelGraphQLMapper
 
     public static string SerializeConfig(ChannelBindingConfigInput input)
     {
-        var cfg = new EnterpriseAgentOs.Domain.Models.ChannelBindingConfig
+        var cfg = new ChannelBindingConfig
         {
             Receive = input.Receive,
             Send = input.Send,

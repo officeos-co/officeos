@@ -30,20 +30,20 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
         var types = new List<ITypeSystemMember>();
 
         using var scope = _services.CreateScope();
-        var catalog = scope.ServiceProvider.GetRequiredService<EnterpriseAgentOs.Domain.Interfaces.Skills.ISkillCatalogRepository>();
+        var catalog = scope.ServiceProvider.GetRequiredService<ISkillCatalogRepository>();
         var records = await catalog.ListActiveAsync(ct);
         var manifests = records
             .Select(r =>
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<EnterpriseAgentOs.Domain.DTOs.Skills.RuntimeManifest>(r.ManifestJson,
+                    return JsonSerializer.Deserialize<RuntimeManifest>(r.ManifestJson,
                         new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
                 }
                 catch { return null; }
             })
             .Where(m => m is not null)
-            .Cast<EnterpriseAgentOs.Domain.DTOs.Skills.RuntimeManifest>()
+            .Cast<RuntimeManifest>()
             .ToList();
 
         var queryExtDef = new ObjectTypeDefinition("Query");
@@ -85,7 +85,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
                     }
 
                     // Get credentials for this skill
-                    var svc = ctx.Service<EnterpriseAgentOs.Domain.Interfaces.Skills.ISkillService>();
+                    var svc = ctx.Service<ISkillService>();
                     var creds = await svc.GetDecryptedCredentialsAsync(skillName, ctx.RequestAborted);
                     if (creds is null)
                     {
@@ -94,7 +94,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
                     }
 
                     // Dispatch to skill runtime
-                    var client = ctx.Service<EnterpriseAgentOs.Infrastructure.Adapters.SkillRuntime.SkillRuntimeClient>();
+                    var client = ctx.Service<SkillRuntimeClient>();
                     var result = await client.ExecuteAsync(
                         skillName, actionKey, parameters, creds, ct: ctx.RequestAborted);
 
@@ -318,7 +318,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
 
     private static string CamelToSnake(string s)
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         for (int i = 0; i < s.Length; i++)
         {
             if (char.IsUpper(s[i]) && i > 0) sb.Append('_');

@@ -1,16 +1,16 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class ProviderMutations
 {
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.ProviderGqlDto> SetProviderKey(
+    public async Task<Types.ProviderGqlDto> SetProviderKey(
         string providerName,
         string apiKey,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Providers.IProviderService providers,
+        [Service] IProviderService providers,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         if (!string.Equals(providerName, "openai", StringComparison.OrdinalIgnoreCase))
         {
             throw new GraphQLException(
@@ -28,16 +28,16 @@ public class ProviderMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return EnterpriseAgentOs.Api.GraphQL.Types.ProviderGraphQLMapper.ToDto(dto);
+        return Types.ProviderGraphQLMapper.ToDto(dto);
     }
 
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.ProviderGqlDto> ClearProviderKey(
+    public async Task<Types.ProviderGqlDto> ClearProviderKey(
         string providerName,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Providers.IProviderService providers,
+        [Service] IProviderService providers,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         await providers.ClearAsync(providerName, ct);
         var all = await providers.ListAsync(ct);
         var row = all.FirstOrDefault(p =>
@@ -50,6 +50,6 @@ public class ProviderMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return EnterpriseAgentOs.Api.GraphQL.Types.ProviderGraphQLMapper.ToDto(row);
+        return Types.ProviderGraphQLMapper.ToDto(row);
     }
 }

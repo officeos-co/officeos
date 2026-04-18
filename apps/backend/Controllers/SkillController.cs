@@ -11,12 +11,12 @@ public sealed class SkillController : ControllerBase
 {
     private readonly ISkillCatalogRepository _catalog;
     private readonly IAmazonS3 _s3;
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.SkillStorageConfig _storage;
+    private readonly SkillStorageConfig _storage;
 
     public SkillController(
         ISkillCatalogRepository catalog,
         IAmazonS3 s3,
-        EnterpriseAgentOs.Infrastructure.Configuration.SkillStorageConfig storage)
+        SkillStorageConfig storage)
     {
         _catalog = catalog;
         _s3 = s3;
@@ -42,7 +42,7 @@ public sealed class SkillController : ControllerBase
 
             return File(response.ResponseStream, "application/javascript", $"{name}.js");
         }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             return NotFound(new { error = "Bundle not found in storage" });
         }

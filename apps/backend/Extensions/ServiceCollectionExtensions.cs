@@ -21,19 +21,19 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddScoped<IAgentService, EnterpriseAgentOs.Application.Services.Agents.AgentService>();
-        services.AddScoped<IProviderService, EnterpriseAgentOs.Application.Services.Providers.ProviderService>();
-        services.AddScoped<ISkillService, EnterpriseAgentOs.Application.Services.Skills.SkillService>();
+        services.AddScoped<IAgentService, Application.Services.Agents.AgentService>();
+        services.AddScoped<IProviderService, Application.Services.Providers.ProviderService>();
+        services.AddScoped<ISkillService, Application.Services.Skills.SkillService>();
         services.AddScoped<IWorkOsAuthService, WorkOsAuthService>();
         services.AddScoped<ChannelMessageRouter>();
         services.AddScoped<LlmProviderDispatcher>();
-        services.AddScoped<IUserBillingService, EnterpriseAgentOs.Application.Services.Billing.UserBillingService>();
-        services.AddScoped<IOrgBillingService, EnterpriseAgentOs.Application.Services.Billing.OrgBillingService>();
+        services.AddScoped<IUserBillingService, Application.Services.Billing.UserBillingService>();
+        services.AddScoped<IOrgBillingService, Application.Services.Billing.OrgBillingService>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
-        services.AddScoped<ICreditRecordingService, EnterpriseAgentOs.Application.Services.Billing.CreditRecordingService>();
-        services.AddScoped<IGdprService, EnterpriseAgentOs.Application.Services.Gdpr.GdprService>();
-        services.AddScoped<IAgentTemplateService, EnterpriseAgentOs.Application.Services.AgentTemplates.AgentTemplateService>();
-        services.AddScoped<IAgentLogService, EnterpriseAgentOs.Application.Services.AgentLogs.AgentLogService>();
+        services.AddScoped<ICreditRecordingService, Application.Services.Billing.CreditRecordingService>();
+        services.AddScoped<IGdprService, Application.Services.Gdpr.GdprService>();
+        services.AddScoped<IAgentTemplateService, Application.Services.AgentTemplates.AgentTemplateService>();
+        services.AddScoped<IAgentLogService, Application.Services.AgentLogs.AgentLogService>();
         return services;
     }
 

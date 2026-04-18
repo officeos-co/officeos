@@ -17,21 +17,21 @@ namespace EnterpriseAgentOs.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/agents")]
-[EnterpriseAgentOs.Api.Middleware.AgentTokenAuth]
+[Middleware.AgentTokenAuth]
 public sealed class AgentBootstrapController : ControllerBase
 {
     private readonly IAgentService _agents;
-    private readonly EnterpriseAgentOs.Domain.Interfaces.AgentSkills.IAgentSkillRepository _agentSkills;
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.SkillGatewayConfig _gateway;
-    private readonly EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService _logs;
+    private readonly IAgentSkillRepository _agentSkills;
+    private readonly EaosDbContext _db;
+    private readonly SkillGatewayConfig _gateway;
+    private readonly IAgentLogService _logs;
 
     public AgentBootstrapController(
         IAgentService agents,
-        EnterpriseAgentOs.Domain.Interfaces.AgentSkills.IAgentSkillRepository agentSkills,
-        EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db,
-        EnterpriseAgentOs.Infrastructure.Configuration.SkillGatewayConfig gateway,
-        EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService logs)
+        IAgentSkillRepository agentSkills,
+        EaosDbContext db,
+        SkillGatewayConfig gateway,
+        IAgentLogService logs)
     {
         _agents = agents;
         _agentSkills = agentSkills;
@@ -41,7 +41,7 @@ public sealed class AgentBootstrapController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<EnterpriseAgentOs.Api.GraphQL.Types.AgentBootstrapPayload>> GetBootstrap(
+    public async Task<ActionResult<GraphQL.Types.AgentBootstrapPayload>> GetBootstrap(
         Guid id,
         CancellationToken ct)
     {
@@ -81,38 +81,38 @@ public sealed class AgentBootstrapController : ControllerBase
         var gatewayHost = "0.0.0.0";
         var gatewayPort = 42617;
 
-        var payload = new EnterpriseAgentOs.Api.GraphQL.Types.AgentBootstrapPayload(
+        var payload = new GraphQL.Types.AgentBootstrapPayload(
             AgentId: id,
             DisplayName: agent.Name,
             SystemPrompt: record.Prompt,
-            Provider: new EnterpriseAgentOs.Api.GraphQL.Types.AgentProviderBootstrap(
+            Provider: new GraphQL.Types.AgentProviderBootstrap(
                 Name: agent.Provider,
                 Model: agent.Model ?? "auto",
                 ApiUrl: proxyUrl,
                 TokenRef: null),
-            Proxy: new EnterpriseAgentOs.Api.GraphQL.Types.AgentProxyBootstrap(
+            Proxy: new GraphQL.Types.AgentProxyBootstrap(
                 Url: proxyUrl,
                 Token: null),
-            Gateway: new EnterpriseAgentOs.Api.GraphQL.Types.AgentGatewayBootstrap(
+            Gateway: new GraphQL.Types.AgentGatewayBootstrap(
                 Host: gatewayHost,
                 Port: gatewayPort,
                 TlsCertRef: null),
             Skills: skills
-                .Select(n => new EnterpriseAgentOs.Api.GraphQL.Types.AgentInstalledSkillSummary(n))
+                .Select(n => new GraphQL.Types.AgentInstalledSkillSummary(n))
                 .ToList(),
-            ToolPermissions: new EnterpriseAgentOs.Api.GraphQL.Types.AgentToolPermissionsBootstrap(
+            ToolPermissions: new GraphQL.Types.AgentToolPermissionsBootstrap(
                 permRows
-                    .Select(p => new EnterpriseAgentOs.Api.GraphQL.Types.AgentBootstrapToolPermission(
+                    .Select(p => new GraphQL.Types.AgentBootstrapToolPermission(
                         Skill: p.SkillName,
                         Tool: p.ToolName,
                         Mode: p.Permission.ToString().ToLowerInvariant()))
                     .ToList()));
 
-        await _logs.AppendAsync(new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+        await _logs.AppendAsync(new AgentLogRecord
         {
             AgentId = id,
             Time = DateTime.UtcNow,
-            Type = EnterpriseAgentOs.Domain.Models.AgentLogType.AgentStartup,
+            Type = AgentLogType.AgentStartup,
             Content = $"Agent '{agent.Name}' started (pod bootstrap)",
         }, ct);
 

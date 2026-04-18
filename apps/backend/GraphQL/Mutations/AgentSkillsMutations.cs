@@ -1,16 +1,16 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentSkillsMutations
 {
     public async Task<bool> AssignSkillToAgent(
         Guid agentId,
         string skillName,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentSkills.IAgentSkillRepository agentSkills,
+        [Service] IAgentSkillRepository agentSkills,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         await agentSkills.AssignAsync(agentId, new[] { skillName }, ct);
         return true;
     }
@@ -19,23 +19,23 @@ public class AgentSkillsMutations
         Guid agentId,
         string skillName,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentSkills.IAgentSkillRepository agentSkills,
+        [Service] IAgentSkillRepository agentSkills,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await agentSkills.RemoveAsync(agentId, skillName, ct);
     }
 
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.AgentToolPermissionDto> SetAgentToolPermission(
+    public async Task<Types.AgentToolPermissionDto> SetAgentToolPermission(
         Guid agentId,
         string skillName,
         string toolName,
-        EnterpriseAgentOs.Domain.Models.ToolPermission permission,
+        ToolPermission permission,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db,
+        [Service] EaosDbContext db,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = skillName.Trim().ToLowerInvariant();
         var tool = toolName.Trim();
 
@@ -45,7 +45,7 @@ public class AgentSkillsMutations
 
         if (existing is null)
         {
-            existing = new EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord
+            existing = new AgentToolPermissionRecord
             {
                 AgentId = agentId,
                 SkillName = skill,
@@ -60,6 +60,6 @@ public class AgentSkillsMutations
             existing.UpdatedAt = DateTime.UtcNow;
         }
         await db.SaveChangesAsync(ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.AgentToolPermissionDto(existing.SkillName, existing.ToolName, existing.Permission);
+        return new Types.AgentToolPermissionDto(existing.SkillName, existing.ToolName, existing.Permission);
     }
 }

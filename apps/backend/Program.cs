@@ -65,14 +65,14 @@ builder.Services.AddSingleton(workOsConfig);
 var skillStorageConfig = new SkillStorageConfig();
 envSection.GetSection("Minio").Bind(skillStorageConfig);
 builder.Services.AddSingleton(skillStorageConfig);
-builder.Services.AddSingleton<Amazon.S3.IAmazonS3>(_ =>
+builder.Services.AddSingleton<IAmazonS3>(_ =>
 {
-    var config = new Amazon.S3.AmazonS3Config
+    var config = new AmazonS3Config
     {
         ServiceURL = skillStorageConfig.Endpoint,
         ForcePathStyle = true,
     };
-    return new Amazon.S3.AmazonS3Client(
+    return new AmazonS3Client(
         skillStorageConfig.AccessKey,
         skillStorageConfig.SecretKey,
         config);
@@ -194,8 +194,6 @@ app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
     .RequireCors(FrontendCorsPolicy);
 app.MapControllers();
-
 app.Run();
 
-// Make Program visible to test project (WebApplicationFactory<Program>)
 public partial class Program { }

@@ -8,7 +8,7 @@ namespace EnterpriseAgentOs.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/agents/me/logs")]
-[EnterpriseAgentOs.Api.Middleware.AgentTokenAuth]
+[Middleware.AgentTokenAuth]
 public sealed class AgentLogController : ControllerBase
 {
     private readonly IAgentLogService _logs;
@@ -33,10 +33,10 @@ public sealed class AgentLogController : ControllerBase
         if (string.IsNullOrWhiteSpace(input.Content))
             return BadRequest("Content must not be empty.");
 
-        if (!Enum.TryParse<EnterpriseAgentOs.Domain.Models.AgentLogType>(input.Type, ignoreCase: true, out var logType))
+        if (!Enum.TryParse<AgentLogType>(input.Type, ignoreCase: true, out var logType))
             return BadRequest($"Unknown log type: {input.Type}");
 
-        var record = new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+        var record = new AgentLogRecord
         {
             AgentId = agentId,
             Time = DateTime.UtcNow,

@@ -1,23 +1,23 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentMutations
 {
-    public async Task<EnterpriseAgentOs.Domain.DTOs.Agents.AgentDto> CreateAgent(
-        EnterpriseAgentOs.Api.GraphQL.Types.CreateAgentInput input,
+    public async Task<AgentDto> CreateAgent(
+        Types.CreateAgentInput input,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService agents,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentSkills.IAgentSkillRepository agentSkills,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Channels.IChannelRepository channels,
-        [Service] EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db,
+        [Service] IAgentService agents,
+        [Service] IAgentSkillRepository agentSkills,
+        [Service] IChannelRepository channels,
+        [Service] EaosDbContext db,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        EnterpriseAgentOs.Domain.DTOs.Agents.AgentDto dto;
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        AgentDto dto;
         try
         {
             dto = await agents.CreateAsync(
-                new EnterpriseAgentOs.Domain.DTOs.Agents.CreateAgentRequest(input.Name, input.Provider, input.Model, input.Prompt),
+                new CreateAgentRequest(input.Name, input.Provider, input.Model, input.Prompt),
                 ownerId: user.Id,
                 ct);
         }
@@ -47,7 +47,7 @@ public class AgentMutations
             foreach (var tp in input.ToolPermissions)
             {
                 var (skill, tool) = SplitToolKey(tp.Tool);
-                db.AgentToolPermissions.Add(new EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord
+                db.AgentToolPermissions.Add(new AgentToolPermissionRecord
                 {
                     AgentId = dto.Id,
                     SkillName = skill,
@@ -68,7 +68,7 @@ public class AgentMutations
                 if (match is null) continue; // silently skip
                 try
                 {
-                    await channels.CreateBindingAsync(new EnterpriseAgentOs.Domain.Models.AgentChannelBindingRecord
+                    await channels.CreateBindingAsync(new AgentChannelBindingRecord
                     {
                         AgentId = dto.Id,
                         ChannelConnectionId = match.Id,
@@ -92,17 +92,17 @@ public class AgentMutations
         return (k[..idx].Trim().ToLowerInvariant(), k[(idx + 1)..].Trim());
     }
 
-    public async Task<EnterpriseAgentOs.Domain.DTOs.Agents.AgentDto> UpdateAgent(
+    public async Task<AgentDto> UpdateAgent(
         Guid id,
-        EnterpriseAgentOs.Api.GraphQL.Types.UpdateAgentInput input,
+        Types.UpdateAgentInput input,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService agents,
+        [Service] IAgentService agents,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var dto = await agents.PatchAsync(
             id,
-            new EnterpriseAgentOs.Domain.Interfaces.Agents.PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
+            new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
             ct);
         if (dto is null)
         {
@@ -118,10 +118,10 @@ public class AgentMutations
     public async Task<bool> DeleteAgent(
         Guid id,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService agents,
+        [Service] IAgentService agents,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await agents.DeleteAsync(id, ct);
     }
 }

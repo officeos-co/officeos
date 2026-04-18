@@ -1,42 +1,42 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
+[ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentLogsQueries
 {
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogDto>> GetAgentLogs(
+    public async Task<IReadOnlyList<AgentLogDto>> GetAgentLogs(
         Guid agentId,
         DateTime? before,
         int limit,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService logs,
+        [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var capped = Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
         var rows = await logs.ListForAgentAsync(agentId, before, capped, ct);
         // descending from DB -> reverse to ascending for display
-        return rows.OrderBy(r => r.Time).Select(r => EnterpriseAgentOs.Domain.DTOs.AgentLogs.AgentLogMapper.ToDto(r)).ToList();
+        return rows.OrderBy(r => r.Time).Select(r => AgentLogMapper.ToDto(r)).ToList();
     }
 
-    public async Task<EnterpriseAgentOs.Domain.DTOs.AgentLogs.GlobalLogsPage> GetGlobalLogs(
-        EnterpriseAgentOs.Domain.DTOs.AgentLogs.GlobalLogFiltersInput? filters,
+    public async Task<GlobalLogsPage> GetGlobalLogs(
+        GlobalLogFiltersInput? filters,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService logs,
+        [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return await logs.ListGlobalAsync(filters ?? new EnterpriseAgentOs.Domain.DTOs.AgentLogs.GlobalLogFiltersInput(), ct);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        return await logs.ListGlobalAsync(filters ?? new GlobalLogFiltersInput(), ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.DTOs.AgentLogs.AuditLogPage> GetAuditLog(
+    public async Task<AuditLogPage> GetAuditLog(
         Guid agentId,
         int skip,
         int limit,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService logs,
+        [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var capped = Math.Clamp(limit <= 0 ? 50 : limit, 1, 100);
         var offset = Math.Max(skip, 0);
 
@@ -57,7 +57,7 @@ public class AgentLogsQueries
                 resultSummary = paired.Content;
                 durationMs = paired.DurationMs ?? durationMs;
             }
-            return new EnterpriseAgentOs.Domain.DTOs.AgentLogs.AuditEntry(
+            return new AuditEntry(
                 r.Id,
                 r.AgentId,
                 null,
@@ -69,6 +69,6 @@ public class AgentLogsQueries
                 r.Time);
         }).ToList();
 
-        return new EnterpriseAgentOs.Domain.DTOs.AgentLogs.AuditLogPage(dtos, total);
+        return new AuditLogPage(dtos, total);
     }
 }

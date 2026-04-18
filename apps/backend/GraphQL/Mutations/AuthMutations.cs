@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLMutations))]
+[ExtendObjectType(typeof(GraphQLMutations))]
 public class AuthMutations
 {
     /// <summary>
@@ -13,13 +13,13 @@ public class AuthMutations
     /// Updates editable profile fields on the authenticated user.
     /// Any null field is left unchanged.
     /// </summary>
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.UserPayload> UpdateProfile(
-        EnterpriseAgentOs.Api.GraphQL.Types.UpdateProfileInput input,
+    public async Task<Types.UserPayload> UpdateProfile(
+        Types.UpdateProfileInput input,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Auth.IUserRepository users,
+        [Service] IUserRepository users,
         CancellationToken ct)
     {
-        var caller = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var caller = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var user = await users.UpdateProfileAsync(
             caller.Id,
             input.Name,
@@ -28,7 +28,7 @@ public class AuthMutations
             input.NotificationPrefsJson,
             input.Preferences,
             ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.UserPayload(
+        return new Types.UserPayload(
             user.Id,
             user.Email,
             user.Name,
@@ -41,7 +41,7 @@ public class AuthMutations
 
     public async Task<bool> Logout(
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Auth.ISessionRepository sessions,
+        [Service] ISessionRepository sessions,
         CancellationToken ct)
     {
         var http = context.Service<IHttpContextAccessor>().HttpContext;
@@ -49,7 +49,7 @@ public class AuthMutations
         if (string.IsNullOrEmpty(cookie))
             return false;
 
-        var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(cookie);
+        var tokenHash = Middleware.SessionAuthMiddleware.HashToken(cookie);
         await sessions.DeleteAsync(tokenHash, ct);
         http!.Response.Cookies.Delete("eaos-session");
         return true;

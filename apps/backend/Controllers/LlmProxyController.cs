@@ -14,22 +14,22 @@ namespace EnterpriseAgentOs.Api.Controllers;
 /// to record normalized credits against the agent owner's billing subscription.
 /// </summary>
 [ApiController]
-[EnterpriseAgentOs.Api.Middleware.AgentTokenAuth]
+[Middleware.AgentTokenAuth]
 public sealed class LlmProxyController : ControllerBase
 {
-    private readonly EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService _agents;
-    private readonly EnterpriseAgentOs.Domain.Interfaces.Providers.IProviderService _providers;
+    private readonly IAgentService _agents;
+    private readonly IProviderService _providers;
     private readonly LlmProviderDispatcher _dispatcher;
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.PlatformKeysConfig _platformKeys;
-    private readonly EnterpriseAgentOs.Domain.Interfaces.Billing.ICreditRecordingService _creditRecording;
+    private readonly PlatformKeysConfig _platformKeys;
+    private readonly ICreditRecordingService _creditRecording;
     private readonly ILogger<LlmProxyController> _logger;
 
     public LlmProxyController(
-        EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService agents,
-        EnterpriseAgentOs.Domain.Interfaces.Providers.IProviderService providers,
+        IAgentService agents,
+        IProviderService providers,
         LlmProviderDispatcher dispatcher,
-        EnterpriseAgentOs.Infrastructure.Configuration.PlatformKeysConfig platformKeys,
-        EnterpriseAgentOs.Domain.Interfaces.Billing.ICreditRecordingService creditRecording,
+        PlatformKeysConfig platformKeys,
+        ICreditRecordingService creditRecording,
         ILogger<LlmProxyController> logger)
     {
         _agents = agents;
@@ -274,7 +274,7 @@ public sealed class LlmProxyController : ControllerBase
             messages.ValueKind != JsonValueKind.Array)
             return body;
 
-        using var stream = new System.IO.MemoryStream();
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream);
 
         writer.WriteStartObject();

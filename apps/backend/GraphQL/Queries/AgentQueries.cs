@@ -1,24 +1,24 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
+[ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentQueries
 {
-    public Task<IReadOnlyList<EnterpriseAgentOs.Domain.DTOs.Agents.AgentDto>> GetAgents(
+    public Task<IReadOnlyList<AgentDto>> GetAgents(
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService agents,
+        [Service] IAgentService agents,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return agents.ListAsync(ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.DTOs.Agents.AgentDto?> GetAgent(
+    public async Task<AgentDto?> GetAgent(
         Guid id,
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Agents.IAgentService agents,
+        [Service] IAgentService agents,
         CancellationToken ct)
     {
-        _ = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
         return await agents.GetAsync(id, ct);
     }
 }

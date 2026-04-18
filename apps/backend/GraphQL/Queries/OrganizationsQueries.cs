@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 
-[ExtendObjectType(typeof(EnterpriseAgentOs.Api.GraphQLQueries))]
+[ExtendObjectType(typeof(GraphQLQueries))]
 public class OrganizationsQueries
 {
     /// <summary>
@@ -8,17 +8,17 @@ public class OrganizationsQueries
     /// auto-assigned to a default org that is created on first access. The model
     /// already supports multiple orgs per instance for future multi-tenancy.
     /// </summary>
-    public async Task<EnterpriseAgentOs.Api.GraphQL.Types.OrganizationPayload> Org(
+    public async Task<Types.OrganizationPayload> Org(
         IResolverContext context,
-        [Service] EnterpriseAgentOs.Domain.Interfaces.Organizations.IOrganizationRepository orgs,
+        [Service] IOrganizationRepository orgs,
         CancellationToken ct)
     {
-        var user = EnterpriseAgentOs.Api.Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
         var members = await orgs.ListMembersAsync(org.Id, ct);
-        return new EnterpriseAgentOs.Api.GraphQL.Types.OrganizationPayload(
+        return new Types.OrganizationPayload(
             org.Id, org.Name, org.OwnerUserId, org.CreatedAt,
-            members.Select(m => new EnterpriseAgentOs.Api.GraphQL.Types.OrgMemberPayload(
+            members.Select(m => new Types.OrgMemberPayload(
                 m.Id, m.OrganizationId, m.UserId, m.Email, null, m.Role, m.Status, m.CreatedAt)).ToList());
     }
 }

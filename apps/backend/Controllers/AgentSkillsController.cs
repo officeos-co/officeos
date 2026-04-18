@@ -2,13 +2,13 @@ namespace EnterpriseAgentOs.Api.Controllers;
 
 [ApiController]
 [Route("api/agents/me")]
-[EnterpriseAgentOs.Api.Middleware.AgentTokenAuth]
+[Middleware.AgentTokenAuth]
 public sealed class AgentSkillsController : ControllerBase
 {
     private readonly ISkillService _service;
     private readonly SkillRuntimeClient _runtime;
     private readonly IBrowserSessionRepository _browserSessions;
-    private readonly EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService _agentLogs;
+    private readonly IAgentLogService _agentLogs;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -16,7 +16,7 @@ public sealed class AgentSkillsController : ControllerBase
         ISkillService service,
         SkillRuntimeClient runtime,
         IBrowserSessionRepository browserSessions,
-        EnterpriseAgentOs.Domain.Interfaces.AgentLogs.IAgentLogService agentLogs,
+        IAgentLogService agentLogs,
         ILogger<AgentSkillsController> logger)
     {
         _service = service;
@@ -106,10 +106,10 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {result.Error}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+            await _agentLogs.AppendAsync(new AgentLogRecord
             {
                 AgentId = execAgentId,
-                Type = EnterpriseAgentOs.Domain.Models.AgentLogType.System,
+                Type = AgentLogType.System,
                 Content = $"Skill {body.Skill}.{body.Action} failed: {result.Error}",
                 Integration = body.Skill,
                 Tool = body.Action,
@@ -123,10 +123,10 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {ex.Message}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _agentLogs.AppendAsync(new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+            await _agentLogs.AppendAsync(new AgentLogRecord
             {
                 AgentId = execAgentId,
-                Type = EnterpriseAgentOs.Domain.Models.AgentLogType.System,
+                Type = AgentLogType.System,
                 Content = $"Cloud skill-runtime unreachable for {body.Skill}.{body.Action}: {ex.Message}",
                 Integration = body.Skill,
                 Tool = body.Action,
