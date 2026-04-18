@@ -4,10 +4,11 @@ query Skills {
     name
     title
     description
-    emoji
+    logo
     sourceCodeUrl
     doc
     status
+    installed
     likes
     likedByMe
     commentsCount
@@ -29,4 +30,49 @@ query SkillComments($skillId: UUID!) {
       avatarUrl
     }
   }
+}
+
+mutation InstallSkill($name: String!) {
+  installSkill(name: $name)
+}
+
+mutation UninstallSkill($name: String!) {
+  uninstallSkill(name: $name)
+}
+
+mutation LikeSkill($skillId: UUID!) {
+  likeSkill(skillId: $skillId) {
+    id
+    likes
+    likedByMe
+  }
+}
+
+mutation UnlikeSkill($skillId: UUID!) {
+  unlikeSkill(skillId: $skillId) {
+    id
+    likes
+    likedByMe
+  }
+}
+
+mutation CommentOnSkill($skillId: UUID!, $body: String!) {
+  commentOnSkill(skillId: $skillId, body: $body) {
+    id
+    body
+    createdAt
+    author {
+      id
+      name
+      avatarUrl
+    }
+  }
+}
+
+mutation DeleteSkillComment($commentId: UUID!) {
+  deleteSkillComment(commentId: $commentId)
+}
+
+mutation SetSkillCredentials($name: String!, $credentials: [SkillCredentialEntryInput!]!) {
+  setSkillCredentials(name: $name, credentials: $credentials)
 }

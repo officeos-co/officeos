@@ -3,6 +3,7 @@ query ChannelsAndTypes {
     type
     displayName
     description
+    logo
   }
   channelConnections {
     id
