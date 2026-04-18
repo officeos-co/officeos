@@ -1,8 +1,26 @@
-//! Conversation history for the turn loop. See API.md §6.2.
+// Rust guideline compliant 2026-02-21
+
+//! Conversation history for the turn loop.
+//!
+//! See API.md §6.2.
 
 use crate::llm::ChatMessage;
 
+/// Estimated chars-per-token ratio used by the token estimator.
+///
+/// The value 4.0 is the standard approximation for English text with
+/// the `OpenAI` tokenizer family. The 1.2 multiplier adds headroom for
+/// role/framing overhead per message.
+const CHARS_PER_TOKEN: f64 = 4.0;
+
+/// Safety multiplier applied on top of the chars-per-token estimate.
+const TOKEN_OVERHEAD_MULTIPLIER: f64 = 1.2;
+
+/// Per-message framing overhead in characters (role, delimiters).
+const MESSAGE_FRAMING_CHARS: usize = 4;
+
 /// Per-connection conversation history.
+#[derive(Debug)]
 pub struct ConversationHistory {
     messages: Vec<ChatMessage>,
 }
@@ -14,6 +32,8 @@ impl Default for ConversationHistory {
 }
 
 impl ConversationHistory {
+    /// Create an empty history.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             messages: Vec::new(),
@@ -26,17 +46,21 @@ impl ConversationHistory {
     }
 
     /// Return a reference to all messages.
+    #[must_use]
     pub fn messages(&self) -> &[ChatMessage] {
         &self.messages
     }
 
-    /// Return a mutable reference to all messages (for pruning).
+    /// Return a mutable reference to all messages.
     pub fn messages_mut(&mut self) -> &mut Vec<ChatMessage> {
         &mut self.messages
     }
 
-    /// Prune history when estimated tokens exceed threshold.
-    /// Port of legacy history_pruner.rs — see API.md §6.2.
+    /// Prune history when estimated tokens exceed `max_tokens`.
+    ///
+    /// Phase 1: collapse old assistant+tool pairs into summaries.
+    /// Phase 2: drop unprotected messages until under budget.
+    /// The most recent `keep_recent` messages are always protected.
     pub fn prune(&mut self, max_tokens: usize, keep_recent: usize) {
         if self.messages.is_empty() {
             return;
@@ -51,8 +75,11 @@ impl ConversationHistory {
                 && !protected[i]
                 && !protected[i + 1]
             {
+                /// Max chars of tool output to keep in the collapsed summary.
+                const SUMMARY_TRUNCATE_CHARS: usize = 100;
+
                 let tool_content = self.messages[i + 1].content.as_deref().unwrap_or("");
-                let truncated: String = tool_content.chars().take(100).collect();
+                let truncated: String = tool_content.chars().take(SUMMARY_TRUNCATE_CHARS).collect();
                 let summary = format!("[Tool result: {truncated}...]");
                 self.messages[i] = ChatMessage {
                     role: "assistant".to_string(),
@@ -83,11 +110,13 @@ impl ConversationHistory {
     }
 
     /// Number of messages in history.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.messages.len()
     }
 
     /// Whether history is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.messages.is_empty()
     }
@@ -98,22 +127,29 @@ impl ConversationHistory {
     }
 }
 
-/// Cheap token estimator: total_chars / 4 * 1.2. See API.md §6.2.
+/// Cheap token estimator: `total_chars / 4 * 1.2`.
+///
+/// See API.md §6.2.
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    reason = "token estimation is inherently approximate; precision loss is acceptable"
+)]
 fn estimate_tokens(messages: &[ChatMessage]) -> usize {
     let total_chars: usize = messages
         .iter()
         .map(|m| {
-            let content_len = m.content.as_deref().map_or(0, |c| c.len());
+            let content_len = m.content.as_deref().map_or(0, str::len);
             let tc_len: usize = m
                 .tool_calls
                 .iter()
                 .map(|tc| tc.function.name.len() + tc.function.arguments.len())
                 .sum();
-            // +4 per message for role/framing overhead
-            content_len + tc_len + 4
+            content_len + tc_len + MESSAGE_FRAMING_CHARS
         })
         .sum();
-    (total_chars as f64 / 4.0 * 1.2) as usize
+    (total_chars as f64 / CHARS_PER_TOKEN * TOKEN_OVERHEAD_MULTIPLIER) as usize
 }
 
 /// Identify which messages are protected from pruning.

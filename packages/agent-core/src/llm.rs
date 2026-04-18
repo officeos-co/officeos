@@ -1,8 +1,9 @@
-//! OpenAI-compatible chat completions client. See API.md §7.
+// Rust guideline compliant 2026-02-21
+//! OpenAI-compatible chat completions client.
 //!
 //! Endpoint: `POST {backend_url}/v1/chat/completions`.
-//! Bearer: `{agent_id}`.
-//! SSE response, OpenAI `data:` frame shape.
+//! Bearer: `{agent_id}`. SSE response, `OpenAI` `data:` frame shape.
+//! See API.md §7.
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -36,7 +37,7 @@ pub enum ChatEvent {
     Error { message: String },
 }
 
-/// OpenAI `finish_reason` values we care about.
+/// `OpenAI` `finish_reason` values we care about.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FinishReason {
     Stop,
@@ -45,7 +46,7 @@ pub enum FinishReason {
     Other(String),
 }
 
-/// A role-tagged chat message, OpenAI shape. `tool_calls` is populated on
+/// A role-tagged chat message, `OpenAI` shape. `tool_calls` is populated on
 /// assistant turns that issued calls; `tool_call_id` on tool-result turns.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
@@ -88,18 +89,23 @@ pub struct ChatToolSchemaFunction {
     pub parameters: serde_json::Value,
 }
 
-/// Handle to the backend's OpenAI-compatible chat completions endpoint.
+/// Handle to the backend's chat completions endpoint.
+///
+/// Streams server-sent events back as [`ChatEvent`] items.
+#[derive(Debug)]
 pub struct LlmClient {
     cfg: Arc<RuntimeConfig>,
 }
 
 impl LlmClient {
     /// Construct a client bound to this agent's backend URL + token.
+    #[must_use]
     pub fn new(cfg: Arc<RuntimeConfig>) -> Self {
         Self { cfg }
     }
 
     /// Backend URL in use. Helper for tests + debugging.
+    #[must_use]
     pub fn backend_url(&self) -> &str {
         &self.cfg.backend_url
     }
@@ -110,6 +116,10 @@ impl LlmClient {
     /// Builds the body, sends the request, parses the SSE stream
     /// via `eventsource-stream`, maps each `data: {...}` into a
     /// `ChatEvent`. `[DONE]` terminates cleanly without emitting an event.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::Llm` on transport failure or non-success HTTP status.
     pub async fn chat_stream(
         &self,
         messages: Vec<ChatMessage>,
@@ -127,7 +137,7 @@ impl LlmClient {
                 .map_err(|e| Error::Llm(format!("serialize tools: {e}")))?;
         }
 
-        tracing::debug!(url = %url, "sending LLM request");
+        tracing::debug!(name: "llm.request.start", url_full = %url, "sending LLM request to {{url_full}}");
         let client = reqwest::Client::new();
         let resp = client
             .post(&url)
@@ -142,12 +152,12 @@ impl LlmClient {
 
         if !resp.status().is_success() {
             let status = resp.status();
-            tracing::warn!(status = %status, "LLM HTTP error");
+            tracing::warn!(name: "llm.request.error", http_response_status_code = %status, "LLM HTTP error: {{http_response_status_code}}");
             let text = resp.text().await.unwrap_or_default();
             return Err(Error::Llm(format!("llm HTTP {status}: {text}")));
         }
 
-        tracing::debug!("LLM response received, streaming SSE");
+        tracing::debug!(name: "llm.stream.start", "LLM response received, streaming SSE");
         let byte_stream = resp.bytes_stream();
         let event_stream = byte_stream.eventsource();
 
@@ -170,20 +180,20 @@ impl LlmClient {
     }
 }
 
-/// Deserialization structs for OpenAI streaming chunks.
-#[derive(Deserialize)]
+/// Deserialization structs for `OpenAI` streaming chunks.
+#[derive(Debug, Deserialize)]
 struct SseChunk {
     choices: Vec<SseChoice>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SseChoice {
     delta: SseDelta,
     #[serde(default)]
     finish_reason: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SseDelta {
     #[serde(default)]
     content: Option<String>,
@@ -191,7 +201,7 @@ struct SseDelta {
     tool_calls: Option<Vec<SseToolCallDelta>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SseToolCallDelta {
     index: usize,
     #[serde(default)]
@@ -200,7 +210,7 @@ struct SseToolCallDelta {
     function: Option<SseFunctionDelta>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SseFunctionDelta {
     #[serde(default)]
     name: Option<String>,
@@ -208,7 +218,7 @@ struct SseFunctionDelta {
     arguments: Option<String>,
 }
 
-/// Parse a single SSE `data: {...}` JSON chunk into a `ChatEvent`.
+/// Parse a single SSE JSON chunk into a [`ChatEvent`].
 fn parse_sse_chunk(data: &str) -> ChatEvent {
     let chunk: SseChunk = match serde_json::from_str(data) {
         Ok(c) => c,

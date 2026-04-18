@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `memory_recall` — search long-term memory. See API.md §10.3.
 //!
 //! Scans all `.md` files under `memory_dir`, applies a simple keyword match
@@ -11,11 +13,13 @@ use std::path::PathBuf;
 
 use super::traits::{Tool, ToolResult};
 
+#[derive(Debug)]
 pub struct MemoryRecallTool {
     memory_dir: PathBuf,
 }
 
 impl MemoryRecallTool {
+    #[must_use]
     pub fn new(memory_dir: PathBuf) -> Self {
         Self { memory_dir }
     }
@@ -31,11 +35,11 @@ struct MemoryEntry {
 
 #[async_trait]
 impl Tool for MemoryRecallTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "memory_recall"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Search long-term memory for relevant facts. Returns scored results ranked by relevance."
     }
 
@@ -60,10 +64,13 @@ impl Tool for MemoryRecallTool {
             });
         }
 
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "limit is always small enough to fit in usize"
+        )]
         let limit = args
             .get("limit")
-            .and_then(|v| v.as_u64())
+            .and_then(serde_json::Value::as_u64)
             .map_or(5, |v| v as usize);
 
         let query_lower = query.to_lowercase();
@@ -103,9 +110,8 @@ impl Tool for MemoryRecallTool {
 
 /// Recursively scan `dir` for `.md` files and score them against keywords.
 async fn collect_memories(dir: &PathBuf, keywords: &[&str], entries: &mut Vec<MemoryEntry>) {
-    let mut read_dir = match tokio::fs::read_dir(dir).await {
-        Ok(rd) => rd,
-        Err(_) => return,
+    let Ok(mut read_dir) = tokio::fs::read_dir(dir).await else {
+        return;
     };
 
     while let Ok(Some(entry)) = read_dir.next_entry().await {
@@ -118,9 +124,8 @@ async fn collect_memories(dir: &PathBuf, keywords: &[&str], entries: &mut Vec<Me
             continue;
         }
 
-        let text = match tokio::fs::read_to_string(&path).await {
-            Ok(t) => t,
-            Err(_) => continue,
+        let Ok(text) = tokio::fs::read_to_string(&path).await else {
+            continue;
         };
 
         // Parse YAML front-matter

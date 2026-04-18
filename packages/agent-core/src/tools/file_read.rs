@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `file_read` — read file contents with line numbers. See API.md §10.7.
 
 use async_trait::async_trait;
@@ -8,11 +10,13 @@ use super::traits::{Tool, ToolResult};
 
 const MAX_FILE_SIZE_BYTES: u64 = 10 * 1024 * 1024;
 
+#[derive(Debug)]
 pub struct FileReadTool {
     workspace_dir: PathBuf,
 }
 
 impl FileReadTool {
+    #[must_use]
     pub fn new(workspace_dir: PathBuf) -> Self {
         Self { workspace_dir }
     }
@@ -20,11 +24,11 @@ impl FileReadTool {
 
 #[async_trait]
 impl Tool for FileReadTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "file_read"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Read file contents with line numbers. Supports partial reading via offset and limit."
     }
 
@@ -85,16 +89,15 @@ impl Tool for FileReadTool {
 
                 let offset = args
                     .get("offset")
-                    .and_then(|v| v.as_u64())
-                    .map(|v| {
+                    .and_then(serde_json::Value::as_u64)
+                    .map_or(0, |v| {
                         usize::try_from(v.max(1))
                             .unwrap_or(usize::MAX)
                             .saturating_sub(1)
-                    })
-                    .unwrap_or(0);
+                    });
                 let start = offset.min(total);
 
-                let end = match args.get("limit").and_then(|v| v.as_u64()) {
+                let end = match args.get("limit").and_then(serde_json::Value::as_u64) {
                     Some(l) => {
                         let limit = usize::try_from(l).unwrap_or(usize::MAX);
                         (start.saturating_add(limit)).min(total)

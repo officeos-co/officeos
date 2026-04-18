@@ -1,6 +1,9 @@
-//! Loop detection guardrail for the agent tool-call loop.
-//! Port of `packages/zeroclaw-core/src/agent/loop_detector.rs`.
-//! See API.md §6.2: 3 patterns, window size 20, hardcoded config.
+// Rust guideline compliant 2026-02-21
+
+//! Loop detection guardrail for the tool-call loop.
+//!
+//! Detects three patterns: exact repeats, ping-pong alternation, and
+//! no-progress sequences. See API.md §6.2.
 
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashSet, VecDeque};
@@ -63,10 +66,17 @@ fn hash_str(s: &str) -> u64 {
 
 // ── Detector ─────────────────────────────────────────────────────
 
+/// Rolling window of recent tool calls for pattern detection.
+///
+/// 20 calls gives enough history to detect multi-cycle patterns
+/// without unbounded memory growth.
 const WINDOW_SIZE: usize = 20;
+
+/// Consecutive identical calls before the first warning fires.
 const MAX_REPEATS: usize = 3;
 
 /// Stateful loop detector — lives for the duration of a single turn.
+#[derive(Debug)]
 pub struct LoopDetector {
     window: VecDeque<ToolCallRecord>,
 }
@@ -78,6 +88,7 @@ impl Default for LoopDetector {
 }
 
 impl LoopDetector {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             window: VecDeque::with_capacity(WINDOW_SIZE),
@@ -176,8 +187,7 @@ impl LoopDetector {
         }
 
         Some(LoopDetectionResult::Warning(format!(
-            "Warning: tools '{}' and '{}' alternating for {} cycles.",
-            a_name, b_name, MIN_CYCLES
+            "Warning: tools '{a_name}' and '{b_name}' alternating for {MIN_CYCLES} cycles."
         )))
     }
 

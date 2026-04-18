@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `file_edit` — edit a file by exact string replacement. See API.md §10.9.
 
 use async_trait::async_trait;
@@ -6,11 +8,13 @@ use std::path::PathBuf;
 
 use super::traits::{Tool, ToolResult};
 
+#[derive(Debug)]
 pub struct FileEditTool {
     workspace_dir: PathBuf,
 }
 
 impl FileEditTool {
+    #[must_use]
     pub fn new(workspace_dir: PathBuf) -> Self {
         Self { workspace_dir }
     }
@@ -18,11 +22,11 @@ impl FileEditTool {
 
 #[async_trait]
 impl Tool for FileEditTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "file_edit"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Edit a file by replacing an exact string match with new content."
     }
 

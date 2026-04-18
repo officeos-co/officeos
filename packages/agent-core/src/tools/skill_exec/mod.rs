@@ -1,5 +1,6 @@
-//! `skill_exec` — single tool that gives the agent a CLI-like interface
-//! to all backend skills, powered by GraphQL under the hood.
+// Rust guideline compliant 2026-02-21
+
+//! `skill_exec` — CLI-like interface to backend skills via GraphQL.
 //!
 //! See API.md §10.1.
 
@@ -19,15 +20,19 @@ use crate::config::{Permission, RuntimeConfig};
 use parser::ParsedCommand;
 use schema_cache::SchemaCache;
 
+/// Maximum response body size (1 MiB) before truncation.
 const MAX_RESPONSE_BYTES: usize = 1_048_576;
+/// HTTP request timeout for GraphQL calls (seconds).
 const HTTP_TIMEOUT_SECS: u64 = 30;
 
+#[derive(Debug)]
 pub struct SkillExecTool {
     cfg: Arc<RuntimeConfig>,
     schema_cache: Arc<Mutex<SchemaCache>>,
 }
 
 impl SkillExecTool {
+    #[must_use]
     pub fn new(cfg: Arc<RuntimeConfig>) -> Self {
         let graphql_url = format!("{}/api/graphql", cfg.backend_url.trim_end_matches('/'));
         let bearer_token = Some(cfg.backend_token.clone());
@@ -41,11 +46,11 @@ impl SkillExecTool {
 
 #[async_trait]
 impl Tool for SkillExecTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "skill_exec"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Execute a skill command. Works like a CLI: use --help at any level to discover skills, \
          actions, and arguments. Examples: \"--help\", \"notion --help\", \
          \"notion search --query meetings\", \"github repos --visibility PRIVATE\"."
@@ -73,7 +78,7 @@ impl Tool for SkillExecTool {
         {
             let mut cache = self.schema_cache.lock().await;
             if let Err(e) = cache.ensure_loaded().await {
-                tracing::warn!(error = %e, "Failed to load GraphQL schema for skill_exec");
+                tracing::warn!(name: "skill_exec.schema.load_failed", error_message = %e, "Failed to load GraphQL schema: {{error_message}}");
                 return Ok(ToolResult {
                     success: false,
                     output: String::new(),
@@ -101,7 +106,7 @@ impl Tool for SkillExecTool {
                 action,
                 args: cli_args,
             } => {
-                tracing::info!(skill = %skill, action = %action, "executing skill");
+                tracing::info!(name: "skill_exec.execute.start", skill_name = %skill, skill_action = %action, "executing skill {{skill_name}} action {{skill_action}}");
                 // Enforce per-tool allow/deny before dispatch.
                 let key = (skill.to_ascii_lowercase(), action.clone());
                 if let Some(Permission::Deny) = self.cfg.tool_permissions.get(&key) {
@@ -131,7 +136,7 @@ impl Tool for SkillExecTool {
                 let result = self.execute_graphql(&gql_query).await;
                 if let Ok(ref tr) = result {
                     if !tr.success {
-                        tracing::warn!(skill = %skill, action = %action, "skill execution failed");
+                        tracing::warn!(name: "skill_exec.execute.failed", skill_name = %skill, skill_action = %action, "skill {{skill_name}} action {{skill_action}} failed");
                     }
                 }
                 result

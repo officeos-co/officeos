@@ -1,9 +1,11 @@
+// Rust guideline compliant 2026-02-21
+
 //! Deterministic CLI-style parser for skill commands.
 //!
 //! Grammar:
-//!   command     = [skill] [action_parts...] [flags] [--help]
+//!   command     = [skill] [`action_parts`...] [flags] [--help]
 //!   skill       = identifier
-//!   action_parts = identifier+ (joined with "_" to form compound action names)
+//!   `action_parts` = identifier+ (joined with "_" to form compound action names)
 //!   flags       = (--key value)*
 //!   --help      = introspection at current level
 
@@ -26,6 +28,7 @@ pub enum ParsedCommand {
     },
 }
 
+#[must_use]
 pub fn parse(input: &str) -> ParsedCommand {
     let tokens = tokenize(input);
 

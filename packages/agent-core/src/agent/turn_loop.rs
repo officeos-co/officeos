@@ -1,4 +1,8 @@
-//! The agent turn loop — drives LLM streaming, tool dispatch, WS events.
+// Rust guideline compliant 2026-02-21
+
+//! The agent turn loop — drives LLM streaming, tool dispatch, and WS
+//! events.
+//!
 //! See API.md §6.
 
 use crate::agent::history::ConversationHistory;
@@ -14,20 +18,33 @@ use std::sync::Arc;
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
-/// Max tokens before pruning kicks in.
+/// Max estimated tokens before pruning kicks in.
+///
+/// Chosen to stay well within typical LLM context limits while
+/// leaving room for the system prompt and tool schemas. At the
+/// 4-chars-per-token estimate this is ~32 k chars of history.
 const MAX_TOKENS: usize = 8192;
+
 /// Number of recent messages to protect from pruning.
+///
+/// Keeps the last user message + assistant response pair visible to
+/// the model, preventing context amnesia on the most recent exchange.
 const KEEP_RECENT: usize = 4;
 
 /// Accumulates streaming tool call chunks into complete calls.
+#[derive(Debug)]
 struct ToolCallAccumulator {
     id: String,
     name: String,
     arguments: String,
 }
 
-/// Run a single turn: stream LLM response, dispatch tool calls, loop
-/// until the assistant returns no tool calls or a termination condition.
+/// Run a single turn: stream LLM, dispatch tool calls, loop until
+/// the assistant returns no tool calls or a termination condition.
+#[expect(
+    clippy::too_many_lines,
+    reason = "turn loop is inherently sequential with streaming + dispatch"
+)]
 pub(crate) async fn run_turn(
     cfg: &Arc<RuntimeConfig>,
     history: &mut ConversationHistory,
@@ -65,7 +82,7 @@ pub(crate) async fn run_turn(
         let tool_schemas = registry.chat_tool_schemas();
 
         // Stream LLM response.
-        tracing::info!(turn_id, "starting LLM stream");
+        tracing::info!(name: "turn.llm.start", turn_id = turn_id, "starting LLM stream for turn {{turn_id}}");
         let mut stream = llm.chat_stream(messages, tool_schemas).await?;
 
         let mut assistant_text = String::new();
@@ -100,7 +117,7 @@ pub(crate) async fn run_turn(
                         accumulators[index].arguments.push_str(&args_chunk);
                     }
                 }
-                ChatEvent::Finish { reason: _ } => {
+                ChatEvent::Finish { .. } => {
                     break;
                 }
                 ChatEvent::Error { message } => {
@@ -116,7 +133,7 @@ pub(crate) async fn run_turn(
         }
 
         if had_error {
-            tracing::warn!(turn_id, "LLM stream error");
+            tracing::warn!(name: "turn.llm.error", turn_id = turn_id, "LLM stream error for turn {{turn_id}}");
             let _ = ws_tx.send(WsOutbound::TurnComplete {
                 turn_id: turn_id.to_string(),
                 cancelled: false,
@@ -151,9 +168,10 @@ pub(crate) async fn run_turn(
         });
 
         tracing::info!(
-            turn_id,
-            tool_calls = tool_calls.len(),
-            "LLM stream complete"
+            name: "turn.llm.complete",
+            turn_id = turn_id,
+            tool_call_count = tool_calls.len(),
+            "LLM stream complete for turn {{turn_id}}: {{tool_call_count}} tool calls",
         );
 
         // No tool calls → turn complete.
@@ -174,7 +192,7 @@ pub(crate) async fn run_turn(
             });
 
             // Dispatch.
-            tracing::info!(turn_id, tool = %tc.function.name, call_id = %tc.id, "dispatching tool");
+            tracing::info!(name: "turn.tool.dispatch", turn_id = turn_id, tool_name = %tc.function.name, tool_call_id = %tc.id, "dispatching tool {{tool_name}} for turn {{turn_id}}");
             let result = registry.dispatch(&tc.function.name, args.clone()).await;
             let tool_result = match result {
                 Ok(tr) => tr,
@@ -185,7 +203,7 @@ pub(crate) async fn run_turn(
                 },
             };
 
-            tracing::info!(turn_id, tool = %tc.function.name, success = tool_result.success, "tool result");
+            tracing::info!(name: "turn.tool.result", turn_id = turn_id, tool_name = %tc.function.name, tool_success = tool_result.success, "tool {{tool_name}} result: success={{tool_success}}");
 
             // Loop detection.
             let detection = loop_detector.record(&tc.function.name, &args, &tool_result.output);
@@ -217,7 +235,7 @@ pub(crate) async fn run_turn(
             // Handle loop detection results.
             match detection {
                 LoopDetectionResult::Break(msg) => {
-                    tracing::warn!(turn_id, "loop detected: {msg}");
+                    tracing::warn!(name: "turn.loop.break", turn_id = turn_id, "loop detected: {msg}");
                     let _ = ws_tx.send(WsOutbound::Error {
                         turn_id: Some(turn_id.to_string()),
                         code: "LOOP".to_string(),
@@ -230,7 +248,7 @@ pub(crate) async fn run_turn(
                     return Ok(());
                 }
                 LoopDetectionResult::Block(msg) => {
-                    tracing::warn!(turn_id, "loop detected: {msg}");
+                    tracing::warn!(name: "turn.loop.block", turn_id = turn_id, "loop detected: {msg}");
                     // Replace last tool result in history with block message.
                     if let Some(last) = history.messages_mut().last_mut() {
                         last.content = Some(format!("BLOCKED: {msg}"));
@@ -246,7 +264,7 @@ pub(crate) async fn run_turn(
         // Continue the loop — LLM will see tool results and respond.
     }
 
-    tracing::info!(turn_id, "turn loop finished");
+    tracing::info!(name: "turn.complete", turn_id = turn_id, "turn loop finished for {{turn_id}}");
     let _ = ws_tx.send(WsOutbound::TurnComplete {
         turn_id: turn_id.to_string(),
         cancelled: false,

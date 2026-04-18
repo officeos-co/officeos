@@ -1,4 +1,8 @@
-//! Agent — owns history, registry, llm client, config. See API.md §6.
+// Rust guideline compliant 2026-02-21
+
+//! Agent — owns history, registry, LLM client, and config.
+//!
+//! See API.md §6.
 
 pub mod history;
 pub mod loop_detector;
@@ -16,7 +20,12 @@ use crate::tools::ToolRegistry;
 
 use history::ConversationHistory;
 
-/// The per-connection agent that drives the turn loop.
+/// Per-connection agent that drives the turn loop.
+///
+/// Holds the LLM client, tool registry, conversation history, and
+/// the immutable runtime config. One `Agent` instance is shared
+/// across all WebSocket connections.
+#[derive(Debug)]
 pub struct Agent {
     cfg: Arc<RuntimeConfig>,
     llm: LlmClient,
@@ -26,9 +35,10 @@ pub struct Agent {
 
 impl Agent {
     /// Construct an agent bound to the given runtime configuration.
+    #[must_use]
     pub fn new(cfg: Arc<RuntimeConfig>) -> Self {
-        let llm = LlmClient::new(cfg.clone());
-        let registry = ToolRegistry::new(cfg.clone());
+        let llm = LlmClient::new(Arc::clone(&cfg));
+        let registry = ToolRegistry::new(Arc::clone(&cfg));
         Self {
             cfg,
             llm,
@@ -38,14 +48,20 @@ impl Agent {
     }
 
     /// Handle an inbound user message — enters the turn loop.
-    /// Returns WS events via the provided sender.
+    ///
+    /// # Errors
+    ///
+    /// Propagates errors from the turn loop (LLM, tool dispatch).
     pub async fn handle_user_message(&self, text: String) -> crate::error::Result<()> {
-        // Create a dummy channel for the simple API (tests that don't use WS).
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         self.handle_user_message_with_ws(text, None, &tx).await
     }
 
-    /// Handle a user message with a WS sender for streaming events back.
+    /// Handle a user message with a WS sender for streaming events.
+    ///
+    /// # Errors
+    ///
+    /// Propagates errors from the turn loop (LLM, tool dispatch).
     pub async fn handle_user_message_with_ws(
         &self,
         text: String,
@@ -76,8 +92,10 @@ impl Agent {
         .await
     }
 
-    /// Whether a turn is currently in flight (history lock is held).
+    /// Whether the history lock is currently free.
+    ///
     /// Approximate — used by the WS handler for concurrency guard.
+    #[must_use]
     pub fn try_lock_history(&self) -> bool {
         self.history.try_lock().is_ok()
     }

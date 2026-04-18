@@ -1,4 +1,8 @@
-//! WebSocket gateway — Axum app serving `/ws` + `/health`. See API.md §8.
+// Rust guideline compliant 2026-02-21
+
+//! WebSocket gateway — Axum app serving `/ws` and `/health`.
+//!
+//! See API.md §8.
 
 pub mod protocol;
 pub mod ws;
@@ -14,37 +18,43 @@ use axum::Router;
 use crate::config::RuntimeConfig;
 
 /// Query params on the WS upgrade URL.
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 struct WsQuery {
     token: Option<String>,
 }
 
-/// Start the Axum HTTP server on `cfg.gateway_host:cfg.gateway_port` with
-/// a `/ws` route that upgrades to WebSocket and a `/health` route.
-/// Blocks until shutdown.
+/// Start the Axum HTTP server and block until shutdown.
+///
+/// Binds to `cfg.gateway_host:cfg.gateway_port` with a `/ws` route
+/// that upgrades to WebSocket and a `/health` route.
+///
+/// # Errors
+///
+/// Returns `Error::Gateway` if the bind address is invalid or the
+/// listener fails to start.
 pub async fn serve(
     cfg: Arc<RuntimeConfig>,
     agent: Arc<crate::agent::Agent>,
 ) -> crate::error::Result<()> {
-    let cfg_for_ws = cfg.clone();
-    let agent_for_ws = agent.clone();
+    let cfg_for_ws = Arc::clone(&cfg);
+    let agent_for_ws = Arc::clone(&agent);
 
     let app = Router::new()
         .route(
             "/ws",
             get(
                 move |ws_upgrade: axum::extract::WebSocketUpgrade, Query(query): Query<WsQuery>| {
-                    let cfg = cfg_for_ws.clone();
-                    let agent = agent_for_ws.clone();
+                    let cfg = Arc::clone(&cfg_for_ws);
+                    let agent = Arc::clone(&agent_for_ws);
                     async move {
                         // Auth: reject if token missing or wrong.
                         let expected = cfg.agent_id.to_string();
                         match query.token {
                             Some(ref t) if t == &expected => {
-                                tracing::info!("ws connection accepted");
+                                tracing::info!(name: "gateway.ws.accepted", "ws connection accepted");
                             }
                             _ => {
-                                tracing::info!("ws connection rejected: unauthorized");
+                                tracing::info!(name: "gateway.ws.rejected", "ws connection rejected: unauthorized");
                                 return (axum::http::StatusCode::UNAUTHORIZED, "unauthorized")
                                     .into_response();
                             }
@@ -63,7 +73,7 @@ pub async fn serve(
         .parse()
         .map_err(|e| crate::error::Error::Gateway(format!("invalid bind address: {e}")))?;
 
-    tracing::info!(%addr, "gateway listening");
+    tracing::info!(name: "gateway.listen.start", server_address = %addr, "gateway listening on {{server_address}}");
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await

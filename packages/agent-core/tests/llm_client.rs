@@ -30,7 +30,7 @@ fn test_config(backend_url: &str) -> Arc<RuntimeConfig> {
     })
 }
 
-/// Canned OpenAI SSE frames for a simple content-only response.
+/// Canned `OpenAI` SSE frames for a simple content-only response.
 fn canned_sse_content() -> String {
     [
         r#"data: {"choices":[{"delta":{"content":"Hello"}}]}"#,
@@ -42,7 +42,7 @@ fn canned_sse_content() -> String {
     .join("\n\n")
 }
 
-/// Wiremock streams canned OpenAI SSE frames. Assert ChatEvent sequence.
+/// Wiremock streams canned `OpenAI` SSE frames. Assert `ChatEvent` sequence.
 #[tokio::test]
 async fn test_chat_stream_parses_openai_sse() {
     let server = MockServer::start().await;
@@ -103,7 +103,7 @@ async fn test_chat_stream_parses_openai_sse() {
     );
 }
 
-/// Assert POST body has `tools` array in OpenAI format when tools are provided.
+/// Assert POST body has `tools` array in `OpenAI` format when tools are provided.
 #[tokio::test]
 async fn test_chat_stream_sends_tools_array() {
     let server = MockServer::start().await;

@@ -1,4 +1,8 @@
-//! Tool registry and catalog. See API.md §9–§10.
+// Rust guideline compliant 2026-02-21
+
+//! Tool registry and catalog.
+//!
+//! See API.md §9–§10.
 
 pub mod content_search;
 pub mod file_edit;
@@ -21,14 +25,16 @@ use crate::llm::{ChatToolSchema, ChatToolSchemaFunction};
 pub use traits::{Tool, ToolResult, ToolSpec};
 
 /// Holds all compiled-in tools and dispatches by name.
+#[derive(Debug)]
 pub struct ToolRegistry {
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "retained for future use in tool-level config")]
     cfg: Arc<RuntimeConfig>,
     tools: Vec<Arc<dyn Tool>>,
 }
 
 impl ToolRegistry {
     /// Build the registry with the full 1.0 tool set.
+    #[must_use]
     pub fn new(cfg: Arc<RuntimeConfig>) -> Self {
         let workspace = cfg.memory_dir.clone();
 
@@ -44,18 +50,20 @@ impl ToolRegistry {
             Arc::new(memory_store::MemoryStoreTool::new(workspace.clone())),
             Arc::new(memory_recall::MemoryRecallTool::new(workspace.clone())),
             Arc::new(memory_forget::MemoryForgetTool::new(workspace)),
-            Arc::new(skill_exec::SkillExecTool::new(cfg.clone())),
+            Arc::new(skill_exec::SkillExecTool::new(Arc::clone(&cfg))),
         ];
 
         Self { cfg, tools }
     }
 
-    /// Return specs for all registered tools (sent in the LLM `tools` array).
+    /// Return specs for all registered tools.
+    #[must_use]
     pub fn specs(&self) -> Vec<ToolSpec> {
         self.tools.iter().map(|t| t.spec()).collect()
     }
 
-    /// Return tool schemas in the OpenAI chat completions `tools` wire format.
+    /// Return tool schemas in the `OpenAI` `tools` wire format.
+    #[must_use]
     pub fn chat_tool_schemas(&self) -> Vec<ChatToolSchema> {
         self.tools
             .iter()
@@ -70,17 +78,23 @@ impl ToolRegistry {
             .collect()
     }
 
-    /// Return Arc refs to all tools (for prompt context).
+    /// Return `Arc` refs to all tools (for prompt context).
+    #[must_use]
     pub fn tools(&self) -> Vec<Arc<dyn Tool>> {
         self.tools.clone()
     }
 
     /// Look up a tool by name.
+    #[must_use]
     pub fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
         self.tools.iter().find(|t| t.name() == name).cloned()
     }
 
-    /// Dispatch a tool call by name. Returns an error if the tool is unknown.
+    /// Dispatch a tool call by name.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the tool's `execute` method fails.
     pub async fn dispatch(
         &self,
         name: &str,

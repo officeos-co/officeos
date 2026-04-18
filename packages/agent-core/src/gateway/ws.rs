@@ -1,4 +1,8 @@
-//! WebSocket upgrade handler with query-param auth. See API.md §8.2.
+// Rust guideline compliant 2026-02-21
+
+//! WebSocket upgrade handler with query-param auth.
+//!
+//! See API.md §8.2.
 
 use std::sync::Arc;
 
@@ -10,14 +14,16 @@ use tokio::sync::mpsc;
 use crate::config::RuntimeConfig;
 use crate::gateway::protocol::{WsInbound, WsOutbound};
 
-/// Handle a WebSocket connection after upgrade. Per-connection lifecycle:
-/// parse inbound frames, drive the agent turn loop, emit outbound events.
+/// Handle a WebSocket connection after upgrade.
+///
+/// Per-connection lifecycle: parse inbound frames, drive the agent
+/// turn loop, emit outbound events.
 pub async fn handle_ws(
     _cfg: Arc<RuntimeConfig>,
     agent: Arc<crate::agent::Agent>,
     socket: WebSocket,
 ) {
-    tracing::info!("ws session started");
+    tracing::info!(name: "ws.session.start", "ws session started");
     let (ws_sink, mut ws_stream) = socket.split();
 
     // Channel for sending outbound WS frames.
@@ -26,9 +32,6 @@ pub async fn handle_ws(
     // Spawn a task that forwards outbound events to the WS sink.
     let sink_handle = tokio::spawn(forward_outbound(ws_sink, out_rx));
 
-    // Track whether a turn is in flight. In the current sequential loop
-    // this is always false at the top of each iteration, but the flag is
-    // retained for structural parity with API.md §8.7 (one turn per conn).
     let mut turn_in_flight = false;
 
     // Read inbound frames.
@@ -54,9 +57,9 @@ pub async fn handle_ws(
         match inbound {
             WsInbound::UserMessage { text, id } => {
                 let turn_id_display = id.as_deref().unwrap_or("none");
-                tracing::info!(turn_id = %turn_id_display, "user message received");
+                tracing::info!(name: "ws.message.received", turn_id = %turn_id_display, "user message received for turn {{turn_id}}");
                 if turn_in_flight {
-                    tracing::warn!("user message rejected: turn in flight");
+                    tracing::warn!(name: "ws.message.rejected", "user message rejected: turn in flight");
                     let _ = out_tx.send(WsOutbound::Error {
                         turn_id: None,
                         code: "BAD_REQUEST".to_string(),
@@ -65,12 +68,10 @@ pub async fn handle_ws(
                     continue;
                 }
 
-                // Sequential loop so the `true` is always overwritten to
-                // `false` at the end of this arm, but retained per API.md §8.7.
-                #[allow(unused_assignments)]
-                {
-                    turn_in_flight = true;
-                }
+                #[expect(unused_assignments, reason = "retained per API.md §8.7 for structural parity")]
+                #[expect(clippy::unnecessary_operation, reason = "block needed to attach #[expect] to assignment")]
+                #[rustfmt::skip]
+                { turn_in_flight = true };
                 let turn_id = id.clone();
 
                 let result = agent
@@ -78,7 +79,7 @@ pub async fn handle_ws(
                     .await;
 
                 if let Err(e) = result {
-                    tracing::error!(turn_id = %turn_id_display, error = %e, "turn failed");
+                    tracing::error!(name: "ws.turn.failed", turn_id = %turn_id_display, error_message = %e, "turn {{turn_id}} failed: {{error_message}}");
                     let _ = out_tx.send(WsOutbound::Error {
                         turn_id: id.clone(),
                         code: "INTERNAL".to_string(),
@@ -89,16 +90,14 @@ pub async fn handle_ws(
                         cancelled: false,
                     });
                 } else {
-                    tracing::info!(turn_id = %turn_id_display, "turn complete");
+                    tracing::info!(name: "ws.turn.complete", turn_id = %turn_id_display, "turn {{turn_id}} complete");
                 }
 
                 turn_in_flight = false;
             }
             WsInbound::Cancel { id } => {
-                // Sequential turn processing — cancellation acknowledged immediately.
-                // The current LLM/tool call will complete, but no further iterations run.
                 if turn_in_flight {
-                    tracing::info!("cancel requested");
+                    tracing::info!(name: "ws.cancel.requested", "cancel requested");
                     let _ = out_tx.send(WsOutbound::TurnComplete {
                         turn_id: id.unwrap_or_default(),
                         cancelled: true,
@@ -109,8 +108,7 @@ pub async fn handle_ws(
         }
     }
 
-    // Clean up.
-    tracing::info!("ws session ended");
+    tracing::info!(name: "ws.session.end", "ws session ended");
     drop(out_tx);
     let _ = sink_handle.await;
 }
@@ -121,9 +119,8 @@ async fn forward_outbound(
     mut rx: mpsc::UnboundedReceiver<WsOutbound>,
 ) {
     while let Some(msg) = rx.recv().await {
-        let json = match serde_json::to_string(&msg) {
-            Ok(j) => j,
-            Err(_) => continue,
+        let Ok(json) = serde_json::to_string(&msg) else {
+            continue;
         };
         if sink.send(Message::Text(json.into())).await.is_err() {
             break;

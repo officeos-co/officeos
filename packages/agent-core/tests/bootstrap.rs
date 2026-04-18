@@ -8,9 +8,10 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use helpers::{canned_payload, CANNED_AGENT_ID};
 
 /// Wiremock serves a canned `AgentBootstrapPayload` JSON.
-/// Call `bootstrap(id, url)`. Assert RuntimeConfig fields match the payload.
+/// Call `bootstrap(id, url)`. Assert `RuntimeConfig` fields match the payload.
 #[tokio::test]
 async fn test_bootstrap_roundtrip_ok() {
+    use zeroclaw_agent::config::Permission;
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -38,7 +39,6 @@ async fn test_bootstrap_roundtrip_ok() {
     assert_eq!(cfg.backend_token, CANNED_AGENT_ID);
 
     // Permission map should be lowercased.
-    use zeroclaw_agent::config::Permission;
     assert_eq!(
         cfg.tool_permissions
             .get(&("github".into(), "list_issues".into())),

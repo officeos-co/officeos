@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `shell` — run a shell command in the agent workspace. See API.md §10.6.
 
 use async_trait::async_trait;
@@ -15,11 +17,13 @@ const SAFE_ENV_VARS: &[&str] = &[
     "PATH", "HOME", "TERM", "LANG", "LC_ALL", "LC_CTYPE", "USER", "SHELL", "TMPDIR",
 ];
 
+#[derive(Debug)]
 pub struct ShellTool {
     workspace_dir: PathBuf,
 }
 
 impl ShellTool {
+    #[must_use]
     pub fn new(workspace_dir: PathBuf) -> Self {
         Self { workspace_dir }
     }
@@ -27,11 +31,11 @@ impl ShellTool {
 
 #[async_trait]
 impl Tool for ShellTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "shell"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Run a shell command inside the agent workspace and return stdout/stderr."
     }
 
@@ -54,7 +58,7 @@ impl Tool for ShellTool {
 
         let timeout_secs = args
             .get("timeout_secs")
-            .and_then(|v| v.as_u64())
+            .and_then(serde_json::Value::as_u64)
             .unwrap_or(DEFAULT_SHELL_TIMEOUT_SECS);
 
         let mut cmd = tokio::process::Command::new("/bin/sh");

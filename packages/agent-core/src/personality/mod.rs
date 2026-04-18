@@ -1,35 +1,47 @@
-//! Embedded personality templates + idempotent write on first boot.
+// Rust guideline compliant 2026-02-21
+
+//! Embedded personality templates and idempotent first-boot seeding.
+//!
 //! See API.md §5.
 
 use std::path::Path;
 
 use crate::error::{Error, Result};
 
-/// The three personality templates embedded in the binary via
-/// `include_str!`. Order is the canonical load order (also used by the
-/// `IdentitySection` prompt builder).
+/// The three personality templates embedded via `include_str!`.
 ///
-/// Real constant — defines what gets embedded. `AGENTS.md` is explicitly
-/// NOT in this list per API.md §19 (resolution 7).
+/// Order is the canonical load order (also used by the
+/// `IdentitySection` prompt builder). `AGENTS.md` is explicitly NOT
+/// in this list per API.md §19 (resolution 7).
 pub const TEMPLATES: &[(&str, &str)] = &[
     ("SOUL.md", include_str!("templates/SOUL.md")),
     ("IDENTITY.md", include_str!("templates/IDENTITY.md")),
     ("BOOTSTRAP.md", include_str!("templates/BOOTSTRAP.md")),
 ];
 
-/// Literal substitution token inside `BOOTSTRAP.md`. Replaced with the
-/// bootstrap payload's `systemPrompt` on first write only.
+/// Literal substitution token inside `BOOTSTRAP.md`.
+///
+/// Replaced with the bootstrap payload's `systemPrompt` on first
+/// write only.
 pub const PROMPT_TOKEN: &str = "{{prompt}}";
 
-/// Write missing templates into `memory_dir`. For each template:
-/// - if the file exists (any content), skip it;
-/// - otherwise, substitute `{{prompt}}` (only meaningful for BOOTSTRAP.md)
-///   and atomically write it.
+/// Write missing templates into `memory_dir`.
 ///
-/// After writing, performs a strict check: all three files must exist and
-/// be non-empty.
+/// For each template: if the file exists (any content), skip it;
+/// otherwise, substitute `{{prompt}}` (only meaningful for
+/// `BOOTSTRAP.md`) and write it. After writing, performs a strict
+/// check: all three files must exist and be non-empty.
+///
+/// # Errors
+///
+/// Returns `Error::Personality` if any file is missing or empty after
+/// seeding, and `Error::MemoryIo` on filesystem failure.
 pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
-    tracing::info!(path = %memory_dir.display(), "seeding personality files");
+    tracing::info!(
+        name: "personality.seed.start",
+        file_directory = %memory_dir.display(),
+        "seeding personality files in {{file_directory}}",
+    );
     // Create memory_dir if it doesn't exist.
     tokio::fs::create_dir_all(memory_dir).await?;
 
@@ -46,7 +58,11 @@ pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
         };
 
         tokio::fs::write(&dst, &content).await?;
-        tracing::debug!(file = %dst.display(), "wrote personality file");
+        tracing::debug!(
+            name: "personality.file.written",
+            file_path = %dst.display(),
+            "wrote personality file: {{file_path}}",
+        );
     }
 
     // Strict post-check: all three must exist and be non-empty.
@@ -54,7 +70,7 @@ pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
         let dst = memory_dir.join(name);
         let meta = tokio::fs::metadata(&dst)
             .await
-            .map_err(|_| Error::Personality(format!("{name} missing after seed")))?;
+            .map_err(|e| Error::Personality(format!("{name} missing after seed: {e}")))?;
         if meta.len() == 0 {
             return Err(Error::Personality(format!("{name} is empty after seed")));
         }

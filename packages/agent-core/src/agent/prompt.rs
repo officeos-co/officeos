@@ -1,7 +1,10 @@
-//! System prompt composition via trait-based sections. See API.md §5.3.
-//! Port of `packages/zeroclaw-core/src/agent/prompt.rs`, minus
-//! ChannelMediaSection, autonomy levels, i18n, security policy.
+// Rust guideline compliant 2026-02-21
 
+//! System prompt composition via trait-based sections.
+//!
+//! See API.md §5.3.
+
+use std::fmt::Write;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -11,6 +14,7 @@ use crate::config::SkillSummary;
 use crate::tools::Tool;
 
 /// Context available to each prompt section at build time.
+#[derive(Debug)]
 pub struct PromptContext<'a> {
     pub memory_dir: &'a Path,
     pub tools: &'a [Arc<dyn Tool>],
@@ -22,12 +26,16 @@ pub struct PromptContext<'a> {
 /// string are dropped from the final output.
 pub trait PromptSection: Send + Sync {
     fn name(&self) -> &'static str;
+    /// # Errors
+    ///
+    /// Returns an error if the section cannot be built.
     fn build(&self, ctx: &PromptContext<'_>) -> crate::error::Result<String>;
 }
 
 // ── Section impls ────────────────────────────────────────────────
 
 /// Current local date + time + ISO 8601 + timezone.
+#[derive(Debug)]
 pub struct DateTimeSection;
 
 impl PromptSection for DateTimeSection {
@@ -51,10 +59,15 @@ impl PromptSection for DateTimeSection {
     }
 }
 
+/// Maximum characters to include from each personality file.
+///
+/// Prevents a single oversized personality file from dominating the
+/// context window. 20 000 chars ≈ 5 000 tokens at 4 chars/token.
 const MAX_PERSONALITY_CHARS: usize = 20_000;
 
-/// Concatenates SOUL.md, IDENTITY.md, BOOTSTRAP.md from memory_dir.
+/// Concatenates SOUL.md, IDENTITY.md, BOOTSTRAP.md from `memory_dir`.
 /// Truncates each at 20k chars. Missing files silently skipped (lenient).
+#[derive(Debug)]
 pub struct IdentitySection;
 
 impl PromptSection for IdentitySection {
@@ -72,9 +85,9 @@ impl PromptSection for IdentitySection {
             if let Ok(content) = std::fs::read_to_string(&path) {
                 if content.len() > MAX_PERSONALITY_CHARS {
                     let truncated: String = content.chars().take(MAX_PERSONALITY_CHARS).collect();
-                    prompt.push_str(&format!("### {name}\n\n{truncated}\n[... truncated]\n\n"));
+                    let _ = write!(prompt, "### {name}\n\n{truncated}\n[... truncated]\n\n");
                 } else {
-                    prompt.push_str(&format!("### {name}\n\n{content}\n\n"));
+                    let _ = write!(prompt, "### {name}\n\n{content}\n\n");
                 }
             }
         }
@@ -84,6 +97,7 @@ impl PromptSection for IdentitySection {
 }
 
 /// Static text warning the model never to fabricate tool results.
+#[derive(Debug)]
 pub struct ToolHonestySection;
 
 impl PromptSection for ToolHonestySection {
@@ -102,6 +116,7 @@ impl PromptSection for ToolHonestySection {
 }
 
 /// Always yields empty in 1.0 — tools are delivered via the `tools` array.
+#[derive(Debug)]
 pub struct ToolsSection;
 
 impl PromptSection for ToolsSection {
@@ -114,6 +129,7 @@ impl PromptSection for ToolsSection {
 }
 
 /// Static safety rules — no autonomy levels in 1.0.
+#[derive(Debug)]
 pub struct SafetySection;
 
 impl PromptSection for SafetySection {
@@ -131,6 +147,7 @@ impl PromptSection for SafetySection {
 }
 
 /// Lists installed skills so the model knows what `skill_exec --help` surfaces.
+#[derive(Debug)]
 pub struct SkillsSection;
 
 impl PromptSection for SkillsSection {
@@ -146,13 +163,14 @@ impl PromptSection for SkillsSection {
              Use `skill_exec --help` to discover available skills and actions.\n\n",
         );
         for skill in ctx.skills {
-            out.push_str(&format!("- {}\n", skill.name));
+            let _ = writeln!(out, "- {}", skill.name);
         }
         Ok(out)
     }
 }
 
 /// `Working directory: {memory_dir}`.
+#[derive(Debug)]
 pub struct WorkspaceSection;
 
 impl PromptSection for WorkspaceSection {
@@ -168,6 +186,7 @@ impl PromptSection for WorkspaceSection {
 }
 
 /// Hostname + OS (no model name — backend owns the model choice).
+#[derive(Debug)]
 pub struct RuntimeSection;
 
 impl PromptSection for RuntimeSection {
@@ -211,7 +230,7 @@ pub fn compose_system_prompt(ctx: &PromptContext<'_>) -> String {
                 output.push_str("\n\n");
             }
             Err(e) => {
-                tracing::warn!(section = section.name(), error = %e, "prompt section failed");
+                tracing::warn!(name: "prompt.section.failed", prompt_section = section.name(), error_message = %e, "prompt section {{prompt_section}} failed: {{error_message}}");
             }
         }
     }

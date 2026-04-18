@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `content_search` — search file contents by regex pattern. See API.md §10.12.
 
 use async_trait::async_trait;
@@ -11,12 +13,14 @@ const MAX_RESULTS: usize = 1000;
 const MAX_OUTPUT_BYTES: usize = 1_048_576;
 const TIMEOUT_SECS: u64 = 30;
 
+#[derive(Debug)]
 pub struct ContentSearchTool {
     workspace_dir: PathBuf,
     has_rg: bool,
 }
 
 impl ContentSearchTool {
+    #[must_use]
     pub fn new(workspace_dir: PathBuf) -> Self {
         let has_rg = which::which("rg").is_ok();
         Self {
@@ -28,11 +32,11 @@ impl ContentSearchTool {
 
 #[async_trait]
 impl Tool for ContentSearchTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "content_search"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Search file contents by regex pattern within the workspace. \
          Uses ripgrep (rg) with grep fallback."
     }
@@ -51,6 +55,10 @@ impl Tool for ContentSearchTool {
         })
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "search tool with rg/grep fallback is inherently verbose"
+    )]
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
         let pattern = args
             .get("pattern")
@@ -69,15 +77,17 @@ impl Tool for ContentSearchTool {
         let include = args.get("include").and_then(|v| v.as_str());
         let case_sensitive = args
             .get("case_sensitive")
-            .and_then(|v| v.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(true);
 
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "max_results is always small enough to fit in usize"
+        )]
         let max_results = args
             .get("max_results")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as usize)
-            .unwrap_or(MAX_RESULTS)
+            .and_then(serde_json::Value::as_u64)
+            .map_or(MAX_RESULTS, |v| v as usize)
             .min(MAX_RESULTS);
 
         let resolved_path = self.workspace_dir.join(search_path);

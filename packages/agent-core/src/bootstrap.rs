@@ -1,7 +1,8 @@
-//! Bootstrap flow — `GET {backend_url}/api/agents/{id}` with retry,
-//! mapped into a `RuntimeConfig`. See API.md §3.
+// Rust guideline compliant 2026-02-21
+//! Bootstrap flow — fetch agent config from the backend.
 //!
-//! Retry budget: 10 attempts, 1→2→4→8→16→30→30... (capped at 30s).
+//! `GET {backend_url}/api/agents/{id}` with exponential-backoff retry,
+//! mapped into a [`RuntimeConfig`]. See API.md §3.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -9,10 +10,17 @@ use std::path::PathBuf;
 use crate::config::{Permission, RuntimeConfig, SkillSummary};
 use crate::error::{Error, Result};
 
-/// Max retry attempts on 5xx / network errors before giving up.
+/// Maximum retry attempts on 5xx / network errors before giving up.
+///
+/// Chosen to balance availability against stalling indefinitely during
+/// infrastructure outages. At the max backoff of 30 s this gives ~4 min
+/// of total wait time before the pod crashes and restarts.
 pub const MAX_BOOTSTRAP_ATTEMPTS: u32 = 10;
 
-/// Upper bound on the exponential backoff between retries.
+/// Upper bound (seconds) on exponential backoff between retries.
+///
+/// Caps the doubling sequence at 30 s to avoid excessive delays while
+/// still giving the backend time to recover.
 pub const MAX_BACKOFF_SECS: u64 = 30;
 
 /// Wire types matching the backend's camelCase JSON. These are internal to
@@ -23,9 +31,15 @@ struct AgentBootstrapPayload {
     agent_id: uuid::Uuid,
     display_name: String,
     system_prompt: Option<String>,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     provider: AgentProviderBootstrap,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     proxy: AgentProxyBootstrap,
     gateway: AgentGatewayBootstrap,
     skills: Vec<AgentInstalledSkillSummary>,
@@ -35,22 +49,40 @@ struct AgentBootstrapPayload {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AgentProviderBootstrap {
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     name: String,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     model: String,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     api_url: String,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     token_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AgentProxyBootstrap {
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     url: String,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     token: Option<String>,
 }
 
@@ -59,7 +91,10 @@ struct AgentProxyBootstrap {
 struct AgentGatewayBootstrap {
     host: String,
     port: i32,
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "field required for deserialization but not used in 1.0"
+    )]
     tls_cert_ref: Option<String>,
 }
 
@@ -94,9 +129,13 @@ fn backoff_duration(secs: u64) -> std::time::Duration {
 
 /// Fetch the bootstrap payload from the backend, retrying on transient
 /// failure, and assemble a `RuntimeConfig`.
+/// # Errors
+///
+/// Returns an error if the bootstrap request fails after all retries,
+/// or if the payload is invalid.
 pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeConfig> {
     let url = format!("{backend_url}/api/agents/{agent_id}");
-    tracing::info!("bootstrap request to {url}");
+    tracing::info!(name: "bootstrap.request.start", url_full = %url, "bootstrap request to {{url_full}}");
     let client = reqwest::Client::new();
 
     let mut last_err: Option<Error> = None;
@@ -116,7 +155,7 @@ pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeC
         {
             Ok(r) => r,
             Err(e) => {
-                tracing::warn!("bootstrap attempt {}: network error: {e}", attempt + 1);
+                tracing::warn!(name: "bootstrap.attempt.network_error", bootstrap_attempt = attempt + 1, error_message = %e, "bootstrap attempt {{bootstrap_attempt}}: network error: {{error_message}}");
                 last_err = Some(Error::BootstrapHttp(e));
                 continue;
             }
@@ -131,10 +170,7 @@ pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeC
             return Err(Error::BootstrapNotFound);
         }
         if status.is_server_error() {
-            tracing::warn!(
-                "bootstrap attempt {}: server returned {status}",
-                attempt + 1
-            );
+            tracing::warn!(name: "bootstrap.attempt.server_error", bootstrap_attempt = attempt + 1, http_response_status_code = %status, "bootstrap attempt {{bootstrap_attempt}}: server returned {{http_response_status_code}}");
             last_err = Some(Error::BootstrapPayload(format!("server returned {status}")));
             continue;
         }
@@ -144,18 +180,19 @@ pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeC
             .await
             .map_err(|e| Error::BootstrapPayload(format!("invalid JSON: {e}")))?;
 
-        tracing::info!("bootstrap payload received, building config");
-        tracing::debug!(
-            skill_count = payload.skills.len(),
-            tool_permission_count = payload.tool_permissions.entries.len(),
-            "payload details"
-        );
+        tracing::info!(name: "bootstrap.payload.received", "bootstrap payload received, building config");
+        tracing::debug!(name: "bootstrap.payload.details", skill_count = payload.skills.len(), tool_permission_count = payload.tool_permissions.entries.len(), "payload details: {{skill_count}} skills, {{tool_permission_count}} permissions");
         return build_config(payload, backend_url);
     }
 
     Err(last_err.unwrap_or_else(|| Error::BootstrapPayload("exhausted retries".into())))
 }
 
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "port is validated to be 1..=65535 before this cast"
+)]
 fn build_config(payload: AgentBootstrapPayload, backend_url: String) -> Result<RuntimeConfig> {
     // Validate gateway port.
     if payload.gateway.port <= 0 || payload.gateway.port > 65535 {
@@ -185,10 +222,11 @@ fn build_config(payload: AgentBootstrapPayload, backend_url: String) -> Result<R
             "deny" => Permission::Deny,
             other => {
                 tracing::warn!(
-                    "unknown permission mode '{}' for {}:{}, treating as Deny",
-                    other,
-                    entry.skill,
-                    entry.tool
+                    name: "bootstrap.permission.unknown_mode",
+                    permission_mode = %other,
+                    skill_name = %entry.skill,
+                    tool_name = %entry.tool,
+                    "unknown permission mode {{permission_mode}} for {{skill_name}}:{{tool_name}}, treating as Deny",
                 );
                 Permission::Deny
             }

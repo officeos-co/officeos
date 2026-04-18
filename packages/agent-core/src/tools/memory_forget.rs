@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `memory_forget` — remove a memory by key. See API.md §10.4.
 //!
 //! Scans all subdirectories of `memory_dir` for `{key}.md` and deletes the
@@ -9,11 +11,13 @@ use std::path::PathBuf;
 
 use super::traits::{Tool, ToolResult};
 
+#[derive(Debug)]
 pub struct MemoryForgetTool {
     memory_dir: PathBuf,
 }
 
 impl MemoryForgetTool {
+    #[must_use]
     pub fn new(memory_dir: PathBuf) -> Self {
         Self { memory_dir }
     }
@@ -21,11 +25,11 @@ impl MemoryForgetTool {
 
 #[async_trait]
 impl Tool for MemoryForgetTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "memory_forget"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Remove a memory by key. Use to delete outdated facts or sensitive data."
     }
 

@@ -1,4 +1,6 @@
-//! Top-level error type for the zeroclaw-agent crate.
+// Rust guideline compliant 2026-02-21
+
+//! Top-level error type for the crate.
 //!
 //! Data only — no behavior. Every module returns `crate::Result<T>` which
 //! aliases `Result<T, Error>`. The `Tool` trait still returns
@@ -8,6 +10,11 @@
 use thiserror::Error;
 
 /// All errors the crate can produce.
+///
+/// # Variants
+///
+/// Each variant maps to a distinct failure domain (environment,
+/// bootstrap, personality, LLM, gateway, tools, or generic).
 #[derive(Error, Debug)]
 pub enum Error {
     /// A required environment variable is missing, empty, or malformed.
@@ -26,17 +33,18 @@ pub enum Error {
     #[error("bootstrap agent not found")]
     BootstrapNotFound,
 
-    /// Payload parsed as JSON but failed validation (e.g. `gateway.port == 0`,
-    /// empty `systemPrompt`, unknown permission mode).
+    /// Payload parsed as JSON but failed validation.
+    ///
+    /// Examples: `gateway.port == 0`, empty `systemPrompt`, unknown
+    /// permission mode.
     #[error("bootstrap invalid payload: {0}")]
     BootstrapPayload(String),
 
-    /// A required personality file is missing or empty after the template
-    /// write step completed.
+    /// A required personality file is missing or empty after seed.
     #[error("personality: required file {0} missing or empty")]
     Personality(String),
 
-    /// LLM request/stream failure.
+    /// LLM request or stream failure.
     #[error("llm: {0}")]
     Llm(String),
 
@@ -48,12 +56,16 @@ pub enum Error {
     #[error("gateway: {0}")]
     Gateway(String),
 
-    /// Tool dispatch surfaced an error that couldn't be reported via
-    /// `ToolResult`.
+    /// Tool dispatch surfaced an unrecoverable error.
     #[error("tool {tool}: {message}")]
-    Tool { tool: String, message: String },
+    Tool {
+        /// Name of the tool that failed.
+        tool: String,
+        /// Human-readable error description.
+        message: String,
+    },
 
-    /// Escape hatch for `anyhow::Error` bubbling up from tool impls.
+    /// Escape hatch for `anyhow::Error` from tool impls.
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }

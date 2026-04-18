@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `http_request` — make HTTP requests to external APIs. See API.md §10.10.
 
 use async_trait::async_trait;
@@ -9,6 +11,7 @@ use super::traits::{Tool, ToolResult};
 const MAX_RESPONSE_BYTES: usize = 1_048_576;
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
+#[derive(Debug)]
 pub struct HttpRequestTool;
 
 impl Default for HttpRequestTool {
@@ -18,6 +21,7 @@ impl Default for HttpRequestTool {
 }
 
 impl HttpRequestTool {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
@@ -25,11 +29,11 @@ impl HttpRequestTool {
 
 #[async_trait]
 impl Tool for HttpRequestTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "http_request"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Make HTTP requests to external APIs. Supports GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS."
     }
 
@@ -149,11 +153,8 @@ impl Tool for HttpRequestTool {
                 Ok(ToolResult {
                     success: status.is_success(),
                     output,
-                    error: if status.is_client_error() || status.is_server_error() {
-                        Some(format!("HTTP {status_code}"))
-                    } else {
-                        None
-                    },
+                    error: (status.is_client_error() || status.is_server_error())
+                        .then(|| format!("HTTP {status_code}")),
                 })
             }
             Err(e) => Ok(ToolResult {

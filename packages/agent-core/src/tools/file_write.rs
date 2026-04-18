@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `file_write` — write contents to a file. See API.md §10.8.
 
 use async_trait::async_trait;
@@ -6,11 +8,13 @@ use std::path::PathBuf;
 
 use super::traits::{Tool, ToolResult};
 
+#[derive(Debug)]
 pub struct FileWriteTool {
     workspace_dir: PathBuf,
 }
 
 impl FileWriteTool {
+    #[must_use]
     pub fn new(workspace_dir: PathBuf) -> Self {
         Self { workspace_dir }
     }
@@ -18,11 +22,11 @@ impl FileWriteTool {
 
 #[async_trait]
 impl Tool for FileWriteTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "file_write"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Write contents to a file in the workspace."
     }
 

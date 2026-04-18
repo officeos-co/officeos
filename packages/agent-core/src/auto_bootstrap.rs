@@ -1,6 +1,10 @@
-//! Auto-bootstrap: reads BOOTSTRAP.md and sends it as the first user message
-//! to the agent, syncing both the input and the agent's response to the
-//! backend as log entries.
+// Rust guideline compliant 2026-02-21
+
+//! Auto-bootstrap: send BOOTSTRAP.md as the first user message.
+//!
+//! Reads the seeded BOOTSTRAP.md, feeds it to the agent's turn loop,
+//! and forwards both the input and response to the backend as log
+//! entries.
 
 use std::sync::Arc;
 
@@ -10,10 +14,18 @@ use crate::error::{Error, Result};
 use crate::gateway::protocol::WsOutbound;
 use crate::log_client::LogClient;
 
-/// Read BOOTSTRAP.md from `memory_dir`, send it as the first user message,
-/// and forward both the input (MessageIn) and the agent's response (MessageOut)
-/// to the backend log.
-pub async fn run(cfg: &Arc<RuntimeConfig>, agent: &Arc<Agent>, log_client: &LogClient) -> Result<()> {
+/// Read BOOTSTRAP.md, send it as the first user message, and log both
+/// directions to the backend.
+///
+/// # Errors
+///
+/// Returns `Error::Personality` if the file is missing or empty, and
+/// propagates transport errors from the log client.
+pub async fn run(
+    cfg: &Arc<RuntimeConfig>,
+    agent: &Arc<Agent>,
+    log_client: &LogClient,
+) -> Result<()> {
     let bootstrap_path = cfg.memory_dir.join("BOOTSTRAP.md");
 
     let content = tokio::fs::read_to_string(&bootstrap_path)
@@ -24,7 +36,7 @@ pub async fn run(cfg: &Arc<RuntimeConfig>, agent: &Arc<Agent>, log_client: &LogC
         return Err(Error::Personality("BOOTSTRAP.md is empty".into()));
     }
 
-    tracing::info!("auto-bootstrap: sending BOOTSTRAP.md as first message");
+    tracing::info!(name: "auto_bootstrap.start", "auto-bootstrap: sending BOOTSTRAP.md as first message");
 
     // Forward the bootstrap message as a MessageIn log.
     log_client.forward("MessageIn", &content, None).await?;
@@ -53,6 +65,6 @@ pub async fn run(cfg: &Arc<RuntimeConfig>, agent: &Arc<Agent>, log_client: &LogC
             .await?;
     }
 
-    tracing::info!("auto-bootstrap: complete");
+    tracing::info!(name: "auto_bootstrap.complete", "auto-bootstrap: complete");
     Ok(())
 }

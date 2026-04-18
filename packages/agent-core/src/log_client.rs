@@ -1,10 +1,16 @@
-//! Forward agent log entries to the backend via `POST /api/agents/me/logs`.
-//! See API.md §19.
+// Rust guideline compliant 2026-02-21
+
+//! Forward agent log entries to the backend.
+//!
+//! Endpoint: `POST /api/agents/me/logs`. See API.md §19.
 
 use crate::error::{Error, Result};
 
-/// HTTP client for forwarding log entries to the backend's agent-facing
-/// log endpoint.
+/// HTTP client for forwarding log entries to the backend.
+///
+/// Fire-and-forget callers should `.ok()` the result; critical
+/// callers (bootstrap message) should propagate errors.
+#[derive(Debug)]
 pub struct LogClient {
     backend_url: String,
     token: String,
@@ -12,6 +18,8 @@ pub struct LogClient {
 }
 
 impl LogClient {
+    /// Create a new log client bound to the given backend.
+    #[must_use]
     pub fn new(backend_url: String, token: String) -> Self {
         Self {
             backend_url,
@@ -20,9 +28,11 @@ impl LogClient {
         }
     }
 
-    /// Forward a single log entry to the backend. Fire-and-forget callers
-    /// should `.ok()` the result; critical callers (bootstrap message) should
-    /// propagate errors.
+    /// Forward a single log entry to the backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::Llm` on transport failure or non-success status.
     pub async fn forward(
         &self,
         log_type: &str,

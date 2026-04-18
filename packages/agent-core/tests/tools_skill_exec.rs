@@ -1,4 +1,4 @@
-//! skill_exec tool integration tests. See API.md §10.1.
+//! `skill_exec` tool integration tests. See API.md §10.1.
 
 mod helpers;
 

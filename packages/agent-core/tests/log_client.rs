@@ -1,11 +1,11 @@
-//! Tests for the log_client module — agent pods forward log entries to the backend.
+//! Tests for the `log_client` module — agent pods forward log entries to the backend.
 
 mod helpers;
 
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-/// The log client POSTs a MessageIn entry to `/api/agents/me/logs` with the
+/// The log client POSTs a `MessageIn` entry to `/api/agents/me/logs` with the
 /// agent's bearer token and returns Ok on 200.
 #[tokio::test]
 async fn forward_message_in_log_to_backend() {
@@ -13,7 +13,10 @@ async fn forward_message_in_log_to_backend() {
 
     Mock::given(method("POST"))
         .and(path("/api/agents/me/logs"))
-        .and(header("Authorization", format!("Bearer {}", helpers::CANNED_AGENT_ID).as_str()))
+        .and(header(
+            "Authorization",
+            format!("Bearer {}", helpers::CANNED_AGENT_ID).as_str(),
+        ))
         .and(header("Content-Type", "application/json"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "id": "00000000-0000-0000-0000-000000000001",

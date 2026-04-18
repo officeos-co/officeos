@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `web_fetch` — fetch a web page and convert to plain text. See API.md §10.11.
 
 use async_trait::async_trait;
@@ -9,6 +11,7 @@ use super::traits::{Tool, ToolResult};
 const MAX_RESPONSE_BYTES: usize = 1_048_576;
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 
+#[derive(Debug)]
 pub struct WebFetchTool;
 
 impl Default for WebFetchTool {
@@ -18,6 +21,7 @@ impl Default for WebFetchTool {
 }
 
 impl WebFetchTool {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
@@ -25,11 +29,11 @@ impl WebFetchTool {
 
 #[async_trait]
 impl Tool for WebFetchTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "web_fetch"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Fetch a web page and return its content as clean plain text. \
          HTML pages are automatically converted to readable text. \
          JSON and plain text responses are returned as-is. Only GET requests; follows redirects."
@@ -45,6 +49,10 @@ impl Tool for WebFetchTool {
         })
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "content-type dispatch with multiple branches"
+    )]
     async fn execute(&self, args: serde_json::Value) -> anyhow::Result<ToolResult> {
         let url = args
             .get("url")

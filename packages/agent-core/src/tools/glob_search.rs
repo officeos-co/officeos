@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `glob_search` — search for files by glob pattern. See API.md §10.13.
 
 use async_trait::async_trait;
@@ -8,11 +10,13 @@ use super::traits::{Tool, ToolResult};
 
 const MAX_RESULTS: usize = 1000;
 
+#[derive(Debug)]
 pub struct GlobSearchTool {
     workspace_dir: PathBuf,
 }
 
 impl GlobSearchTool {
+    #[must_use]
     pub fn new(workspace_dir: PathBuf) -> Self {
         Self { workspace_dir }
     }
@@ -20,11 +24,11 @@ impl GlobSearchTool {
 
 #[async_trait]
 impl Tool for GlobSearchTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "glob_search"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Search for files matching a glob pattern within the workspace. \
          Returns a sorted list of matching file paths relative to the workspace root."
     }
@@ -77,14 +81,12 @@ impl Tool for GlobSearchTool {
         let mut truncated = false;
 
         for entry in entries {
-            let path = match entry {
-                Ok(p) => p,
-                Err(_) => continue,
+            let Ok(path) = entry else {
+                continue;
             };
 
-            let resolved = match std::fs::canonicalize(&path) {
-                Ok(p) => p,
-                Err(_) => continue,
+            let Ok(resolved) = std::fs::canonicalize(&path) else {
+                continue;
             };
 
             if resolved.is_dir() {

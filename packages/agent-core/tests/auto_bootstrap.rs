@@ -8,9 +8,9 @@ use tempfile::TempDir;
 use wiremock::matchers::{header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-/// After personality seed, the auto-bootstrap function reads BOOTSTRAP.md,
-/// POSTs a MessageIn log to the backend, and sends the content as the first
-/// user message to the agent. The agent's response is POSTed as MessageOut.
+/// After personality seed, the auto-bootstrap function reads `BOOTSTRAP.md`,
+/// POSTs a `MessageIn` log to the backend, and sends the content as the first
+/// user message to the agent. The agent's response is posted as `MessageOut`.
 #[tokio::test]
 async fn bootstrap_message_sent_and_logged() {
     let server = MockServer::start().await;
@@ -21,10 +21,7 @@ async fn bootstrap_message_sent_and_logged() {
                     data: [DONE]\n\n";
     Mock::given(method("POST"))
         .and(path("/v1/chat/completions"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(llm_body, "text/event-stream"),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_raw(llm_body, "text/event-stream"))
         .mount(&server)
         .await;
 
@@ -57,14 +54,19 @@ async fn bootstrap_message_sent_and_logged() {
     // -- Set up config with temp memory dir containing BOOTSTRAP.md --
     let tmp = TempDir::new().unwrap();
     let bootstrap_content = "You are a helpful test agent.";
-    tokio::fs::write(tmp.path().join("BOOTSTRAP.md"), format!(
-        "# BOOTSTRAP.md\n\n## Operator instructions\n\n{bootstrap_content}"
-    ))
+    tokio::fs::write(
+        tmp.path().join("BOOTSTRAP.md"),
+        format!("# BOOTSTRAP.md\n\n## Operator instructions\n\n{bootstrap_content}"),
+    )
     .await
     .unwrap();
     // Seed SOUL.md and IDENTITY.md so prompt composition doesn't fail.
-    tokio::fs::write(tmp.path().join("SOUL.md"), "soul").await.unwrap();
-    tokio::fs::write(tmp.path().join("IDENTITY.md"), "identity").await.unwrap();
+    tokio::fs::write(tmp.path().join("SOUL.md"), "soul")
+        .await
+        .unwrap();
+    tokio::fs::write(tmp.path().join("IDENTITY.md"), "identity")
+        .await
+        .unwrap();
 
     let cfg = Arc::new(zeroclaw_agent::config::RuntimeConfig {
         agent_id: helpers::CANNED_AGENT_ID.parse().unwrap(),
@@ -79,7 +81,7 @@ async fn bootstrap_message_sent_and_logged() {
         tool_permissions: std::collections::HashMap::new(),
     });
 
-    let agent = Arc::new(zeroclaw_agent::agent::Agent::new(cfg.clone()));
+    let agent = Arc::new(zeroclaw_agent::agent::Agent::new(Arc::clone(&cfg)));
     let log_client = zeroclaw_agent::log_client::LogClient::new(
         server.uri(),
         helpers::CANNED_AGENT_ID.to_string(),
@@ -93,13 +95,17 @@ async fn bootstrap_message_sent_and_logged() {
     // wiremock verifies 2 log POSTs were made (MessageIn + MessageOut).
 }
 
-/// If BOOTSTRAP.md is missing, auto_bootstrap returns an error.
+/// If `BOOTSTRAP.md` is missing, `auto_bootstrap` returns an error.
 #[tokio::test]
 async fn bootstrap_message_fails_without_file() {
     let tmp = TempDir::new().unwrap();
     // No BOOTSTRAP.md written.
-    tokio::fs::write(tmp.path().join("SOUL.md"), "soul").await.unwrap();
-    tokio::fs::write(tmp.path().join("IDENTITY.md"), "identity").await.unwrap();
+    tokio::fs::write(tmp.path().join("SOUL.md"), "soul")
+        .await
+        .unwrap();
+    tokio::fs::write(tmp.path().join("IDENTITY.md"), "identity")
+        .await
+        .unwrap();
 
     let cfg = Arc::new(zeroclaw_agent::config::RuntimeConfig {
         agent_id: helpers::CANNED_AGENT_ID.parse().unwrap(),
@@ -114,7 +120,7 @@ async fn bootstrap_message_fails_without_file() {
         tool_permissions: std::collections::HashMap::new(),
     });
 
-    let agent = Arc::new(zeroclaw_agent::agent::Agent::new(cfg.clone()));
+    let agent = Arc::new(zeroclaw_agent::agent::Agent::new(Arc::clone(&cfg)));
     let log_client = zeroclaw_agent::log_client::LogClient::new(
         "http://localhost:1".to_string(),
         helpers::CANNED_AGENT_ID.to_string(),

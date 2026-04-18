@@ -5,7 +5,7 @@
 //! warnings for the unused subset.
 
 /// Returns a realistic `AgentBootstrapPayload` JSON matching API.md §3.2.
-#[allow(dead_code)]
+#[allow(dead_code, reason = "not all test binaries use every helper")]
 pub fn canned_payload() -> serde_json::Value {
     serde_json::json!({
         "agentId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
@@ -40,7 +40,7 @@ pub fn canned_payload() -> serde_json::Value {
 }
 
 /// Returns a canned payload with gateway port set to 0 (invalid).
-#[allow(dead_code)]
+#[allow(dead_code, reason = "not all test binaries use every helper")]
 pub fn canned_payload_zero_port() -> serde_json::Value {
     let mut p = canned_payload();
     p["gateway"]["port"] = serde_json::json!(0);
@@ -48,7 +48,7 @@ pub fn canned_payload_zero_port() -> serde_json::Value {
 }
 
 /// Returns a canned payload with empty systemPrompt.
-#[allow(dead_code)]
+#[allow(dead_code, reason = "not all test binaries use every helper")]
 pub fn canned_payload_empty_prompt() -> serde_json::Value {
     let mut p = canned_payload();
     p["systemPrompt"] = serde_json::json!("");
@@ -56,5 +56,5 @@ pub fn canned_payload_empty_prompt() -> serde_json::Value {
 }
 
 /// The agent UUID used in the canned payload.
-#[allow(dead_code)]
+#[allow(dead_code, reason = "not all test binaries use every helper")]
 pub const CANNED_AGENT_ID: &str = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";

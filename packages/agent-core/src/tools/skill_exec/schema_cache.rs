@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! GraphQL introspection cache — fetches the schema from the backend
 //! and generates CLI-style --help text from it.
 
@@ -9,6 +11,10 @@ use serde::Deserialize;
 
 use super::parser::HelpLevel;
 
+/// Time-to-live for the cached schema (5 minutes).
+///
+/// Balances freshness (new skills appear within 5 min) against
+/// avoiding redundant introspection queries on every tool call.
 const CACHE_TTL_SECS: u64 = 300;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -94,6 +100,7 @@ pub struct ActionArg {
     pub default_value: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct SchemaCache {
     graphql_url: String,
     bearer_token: Option<String>,
@@ -102,6 +109,7 @@ pub struct SchemaCache {
 }
 
 impl SchemaCache {
+    #[must_use]
     pub fn new(graphql_url: String, bearer_token: Option<String>) -> Self {
         Self {
             graphql_url,
@@ -111,6 +119,9 @@ impl SchemaCache {
         }
     }
 
+    /// # Errors
+    ///
+    /// Returns an error if the schema cannot be fetched from the gateway.
     pub async fn ensure_loaded(&mut self) -> anyhow::Result<()> {
         if let Some(last) = self.last_fetch {
             if last.elapsed() < Duration::from_secs(CACHE_TTL_SECS) {
@@ -120,10 +131,10 @@ impl SchemaCache {
         self.fetch_schema().await
     }
 
+    #[must_use]
     pub fn help_text(&self, level: &HelpLevel) -> String {
-        let skills = match &self.skills {
-            Some(s) => s,
-            None => return "Schema not loaded. Run a query first to fetch the schema.".to_string(),
+        let Some(skills) = &self.skills else {
+            return "Schema not loaded. Run a query first to fetch the schema.".to_string();
         };
 
         match level {
@@ -148,14 +159,14 @@ impl SchemaCache {
                 let mut out = format!("{}:\n\n", skill.name);
                 for action in &skill.actions {
                     let spaced = action.cli_name.replace('_', " ");
-                    if spaced != action.cli_name {
+                    if spaced == action.cli_name {
+                        let _ = write!(out, "  {} {}", skill.name, action.cli_name);
+                    } else {
                         let _ = write!(
                             out,
                             "  {} {} (or: {} {})",
                             skill.name, spaced, skill.name, action.cli_name
                         );
-                    } else {
-                        let _ = write!(out, "  {} {}", skill.name, action.cli_name);
                     }
                     if !action.description.is_empty() {
                         let _ = write!(out, "  — {}", action.description);
@@ -218,6 +229,7 @@ impl SchemaCache {
         }
     }
 
+    #[must_use]
     pub fn get_action(&self, skill: &str, action: &str) -> Option<&ActionInfo> {
         self.skills
             .as_ref()?
@@ -228,7 +240,7 @@ impl SchemaCache {
     }
 
     async fn fetch_schema(&mut self) -> anyhow::Result<()> {
-        let query = r#"{
+        let query = r"{
             __schema {
                 queryType {
                     fields {
@@ -253,7 +265,7 @@ impl SchemaCache {
                     }
                 }
             }
-        }"#;
+        }";
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
@@ -277,10 +289,7 @@ impl SchemaCache {
         self.skills = Some(skills);
         self.last_fetch = Some(Instant::now());
 
-        tracing::info!(
-            skill_count = self.skills.as_ref().map(|s| s.len()).unwrap_or(0),
-            "GraphQL skill schema cached"
-        );
+        tracing::info!(name: "skill_exec.schema.cached", skill_count = self.skills.as_ref().map_or(0, HashMap::len), "GraphQL skill schema cached: {{skill_count}} skills");
 
         Ok(())
     }
@@ -289,7 +298,7 @@ impl SchemaCache {
 /// Parse GraphQL query fields into skill groupings.
 ///
 /// Convention: field names use `skill_action` format (underscore-separated).
-/// E.g. `github_list_issues` -> skill="github", action="list_issues".
+/// E.g. `github_list_issues` -> skill="github", `action="list_issues`".
 fn parse_schema_to_skills(fields: &[FieldInfo]) -> HashMap<String, SkillInfo> {
     let mut skills: HashMap<String, SkillInfo> = HashMap::new();
 
@@ -344,8 +353,7 @@ fn resolve_type(t: &TypeRef) -> (String, bool) {
             let inner = t
                 .of_type
                 .as_ref()
-                .map(|o| type_name(o))
-                .unwrap_or("Any".to_string());
+                .map_or("Any".to_string(), |o| type_name(o));
             (inner, true)
         }
         _ => (type_name(t), false),
@@ -383,7 +391,7 @@ fn extract_return_fields(t: &TypeRef) -> Vec<String> {
 
 fn unwrap_type(t: &TypeRef) -> &TypeRef {
     match t.kind.as_deref() {
-        Some("NON_NULL" | "LIST") => t.of_type.as_ref().map(|o| unwrap_type(o)).unwrap_or(t),
+        Some("NON_NULL" | "LIST") => t.of_type.as_ref().map_or(t, |o| unwrap_type(o)),
         _ => t,
     }
 }

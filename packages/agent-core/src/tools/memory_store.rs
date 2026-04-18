@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! `memory_store` — persist a fact to long-term memory. See API.md §10.2.
 //!
 //! Writes a markdown file at `{memory_dir}/{category}/{key}.md` containing
@@ -9,11 +11,13 @@ use std::path::PathBuf;
 
 use super::traits::{Tool, ToolResult};
 
+#[derive(Debug)]
 pub struct MemoryStoreTool {
     memory_dir: PathBuf,
 }
 
 impl MemoryStoreTool {
+    #[must_use]
     pub fn new(memory_dir: PathBuf) -> Self {
         Self { memory_dir }
     }
@@ -21,11 +25,11 @@ impl MemoryStoreTool {
 
 #[async_trait]
 impl Tool for MemoryStoreTool {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "memory_store"
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "Store a fact, preference, or note in long-term memory. Use category 'core' for permanent facts, 'daily' for session notes, 'conversation' for chat context, or a custom category name."
     }
 

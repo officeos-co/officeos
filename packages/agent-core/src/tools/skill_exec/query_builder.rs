@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-02-21
+
 //! Converts a parsed CLI command into a GraphQL query string.
 
 use std::collections::HashMap;
@@ -6,6 +8,10 @@ use std::hash::BuildHasher;
 use super::schema_cache::{ActionInfo, SchemaCache};
 
 /// Build a GraphQL query from parsed CLI input.
+///
+/// # Errors
+///
+/// Returns an error string if the action is unknown or required arguments are missing.
 pub fn build_query<S: BuildHasher>(
     skill: &str,
     action: &str,
@@ -57,7 +63,7 @@ fn build_graphql_args<S: BuildHasher>(
     for (cli_key, value) in cli_args {
         if let Some(arg_def) = action_info.args.iter().find(|a| a.name == *cli_key) {
             let gql_value = coerce_value(value, &arg_def.type_name);
-            gql_args.push(format!("{}: {gql_value}", cli_key));
+            gql_args.push(format!("{cli_key}: {gql_value}"));
         } else {
             gql_args.push(format!("{}: \"{}\"", cli_key, escape_graphql_string(value)));
         }

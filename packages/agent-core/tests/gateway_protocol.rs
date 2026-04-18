@@ -2,7 +2,7 @@
 
 use zeroclaw_agent::gateway::protocol::{WsInbound, WsOutbound};
 
-/// Serialize/deserialize each WsInbound + WsOutbound variant round-trip.
+/// Serialize/deserialize each `WsInbound` + `WsOutbound` variant round-trip.
 #[tokio::test]
 async fn test_ws_serde_roundtrip() {
     // -- WsInbound variants --
@@ -14,14 +14,14 @@ async fn test_ws_serde_roundtrip() {
             assert_eq!(text, "hello");
             assert_eq!(id.as_deref(), Some("t1"));
         }
-        other => panic!("expected UserMessage, got: {other:?}"),
+        WsInbound::Cancel { .. } => panic!("expected UserMessage, got Cancel"),
     }
 
     let cancel = r#"{"type":"cancel"}"#;
     let parsed: WsInbound = serde_json::from_str(cancel).unwrap();
     match &parsed {
         WsInbound::Cancel { id } => assert!(id.is_none()),
-        other => panic!("expected Cancel, got: {other:?}"),
+        WsInbound::UserMessage { .. } => panic!("expected Cancel, got UserMessage"),
     }
 
     // -- WsOutbound variants: serialize and check JSON shape --
@@ -76,7 +76,7 @@ async fn test_ws_serde_roundtrip() {
     assert_eq!(json["code"], "LOOP");
 }
 
-/// Start gateway (axum), open WS client, send user_message, expect turn_complete.
+/// Start gateway (axum), open WS client, send `user_message`, expect `turn_complete`.
 #[tokio::test]
 async fn test_gateway_accepts_user_message() {
     use std::collections::HashMap;
@@ -100,11 +100,11 @@ async fn test_gateway_accepts_user_message() {
         tool_permissions: HashMap::new(),
     });
 
-    let agent = Arc::new(zeroclaw_agent::agent::Agent::new(cfg.clone()));
+    let agent = Arc::new(zeroclaw_agent::agent::Agent::new(Arc::clone(&cfg)));
 
     // Start the gateway in a background task.
-    let cfg_clone = cfg.clone();
-    let agent_clone = agent.clone();
+    let cfg_clone = Arc::clone(&cfg);
+    let agent_clone = Arc::clone(&agent);
     let _server_handle = tokio::spawn(async move {
         let _ = zeroclaw_agent::gateway::serve(cfg_clone, agent_clone).await;
     });
