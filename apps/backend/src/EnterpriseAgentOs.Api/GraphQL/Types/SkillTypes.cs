@@ -109,7 +109,7 @@ public class SkillDashboardResolvers
         CancellationToken ct)
     {
         var manifest = await GetManifest(skill, catalog, ct);
-        if (manifest is null) return Array.Empty<SkillToolDto>();
+        if (manifest?.Actions is null) return Array.Empty<SkillToolDto>();
         return manifest.Actions
             .Select(kv => new SkillToolDto(kv.Key, kv.Value.Description))
             .ToList();

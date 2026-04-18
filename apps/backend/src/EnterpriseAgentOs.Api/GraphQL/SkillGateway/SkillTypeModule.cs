@@ -50,6 +50,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
 
         foreach (var manifest in manifests)
         {
+            if (manifest.Actions is null) continue;
             foreach (var (actionName, action) in manifest.Actions)
             {
                 var pascalAction = SnakeToPascal(actionName);

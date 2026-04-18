@@ -75,8 +75,8 @@ public sealed class RuntimeManifest
     public required string Doc { get; set; }
     public string? Category { get; set; }
     public bool RequiresApproval { get; set; }
-    public required Dictionary<string, RuntimeActionManifest> Actions { get; set; }
-    public required List<RuntimeCredentialField> CredentialFields { get; set; }
+    public Dictionary<string, RuntimeActionManifest>? Actions { get; set; }
+    public List<RuntimeCredentialField>? CredentialFields { get; set; }
 }
 
 public sealed class RuntimeActionManifest
