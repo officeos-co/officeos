@@ -18,8 +18,39 @@ public sealed class SkillRecord
     [Required, MaxLength(16)]
     public string Source { get; set; } = "builtin";
 
-    /// <summary>Serialized RuntimeManifest JSON (actions, credential fields, params, returns).</summary>
-    public string ManifestJson { get; set; } = "{}";
+    public string? Logo { get; set; }
+
+    [MaxLength(64)]
+    public string? License { get; set; }
+
+    [MaxLength(512)]
+    public string? Repository { get; set; }
+
+    public bool RequiresApproval { get; set; }
+
+    public string? Readme { get; set; }
+    public string? Changelog { get; set; }
+
+    [MaxLength(64)]
+    public string? Category { get; set; }
+
+    [MaxLength(128)]
+    public string? AuthorName { get; set; }
+
+    [MaxLength(512)]
+    public string? AuthorUrl { get; set; }
+
+    public string[]? Categories { get; set; }
+    public string[]? Keywords { get; set; }
+
+    /// <summary>JSON object: { "actionName": { description, params, returns } }</summary>
+    public string? ActionsJson { get; set; }
+
+    /// <summary>JSON array of credential field definitions.</summary>
+    public string? CredentialFieldsJson { get; set; }
+
+    /// <summary>JSON array of { name, url } contributor objects.</summary>
+    public string? ContributorsJson { get; set; }
 
     /// <summary>S3 key for the built JS bundle, e.g. "skills/github/github.js". Null for builtin skills baked into the Docker image.</summary>
     [MaxLength(512)]

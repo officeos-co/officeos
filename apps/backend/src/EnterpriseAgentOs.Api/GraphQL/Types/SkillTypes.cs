@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Api.GraphQL.Types;
 [GraphQLName("Skill")]
 public sealed record SkillDashboardDto(
     Guid Id, string Name, string Title, string Description,
-    string? Doc, string Status, string Version,
+    string? Doc, string Status, string Version, bool RequiresApproval,
     DateTime CreatedAt, DateTime UpdatedAt);
 
 [GraphQLName("SkillTool")]
@@ -31,17 +31,11 @@ public sealed record SkillCommentDto(
 
 /// <summary>
 /// Computed fields on <see cref="SkillDashboardDto"/> — likes, likedByMe,
-/// commentsCount, and tools parsed from ManifestJson.
+/// commentsCount, tools, and marketplace metadata from typed columns.
 /// </summary>
 [ExtendObjectType(typeof(SkillDashboardDto))]
 public class SkillDashboardResolvers
 {
-    private static readonly JsonSerializerOptions ManifestJsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     public async Task<int> GetLikes(
         [Parent] SkillDashboardDto skill,
         [Service] EaosDbContext db,
@@ -68,27 +62,13 @@ public class SkillDashboardResolvers
         return await db.SkillComments.CountAsync(c => c.SkillId == skill.Id, ct);
     }
 
-    private async Task<RuntimeManifest?> GetManifest(
-        SkillDashboardDto skill,
-        ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        if (record is null || string.IsNullOrWhiteSpace(record.ManifestJson)) return null;
-        try
-        {
-            return JsonSerializer.Deserialize<RuntimeManifest>(record.ManifestJson, ManifestJsonOptions);
-        }
-        catch { return null; }
-    }
-
     public async Task<string?> GetLogo(
         [Parent] SkillDashboardDto skill,
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.Logo;
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.Logo;
     }
 
     public async Task<bool> GetInstalled(
@@ -108,11 +88,10 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        if (manifest?.Actions is null) return Array.Empty<SkillToolDto>();
-        return manifest.Actions
-            .Select(kv => new SkillToolDto(kv.Key, kv.Value.Description))
-            .ToList();
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        if (record is null) return Array.Empty<SkillToolDto>();
+        var actions = EnterpriseAgentOs.Application.Services.Skills.SkillService.DeserializeActions(record);
+        return actions.Select(kv => new SkillToolDto(kv.Key, kv.Value.Description)).ToList();
     }
 
     public async Task<string?> GetLicense(
@@ -120,8 +99,8 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.License;
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.License;
     }
 
     public async Task<string?> GetRepository(
@@ -129,8 +108,8 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.Repository;
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.Repository;
     }
 
     public async Task<IReadOnlyList<string>> GetCategories(
@@ -138,8 +117,8 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.Categories ?? Array.Empty<string>();
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.Categories ?? Array.Empty<string>();
     }
 
     public async Task<IReadOnlyList<string>> GetKeywords(
@@ -147,8 +126,8 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.Keywords ?? Array.Empty<string>();
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.Keywords ?? Array.Empty<string>();
     }
 
     public async Task<string?> GetReadme(
@@ -156,8 +135,8 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.Readme;
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.Readme;
     }
 
     public async Task<string?> GetChangelog(
@@ -165,8 +144,8 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        return manifest?.Changelog;
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        return record?.Changelog;
     }
 
     public async Task<SkillAuthorDto?> GetAuthor(
@@ -174,9 +153,9 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        if (manifest?.Author is null) return null;
-        return new SkillAuthorDto(manifest.Author.Name, manifest.Author.Url);
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        if (record?.AuthorName is null) return null;
+        return new SkillAuthorDto(record.AuthorName, record.AuthorUrl);
     }
 
     public async Task<IReadOnlyList<SkillContributorDto>> GetContributors(
@@ -184,9 +163,13 @@ public class SkillDashboardResolvers
         [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
-        var manifest = await GetManifest(skill, catalog, ct);
-        if (manifest?.Contributors is null) return Array.Empty<SkillContributorDto>();
-        return manifest.Contributors.Select(c => new SkillContributorDto(c.Name, c.Url)).ToList();
+        var record = await catalog.GetByNameAsync(skill.Name, ct);
+        if (record is null || string.IsNullOrWhiteSpace(record.ContributorsJson))
+            return Array.Empty<SkillContributorDto>();
+        var contributors = JsonSerializer.Deserialize<ManifestContributor[]>(record.ContributorsJson,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
+        if (contributors is null) return Array.Empty<SkillContributorDto>();
+        return contributors.Select(c => new SkillContributorDto(c.Name, c.Url)).ToList();
     }
 }
 
@@ -194,7 +177,7 @@ internal static class SkillDashboardMapper
 {
     public static SkillDashboardDto ToDto(SkillRecord r) =>
         new(r.Id, r.Name, r.Title, r.Description, r.Doc,
-            r.Status, r.Version, r.CreatedAt, r.UpdatedAt);
+            r.Status, r.Version, r.RequiresApproval, r.CreatedAt, r.UpdatedAt);
 
     public static SkillCommentDto ToDto(SkillCommentRecord c) =>
         new(c.Id, c.SkillId, c.Body, c.CreatedAt, c.UpdatedAt,

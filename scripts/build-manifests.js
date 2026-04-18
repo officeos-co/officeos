@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  mkdirSync,
+} from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -10,14 +16,16 @@ const outDir = resolve(__dirname, "../dist/manifests");
 mkdirSync(outDir, { recursive: true });
 
 const skills = readdirSync(skillsDir).filter((d) =>
-  existsSync(resolve(skillsDir, d, "skill.json"))
+  existsSync(resolve(skillsDir, d, "skill.json")),
 );
 
 const manifests = [];
 
 for (const name of skills) {
   const dir = resolve(skillsDir, name);
-  const skillJson = JSON.parse(readFileSync(resolve(dir, "skill.json"), "utf-8"));
+  const skillJson = JSON.parse(
+    readFileSync(resolve(dir, "skill.json"), "utf-8"),
+  );
 
   const readOpt = (filename) => {
     const p = resolve(dir, filename);
@@ -47,7 +55,7 @@ for (const name of skills) {
         required: field.required !== false,
         placeholder: field.placeholder || null,
         help: field.help || null,
-      })
+      }),
     ),
   };
 

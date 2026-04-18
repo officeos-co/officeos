@@ -51,26 +51,22 @@ public static class SkillSeeder
         }
 
         var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
-        var jsonOptions = new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-        };
 
         foreach (var manifest in manifests)
         {
             var name = manifest.Name.Trim().ToLowerInvariant();
-            var manifestJson = System.Text.Json.JsonSerializer.Serialize(manifest, jsonOptions);
-            db.Skills.Add(new EnterpriseAgentOs.Domain.Models.SkillRecord
+            var record = new EnterpriseAgentOs.Domain.Models.SkillRecord
             {
                 Name = name,
                 Title = manifest.Title,
                 Description = manifest.Description,
                 Doc = manifest.Doc,
                 Source = "builtin",
-                ManifestJson = manifestJson,
                 IsSystem = systemSkills.Contains(name),
                 Status = "active",
-            });
+            };
+            SkillService.MapManifestToRecord(manifest, record);
+            db.Skills.Add(record);
             logger.LogInformation("Seeded builtin skill (fallback): {SkillName}", name);
         }
 

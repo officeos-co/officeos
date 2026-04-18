@@ -32,33 +32,20 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
         using var scope = _services.CreateScope();
         var catalog = scope.ServiceProvider.GetRequiredService<ISkillCatalogRepository>();
         var records = await catalog.ListActiveAsync(ct);
-        var manifests = records
-            .Select(r =>
-            {
-                try
-                {
-                    return JsonSerializer.Deserialize<RuntimeManifest>(r.ManifestJson,
-                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
-                }
-                catch { return null; }
-            })
-            .Where(m => m is not null)
-            .Cast<RuntimeManifest>()
-            .ToList();
-
         var queryExtDef = new ObjectTypeDefinition("Query");
 
-        foreach (var manifest in manifests)
+        foreach (var record in records)
         {
-            if (manifest.Actions is null) continue;
-            foreach (var (actionName, action) in manifest.Actions)
+            var actions = EnterpriseAgentOs.Application.Services.Skills.SkillService.DeserializeActions(record);
+            if (actions.Count == 0) continue;
+            foreach (var (actionName, action) in actions)
             {
                 var pascalAction = SnakeToPascal(actionName);
-                var fieldName = manifest.Name + pascalAction; // e.g. notionSearch
+                var fieldName = record.Name + pascalAction; // e.g. notionSearch
 
                 // Build return type from manifest's returns schema
                 var (returnTypeRef, returnObjectType) = BuildReturnType(
-                    manifest.Name, pascalAction, action.Returns);
+                    record.Name, pascalAction, action.Returns);
                 if (returnObjectType is not null)
                 {
                     types.Add(returnObjectType);
@@ -68,7 +55,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
                 var argDefs = BuildArguments(action.Params);
 
                 // Build the resolver
-                var skillName = manifest.Name;
+                var skillName = record.Name;
                 var actionKey = actionName;
                 var argNames = argDefs.Select(a => (graphql: a.Name, snake: CamelToSnake(a.Name))).ToList();
 

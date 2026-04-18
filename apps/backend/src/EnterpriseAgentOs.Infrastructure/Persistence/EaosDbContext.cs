@@ -11,11 +11,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<EnterpriseAgentOs.Domain.Models.SkillCredentialRecord> SkillCredentials => Set<EnterpriseAgentOs.Domain.Models.SkillCredentialRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.UserRecord> Users => Set<EnterpriseAgentOs.Domain.Models.UserRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.SessionRecord> Sessions => Set<EnterpriseAgentOs.Domain.Models.SessionRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.RunnerRecord> Runners => Set<EnterpriseAgentOs.Domain.Models.RunnerRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.RunnerJobRecord> RunnerJobs => Set<EnterpriseAgentOs.Domain.Models.RunnerJobRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.DeviceCodeRecord> DeviceCodes => Set<EnterpriseAgentOs.Domain.Models.DeviceCodeRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord> BrowserSessions => Set<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SkillRegistryRecord> SkillRegistry => Set<EnterpriseAgentOs.Domain.Models.SkillRegistryRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.SkillRecord> Skills => Set<EnterpriseAgentOs.Domain.Models.SkillRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.AgentSkillRecord> AgentSkills => Set<EnterpriseAgentOs.Domain.Models.AgentSkillRecord>();
     public DbSet<EnterpriseAgentOs.Domain.Models.UserSubscription> UserSubscriptions { get; set; } = null!;
@@ -78,19 +75,6 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.RunnerRecord>(e =>
-        {
-            e.HasKey(r => r.Id);
-            e.HasOne(r => r.Owner).WithMany().HasForeignKey(r => r.OwnerId);
-        });
-
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.RunnerJobRecord>(e =>
-        {
-            e.HasKey(j => j.Id);
-            e.HasIndex(j => new { j.RunnerId, j.Status });
-            e.HasOne(j => j.Runner).WithMany().HasForeignKey(j => j.RunnerId);
-        });
-
         modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.DeviceCodeRecord>(e =>
         {
             e.HasKey(d => d.Id);
@@ -104,19 +88,6 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(b => b.Id);
             e.HasIndex(b => b.AgentId).IsUnique();
             e.Property(b => b.CookiesJson).HasColumnType("text");
-        });
-
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SkillRegistryRecord>(e =>
-        {
-            e.HasKey(r => r.Id);
-            e.HasIndex(r => r.Name).IsUnique();
-            e.Property(r => r.Name).IsRequired().HasMaxLength(64);
-            e.Property(r => r.Version).HasMaxLength(32);
-            e.Property(r => r.NpmPackage).HasMaxLength(256);
-            e.Property(r => r.BundleUrl).HasMaxLength(512);
-            e.Property(r => r.ManifestJson).HasColumnType("text");
-            e.Property(r => r.Status).IsRequired().HasMaxLength(16);
-            e.HasOne(r => r.PublishedBy).WithMany().HasForeignKey(r => r.PublishedById);
         });
 
         modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentSkillRecord>(e =>
@@ -133,8 +104,18 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(s => s.Name).IsUnique();
             e.Property(s => s.Name).IsRequired().HasMaxLength(64);
             e.Property(s => s.Title).IsRequired().HasMaxLength(128);
-            e.Property(s => s.ManifestJson).HasColumnType("text");
+            e.Property(s => s.Logo).HasColumnType("text");
             e.Property(s => s.Doc).HasColumnType("text");
+            e.Property(s => s.Readme).HasColumnType("text");
+            e.Property(s => s.Changelog).HasColumnType("text");
+            e.Property(s => s.License).HasMaxLength(64);
+            e.Property(s => s.Repository).HasMaxLength(512);
+            e.Property(s => s.Category).HasMaxLength(64);
+            e.Property(s => s.AuthorName).HasMaxLength(128);
+            e.Property(s => s.AuthorUrl).HasMaxLength(512);
+            e.Property(s => s.ActionsJson).HasColumnType("jsonb");
+            e.Property(s => s.CredentialFieldsJson).HasColumnType("jsonb");
+            e.Property(s => s.ContributorsJson).HasColumnType("jsonb");
             e.Property(s => s.BundleS3Key).HasMaxLength(512);
             e.Property(s => s.Version).HasMaxLength(32);
             e.Property(s => s.Status).IsRequired().HasMaxLength(16);

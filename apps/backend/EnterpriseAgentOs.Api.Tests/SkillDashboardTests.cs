@@ -54,6 +54,87 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     }
 
     [Fact]
+    public async Task Skills_Query_Returns_Typed_Manifest_Fields()
+    {
+        _factory.SkillRuntimeMock.Reset();
+        _factory.SkillRuntimeMock
+            .Given(WireMock.RequestBuilders.Request.Create().WithPath("/manifests").UsingGet())
+            .RespondWith(WireMock.ResponseBuilders.Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""
+                [
+                  {
+                    "name": "stock-analysis",
+                    "title": "Stock Analysis",
+                    "logo": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 0\"/></svg>",
+                    "description": "Fetch stock data",
+                    "doc": "Stock skill docs",
+                    "license": "MIT",
+                    "repository": "https://github.com/officeos-co/skill-stock-analysis",
+                    "categories": ["Finance", "Data & Analytics"],
+                    "keywords": ["stocks", "finance"],
+                    "author": { "name": "OfficeOS Team", "url": "https://officeos.co" },
+                    "contributors": [{ "name": "Harro Krog", "url": "https://github.com/HarKro753" }],
+                    "requiresApproval": false,
+                    "actions": {
+                      "quote": {
+                        "description": "Get a real-time quote",
+                        "params": { "type": "object", "properties": { "symbol": { "type": "string" } } }
+                      }
+                    },
+                    "credentialFields": [
+                      { "key": "proxy_url", "label": "Proxy URL", "kind": "text", "required": false }
+                    ]
+                  }
+                ]
+                """));
+
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        await Infrastructure.TestHelpers.InstallSkillAsync(client, "stock-analysis");
+
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(client, @"
+            { skills {
+                name logo license repository categories keywords
+                requiresApproval
+                author { name url }
+                contributors { name url }
+                tools { name description }
+            }}");
+
+        var skills = data.GetProperty("skills");
+        var skill = skills.EnumerateArray().First(s => s.GetProperty("name").GetString() == "stock-analysis");
+
+        // Scalar columns
+        Assert.StartsWith("<svg", skill.GetProperty("logo").GetString());
+        Assert.Equal("MIT", skill.GetProperty("license").GetString());
+        Assert.Equal("https://github.com/officeos-co/skill-stock-analysis", skill.GetProperty("repository").GetString());
+        Assert.False(skill.GetProperty("requiresApproval").GetBoolean());
+
+        // Array columns
+        var categories = skill.GetProperty("categories").EnumerateArray().Select(c => c.GetString()).ToList();
+        Assert.Contains("Finance", categories);
+        Assert.Contains("Data & Analytics", categories);
+        var keywords = skill.GetProperty("keywords").EnumerateArray().Select(k => k.GetString()).ToList();
+        Assert.Contains("stocks", keywords);
+
+        // Author (from typed columns)
+        var author = skill.GetProperty("author");
+        Assert.Equal("OfficeOS Team", author.GetProperty("name").GetString());
+        Assert.Equal("https://officeos.co", author.GetProperty("url").GetString());
+
+        // Contributors (from JSONB column)
+        var contributors = skill.GetProperty("contributors");
+        Assert.Equal(1, contributors.GetArrayLength());
+        Assert.Equal("Harro Krog", contributors[0].GetProperty("name").GetString());
+
+        // Actions (from JSONB column)
+        var tools = skill.GetProperty("tools");
+        Assert.True(tools.GetArrayLength() > 0);
+        Assert.Equal("quote", tools[0].GetProperty("name").GetString());
+    }
+
+    [Fact]
     public async Task Skills_Query_Has_No_Emoji_Field()
     {
         SeedManifests();

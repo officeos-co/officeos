@@ -28,10 +28,6 @@ public sealed class InternalSkillController : ControllerBase
         }
 
         var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
-        var jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
 
         var seeded = 0;
         var updated = 0;
@@ -39,22 +35,22 @@ public sealed class InternalSkillController : ControllerBase
         foreach (var manifest in manifests)
         {
             var name = manifest.Name.Trim().ToLowerInvariant();
-            var manifestJson = JsonSerializer.Serialize(manifest, jsonOptions);
             var existing = await _catalog.GetByNameAsync(name, ct);
 
             if (existing is null)
             {
-                await _catalog.UpsertAsync(new SkillRecord
+                var record = new SkillRecord
                 {
                     Name = name,
                     Title = manifest.Title,
                     Description = manifest.Description,
                     Doc = manifest.Doc,
                     Source = "builtin",
-                    ManifestJson = manifestJson,
                     IsSystem = systemSkills.Contains(name),
                     Status = "active",
-                }, ct);
+                };
+                EnterpriseAgentOs.Application.Services.Skills.SkillService.MapManifestToRecord(manifest, record);
+                await _catalog.UpsertAsync(record, ct);
                 seeded++;
                 _logger.LogInformation("Seeded builtin skill: {SkillName}", name);
             }
@@ -63,9 +59,9 @@ public sealed class InternalSkillController : ControllerBase
                 existing.Title = manifest.Title;
                 existing.Description = manifest.Description;
                 existing.Doc = manifest.Doc;
-                existing.ManifestJson = manifestJson;
                 existing.IsSystem = systemSkills.Contains(name);
                 existing.UpdatedAt = DateTime.UtcNow;
+                EnterpriseAgentOs.Application.Services.Skills.SkillService.MapManifestToRecord(manifest, existing);
                 await _catalog.UpsertAsync(existing, ct);
                 updated++;
                 _logger.LogDebug("Updated builtin skill manifest: {SkillName}", name);

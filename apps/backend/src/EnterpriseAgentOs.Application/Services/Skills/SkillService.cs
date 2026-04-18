@@ -4,7 +4,7 @@ public sealed class SkillService : ISkillService
 {
     private static readonly HashSet<string> SystemSkills = new(StringComparer.OrdinalIgnoreCase) { "browser" };
 
-    private static readonly JsonSerializerOptions ManifestJsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -90,19 +90,19 @@ public sealed class SkillService : ISkillService
 
         if (liveManifest is not null)
         {
-            var manifestJson = JsonSerializer.Serialize(liveManifest, ManifestJsonOptions);
             var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
-            await _catalog.UpsertAsync(new EnterpriseAgentOs.Domain.Models.SkillRecord
+            var record = new EnterpriseAgentOs.Domain.Models.SkillRecord
             {
                 Name = n,
                 Title = liveManifest.Title,
                 Description = liveManifest.Description,
                 Doc = liveManifest.Doc ?? string.Empty,
                 Source = "builtin",
-                ManifestJson = manifestJson,
                 IsSystem = systemSkills.Contains(n),
                 Status = "active",
-            }, ct);
+            };
+            MapManifestToRecord(liveManifest, record);
+            await _catalog.UpsertAsync(record, ct);
         }
 
         var skill = await _catalog.GetByNameAsync(n, ct);
@@ -141,8 +141,8 @@ public sealed class SkillService : ISkillService
         var skill = await _catalog.GetByNameAsync(name, ct);
         if (skill is null) return null;
 
-        var manifest = DeserializeManifest(skill);
-        var credFields = ToCredentialFields(manifest);
+        var rawCredFields = DeserializeCredentialFields(skill);
+        var credFields = ToCredentialFields(rawCredFields);
 
         var missing = credFields
             .Where(f => f.Required && string.IsNullOrWhiteSpace(GetField(credentials, f.Key)))
@@ -210,9 +210,9 @@ public sealed class SkillService : ISkillService
             if (!isSystem && (row is null || !row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials))) continue;
             if (assignedSkills is not null && !isSystem && !assignedSkills.Contains(skill.Name)) continue;
 
-            var manifest = DeserializeManifest(skill);
+            var actions = DeserializeActions(skill);
 
-            foreach (var (actionName, action) in manifest.Actions)
+            foreach (var (actionName, action) in actions)
             {
                 var toolName = $"{skill.Name}.{actionName}";
                 var parameters = action.Params is JsonElement p
@@ -226,7 +226,7 @@ public sealed class SkillService : ISkillService
                     Route: $"/api/agents/me/skills/{skill.Name}/{actionName}"));
             }
 
-            docs.Add(new SkillDocDto(skill.Name, manifest.Doc));
+            docs.Add(new SkillDocDto(skill.Name, skill.Doc ?? string.Empty));
         }
         return new CapabilitiesResponse(caps, docs);
     }
@@ -259,17 +259,51 @@ public sealed class SkillService : ISkillService
         return row?.RunTarget ?? "cloud";
     }
 
-    private static RuntimeManifest DeserializeManifest(EnterpriseAgentOs.Domain.Models.SkillRecord skill)
+    public static Dictionary<string, RuntimeActionManifest> DeserializeActions(EnterpriseAgentOs.Domain.Models.SkillRecord skill)
     {
-        return JsonSerializer.Deserialize<RuntimeManifest>(skill.ManifestJson, ManifestJsonOptions)
-            ?? throw new InvalidOperationException($"Failed to deserialize manifest for skill '{skill.Name}'");
+        if (string.IsNullOrWhiteSpace(skill.ActionsJson)) return new();
+        return JsonSerializer.Deserialize<Dictionary<string, RuntimeActionManifest>>(skill.ActionsJson, JsonOptions)
+            ?? new();
+    }
+
+    public static List<RuntimeCredentialField> DeserializeCredentialFields(EnterpriseAgentOs.Domain.Models.SkillRecord skill)
+    {
+        if (string.IsNullOrWhiteSpace(skill.CredentialFieldsJson)) return new();
+        return JsonSerializer.Deserialize<List<RuntimeCredentialField>>(skill.CredentialFieldsJson, JsonOptions)
+            ?? new();
+    }
+
+    /// <summary>Copies manifest fields onto SkillRecord typed columns.</summary>
+    public static void MapManifestToRecord(RuntimeManifest manifest, EnterpriseAgentOs.Domain.Models.SkillRecord record)
+    {
+        record.Logo = manifest.Logo;
+        record.License = manifest.License;
+        record.Repository = manifest.Repository;
+        record.RequiresApproval = manifest.RequiresApproval;
+        record.Readme = manifest.Readme;
+        record.Changelog = manifest.Changelog;
+        record.Category = manifest.Category;
+        record.AuthorName = manifest.Author?.Name;
+        record.AuthorUrl = manifest.Author?.Url;
+        record.Categories = manifest.Categories;
+        record.Keywords = manifest.Keywords;
+        record.ActionsJson = manifest.Actions is not null
+            ? JsonSerializer.Serialize(manifest.Actions, JsonOptions)
+            : null;
+        record.CredentialFieldsJson = manifest.CredentialFields is not null
+            ? JsonSerializer.Serialize(manifest.CredentialFields, JsonOptions)
+            : null;
+        record.ContributorsJson = manifest.Contributors is not null
+            ? JsonSerializer.Serialize(manifest.Contributors, JsonOptions)
+            : null;
     }
 
     private static SkillDto ToDto(EnterpriseAgentOs.Domain.Models.SkillRecord skill, EnterpriseAgentOs.Domain.Models.SkillCredentialRecord? row)
     {
-        var manifest = DeserializeManifest(skill);
+        var actions = DeserializeActions(skill);
+        var credFields = DeserializeCredentialFields(skill);
         var isSystem = skill.IsSystem || SystemSkills.Contains(skill.Name);
-        var tools = manifest.Actions
+        var tools = actions
             .Select(kv =>
             {
                 var parameters = kv.Value.Params is JsonElement p
@@ -287,12 +321,12 @@ public sealed class SkillService : ISkillService
             Configured: isSystem || !string.IsNullOrEmpty(row?.EncryptedCredentials),
             RunTarget: row?.RunTarget ?? "cloud",
             IsSystem: isSystem,
-            CredentialFields: ToCredentialFields(manifest),
+            CredentialFields: ToCredentialFields(credFields),
             LlmTools: tools);
     }
 
-    private static IReadOnlyList<CredentialField> ToCredentialFields(RuntimeManifest manifest) =>
-        manifest.CredentialFields
+    private static IReadOnlyList<CredentialField> ToCredentialFields(List<RuntimeCredentialField> credentialFields) =>
+        credentialFields
             .Select(f => new CredentialField(
                 Key: f.Key,
                 Label: f.Label,
