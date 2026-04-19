@@ -21,6 +21,12 @@ public sealed class ProviderRepository : IProviderRepository
 
     public async Task SaveAsync(ProviderRecord record, CancellationToken ct = default)
     {
+        var existing = await _db.Providers.FirstOrDefaultAsync(p => p.Name == record.Name, ct);
+        if (existing is null)
+            _db.Providers.Add(record);
+        else
+            _db.Entry(existing).CurrentValues.SetValues(record);
+
         await _db.SaveChangesAsync(ct);
     }
 
