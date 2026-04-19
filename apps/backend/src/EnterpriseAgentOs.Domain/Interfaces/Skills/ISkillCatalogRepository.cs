@@ -14,6 +14,7 @@ public interface ISkillCatalogRepository
     Task<HashSet<Guid>> BatchLikedByUserAsync(IReadOnlyList<Guid> skillIds, Guid userId, CancellationToken ct = default);
     Task<Dictionary<Guid, int>> BatchCommentCountAsync(IReadOnlyList<Guid> skillIds, CancellationToken ct = default);
     Task<HashSet<string>> BatchInstalledNamesAsync(CancellationToken ct = default);
+    Task<HashSet<string>> BatchConfiguredNamesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default);
 
     // Social mutations

@@ -116,6 +116,15 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
         return names.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
+    public async Task<HashSet<string>> BatchConfiguredNamesAsync(CancellationToken ct = default)
+    {
+        var names = await _db.SkillCredentials
+            .Where(r => r.Enabled && r.EncryptedCredentials != null)
+            .Select(r => r.SkillName)
+            .ToListAsync(ct);
+        return names.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)
     {
         return await _db.SkillComments

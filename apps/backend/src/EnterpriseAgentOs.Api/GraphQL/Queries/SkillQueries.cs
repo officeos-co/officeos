@@ -18,6 +18,7 @@ public class SkillQueries
         var likedByMe = await catalog.BatchLikedByUserAsync(skillIds, user.Id, ct);
         var commentCounts = await catalog.BatchCommentCountAsync(skillIds, ct);
         var installedNames = await catalog.BatchInstalledNamesAsync(ct);
+        var configuredNames = await catalog.BatchConfiguredNamesAsync(ct);
 
         return dtos.Select(d => d with
         {
@@ -25,6 +26,7 @@ public class SkillQueries
             IsLikedByMe = likedByMe.Contains(d.Id),
             CommentCount = commentCounts.GetValueOrDefault(d.Id),
             IsInstalled = installedNames.Contains(d.Name),
+            IsConfigured = configuredNames.Contains(d.Name),
         }).ToList();
     }
 
@@ -53,6 +55,7 @@ public class SkillQueries
             IsLikedByMe = likedByMe.Contains(dto.Id),
             CommentCount = commentCounts.GetValueOrDefault(dto.Id),
             IsInstalled = credRow?.Enabled == true,
+            IsConfigured = credRow?.Enabled == true && credRow?.EncryptedCredentials != null,
         };
     }
 

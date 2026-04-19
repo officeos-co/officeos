@@ -29,6 +29,15 @@ query Skills {
     }
     createdAt
     updatedAt
+    configured
+    credentialFields {
+      key
+      label
+      kind
+      required
+      placeholder
+      help
+    }
     tools {
       name
       description

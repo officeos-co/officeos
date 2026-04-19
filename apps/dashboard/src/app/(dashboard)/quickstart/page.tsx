@@ -32,6 +32,8 @@ import {
   ChevronRightIcon,
   TerminalIcon,
   RadioIcon,
+  AlertTriangleIcon,
+  ExternalLinkIcon,
 } from "lucide-react"
 
 /* ── Permission types ────────────────────────────────────── */
@@ -314,12 +316,14 @@ export default function QuickstartPage() {
               <div className="grid grid-cols-3 gap-2">
                 {integrations.map((i) => {
                   const active = selectedIntegrations.has(i.slug)
+                  const needsSetup = i.credentialFields.length > 0 && !i.configured
                   return (
                     <button key={i.slug} type="button" onClick={() => toggleIntegration(i.slug)}
-                      className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
+                      className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? (needsSetup ? "border-amber-400 bg-amber-50" : "border-primary bg-primary/5") : "border-border hover:bg-muted/50"}`}>
                       <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: i.logo }} />
                       <span className="flex-1 truncate">{i.name}</span>
-                      {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
+                      {active && needsSetup && <AlertTriangleIcon className="size-3.5 text-amber-500 shrink-0" />}
+                      {active && !needsSetup && <CheckIcon className="size-3.5 text-primary shrink-0" />}
                     </button>
                   )
                 })}
@@ -351,6 +355,39 @@ export default function QuickstartPage() {
             </div>
 
             <Separator />
+
+            {/* Unconfigured integrations warning */}
+            {(() => {
+              const unconfigured = activeIntegrations.filter((i) => i.credentialFields.length > 0 && !i.configured)
+              if (unconfigured.length === 0) return null
+              return (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangleIcon className="size-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-amber-800">
+                        {unconfigured.length === 1
+                          ? `${unconfigured[0].name} requires credentials before it can be used.`
+                          : `${unconfigured.length} integrations require credentials before they can be used.`}
+                      </p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        The agent will not be able to use unconfigured integrations. Set up credentials on the integration page.
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {unconfigured.map((i) => (
+                          <Link key={i.slug} href={`/integrations/${i.slug}`}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors">
+                            <div className="size-3.5 shrink-0 [&>svg]:size-3.5" dangerouslySetInnerHTML={{ __html: i.logo }} />
+                            {i.name}
+                            <ExternalLinkIcon className="size-3" />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Tool permissions */}
             <div className="space-y-3">

@@ -32,6 +32,15 @@ const SKILLS_LIST_QUERY = gql`
         name
         url
       }
+      configured
+      credentialFields {
+        key
+        label
+        kind
+        required
+        placeholder
+        help
+      }
       tools {
         name
         description
@@ -70,6 +79,15 @@ const SKILL_DETAIL_QUERY = gql`
       contributors {
         name
         url
+      }
+      configured
+      credentialFields {
+        key
+        label
+        kind
+        required
+        placeholder
+        help
       }
       tools {
         name
@@ -165,6 +183,15 @@ type RawSkill = {
   doc: string | null;
   sourceCodeUrl: string | null;
   installed: boolean;
+  configured: boolean;
+  credentialFields: Array<{
+    key: string;
+    label: string;
+    kind: string;
+    required: boolean;
+    placeholder: string | null;
+    help: string | null;
+  }> | null;
   likes: number;
   likedByMe: boolean;
   commentsCount: number;
@@ -197,6 +224,15 @@ function mapSkill(s: RawSkill): Integration {
       description: t.description,
     })),
     installed: s.installed,
+    configured: s.configured,
+    credentialFields: (s.credentialFields ?? []).map((f) => ({
+      key: f.key,
+      label: f.label,
+      kind: f.kind,
+      required: f.required,
+      placeholder: f.placeholder ?? null,
+      help: f.help ?? null,
+    })),
     doc: s.doc ?? "",
     sourceCodeUrl: s.sourceCodeUrl ?? "",
     version: s.version ?? "1.0.0",

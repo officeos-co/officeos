@@ -15,7 +15,7 @@ import {
 import { useIntegrations, useInstallSkill } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, AlertCircleIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZES = [25, 50, 100] as const
@@ -140,9 +140,15 @@ export default function IntegrationsPage() {
                     <span className="font-medium text-sm">{integration.name}</span>
                   </div>
                   {integration.installed ? (
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
-                      <CheckIcon className="size-3" /> Installed
-                    </span>
+                    integration.credentialFields.length > 0 && !integration.configured ? (
+                      <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-amber-700">
+                        <AlertCircleIcon className="size-3" /> Setup needed
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
+                        <CheckIcon className="size-3" /> Installed
+                      </span>
+                    )
                   ) : (
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => handleAdd(integration.slug, e)}>
                       <PlusIcon className="size-3" /> Add

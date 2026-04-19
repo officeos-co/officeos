@@ -51,13 +51,14 @@ export function CredentialDialog({
         <div className="space-y-3 pt-2">
           {credentials.map((c) => (
             <div key={c.key} className="space-y-1.5">
-              <Label className="text-xs">{c.label}</Label>
+              <Label className="text-xs">{c.label}{c.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
               <Input
-                type={c.type}
-                placeholder={c.placeholder}
+                type={c.kind === "password" ? "password" : "text"}
+                placeholder={c.placeholder ?? ""}
                 value={values[c.key] ?? ""}
                 onChange={(e) => setValues((prev) => ({ ...prev, [c.key]: e.target.value }))}
               />
+              {c.help && <p className="text-[11px] text-muted-foreground">{c.help}</p>}
             </div>
           ))}
         </div>

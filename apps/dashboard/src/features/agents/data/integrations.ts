@@ -6,8 +6,10 @@ export type Tool = {
 export type CredentialField = {
   key: string
   label: string
-  type: "password" | "text"
-  placeholder: string
+  kind: string
+  required: boolean
+  placeholder: string | null
+  help: string | null
 }
 
 export type SkillAuthor = {
@@ -31,6 +33,8 @@ export type Integration = {
   commentsCount: number
   tools: Tool[]
   installed: boolean
+  configured: boolean
+  credentialFields: CredentialField[]
   doc: string
   sourceCodeUrl: string
   version: string

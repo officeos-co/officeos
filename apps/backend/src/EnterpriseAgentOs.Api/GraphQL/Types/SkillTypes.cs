@@ -11,13 +11,15 @@ public sealed record SkillDashboardDto(
     [property: GraphQLIgnore] string? AuthorName,
     [property: GraphQLIgnore] string? AuthorUrl,
     [property: GraphQLIgnore] string? ActionsJson,
-    [property: GraphQLIgnore] string? ContributorsJson)
+    [property: GraphQLIgnore] string? ContributorsJson,
+    [property: GraphQLIgnore] string? CredentialFieldsJson)
 {
     // Batch-populated by the root query to avoid N+1
     [GraphQLIgnore] public int LikesCount { get; init; }
     [GraphQLIgnore] public bool IsLikedByMe { get; init; }
     [GraphQLIgnore] public int CommentCount { get; init; }
     [GraphQLIgnore] public bool IsInstalled { get; init; }
+    [GraphQLIgnore] public bool IsConfigured { get; init; }
 }
 
 [GraphQLName("SkillTool")]
@@ -28,6 +30,10 @@ public sealed record SkillAuthorDto(string Name, string? Url);
 
 [GraphQLName("SkillContributor")]
 public sealed record SkillContributorDto(string Name, string? Url);
+
+[GraphQLName("SkillCredentialField")]
+public sealed record SkillCredentialFieldDto(
+    string Key, string Label, string Kind, bool Required, string? Placeholder, string? Help);
 
 public sealed record SkillCredentialEntry(string Key, string Value);
 
@@ -57,6 +63,18 @@ public class SkillDashboardResolvers
     public int GetCommentsCount([Parent] SkillDashboardDto skill) => skill.CommentCount;
 
     public bool GetInstalled([Parent] SkillDashboardDto skill) => skill.IsInstalled;
+
+    public bool GetConfigured([Parent] SkillDashboardDto skill) => skill.IsConfigured;
+
+    public IReadOnlyList<SkillCredentialFieldDto> GetCredentialFields([Parent] SkillDashboardDto skill)
+    {
+        if (string.IsNullOrWhiteSpace(skill.CredentialFieldsJson)) return Array.Empty<SkillCredentialFieldDto>();
+        var fields = JsonSerializer.Deserialize<RuntimeCredentialField[]>(
+            skill.CredentialFieldsJson,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
+        if (fields is null) return Array.Empty<SkillCredentialFieldDto>();
+        return fields.Select(f => new SkillCredentialFieldDto(f.Key, f.Label, f.Kind, f.Required, f.Placeholder, f.Help)).ToList();
+    }
 
     public string GetSourceCodeUrl([Parent] SkillDashboardDto skill)
         => $"https://github.com/officeos-co/skill-{skill.Name}";
@@ -96,7 +114,8 @@ internal static class SkillDashboardMapper
             r.Logo, r.License, r.Repository,
             r.Categories ?? Array.Empty<string>(), r.Keywords ?? Array.Empty<string>(),
             r.Readme, r.Changelog,
-            r.AuthorName, r.AuthorUrl, r.ActionsJson, r.ContributorsJson);
+            r.AuthorName, r.AuthorUrl, r.ActionsJson, r.ContributorsJson,
+            r.CredentialFieldsJson);
 
     public static SkillCommentDto ToDto(SkillCommentRecord c) =>
         new(c.Id, c.SkillId, c.Body, c.CreatedAt, c.UpdatedAt,

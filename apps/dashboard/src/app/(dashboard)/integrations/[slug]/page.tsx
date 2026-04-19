@@ -17,7 +17,10 @@ import {
   useDeleteSkillComment,
   useInstallSkill,
   useUninstallSkill,
+  useSetSkillCredentials,
+  CredentialDialog,
 } from "@/features/agents"
+import { useAnalytics } from "@/features/analytics"
 import {
   ExternalLinkIcon,
   HeartIcon,
@@ -29,6 +32,9 @@ import {
   FileTextIcon,
   HistoryIcon,
   MessageSquareIcon,
+  KeyIcon,
+  CheckCircle2Icon,
+  AlertCircleIcon,
 } from "lucide-react"
 
 /* ── Tab config (URL-driven, like agent detail) ──────────────── */
@@ -76,8 +82,11 @@ export default function IntegrationDetailPage({
   const deleteComment = useDeleteSkillComment()
   const installSkill = useInstallSkill()
   const uninstallSkill = useUninstallSkill()
+  const setCredentials = useSetSkillCredentials()
+  const { trackSkillConfigured } = useAnalytics()
   const { comments, refetch: refetchComments } = useSkillComments(integration?.id ?? "")
   const [commentBody, setCommentBody] = useState("")
+  const [credDialogOpen, setCredDialogOpen] = useState(false)
 
   if (!integration) {
     if (loading) return null
@@ -101,6 +110,13 @@ export default function IntegrationDetailPage({
     refetchComments()
   }
 
+  async function handleSaveCredentials(values: Record<string, string>) {
+    if (!integration) return
+    await setCredentials(integration.slug, values)
+    trackSkillConfigured(integration.slug)
+  }
+
+  const hasCredentialFields = integration.credentialFields.length > 0
   const issuesUrl = integration.repository ? `${integration.repository}/issues` : null
 
   return (
@@ -109,17 +125,25 @@ export default function IntegrationDetailPage({
         group="Integrations"
         page={integration.name}
         action={
-          integration.installed ? (
-            <Button size="sm" variant="outline" onClick={() => uninstallSkill(integration.slug)}>
-              <XIcon className="size-4" />
-              Uninstall
-            </Button>
-          ) : (
-            <Button size="sm" onClick={() => installSkill(integration.slug)}>
-              <DownloadIcon className="size-4" />
-              Install
-            </Button>
-          )
+          <div className="flex items-center gap-2">
+            {integration.installed && hasCredentialFields && (
+              <Button size="sm" variant={integration.configured ? "outline" : "default"} onClick={() => setCredDialogOpen(true)}>
+                <KeyIcon className="size-4" />
+                {integration.configured ? "Reconfigure" : "Configure"}
+              </Button>
+            )}
+            {integration.installed ? (
+              <Button size="sm" variant="outline" onClick={() => uninstallSkill(integration.slug)}>
+                <XIcon className="size-4" />
+                Uninstall
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => installSkill(integration.slug)}>
+                <DownloadIcon className="size-4" />
+                Install
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -142,6 +166,17 @@ export default function IntegrationDetailPage({
               )}
             </div>
             <p className="text-sm text-muted-foreground">{integration.description}</p>
+            {integration.installed && hasCredentialFields && (
+              <div className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest mt-2",
+                integration.configured
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-amber-100 text-amber-700"
+              )}>
+                {integration.configured ? <CheckCircle2Icon className="size-3" /> : <AlertCircleIcon className="size-3" />}
+                {integration.configured ? "Configured" : "Credentials required"}
+              </div>
+            )}
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
               <button
                 type="button"
@@ -387,6 +422,17 @@ export default function IntegrationDetailPage({
           </aside>
         </div>
       </div>
+
+      {hasCredentialFields && (
+        <CredentialDialog
+          open={credDialogOpen}
+          onOpenChange={setCredDialogOpen}
+          name={integration.name}
+          logo={integration.logo}
+          credentials={integration.credentialFields}
+          onSave={handleSaveCredentials}
+        />
+      )}
     </>
   )
 }
