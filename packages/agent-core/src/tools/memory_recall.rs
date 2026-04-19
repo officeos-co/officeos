@@ -88,7 +88,7 @@ impl Tool for MemoryRecallTool {
         }
 
         // Sort by score descending
-        entries.sort_by(|a, b| b.score.cmp(&a.score));
+        entries.sort_by_key(|e| std::cmp::Reverse(e.score));
         entries.truncate(limit);
 
         let mut output = format!("Found {} memories:\n", entries.len());
