@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Domain.Interfaces.Sso;
-
 namespace EnterpriseAgentOs.Infrastructure.Adapters.WorkOs;
 
 public sealed class WorkOsAuthService : IWorkOsAuthService

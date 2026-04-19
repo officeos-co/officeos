@@ -1,5 +1,3 @@
-using HotChocolate.AspNetCore;
-
 namespace EnterpriseAgentOs.Api.GraphQL.SkillGateway;
 
 /// <summary>

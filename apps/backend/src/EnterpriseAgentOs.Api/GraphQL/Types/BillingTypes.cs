@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Domain.DTOs.Billing;
-
 namespace EnterpriseAgentOs.Api.GraphQL.Types;
 
 public sealed record UserSubscriptionDto(
