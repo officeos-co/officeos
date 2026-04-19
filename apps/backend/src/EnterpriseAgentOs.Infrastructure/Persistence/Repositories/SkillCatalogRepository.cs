@@ -22,6 +22,11 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
             .ToListAsync(ct);
     }
 
+    public async Task<EnterpriseAgentOs.Domain.Models.SkillRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _db.Skills.FirstOrDefaultAsync(s => s.Id == id, ct);
+    }
+
     public async Task<EnterpriseAgentOs.Domain.Models.SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
@@ -71,6 +76,98 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
         var row = await _db.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
         if (row is null) return false;
         _db.Skills.Remove(row);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<Dictionary<Guid, int>> BatchLikesCountAsync(IReadOnlyList<Guid> skillIds, CancellationToken ct = default)
+    {
+        return await _db.SkillLikes
+            .Where(l => skillIds.Contains(l.SkillId))
+            .GroupBy(l => l.SkillId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+    }
+
+    public async Task<HashSet<Guid>> BatchLikedByUserAsync(IReadOnlyList<Guid> skillIds, Guid userId, CancellationToken ct = default)
+    {
+        var ids = await _db.SkillLikes
+            .Where(l => skillIds.Contains(l.SkillId) && l.UserId == userId)
+            .Select(l => l.SkillId)
+            .ToListAsync(ct);
+        return ids.ToHashSet();
+    }
+
+    public async Task<Dictionary<Guid, int>> BatchCommentCountAsync(IReadOnlyList<Guid> skillIds, CancellationToken ct = default)
+    {
+        return await _db.SkillComments
+            .Where(c => skillIds.Contains(c.SkillId))
+            .GroupBy(c => c.SkillId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+    }
+
+    public async Task<HashSet<string>> BatchInstalledNamesAsync(CancellationToken ct = default)
+    {
+        var names = await _db.SkillCredentials
+            .Where(r => r.Enabled)
+            .Select(r => r.SkillName)
+            .ToListAsync(ct);
+        return names.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)
+    {
+        return await _db.SkillComments
+            .AsNoTracking()
+            .Include(c => c.User)
+            .Where(c => c.SkillId == skillId)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> AddLikeAsync(Guid skillId, Guid userId, CancellationToken ct = default)
+    {
+        var existing = await _db.SkillLikes
+            .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == userId, ct);
+        if (existing is not null) return false;
+        _db.SkillLikes.Add(new EnterpriseAgentOs.Domain.Models.SkillLikeRecord { SkillId = skillId, UserId = userId });
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> RemoveLikeAsync(Guid skillId, Guid userId, CancellationToken ct = default)
+    {
+        var existing = await _db.SkillLikes
+            .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == userId, ct);
+        if (existing is null) return false;
+        _db.SkillLikes.Remove(existing);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<EnterpriseAgentOs.Domain.Models.SkillCommentRecord> AddCommentAsync(Guid skillId, Guid userId, string body, CancellationToken ct = default)
+    {
+        var record = new EnterpriseAgentOs.Domain.Models.SkillCommentRecord
+        {
+            SkillId = skillId,
+            UserId = userId,
+            Body = body.Trim(),
+        };
+        _db.SkillComments.Add(record);
+        await _db.SaveChangesAsync(ct);
+        // Load user for DTO mapping
+        await _db.Entry(record).Reference(c => c.User).LoadAsync(ct);
+        return record;
+    }
+
+    public async Task<bool> DeleteCommentAsync(Guid commentId, Guid userId, CancellationToken ct = default)
+    {
+        var comment = await _db.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
+        if (comment is null) return false;
+        if (comment.UserId != userId)
+            throw new InvalidOperationException("Only the author may delete a comment.");
+        _db.SkillComments.Remove(comment);
         await _db.SaveChangesAsync(ct);
         return true;
     }

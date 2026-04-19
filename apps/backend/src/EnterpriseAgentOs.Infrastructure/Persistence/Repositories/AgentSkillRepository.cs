@@ -64,4 +64,42 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
         await _db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord>> ListToolPermissionsAsync(Guid agentId, CancellationToken ct = default)
+    {
+        return await _db.AgentToolPermissions
+            .AsNoTracking()
+            .Where(p => p.AgentId == agentId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord> UpsertToolPermissionAsync(
+        Guid agentId, string skillName, string toolName,
+        EnterpriseAgentOs.Domain.Models.ToolPermission permission, CancellationToken ct = default)
+    {
+        var skill = skillName.Trim().ToLowerInvariant();
+        var tool = toolName.Trim();
+
+        var existing = await _db.AgentToolPermissions
+            .FirstOrDefaultAsync(p => p.AgentId == agentId && p.SkillName == skill && p.ToolName == tool, ct);
+
+        if (existing is null)
+        {
+            existing = new EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord
+            {
+                AgentId = agentId,
+                SkillName = skill,
+                ToolName = tool,
+                Permission = permission,
+            };
+            _db.AgentToolPermissions.Add(existing);
+        }
+        else
+        {
+            existing.Permission = permission;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        await _db.SaveChangesAsync(ct);
+        return existing;
+    }
 }

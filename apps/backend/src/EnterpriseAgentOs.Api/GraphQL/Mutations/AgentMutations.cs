@@ -9,7 +9,6 @@ public class AgentMutations
         [Service] IAgentService agents,
         [Service] IAgentSkillRepository agentSkills,
         [Service] IChannelRepository channels,
-        [Service] EaosDbContext db,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -47,15 +46,8 @@ public class AgentMutations
             foreach (var tp in input.ToolPermissions)
             {
                 var (skill, tool) = SplitToolKey(tp.Tool);
-                db.AgentToolPermissions.Add(new AgentToolPermissionRecord
-                {
-                    AgentId = dto.Id,
-                    SkillName = skill,
-                    ToolName = tool,
-                    Permission = tp.Mode,
-                });
+                await agentSkills.UpsertToolPermissionAsync(dto.Id, skill, tool, tp.Mode, ct);
             }
-            await db.SaveChangesAsync(ct);
         }
 
         if (input.ChannelSlugs is { Count: > 0 })

@@ -85,40 +85,24 @@ public class SkillMutations
     public async Task<Types.SkillDashboardDto> LikeSkill(
         Guid skillId,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var skill = await db.Skills.FirstOrDefaultAsync(s => s.Id == skillId, ct)
-            ?? throw NotFound(skillId);
-
-        var existing = await db.SkillLikes
-            .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == user.Id, ct);
-        if (existing is null)
-        {
-            db.SkillLikes.Add(new SkillLikeRecord { SkillId = skillId, UserId = user.Id });
-            await db.SaveChangesAsync(ct);
-        }
+        var skill = await catalog.GetByIdAsync(skillId, ct) ?? throw NotFound(skillId);
+        await catalog.AddLikeAsync(skillId, user.Id, ct);
         return Types.SkillDashboardMapper.ToDto(skill);
     }
 
     public async Task<Types.SkillDashboardDto> UnlikeSkill(
         Guid skillId,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var skill = await db.Skills.FirstOrDefaultAsync(s => s.Id == skillId, ct)
-            ?? throw NotFound(skillId);
-
-        var existing = await db.SkillLikes
-            .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == user.Id, ct);
-        if (existing is not null)
-        {
-            db.SkillLikes.Remove(existing);
-            await db.SaveChangesAsync(ct);
-        }
+        var skill = await catalog.GetByIdAsync(skillId, ct) ?? throw NotFound(skillId);
+        await catalog.RemoveLikeAsync(skillId, user.Id, ct);
         return Types.SkillDashboardMapper.ToDto(skill);
     }
 
@@ -126,7 +110,7 @@ public class SkillMutations
         Guid skillId,
         string body,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -135,39 +119,27 @@ public class SkillMutations
             throw new GraphQLException(
                 ErrorBuilder.New().SetMessage("Comment body cannot be empty.").SetCode("INVALID_INPUT").Build());
         }
-        var exists = await db.Skills.AnyAsync(s => s.Id == skillId, ct);
-        if (!exists) throw NotFound(skillId);
-
-        var record = new SkillCommentRecord
-        {
-            SkillId = skillId,
-            UserId = user.Id,
-            Body = body.Trim(),
-        };
-        db.SkillComments.Add(record);
-        await db.SaveChangesAsync(ct);
-
-        record.User = user;
+        _ = await catalog.GetByIdAsync(skillId, ct) ?? throw NotFound(skillId);
+        var record = await catalog.AddCommentAsync(skillId, user.Id, body, ct);
         return Types.SkillDashboardMapper.ToDto(record);
     }
 
     public async Task<bool> DeleteSkillComment(
         Guid commentId,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] ISkillCatalogRepository catalog,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var comment = await db.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
-        if (comment is null) return false;
-        if (comment.UserId != user.Id)
+        try
+        {
+            return await catalog.DeleteCommentAsync(commentId, user.Id, ct);
+        }
+        catch (InvalidOperationException)
         {
             throw new GraphQLException(
                 ErrorBuilder.New().SetMessage("Only the author may delete a comment.").SetCode("FORBIDDEN").Build());
         }
-        db.SkillComments.Remove(comment);
-        await db.SaveChangesAsync(ct);
-        return true;
     }
 
     private static GraphQLException NotFound(Guid id) =>
@@ -204,34 +176,11 @@ public class SkillMutations
         string toolName,
         ToolPermission permission,
         IResolverContext context,
-        [Service] EaosDbContext db,
+        [Service] IAgentSkillRepository agentSkills,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        var skill = skillName.Trim().ToLowerInvariant();
-        var tool = toolName.Trim();
-
-        var existing = await db.AgentToolPermissions
-            .FirstOrDefaultAsync(p =>
-                p.AgentId == agentId && p.SkillName == skill && p.ToolName == tool, ct);
-
-        if (existing is null)
-        {
-            existing = new AgentToolPermissionRecord
-            {
-                AgentId = agentId,
-                SkillName = skill,
-                ToolName = tool,
-                Permission = permission,
-            };
-            db.AgentToolPermissions.Add(existing);
-        }
-        else
-        {
-            existing.Permission = permission;
-            existing.UpdatedAt = DateTime.UtcNow;
-        }
-        await db.SaveChangesAsync(ct);
-        return new Types.AgentToolPermissionDto(existing.SkillName, existing.ToolName, existing.Permission);
+        var record = await agentSkills.UpsertToolPermissionAsync(agentId, skillName, toolName, permission, ct);
+        return new Types.AgentToolPermissionDto(record.SkillName, record.ToolName, record.Permission);
     }
 }
