@@ -86,7 +86,7 @@ export function NavMain({
                 >
                   {item.icon}
                 </SidebarMenuButton>
-                <div className="invisible absolute left-full top-0 z-50 ml-1 min-w-[180px] rounded-lg border border-sidebar-border bg-sidebar p-2 shadow-lg group-hover/collapsed:visible">
+                <div className="pointer-events-none invisible absolute left-full top-0 z-[9999] ml-1 min-w-[180px] rounded-lg border border-sidebar-border bg-sidebar p-2 shadow-xl group-hover/collapsed:pointer-events-auto group-hover/collapsed:visible">
                   <p className="mb-1.5 px-2 text-xs font-semibold text-sidebar-foreground/60">
                     {item.title}
                   </p>

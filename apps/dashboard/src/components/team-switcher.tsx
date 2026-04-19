@@ -8,12 +8,12 @@ export function TeamSwitcher() {
   const collapsed = state === "collapsed";
 
   return (
-    <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center py-3" : "px-4 pt-5 pb-4"}`}>
+    <div className={`flex items-center gap-2 ${collapsed ? "justify-center py-3" : "px-4 pt-5 pb-4"}`}>
       <Image
         src="/icon-512.png"
         alt="AgentOS"
-        width={collapsed ? 28 : 32}
-        height={collapsed ? 28 : 32}
+        width={collapsed ? 24 : 22}
+        height={collapsed ? 24 : 22}
         className="shrink-0"
       />
       {!collapsed && (
