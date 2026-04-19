@@ -3,12 +3,16 @@ namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentMutations
 {
+    private const string AgentListQueryCacheKey = "agents:dashboard:list";
+    private static string AgentQueryCacheKey(Guid id) => $"agents:dashboard:{id}";
+
     public async Task<AgentDto> CreateAgent(
         Types.CreateAgentInput input,
         IResolverContext context,
         [Service] IAgentService agents,
         [Service] IAgentSkillRepository agentSkills,
         [Service] IChannelRepository channels,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -73,6 +77,7 @@ public class AgentMutations
             }
         }
 
+        cache.Remove(AgentListQueryCacheKey);
         return dto;
     }
 
@@ -89,6 +94,7 @@ public class AgentMutations
         Types.UpdateAgentInput input,
         IResolverContext context,
         [Service] IAgentService agents,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -104,6 +110,8 @@ public class AgentMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
+        cache.Remove(AgentListQueryCacheKey);
+        cache.Remove(AgentQueryCacheKey(id));
         return dto;
     }
 
@@ -111,9 +119,13 @@ public class AgentMutations
         Guid id,
         IResolverContext context,
         [Service] IAgentService agents,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return await agents.DeleteAsync(id, ct);
+        var result = await agents.DeleteAsync(id, ct);
+        cache.Remove(AgentListQueryCacheKey);
+        cache.Remove(AgentQueryCacheKey(id));
+        return result;
     }
 }

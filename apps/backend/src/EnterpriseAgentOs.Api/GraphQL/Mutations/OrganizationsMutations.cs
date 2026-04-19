@@ -3,10 +3,17 @@ namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class OrganizationsMutations
 {
+    private static void InvalidateOrgCache(IMemoryCache cache, IResolverContext context)
+    {
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        cache.Remove($"org:dashboard:{user.Id}");
+    }
+
     public async Task<Types.OrgMemberPayload> InviteMember(
         Types.InviteMemberInput input,
         IResolverContext context,
         [Service] IOrganizationRepository orgs,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -29,6 +36,7 @@ public class OrganizationsMutations
                 .SetMessage("role must be 'Admin' or 'Member'").SetCode("BAD_INPUT").Build());
         }
         var member = await orgs.AddMemberAsync(org.Id, input.Email.Trim().ToLowerInvariant(), role, "invited", null, ct);
+        InvalidateOrgCache(cache, context);
         return new Types.OrgMemberPayload(
             member.Id, member.OrganizationId, member.UserId, member.Email, null, member.Role, member.Status, member.CreatedAt);
     }
@@ -37,6 +45,7 @@ public class OrganizationsMutations
         Guid memberId,
         IResolverContext context,
         [Service] IOrganizationRepository orgs,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -55,13 +64,16 @@ public class OrganizationsMutations
             throw new GraphQLException(ErrorBuilder.New()
                 .SetMessage("cannot remove the owner").SetCode("FORBIDDEN").Build());
         }
-        return await orgs.RemoveMemberAsync(memberId, ct);
+        var result = await orgs.RemoveMemberAsync(memberId, ct);
+        InvalidateOrgCache(cache, context);
+        return result;
     }
 
     public async Task<Types.OrganizationPayload> RenameOrg(
         Types.RenameOrgInput input,
         IResolverContext context,
         [Service] IOrganizationRepository orgs,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -79,9 +91,11 @@ public class OrganizationsMutations
         }
         var renamed = await orgs.RenameAsync(org.Id, input.Name.Trim(), ct);
         var members = await orgs.ListMembersAsync(renamed.Id, ct);
-        return new Types.OrganizationPayload(
+        var result = new Types.OrganizationPayload(
             renamed.Id, renamed.Name, renamed.OwnerUserId, renamed.CreatedAt,
             members.Select(m => new Types.OrgMemberPayload(
                 m.Id, m.OrganizationId, m.UserId, m.Email, null, m.Role, m.Status, m.CreatedAt)).ToList());
+        InvalidateOrgCache(cache, context);
+        return result;
     }
 }

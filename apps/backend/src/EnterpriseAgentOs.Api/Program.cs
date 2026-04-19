@@ -17,6 +17,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = ValueManager.GetValue<string>("Redis");
+    options.InstanceName = "eaos:";
+});
 
 // Data Protection
 var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");

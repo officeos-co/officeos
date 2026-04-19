@@ -5,6 +5,8 @@ public sealed class SessionAuthMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<SessionAuthMiddleware> _logger;
 
+    private static readonly TimeSpan SessionCacheTtl = TimeSpan.FromMinutes(5);
+
     private static readonly string[] SkipPrefixes =
     [
         "/api/auth/google",
@@ -51,36 +53,48 @@ public sealed class SessionAuthMiddleware
         {
             var decoded = Uri.UnescapeDataString(cookie);
             var tokenHash = HashToken(decoded);
+            var cacheKey = $"session:{tokenHash[..16]}";
 
-            var sessionRepo = context.RequestServices.GetRequiredService<ISessionRepository>();
-            var session = await sessionRepo.GetByTokenHashAsync(tokenHash);
+            var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
 
-            if (session is null)
+            if (!cache.TryGetValue(cacheKey, out UserRecord? cachedUser) || cachedUser is null)
             {
-                _logger.LogWarning("Session not found for hash {HashPrefix}... on {Path}",
-                    tokenHash[..8], path);
-                await _next(context);
-                return;
+                var sessionRepo = context.RequestServices.GetRequiredService<ISessionRepository>();
+                var session = await sessionRepo.GetByTokenHashAsync(tokenHash);
+
+                if (session is null)
+                {
+                    _logger.LogWarning("Session not found for hash {HashPrefix}... on {Path}",
+                        tokenHash[..8], path);
+                    await _next(context);
+                    return;
+                }
+
+                if (session.ExpiresAt < DateTime.UtcNow)
+                {
+                    _logger.LogWarning("Session expired for user {UserId} on {Path} (expired {Expiry})",
+                        session.UserId, path, session.ExpiresAt);
+                    await _next(context);
+                    return;
+                }
+
+                if (session.User is null)
+                {
+                    _logger.LogWarning("Session has no user loaded for user ID {UserId} on {Path}",
+                        session.UserId, path);
+                    await _next(context);
+                    return;
+                }
+
+                cachedUser = session.User;
+                cache.Set(cacheKey, cachedUser, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = SessionCacheTtl,
+                });
             }
 
-            if (session.ExpiresAt < DateTime.UtcNow)
-            {
-                _logger.LogWarning("Session expired for user {UserId} on {Path} (expired {Expiry})",
-                    session.UserId, path, session.ExpiresAt);
-                await _next(context);
-                return;
-            }
-
-            if (session.User is null)
-            {
-                _logger.LogWarning("Session has no user loaded for user ID {UserId} on {Path}",
-                    session.UserId, path);
-                await _next(context);
-                return;
-            }
-
-            _logger.LogDebug("Authenticated {Email} on {Path}", session.User.Email, path);
-            context.Items["User"] = session.User;
+            _logger.LogDebug("Authenticated {Email} on {Path}", cachedUser.Email, path);
+            context.Items["User"] = cachedUser;
         }
         catch (Exception ex)
         {

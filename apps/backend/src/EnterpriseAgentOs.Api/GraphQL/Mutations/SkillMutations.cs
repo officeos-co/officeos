@@ -3,10 +3,17 @@ namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class SkillMutations
 {
+    private static void InvalidateSkillCaches(IMemoryCache cache, IResolverContext context)
+    {
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        cache.Remove($"skills:dashboard:list:{user.Id}");
+    }
+
     public async Task<bool> InstallSkill(
         string name,
         IResolverContext context,
         [Service] ISkillService skills,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -19,6 +26,7 @@ public class SkillMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
+        InvalidateSkillCaches(cache, context);
         return true;
     }
 
@@ -26,6 +34,7 @@ public class SkillMutations
         string name,
         IResolverContext context,
         [Service] ISkillService skills,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -38,6 +47,7 @@ public class SkillMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
+        InvalidateSkillCaches(cache, context);
         return true;
     }
 
@@ -46,6 +56,7 @@ public class SkillMutations
         IReadOnlyList<Types.SkillCredentialEntry> credentials,
         IResolverContext context,
         [Service] ISkillService skills,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -59,6 +70,7 @@ public class SkillMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
+        InvalidateSkillCaches(cache, context);
         return true;
     }
 
@@ -86,11 +98,13 @@ public class SkillMutations
         Guid skillId,
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = await catalog.GetByIdAsync(skillId, ct) ?? throw NotFound(skillId);
         await catalog.AddLikeAsync(skillId, user.Id, ct);
+        InvalidateSkillCaches(cache, context);
         return Types.SkillDashboardMapper.ToDto(skill);
     }
 
@@ -98,11 +112,13 @@ public class SkillMutations
         Guid skillId,
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var skill = await catalog.GetByIdAsync(skillId, ct) ?? throw NotFound(skillId);
         await catalog.RemoveLikeAsync(skillId, user.Id, ct);
+        InvalidateSkillCaches(cache, context);
         return Types.SkillDashboardMapper.ToDto(skill);
     }
 
@@ -111,6 +127,7 @@ public class SkillMutations
         string body,
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -121,6 +138,7 @@ public class SkillMutations
         }
         _ = await catalog.GetByIdAsync(skillId, ct) ?? throw NotFound(skillId);
         var record = await catalog.AddCommentAsync(skillId, user.Id, body, ct);
+        InvalidateSkillCaches(cache, context);
         return Types.SkillDashboardMapper.ToDto(record);
     }
 
@@ -128,12 +146,15 @@ public class SkillMutations
         Guid commentId,
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         try
         {
-            return await catalog.DeleteCommentAsync(commentId, user.Id, ct);
+            var deleted = await catalog.DeleteCommentAsync(commentId, user.Id, ct);
+            InvalidateSkillCaches(cache, context);
+            return deleted;
         }
         catch (InvalidOperationException)
         {

@@ -102,6 +102,7 @@ export function useAgentLogs(
     variables: { agentId, limit },
     skip: USE_MOCKS || !agentId,
     pollInterval: USE_MOCKS ? 0 : 5000,
+    fetchPolicy: "network-only",
   })
 
   useSubscription(AGENT_LOG_SUBSCRIPTION, {

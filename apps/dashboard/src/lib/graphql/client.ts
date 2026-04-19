@@ -88,6 +88,6 @@ export const apolloClient = new ApolloClient({
   cache: new InMemoryCache(),
   devtools: { enabled: process.env.NODE_ENV !== "production" },
   defaultOptions: {
-    watchQuery: { fetchPolicy: "cache-and-network" },
+    watchQuery: { fetchPolicy: "cache-first" },
   },
 })

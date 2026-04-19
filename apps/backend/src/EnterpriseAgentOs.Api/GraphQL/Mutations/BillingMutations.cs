@@ -5,11 +5,18 @@ namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class BillingMutations
 {
+    private static void InvalidateBillingCache(IMemoryCache cache, Guid userId)
+    {
+        cache.Remove($"billing:dashboard:{userId}");
+        cache.Remove($"billing:sub:{userId}");
+    }
+
     public async Task<Types.SubscribeResultDto> SubscribeUser(
         string plan,
         string billingCycle,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -32,12 +39,14 @@ public class BillingMutations
 
         var checkoutUrl = await userBilling.CreateCheckoutSessionAsync(
             user.Id, user.Email, plan, billingCycle, ct);
+        InvalidateBillingCache(cache, user.Id);
         return new Types.SubscribeResultDto(checkoutUrl);
     }
 
     public async Task<Types.UserSubscriptionDto> CancelUserSubscription(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -49,6 +58,7 @@ public class BillingMutations
         await userBilling.EnableOverageAsync(user.Id, user.Email, false, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
+        InvalidateBillingCache(cache, user.Id);
         return new Types.UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
@@ -65,10 +75,12 @@ public class BillingMutations
         bool enabled,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
+        InvalidateBillingCache(cache, user.Id);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         return sub.OverageEnabled;
     }
@@ -78,12 +90,14 @@ public class BillingMutations
         bool enabled,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
+        InvalidateBillingCache(cache, user.Id);
         return new Types.UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,

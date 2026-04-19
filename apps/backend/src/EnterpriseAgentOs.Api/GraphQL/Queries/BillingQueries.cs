@@ -3,15 +3,23 @@ namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class BillingQueries
 {
+    private static readonly TimeSpan BillingCacheTtl = TimeSpan.FromMinutes(1);
+
     public async Task<Types.UserSubscriptionDto> GetUserSubscription(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var cacheKey = $"billing:sub:{user.Id}";
+
+        if (cache.TryGetValue(cacheKey, out Types.UserSubscriptionDto? cached) && cached is not null)
+            return cached;
+
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        return new Types.UserSubscriptionDto(
+        var result = new Types.UserSubscriptionDto(
             sub.Id,
             sub.UserId,
             sub.Plan,
@@ -25,6 +33,10 @@ public class BillingQueries
             sub.PeriodStart,
             sub.PeriodEnd,
             sub.IsActive);
+
+        cache.Set(cacheKey, result,
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = BillingCacheTtl });
+        return result;
     }
 
     public async Task<Types.OrgSubscriptionDto> GetOrgSubscription(
@@ -85,16 +97,22 @@ public class BillingQueries
     public async Task<Types.BillingPayload> Billing(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var cacheKey = $"billing:dashboard:{user.Id}";
+
+        if (cache.TryGetValue(cacheKey, out Types.BillingPayload? cached) && cached is not null)
+            return cached;
+
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         var invoices = await userBilling.ListInvoicesAsync(user.Id, ct);
         var planDescription = sub.Plan == "pro"
             ? "3 concurrent agents, 10M credits/month"
             : "1 concurrent agent, 500k credits/month";
-        return new Types.BillingPayload(
+        var result = new Types.BillingPayload(
             sub.Plan,
             planDescription,
             sub.IsActive ? "active" : "canceled",
@@ -109,6 +127,10 @@ public class BillingQueries
             null,
             null,
             invoices);
+
+        cache.Set(cacheKey, result,
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = BillingCacheTtl });
+        return result;
     }
 
     public async Task<Types.UsageSummaryDto> GetTokenUsage(

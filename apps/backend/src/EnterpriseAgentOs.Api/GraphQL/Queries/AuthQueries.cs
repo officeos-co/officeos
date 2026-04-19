@@ -5,19 +5,22 @@ namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AuthQueries
 {
-    /// <summary>
-    /// Returns the currently authenticated dashboard user, or throws UNAUTHENTICATED.
-    /// Replaces the REST <c>GET /api/auth/me</c> endpoint.
-    /// </summary>
+    private static readonly TimeSpan MeCacheTtl = TimeSpan.FromMinutes(2);
+
     public async Task<Types.UserPayload> Me(
         IResolverContext context,
         [Service] IUserRepository users,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var ctxUser = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        // Reload from the DB so profile fields (DisplayName, Timezone, NotificationPrefsJson) are current.
+        var cacheKey = $"auth:me:{ctxUser.Id}";
+
+        if (cache.TryGetValue(cacheKey, out Types.UserPayload? cached) && cached is not null)
+            return cached;
+
         var user = await users.GetByIdAsync(ctxUser.Id, ct) ?? ctxUser;
-        return new Types.UserPayload(
+        var result = new Types.UserPayload(
             user.Id,
             user.Email,
             user.Name,
@@ -26,11 +29,12 @@ public class AuthQueries
             user.Timezone,
             user.NotificationPrefsJson,
             user.Preferences);
+
+        cache.Set(cacheKey, result,
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = MeCacheTtl });
+        return result;
     }
 
-    /// <summary>
-    /// Returns a full JSON export of all data for the authenticated user.
-    /// </summary>
     public async Task<GdprExportDto> ExportMyData(
         IResolverContext context,
         [Service] IGdprService gdpr,

@@ -3,11 +3,21 @@ namespace EnterpriseAgentOs.Api.GraphQL.Mutations;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class ChannelMutations
 {
+    private const string ChannelListCacheKey = "channels:list";
+
+    private static void InvalidateChannelCaches(IMemoryCache cache, Guid? connectionId = null)
+    {
+        cache.Remove(ChannelListCacheKey);
+        if (connectionId.HasValue)
+            cache.Remove($"channels:{connectionId.Value}");
+    }
+
     public async Task<Types.ChannelConnectionGqlDto> CreateChannelConnection(
         Types.CreateChannelConnectionInput input,
         IResolverContext context,
         [Service] IChannelRepository repo,
         [Service] ChannelConfigProtector protector,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -36,6 +46,7 @@ public class ChannelMutations
         };
 
         var created = await repo.CreateConnectionAsync(record, ct);
+        InvalidateChannelCaches(cache);
         return Types.ChannelGraphQLMapper.ToDto(created);
     }
 
@@ -45,6 +56,7 @@ public class ChannelMutations
         IResolverContext context,
         [Service] IChannelRepository repo,
         [Service] ChannelConfigProtector protector,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -67,6 +79,7 @@ public class ChannelMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
+        InvalidateChannelCaches(cache, id);
         return Types.ChannelGraphQLMapper.ToDto(updated);
     }
 
@@ -74,10 +87,13 @@ public class ChannelMutations
         Guid id,
         IResolverContext context,
         [Service] IChannelRepository repo,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return await repo.DeleteConnectionAsync(id, ct);
+        var result = await repo.DeleteConnectionAsync(id, ct);
+        InvalidateChannelCaches(cache, id);
+        return result;
     }
 
     public async Task<Types.AgentChannelBindingGqlDto> BindChannelToAgent(

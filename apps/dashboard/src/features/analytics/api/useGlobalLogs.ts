@@ -94,6 +94,7 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
     variables: filters,
     skip: USE_MOCKS,
     pollInterval: USE_MOCKS ? 0 : 5000,
+    fetchPolicy: "network-only",
   })
   if (USE_MOCKS) return { logs: mockGlobal, loading: false }
   const raw: Array<{

@@ -3,13 +3,22 @@ namespace EnterpriseAgentOs.Api.GraphQL.Queries;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class SkillQueries
 {
+    private static readonly TimeSpan SkillListCacheTtl = TimeSpan.FromMinutes(2);
+    private const string SkillListCacheKey = "skills:dashboard:list";
+
     [GraphQLName("skills")]
     public async Task<IReadOnlyList<Types.SkillDashboardDto>> GetSkillList(
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var cacheKey = $"{SkillListCacheKey}:{user.Id}";
+
+        if (cache.TryGetValue(cacheKey, out IReadOnlyList<Types.SkillDashboardDto>? cached) && cached is not null)
+            return cached;
+
         var records = await catalog.ListAsync(ct);
         var dtos = records.Select(Types.SkillDashboardMapper.ToDto).ToList();
         var skillIds = dtos.Select(d => d.Id).ToList();
@@ -20,7 +29,7 @@ public class SkillQueries
         var installedNames = await catalog.BatchInstalledNamesAsync(ct);
         var configuredNames = await catalog.BatchConfiguredNamesAsync(ct);
 
-        return dtos.Select(d => d with
+        var result = dtos.Select(d => d with
         {
             LikesCount = likesCounts.GetValueOrDefault(d.Id),
             IsLikedByMe = likedByMe.Contains(d.Id),
@@ -28,6 +37,10 @@ public class SkillQueries
             IsInstalled = installedNames.Contains(d.Name),
             IsConfigured = configuredNames.Contains(d.Name),
         }).ToList();
+
+        cache.Set(cacheKey, (IReadOnlyList<Types.SkillDashboardDto>)result,
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = SkillListCacheTtl });
+        return result;
     }
 
     [GraphQLName("skill")]

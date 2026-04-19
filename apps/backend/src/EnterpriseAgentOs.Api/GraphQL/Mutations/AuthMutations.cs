@@ -17,6 +17,7 @@ public class AuthMutations
         Types.UpdateProfileInput input,
         IResolverContext context,
         [Service] IUserRepository users,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var caller = Middleware.DashboardAuthContextExtensions.GetUser(context);
@@ -28,6 +29,7 @@ public class AuthMutations
             input.NotificationPrefsJson,
             input.Preferences,
             ct);
+        cache.Remove($"auth:me:{caller.Id}");
         return new Types.UserPayload(
             user.Id,
             user.Email,
