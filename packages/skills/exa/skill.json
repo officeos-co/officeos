@@ -3,7 +3,7 @@
   "title": "Exa",
   "version": "1.0.0",
   "description": "Neural search engine for the web. Finds semantically relevant pages, similar content, and retrieves full page text.",
-  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M11 2a9 9 0 1 0 5.3 16.3l4.4 4.4 1.4-1.4-4.4-4.4A9 9 0 0 0 11 2Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z\\\"/></svg>",
+  "logo": "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11 2a9 9 0 1 0 5.3 16.3l4.4 4.4 1.4-1.4-4.4-4.4A9 9 0 0 0 11 2Zm0 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z\"/></svg>",
   "categories": [
     "AI & ML"
   ],

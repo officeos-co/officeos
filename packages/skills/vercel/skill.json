@@ -3,7 +3,7 @@
   "title": "Vercel",
   "version": "1.0.0",
   "description": "Manage Vercel projects, deployments, domains, environment variables, logs, teams, checks, aliases, and secrets via the Vercel REST API.",
-  "logo": "<svg viewBox=\\\"0 0 24 24\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"m12 1.608 12 20.784H0Z\\\"/></svg>",
+  "logo": "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"m12 1.608 12 20.784H0Z\"/></svg>",
   "categories": [
     "Cloud Infrastructure",
     "Developer Tools"

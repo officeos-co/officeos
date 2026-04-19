@@ -4,7 +4,14 @@ namespace EnterpriseAgentOs.Api.GraphQL.Types;
 public sealed record SkillDashboardDto(
     Guid Id, string Name, string Title, string Description,
     string? Doc, string Status, string Version, bool RequiresApproval,
-    DateTime CreatedAt, DateTime UpdatedAt);
+    DateTime CreatedAt, DateTime UpdatedAt,
+    string? Logo, string? License, string? Repository,
+    string[] Categories, string[] Keywords,
+    string? Readme, string? Changelog,
+    [property: GraphQLIgnore] string? AuthorName,
+    [property: GraphQLIgnore] string? AuthorUrl,
+    [property: GraphQLIgnore] string? ActionsJson,
+    [property: GraphQLIgnore] string? ContributorsJson);
 
 [GraphQLName("SkillTool")]
 public sealed record SkillToolDto(string Name, string Description);
@@ -62,15 +69,6 @@ public class SkillDashboardResolvers
         return await db.SkillComments.CountAsync(c => c.SkillId == skill.Id, ct);
     }
 
-    public async Task<string?> GetLogo(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.Logo;
-    }
-
     public async Task<bool> GetInstalled(
         [Parent] SkillDashboardDto skill,
         [Service] ISkillRepository repo,
@@ -83,90 +81,27 @@ public class SkillDashboardResolvers
     public string GetSourceCodeUrl([Parent] SkillDashboardDto skill)
         => $"https://github.com/officeos-co/skill-{skill.Name}";
 
-    public async Task<IReadOnlyList<SkillToolDto>> GetTools(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
+    public IReadOnlyList<SkillToolDto> GetTools([Parent] SkillDashboardDto skill)
     {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        if (record is null) return Array.Empty<SkillToolDto>();
-        var actions = EnterpriseAgentOs.Application.Services.Skills.SkillService.DeserializeActions(record);
+        if (string.IsNullOrWhiteSpace(skill.ActionsJson)) return Array.Empty<SkillToolDto>();
+        var actions = JsonSerializer.Deserialize<Dictionary<string, RuntimeActionManifest>>(
+            skill.ActionsJson,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true })
+            ?? new();
         return actions.Select(kv => new SkillToolDto(kv.Key, kv.Value.Description)).ToList();
     }
 
-    public async Task<string?> GetLicense(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
+    public SkillAuthorDto? GetAuthor([Parent] SkillDashboardDto skill)
     {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.License;
+        if (skill.AuthorName is null) return null;
+        return new SkillAuthorDto(skill.AuthorName, skill.AuthorUrl);
     }
 
-    public async Task<string?> GetRepository(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
+    public IReadOnlyList<SkillContributorDto> GetContributors([Parent] SkillDashboardDto skill)
     {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.Repository;
-    }
-
-    public async Task<IReadOnlyList<string>> GetCategories(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.Categories ?? Array.Empty<string>();
-    }
-
-    public async Task<IReadOnlyList<string>> GetKeywords(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.Keywords ?? Array.Empty<string>();
-    }
-
-    public async Task<string?> GetReadme(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.Readme;
-    }
-
-    public async Task<string?> GetChangelog(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        return record?.Changelog;
-    }
-
-    public async Task<SkillAuthorDto?> GetAuthor(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        if (record?.AuthorName is null) return null;
-        return new SkillAuthorDto(record.AuthorName, record.AuthorUrl);
-    }
-
-    public async Task<IReadOnlyList<SkillContributorDto>> GetContributors(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillCatalogRepository catalog,
-        CancellationToken ct)
-    {
-        var record = await catalog.GetByNameAsync(skill.Name, ct);
-        if (record is null || string.IsNullOrWhiteSpace(record.ContributorsJson))
+        if (string.IsNullOrWhiteSpace(skill.ContributorsJson))
             return Array.Empty<SkillContributorDto>();
-        var contributors = JsonSerializer.Deserialize<ManifestContributor[]>(record.ContributorsJson,
+        var contributors = JsonSerializer.Deserialize<ManifestContributor[]>(skill.ContributorsJson,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
         if (contributors is null) return Array.Empty<SkillContributorDto>();
         return contributors.Select(c => new SkillContributorDto(c.Name, c.Url)).ToList();
@@ -177,7 +112,11 @@ internal static class SkillDashboardMapper
 {
     public static SkillDashboardDto ToDto(SkillRecord r) =>
         new(r.Id, r.Name, r.Title, r.Description, r.Doc,
-            r.Status, r.Version, r.RequiresApproval, r.CreatedAt, r.UpdatedAt);
+            r.Status, r.Version, r.RequiresApproval, r.CreatedAt, r.UpdatedAt,
+            r.Logo, r.License, r.Repository,
+            r.Categories ?? Array.Empty<string>(), r.Keywords ?? Array.Empty<string>(),
+            r.Readme, r.Changelog,
+            r.AuthorName, r.AuthorUrl, r.ActionsJson, r.ContributorsJson);
 
     public static SkillCommentDto ToDto(SkillCommentRecord c) =>
         new(c.Id, c.SkillId, c.Body, c.CreatedAt, c.UpdatedAt,

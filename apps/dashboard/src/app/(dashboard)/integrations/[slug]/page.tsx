@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  useIntegrations,
+  useIntegration,
   useSkillComments,
   useLikeSkill,
   useCommentOnSkill,
@@ -70,8 +70,7 @@ export default function IntegrationDetailPage({
   const searchParams = useSearchParams()
   const tab = (searchParams.get("tab") as TabKey) ?? "detail"
 
-  const { integrations, loading } = useIntegrations()
-  const integration = integrations.find((i) => i.slug === slug)
+  const { integration, loading } = useIntegration(slug)
   const likeSkill = useLikeSkill()
   const { commentOnSkill } = useCommentOnSkill()
   const deleteComment = useDeleteSkillComment()
