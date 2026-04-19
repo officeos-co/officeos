@@ -19,12 +19,20 @@ pub struct LogClient {
 
 impl LogClient {
     /// Create a new log client bound to the given backend.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the underlying TLS backend fails to initialize (should
+    /// never happen with default rustls/native-tls config).
     #[must_use]
     pub fn new(backend_url: String, token: String) -> Self {
         Self {
             backend_url,
             token,
-            http: reqwest::Client::new(),
+            http: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+                .expect("log client: failed to build reqwest client"),
         }
     }
 

@@ -137,8 +137,11 @@ impl LlmClient {
                 .map_err(|e| Error::Llm(format!("serialize tools: {e}")))?;
         }
 
-        tracing::debug!(name: "llm.request.start", url_full = %url, "sending LLM request to {{url_full}}");
-        let client = reqwest::Client::new();
+        tracing::info!(name: "llm.request.start", url_full = %url, "sending LLM request to {{url_full}}");
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| Error::Llm(format!("build http client: {e}")))?;
         let resp = client
             .post(&url)
             .header(
@@ -157,7 +160,7 @@ impl LlmClient {
             return Err(Error::Llm(format!("llm HTTP {status}: {text}")));
         }
 
-        tracing::debug!(name: "llm.stream.start", "LLM response received, streaming SSE");
+        tracing::info!(name: "llm.stream.start", "LLM response received, streaming SSE");
         let byte_stream = resp.bytes_stream();
         let event_stream = byte_stream.eventsource();
 

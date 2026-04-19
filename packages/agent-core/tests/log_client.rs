@@ -69,3 +69,33 @@ async fn forward_log_returns_error_on_server_failure() {
     let result = client.forward("System", "test", None).await;
     assert!(result.is_err(), "should return error on 500");
 }
+
+/// A server that never responds must trigger a timeout error instead of
+/// hanging forever.
+#[tokio::test]
+async fn forward_log_times_out_on_unresponsive_server() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/agents/me/logs"))
+        .respond_with(
+            ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(60)),
+        )
+        .mount(&server)
+        .await;
+
+    let client = zeroclaw_agent::log_client::LogClient::new(
+        server.uri(),
+        helpers::CANNED_AGENT_ID.to_string(),
+    );
+
+    let start = std::time::Instant::now();
+    let result = client.forward("System", "test", None).await;
+    let elapsed = start.elapsed();
+
+    assert!(result.is_err(), "should error on timeout, not hang");
+    assert!(
+        elapsed < std::time::Duration::from_secs(20),
+        "should timeout well before 60s, took {elapsed:?}"
+    );
+}

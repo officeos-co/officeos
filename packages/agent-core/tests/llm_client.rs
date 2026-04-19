@@ -182,3 +182,37 @@ async fn test_chat_stream_error_propagates() {
         Ok(_) => panic!("500 should produce an error, not Ok"),
     }
 }
+
+/// A server that never responds must trigger a timeout error instead of
+/// hanging forever. This is the root cause of the silent bootstrap hang.
+#[tokio::test]
+async fn test_chat_stream_times_out_on_unresponsive_server() {
+    let server = MockServer::start().await;
+
+    // Server accepts the connection but never sends a response (60s delay).
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(60)))
+        .mount(&server)
+        .await;
+
+    let cfg = test_config(&server.uri());
+    let client = LlmClient::new(cfg);
+
+    let messages = vec![ChatMessage {
+        role: "user".to_string(),
+        content: Some("Hi".to_string()),
+        tool_calls: vec![],
+        tool_call_id: None,
+    }];
+
+    let start = std::time::Instant::now();
+    let result = client.chat_stream(messages, vec![]).await;
+    let elapsed = start.elapsed();
+
+    assert!(result.is_err(), "should error on timeout, not hang");
+    assert!(
+        elapsed < std::time::Duration::from_secs(45),
+        "should timeout well before 60s, took {elapsed:?}"
+    );
+}

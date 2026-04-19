@@ -58,7 +58,7 @@ pub async fn seed(memory_dir: &Path, system_prompt: &str) -> Result<()> {
         };
 
         tokio::fs::write(&dst, &content).await?;
-        tracing::debug!(
+        tracing::info!(
             name: "personality.file.written",
             file_path = %dst.display(),
             "wrote personality file: {{file_path}}",

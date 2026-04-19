@@ -181,7 +181,7 @@ pub async fn bootstrap(agent_id: String, backend_url: String) -> Result<RuntimeC
             .map_err(|e| Error::BootstrapPayload(format!("invalid JSON: {e}")))?;
 
         tracing::info!(name: "bootstrap.payload.received", "bootstrap payload received, building config");
-        tracing::debug!(name: "bootstrap.payload.details", skill_count = payload.skills.len(), tool_permission_count = payload.tool_permissions.entries.len(), "payload details: {{skill_count}} skills, {{tool_permission_count}} permissions");
+        tracing::info!(name: "bootstrap.payload.details", skill_count = payload.skills.len(), tool_permission_count = payload.tool_permissions.entries.len(), "payload details: {{skill_count}} skills, {{tool_permission_count}} permissions");
         return build_config(payload, backend_url);
     }
 
