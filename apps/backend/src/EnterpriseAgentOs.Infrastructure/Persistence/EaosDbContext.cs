@@ -6,32 +6,32 @@ public sealed class EaosDbContext : DbContext
     {
     }
 
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentRecord> Agents => Set<EnterpriseAgentOs.Domain.Models.AgentRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.ProviderRecord> Providers => Set<EnterpriseAgentOs.Domain.Models.ProviderRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SkillCredentialRecord> SkillCredentials => Set<EnterpriseAgentOs.Domain.Models.SkillCredentialRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.UserRecord> Users => Set<EnterpriseAgentOs.Domain.Models.UserRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SessionRecord> Sessions => Set<EnterpriseAgentOs.Domain.Models.SessionRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.DeviceCodeRecord> DeviceCodes => Set<EnterpriseAgentOs.Domain.Models.DeviceCodeRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord> BrowserSessions => Set<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SkillRecord> Skills => Set<EnterpriseAgentOs.Domain.Models.SkillRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentSkillRecord> AgentSkills => Set<EnterpriseAgentOs.Domain.Models.AgentSkillRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.UserSubscription> UserSubscriptions { get; set; } = null!;
-    public DbSet<EnterpriseAgentOs.Domain.Models.OrgSubscription> OrgSubscriptions { get; set; } = null!;
-    public DbSet<EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord> ChannelConnections => Set<EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentChannelBindingRecord> AgentChannelBindings => Set<EnterpriseAgentOs.Domain.Models.AgentChannelBindingRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SystemEventRecord> SystemEvents => Set<EnterpriseAgentOs.Domain.Models.SystemEventRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentRateLimitRecord> AgentRateLimits => Set<EnterpriseAgentOs.Domain.Models.AgentRateLimitRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SkillLikeRecord> SkillLikes => Set<EnterpriseAgentOs.Domain.Models.SkillLikeRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.SkillCommentRecord> SkillComments => Set<EnterpriseAgentOs.Domain.Models.SkillCommentRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentLogRecord> AgentLogs => Set<EnterpriseAgentOs.Domain.Models.AgentLogRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord> AgentToolPermissions => Set<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.AgentTemplateRecord> AgentTemplates => Set<EnterpriseAgentOs.Domain.Models.AgentTemplateRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.OrganizationRecord> Organizations => Set<EnterpriseAgentOs.Domain.Models.OrganizationRecord>();
-    public DbSet<EnterpriseAgentOs.Domain.Models.OrgMemberRecord> OrgMembers => Set<EnterpriseAgentOs.Domain.Models.OrgMemberRecord>();
+    public DbSet<AgentRecord> Agents => Set<AgentRecord>();
+    public DbSet<ProviderRecord> Providers => Set<ProviderRecord>();
+    public DbSet<SkillCredentialRecord> SkillCredentials => Set<SkillCredentialRecord>();
+    public DbSet<UserRecord> Users => Set<UserRecord>();
+    public DbSet<SessionRecord> Sessions => Set<SessionRecord>();
+    public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();
+    public DbSet<BrowserSessionRecord> BrowserSessions => Set<BrowserSessionRecord>();
+    public DbSet<SkillRecord> Skills => Set<SkillRecord>();
+    public DbSet<AgentSkillRecord> AgentSkills => Set<AgentSkillRecord>();
+    public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
+    public DbSet<OrgSubscription> OrgSubscriptions { get; set; } = null!;
+    public DbSet<ChannelConnectionRecord> ChannelConnections => Set<ChannelConnectionRecord>();
+    public DbSet<AgentChannelBindingRecord> AgentChannelBindings => Set<AgentChannelBindingRecord>();
+    public DbSet<SystemEventRecord> SystemEvents => Set<SystemEventRecord>();
+    public DbSet<AgentRateLimitRecord> AgentRateLimits => Set<AgentRateLimitRecord>();
+    public DbSet<SkillLikeRecord> SkillLikes => Set<SkillLikeRecord>();
+    public DbSet<SkillCommentRecord> SkillComments => Set<SkillCommentRecord>();
+    public DbSet<AgentLogRecord> AgentLogs => Set<AgentLogRecord>();
+    public DbSet<AgentToolPermissionRecord> AgentToolPermissions => Set<AgentToolPermissionRecord>();
+    public DbSet<AgentTemplateRecord> AgentTemplates => Set<AgentTemplateRecord>();
+    public DbSet<OrganizationRecord> Organizations => Set<OrganizationRecord>();
+    public DbSet<OrgMemberRecord> OrgMembers => Set<OrgMemberRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentRecord>(e =>
+        modelBuilder.Entity<AgentRecord>(e =>
         {
             e.HasKey(a => a.Id);
             e.Property(a => a.Name).IsRequired().HasMaxLength(200);
@@ -43,7 +43,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.Prompt).HasColumnType("text");
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.ProviderRecord>(e =>
+        modelBuilder.Entity<ProviderRecord>(e =>
         {
             e.HasKey(p => p.Id);
             e.HasIndex(p => p.Name).IsUnique();
@@ -53,7 +53,7 @@ public sealed class EaosDbContext : DbContext
             e.Ignore(p => p.Configured);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SkillCredentialRecord>(e =>
+        modelBuilder.Entity<SkillCredentialRecord>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.SkillName).IsUnique();
@@ -61,21 +61,21 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.EncryptedCredentials).HasMaxLength(16384);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.UserRecord>(e =>
+        modelBuilder.Entity<UserRecord>(e =>
         {
             e.HasKey(u => u.Id);
             e.HasIndex(u => u.GoogleSubjectId).IsUnique();
             e.HasIndex(u => u.Email).IsUnique();
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SessionRecord>(e =>
+        modelBuilder.Entity<SessionRecord>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.TokenHash).IsUnique();
             e.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.DeviceCodeRecord>(e =>
+        modelBuilder.Entity<DeviceCodeRecord>(e =>
         {
             e.HasKey(d => d.Id);
             e.HasIndex(d => d.DeviceCode).IsUnique();
@@ -83,14 +83,14 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(d => d.User).WithMany().HasForeignKey(d => d.UserId);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord>(e =>
+        modelBuilder.Entity<BrowserSessionRecord>(e =>
         {
             e.HasKey(b => b.Id);
             e.HasIndex(b => b.AgentId).IsUnique();
             e.Property(b => b.CookiesJson).HasColumnType("text");
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentSkillRecord>(e =>
+        modelBuilder.Entity<AgentSkillRecord>(e =>
         {
             e.HasKey(a => a.Id);
             e.HasIndex(a => new { a.AgentId, a.SkillName }).IsUnique();
@@ -98,7 +98,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SkillRecord>(e =>
+        modelBuilder.Entity<SkillRecord>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.Name).IsUnique();
@@ -125,7 +125,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(s => s.Owner).WithMany().HasForeignKey(s => s.OwnerId);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.UserSubscription>(e =>
+        modelBuilder.Entity<UserSubscription>(e =>
         {
             e.HasKey(u => u.Id);
             e.HasIndex(u => u.UserId).IsUnique();
@@ -136,7 +136,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(u => u.StripeOverageItemId).HasMaxLength(256);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.OrgSubscription>(e =>
+        modelBuilder.Entity<OrgSubscription>(e =>
         {
             e.HasKey(o => o.Id);
             e.HasIndex(o => o.OrganizationId).IsUnique();
@@ -147,7 +147,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(o => o.StripeOverageItemId).HasMaxLength(256);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord>(e =>
+        modelBuilder.Entity<ChannelConnectionRecord>(e =>
         {
             e.HasKey(c => c.Id);
             e.Property(c => c.ChannelType).IsRequired().HasMaxLength(32);
@@ -156,7 +156,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentChannelBindingRecord>(e =>
+        modelBuilder.Entity<AgentChannelBindingRecord>(e =>
         {
             e.HasKey(b => b.Id);
             e.HasIndex(b => new { b.AgentId, b.ChannelConnectionId }).IsUnique();
@@ -165,7 +165,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(b => b.ChannelConnection).WithMany().HasForeignKey(b => b.ChannelConnectionId);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SystemEventRecord>(e =>
+        modelBuilder.Entity<SystemEventRecord>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.CreatedAt);
@@ -176,7 +176,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.DetailJson).HasColumnType("text");
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentRateLimitRecord>(e =>
+        modelBuilder.Entity<AgentRateLimitRecord>(e =>
         {
             e.HasKey(r => r.Id);
             e.HasIndex(r => new { r.AgentId, r.BucketKey, r.WindowStart }).IsUnique();
@@ -184,7 +184,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SkillLikeRecord>(e =>
+        modelBuilder.Entity<SkillLikeRecord>(e =>
         {
             e.HasKey(l => l.Id);
             e.HasIndex(l => new { l.UserId, l.SkillId }).IsUnique();
@@ -193,7 +193,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.SkillCommentRecord>(e =>
+        modelBuilder.Entity<SkillCommentRecord>(e =>
         {
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.SkillId);
@@ -203,7 +203,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentLogRecord>(e =>
+        modelBuilder.Entity<AgentLogRecord>(e =>
         {
             e.HasKey(l => l.Id);
             e.HasIndex(l => l.AgentId);
@@ -214,7 +214,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord>(e =>
+        modelBuilder.Entity<AgentToolPermissionRecord>(e =>
         {
             e.HasKey(p => p.Id);
             e.HasIndex(p => new { p.AgentId, p.SkillName, p.ToolName }).IsUnique();
@@ -223,7 +223,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(p => p.Agent).WithMany().HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.AgentTemplateRecord>(e =>
+        modelBuilder.Entity<AgentTemplateRecord>(e =>
         {
             e.HasKey(t => t.Id);
             e.HasIndex(t => t.Name).IsUnique();
@@ -233,13 +233,13 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(t => t.Owner).WithMany().HasForeignKey(t => t.OwnerId);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.OrganizationRecord>(e =>
+        modelBuilder.Entity<OrganizationRecord>(e =>
         {
             e.HasKey(o => o.Id);
             e.Property(o => o.Name).IsRequired().HasMaxLength(200);
         });
 
-        modelBuilder.Entity<EnterpriseAgentOs.Domain.Models.OrgMemberRecord>(e =>
+        modelBuilder.Entity<OrgMemberRecord>(e =>
         {
             e.HasKey(m => m.Id);
             e.HasIndex(m => new { m.OrganizationId, m.Email }).IsUnique();

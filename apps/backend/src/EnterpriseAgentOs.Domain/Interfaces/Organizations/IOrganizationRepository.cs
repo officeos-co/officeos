@@ -2,21 +2,21 @@ namespace EnterpriseAgentOs.Domain.Interfaces.Organizations;
 
 public interface IOrganizationRepository
 {
-    Task<EnterpriseAgentOs.Domain.Models.OrganizationRecord> GetOrCreateDefaultAsync(
+    Task<OrganizationRecord> GetOrCreateDefaultAsync(
         Guid ownerUserId,
         string ownerEmail,
         string? ownerName,
         CancellationToken ct = default);
 
-    Task<EnterpriseAgentOs.Domain.Models.OrganizationRecord?> GetByIdAsync(
+    Task<OrganizationRecord?> GetByIdAsync(
         Guid id,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.OrgMemberRecord>> ListMembersAsync(
+    Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(
         Guid organizationId,
         CancellationToken ct = default);
 
-    Task<EnterpriseAgentOs.Domain.Models.OrgMemberRecord> AddMemberAsync(
+    Task<OrgMemberRecord> AddMemberAsync(
         Guid organizationId,
         string email,
         string role,
@@ -26,7 +26,7 @@ public interface IOrganizationRepository
 
     Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default);
 
-    Task<EnterpriseAgentOs.Domain.Models.OrganizationRecord> RenameAsync(
+    Task<OrganizationRecord> RenameAsync(
         Guid organizationId,
         string name,
         CancellationToken ct = default);

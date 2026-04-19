@@ -36,7 +36,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
 
         foreach (var record in records)
         {
-            var actions = EnterpriseAgentOs.Application.Services.Skills.SkillService.DeserializeActions(record);
+            var actions = Application.Services.Skills.SkillService.DeserializeActions(record);
             if (actions.Count == 0) continue;
             foreach (var (actionName, action) in actions)
             {

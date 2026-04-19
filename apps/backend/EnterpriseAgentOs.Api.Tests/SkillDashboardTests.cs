@@ -29,8 +29,8 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
         """;
         _factory.SkillRuntimeMock.Reset();
         _factory.SkillRuntimeMock
-            .Given(WireMock.RequestBuilders.Request.Create().WithPath("/manifests").UsingGet())
-            .RespondWith(WireMock.ResponseBuilders.Response.Create()
+            .Given(Request.Create().WithPath("/manifests").UsingGet())
+            .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(manifest));
@@ -58,8 +58,8 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     {
         _factory.SkillRuntimeMock.Reset();
         _factory.SkillRuntimeMock
-            .Given(WireMock.RequestBuilders.Request.Create().WithPath("/manifests").UsingGet())
-            .RespondWith(WireMock.ResponseBuilders.Response.Create()
+            .Given(Request.Create().WithPath("/manifests").UsingGet())
+            .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""

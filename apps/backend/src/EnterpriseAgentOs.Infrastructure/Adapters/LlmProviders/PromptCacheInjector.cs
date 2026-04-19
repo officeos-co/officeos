@@ -20,7 +20,7 @@ public static class PromptCacheInjector
         if (!model.StartsWith("claude", StringComparison.OrdinalIgnoreCase))
             return body;
 
-        using var stream = new System.IO.MemoryStream();
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream);
 
         writer.WriteStartObject();

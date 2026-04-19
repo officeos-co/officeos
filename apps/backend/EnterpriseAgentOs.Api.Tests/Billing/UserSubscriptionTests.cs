@@ -15,7 +15,7 @@ public sealed class UserSubscriptionTests
         return new EaosDbContext(opts);
     }
 
-    private static EnterpriseAgentOs.Application.Services.Billing.UserBillingService CreateService(
+    private static UserBillingService CreateService(
         string proMonthlyPriceId = "price_pro_monthly",
         string proYearlyPriceId = "price_pro_yearly") =>
         new(
@@ -35,7 +35,7 @@ public sealed class UserSubscriptionTests
             },
             new FrontendConfig("https://dashboard.officeos.co"),
             CreateDb(),
-            NullLogger<EnterpriseAgentOs.Application.Services.Billing.UserBillingService>.Instance);
+            NullLogger<UserBillingService>.Instance);
 
     // -------------------------------------------------------------------------
     // Default subscription for a new user

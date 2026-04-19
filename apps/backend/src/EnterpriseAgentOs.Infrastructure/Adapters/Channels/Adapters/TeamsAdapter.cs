@@ -101,7 +101,7 @@ public sealed class TeamsAdapter : IChannelAdapter
         {
             Content = new StringContent(activity, Encoding.UTF8, "application/json"),
         };
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", botToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", botToken);
         await client.SendAsync(request, ct);
     }
 

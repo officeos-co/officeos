@@ -2,11 +2,11 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.Stripe;
 
 public sealed class StripeWebhookService : IStripeWebhookService
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.StripeConfig _config;
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly StripeConfig _config;
+    private readonly EaosDbContext _db;
     private readonly ILogger<StripeWebhookService> _logger;
 
-    public StripeWebhookService(EnterpriseAgentOs.Infrastructure.Configuration.StripeConfig config, EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db, ILogger<StripeWebhookService> logger)
+    public StripeWebhookService(StripeConfig config, EaosDbContext db, ILogger<StripeWebhookService> logger)
     {
         _config = config;
         _db = db;

@@ -9,8 +9,8 @@ public static class SkillSeeder
     public static async Task SeedAsync(IServiceProvider services)
     {
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("SkillSeeder");
-        var config = services.GetRequiredService<EnterpriseAgentOs.Infrastructure.Configuration.SkillRuntimeConfig>();
-        var catalog = services.GetRequiredService<EnterpriseAgentOs.Domain.Interfaces.Skills.ISkillCatalogRepository>();
+        var config = services.GetRequiredService<SkillRuntimeConfig>();
+        var catalog = services.GetRequiredService<ISkillCatalogRepository>();
 
         IReadOnlyList<RuntimeManifest> manifests;
         try
@@ -24,8 +24,8 @@ public static class SkillSeeder
                 return;
             }
             var text = await resp.Content.ReadAsStringAsync();
-            manifests = System.Text.Json.JsonSerializer.Deserialize<List<RuntimeManifest>>(text,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            manifests = JsonSerializer.Deserialize<List<RuntimeManifest>>(text,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 ?? new List<RuntimeManifest>();
         }
         catch (Exception ex)
@@ -51,7 +51,7 @@ public static class SkillSeeder
 
             if (existing is null)
             {
-                var record = new EnterpriseAgentOs.Domain.Models.SkillRecord
+                var record = new SkillRecord
                 {
                     Name = name,
                     Title = manifest.Title,

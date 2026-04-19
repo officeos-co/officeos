@@ -2,17 +2,17 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class UserRepository : IUserRepository
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public UserRepository(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db) => _db = db;
+    public UserRepository(EaosDbContext db) => _db = db;
 
-    public async Task<EnterpriseAgentOs.Domain.Models.UserRecord> UpsertByGoogleSubjectAsync(
+    public async Task<UserRecord> UpsertByGoogleSubjectAsync(
         string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
         if (user is null)
         {
-            user = new EnterpriseAgentOs.Domain.Models.UserRecord
+            user = new UserRecord
             {
                 GoogleSubjectId = googleSubjectId,
                 Email = email,
@@ -32,10 +32,10 @@ public sealed class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
         => await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
 
-    public async Task<EnterpriseAgentOs.Domain.Models.UserRecord> UpdateProfileAsync(
+    public async Task<UserRecord> UpdateProfileAsync(
         Guid id,
         string? name,
         string? displayName,

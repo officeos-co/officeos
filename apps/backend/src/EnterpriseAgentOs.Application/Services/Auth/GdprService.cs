@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Application.Services.Auth;
 
 public sealed class GdprService : IGdprService
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public GdprService(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db)
+    public GdprService(EaosDbContext db)
     {
         _db = db;
     }
@@ -40,14 +40,14 @@ public sealed class GdprService : IGdprService
             : await _db.AgentLogs
                 .AsNoTracking()
                 .Where(l => agentIds.Contains(l.AgentId) &&
-                    (l.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.MessageIn ||
-                     l.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.MessageOut ||
-                     l.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.System))
+                    (l.Type == AgentLogType.MessageIn ||
+                     l.Type == AgentLogType.MessageOut ||
+                     l.Type == AgentLogType.System))
                 .Select(l => new GdprConversationDto(
                     l.Id,
                     l.AgentId,
-                    l.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.MessageIn ? "user"
-                        : l.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.MessageOut ? "assistant"
+                    l.Type == AgentLogType.MessageIn ? "user"
+                        : l.Type == AgentLogType.MessageOut ? "assistant"
                         : "system",
                     l.Content,
                     l.CorrelationId,
@@ -58,7 +58,7 @@ public sealed class GdprService : IGdprService
             ? new List<GdprAuditEntryDto>()
             : await _db.AgentLogs
                 .AsNoTracking()
-                .Where(l => agentIds.Contains(l.AgentId) && l.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.ToolCall)
+                .Where(l => agentIds.Contains(l.AgentId) && l.Type == AgentLogType.ToolCall)
                 .Select(l => new GdprAuditEntryDto(
                     l.Id,
                     l.AgentId,

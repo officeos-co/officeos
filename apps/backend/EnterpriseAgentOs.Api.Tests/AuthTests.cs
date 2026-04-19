@@ -1,10 +1,10 @@
 namespace EnterpriseAgentOs.Api.Tests;
 
-public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public AuthTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public AuthTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     private const string MeQuery = @"{ me { id email name } }";
     private const string LogoutMutation = @"mutation { logout }";
@@ -14,7 +14,7 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     {
         var client = _factory.CreateClient();
 
-        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
+        var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
         Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
@@ -25,7 +25,7 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
         var client = _factory.CreateClient();
         client.DefaultRequestHeaders.Add("Cookie", "eaos-session=totally-bogus-token");
 
-        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
+        var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
         Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
@@ -33,9 +33,9 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     [Fact]
     public async Task GetMe_WithExpiredSession_ReturnsAuthError()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateExpiredSessionClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateExpiredSessionClientAsync(_factory);
 
-        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
+        var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
         Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
@@ -43,9 +43,9 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     [Fact]
     public async Task GetMe_WithValidSession_ReturnsUserInfo()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "authed@example.com", "Auth User");
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "authed@example.com", "Auth User");
 
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
         var me = data.GetProperty("me");
 
         Assert.Equal("authed@example.com", me.GetProperty("email").GetString());
@@ -55,25 +55,25 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     [Fact]
     public async Task Logout_DeletesSession_SubsequentMeReturnsAuthError()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "logout@example.com");
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "logout@example.com");
 
         // Verify logged in
-        var meData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
+        var meData = await Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
         Assert.Equal("logout@example.com", meData.GetProperty("me").GetProperty("email").GetString());
 
         // Logout
-        var logoutData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, LogoutMutation);
+        var logoutData = await Infrastructure.TestHelpers.GraphQLAsync(client, LogoutMutation);
         Assert.True(logoutData.GetProperty("logout").GetBoolean());
 
         // Server deleted the session — even with the old cookie, me must now error.
-        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
+        var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
         Assert.True(raw.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
     }
 
     [Fact]
     public async Task UpdateProfile_Preferences_PersistsAndReturnsInMe()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "prefs@example.com", "Prefs User");
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "prefs@example.com", "Prefs User");
 
         // Update profile with preferences
         const string updateMutation = @"
@@ -83,7 +83,7 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
               }
             }";
 
-        var updateData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(
+        var updateData = await Infrastructure.TestHelpers.GraphQLAsync(
             client, updateMutation, new
             {
                 input = new
@@ -100,7 +100,7 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
 
         // Verify me query also returns preferences
         const string meQuery = @"{ me { id email preferences } }";
-        var meData = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, meQuery);
+        var meData = await Infrastructure.TestHelpers.GraphQLAsync(client, meQuery);
         var me = meData.GetProperty("me");
         Assert.Equal("Keep explanations brief and to the point", me.GetProperty("preferences").GetString());
     }
@@ -108,7 +108,7 @@ public sealed class AuthTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infras
     [Fact]
     public async Task GoogleLogin_RedirectsToGoogleOAuth()
     {
-        var client = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
         });

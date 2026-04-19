@@ -11,10 +11,10 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.PostHog;
 public sealed class PostHogService : IPostHogService
 {
     private readonly HttpClient _http;
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.PostHogConfig _config;
+    private readonly PostHogConfig _config;
     private readonly ILogger<PostHogService> _logger;
 
-    public PostHogService(HttpClient http, EnterpriseAgentOs.Infrastructure.Configuration.PostHogConfig config, ILogger<PostHogService> logger)
+    public PostHogService(HttpClient http, PostHogConfig config, ILogger<PostHogService> logger)
     {
         _http = http;
         _config = config;

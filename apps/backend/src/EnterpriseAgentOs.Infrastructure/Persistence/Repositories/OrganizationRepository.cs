@@ -2,11 +2,11 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class OrganizationRepository : IOrganizationRepository
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public OrganizationRepository(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db) => _db = db;
+    public OrganizationRepository(EaosDbContext db) => _db = db;
 
-    public async Task<EnterpriseAgentOs.Domain.Models.OrganizationRecord> GetOrCreateDefaultAsync(
+    public async Task<OrganizationRecord> GetOrCreateDefaultAsync(
         Guid ownerUserId,
         string ownerEmail,
         string? ownerName,
@@ -17,14 +17,14 @@ public sealed class OrganizationRepository : IOrganizationRepository
             .FirstOrDefaultAsync(o => o.OwnerUserId == ownerUserId, ct);
         if (owned is not null) return owned;
 
-        var org = new EnterpriseAgentOs.Domain.Models.OrganizationRecord
+        var org = new OrganizationRecord
         {
             Name = string.IsNullOrWhiteSpace(ownerName) ? "My Organization" : $"{ownerName}'s Organization",
             OwnerUserId = ownerUserId,
         };
         _db.Organizations.Add(org);
 
-        _db.OrgMembers.Add(new EnterpriseAgentOs.Domain.Models.OrgMemberRecord
+        _db.OrgMembers.Add(new OrgMemberRecord
         {
             OrganizationId = org.Id,
             UserId = ownerUserId,
@@ -36,24 +36,24 @@ public sealed class OrganizationRepository : IOrganizationRepository
         return org;
     }
 
-    public Task<EnterpriseAgentOs.Domain.Models.OrganizationRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public Task<OrganizationRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => _db.Organizations.FirstOrDefaultAsync(o => o.Id == id, ct);
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.OrgMemberRecord>> ListMembersAsync(
+    public async Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(
         Guid organizationId, CancellationToken ct = default)
         => await _db.OrgMembers
             .Where(m => m.OrganizationId == organizationId)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(ct);
 
-    public async Task<EnterpriseAgentOs.Domain.Models.OrgMemberRecord> AddMemberAsync(
+    public async Task<OrgMemberRecord> AddMemberAsync(
         Guid organizationId, string email, string role, string status, Guid? userId, CancellationToken ct = default)
     {
         var existing = await _db.OrgMembers
             .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.Email == email, ct);
         if (existing is not null) return existing;
 
-        var member = new EnterpriseAgentOs.Domain.Models.OrgMemberRecord
+        var member = new OrgMemberRecord
         {
             OrganizationId = organizationId,
             Email = email,
@@ -75,7 +75,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
         return true;
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.OrganizationRecord> RenameAsync(
+    public async Task<OrganizationRecord> RenameAsync(
         Guid organizationId, string name, CancellationToken ct = default)
     {
         var org = await _db.Organizations.FirstOrDefaultAsync(o => o.Id == organizationId, ct)

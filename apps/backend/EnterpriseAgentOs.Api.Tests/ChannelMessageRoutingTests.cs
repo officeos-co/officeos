@@ -6,11 +6,11 @@ namespace EnterpriseAgentOs.Api.Tests;
 /// - Agent responses are logged as ChannelOut
 /// - ChannelIn and ChannelOut share a CorrelationId
 /// </summary>
-public sealed class ChannelMessageRoutingTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public ChannelMessageRoutingTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory)
+    public ChannelMessageRoutingTests(Infrastructure.CustomWebApplicationFactory factory)
         => _factory = factory;
 
     /// <summary>
@@ -66,10 +66,10 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<EnterpriseAgentOs
     private void StubAgentChatEndpoint(string responseText = "Hello from agent")
     {
         _factory.SkillRuntimeMock
-            .Given(WireMock.RequestBuilders.Request.Create()
+            .Given(Request.Create()
                 .WithPath("/api/chat")
                 .UsingPost())
-            .RespondWith(WireMock.ResponseBuilders.Response.Create()
+            .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody($"{{\"response\":\"{responseText}\"}}"));

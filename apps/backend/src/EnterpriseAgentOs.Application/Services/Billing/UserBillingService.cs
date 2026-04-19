@@ -2,15 +2,15 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 
 public sealed class UserBillingService : IUserBillingService
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.StripeConfig _config;
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.FrontendConfig _frontend;
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly StripeConfig _config;
+    private readonly FrontendConfig _frontend;
+    private readonly EaosDbContext _db;
     private readonly ILogger<UserBillingService> _logger;
 
     public UserBillingService(
-        EnterpriseAgentOs.Infrastructure.Configuration.StripeConfig config,
-        EnterpriseAgentOs.Infrastructure.Configuration.FrontendConfig frontend,
-        EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db,
+        StripeConfig config,
+        FrontendConfig frontend,
+        EaosDbContext db,
         ILogger<UserBillingService> logger)
     {
         _config = config;

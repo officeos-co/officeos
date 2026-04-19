@@ -12,7 +12,7 @@ public sealed record CreateAgentInput(
 
 public sealed record ToolPermissionInput(
     string Tool,
-    EnterpriseAgentOs.Domain.Models.ToolPermission Mode);
+    ToolPermission Mode);
 
 public sealed record UpdateAgentInput(
     string? Name,
@@ -59,10 +59,10 @@ public sealed record AgentBootstrapToolPermission(
 public sealed record ToolPermissionPayload(
     string SkillName,
     string ToolName,
-    EnterpriseAgentOs.Domain.Models.ToolPermission Mode);
+    ToolPermission Mode);
 
 public sealed record SetAgentToolPermissionInput(
     Guid AgentId,
     string Skill,
     string Tool,
-    EnterpriseAgentOs.Domain.Models.ToolPermission Mode);
+    ToolPermission Mode);

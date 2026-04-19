@@ -1,18 +1,18 @@
 namespace EnterpriseAgentOs.Api.Tests;
 
-public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class SkillExecutionTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public SkillExecutionTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public SkillExecutionTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     [Fact]
     public async Task Capabilities_WithValidAgent_ReturnsEmptyWhenNoSkillsInstalled()
     {
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var caps = await agent.GetCapabilitiesAsync();
 
         // Capabilities may be non-empty if WireMock serves manifests
@@ -22,15 +22,15 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
     [Fact]
     public async Task Capabilities_WithDeletedAgent_Returns401()
     {
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "deleted-caps-agent");
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "deleted-caps-agent");
 
         // Delete the agent
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient,
+        await Infrastructure.TestHelpers.GraphQLAsync(dashClient,
             "mutation($id: UUID!) { deleteAgent(id: $id) }",
             new { id = agentId });
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.GetAsync("/api/agents/me/capabilities");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -43,10 +43,10 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
         // but is NOT installed/configured in the DB
         SeedNotionManifest();
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.SkillExecAsync("notion", "search", new { query = "test" });
 
         // Backend returns 422 when skill is not installed/configured
@@ -66,14 +66,14 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {"pages": ["page-1"]}}"""));
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         // Install and configure the skill via dashboard GraphQL
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-notion-key" });
+        await Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-notion-key" });
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.SkillExecAsync("notion", "search", new { query = "test" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -88,12 +88,12 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
 
         // Stop the WireMock /execute route so it returns nothing,
         // and reconfigure to use a dead URL
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         // Install + configure skill
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-key" });
+        await Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new() { ["apiKey"] = "test-key" });
 
         // Reset WireMock execute endpoint to reject connections
         _factory.SkillRuntimeMock.Reset();
@@ -103,7 +103,7 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
             .Given(Request.Create().WithPath("/execute").UsingPost())
             .RespondWith(Response.Create().WithStatusCode(500).WithBody("Internal error"));
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var response = await agent.SkillExecAsync("notion", "search", new { query = "test" });
 
         // The runtime returns 500, which SkillRuntimeClient parses as a non-success result
@@ -131,7 +131,7 @@ public sealed class SkillExecutionTests : IClassFixture<EnterpriseAgentOs.Api.Te
     [Fact]
     public async Task SkillExec_WithInvalidAgentId_Returns401()
     {
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), Guid.NewGuid());
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), Guid.NewGuid());
         var response = await agent.SkillExecAsync("notion", "search");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

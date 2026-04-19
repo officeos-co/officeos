@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Domain.Models;
 /// <summary>
 /// Allow/deny decision for a single (skill, tool) pair on a given agent.
 /// Set from the Quickstart wizard and the per-agent skills tab.
-/// Absence of a row means the tool is disabled — only explicit <see cref="ToolPermission.Allow"/> grants access.
+/// Absence of a row means the tool is disabled — only explicit <see cref="Allow"/> grants access.
 /// Enforced in the skill execution path before dispatch.
 /// </summary>
 public enum ToolPermission

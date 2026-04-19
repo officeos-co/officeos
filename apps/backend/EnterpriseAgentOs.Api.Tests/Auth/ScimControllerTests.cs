@@ -1,10 +1,10 @@
 namespace EnterpriseAgentOs.Api.Tests.Auth;
 
-public sealed class ScimControllerTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class ScimControllerTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public ScimControllerTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public ScimControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     [Fact]
     public async Task ProvisionUser_WhenScimDisabled_Returns503()

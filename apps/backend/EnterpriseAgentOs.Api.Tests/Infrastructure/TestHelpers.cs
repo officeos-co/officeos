@@ -63,7 +63,7 @@ public static class TestHelpers
         string name = "Test User")
     {
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
+        var tokenHash = Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
@@ -123,7 +123,7 @@ public static class TestHelpers
     public static async Task<HttpClient> CreateExpiredSessionClientAsync(CustomWebApplicationFactory factory)
     {
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware.HashToken(sessionToken);
+        var tokenHash = Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();

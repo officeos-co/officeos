@@ -2,11 +2,11 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 
 public sealed class CreditRecordingService : ICreditRecordingService
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.StripeConfig _config;
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly StripeConfig _config;
+    private readonly EaosDbContext _db;
     private readonly ILogger<CreditRecordingService> _logger;
 
-    public CreditRecordingService(EnterpriseAgentOs.Infrastructure.Configuration.StripeConfig config, EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db, ILogger<CreditRecordingService> logger)
+    public CreditRecordingService(StripeConfig config, EaosDbContext db, ILogger<CreditRecordingService> logger)
     {
         _config = config;
         _db = db;

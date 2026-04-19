@@ -10,7 +10,7 @@ public sealed class SkillRuntimeClient
     private readonly ILogger<SkillRuntimeClient> _logger;
     private readonly string _baseUrl;
 
-    public SkillRuntimeClient(HttpClient http, EnterpriseAgentOs.Infrastructure.Configuration.SkillRuntimeConfig config, ILogger<SkillRuntimeClient> logger)
+    public SkillRuntimeClient(HttpClient http, SkillRuntimeConfig config, ILogger<SkillRuntimeClient> logger)
     {
         _http = http;
         _logger = logger;
@@ -51,7 +51,7 @@ public sealed class SkillRuntimeClient
         _logger.LogInformation("Executing skill {Skill}.{Action} via runtime", skill, action);
 
         using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/execute");
-        req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        req.Content = new StringContent(body, Encoding.UTF8, "application/json");
         using var resp = await _http.SendAsync(req, ct);
         var text = await resp.Content.ReadAsStringAsync(ct);
 

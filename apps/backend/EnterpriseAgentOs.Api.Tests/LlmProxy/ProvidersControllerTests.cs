@@ -6,11 +6,11 @@ namespace EnterpriseAgentOs.Api.Tests.LlmProxy;
 /// All dashboard provider management is now GraphQL (Stage 6).
 /// </summary>
 [Collection("Integration")]
-public sealed class ProvidersControllerTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class ProvidersControllerTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public ProvidersControllerTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory)
+    public ProvidersControllerTests(Infrastructure.CustomWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -28,9 +28,9 @@ public sealed class ProvidersControllerTests : IClassFixture<EnterpriseAgentOs.A
     [InlineData("xai")]
     public async Task Configure_NonOpenAiProvider_ReturnsError(string providerName)
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(client, SetProviderKeyMutation,
+        var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, SetProviderKeyMutation,
             new { providerName, apiKey = "sk-test-key" });
 
         Assert.True(raw.TryGetProperty("errors", out var errors));
@@ -41,9 +41,9 @@ public sealed class ProvidersControllerTests : IClassFixture<EnterpriseAgentOs.A
     [Fact]
     public async Task Configure_OpenAiProvider_Succeeds()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, SetProviderKeyMutation,
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(client, SetProviderKeyMutation,
             new { providerName = "openai", apiKey = "sk-test-openai-key" });
 
         var provider = data.GetProperty("setProviderKey");
@@ -53,9 +53,9 @@ public sealed class ProvidersControllerTests : IClassFixture<EnterpriseAgentOs.A
     [Fact]
     public async Task List_Providers_NonOpenAi_ShowConfiguredTrue()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(client, "{ providers { name configured } }");
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ providers { name configured } }");
         var providers = data.GetProperty("providers");
         Assert.True(providers.GetArrayLength() > 0);
 

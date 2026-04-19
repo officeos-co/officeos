@@ -91,7 +91,7 @@ public sealed class SkillService : ISkillService
         if (liveManifest is not null)
         {
             var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
-            var record = new EnterpriseAgentOs.Domain.Models.SkillRecord
+            var record = new SkillRecord
             {
                 Name = n,
                 Title = liveManifest.Title,
@@ -259,14 +259,14 @@ public sealed class SkillService : ISkillService
         return row?.RunTarget ?? "cloud";
     }
 
-    public static Dictionary<string, RuntimeActionManifest> DeserializeActions(EnterpriseAgentOs.Domain.Models.SkillRecord skill)
+    public static Dictionary<string, RuntimeActionManifest> DeserializeActions(SkillRecord skill)
     {
         if (string.IsNullOrWhiteSpace(skill.ActionsJson)) return new();
         return JsonSerializer.Deserialize<Dictionary<string, RuntimeActionManifest>>(skill.ActionsJson, JsonOptions)
             ?? new();
     }
 
-    public static List<RuntimeCredentialField> DeserializeCredentialFields(EnterpriseAgentOs.Domain.Models.SkillRecord skill)
+    public static List<RuntimeCredentialField> DeserializeCredentialFields(SkillRecord skill)
     {
         if (string.IsNullOrWhiteSpace(skill.CredentialFieldsJson)) return new();
         return JsonSerializer.Deserialize<List<RuntimeCredentialField>>(skill.CredentialFieldsJson, JsonOptions)
@@ -274,7 +274,7 @@ public sealed class SkillService : ISkillService
     }
 
     /// <summary>Copies manifest fields onto SkillRecord typed columns.</summary>
-    public static void MapManifestToRecord(RuntimeManifest manifest, EnterpriseAgentOs.Domain.Models.SkillRecord record)
+    public static void MapManifestToRecord(RuntimeManifest manifest, SkillRecord record)
     {
         record.Logo = manifest.Logo;
         record.License = manifest.License;
@@ -298,7 +298,7 @@ public sealed class SkillService : ISkillService
             : null;
     }
 
-    private static SkillDto ToDto(EnterpriseAgentOs.Domain.Models.SkillRecord skill, EnterpriseAgentOs.Domain.Models.SkillCredentialRecord? row)
+    private static SkillDto ToDto(SkillRecord skill, SkillCredentialRecord? row)
     {
         var actions = DeserializeActions(skill);
         var credFields = DeserializeCredentialFields(skill);

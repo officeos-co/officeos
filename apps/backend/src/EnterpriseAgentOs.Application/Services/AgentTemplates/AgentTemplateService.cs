@@ -70,7 +70,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
                 if (match is null) continue;
                 try
                 {
-                    await _channels.CreateBindingAsync(new EnterpriseAgentOs.Domain.Models.AgentChannelBindingRecord
+                    await _channels.CreateBindingAsync(new AgentChannelBindingRecord
                     {
                         AgentId = agent.Id,
                         ChannelConnectionId = match.Id,
@@ -99,7 +99,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
         return agent;
     }
 
-    internal static AgentTemplateDto ToDto(EnterpriseAgentOs.Domain.Models.AgentTemplateRecord record)
+    internal static AgentTemplateDto ToDto(AgentTemplateRecord record)
     {
         var integrations = Deserialize(record.IntegrationsJson);
         var channels = Deserialize(record.ChannelsJson);

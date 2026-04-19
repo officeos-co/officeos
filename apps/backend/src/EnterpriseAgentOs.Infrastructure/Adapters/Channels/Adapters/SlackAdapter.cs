@@ -58,7 +58,7 @@ public sealed class SlackAdapter : IChannelAdapter
         {
             Content = new StringContent(payload, Encoding.UTF8, "application/json"),
         };
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         await client.SendAsync(request, ct);
     }
 }

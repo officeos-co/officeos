@@ -2,20 +2,20 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class BrowserSessionRepository : IBrowserSessionRepository
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public BrowserSessionRepository(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db)
+    public BrowserSessionRepository(EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord?> GetByAgentAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<BrowserSessionRecord?> GetByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
         return await _db.BrowserSessions
             .FirstOrDefaultAsync(s => s.AgentId == agentId, ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.BrowserSessionRecord> UpsertAsync(Guid agentId, string runtimeSessionId, string? cookiesJson, CancellationToken ct = default)
+    public async Task<BrowserSessionRecord> UpsertAsync(Guid agentId, string runtimeSessionId, string? cookiesJson, CancellationToken ct = default)
     {
         var existing = await _db.BrowserSessions
             .FirstOrDefaultAsync(s => s.AgentId == agentId, ct);
@@ -28,7 +28,7 @@ public sealed class BrowserSessionRepository : IBrowserSessionRepository
         }
         else
         {
-            existing = new EnterpriseAgentOs.Domain.Models.BrowserSessionRecord
+            existing = new BrowserSessionRecord
             {
                 AgentId = agentId,
                 RuntimeSessionId = runtimeSessionId,

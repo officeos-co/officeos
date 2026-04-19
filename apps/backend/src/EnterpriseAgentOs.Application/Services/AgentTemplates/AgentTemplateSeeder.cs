@@ -46,7 +46,7 @@ public static class AgentTemplateSeeder
         var logger = services.GetRequiredService<ILogger<IAgentTemplateService>>();
         foreach (var s in Builtins)
         {
-            await repo.UpsertAsync(new EnterpriseAgentOs.Domain.Models.AgentTemplateRecord
+            await repo.UpsertAsync(new AgentTemplateRecord
             {
                 Name = s.Name,
                 Description = s.Description,

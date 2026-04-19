@@ -4,11 +4,11 @@ public sealed class ProviderService : IProviderService
 {
     private readonly IProviderRepository _repository;
     private readonly ProviderKeyProtector _protector;
-    private readonly EnterpriseAgentOs.Infrastructure.Configuration.PlatformKeysConfig _platformKeys;
+    private readonly PlatformKeysConfig _platformKeys;
     private readonly ILogger<ProviderService> _logger;
 
     public ProviderService(IProviderRepository repository, ProviderKeyProtector protector,
-        EnterpriseAgentOs.Infrastructure.Configuration.PlatformKeysConfig platformKeys, ILogger<ProviderService> logger)
+        PlatformKeysConfig platformKeys, ILogger<ProviderService> logger)
     {
         _repository = repository;
         _protector = protector;
@@ -23,7 +23,7 @@ public sealed class ProviderService : IProviderService
         return records.Select(ToDtoWithPlatform).ToList();
     }
 
-    private ProviderDto ToDtoWithPlatform(EnterpriseAgentOs.Domain.Models.ProviderRecord record)
+    private ProviderDto ToDtoWithPlatform(ProviderRecord record)
     {
         var configured = record.Configured || HasPlatformKey(record.Name);
         return new(record.Id, record.Name, record.DisplayName, configured, record.ConfiguredAt);
@@ -70,6 +70,6 @@ public sealed class ProviderService : IProviderService
         return _protector.Unprotect(record.EncryptedApiKey);
     }
 
-    private static ProviderDto ToDto(EnterpriseAgentOs.Domain.Models.ProviderRecord record) =>
+    private static ProviderDto ToDto(ProviderRecord record) =>
         new(record.Id, record.Name, record.DisplayName, record.Configured, record.ConfiguredAt);
 }

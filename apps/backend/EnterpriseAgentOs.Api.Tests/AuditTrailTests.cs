@@ -1,10 +1,10 @@
 namespace EnterpriseAgentOs.Api.Tests;
 
-public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public AuditTrailTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public AuditTrailTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
 
     // ─────────────────────────────────────────────────────────────────────────
     // 1. Successful skill execution → audit entry recorded
@@ -21,17 +21,17 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {"pages": ["page-1"]}}"""));
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var execResponse = await agent.SkillExecAsync("notion", "search", new { query = "hello" });
         Assert.Equal(HttpStatusCode.OK, execResponse.StatusCode);
 
         // Fetch audit log via dashboard GraphQL
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
             new { agentId, skip = 0, limit = 50 });
         var body = data.GetProperty("auditLog");
         var items = body.GetProperty("items");
@@ -62,12 +62,12 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {}}"""));
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
 
         // Pass params that include both a sensitive key and a safe key
         var execResponse = await agent.SkillExecAsync("notion", "search", new
@@ -78,7 +78,7 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
 
         // Execution may succeed or be rejected depending on schema validation;
         // either way an audit record must be written.
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
             new { agentId, skip = 0, limit = 50 });
         var body = data.GetProperty("auditLog");
         var items = body.GetProperty("items");
@@ -110,12 +110,12 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"error": "internal skill runtime error"}"""));
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
         var execResponse = await agent.SkillExecAsync("notion", "search", new { query = "fail" });
 
         // Execution should have resulted in a non-2xx from the backend
@@ -124,7 +124,7 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
             $"Expected a non-success or proxied-error response, got {status}");
 
         // Audit entry must still be present regardless
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
             new { agentId, skip = 0, limit = 50 });
         var body = data.GetProperty("auditLog");
         var total = body.GetProperty("total").GetInt32();
@@ -147,12 +147,12 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
     [Fact]
     public async Task AuditLog_RequiresDashboardAuth()
     {
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         // Unauthenticated client — no cookie
         var anonClient = _factory.CreateClient();
-        var raw = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLRawAsync(anonClient, AuditLogQuery,
+        var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(anonClient, AuditLogQuery,
             new { agentId, skip = 0, limit = 50 });
         // Dashboard GraphQL endpoint rejects unauthenticated calls via DashboardAuthMiddleware.
         // The response contains errors and auditLog is not resolved.
@@ -174,12 +174,12 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {}}"""));
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
 
         // Execute the skill 5 times to produce 5 audit entries
         for (var i = 0; i < 5; i++)
@@ -189,7 +189,7 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
         }
 
         // Request first page: limit=2, offset=0
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
             new { agentId, skip = 0, limit = 2 });
         var body = data.GetProperty("auditLog");
         var items = body.GetProperty("items");
@@ -214,20 +214,20 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {}}"""));
 
-        var dashClient = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
 
-        var agent1Id = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "isolation-agent-1");
-        var agent2Id = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "isolation-agent-2");
+        var agent1Id = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "isolation-agent-1");
+        var agent2Id = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "isolation-agent-2");
 
         await InstallAndConfigureNotionAsync(dashClient);
 
         // Execute skill only for agent 1
-        var agent1Client = new EnterpriseAgentOs.Api.Tests.Infrastructure.MockAgentClient(_factory.CreateClient(), agent1Id);
+        var agent1Client = new Infrastructure.MockAgentClient(_factory.CreateClient(), agent1Id);
         var execResponse = await agent1Client.SkillExecAsync("notion", "search", new { query = "agent1-query" });
         Assert.Equal(HttpStatusCode.OK, execResponse.StatusCode);
 
         // Agent 2's audit log should be empty
-        var data = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
+        var data = await Infrastructure.TestHelpers.GraphQLAsync(dashClient, AuditLogQuery,
             new { agentId = agent2Id, skip = 0, limit = 50 });
         var body = data.GetProperty("auditLog");
         var total = body.GetProperty("total").GetInt32();
@@ -287,8 +287,8 @@ public sealed class AuditTrailTests : IClassFixture<EnterpriseAgentOs.Api.Tests.
     /// </summary>
     private static async Task InstallAndConfigureNotionAsync(HttpClient dashClient)
     {
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
-        await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new Dictionary<string, string>
+        await Infrastructure.TestHelpers.InstallSkillAsync(dashClient, "notion");
+        await Infrastructure.TestHelpers.SetSkillCredentialsAsync(dashClient, "notion", new Dictionary<string, string>
         {
             ["apiKey"] = "test-notion-key",
         });

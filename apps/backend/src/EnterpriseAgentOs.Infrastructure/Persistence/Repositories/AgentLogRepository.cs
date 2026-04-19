@@ -2,11 +2,11 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class AgentLogRepository : IAgentLogRepository
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public AgentLogRepository(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db) => _db = db;
+    public AgentLogRepository(EaosDbContext db) => _db = db;
 
-    public async Task<List<EnterpriseAgentOs.Domain.Models.AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
+    public async Task<List<AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
     {
         var q = _db.AgentLogs.Where(l => l.AgentId == agentId);
         if (before.HasValue) q = q.Where(l => l.Time < before.Value);
@@ -14,7 +14,7 @@ public sealed class AgentLogRepository : IAgentLogRepository
     }
 
     public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
-        string? search, string? agentName, EnterpriseAgentOs.Domain.Models.AgentLogType? type, int skip, int limit, CancellationToken ct = default)
+        string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
     {
         var q = from l in _db.AgentLogs
                 join a in _db.Agents on l.AgentId equals a.Id
@@ -41,28 +41,28 @@ public sealed class AgentLogRepository : IAgentLogRepository
         return (rows.Select(x => new GlobalLogRow(x.Log, x.AgentName)).ToList(), total);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.AgentLogRecord> AppendAsync(EnterpriseAgentOs.Domain.Models.AgentLogRecord record, CancellationToken ct = default)
+    public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
         _db.AgentLogs.Add(record);
         await _db.SaveChangesAsync(ct);
         return record;
     }
 
-    public async Task AppendPairAsync(EnterpriseAgentOs.Domain.Models.AgentLogRecord toolCall, EnterpriseAgentOs.Domain.Models.AgentLogRecord toolResult, CancellationToken ct = default)
+    public async Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
     {
         _db.AgentLogs.Add(toolCall);
         _db.AgentLogs.Add(toolResult);
         await _db.SaveChangesAsync(ct);
     }
 
-    public Task<EnterpriseAgentOs.Domain.Models.AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => _db.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
 
-    public async Task<(List<EnterpriseAgentOs.Domain.Models.AgentLogRecord> Items, int Total)> GetToolCallsAsync(
+    public async Task<(List<AgentLogRecord> Items, int Total)> GetToolCallsAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
     {
         var query = _db.AgentLogs
-            .Where(r => r.AgentId == agentId && r.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.ToolCall)
+            .Where(r => r.AgentId == agentId && r.Type == AgentLogType.ToolCall)
             .OrderByDescending(r => r.Time);
 
         var total = await query.CountAsync(ct);
@@ -70,15 +70,15 @@ public sealed class AgentLogRepository : IAgentLogRepository
         return (items, total);
     }
 
-    public async Task<Dictionary<string, EnterpriseAgentOs.Domain.Models.AgentLogRecord>> GetResultsByCorrelationAsync(
+    public async Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(
         Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
     {
         if (correlationIds.Count == 0)
-            return new Dictionary<string, EnterpriseAgentOs.Domain.Models.AgentLogRecord>();
+            return new Dictionary<string, AgentLogRecord>();
 
         var rows = await _db.AgentLogs
             .Where(r => r.AgentId == agentId
-                        && r.Type == EnterpriseAgentOs.Domain.Models.AgentLogType.ToolResult
+                        && r.Type == AgentLogType.ToolResult
                         && r.CorrelationId != null
                         && correlationIds.Contains(r.CorrelationId))
             .ToListAsync(ct);

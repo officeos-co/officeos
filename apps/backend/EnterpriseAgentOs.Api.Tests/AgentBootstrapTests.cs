@@ -6,11 +6,11 @@ namespace EnterpriseAgentOs.Api.Tests;
 /// that gateway.host:gateway.port is a valid socket address (numeric IP, not
 /// a hostname).
 /// </summary>
-public sealed class AgentBootstrapTests : IClassFixture<EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory>
+public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
-    public AgentBootstrapTests(EnterpriseAgentOs.Api.Tests.Infrastructure.CustomWebApplicationFactory factory)
+    public AgentBootstrapTests(Infrastructure.CustomWebApplicationFactory factory)
         => _factory = factory;
 
     /// <summary>
@@ -33,9 +33,9 @@ public sealed class AgentBootstrapTests : IClassFixture<EnterpriseAgentOs.Api.Te
     [Fact]
     public async Task Bootstrap_GatewayHost_IsValidIpAddress()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers
+        var client = await Infrastructure.TestHelpers
             .CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers
+        var agentId = await Infrastructure.TestHelpers
             .CreateAgentAsync(client, "bootstrap-gateway-test", "ollama");
 
         var payload = await GetBootstrapPayloadAsync(client, agentId);
@@ -46,7 +46,7 @@ public sealed class AgentBootstrapTests : IClassFixture<EnterpriseAgentOs.Api.Te
         // The Rust agent does: format!("{host}:{port}").parse::<SocketAddr>()
         // This requires a numeric IP address, not a hostname.
         Assert.True(
-            System.Net.IPAddress.TryParse(host, out _),
+            IPAddress.TryParse(host, out _),
             $"Gateway host must be a numeric IP address parseable as SocketAddr, got \"{host}\"");
 
         Assert.True(
@@ -56,16 +56,16 @@ public sealed class AgentBootstrapTests : IClassFixture<EnterpriseAgentOs.Api.Te
         // End-to-end: the combined string must parse as a .NET IPEndPoint,
         // which mirrors Rust's SocketAddr parsing.
         Assert.True(
-            System.Net.IPEndPoint.TryParse($"{host}:{port}", out _),
+            IPEndPoint.TryParse($"{host}:{port}", out _),
             $"Gateway bind address \"{host}:{port}\" is not a valid socket address");
     }
 
     [Fact]
     public async Task Bootstrap_GatewayPort_Is42617()
     {
-        var client = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers
+        var client = await Infrastructure.TestHelpers
             .CreateAuthenticatedClientAsync(_factory);
-        var agentId = await EnterpriseAgentOs.Api.Tests.Infrastructure.TestHelpers
+        var agentId = await Infrastructure.TestHelpers
             .CreateAgentAsync(client, "bootstrap-port-test", "ollama");
 
         var payload = await GetBootstrapPayloadAsync(client, agentId);

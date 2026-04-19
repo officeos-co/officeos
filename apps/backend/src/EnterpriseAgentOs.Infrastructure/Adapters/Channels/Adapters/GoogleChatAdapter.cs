@@ -98,7 +98,7 @@ public sealed class GoogleChatAdapter : IChannelAdapter
         {
             Content = new StringContent(payload, Encoding.UTF8, "application/json"),
         };
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         await client.SendAsync(request, ct);
     }
 

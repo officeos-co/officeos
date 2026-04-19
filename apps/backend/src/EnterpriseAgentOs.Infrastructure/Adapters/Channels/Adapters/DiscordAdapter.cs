@@ -85,7 +85,7 @@ public sealed class DiscordAdapter : IChannelAdapter
         {
             Content = new StringContent(payload, Encoding.UTF8, "application/json"),
         };
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bot", token);
         await client.SendAsync(request, ct);
     }
 }

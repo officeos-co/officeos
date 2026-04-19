@@ -1,20 +1,20 @@
 namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
-public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces.Skills.ISkillCatalogRepository
+public sealed class SkillCatalogRepository : ISkillCatalogRepository
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public SkillCatalogRepository(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db)
+    public SkillCatalogRepository(EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.SkillRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<SkillRecord>> ListAsync(CancellationToken ct = default)
     {
         return await _db.Skills.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.SkillRecord>> ListActiveAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<SkillRecord>> ListActiveAsync(CancellationToken ct = default)
     {
         return await _db.Skills.AsNoTracking()
             .Where(s => s.Status == "active")
@@ -22,18 +22,18 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
             .ToListAsync(ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.SkillRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<SkillRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _db.Skills.FirstOrDefaultAsync(s => s.Id == id, ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
+    public async Task<SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
         return await _db.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.SkillRecord> UpsertAsync(EnterpriseAgentOs.Domain.Models.SkillRecord record, CancellationToken ct = default)
+    public async Task<SkillRecord> UpsertAsync(SkillRecord record, CancellationToken ct = default)
     {
         var existing = await _db.Skills.FirstOrDefaultAsync(s => s.Name == record.Name, ct);
         if (existing is null)
@@ -125,7 +125,7 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
         return names.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)
     {
         return await _db.SkillComments
             .AsNoTracking()
@@ -140,7 +140,7 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
         var existing = await _db.SkillLikes
             .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == userId, ct);
         if (existing is not null) return false;
-        _db.SkillLikes.Add(new EnterpriseAgentOs.Domain.Models.SkillLikeRecord { SkillId = skillId, UserId = userId });
+        _db.SkillLikes.Add(new SkillLikeRecord { SkillId = skillId, UserId = userId });
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -155,9 +155,9 @@ public sealed class SkillCatalogRepository : EnterpriseAgentOs.Domain.Interfaces
         return true;
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.SkillCommentRecord> AddCommentAsync(Guid skillId, Guid userId, string body, CancellationToken ct = default)
+    public async Task<SkillCommentRecord> AddCommentAsync(Guid skillId, Guid userId, string body, CancellationToken ct = default)
     {
-        var record = new EnterpriseAgentOs.Domain.Models.SkillCommentRecord
+        var record = new SkillCommentRecord
         {
             SkillId = skillId,
             UserId = userId,

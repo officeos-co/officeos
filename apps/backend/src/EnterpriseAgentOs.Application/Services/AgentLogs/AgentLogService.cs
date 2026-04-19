@@ -27,7 +27,7 @@ public sealed class AgentLogService : IAgentLogService
         _logger = logger;
     }
 
-    public Task<List<EnterpriseAgentOs.Domain.Models.AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
+    public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
         => _repo.ListAsync(agentId, before, limit, ct);
 
     public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default)
@@ -39,14 +39,14 @@ public sealed class AgentLogService : IAgentLogService
         return new GlobalLogsPage(items, total);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.AgentLogRecord> AppendAsync(EnterpriseAgentOs.Domain.Models.AgentLogRecord record, CancellationToken ct = default)
+    public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
         var saved = await _repo.AppendAsync(record, ct);
         await _sender.SendAsync($"agent-log:{saved.AgentId}", saved.ToDto(), ct);
         return saved;
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
+    public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
     {
         var agent = await _agents.GetAsync(agentId, ct)
             ?? throw new GraphQLException(
@@ -55,11 +55,11 @@ public sealed class AgentLogService : IAgentLogService
                     .SetCode("NOT_FOUND")
                     .Build());
 
-        var record = new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+        var record = new AgentLogRecord
         {
             AgentId = agent.Id,
             Time = DateTime.UtcNow,
-            Type = EnterpriseAgentOs.Domain.Models.AgentLogType.MessageIn,
+            Type = AgentLogType.MessageIn,
             Content = content,
             CorrelationId = Guid.NewGuid().ToString(),
         };
@@ -84,7 +84,7 @@ public sealed class AgentLogService : IAgentLogService
     // ── Pod kick ─────────────────────────────────────────────────────────
 
     private async Task KickAgentPodAsync(
-        EnterpriseAgentOs.Domain.Models.AgentRecord agent,
+        AgentRecord agent,
         string content,
         string correlationId,
         CancellationToken ct)
@@ -92,11 +92,11 @@ public sealed class AgentLogService : IAgentLogService
         if (string.IsNullOrEmpty(agent.PodName))
         {
             _logger.LogWarning("Agent {AgentId} has no pod deployed — message queued only", agent.Id);
-            await AppendAsync(new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+            await AppendAsync(new AgentLogRecord
             {
                 AgentId = agent.Id,
                 Time = DateTime.UtcNow,
-                Type = EnterpriseAgentOs.Domain.Models.AgentLogType.System,
+                Type = AgentLogType.System,
                 Content = "Agent pod not deployed, message queued",
                 CorrelationId = correlationId,
             }, ct);
@@ -117,7 +117,7 @@ public sealed class AgentLogService : IAgentLogService
                 text = content,
                 id = correlationId,
             });
-            var bytes = System.Text.Encoding.UTF8.GetBytes(payload);
+            var bytes = Encoding.UTF8.GetBytes(payload);
             await ws.SendAsync(
                 new ArraySegment<byte>(bytes),
                 System.Net.WebSockets.WebSocketMessageType.Text,
@@ -129,11 +129,11 @@ public sealed class AgentLogService : IAgentLogService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to deliver message to agent pod {PodName}", agent.PodName);
-            await AppendAsync(new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+            await AppendAsync(new AgentLogRecord
             {
                 AgentId = agent.Id,
                 Time = DateTime.UtcNow,
-                Type = EnterpriseAgentOs.Domain.Models.AgentLogType.Error,
+                Type = AgentLogType.Error,
                 Content = $"Failed to deliver message to agent pod: {ex.Message}",
                 CorrelationId = correlationId,
             }, ct);
@@ -156,22 +156,22 @@ public sealed class AgentLogService : IAgentLogService
         var correlationId = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
 
-        var toolCall = new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+        var toolCall = new AgentLogRecord
         {
             AgentId = agentId,
             Time = now,
-            Type = EnterpriseAgentOs.Domain.Models.AgentLogType.ToolCall,
+            Type = AgentLogType.ToolCall,
             Tool = action,
             Integration = skillName,
             Content = redacted,
             CorrelationId = correlationId,
         };
 
-        var toolResult = new EnterpriseAgentOs.Domain.Models.AgentLogRecord
+        var toolResult = new AgentLogRecord
         {
             AgentId = agentId,
             Time = now.AddMilliseconds(1),
-            Type = EnterpriseAgentOs.Domain.Models.AgentLogType.ToolResult,
+            Type = AgentLogType.ToolResult,
             Tool = action,
             Integration = skillName,
             Content = resultSummary ?? string.Empty,
@@ -184,13 +184,13 @@ public sealed class AgentLogService : IAgentLogService
         await _sender.SendAsync($"agent-log:{agentId}", toolResult.ToDto(), ct);
     }
 
-    public async Task<(List<EnterpriseAgentOs.Domain.Models.AgentLogRecord> Items, int Total)> GetAuditLogAsync(
+    public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
     {
         return await _repo.GetToolCallsAsync(agentId, limit, offset, ct);
     }
 
-    public async Task<Dictionary<string, EnterpriseAgentOs.Domain.Models.AgentLogRecord>> GetResultsByCorrelationAsync(
+    public async Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(
         Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
     {
         return await _repo.GetResultsByCorrelationAsync(agentId, correlationIds, ct);

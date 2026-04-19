@@ -69,7 +69,7 @@ public static class AnthropicTranslator
 
         // Build the request using Utf8JsonWriter so we can embed raw JsonElement values
         // (needed to preserve cache_control arrays in system and tools fields).
-        using var stream = new System.IO.MemoryStream();
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream);
 
         writer.WriteStartObject();

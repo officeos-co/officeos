@@ -98,7 +98,7 @@ public sealed class ChannelMessageRouter
         return responses;
     }
 
-    public Dictionary<string, string> GetDecryptedConfig(EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord connection)
+    public Dictionary<string, string> GetDecryptedConfig(ChannelConnectionRecord connection)
     {
         if (string.IsNullOrEmpty(connection.EncryptedConfig))
             return new Dictionary<string, string>();

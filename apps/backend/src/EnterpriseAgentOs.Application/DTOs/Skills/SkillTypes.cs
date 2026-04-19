@@ -31,11 +31,11 @@ public sealed record SkillCommentDto(
 
 internal static class SkillDashboardMapper
 {
-    public static SkillDashboardDto ToDto(EnterpriseAgentOs.Domain.Models.SkillRecord r) =>
+    public static SkillDashboardDto ToDto(SkillRecord r) =>
         new(r.Id, r.Name, r.Title, r.Description, r.Doc,
             r.Status, r.Version, r.CreatedAt, r.UpdatedAt);
 
-    public static SkillCommentDto ToDto(EnterpriseAgentOs.Domain.Models.SkillCommentRecord c) =>
+    public static SkillCommentDto ToDto(SkillCommentRecord c) =>
         new(c.Id, c.SkillId, c.Body, c.CreatedAt, c.UpdatedAt,
             new CommentAuthorDto(
                 c.User?.Id ?? c.UserId,

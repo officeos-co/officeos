@@ -14,7 +14,7 @@ public sealed class LlmProviderDispatcherTests
     {
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<LlmProviderDispatcher>.Instance);
+            NullLogger<LlmProviderDispatcher>.Instance);
 
         Assert.True(dispatcher.IsSupported(provider));
     }
@@ -24,7 +24,7 @@ public sealed class LlmProviderDispatcherTests
     {
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<LlmProviderDispatcher>.Instance);
+            NullLogger<LlmProviderDispatcher>.Instance);
 
         Assert.True(dispatcher.IsSupported("google"));
     }

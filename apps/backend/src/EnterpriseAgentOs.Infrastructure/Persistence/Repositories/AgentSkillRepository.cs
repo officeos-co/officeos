@@ -2,14 +2,14 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class AgentSkillRepository : IAgentSkillRepository
 {
-    private readonly EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext _db;
+    private readonly EaosDbContext _db;
 
-    public AgentSkillRepository(EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext db)
+    public AgentSkillRepository(EaosDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.AgentSkillRecord>> ListByAgentAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentSkillRecord>> ListByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
         return await _db.AgentSkills
             .AsNoTracking()
@@ -41,7 +41,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
             var normalized = name.Trim().ToLowerInvariant();
             if (existingSet.Contains(normalized)) continue;
 
-            _db.AgentSkills.Add(new EnterpriseAgentOs.Domain.Models.AgentSkillRecord
+            _db.AgentSkills.Add(new AgentSkillRecord
             {
                 AgentId = agentId,
                 SkillName = normalized,
@@ -65,7 +65,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
         return true;
     }
 
-    public async Task<IReadOnlyList<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord>> ListToolPermissionsAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(Guid agentId, CancellationToken ct = default)
     {
         return await _db.AgentToolPermissions
             .AsNoTracking()
@@ -73,9 +73,9 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
             .ToListAsync(ct);
     }
 
-    public async Task<EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord> UpsertToolPermissionAsync(
+    public async Task<AgentToolPermissionRecord> UpsertToolPermissionAsync(
         Guid agentId, string skillName, string toolName,
-        EnterpriseAgentOs.Domain.Models.ToolPermission permission, CancellationToken ct = default)
+        ToolPermission permission, CancellationToken ct = default)
     {
         var skill = skillName.Trim().ToLowerInvariant();
         var tool = toolName.Trim();
@@ -85,7 +85,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
 
         if (existing is null)
         {
-            existing = new EnterpriseAgentOs.Domain.Models.AgentToolPermissionRecord
+            existing = new AgentToolPermissionRecord
             {
                 AgentId = agentId,
                 SkillName = skill,
