@@ -26,6 +26,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISkillService, Application.Services.Skills.SkillService>();
         services.AddScoped<IWorkOsAuthService, WorkOsAuthService>();
         services.AddScoped<ChannelMessageRouter>();
+        services.AddSingleton<IChannelAdapter, EnterpriseAgentOs.Infrastructure.Adapters.Channels.Adapters.SlackAdapter>();
+        services.AddSingleton<IChannelAdapter, EnterpriseAgentOs.Infrastructure.Adapters.Channels.Adapters.TelegramAdapter>();
+        services.AddSingleton<IChannelAdapter, EnterpriseAgentOs.Infrastructure.Adapters.Channels.Adapters.DiscordAdapter>();
+        services.AddSingleton<IChannelAdapter, EnterpriseAgentOs.Infrastructure.Adapters.Channels.Adapters.WhatsAppAdapter>();
+        services.AddSingleton<IChannelAdapter, EnterpriseAgentOs.Infrastructure.Adapters.Channels.Adapters.TeamsAdapter>();
+        services.AddSingleton<IChannelAdapter, EnterpriseAgentOs.Infrastructure.Adapters.Channels.Adapters.GoogleChatAdapter>();
+        services.AddSingleton<ChannelAdapterRegistry>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IUserBillingService, Application.Services.Billing.UserBillingService>();
         services.AddScoped<IOrgBillingService, Application.Services.Billing.OrgBillingService>();

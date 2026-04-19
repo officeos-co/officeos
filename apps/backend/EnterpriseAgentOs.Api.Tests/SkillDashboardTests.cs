@@ -161,7 +161,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
         var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ channelTypes { type displayName logo } }");
         var types = data.GetProperty("channelTypes");
-        Assert.True(types.GetArrayLength() >= 7);
+        Assert.True(types.GetArrayLength() >= 6);
         var slack = types.EnumerateArray().First(t => t.GetProperty("type").GetString() == "slack");
         var logo = slack.GetProperty("logo").GetString();
         Assert.NotNull(logo);

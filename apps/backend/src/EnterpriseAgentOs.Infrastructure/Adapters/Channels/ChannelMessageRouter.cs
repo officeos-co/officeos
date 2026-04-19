@@ -7,17 +7,20 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.Channels;
 public sealed class ChannelMessageRouter
 {
     private readonly IChannelRepository _repo;
+    private readonly IAgentLogRepository _logRepo;
     private readonly ChannelConfigProtector _protector;
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<ChannelMessageRouter> _logger;
 
     public ChannelMessageRouter(
         IChannelRepository repo,
+        IAgentLogRepository logRepo,
         ChannelConfigProtector protector,
         IHttpClientFactory httpFactory,
         ILogger<ChannelMessageRouter> logger)
     {
         _repo = repo;
+        _logRepo = logRepo;
         _protector = protector;
         _httpFactory = httpFactory;
         _logger = logger;
@@ -57,10 +60,33 @@ public sealed class ChannelMessageRouter
                 continue;
             }
 
+            var correlationId = Guid.NewGuid().ToString("N");
+            var channelType = binding.ChannelConnection?.ChannelType ?? "unknown";
+
+            // Log inbound channel message
+            await _logRepo.AppendAsync(new AgentLogRecord
+            {
+                AgentId = binding.AgentId,
+                Type = AgentLogType.ChannelIn,
+                Channel = channelType,
+                Content = messageText,
+                CorrelationId = correlationId,
+            }, ct);
+
             try
             {
                 var response = await SendToAgentAsync(serviceUrl, messageText, ct);
                 responses[binding.AgentId] = response;
+
+                // Log outbound agent response
+                await _logRepo.AppendAsync(new AgentLogRecord
+                {
+                    AgentId = binding.AgentId,
+                    Type = AgentLogType.ChannelOut,
+                    Channel = channelType,
+                    Content = response,
+                    CorrelationId = correlationId,
+                }, ct);
             }
             catch (Exception ex)
             {
@@ -70,35 +96,6 @@ public sealed class ChannelMessageRouter
         }
 
         return responses;
-    }
-
-    /// <summary>
-    /// Send a reply back through the platform API.
-    /// </summary>
-    public async Task SendPlatformReplyAsync(
-        EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord connection,
-        string channelId,
-        string text,
-        CancellationToken ct = default)
-    {
-        var config = GetDecryptedConfig(connection);
-        var client = _httpFactory.CreateClient("channel-platform");
-
-        switch (connection.ChannelType.ToLowerInvariant())
-        {
-            case "slack":
-                await SendSlackReplyAsync(client, config, channelId, text, ct);
-                break;
-            case "telegram":
-                await SendTelegramReplyAsync(client, config, channelId, text, ct);
-                break;
-            case "discord":
-                // Discord uses interaction responses, handled inline in the webhook controller
-                break;
-            default:
-                _logger.LogWarning("Platform reply not implemented for channel type {Type}", connection.ChannelType);
-                break;
-        }
     }
 
     public Dictionary<string, string> GetDecryptedConfig(EnterpriseAgentOs.Domain.Models.ChannelConnectionRecord connection)
@@ -154,29 +151,4 @@ public sealed class ChannelMessageRouter
         return true;
     }
 
-    private static async Task SendSlackReplyAsync(
-        HttpClient client, Dictionary<string, string> config,
-        string channelId, string text, CancellationToken ct)
-    {
-        if (!config.TryGetValue("botToken", out var token)) return;
-
-        var payload = JsonSerializer.Serialize(new { channel = channelId, text });
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://slack.com/api/chat.postMessage")
-        {
-            Content = new StringContent(payload, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        await client.SendAsync(request, ct);
-    }
-
-    private static async Task SendTelegramReplyAsync(
-        HttpClient client, Dictionary<string, string> config,
-        string chatId, string text, CancellationToken ct)
-    {
-        if (!config.TryGetValue("botToken", out var token)) return;
-
-        var payload = JsonSerializer.Serialize(new { chat_id = chatId, text });
-        var content = new StringContent(payload, Encoding.UTF8, "application/json");
-        await client.PostAsync($"https://api.telegram.org/bot{token}/sendMessage", content, ct);
-    }
 }

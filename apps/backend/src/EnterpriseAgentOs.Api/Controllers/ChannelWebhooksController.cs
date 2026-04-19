@@ -1,9 +1,12 @@
 namespace EnterpriseAgentOs.Api.Controllers;
 
 /// <summary>
-/// Inbound webhook endpoints for each platform. These are unauthenticated
-/// (no session cookie required) — each platform has its own verification
-/// mechanism (signing secrets, tokens, etc).
+/// Generic inbound webhook endpoint for all channel platforms. Delegates to
+/// platform-specific <see cref="IChannelAdapter"/> implementations via the
+/// <see cref="ChannelAdapterRegistry"/>.
+///
+/// These endpoints are unauthenticated (no session cookie) — each platform
+/// has its own verification mechanism handled by its adapter.
 /// </summary>
 [ApiController]
 [Route("api/webhooks")]
@@ -11,201 +14,167 @@ public sealed class ChannelWebhooksController : ControllerBase
 {
     private readonly IChannelRepository _repo;
     private readonly ChannelMessageRouter _router;
-    private readonly ChannelConfigProtector _protector;
+    private readonly ChannelAdapterRegistry _adapters;
     private readonly ILogger<ChannelWebhooksController> _logger;
 
     public ChannelWebhooksController(
         IChannelRepository repo,
         ChannelMessageRouter router,
-        ChannelConfigProtector protector,
+        ChannelAdapterRegistry adapters,
         ILogger<ChannelWebhooksController> logger)
     {
         _repo = repo;
         _router = router;
-        _protector = protector;
+        _adapters = adapters;
         _logger = logger;
     }
 
-    // ======================== SLACK ========================
-
-    [HttpPost("slack/events")]
-    public async Task<IActionResult> SlackEvents(CancellationToken ct)
+    /// <summary>
+    /// Single webhook endpoint for all platforms.
+    /// Route: POST /api/webhooks/{platform}/{endpoint?}
+    ///
+    /// For platforms that include a connection ID in the URL (e.g. Telegram),
+    /// pass it as the endpoint parameter.
+    /// </summary>
+    [HttpPost("{platform}/{endpoint?}")]
+    public async Task<IActionResult> HandleWebhook(string platform, string? endpoint, CancellationToken ct)
     {
-        var body = await ReadBodyAsync();
-        var json = JsonSerializer.Deserialize<JsonElement>(body);
-
-        // Handle Slack URL verification challenge
-        if (json.TryGetProperty("type", out var typeProp) &&
-            typeProp.GetString() == "url_verification")
+        var adapter = _adapters.GetAdapter(platform);
+        if (adapter is null)
         {
-            var challenge = json.GetProperty("challenge").GetString();
-            return Ok(new { challenge });
+            _logger.LogWarning("No adapter registered for platform {Platform}", platform);
+            return NotFound();
         }
 
-        // Process event callbacks
-        if (typeProp.GetString() != "event_callback") return Ok();
+        // Read raw body once for signature verification + parsing
+        var rawBody = await ReadRawBodyAsync();
+        var json = JsonSerializer.Deserialize<JsonElement>(rawBody);
 
-        if (!json.TryGetProperty("event", out var eventObj)) return Ok();
-        var eventType = eventObj.TryGetProperty("type", out var et) ? et.GetString() : null;
-        if (eventType != "message") return Ok();
+        // Resolve the connection(s) to use
+        var connections = await ResolveConnectionsAsync(platform, endpoint, ct);
+        if (connections.Count == 0)
+        {
+            _logger.LogWarning("No matching {Platform} connection found", platform);
+            return Ok(); // Return 200 to avoid platform retries
+        }
 
-        // Ignore bot messages to prevent loops
-        if (eventObj.TryGetProperty("bot_id", out _)) return Ok();
-        if (eventObj.TryGetProperty("subtype", out _)) return Ok();
-
-        var text = eventObj.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "";
-        var channel = eventObj.TryGetProperty("channel", out var ch) ? ch.GetString() ?? "" : "";
-        var user = eventObj.TryGetProperty("user", out var u) ? u.GetString() ?? "" : "";
-
-        // Find matching channel connection by verifying signing secret
-        var connections = await _repo.ListConnectionsAsync(ct);
-        var slackConnections = connections.Where(c =>
-            c.ChannelType == "slack" && c.Enabled).ToList();
-
-        foreach (var connection in slackConnections)
+        foreach (var connection in connections)
         {
             var config = _router.GetDecryptedConfig(connection);
 
-            // Verify Slack signature if signing secret is configured
-            if (config.TryGetValue("signingSecret", out var signingSecret) &&
-                !string.IsNullOrEmpty(signingSecret))
+            // Extract headers for signature verification
+            var headers = Request.Headers.ToDictionary(
+                h => h.Key,
+                h => h.Value.ToString(),
+                StringComparer.OrdinalIgnoreCase);
+
+            // Verify platform-specific signature
+            if (!adapter.VerifySignature(rawBody, config, headers))
             {
-                if (!VerifySlackSignature(body, signingSecret))
-                    continue;
+                _logger.LogWarning("Signature verification failed for {Platform} connection {Id}",
+                    platform, connection.Id);
+                continue;
             }
 
-            var responses = await _router.RouteMessageAsync(connection.Id, user, text, ct);
+            // Parse the inbound message
+            var message = adapter.ParseInbound(json);
+            if (message is null)
+                return Ok();
+
+            // Handle platform verification challenges (Slack URL verification, Discord PING, etc.)
+            if (message.IsChallenge)
+            {
+                if (message.ChallengeResponse is not null)
+                {
+                    // Try to return as JSON if it's valid JSON, otherwise as plain text
+                    try
+                    {
+                        var challengeJson = JsonSerializer.Deserialize<JsonElement>(message.ChallengeResponse);
+                        return Ok(challengeJson);
+                    }
+                    catch
+                    {
+                        return Ok(new { challenge = message.ChallengeResponse });
+                    }
+                }
+                return Ok();
+            }
+
+            // Route message to bound agents
+            var responses = await _router.RouteMessageAsync(connection.Id, message.SenderIdentifier, message.Text, ct);
+
+            // Send replies back through the platform
+            var httpClient = HttpContext.RequestServices
+                .GetRequiredService<IHttpClientFactory>()
+                .CreateClient("channel-platform");
 
             foreach (var (_, responseText) in responses)
             {
-                await _router.SendPlatformReplyAsync(connection, channel, responseText, ct);
+                await adapter.SendReplyAsync(httpClient, config, message.ChannelId, responseText, ct);
             }
 
             return Ok();
         }
 
-        _logger.LogWarning("No matching Slack connection found for incoming event");
         return Ok();
     }
 
-    // ======================== TELEGRAM ========================
-
-    [HttpPost("telegram/{connectionId:guid}")]
-    public async Task<IActionResult> TelegramUpdate(Guid connectionId, CancellationToken ct)
+    /// <summary>
+    /// WhatsApp webhook verification (GET request with hub.verify_token challenge).
+    /// </summary>
+    [HttpGet("{platform}/{endpoint?}")]
+    public async Task<IActionResult> HandleWebhookVerification(
+        string platform,
+        string? endpoint,
+        [FromQuery(Name = "hub.mode")] string? hubMode,
+        [FromQuery(Name = "hub.verify_token")] string? hubVerifyToken,
+        [FromQuery(Name = "hub.challenge")] string? hubChallenge,
+        CancellationToken ct)
     {
-        var connection = await _repo.GetConnectionAsync(connectionId, ct);
-        if (connection is null || connection.ChannelType != "telegram" || !connection.Enabled)
+        if (hubMode != "subscribe" || string.IsNullOrEmpty(hubChallenge))
             return NotFound();
 
-        var body = await ReadBodyAsync();
-        var json = JsonSerializer.Deserialize<JsonElement>(body);
-
-        // Extract message from Telegram update
-        if (!json.TryGetProperty("message", out var message)) return Ok();
-        if (!message.TryGetProperty("text", out var textProp)) return Ok();
-
-        var text = textProp.GetString() ?? "";
-        var chatId = message.GetProperty("chat").GetProperty("id").GetInt64().ToString();
-        var fromId = message.TryGetProperty("from", out var from) &&
-                     from.TryGetProperty("id", out var fid)
-            ? fid.GetInt64().ToString()
-            : "";
-
-        var responses = await _router.RouteMessageAsync(connection.Id, fromId, text, ct);
-
-        foreach (var (_, responseText) in responses)
-        {
-            await _router.SendPlatformReplyAsync(connection, chatId, responseText, ct);
-        }
-
-        return Ok();
-    }
-
-    // ======================== DISCORD ========================
-
-    [HttpPost("discord")]
-    public async Task<IActionResult> DiscordInteraction(CancellationToken ct)
-    {
-        var body = await ReadBodyAsync();
-        var json = JsonSerializer.Deserialize<JsonElement>(body);
-
-        // Discord interaction type 1 = PING (verification)
-        if (json.TryGetProperty("type", out var typeProp) && typeProp.GetInt32() == 1)
-        {
-            return Ok(new { type = 1 });
-        }
-
-        // Type 2 = APPLICATION_COMMAND, type 3 = MESSAGE_COMPONENT
-        // For now, handle basic message-like interactions
-        if (!json.TryGetProperty("data", out var data)) return Ok();
-
-        var content = data.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
-        if (string.IsNullOrEmpty(content) && data.TryGetProperty("options", out var options))
-        {
-            // Try to extract from slash command options
-            var firstOpt = options.EnumerateArray().FirstOrDefault();
-            if (firstOpt.TryGetProperty("value", out var val))
-                content = val.GetString() ?? "";
-        }
-
-        var userId = json.TryGetProperty("member", out var member) &&
-                     member.TryGetProperty("user", out var discordUser) &&
-                     discordUser.TryGetProperty("id", out var uid)
-            ? uid.GetString() ?? ""
-            : "";
-
-        // Find Discord connections
-        var connections = await _repo.ListConnectionsAsync(ct);
-        var discordConnections = connections.Where(c =>
-            c.ChannelType == "discord" && c.Enabled).ToList();
-
-        foreach (var connection in discordConnections)
+        // Find the connection and check verify token
+        var connections = await ResolveConnectionsAsync(platform, endpoint, ct);
+        foreach (var connection in connections)
         {
             var config = _router.GetDecryptedConfig(connection);
-
-            // Verify Discord signature
-            if (config.TryGetValue("publicKey", out var publicKey) &&
-                !string.IsNullOrEmpty(publicKey))
+            if (config.TryGetValue("verifyToken", out var token) &&
+                string.Equals(token, hubVerifyToken, StringComparison.Ordinal))
             {
-                // Discord uses Ed25519 signatures — full implementation
-                // would verify here; for now we trust the request
-            }
-
-            var responses = await _router.RouteMessageAsync(connection.Id, userId, content, ct);
-
-            if (responses.Count > 0)
-            {
-                var responseText = string.Join("\n", responses.Values);
-                // Discord interaction response type 4 = CHANNEL_MESSAGE_WITH_SOURCE
-                return Ok(new { type = 4, data = new { content = responseText } });
+                return Ok(hubChallenge);
             }
         }
 
-        return Ok(new { type = 4, data = new { content = "No agent available to handle this message." } });
+        return Unauthorized();
     }
 
-    // ======================== Helpers ========================
-
-    private async Task<string> ReadBodyAsync()
+    private async Task<List<ChannelConnectionRecord>> ResolveConnectionsAsync(
+        string platform, string? endpoint, CancellationToken ct)
     {
-        using var reader = new StreamReader(Request.Body, Encoding.UTF8);
-        return await reader.ReadToEndAsync();
+        // If endpoint is a GUID, resolve directly (e.g. Telegram uses /telegram/{connectionId})
+        if (Guid.TryParse(endpoint, out var connectionId))
+        {
+            var connection = await _repo.GetConnectionAsync(connectionId, ct);
+            if (connection is not null && connection.Enabled &&
+                string.Equals(connection.ChannelType, platform, StringComparison.OrdinalIgnoreCase))
+            {
+                return [connection];
+            }
+            return [];
+        }
+
+        // Otherwise, find all enabled connections for this platform
+        var all = await _repo.ListConnectionsAsync(ct);
+        return all.Where(c =>
+            string.Equals(c.ChannelType, platform, StringComparison.OrdinalIgnoreCase) &&
+            c.Enabled).ToList();
     }
 
-    private bool VerifySlackSignature(string body, string signingSecret)
+    private async Task<byte[]> ReadRawBodyAsync()
     {
-        if (!Request.Headers.TryGetValue("X-Slack-Signature", out var signature) ||
-            !Request.Headers.TryGetValue("X-Slack-Request-Timestamp", out var timestamp))
-            return false;
-
-        var sig = signature.ToString();
-        var ts = timestamp.ToString();
-
-        var basestring = $"v0:{ts}:{body}";
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(signingSecret));
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(basestring));
-        var computed = $"v0={Convert.ToHexString(hash).ToLowerInvariant()}";
-
-        return string.Equals(sig, computed, StringComparison.OrdinalIgnoreCase);
+        using var ms = new MemoryStream();
+        await Request.Body.CopyToAsync(ms);
+        return ms.ToArray();
     }
 }

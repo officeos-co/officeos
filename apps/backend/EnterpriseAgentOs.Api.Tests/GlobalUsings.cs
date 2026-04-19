@@ -33,3 +33,5 @@ global using EnterpriseAgentOs.Infrastructure.Adapters.LlmProviders;
 global using EnterpriseAgentOs.Infrastructure.Adapters.Stripe;
 global using EnterpriseAgentOs.Infrastructure.Adapters.WorkOs;
 global using EnterpriseAgentOs.Application.Services.Billing;
+global using EnterpriseAgentOs.Infrastructure.Adapters.Channels;
+global using EnterpriseAgentOs.Domain.Interfaces.AgentLogs;
