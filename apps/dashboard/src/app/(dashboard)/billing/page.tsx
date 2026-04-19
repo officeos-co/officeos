@@ -12,8 +12,8 @@ import {
   CreditCardIcon,
   CalendarIcon,
   ExternalLinkIcon,
-  Loader2Icon,
 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { useBilling, useSetExtraUsageEnabled } from "@/features/manage"
 
@@ -26,12 +26,32 @@ export default function BillingPage() {
     if (error) toast.error("Failed to load billing", { description: error.message })
   }, [error])
 
-  if (loading) {
+  if (loading && !billing) {
     return (
       <>
         <PageHeader group="Manage" page="Billing" />
-        <div className="flex items-center justify-center py-20">
-          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+          <section>
+            <div className="flex items-center gap-4">
+              <Skeleton className="size-12 rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-32 mt-3" />
+          </section>
+          <Skeleton className="h-px w-full" />
+          <section>
+            <Skeleton className="h-4 w-24 mb-3" />
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-3 w-56 mt-1" />
+          </section>
+          <Skeleton className="h-px w-full" />
+          <section>
+            <Skeleton className="h-4 w-28 mb-3" />
+            <Skeleton className="h-8 w-full rounded-md" />
+          </section>
         </div>
       </>
     )

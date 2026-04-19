@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2Icon } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useProfile, useUpdateProfile, type NotificationPrefs } from "@/features/manage"
 
 export default function ProfilePage() {
@@ -79,12 +79,40 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <>
         <PageHeader group="Manage" page="Profile" />
-        <div className="flex items-center justify-center py-20">
-          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        <div className="flex flex-1 flex-col gap-8 p-4 pt-0 max-w-3xl mx-auto w-full">
+          <section>
+            <Skeleton className="h-5 w-16 mb-4" />
+            <div className="grid grid-cols-[1fr_1fr] gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <div className="flex items-center gap-3">
+                  <Skeleton className="size-10 rounded-full" />
+                  <Skeleton className="h-9 flex-1 rounded-md" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-full rounded-md" />
+              </div>
+            </div>
+          </section>
+          <Skeleton className="h-px w-full" />
+          <section>
+            <Skeleton className="h-5 w-20 mb-4" />
+            <Skeleton className="h-9 w-48 rounded-md" />
+          </section>
+          <Skeleton className="h-px w-full" />
+          <section>
+            <Skeleton className="h-5 w-28 mb-4" />
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-full rounded-md" />
+              <Skeleton className="h-8 w-full rounded-md" />
+            </div>
+          </section>
         </div>
       </>
     )

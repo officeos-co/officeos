@@ -14,7 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { PlusIcon, Trash2Icon, Loader2Icon } from "lucide-react"
+import { PlusIcon, Trash2Icon } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   useOrganization,
   useInviteMember,
@@ -57,12 +58,24 @@ export default function TeamPage() {
     }
   }
 
-  if (loading) {
+  if (loading && !organization) {
     return (
       <>
         <PageHeader group="Manage" page="Team" />
-        <div className="flex items-center justify-center py-20">
-          <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+        <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+          <section>
+            <Skeleton className="h-4 w-24 mb-3" />
+            <Skeleton className="h-9 w-64 rounded-md" />
+          </section>
+          <Skeleton className="h-px w-full" />
+          <section>
+            <Skeleton className="h-4 w-28 mb-3" />
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-md" />
+              ))}
+            </div>
+          </section>
         </div>
       </>
     )
