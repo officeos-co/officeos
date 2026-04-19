@@ -54,9 +54,14 @@ export default function ProfilePage() {
       await updateProfile({
         name: fullName,
         displayName,
-        timezone,
+        timezone: timezone || null,
         preferences,
         notificationPrefs: prefs,
+      })
+      toast.success("Profile saved")
+    } catch (err) {
+      toast.error("Failed to save profile", {
+        description: err instanceof Error ? err.message : "Unknown error",
       })
     } finally {
       setSaving(false)
@@ -66,7 +71,12 @@ export default function ProfilePage() {
   async function updatePref(key: keyof NotificationPrefs, value: boolean) {
     const next = { ...prefs, [key]: value }
     setPrefs(next)
-    await updateProfile({ notificationPrefs: next })
+    try {
+      await updateProfile({ notificationPrefs: next })
+    } catch {
+      setPrefs(prefs)
+      toast.error("Failed to update notification preference")
+    }
   }
 
   if (loading) {
@@ -132,7 +142,7 @@ export default function ProfilePage() {
 
             <div className="space-y-2">
               <Label>Timezone</Label>
-              <Select value={timezone} onValueChange={(v) => { if (v) setTimezone(v) }}>
+              <Select value={timezone || undefined} onValueChange={(v) => { if (v) setTimezone(v) }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select your timezone" />
                 </SelectTrigger>

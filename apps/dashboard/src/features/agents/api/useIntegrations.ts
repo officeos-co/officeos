@@ -18,6 +18,22 @@ const SKILLS_QUERY = gql`
       likes
       likedByMe
       commentsCount
+      version
+      license
+      repository
+      requiresApproval
+      categories
+      keywords
+      readme
+      changelog
+      author {
+        name
+        url
+      }
+      contributors {
+        name
+        url
+      }
       tools {
         name
         description
