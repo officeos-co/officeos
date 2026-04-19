@@ -2,6 +2,7 @@
 
 import { gql, useMutation, useQuery } from "@apollo/client"
 import type { Integration } from "../data/integrations"
+import { sanitizeSvg } from "@/lib/sanitize-svg"
 
 const SKILLS_QUERY = gql`
   query Skills {
@@ -140,7 +141,7 @@ export function useIntegrations(): {
     id: s.id,
     name: s.title ?? s.name,
     slug: s.name,
-    logo: s.logo ?? "",
+    logo: sanitizeSvg(s.logo ?? ""),
     description: s.description ?? "",
     likes: s.likes,
     likedByMe: s.likedByMe,

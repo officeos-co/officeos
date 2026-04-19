@@ -2,6 +2,7 @@
 
 import { gql, useMutation, useQuery } from "@apollo/client"
 import type { Channel } from "../data/channels"
+import { sanitizeSvg } from "@/lib/sanitize-svg"
 
 const CHANNELS_QUERY = gql`
   query ChannelsAndTypes {
@@ -65,7 +66,7 @@ export function useChannels(): {
   const channels: Channel[] = types.map((t) => ({
     name: t.displayName,
     slug: t.type,
-    logo: t.logo ?? "",
+    logo: sanitizeSvg(t.logo ?? ""),
     description: t.description ?? "",
     protocol: "",
     capabilities: [],
