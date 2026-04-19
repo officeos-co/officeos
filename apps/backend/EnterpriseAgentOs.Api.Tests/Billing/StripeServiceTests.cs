@@ -27,8 +27,11 @@ public sealed class StripeServiceTests
         Enabled = enabled,
     };
 
-    private static OrgBillingService CreateOrgService(EaosDbContext? db = null) =>
-        new(CreateConfig(), db ?? CreateDb(), NullLogger<OrgBillingService>.Instance);
+    private static OrgBillingService CreateOrgService(EaosDbContext? db = null)
+    {
+        var context = db ?? CreateDb();
+        return new(CreateConfig(), new OrgSubscriptionRepository(context), NullLogger<OrgBillingService>.Instance);
+    }
 
     private static StripeWebhookService CreateWebhookService(EaosDbContext? db = null) =>
         new(CreateConfig(), db ?? CreateDb(), NullLogger<StripeWebhookService>.Instance);
@@ -105,14 +108,14 @@ public sealed class StripeServiceTests
     [InlineData("claude-opus-4-6", 1000, 75000)]    // weight 75
     public void ModelCostWeights_ToCredits_AppliesCorrectMultiplier(string model, long rawTokens, long expectedCredits)
     {
-        var credits = ModelCostWeights.ToCredits(model, rawTokens);
+        var credits = EnterpriseAgentOs.Domain.Services.ModelCostWeights.ToCredits(model, rawTokens);
         Assert.Equal(expectedCredits, credits);
     }
 
     [Fact]
     public void ModelCostWeights_UnknownModel_DefaultsToSonnetWeight()
     {
-        var credits = ModelCostWeights.ToCredits("unknown-model", 1000);
+        var credits = EnterpriseAgentOs.Domain.Services.ModelCostWeights.ToCredits("unknown-model", 1000);
         Assert.Equal(20_000, credits); // default weight = 20
     }
 

@@ -76,17 +76,9 @@ public class BillingQueries
     public IReadOnlyList<Types.ModelCostWeightDto> GetModelCostWeights(IResolverContext context)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        // Mirrors the internal Weights dict in ModelCostWeights — dashboard-facing.
-        return new[]
-        {
-            new Types.ModelCostWeightDto("gpt-4o-mini", 1),
-            new Types.ModelCostWeightDto("gemini-2.5-flash", 1),
-            new Types.ModelCostWeightDto("claude-haiku-4-5", 5),
-            new Types.ModelCostWeightDto("gemini-2.5-pro", 8),
-            new Types.ModelCostWeightDto("gpt-4o", 15),
-            new Types.ModelCostWeightDto("claude-sonnet-4-6", 20),
-            new Types.ModelCostWeightDto("claude-opus-4-6", 75),
-        };
+        return ModelCostWeights.GetWeights()
+            .Select(kv => new Types.ModelCostWeightDto(kv.Key, kv.Value))
+            .ToList();
     }
 
     /// <summary>
@@ -109,9 +101,7 @@ public class BillingQueries
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         var invoices = await userBilling.ListInvoicesAsync(user.Id, ct);
-        var planDescription = sub.Plan == "pro"
-            ? "3 concurrent agents, 10M credits/month"
-            : "1 concurrent agent, 500k credits/month";
+        var planDescription = PlanLimits.ForIndividualPlan(sub.Plan).Description;
         var result = new Types.BillingPayload(
             sub.Plan,
             planDescription,

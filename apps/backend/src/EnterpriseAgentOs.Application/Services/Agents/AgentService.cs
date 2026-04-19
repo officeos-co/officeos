@@ -72,7 +72,7 @@ public sealed class AgentService : IAgentService
     {
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
-        var isKeyless = IsKeylessProvider(request.Provider);
+        var isKeyless = Domain.Services.KnownProviders.IsKeyless(request.Provider);
         if (!isKeyless)
         {
             var apiKey = await _providerService.GetDecryptedKeyAsync(request.Provider, ct);
@@ -87,23 +87,12 @@ public sealed class AgentService : IAgentService
         {
             Name = request.Name.Trim(),
             Provider = request.Provider.Trim().ToLowerInvariant(),
-            Model = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim(),
             Status = "pending",
             OwnerId = ownerId,
             Prompt = string.IsNullOrWhiteSpace(request.Prompt) ? null : request.Prompt,
         };
 
-        if (record.Model is null)
-        {
-            record.Model = "auto";
-        }
-        else if (!Providers.KnownModels.IsValid(record.Model))
-        {
-            var allowed = string.Join(", ", Providers.KnownModels.SupportedModels);
-            throw new InvalidOperationException(
-                $"Model '{record.Model}' is not a known model. " +
-                $"Allowed: {allowed}");
-        }
+        record.ValidateAndSetModel(request.Model);
 
         await _repository.AddAsync(record, ct);
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
@@ -113,16 +102,14 @@ public sealed class AgentService : IAgentService
         {
             var deployment = await _deployer.DeployAsync(record.Id, ct);
 
-            record.PodName = deployment.PodName;
-            record.ServiceUrl = deployment.ServiceUrl;
-            record.Status = "running";
+            record.MarkDeployed(deployment.PodName, deployment.ServiceUrl);
             await _repository.UpdateAsync(record, ct);
             _logger.LogInformation("Agent {AgentId} deployed as pod {PodName}", record.Id, record.PodName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to deploy agent {AgentId}", record.Id);
-            record.Status = "failed";
+            record.MarkFailed();
             await _repository.UpdateAsync(record, ct);
         }
 
@@ -160,7 +147,7 @@ public sealed class AgentService : IAgentService
         if (!string.IsNullOrWhiteSpace(request.Provider))
         {
             var provider = request.Provider.Trim().ToLowerInvariant();
-            if (!IsKeylessProvider(provider))
+            if (!Domain.Services.KnownProviders.IsKeyless(provider))
             {
                 var key = await _providerService.GetDecryptedKeyAsync(provider, ct);
                 if (key is null)
@@ -174,13 +161,7 @@ public sealed class AgentService : IAgentService
 
         if (request.Model is not null)
         {
-            var model = request.Model.Trim();
-            if (model.Length > 0 && !Providers.KnownModels.IsValid(model))
-            {
-                throw new InvalidOperationException(
-                    $"Model '{model}' is not a known model.");
-            }
-            record.Model = model.Length > 0 ? model : "auto";
+            record.ValidateAndSetModel(request.Model);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Name))
@@ -210,10 +191,10 @@ public sealed class AgentService : IAgentService
 
         _logger.LogInformation("Deleting agent {AgentId} ({AgentName})", id, record.Name);
 
-        if (!string.IsNullOrEmpty(record.PodName))
+        if (record.HasPod)
         {
             _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", record.PodName, id);
-            await _deployer.RemoveAsync(record.PodName, ct);
+            await _deployer.RemoveAsync(record.PodName!, ct);
         }
 
         var deleted = await _repository.SoftDeleteAsync(id, ct);
@@ -234,7 +215,7 @@ public sealed class AgentService : IAgentService
 
     private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(record.PodName)) return;
+        if (!record.HasPod) return;
         try
         {
             var live = await _deployer.GetStatusAsync(record.PodName, ct);
@@ -249,18 +230,6 @@ public sealed class AgentService : IAgentService
             _logger.LogWarning(ex, "Failed to refresh status for agent {AgentId}", record.Id);
         }
     }
-
-    /// <summary>
-    /// Providers that do NOT require a BYOK API key in the database.
-    /// </summary>
-    private static readonly HashSet<string> KeylessProviders =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "ollama", "anthropic", "google", "xai", "openai",
-        };
-
-    private static bool IsKeylessProvider(string name) =>
-        KeylessProviders.Contains(name);
 
     private static AgentDto ToDto(AgentRecord record) =>
         new(record.Id, record.Name, record.Provider, record.Model, record.Prompt, record.Status,

@@ -20,8 +20,9 @@ public class AgentAuthInterceptor : DefaultHttpRequestInterceptor
             throw new GraphQLException("Invalid agent token format.");
         }
 
-        var db = context.RequestServices.GetRequiredService<EaosDbContext>();
-        var exists = await db.Agents.AnyAsync(a => a.Id == agentId && !a.IsDeleted, cancellationToken);
+        var repo = context.RequestServices.GetRequiredService<IAgentRepository>();
+        var agent = await repo.GetAsync(agentId, cancellationToken);
+        var exists = agent is not null && !agent.IsDeleted;
         if (!exists)
         {
             throw new GraphQLException("Agent not found.");

@@ -15,7 +15,8 @@ dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
 ```
 EnterpriseAgentOs.sln
 ├── src/EnterpriseAgentOs.Domain/          ← ZERO dependencies
-│   ├── Models/                             EF record types (source of truth for DB schema)
+│   ├── Models/                             EF record types with domain logic (factory methods, validation, state transitions)
+│   ├── Services/                           Pure domain services (KnownModels, KnownProviders, ModelCostWeights)
 │   ├── Interfaces/<Domain>/                Repository + service contracts
 │   ├── DTOs/<Domain>/                      Types referenced by interfaces (AgentDto, PlanLimits, etc.)
 │   └── GlobalUsings.cs
@@ -77,10 +78,11 @@ EnterpriseAgentOs.sln
 ## Where does new code go? (Decision tree)
 
 1. **Is it a pure data contract or interface?** → Domain (`Interfaces/<Domain>/` or `DTOs/<Domain>/`)
-2. **Is it business logic / orchestration?** → Application (`Services/<Domain>/`)
-3. **Does it talk to a database, external API, or OS?** → Infrastructure (`Persistence/Repositories/`, `Adapters/<SubDir>/`, `Security/`)
-4. **Is it an HTTP endpoint, GraphQL resolver, or middleware?** → Api (`Controllers/`, `GraphQL/`, `Middleware/`)
-5. **Is it a typed config class?** → Infrastructure (`Configuration/`)
+2. **Is it a pure business rule with no dependencies (validation, state machine, cost calculation)?** → Domain (`Models/` method or `Services/`)
+3. **Is it business logic / orchestration that coordinates I/O?** → Application (`Services/<Domain>/`)
+4. **Does it talk to a database, external API, or OS?** → Infrastructure (`Persistence/Repositories/`, `Adapters/<SubDir>/`, `Security/`)
+5. **Is it an HTTP endpoint, GraphQL resolver, or middleware?** → Api (`Controllers/`, `GraphQL/`, `Middleware/`)
+6. **Is it a typed config class?** → Infrastructure (`Configuration/`)
 
 ## GraphQL conventions
 

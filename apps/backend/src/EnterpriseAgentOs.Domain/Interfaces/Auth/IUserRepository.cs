@@ -12,4 +12,5 @@ public interface IUserRepository
         string? notificationPrefsJson,
         string? preferences,
         CancellationToken ct = default);
+    Task DeleteAsync(Guid id, CancellationToken ct = default);
 }

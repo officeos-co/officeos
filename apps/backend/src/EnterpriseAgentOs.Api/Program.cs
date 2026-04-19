@@ -112,6 +112,11 @@ builder.Services.AddSingleton(frontendConfig);
 // LLM
 builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
+// Session auth — configurable skip prefixes
+var sessionAuthConfig = new SessionAuthConfig();
+envSection.GetSection("SessionAuth").Bind(sessionAuthConfig);
+builder.Services.AddSingleton(sessionAuthConfig);
+
 // PostHog — server owns the API key; dashboard calls use-case-specific track* mutations
 var postHogConfig = new PostHogConfig();
 envSection.GetSection("PostHog").Bind(postHogConfig);
@@ -162,7 +167,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
-    await EnterpriseAgentOs.Application.Services.Providers.ProviderSeeder.SeedAsync(db);
+    var providerRepo = scope.ServiceProvider.GetRequiredService<IProviderRepository>();
+    await EnterpriseAgentOs.Application.Services.Providers.ProviderSeeder.SeedAsync(providerRepo);
     await EnterpriseAgentOs.Application.Services.Skills.SkillSeeder.SeedAsync(scope.ServiceProvider);
     await EnterpriseAgentOs.Application.Services.AgentTemplates.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }

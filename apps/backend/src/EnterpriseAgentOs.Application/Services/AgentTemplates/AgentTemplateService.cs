@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace EnterpriseAgentOs.Application.Services.AgentTemplates;
 
 public sealed class AgentTemplateService : IAgentTemplateService

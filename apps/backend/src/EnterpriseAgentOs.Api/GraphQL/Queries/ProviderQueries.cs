@@ -18,18 +18,18 @@ public class ProviderQueries
         IResolverContext context)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return Application.Services.Providers.KnownModels.For(providerName);
+        return Domain.Services.KnownModels.For(providerName);
     }
 
     public IReadOnlyList<Types.ModelInfoDto> GetSupportedModels(
         IResolverContext context)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return Application.Services.Providers.KnownModels.SupportedModels
+        return Domain.Services.KnownModels.SupportedModels
             .Select(m => new Types.ModelInfoDto(
                 m,
-                Application.Services.Providers.KnownModels.GetDisplayName(m),
-                m == Application.Services.Providers.KnownModels.DefaultModel))
+                Domain.Services.KnownModels.GetDisplayName(m),
+                m == Domain.Services.KnownModels.DefaultModel))
             .ToList();
     }
 }

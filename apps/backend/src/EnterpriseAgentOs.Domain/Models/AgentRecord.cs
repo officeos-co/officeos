@@ -37,4 +37,43 @@ public sealed class AgentRecord
     /// deploy time via the <c>ZEROCLAW_SKILLS_BACKEND_TOKEN</c> env var.
     /// </summary>
     public string? EncryptedBackendToken { get; set; }
+
+    // ── Domain logic ─────────────────────────────────────────────────────────
+
+    /// <summary>Whether this agent has a deployed pod.</summary>
+    public bool HasPod => !string.IsNullOrEmpty(PodName);
+
+    /// <summary>Marks the agent as successfully deployed.</summary>
+    public void MarkDeployed(string podName, string serviceUrl)
+    {
+        PodName = podName;
+        ServiceUrl = serviceUrl;
+        Status = "running";
+    }
+
+    /// <summary>Marks the agent as failed to deploy.</summary>
+    public void MarkFailed()
+    {
+        Status = "failed";
+    }
+
+    /// <summary>Validates and sets the model, defaulting to "auto" if null/empty.</summary>
+    public void ValidateAndSetModel(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            Model = Services.KnownModels.DefaultModel;
+            return;
+        }
+
+        var trimmed = model.Trim();
+        if (!Services.KnownModels.IsValid(trimmed))
+        {
+            var allowed = string.Join(", ", Services.KnownModels.SupportedModels);
+            throw new InvalidOperationException(
+                $"Model '{trimmed}' is not a known model. Allowed: {allowed}");
+        }
+
+        Model = trimmed;
+    }
 }

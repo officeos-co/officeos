@@ -4,38 +4,22 @@ public sealed class SessionAuthMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<SessionAuthMiddleware> _logger;
+    private readonly string[] _skipPrefixes;
 
     private static readonly TimeSpan SessionCacheTtl = TimeSpan.FromMinutes(5);
 
-    private static readonly string[] SkipPrefixes =
-    [
-        "/api/auth/google",
-        "/api/auth/callback",
-        "/api/auth/logout",
-        "/api/health",
-        "/healthz",
-        "/api/graphql",
-        "/api/agents/me/",
-        "/api/runner/register",
-        "/api/runner/jobs",
-        "/api/runner/heartbeat",
-        "/api/runner/skills",
-        "/api/runner/device/code",
-        "/api/runner/device/token",
-        "/api/billing/webhook",
-    ];
-
-    public SessionAuthMiddleware(RequestDelegate next, ILogger<SessionAuthMiddleware> logger)
+    public SessionAuthMiddleware(RequestDelegate next, ILogger<SessionAuthMiddleware> logger, SessionAuthConfig config)
     {
         _next = next;
         _logger = logger;
+        _skipPrefixes = config.SkipPrefixes;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "";
 
-        if (SkipPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        if (_skipPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
         {
             await _next(context);
             return;

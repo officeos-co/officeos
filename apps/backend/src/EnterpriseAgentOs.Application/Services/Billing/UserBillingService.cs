@@ -4,33 +4,32 @@ public sealed class UserBillingService : IUserBillingService
 {
     private readonly StripeConfig _config;
     private readonly FrontendConfig _frontend;
-    private readonly EaosDbContext _db;
+    private readonly IUserSubscriptionRepository _repo;
     private readonly ILogger<UserBillingService> _logger;
 
     public UserBillingService(
         StripeConfig config,
         FrontendConfig frontend,
-        EaosDbContext db,
+        IUserSubscriptionRepository repo,
         ILogger<UserBillingService> logger)
     {
         _config = config;
         _frontend = frontend;
-        _db = db;
+        _repo = repo;
         _logger = logger;
         StripeConfiguration.ApiKey = _config.SecretKey;
     }
 
     public async Task<UserSubscription> GetSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
-        return sub ?? DefaultFree(userId);
+        var sub = await _repo.GetByUserIdAsync(userId, ct);
+        return sub ?? UserSubscription.CreateDefaultFree(userId);
     }
 
     public async Task<(long Remaining, bool OverBudget)> CheckCreditBudgetAsync(Guid userId, CancellationToken ct = default)
     {
         var sub = await GetSubscriptionAsync(userId, ct);
-        var remaining = sub.CreditBudgetPerMonth - sub.CreditsUsedThisMonth;
-        return (remaining, remaining < 0);
+        return sub.CheckBudget();
     }
 
     public async Task<string> CreateCheckoutSessionAsync(
@@ -79,11 +78,11 @@ public sealed class UserBillingService : IUserBillingService
 
     public async Task EnableOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default)
     {
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        var sub = await _repo.GetByUserIdAsync(userId, ct);
         if (sub is null)
         {
-            sub = DefaultFree(userId);
-            await _db.UserSubscriptions.AddAsync(sub, ct);
+            sub = UserSubscription.CreateDefaultFree(userId);
+            await _repo.AddAsync(sub, ct);
         }
 
         if (enabled)
@@ -131,13 +130,13 @@ public sealed class UserBillingService : IUserBillingService
             _logger.LogInformation("Overage disabled for user {UserId}", userId);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _repo.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
         Guid userId, CancellationToken ct = default)
     {
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        var sub = await _repo.GetByUserIdAsync(userId, ct);
         if (sub?.StripeCustomerId is null || !_config.Enabled)
         {
             return Array.Empty<InvoicePayload>();
@@ -165,8 +164,7 @@ public sealed class UserBillingService : IUserBillingService
 
     private async Task<string> GetOrCreateCustomerAsync(Guid userId, string email, CancellationToken ct)
     {
-        var existing = await _db.UserSubscriptions
-            .FirstOrDefaultAsync(s => s.UserId == userId && s.StripeCustomerId != null, ct);
+        var existing = await _repo.GetByUserIdAsync(userId, ct);
 
         if (existing?.StripeCustomerId is not null)
             return existing.StripeCustomerId;
@@ -181,32 +179,16 @@ public sealed class UserBillingService : IUserBillingService
 
         _logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
 
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        var sub = await _repo.GetByUserIdAsync(userId, ct);
         if (sub is null)
         {
-            sub = DefaultFree(userId);
-            await _db.UserSubscriptions.AddAsync(sub, ct);
+            sub = UserSubscription.CreateDefaultFree(userId);
+            await _repo.AddAsync(sub, ct);
         }
         sub.StripeCustomerId = customer.Id;
-        await _db.SaveChangesAsync(ct);
+        await _repo.SaveChangesAsync(ct);
 
         return customer.Id;
     }
 
-    private static UserSubscription DefaultFree(Guid userId)
-    {
-        var limits = PlanLimits.IndividualFree;
-        var now = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        return new UserSubscription
-        {
-            UserId = userId,
-            Plan = limits.Plan,
-            BillingCycle = "monthly",
-            ConcurrentAgentLimit = limits.ConcurrentAgents,
-            CreditBudgetPerMonth = limits.CreditsPerMonth,
-            PeriodStart = now,
-            PeriodEnd = now.AddMonths(1),
-            IsActive = true,
-        };
-    }
 }

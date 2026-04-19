@@ -1,3 +1,6 @@
+using System.Net.WebSockets;
+using System.Text;
+
 namespace EnterpriseAgentOs.Infrastructure.Adapters.Channels;
 
 /// <summary>
@@ -9,20 +12,17 @@ public sealed class ChannelMessageRouter
     private readonly IChannelRepository _repo;
     private readonly IAgentLogRepository _logRepo;
     private readonly ChannelConfigProtector _protector;
-    private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<ChannelMessageRouter> _logger;
 
     public ChannelMessageRouter(
         IChannelRepository repo,
         IAgentLogRepository logRepo,
         ChannelConfigProtector protector,
-        IHttpClientFactory httpFactory,
         ILogger<ChannelMessageRouter> logger)
     {
         _repo = repo;
         _logRepo = logRepo;
         _protector = protector;
-        _httpFactory = httpFactory;
         _logger = logger;
     }
 
@@ -75,7 +75,7 @@ public sealed class ChannelMessageRouter
 
             try
             {
-                var response = await SendToAgentAsync(serviceUrl, messageText, ct);
+                var response = await SendToAgentAsync(serviceUrl, binding.AgentId, messageText, ct);
                 responses[binding.AgentId] = response;
 
                 // Log outbound agent response
@@ -108,24 +108,74 @@ public sealed class ChannelMessageRouter
             ?? new Dictionary<string, string>();
     }
 
-    private async Task<string> SendToAgentAsync(string serviceUrl, string message, CancellationToken ct)
+    private static readonly TimeSpan WsTimeout = TimeSpan.FromMinutes(3);
+
+    private async Task<string> SendToAgentAsync(string serviceUrl, Guid agentId, string message, CancellationToken ct)
     {
-        var client = _httpFactory.CreateClient("agent-proxy");
-        var chatUrl = $"{serviceUrl.TrimEnd('/')}/api/chat";
+        // serviceUrl is like "ws://zeroclaw-abc12345.default.svc.cluster.local:42617/ws/chat"
+        var uri = new Uri(serviceUrl.TrimEnd('/'));
+        var wsUri = new Uri($"{uri}?token={agentId}");
 
-        var payload = JsonSerializer.Serialize(new { message });
-        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+        using var ws = new ClientWebSocket();
+        ws.Options.AddSubProtocol("zeroclaw.v1");
 
-        var response = await client.PostAsync(chatUrl, content, ct);
-        response.EnsureSuccessStatusCode();
+        using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        connectCts.CancelAfter(TimeSpan.FromSeconds(10));
+        await ws.ConnectAsync(wsUri, connectCts.Token);
 
-        var body = await response.Content.ReadAsStringAsync(ct);
-        var result = JsonSerializer.Deserialize<JsonElement>(body);
+        // Send user_message
+        var turnId = Guid.NewGuid().ToString("N");
+        var outbound = JsonSerializer.Serialize(new
+        {
+            type = "user_message",
+            text = message,
+            id = turnId,
+        });
+        var sendBytes = Encoding.UTF8.GetBytes(outbound);
+        await ws.SendAsync(sendBytes, WebSocketMessageType.Text, true, ct);
 
-        return result.TryGetProperty("response", out var resp)
-            ? resp.GetString() ?? ""
-            : body;
+        // Collect assistant_delta chunks until turn_complete
+        var responseBuilder = new StringBuilder();
+        var buffer = new byte[8 * 1024];
+
+        using var turnCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        turnCts.CancelAfter(WsTimeout);
+
+        while (ws.State == WebSocketState.Open)
+        {
+            var result = await ws.ReceiveAsync(buffer, turnCts.Token);
+            if (result.MessageType == WebSocketMessageType.Close)
+                break;
+
+            var frame = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            var json = JsonSerializer.Deserialize<JsonElement>(frame);
+
+            if (!json.TryGetProperty("type", out var typeProp))
+                continue;
+
+            var eventType = typeProp.GetString();
+            switch (eventType)
+            {
+                case "assistant_delta":
+                    if (json.TryGetProperty("text", out var text))
+                        responseBuilder.Append(text.GetString());
+                    break;
+
+                case "turn_complete":
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", CancellationToken.None);
+                    return responseBuilder.ToString();
+
+                case "error":
+                    var errorMsg = json.TryGetProperty("message", out var errText)
+                        ? errText.GetString() ?? "Unknown agent error"
+                        : "Unknown agent error";
+                    throw new InvalidOperationException($"Agent error: {errorMsg}");
+            }
+        }
+
+        return responseBuilder.ToString();
     }
+
 
     private static AgentChannelConfig DeserializeBindingConfig(string? configJson)
     {

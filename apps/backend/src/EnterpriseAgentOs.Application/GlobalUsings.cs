@@ -4,7 +4,6 @@ global using System.Text;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Caching.Memory;
 global using Microsoft.Extensions.DependencyInjection;
-global using Microsoft.EntityFrameworkCore;
 global using HotChocolate;
 global using HotChocolate.Subscriptions;
 global using Stripe;
@@ -27,7 +26,8 @@ global using EnterpriseAgentOs.Domain.DTOs.AgentLogs;
 global using EnterpriseAgentOs.Domain.DTOs.Auth;
 global using EnterpriseAgentOs.Domain.DTOs.Billing;
 global using EnterpriseAgentOs.Domain.DTOs.Channels;
-global using EnterpriseAgentOs.Infrastructure.Persistence;
+// Note: EaosDbContext / Infrastructure.Persistence intentionally NOT imported.
+// All data access goes through Domain repository interfaces.
 global using EnterpriseAgentOs.Infrastructure.Configuration;
 global using EnterpriseAgentOs.Infrastructure.Security;
 global using EnterpriseAgentOs.Infrastructure.Adapters.SkillRuntime;

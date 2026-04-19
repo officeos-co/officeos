@@ -12,4 +12,6 @@ public interface IAgentLogRepository
     Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<(List<AgentLogRecord> Items, int Total)> GetToolCallsAsync(Guid agentId, int limit, int offset, CancellationToken ct = default);
     Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default);
+    Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default);
+    Task<List<AgentLogRecord>> ListByAgentIdsAsync(IReadOnlyList<Guid> agentIds, IReadOnlyList<AgentLogType>? types = null, CancellationToken ct = default);
 }

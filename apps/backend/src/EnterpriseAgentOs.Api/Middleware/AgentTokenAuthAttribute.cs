@@ -31,10 +31,9 @@ public sealed class AgentTokenAuthAttribute : Attribute, IAsyncAuthorizationFilt
             return;
         }
 
-        var db = http.RequestServices.GetRequiredService<EaosDbContext>();
-        var exists = await db.Agents
-            .AsNoTracking()
-            .AnyAsync(a => a.Id == agentId && !a.IsDeleted);
+        var repo = http.RequestServices.GetRequiredService<IAgentRepository>();
+        var agent = await repo.GetAsync(agentId);
+        var exists = agent is not null && !agent.IsDeleted;
 
         if (!exists)
         {

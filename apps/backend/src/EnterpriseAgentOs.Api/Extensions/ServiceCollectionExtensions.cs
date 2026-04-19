@@ -16,6 +16,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAgentTemplateRepository, AgentTemplateRepository>();
         services.AddScoped<IAgentLogRepository, AgentLogRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+        services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
         return services;
     }
 

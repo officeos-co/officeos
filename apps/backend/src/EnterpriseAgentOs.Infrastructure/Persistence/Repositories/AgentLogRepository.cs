@@ -88,4 +88,18 @@ public sealed class AgentLogRepository : IAgentLogRepository
             .GroupBy(r => r.CorrelationId!)
             .ToDictionary(g => g.Key, g => g.First());
     }
+
+    public async Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default)
+    {
+        if (agentIds.Count == 0) return;
+        await _db.AgentLogs.Where(l => agentIds.Contains(l.AgentId)).ExecuteDeleteAsync(ct);
+    }
+
+    public async Task<List<AgentLogRecord>> ListByAgentIdsAsync(IReadOnlyList<Guid> agentIds, IReadOnlyList<AgentLogType>? types = null, CancellationToken ct = default)
+    {
+        if (agentIds.Count == 0) return new List<AgentLogRecord>();
+        var q = _db.AgentLogs.AsNoTracking().Where(l => agentIds.Contains(l.AgentId));
+        if (types is { Count: > 0 }) q = q.Where(l => types.Contains(l.Type));
+        return await q.ToListAsync(ct);
+    }
 }

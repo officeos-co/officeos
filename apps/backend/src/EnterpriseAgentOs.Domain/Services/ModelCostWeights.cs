@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Services.Billing;
+namespace EnterpriseAgentOs.Domain.Services;
 
 /// <summary>
 /// Converts raw model tokens to normalized credits.
@@ -16,6 +16,9 @@ public static class ModelCostWeights
         ["claude-sonnet-4-6"] = 20,
         ["claude-opus-4-6"]   = 75,
     };
+
+    /// <summary>Returns the full model-to-weight mapping (read-only).</summary>
+    public static IReadOnlyDictionary<string, int> GetWeights() => Weights;
 
     /// <summary>
     /// Returns the credit cost for <paramref name="rawTokens"/> consumed by <paramref name="model"/>.

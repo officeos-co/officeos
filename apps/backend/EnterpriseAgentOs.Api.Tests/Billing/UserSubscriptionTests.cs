@@ -34,7 +34,7 @@ public sealed class UserSubscriptionTests
                 Enabled = false,
             },
             new FrontendConfig("https://dashboard.officeos.co"),
-            CreateDb(),
+            new UserSubscriptionRepository(CreateDb()),
             NullLogger<UserBillingService>.Instance);
 
     // -------------------------------------------------------------------------

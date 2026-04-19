@@ -29,4 +29,16 @@ public sealed class AgentToolPermissionRecord
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Parses a "skill:tool" key into its components. Keys without ":"
+    /// are treated as skill-level defaults with an empty tool name.
+    /// </summary>
+    public static (string SkillName, string ToolName) ParseToolKey(string key)
+    {
+        var k = (key ?? string.Empty).Trim();
+        var idx = k.IndexOf(':');
+        if (idx <= 0) return (k.ToLowerInvariant(), string.Empty);
+        return (k[..idx].Trim().ToLowerInvariant(), k[(idx + 1)..].Trim());
+    }
 }

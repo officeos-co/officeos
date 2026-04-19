@@ -6,12 +6,24 @@ namespace EnterpriseAgentOs.Api.Tests;
 /// - Agent responses are logged as ChannelOut
 /// - ChannelIn and ChannelOut share a CorrelationId
 /// </summary>
-public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
+public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>, IAsyncLifetime
 {
     private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private Infrastructure.FakeAgentWsServer _fakeAgent = null!;
 
     public ChannelMessageRoutingTests(Infrastructure.CustomWebApplicationFactory factory)
         => _factory = factory;
+
+    public Task InitializeAsync()
+    {
+        _fakeAgent = new Infrastructure.FakeAgentWsServer();
+        return Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _fakeAgent.DisposeAsync();
+    }
 
     /// <summary>
     /// Seeds a channel connection, an agent, and a binding between them.
@@ -31,13 +43,13 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         };
         db.Users.Add(user);
 
-        // Create an agent with a ServiceUrl (pointing at WireMock)
+        // Create an agent with ServiceUrl pointing at the fake WS server
         var agent = new AgentRecord
         {
             Name = "channel-test-agent",
             Provider = "ollama",
             Status = "running",
-            ServiceUrl = _factory.SkillRuntimeMock.Url!, // reuse WireMock as fake agent
+            ServiceUrl = _fakeAgent.ServiceUrl,
         };
         db.Agents.Add(agent);
 
@@ -63,23 +75,11 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         return (connection.Id, agent.Id);
     }
 
-    private void StubAgentChatEndpoint(string responseText = "Hello from agent")
-    {
-        _factory.SkillRuntimeMock
-            .Given(Request.Create()
-                .WithPath("/api/chat")
-                .UsingPost())
-            .RespondWith(Response.Create()
-                .WithStatusCode(200)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody($"{{\"response\":\"{responseText}\"}}"));
-    }
-
     [Fact]
     public async Task RouteMessage_LogsChannelInEntry()
     {
+        _fakeAgent.SetResponse("Hello from agent");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
-        StubAgentChatEndpoint();
 
         using var scope = _factory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
@@ -99,8 +99,8 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
     [Fact]
     public async Task RouteMessage_LogsChannelOutEntry()
     {
+        _fakeAgent.SetResponse("Agent response text");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
-        StubAgentChatEndpoint("Agent response text");
 
         using var scope = _factory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
@@ -120,8 +120,8 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
     [Fact]
     public async Task RouteMessage_ChannelInAndChannelOut_ShareCorrelationId()
     {
+        _fakeAgent.SetResponse("Hello from agent");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
-        StubAgentChatEndpoint();
 
         using var scope = _factory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
@@ -158,7 +158,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
             Name = "blocked-agent",
             Provider = "ollama",
             Status = "running",
-            ServiceUrl = _factory.SkillRuntimeMock.Url!,
+            ServiceUrl = _fakeAgent.ServiceUrl,
         };
         db.Agents.Add(agent);
 

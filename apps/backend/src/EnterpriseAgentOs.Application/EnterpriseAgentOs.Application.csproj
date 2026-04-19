@@ -8,8 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\EnterpriseAgentOs.Domain\EnterpriseAgentOs.Domain.csproj" />
-    <!-- Pragmatic: services reference EaosDbContext and Infrastructure helpers directly.
-         This architectural violation will be resolved in a later refactor. -->
+    <!-- Application still references Infrastructure for config classes (StripeConfig, FrontendConfig),
+         protectors (ProviderKeyProtector, SkillCredentialProtector), and adapters (SkillRuntimeClient).
+         DbContext access has been eliminated — all data access goes through Domain repository interfaces. -->
     <ProjectReference Include="..\EnterpriseAgentOs.Infrastructure\EnterpriseAgentOs.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>

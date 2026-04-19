@@ -33,6 +33,7 @@ global using System.Text;
 global using System;
 global using k8s;
 global using EnterpriseAgentOs.Domain.Models;
+global using EnterpriseAgentOs.Domain.Services;
 global using EnterpriseAgentOs.Domain.Interfaces.Agents;
 global using EnterpriseAgentOs.Domain.Interfaces.Skills;
 global using EnterpriseAgentOs.Domain.Interfaces.Providers;

@@ -2,9 +2,10 @@ namespace EnterpriseAgentOs.Application.Services.Providers;
 
 public static class ProviderSeeder
 {
-    public static async Task SeedAsync(EaosDbContext db)
+    public static async Task SeedAsync(IProviderRepository repo)
     {
-        if (await db.Providers.AnyAsync())
+        var existing = await repo.ListAsync();
+        if (existing.Count > 0)
             return;
 
         var seed = new[]
@@ -15,7 +16,7 @@ public static class ProviderSeeder
             new ProviderRecord { Name = "xai", DisplayName = "xAI Grok" },
         };
 
-        await db.Providers.AddRangeAsync(seed);
-        await db.SaveChangesAsync();
+        foreach (var record in seed)
+            await repo.SaveAsync(record);
     }
 }

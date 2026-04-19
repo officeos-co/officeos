@@ -21,21 +21,21 @@ namespace EnterpriseAgentOs.Api.Controllers;
 public sealed class AgentBootstrapController : ControllerBase
 {
     private readonly IAgentService _agents;
+    private readonly IAgentRepository _agentRepo;
     private readonly IAgentSkillRepository _agentSkills;
-    private readonly EaosDbContext _db;
     private readonly SkillGatewayConfig _gateway;
     private readonly IAgentLogService _logs;
 
     public AgentBootstrapController(
         IAgentService agents,
+        IAgentRepository agentRepo,
         IAgentSkillRepository agentSkills,
-        EaosDbContext db,
         SkillGatewayConfig gateway,
         IAgentLogService logs)
     {
         _agents = agents;
+        _agentRepo = agentRepo;
         _agentSkills = agentSkills;
-        _db = db;
         _gateway = gateway;
         _logs = logs;
     }
@@ -53,20 +53,12 @@ public sealed class AgentBootstrapController : ControllerBase
         var agent = await _agents.GetAsync(id, ct);
         if (agent is null) return NotFound();
 
-        // Fetch the raw record so we can read the persisted system prompt
-        // (AgentDto is the API/Graph-facing projection and exposes `Prompt`
-        // already, but we read the record directly to stay one-hop from the
-        // source of truth).
-        var record = await _db.Agents
-            .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == id, ct);
+        // Fetch the raw record so we can read the persisted system prompt.
+        var record = await _agentRepo.GetAsync(id, ct);
         if (record is null) return NotFound();
 
         var skills = await _agentSkills.ListSkillNamesByAgentAsync(id, ct);
-        var permRows = await _db.AgentToolPermissions
-            .AsNoTracking()
-            .Where(p => p.AgentId == id)
-            .ToListAsync(ct);
+        var permRows = await _agentSkills.ListToolPermissionsAsync(id, ct);
 
         // Backend URL the pod should call for the LLM proxy. Prefer the
         // in-cluster service hostname when available; fall back to the

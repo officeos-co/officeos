@@ -29,4 +29,18 @@ public static class PlanLimits
     };
 }
 
-public sealed record PlanLimit(string Plan, int ConcurrentAgents, long CreditsPerMonth);
+public sealed record PlanLimit(string Plan, int ConcurrentAgents, long CreditsPerMonth)
+{
+    /// <summary>Human-readable plan description derived from the actual limits.</summary>
+    public string Description
+    {
+        get
+        {
+            var agentWord = ConcurrentAgents == 1 ? "agent" : "agents";
+            var credits = CreditsPerMonth >= 1_000_000
+                ? $"{CreditsPerMonth / 1_000_000M:#.##}M"
+                : $"{CreditsPerMonth / 1_000M:#.##}k";
+            return $"{ConcurrentAgents} concurrent {agentWord}, {credits} credits/month";
+        }
+    }
+}

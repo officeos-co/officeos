@@ -3,28 +3,27 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 public sealed class OrgBillingService : IOrgBillingService
 {
     private readonly StripeConfig _config;
-    private readonly EaosDbContext _db;
+    private readonly IOrgSubscriptionRepository _repo;
     private readonly ILogger<OrgBillingService> _logger;
 
-    public OrgBillingService(StripeConfig config, EaosDbContext db, ILogger<OrgBillingService> logger)
+    public OrgBillingService(StripeConfig config, IOrgSubscriptionRepository repo, ILogger<OrgBillingService> logger)
     {
         _config = config;
-        _db = db;
+        _repo = repo;
         _logger = logger;
         StripeConfiguration.ApiKey = _config.SecretKey;
     }
 
     public async Task<OrgSubscription> GetSubscriptionAsync(string orgId, CancellationToken ct = default)
     {
-        var sub = await _db.OrgSubscriptions.FirstOrDefaultAsync(s => s.OrganizationId == orgId, ct);
-        return sub ?? DefaultFree(orgId);
+        var sub = await _repo.GetByOrganizationIdAsync(orgId, ct);
+        return sub ?? OrgSubscription.CreateDefaultFree(orgId);
     }
 
     public async Task<(long Remaining, bool OverBudget)> CheckCreditBudgetAsync(string orgId, CancellationToken ct = default)
     {
         var sub = await GetSubscriptionAsync(orgId, ct);
-        var remaining = sub.CreditBudgetPerMonth - sub.CreditsUsedThisMonth;
-        return (remaining, remaining < 0);
+        return sub.CheckBudget();
     }
 
     public async Task<string> CreateCustomerAsync(string orgId, string email, CancellationToken ct = default)
@@ -63,11 +62,11 @@ public sealed class OrgBillingService : IOrgBillingService
 
     public async Task EnableOverageAsync(string orgId, string email, bool enabled, CancellationToken ct = default)
     {
-        var sub = await _db.OrgSubscriptions.FirstOrDefaultAsync(s => s.OrganizationId == orgId, ct);
+        var sub = await _repo.GetByOrganizationIdAsync(orgId, ct);
         if (sub is null)
         {
-            sub = DefaultFree(orgId);
-            await _db.OrgSubscriptions.AddAsync(sub, ct);
+            sub = OrgSubscription.CreateDefaultFree(orgId);
+            await _repo.AddAsync(sub, ct);
         }
 
         if (enabled)
@@ -120,21 +119,7 @@ public sealed class OrgBillingService : IOrgBillingService
             _logger.LogInformation("Overage disabled for org {OrgId}", orgId);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _repo.SaveChangesAsync(ct);
     }
 
-    private static OrgSubscription DefaultFree(string orgId)
-    {
-        var now = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        return new OrgSubscription
-        {
-            OrganizationId = orgId,
-            Plan = PlanLimits.OrgFree.Plan,
-            ConcurrentAgentLimit = PlanLimits.OrgFree.ConcurrentAgents,
-            CreditBudgetPerMonth = PlanLimits.OrgFree.CreditsPerMonth,
-            PeriodStart = now,
-            PeriodEnd = now.AddMonths(1),
-            IsActive = true,
-        };
-    }
 }

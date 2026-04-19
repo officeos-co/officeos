@@ -32,4 +32,37 @@ public sealed class UserSubscription
 
     /// <summary>When true, usage above CreditBudgetPerMonth is billed via Stripe metered overage.</summary>
     public bool OverageEnabled { get; set; } = false;
+
+    // ── Domain logic ─────────────────────────────────────────────────────────
+
+    /// <summary>Creates a free-tier subscription for a new user.</summary>
+    public static UserSubscription CreateDefaultFree(Guid userId)
+    {
+        var limits = PlanLimits.IndividualFree;
+        var now = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        return new UserSubscription
+        {
+            UserId = userId,
+            Plan = limits.Plan,
+            BillingCycle = "monthly",
+            ConcurrentAgentLimit = limits.ConcurrentAgents,
+            CreditBudgetPerMonth = limits.CreditsPerMonth,
+            PeriodStart = now,
+            PeriodEnd = now.AddMonths(1),
+            IsActive = true,
+        };
+    }
+
+    /// <summary>Returns remaining credits and whether the budget is exceeded.</summary>
+    public (long Remaining, bool OverBudget) CheckBudget()
+    {
+        var remaining = CreditBudgetPerMonth - CreditsUsedThisMonth;
+        return (remaining, remaining < 0);
+    }
+
+    /// <summary>Records credit usage against this subscription.</summary>
+    public void RecordCredits(long credits)
+    {
+        CreditsUsedThisMonth += credits;
+    }
 }

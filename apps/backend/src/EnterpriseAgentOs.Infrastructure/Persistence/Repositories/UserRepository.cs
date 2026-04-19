@@ -54,4 +54,9 @@ public sealed class UserRepository : IUserRepository
         await _db.SaveChangesAsync(ct);
         return user;
     }
+
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        await _db.Users.Where(u => u.Id == id).ExecuteDeleteAsync(ct);
+    }
 }

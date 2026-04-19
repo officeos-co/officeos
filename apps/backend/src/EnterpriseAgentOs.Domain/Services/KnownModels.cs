@@ -1,11 +1,10 @@
-namespace EnterpriseAgentOs.Application.Services.Providers;
+namespace EnterpriseAgentOs.Domain.Services;
 
+/// <summary>
+/// Single source of truth for supported LLM models.
+/// </summary>
 public static class KnownModels
 {
-    /// <summary>
-    /// All models exposed to agent creation / selection UI.
-    /// "auto" is the smart-routing sentinel value.
-    /// </summary>
     public static readonly IReadOnlyList<string> SupportedModels =
     [
         "auto",
@@ -15,10 +14,6 @@ public static class KnownModels
         "grok-4",
     ];
 
-    /// <summary>
-    /// Per-provider model list — only OpenAI has BYOK so only openai is meaningful here.
-    /// Kept for the <c>GET /api/providers/{name}/models</c> endpoint.
-    /// </summary>
     public static IReadOnlyDictionary<string, IReadOnlyList<string>> ByProvider { get; } =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
         {

@@ -3,28 +3,34 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 public sealed class CreditRecordingService : ICreditRecordingService
 {
     private readonly StripeConfig _config;
-    private readonly EaosDbContext _db;
+    private readonly IAgentRepository _agentRepo;
+    private readonly IUserSubscriptionRepository _subRepo;
     private readonly ILogger<CreditRecordingService> _logger;
 
-    public CreditRecordingService(StripeConfig config, EaosDbContext db, ILogger<CreditRecordingService> logger)
+    public CreditRecordingService(
+        StripeConfig config,
+        IAgentRepository agentRepo,
+        IUserSubscriptionRepository subRepo,
+        ILogger<CreditRecordingService> logger)
     {
         _config = config;
-        _db = db;
+        _agentRepo = agentRepo;
+        _subRepo = subRepo;
         _logger = logger;
         StripeConfiguration.ApiKey = _config.SecretKey;
     }
 
     public async Task RecordCreditUsageAsync(Guid agentId, string model, long rawTokens, CancellationToken ct = default)
     {
-        var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agentId, ct);
+        var agent = await _agentRepo.GetAsync(agentId, ct);
         if (agent?.OwnerId is null) return;
 
-        var credits = ModelCostWeights.ToCredits(model, rawTokens);
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == agent.OwnerId.Value, ct);
+        var credits = Domain.Services.ModelCostWeights.ToCredits(model, rawTokens);
+        var sub = await _subRepo.GetByUserIdAsync(agent.OwnerId.Value, ct);
         if (sub is null) return;
 
-        sub.CreditsUsedThisMonth += credits;
-        await _db.SaveChangesAsync(ct);
+        sub.RecordCredits(credits);
+        await _subRepo.SaveChangesAsync(ct);
 
         _logger.LogDebug(
             "Agent {AgentId} used {Credits} credits ({RawTokens} raw tokens on {Model}). " +

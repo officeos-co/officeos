@@ -53,4 +53,16 @@ public sealed class AgentRepository : IAgentRepository
         await _db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task<IReadOnlyList<AgentRecord>> ListByOwnerAsync(Guid ownerId, bool includeDeleted = false, CancellationToken ct = default)
+    {
+        var q = _db.Agents.AsNoTracking().Where(a => a.OwnerId == ownerId);
+        if (!includeDeleted) q = q.Where(a => !a.IsDeleted);
+        return await q.OrderByDescending(a => a.CreatedAt).ToListAsync(ct);
+    }
+
+    public async Task HardDeleteByOwnerAsync(Guid ownerId, CancellationToken ct = default)
+    {
+        await _db.Agents.Where(a => a.OwnerId == ownerId).ExecuteDeleteAsync(ct);
+    }
 }

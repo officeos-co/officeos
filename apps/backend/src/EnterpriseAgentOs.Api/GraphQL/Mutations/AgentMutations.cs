@@ -49,7 +49,7 @@ public class AgentMutations
         {
             foreach (var tp in input.ToolPermissions)
             {
-                var (skill, tool) = SplitToolKey(tp.Tool);
+                var (skill, tool) = AgentToolPermissionRecord.ParseToolKey(tp.Tool);
                 await agentSkills.UpsertToolPermissionAsync(dto.Id, skill, tool, tp.Mode, ct);
             }
         }
@@ -79,14 +79,6 @@ public class AgentMutations
 
         cache.Remove(AgentListQueryCacheKey);
         return dto;
-    }
-
-    private static (string Skill, string Tool) SplitToolKey(string key)
-    {
-        var k = (key ?? string.Empty).Trim();
-        var idx = k.IndexOf(':');
-        if (idx <= 0) return (k.ToLowerInvariant(), string.Empty);
-        return (k[..idx].Trim().ToLowerInvariant(), k[(idx + 1)..].Trim());
     }
 
     public async Task<AgentDto> UpdateAgent(

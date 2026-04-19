@@ -38,4 +38,9 @@ public sealed class SessionRepository : ISessionRepository
         _db.Sessions.RemoveRange(expired);
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task DeleteByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        await _db.Sessions.Where(s => s.UserId == userId).ExecuteDeleteAsync(ct);
+    }
 }

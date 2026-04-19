@@ -2,18 +2,29 @@ namespace EnterpriseAgentOs.Application.Services.Auth;
 
 public sealed class GdprService : IGdprService
 {
-    private readonly EaosDbContext _db;
+    private readonly IUserRepository _users;
+    private readonly IAgentRepository _agents;
+    private readonly IAgentLogRepository _agentLogs;
+    private readonly ISessionRepository _sessions;
+    private readonly ISkillRepository _skills;
 
-    public GdprService(EaosDbContext db)
+    public GdprService(
+        IUserRepository users,
+        IAgentRepository agents,
+        IAgentLogRepository agentLogs,
+        ISessionRepository sessions,
+        ISkillRepository skills)
     {
-        _db = db;
+        _users = users;
+        _agents = agents;
+        _agentLogs = agentLogs;
+        _sessions = sessions;
+        _skills = skills;
     }
 
     public async Task<GdprExportDto> ExportAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _db.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == userId, ct)
+        var user = await _users.GetByIdAsync(userId, ct)
             ?? throw new InvalidOperationException($"User {userId} not found");
 
         var userDto = new GdprUserDto(
@@ -23,85 +34,65 @@ public sealed class GdprService : IGdprService
             user.CreatedAt,
             user.LastLoginAt);
 
-        var agentIds = await _db.Agents
-            .AsNoTracking()
-            .Where(a => a.OwnerId == userId && !a.IsDeleted)
-            .Select(a => a.Id)
-            .ToListAsync(ct);
+        var agentRecords = await _agents.ListByOwnerAsync(userId, includeDeleted: false, ct);
+        var agentIds = agentRecords.Select(a => a.Id).ToList();
 
-        var agents = await _db.Agents
-            .AsNoTracking()
-            .Where(a => a.OwnerId == userId && !a.IsDeleted)
+        var agents = agentRecords
             .Select(a => new GdprAgentDto(a.Id, a.Name, a.Provider, a.Model, a.Status, a.CreatedAt))
-            .ToListAsync(ct);
+            .ToList();
 
-        var conversations = agentIds.Count == 0
-            ? new List<GdprConversationDto>()
-            : await _db.AgentLogs
-                .AsNoTracking()
-                .Where(l => agentIds.Contains(l.AgentId) &&
-                    (l.Type == AgentLogType.MessageIn ||
-                     l.Type == AgentLogType.MessageOut ||
-                     l.Type == AgentLogType.System))
-                .Select(l => new GdprConversationDto(
-                    l.Id,
-                    l.AgentId,
-                    l.Type == AgentLogType.MessageIn ? "user"
-                        : l.Type == AgentLogType.MessageOut ? "assistant"
-                        : "system",
-                    l.Content,
-                    l.CorrelationId,
-                    l.Time))
-                .ToListAsync(ct);
+        var conversationTypes = new List<AgentLogType>
+        {
+            AgentLogType.MessageIn,
+            AgentLogType.MessageOut,
+            AgentLogType.System
+        };
+        var conversationLogs = await _agentLogs.ListByAgentIdsAsync(agentIds, conversationTypes, ct);
+        var conversations = conversationLogs
+            .Select(l => new GdprConversationDto(
+                l.Id,
+                l.AgentId,
+                l.Type == AgentLogType.MessageIn ? "user"
+                    : l.Type == AgentLogType.MessageOut ? "assistant"
+                    : "system",
+                l.Content,
+                l.CorrelationId,
+                l.Time))
+            .ToList();
 
-        var auditEntries = agentIds.Count == 0
-            ? new List<GdprAuditEntryDto>()
-            : await _db.AgentLogs
-                .AsNoTracking()
-                .Where(l => agentIds.Contains(l.AgentId) && l.Type == AgentLogType.ToolCall)
-                .Select(l => new GdprAuditEntryDto(
-                    l.Id,
-                    l.AgentId,
-                    l.Integration ?? string.Empty,
-                    l.Tool ?? string.Empty,
-                    l.Content,
-                    null,
-                    (long)(l.DurationMs ?? 0),
-                    l.Time))
-                .ToListAsync(ct);
+        var toolCallTypes = new List<AgentLogType> { AgentLogType.ToolCall };
+        var toolCallLogs = await _agentLogs.ListByAgentIdsAsync(agentIds, toolCallTypes, ct);
+        var auditEntries = toolCallLogs
+            .Select(l => new GdprAuditEntryDto(
+                l.Id,
+                l.AgentId,
+                l.Integration ?? string.Empty,
+                l.Tool ?? string.Empty,
+                l.Content,
+                null,
+                (long)(l.DurationMs ?? 0),
+                l.Time))
+            .ToList();
 
-        var skillCredentials = await _db.SkillCredentials
-            .AsNoTracking()
+        var skillCredentials = (await _skills.ListAsync(ct))
             .Select(s => new GdprSkillCredentialDto(s.Id, s.SkillName, s.Enabled, s.ConfiguredAt))
-            .ToListAsync(ct);
+            .ToList();
 
         return new GdprExportDto(userDto, agents, conversations, auditEntries, skillCredentials);
     }
 
     public async Task PurgeAsync(Guid userId, CancellationToken ct = default)
     {
-        var agentIds = await _db.Agents
-            .Where(a => a.OwnerId == userId)
-            .Select(a => a.Id)
-            .ToListAsync(ct);
+        var agentRecords = await _agents.ListByOwnerAsync(userId, includeDeleted: true, ct);
+        var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         if (agentIds.Count > 0)
         {
-            await _db.AgentLogs
-                .Where(l => agentIds.Contains(l.AgentId))
-                .ExecuteDeleteAsync(ct);
-
-            await _db.Agents
-                .Where(a => a.OwnerId == userId)
-                .ExecuteDeleteAsync(ct);
+            await _agentLogs.DeleteByAgentIdsAsync(agentIds, ct);
+            await _agents.HardDeleteByOwnerAsync(userId, ct);
         }
 
-        await _db.Sessions
-            .Where(s => s.UserId == userId)
-            .ExecuteDeleteAsync(ct);
-
-        await _db.Users
-            .Where(u => u.Id == userId)
-            .ExecuteDeleteAsync(ct);
+        await _sessions.DeleteByUserIdAsync(userId, ct);
+        await _users.DeleteAsync(userId, ct);
     }
 }

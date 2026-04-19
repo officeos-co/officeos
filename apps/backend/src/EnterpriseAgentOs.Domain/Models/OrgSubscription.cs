@@ -27,4 +27,30 @@ public sealed class OrgSubscription
 
     /// <summary>When true, usage above CreditBudgetPerMonth is billed via Stripe metered overage.</summary>
     public bool OverageEnabled { get; set; } = false;
+
+    // ── Domain logic ─────────────────────────────────────────────────────────
+
+    /// <summary>Creates a free-tier subscription for a new organization.</summary>
+    public static OrgSubscription CreateDefaultFree(string orgId)
+    {
+        var limits = PlanLimits.OrgFree;
+        var now = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        return new OrgSubscription
+        {
+            OrganizationId = orgId,
+            Plan = limits.Plan,
+            ConcurrentAgentLimit = limits.ConcurrentAgents,
+            CreditBudgetPerMonth = limits.CreditsPerMonth,
+            PeriodStart = now,
+            PeriodEnd = now.AddMonths(1),
+            IsActive = true,
+        };
+    }
+
+    /// <summary>Returns remaining credits and whether the budget is exceeded.</summary>
+    public (long Remaining, bool OverBudget) CheckBudget()
+    {
+        var remaining = CreditBudgetPerMonth - CreditsUsedThisMonth;
+        return (remaining, remaining < 0);
+    }
 }

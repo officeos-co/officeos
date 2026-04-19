@@ -27,6 +27,7 @@ global using EnterpriseAgentOs.Domain.DTOs.Skills;
 global using EnterpriseAgentOs.Domain.DTOs.Billing;
 global using EnterpriseAgentOs.Domain.Interfaces.Sso;
 global using EnterpriseAgentOs.Infrastructure.Persistence;
+global using EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 global using EnterpriseAgentOs.Infrastructure.Configuration;
 global using EnterpriseAgentOs.Infrastructure.Adapters.LlmProviders;
 global using EnterpriseAgentOs.Infrastructure.Adapters.Stripe;
