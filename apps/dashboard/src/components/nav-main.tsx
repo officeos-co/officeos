@@ -16,6 +16,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { ChevronRightIcon } from "lucide-react";
 import { useAnalytics } from "@/features/analytics";
@@ -36,6 +37,8 @@ export function NavMain({
 }) {
   const pathname = usePathname();
   const { trackNavClicked } = useAnalytics();
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
 
   // All groups open by default
   const [openGroups, setOpenGroups] = useState<Set<string>>(
@@ -71,6 +74,42 @@ export function NavMain({
       <SidebarMenu className="gap-0">
         {items.map((item) => {
           const isOpen = openGroups.has(item.title);
+          const hasActiveChild = item.items?.some(
+            (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/"),
+          );
+
+          if (collapsed) {
+            return (
+              <SidebarMenuItem key={item.title} className="group/collapsed relative">
+                <SidebarMenuButton
+                  className={`h-10 px-3 text-sm font-medium [&_svg]:size-4 [&_svg]:stroke-[1.5] ${hasActiveChild ? "bg-sidebar-border" : ""}`}
+                >
+                  {item.icon}
+                </SidebarMenuButton>
+                <div className="invisible absolute left-full top-0 z-50 ml-1 min-w-[180px] rounded-lg border border-sidebar-border bg-sidebar p-2 shadow-lg group-hover/collapsed:visible">
+                  <p className="mb-1.5 px-2 text-xs font-semibold text-sidebar-foreground/60">
+                    {item.title}
+                  </p>
+                  {item.items?.map((subItem) => {
+                    const isActive =
+                      pathname === subItem.url ||
+                      pathname.startsWith(subItem.url + "/");
+                    return (
+                      <Link
+                        key={subItem.title}
+                        href={subItem.url}
+                        onClick={() => trackNavClicked(subItem.url)}
+                        className={`block rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent ${isActive ? "bg-sidebar-border font-medium" : ""}`}
+                      >
+                        {subItem.title}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </SidebarMenuItem>
+            );
+          }
+
           return (
             <Collapsible
               key={item.title}
