@@ -1,27 +1,17 @@
 namespace EnterpriseAgentOs.Application.Services.Skills;
 
 /// <summary>
-/// Fallback skill seeder — only runs if the database has zero builtin skills.
-/// Primary seeding is now handled by CI via POST /api/internal/seed-manifests.
-/// This fallback exists for fresh deployments or database resets.
+/// Seeds builtin skill manifests from the skill-runtime on every startup.
+/// Always upserts — populates new/updated columns even if skills already exist.
 /// </summary>
 public static class SkillSeeder
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("SkillSeeder");
-        var db = services.GetRequiredService<EnterpriseAgentOs.Infrastructure.Persistence.EaosDbContext>();
-
-        var builtinCount = await db.Skills.CountAsync(s => s.Source == "builtin");
-        if (builtinCount > 0)
-        {
-            logger.LogInformation("Found {Count} builtin skills in database — skipping runtime fallback", builtinCount);
-            return;
-        }
-
-        logger.LogWarning("No builtin skills in database — falling back to runtime manifest fetch (this should only happen on first deployment)");
-
         var config = services.GetRequiredService<EnterpriseAgentOs.Infrastructure.Configuration.SkillRuntimeConfig>();
+        var catalog = services.GetRequiredService<EnterpriseAgentOs.Domain.Interfaces.Skills.ISkillCatalogRepository>();
+
         IReadOnlyList<RuntimeManifest> manifests;
         try
         {
@@ -30,7 +20,7 @@ public static class SkillSeeder
             var resp = await http.GetAsync(url);
             if (!resp.IsSuccessStatusCode)
             {
-                logger.LogWarning("Fallback: skill-runtime returned HTTP {StatusCode} — skipping seed", (int)resp.StatusCode);
+                logger.LogWarning("Skill-runtime returned HTTP {StatusCode} — skipping seed", (int)resp.StatusCode);
                 return;
             }
             var text = await resp.Content.ReadAsStringAsync();
@@ -40,37 +30,55 @@ public static class SkillSeeder
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Fallback: could not reach skill-runtime — builtin skills will be seeded by CI or on next startup");
+            logger.LogWarning(ex, "Could not reach skill-runtime — builtin skills will be seeded on next startup");
             return;
         }
 
         if (manifests.Count == 0)
         {
-            logger.LogWarning("Fallback: skill-runtime returned 0 manifests — skipping seed");
+            logger.LogWarning("Skill-runtime returned 0 manifests — skipping seed");
             return;
         }
 
         var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
+        var seeded = 0;
+        var updated = 0;
 
         foreach (var manifest in manifests)
         {
             var name = manifest.Name.Trim().ToLowerInvariant();
-            var record = new EnterpriseAgentOs.Domain.Models.SkillRecord
+            var existing = await catalog.GetByNameAsync(name);
+
+            if (existing is null)
             {
-                Name = name,
-                Title = manifest.Title,
-                Description = manifest.Description,
-                Doc = manifest.Doc,
-                Source = "builtin",
-                IsSystem = systemSkills.Contains(name),
-                Status = "active",
-            };
-            SkillService.MapManifestToRecord(manifest, record);
-            db.Skills.Add(record);
-            logger.LogInformation("Seeded builtin skill (fallback): {SkillName}", name);
+                var record = new EnterpriseAgentOs.Domain.Models.SkillRecord
+                {
+                    Name = name,
+                    Title = manifest.Title,
+                    Description = manifest.Description,
+                    Doc = manifest.Doc,
+                    Source = "builtin",
+                    IsSystem = systemSkills.Contains(name),
+                    Status = "active",
+                };
+                SkillService.MapManifestToRecord(manifest, record);
+                await catalog.UpsertAsync(record);
+                seeded++;
+            }
+            else if (existing.Source == "builtin")
+            {
+                existing.Title = manifest.Title;
+                existing.Description = manifest.Description;
+                existing.Doc = manifest.Doc;
+                existing.IsSystem = systemSkills.Contains(name);
+                existing.UpdatedAt = DateTime.UtcNow;
+                SkillService.MapManifestToRecord(manifest, existing);
+                await catalog.UpsertAsync(existing);
+                updated++;
+            }
         }
 
-        await db.SaveChangesAsync();
-        logger.LogInformation("Fallback skill seeding complete — {Count} builtin skills", manifests.Count);
+        logger.LogInformation("Skill seeding complete — {Seeded} new, {Updated} updated, {Total} total",
+            seeded, updated, manifests.Count);
     }
 }
