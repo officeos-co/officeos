@@ -5,13 +5,16 @@ export type ChannelPermissions = {
 }
 
 export type OnboardingStep = {
+  type: "url" | "qr" | "input" | "copy"
   title: string
   description: string
-  action: "url" | "qr" | "input" | "copy"
   value?: string
   inputKey?: string
   inputLabel?: string
   inputPlaceholder?: string
+  inputHelp?: string
+  inputKind?: "text" | "password" | "textarea"
+  inputRequired?: boolean
 }
 
 export type Channel = {
@@ -19,8 +22,6 @@ export type Channel = {
   slug: string
   logo: string
   description: string
-  protocol: string
-  capabilities: string[]
   defaultPermissions: ChannelPermissions
   added: boolean
   onboarding: OnboardingStep[]

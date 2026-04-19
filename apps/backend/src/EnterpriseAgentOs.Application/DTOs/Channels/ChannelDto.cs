@@ -23,7 +23,7 @@ public sealed record ChannelTypeDto(
     string Type,
     string DisplayName,
     string Description,
-    IReadOnlyList<ChannelConfigField> ConfigFields);
+    IReadOnlyList<EnterpriseAgentOs.Domain.DTOs.Channels.OnboardingStep> OnboardingSteps);
 
 public sealed record AgentChannelBindingDto(
     Guid Id,

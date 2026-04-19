@@ -124,7 +124,7 @@ function ChannelPermissionSection({
         <div className="size-8 shrink-0 rounded-lg [&>svg]:size-8" dangerouslySetInnerHTML={{ __html: channel.logo }} />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{channel.name}</div>
-          <div className="text-xs text-muted-foreground">{channel.protocol}</div>
+          <div className="text-xs text-muted-foreground">{channel.description}</div>
         </div>
       </div>
       <div className="border-t border-border">

@@ -18,7 +18,20 @@ public sealed record AgentChannelBindingGqlDto(
     DateTime CreatedAt);
 
 public sealed record ChannelTypeGqlDto(
-    string Type, string DisplayName, string Description, string Logo);
+    string Type, string DisplayName, string Description, string Logo,
+    IReadOnlyList<OnboardingStepGqlDto> OnboardingSteps);
+
+public sealed record OnboardingStepGqlDto(
+    string Type,
+    string Title,
+    string Description,
+    string? Value,
+    string? InputKey,
+    string? InputLabel,
+    string? InputPlaceholder,
+    string? InputHelp,
+    string InputKind,
+    bool InputRequired);
 
 // ── Input types ───────────────────────────────────────────────────────────
 

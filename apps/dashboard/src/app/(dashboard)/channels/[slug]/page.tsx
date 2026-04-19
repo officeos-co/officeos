@@ -85,16 +85,19 @@ export default function ChannelDetailPage({
           ))}
         </div>
 
-        {/* Capabilities */}
-        {channel.capabilities.length > 0 && (
+        {/* Onboarding steps preview */}
+        {channel.onboarding.length > 0 && (
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-3 border-b border-border">
-              <span className="text-sm font-medium">Capabilities</span>
+              <span className="text-sm font-medium">Setup Steps</span>
             </div>
-            {channel.capabilities.map((cap, i) => (
-              <div key={i} className={`flex items-center gap-2 px-4 py-2.5 ${i < channel.capabilities.length - 1 ? "border-b border-border" : ""}`}>
-                <RadioIcon className="size-3.5 text-muted-foreground" />
-                <span className="text-sm">{cap}</span>
+            {channel.onboarding.map((step, i) => (
+              <div key={i} className={`flex items-center gap-3 px-4 py-2.5 ${i < channel.onboarding.length - 1 ? "border-b border-border" : ""}`}>
+                <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-medium shrink-0">{i + 1}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{step.title}</div>
+                  <div className="text-xs text-muted-foreground truncate">{step.description}</div>
+                </div>
               </div>
             ))}
           </div>

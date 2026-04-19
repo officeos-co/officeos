@@ -11,6 +11,18 @@ const CHANNELS_QUERY = gql`
       displayName
       description
       logo
+      onboardingSteps {
+        type
+        title
+        description
+        value
+        inputKey
+        inputLabel
+        inputPlaceholder
+        inputHelp
+        inputKind
+        inputRequired
+      }
     }
     channelConnections {
       id
@@ -27,6 +39,7 @@ const CREATE_CONNECTION = gql`
     createChannelConnection(input: $input) {
       id
       channelType
+      displayName
     }
   }
 `
@@ -59,6 +72,18 @@ export function useChannels(): {
     displayName: string
     description: string | null
     logo: string | null
+    onboardingSteps: Array<{
+      type: string
+      title: string
+      description: string
+      value?: string | null
+      inputKey?: string | null
+      inputLabel?: string | null
+      inputPlaceholder?: string | null
+      inputHelp?: string | null
+      inputKind?: string | null
+      inputRequired?: boolean | null
+    }>
   }> = data?.channelTypes ?? []
   const connections: Array<{ channelType: string }> = data?.channelConnections ?? []
   const connectedSlugs = new Set(connections.map((c) => c.channelType))
@@ -68,11 +93,20 @@ export function useChannels(): {
     slug: t.type,
     logo: sanitizeSvg(t.logo ?? ""),
     description: t.description ?? "",
-    protocol: "",
-    capabilities: [],
     defaultPermissions: { receive: "ask" as const, send: "ask" as const, initiate: "ask" as const },
     added: connectedSlugs.has(t.type),
-    onboarding: [],
+    onboarding: (t.onboardingSteps ?? []).map((s) => ({
+      type: s.type as "url" | "qr" | "input" | "copy",
+      title: s.title,
+      description: s.description,
+      value: s.value ?? undefined,
+      inputKey: s.inputKey ?? undefined,
+      inputLabel: s.inputLabel ?? undefined,
+      inputPlaceholder: s.inputPlaceholder ?? undefined,
+      inputHelp: s.inputHelp ?? undefined,
+      inputKind: (s.inputKind ?? "text") as "text" | "password" | "textarea",
+      inputRequired: s.inputRequired ?? true,
+    })),
   }))
 
   return { channels, loading, error: error ?? undefined }
@@ -83,10 +117,19 @@ export function useCreateChannelConnection() {
   return {
     createChannelConnection: async (input: {
       channelType: string
-      credentials: Record<string, string>
+      displayName: string
+      config: Record<string, string>
     }) => {
-      const { data } = await fn({ variables: { input } })
-      return data?.createChannelConnection as { id: string; channelType: string }
+      const { data } = await fn({
+        variables: {
+          input: {
+            channelType: input.channelType,
+            displayName: input.displayName,
+            configJson: JSON.stringify(input.config),
+          },
+        },
+      })
+      return data?.createChannelConnection as { id: string; channelType: string; displayName: string }
     },
     ...state,
   }
