@@ -64,8 +64,6 @@ roleRef:
 # Databases: eaos_prod (production), eaos_staging (staging)
 # User: contentmachine — connection strings in appsettings.json
 # ==============================================================
-
----
 # ==============================================================
 # Backend DataProtection keys PVC
 #
@@ -114,9 +112,6 @@ spec:
           image: harkro123/eaos-backend:latest
           imagePullPolicy: Always
           env:
-            # Profile switch — v2 dotnet backend reads Production
-            # section from appsettings.json which has the Postgres
-            # connection string pointing at eaos-postgres Service.
             - name: ENVIRONMENT
               value: production
           ports:
@@ -129,10 +124,10 @@ spec:
           resources:
             requests:
               memory: "256Mi"
-              cpu: "100m"
+              cpu: "1000m"
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "2000m"
           livenessProbe:
             httpGet:
               path: /api/health
