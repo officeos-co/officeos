@@ -11,7 +11,14 @@ public sealed record SkillDashboardDto(
     [property: GraphQLIgnore] string? AuthorName,
     [property: GraphQLIgnore] string? AuthorUrl,
     [property: GraphQLIgnore] string? ActionsJson,
-    [property: GraphQLIgnore] string? ContributorsJson);
+    [property: GraphQLIgnore] string? ContributorsJson)
+{
+    // Batch-populated by the root query to avoid N+1
+    [GraphQLIgnore] public int LikesCount { get; init; }
+    [GraphQLIgnore] public bool IsLikedByMe { get; init; }
+    [GraphQLIgnore] public int CommentCount { get; init; }
+    [GraphQLIgnore] public bool IsInstalled { get; init; }
+}
 
 [GraphQLName("SkillTool")]
 public sealed record SkillToolDto(string Name, string Description);
@@ -43,40 +50,13 @@ public sealed record SkillCommentDto(
 [ExtendObjectType(typeof(SkillDashboardDto))]
 public class SkillDashboardResolvers
 {
-    public async Task<int> GetLikes(
-        [Parent] SkillDashboardDto skill,
-        [Service] EaosDbContext db,
-        CancellationToken ct)
-    {
-        return await db.SkillLikes.CountAsync(l => l.SkillId == skill.Id, ct);
-    }
+    public int GetLikes([Parent] SkillDashboardDto skill) => skill.LikesCount;
 
-    public async Task<bool> GetLikedByMe(
-        [Parent] SkillDashboardDto skill,
-        IResolverContext context,
-        [Service] EaosDbContext db,
-        CancellationToken ct)
-    {
-        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
-        return await db.SkillLikes.AnyAsync(l => l.SkillId == skill.Id && l.UserId == user.Id, ct);
-    }
+    public bool GetLikedByMe([Parent] SkillDashboardDto skill) => skill.IsLikedByMe;
 
-    public async Task<int> GetCommentsCount(
-        [Parent] SkillDashboardDto skill,
-        [Service] EaosDbContext db,
-        CancellationToken ct)
-    {
-        return await db.SkillComments.CountAsync(c => c.SkillId == skill.Id, ct);
-    }
+    public int GetCommentsCount([Parent] SkillDashboardDto skill) => skill.CommentCount;
 
-    public async Task<bool> GetInstalled(
-        [Parent] SkillDashboardDto skill,
-        [Service] ISkillRepository repo,
-        CancellationToken ct)
-    {
-        var row = await repo.GetByNameAsync(skill.Name, ct);
-        return row?.Enabled == true;
-    }
+    public bool GetInstalled([Parent] SkillDashboardDto skill) => skill.IsInstalled;
 
     public string GetSourceCodeUrl([Parent] SkillDashboardDto skill)
         => $"https://github.com/officeos-co/skill-{skill.Name}";

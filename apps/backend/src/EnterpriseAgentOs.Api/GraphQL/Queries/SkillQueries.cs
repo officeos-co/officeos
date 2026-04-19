@@ -7,11 +7,50 @@ public class SkillQueries
     public async Task<IReadOnlyList<Types.SkillDashboardDto>> GetSkillList(
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] ISkillRepository credentials,
+        [Service] EaosDbContext db,
         CancellationToken ct)
     {
-        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var records = await catalog.ListAsync(ct);
-        return records.Select(Types.SkillDashboardMapper.ToDto).ToList();
+        var dtos = records.Select(Types.SkillDashboardMapper.ToDto).ToList();
+
+        var skillIds = dtos.Select(d => d.Id).ToList();
+
+        // Batch: likes counts
+        var likesCounts = await db.SkillLikes
+            .Where(l => skillIds.Contains(l.SkillId))
+            .GroupBy(l => l.SkillId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+
+        // Batch: liked by current user
+        var likedByMe = (await db.SkillLikes
+            .Where(l => skillIds.Contains(l.SkillId) && l.UserId == user.Id)
+            .Select(l => l.SkillId)
+            .ToListAsync(ct))
+            .ToHashSet();
+
+        // Batch: comment counts
+        var commentCounts = await db.SkillComments
+            .Where(c => skillIds.Contains(c.SkillId))
+            .GroupBy(c => c.SkillId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
+
+        // Batch: installed status
+        var installedNames = (await credentials.ListAsync(ct))
+            .Where(r => r.Enabled)
+            .Select(r => r.SkillName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return dtos.Select(d => d with
+        {
+            LikesCount = likesCounts.GetValueOrDefault(d.Id),
+            IsLikedByMe = likedByMe.Contains(d.Id),
+            CommentCount = commentCounts.GetValueOrDefault(d.Id),
+            IsInstalled = installedNames.Contains(d.Name),
+        }).ToList();
     }
 
     [GraphQLName("skill")]
@@ -19,11 +58,24 @@ public class SkillQueries
         string name,
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
+        [Service] ISkillRepository credentials,
+        [Service] EaosDbContext db,
         CancellationToken ct)
     {
-        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        var user = Middleware.DashboardAuthContextExtensions.GetUser(context);
         var record = await catalog.GetByNameAsync(name, ct);
-        return record is null ? null : Types.SkillDashboardMapper.ToDto(record);
+        if (record is null) return null;
+
+        var dto = Types.SkillDashboardMapper.ToDto(record);
+        var credRow = await credentials.GetByNameAsync(name, ct);
+
+        return dto with
+        {
+            LikesCount = await db.SkillLikes.CountAsync(l => l.SkillId == dto.Id, ct),
+            IsLikedByMe = await db.SkillLikes.AnyAsync(l => l.SkillId == dto.Id && l.UserId == user.Id, ct),
+            CommentCount = await db.SkillComments.CountAsync(c => c.SkillId == dto.Id, ct),
+            IsInstalled = credRow?.Enabled == true,
+        };
     }
 
     [GraphQLName("skillComments")]
