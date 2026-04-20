@@ -47,6 +47,14 @@ public class ChannelMutations
 
         var created = await repo.CreateConnectionAsync(record, ct);
         InvalidateChannelCaches(cache);
+
+        // For WhatsApp, start the gateway connection (QR code pairing)
+        if (string.Equals(input.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
+        {
+            var gateway = context.Services.GetRequiredService<Infrastructure.Adapters.Channels.WhatsApp.WhatsAppGatewayService>();
+            gateway.StartConnection(created.Id);
+        }
+
         return Types.ChannelGraphQLMapper.ToDto(created);
     }
 
@@ -91,6 +99,15 @@ public class ChannelMutations
         CancellationToken ct)
     {
         _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+
+        // Stop WhatsApp connection if applicable
+        var existing = await repo.GetConnectionAsync(id, ct);
+        if (existing is not null && string.Equals(existing.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
+        {
+            var gateway = context.Services.GetRequiredService<Infrastructure.Adapters.Channels.WhatsApp.WhatsAppGatewayService>();
+            gateway.StopConnection(id);
+        }
+
         var result = await repo.DeleteConnectionAsync(id, ct);
         InvalidateChannelCaches(cache, id);
         return result;

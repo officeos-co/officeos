@@ -1,6 +1,6 @@
 "use client"
 
-import { gql, useMutation, useQuery } from "@apollo/client"
+import { gql, useMutation, useQuery, useSubscription } from "@apollo/client"
 import type { Channel } from "../data/channels"
 import { sanitizeSvg } from "@/lib/sanitize-svg"
 
@@ -59,6 +59,30 @@ const BIND_CHANNEL = gql`
     }
   }
 `
+
+const WHATSAPP_STATUS_SUBSCRIPTION = gql`
+  subscription WhatsAppConnectionStatus($connectionId: UUID!) {
+    whatsAppConnectionStatus(connectionId: $connectionId) {
+      connectionId
+      status
+      qrData
+    }
+  }
+`
+
+export function useWhatsAppConnectionStatus(connectionId: string | null) {
+  const { data, loading, error } = useSubscription(WHATSAPP_STATUS_SUBSCRIPTION, {
+    variables: { connectionId },
+    skip: !connectionId,
+  })
+
+  return {
+    status: (data?.whatsAppConnectionStatus?.status as string) ?? "connecting",
+    qrData: (data?.whatsAppConnectionStatus?.qrData as string) ?? null,
+    loading,
+    error: error ?? undefined,
+  }
+}
 
 export function useChannels(): {
   channels: Channel[]

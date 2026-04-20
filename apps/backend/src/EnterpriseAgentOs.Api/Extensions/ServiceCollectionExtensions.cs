@@ -34,7 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IChannelAdapter, Infrastructure.Adapters.Channels.Adapters.SlackAdapter>();
         services.AddSingleton<IChannelAdapter, Infrastructure.Adapters.Channels.Adapters.TelegramAdapter>();
         services.AddSingleton<IChannelAdapter, Infrastructure.Adapters.Channels.Adapters.DiscordAdapter>();
-        services.AddSingleton<IChannelAdapter, Infrastructure.Adapters.Channels.Adapters.WhatsAppAdapter>();
+        // WhatsApp uses BaileysCSharp gateway (not webhook adapter) — registered as hosted service below
         services.AddSingleton<IChannelAdapter, Infrastructure.Adapters.Channels.Adapters.TeamsAdapter>();
         services.AddSingleton<IChannelAdapter, Infrastructure.Adapters.Channels.Adapters.GoogleChatAdapter>();
         services.AddSingleton<ChannelAdapterRegistry>();
@@ -54,6 +54,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
         services.AddHostedService<Application.Services.CronJobs.CronJobSchedulerService>();
+        services.AddSingleton<Infrastructure.Adapters.Channels.WhatsApp.WhatsAppSessionStore>();
+        services.AddSingleton<Infrastructure.Adapters.Channels.WhatsApp.WhatsAppGatewayService>();
+        services.AddHostedService(sp => sp.GetRequiredService<Infrastructure.Adapters.Channels.WhatsApp.WhatsAppGatewayService>());
         return services;
     }
 
