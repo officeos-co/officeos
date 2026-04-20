@@ -1,12 +1,18 @@
 import type { SkillDefinition } from "@harro/skill-sdk";
 
+export interface OAuth2ManifestConfig {
+  provider: string;
+  scopes: string[];
+}
+
 export interface CredentialFieldManifest {
   key: string;
   label: string;
-  kind: "password" | "text" | "textarea";
+  kind: "password" | "text" | "textarea" | "oauth2";
   required: boolean;
   placeholder?: string;
   help?: string;
+  oauth2?: OAuth2ManifestConfig;
 }
 
 export interface SkillManifest {
@@ -111,6 +117,7 @@ export function extractManifest(def: SkillDefinition): SkillManifest {
       required: field.required !== false,
       placeholder: field.placeholder,
       help: field.help,
+      oauth2: field.oauth2,
     });
   }
 
