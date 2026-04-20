@@ -317,29 +317,54 @@ export function useSkillComments(skillId: string): {
 }
 
 export function useInstallSkill() {
-  const [fn] = useMutation(INSTALL_SKILL, { refetchQueries: ["Skills"] });
+  const [fn] = useMutation(INSTALL_SKILL);
   return async (name: string) => {
-    await fn({ variables: { name } });
+    await fn({
+      variables: { name },
+      optimisticResponse: { installSkill: true },
+      update(cache) {
+        cache.modify({
+          id: cache.identify({ __typename: "Skill", name }),
+          fields: { installed: () => true },
+        });
+      },
+    });
   };
 }
 
 export function useUninstallSkill() {
-  const [fn] = useMutation(UNINSTALL_SKILL, { refetchQueries: ["Skills"] });
+  const [fn] = useMutation(UNINSTALL_SKILL);
   return async (name: string) => {
-    await fn({ variables: { name } });
+    await fn({
+      variables: { name },
+      optimisticResponse: { uninstallSkill: true },
+      update(cache) {
+        cache.modify({
+          id: cache.identify({ __typename: "Skill", name }),
+          fields: { installed: () => false },
+        });
+      },
+    });
   };
 }
 
 export function useSetSkillCredentials() {
-  const [fn] = useMutation(SET_SKILL_CREDENTIALS, {
-    refetchQueries: ["Skills"],
-  });
+  const [fn] = useMutation(SET_SKILL_CREDENTIALS);
   return async (name: string, credentials: Record<string, string>) => {
     const entries = Object.entries(credentials).map(([key, value]) => ({
       key,
       value,
     }));
-    await fn({ variables: { name, credentials: entries } });
+    await fn({
+      variables: { name, credentials: entries },
+      optimisticResponse: { setSkillCredentials: true },
+      update(cache) {
+        cache.modify({
+          id: cache.identify({ __typename: "Skill", name }),
+          fields: { configured: () => true },
+        });
+      },
+    });
   };
 }
 
@@ -347,8 +372,49 @@ export function useLikeSkill() {
   const [likeFn] = useMutation(LIKE_SKILL);
   const [unlikeFn] = useMutation(UNLIKE_SKILL);
   return async (skillId: string, liked: boolean): Promise<void> => {
-    if (liked) await likeFn({ variables: { skillId } });
-    else await unlikeFn({ variables: { skillId } });
+    if (liked) {
+      await likeFn({
+        variables: { skillId },
+        optimisticResponse: {
+          likeSkill: {
+            __typename: "Skill",
+            id: skillId,
+            likes: -1, // Will be corrected by server response
+            likedByMe: true,
+          },
+        },
+        update(cache) {
+          cache.modify({
+            id: cache.identify({ __typename: "Skill", id: skillId }),
+            fields: {
+              likedByMe: () => true,
+              likes: (prev: number) => prev + 1,
+            },
+          });
+        },
+      });
+    } else {
+      await unlikeFn({
+        variables: { skillId },
+        optimisticResponse: {
+          unlikeSkill: {
+            __typename: "Skill",
+            id: skillId,
+            likes: -1,
+            likedByMe: false,
+          },
+        },
+        update(cache) {
+          cache.modify({
+            id: cache.identify({ __typename: "Skill", id: skillId }),
+            fields: {
+              likedByMe: () => false,
+              likes: (prev: number) => Math.max(0, prev - 1),
+            },
+          });
+        },
+      });
+    }
   };
 }
 
@@ -356,7 +422,42 @@ export function useCommentOnSkill() {
   const [fn, state] = useMutation(COMMENT_ON_SKILL);
   return {
     commentOnSkill: async (skillId: string, body: string) => {
-      const { data } = await fn({ variables: { skillId, body } });
+      const optimisticId = `comment_optimistic_${Date.now().toString(36)}`;
+      const { data } = await fn({
+        variables: { skillId, body },
+        optimisticResponse: {
+          commentOnSkill: {
+            __typename: "SkillComment",
+            id: optimisticId,
+            body,
+            createdAt: new Date().toISOString(),
+            author: {
+              __typename: "User",
+              id: "me",
+              name: "You",
+              avatarUrl: null,
+            },
+          },
+        },
+        update(cache, { data: result }) {
+          if (!result?.commentOnSkill) return;
+          const existing = cache.readQuery<{ skillComments: unknown[] }>({
+            query: SKILL_COMMENTS_QUERY,
+            variables: { skillId },
+          });
+          if (existing) {
+            cache.writeQuery({
+              query: SKILL_COMMENTS_QUERY,
+              variables: { skillId },
+              data: { skillComments: [...existing.skillComments, result.commentOnSkill] },
+            });
+          }
+          cache.modify({
+            id: cache.identify({ __typename: "Skill", id: skillId }),
+            fields: { commentsCount: (prev: number) => prev + 1 },
+          });
+        },
+      });
       return data?.commentOnSkill as SkillComment;
     },
     ...state,
@@ -365,7 +466,20 @@ export function useCommentOnSkill() {
 
 export function useDeleteSkillComment() {
   const [fn] = useMutation(DELETE_SKILL_COMMENT);
-  return async (commentId: string) => {
-    await fn({ variables: { commentId } });
+  return async (commentId: string, skillId?: string) => {
+    await fn({
+      variables: { commentId },
+      optimisticResponse: { deleteSkillComment: true },
+      update(cache) {
+        cache.evict({ id: cache.identify({ __typename: "SkillComment", id: commentId }) });
+        if (skillId) {
+          cache.modify({
+            id: cache.identify({ __typename: "Skill", id: skillId }),
+            fields: { commentsCount: (prev: number) => Math.max(0, prev - 1) },
+          });
+        }
+        cache.gc();
+      },
+    });
   };
 }

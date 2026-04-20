@@ -142,9 +142,7 @@ export function useOrganization(): {
 }
 
 export function useInviteMember() {
-  const [fn, state] = useMutation(INVITE_MEMBER, {
-    refetchQueries: [{ query: ORG_QUERY }],
-  })
+  const [fn, state] = useMutation(INVITE_MEMBER)
   return {
     inviteMember: async (input: { email: string; role?: "Admin" | "Member" }): Promise<OrgMember> => {
       if (USE_MOCKS) {
@@ -159,8 +157,37 @@ export function useInviteMember() {
           joinedAgo: "just now",
         }
       }
+      const optimisticId = `m_optimistic_${Date.now().toString(36)}`
       const { data } = await fn({
         variables: { input: { email: input.email, role: input.role ?? "Member" } },
+        optimisticResponse: {
+          inviteMember: {
+            __typename: "OrgMember",
+            id: optimisticId,
+            organizationId: "",
+            userId: null,
+            email: input.email,
+            name: null,
+            role: input.role ?? "Member",
+            status: "invited",
+            createdAt: new Date().toISOString(),
+          },
+        },
+        update(cache, { data: result }) {
+          if (!result?.inviteMember) return
+          const existing = cache.readQuery<{ org: { id: string; name: string; ownerUserId: string; members: MemberRaw[] } }>({ query: ORG_QUERY })
+          if (existing?.org) {
+            cache.writeQuery({
+              query: ORG_QUERY,
+              data: {
+                org: {
+                  ...existing.org,
+                  members: [...existing.org.members, result.inviteMember],
+                },
+              },
+            })
+          }
+        },
       })
       return toMember(data?.inviteMember as MemberRaw)
     },
@@ -169,13 +196,28 @@ export function useInviteMember() {
 }
 
 export function useRemoveMember() {
-  const [fn, state] = useMutation(REMOVE_MEMBER, {
-    refetchQueries: [{ query: ORG_QUERY }],
-  })
+  const [fn, state] = useMutation(REMOVE_MEMBER)
   return {
     removeMember: async (memberId: string): Promise<boolean> => {
       if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { memberId } })
+      const { data } = await fn({
+        variables: { memberId },
+        optimisticResponse: { removeMember: true },
+        update(cache) {
+          const existing = cache.readQuery<{ org: { id: string; name: string; ownerUserId: string; members: Array<{ id: string }> } }>({ query: ORG_QUERY })
+          if (existing?.org) {
+            cache.writeQuery({
+              query: ORG_QUERY,
+              data: {
+                org: {
+                  ...existing.org,
+                  members: existing.org.members.filter((m) => m.id !== memberId),
+                },
+              },
+            })
+          }
+        },
+      })
       return Boolean(data?.removeMember)
     },
     ...state,
@@ -183,13 +225,31 @@ export function useRemoveMember() {
 }
 
 export function useRenameOrg() {
-  const [fn, state] = useMutation(RENAME_ORG, {
-    refetchQueries: [{ query: ORG_QUERY }],
-  })
+  const [fn, state] = useMutation(RENAME_ORG)
   return {
     renameOrg: async (name: string): Promise<{ id: string; name: string }> => {
       if (USE_MOCKS) return { id: MOCK_ORG.id, name }
-      const { data } = await fn({ variables: { input: { name } } })
+      const { data } = await fn({
+        variables: { input: { name } },
+        optimisticResponse: {
+          renameOrg: {
+            __typename: "Organization",
+            id: "optimistic",
+            name,
+            ownerUserId: "",
+          },
+        },
+        update(cache, { data: result }) {
+          if (!result?.renameOrg) return
+          const existing = cache.readQuery<{ org: { id: string; name: string; ownerUserId: string; members: unknown[] } }>({ query: ORG_QUERY })
+          if (existing?.org) {
+            cache.writeQuery({
+              query: ORG_QUERY,
+              data: { org: { ...existing.org, name } },
+            })
+          }
+        },
+      })
       return data?.renameOrg as { id: string; name: string }
     },
     ...state,

@@ -178,6 +178,28 @@ export function useCreateAgent() {
             channelSlugs: input.channelSlugs,
           },
         },
+        update(cache, { data: result }) {
+          if (!result?.createAgent) return;
+          const existing = cache.readQuery<{ agents: unknown[] }>({ query: AGENTS_QUERY });
+          if (existing) {
+            cache.writeQuery({
+              query: AGENTS_QUERY,
+              data: {
+                agents: [
+                  ...existing.agents,
+                  {
+                    __typename: "Agent",
+                    id: result.createAgent.id,
+                    name: result.createAgent.name,
+                    model: input.model,
+                    status: "stopped",
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              },
+            });
+          }
+        },
       });
       return data?.createAgent as { id: string; name: string };
     },
@@ -199,7 +221,16 @@ export function useUpdateAgent() {
       }>,
     ) => {
       if (USE_MOCKS) return { id, name: input.name ?? mockAgent.name };
-      const { data } = await fn({ variables: { id, input } });
+      const { data } = await fn({
+        variables: { id, input },
+        optimisticResponse: {
+          updateAgent: {
+            __typename: "Agent",
+            id,
+            name: input.name ?? "",
+          },
+        },
+      });
       return data?.updateAgent as { id: string; name: string };
     },
     ...state,
@@ -211,7 +242,21 @@ export function useDeleteAgent() {
   return {
     deleteAgent: async (id: string) => {
       if (USE_MOCKS) return true;
-      const { data } = await fn({ variables: { id } });
+      const { data } = await fn({
+        variables: { id },
+        optimisticResponse: { deleteAgent: true },
+        update(cache) {
+          const existing = cache.readQuery<{ agents: Array<{ id: string }> }>({ query: AGENTS_QUERY });
+          if (existing) {
+            cache.writeQuery({
+              query: AGENTS_QUERY,
+              data: { agents: existing.agents.filter((a) => a.id !== id) },
+            });
+          }
+          cache.evict({ id: cache.identify({ __typename: "Agent", id }) });
+          cache.gc();
+        },
+      });
       return Boolean(data?.deleteAgent);
     },
     ...state,

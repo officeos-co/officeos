@@ -32,7 +32,17 @@ export function useSendAgentMessage() {
         mockSentMessages.push(log)
         return log
       }
-      const { data } = await fn({ variables: { agentId, content } })
+      const optimisticId = `msg_optimistic_${Date.now().toString(36)}`
+      const { data } = await fn({
+        variables: { agentId, content },
+        optimisticResponse: {
+          sendAgentMessage: {
+            __typename: "AgentMessage",
+            id: optimisticId,
+            content,
+          },
+        },
+      })
       return data?.sendAgentMessage as { id: string; content: string }
     },
     ...state,

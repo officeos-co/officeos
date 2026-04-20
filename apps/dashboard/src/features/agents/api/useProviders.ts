@@ -78,7 +78,17 @@ export function useSetProviderKey() {
   return {
     setProviderKey: async (providerId: string, apiKey: string) => {
       if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { providerName: providerId, apiKey } })
+      const { data } = await fn({
+        variables: { providerName: providerId, apiKey },
+        optimisticResponse: {
+          setProviderKey: {
+            __typename: "Provider",
+            id: providerId,
+            name: providerId,
+            configured: true,
+          },
+        },
+      })
       return Boolean(data?.setProviderKey)
     },
     ...state,
@@ -90,7 +100,17 @@ export function useClearProviderKey() {
   return {
     clearProviderKey: async (providerId: string) => {
       if (USE_MOCKS) return true
-      const { data } = await fn({ variables: { providerName: providerId } })
+      const { data } = await fn({
+        variables: { providerName: providerId },
+        optimisticResponse: {
+          clearProviderKey: {
+            __typename: "Provider",
+            id: providerId,
+            name: providerId,
+            configured: false,
+          },
+        },
+      })
       return Boolean(data?.clearProviderKey)
     },
     ...state,

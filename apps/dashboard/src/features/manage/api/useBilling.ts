@@ -181,13 +181,23 @@ export function useBilling(): {
 }
 
 export function useSetExtraUsageEnabled() {
-  const [fn, state] = useMutation(SET_EXTRA_USAGE_ENABLED, {
-    refetchQueries: [{ query: BILLING_QUERY }],
-  })
+  const [fn, state] = useMutation(SET_EXTRA_USAGE_ENABLED)
   return {
     setExtraUsageEnabled: async (enabled: boolean): Promise<boolean> => {
       if (USE_MOCKS) return enabled
-      const { data } = await fn({ variables: { enabled } })
+      const { data } = await fn({
+        variables: { enabled },
+        optimisticResponse: { setExtraUsageEnabled: true },
+        update(cache) {
+          const existing = cache.readQuery<{ billing: BillingRaw }>({ query: BILLING_QUERY })
+          if (existing?.billing) {
+            cache.writeQuery({
+              query: BILLING_QUERY,
+              data: { billing: { ...existing.billing, extraUsageEnabled: enabled } },
+            })
+          }
+        },
+      })
       return Boolean(data?.setExtraUsageEnabled)
     },
     ...state,

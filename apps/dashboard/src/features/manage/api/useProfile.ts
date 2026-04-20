@@ -118,9 +118,7 @@ export function useProfile(): {
 }
 
 export function useUpdateProfile() {
-  const [fn, state] = useMutation(UPDATE_PROFILE, {
-    refetchQueries: [{ query: ME_QUERY }],
-  })
+  const [fn, state] = useMutation(UPDATE_PROFILE)
   return {
     updateProfile: async (input: {
       name?: string | null
@@ -147,7 +145,22 @@ export function useUpdateProfile() {
           notificationPrefs: input.notificationPrefs ?? MOCK_PROFILE.notificationPrefs,
         }
       }
-      const { data } = await fn({ variables: { input: payload } })
+      const { data } = await fn({
+        variables: { input: payload },
+        optimisticResponse: {
+          updateProfile: {
+            __typename: "User",
+            id: "optimistic",
+            email: "",
+            name: payload.name,
+            avatarUrl: null,
+            displayName: payload.displayName,
+            timezone: payload.timezone,
+            preferences: payload.preferences,
+            notificationPrefsJson: payload.notificationPrefsJson,
+          },
+        },
+      })
       const raw = data?.updateProfile as MeRaw
       return toProfile(raw)
     },

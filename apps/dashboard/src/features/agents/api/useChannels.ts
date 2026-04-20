@@ -113,13 +113,14 @@ export function useChannels(): {
 }
 
 export function useCreateChannelConnection() {
-  const [fn, state] = useMutation(CREATE_CONNECTION, { refetchQueries: ["ChannelsAndTypes"] })
+  const [fn, state] = useMutation(CREATE_CONNECTION)
   return {
     createChannelConnection: async (input: {
       channelType: string
       displayName: string
       config: Record<string, string>
     }) => {
+      const optimisticId = `conn_optimistic_${Date.now().toString(36)}`
       const { data } = await fn({
         variables: {
           input: {
@@ -127,6 +128,40 @@ export function useCreateChannelConnection() {
             displayName: input.displayName,
             configJson: JSON.stringify(input.config),
           },
+        },
+        optimisticResponse: {
+          createChannelConnection: {
+            __typename: "ChannelConnection",
+            id: optimisticId,
+            channelType: input.channelType,
+            displayName: input.displayName,
+          },
+        },
+        update(cache, { data: result }) {
+          if (!result?.createChannelConnection) return
+          const existing = cache.readQuery<{
+            channelTypes: unknown[]
+            channelConnections: Array<{ id: string; channelType: string; displayName: string; enabled: boolean; createdAt: string }>
+          }>({ query: CHANNELS_QUERY })
+          if (existing) {
+            cache.writeQuery({
+              query: CHANNELS_QUERY,
+              data: {
+                channelTypes: existing.channelTypes,
+                channelConnections: [
+                  ...existing.channelConnections,
+                  {
+                    __typename: "ChannelConnection",
+                    id: result.createChannelConnection.id,
+                    channelType: result.createChannelConnection.channelType,
+                    displayName: result.createChannelConnection.displayName,
+                    enabled: true,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              },
+            })
+          }
         },
       })
       return data?.createChannelConnection as { id: string; channelType: string; displayName: string }
@@ -136,10 +171,30 @@ export function useCreateChannelConnection() {
 }
 
 export function useDeleteChannelConnection() {
-  const [fn, state] = useMutation(DELETE_CONNECTION, { refetchQueries: ["ChannelsAndTypes"] })
+  const [fn, state] = useMutation(DELETE_CONNECTION)
   return {
     deleteChannelConnection: async (id: string) => {
-      const { data } = await fn({ variables: { id } })
+      const { data } = await fn({
+        variables: { id },
+        optimisticResponse: { deleteChannelConnection: true },
+        update(cache) {
+          const existing = cache.readQuery<{
+            channelTypes: unknown[]
+            channelConnections: Array<{ id: string; channelType: string; displayName: string; enabled: boolean; createdAt: string }>
+          }>({ query: CHANNELS_QUERY })
+          if (existing) {
+            cache.writeQuery({
+              query: CHANNELS_QUERY,
+              data: {
+                channelTypes: existing.channelTypes,
+                channelConnections: existing.channelConnections.filter((c) => c.id !== id),
+              },
+            })
+          }
+          cache.evict({ id: cache.identify({ __typename: "ChannelConnection", id }) })
+          cache.gc()
+        },
+      })
       return Boolean(data?.deleteChannelConnection)
     },
     ...state,
@@ -150,7 +205,17 @@ export function useBindChannelToAgent() {
   const [fn, state] = useMutation(BIND_CHANNEL)
   return {
     bindChannelToAgent: async (connectionId: string, agentId: string) => {
-      const { data } = await fn({ variables: { agentId, channelConnectionId: connectionId } })
+      const { data } = await fn({
+        variables: { agentId, channelConnectionId: connectionId },
+        optimisticResponse: {
+          bindChannelToAgent: {
+            __typename: "ChannelBinding",
+            id: `bind_optimistic_${Date.now().toString(36)}`,
+            agentId,
+            channelConnectionId: connectionId,
+          },
+        },
+      })
       return Boolean(data?.bindChannelToAgent)
     },
     ...state,
