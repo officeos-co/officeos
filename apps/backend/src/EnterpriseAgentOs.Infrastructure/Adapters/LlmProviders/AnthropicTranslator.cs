@@ -102,7 +102,9 @@ public static class AnthropicTranslator
         }
         writer.WriteEndArray();
 
-        // tools field — preserve cache_control if present
+        // tools field — translate from OpenAI format to Anthropic format
+        // OpenAI: {"type":"function","function":{"name":"x","description":"y","parameters":{...}}}
+        // Anthropic: {"name":"x","description":"y","input_schema":{...}}
         if (openAiBody.TryGetProperty("tools", out var toolsEl) && toolsEl.ValueKind == JsonValueKind.Array)
         {
             writer.WritePropertyName("tools");
@@ -110,11 +112,34 @@ public static class AnthropicTranslator
             foreach (var tool in toolsEl.EnumerateArray())
             {
                 writer.WriteStartObject();
-                foreach (var prop in tool.EnumerateObject())
+
+                if (tool.TryGetProperty("function", out var fn))
                 {
-                    // Preserve all properties including cache_control
-                    prop.WriteTo(writer);
+                    // Translate OpenAI function format to Anthropic format
+                    if (fn.TryGetProperty("name", out var nameEl))
+                        writer.WriteString("name", nameEl.GetString());
+                    if (fn.TryGetProperty("description", out var descEl))
+                        writer.WriteString("description", descEl.GetString());
+                    if (fn.TryGetProperty("parameters", out var paramsEl))
+                    {
+                        writer.WritePropertyName("input_schema");
+                        paramsEl.WriteTo(writer);
+                    }
                 }
+                else
+                {
+                    // Already in Anthropic format or unknown — pass through
+                    foreach (var prop in tool.EnumerateObject())
+                        prop.WriteTo(writer);
+                }
+
+                // Preserve cache_control if present at tool level
+                if (tool.TryGetProperty("cache_control", out var cc))
+                {
+                    writer.WritePropertyName("cache_control");
+                    cc.WriteTo(writer);
+                }
+
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
@@ -213,15 +238,42 @@ public static class AnthropicTranslator
 
                 switch (type)
                 {
+                    case "content_block_start":
+                    {
+                        // Tool use blocks start here with id, name
+                        if (parsed.TryGetProperty("index", out var idxEl)
+                            && parsed.TryGetProperty("content_block", out var block)
+                            && block.TryGetProperty("type", out var blockType)
+                            && blockType.GetString() == "tool_use")
+                        {
+                            var idx = idxEl.GetInt32();
+                            var id = block.TryGetProperty("id", out var idProp) ? idProp.GetString() : "";
+                            var name = block.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : "";
+                            openAiEvent = FormatOpenAiToolCallStart(idx, id ?? "", name ?? "");
+                        }
+                        break;
+                    }
                     case "content_block_delta":
                     {
-                        var text = parsed.TryGetProperty("delta", out var delta)
-                            && delta.TryGetProperty("text", out var txt)
-                            ? txt.GetString()
-                            : null;
-                        if (text is not null)
+                        if (parsed.TryGetProperty("delta", out var delta))
                         {
-                            openAiEvent = FormatOpenAiChunk(text);
+                            var deltaType = delta.TryGetProperty("type", out var dt) ? dt.GetString() : null;
+
+                            if (deltaType == "text_delta" || deltaType is null)
+                            {
+                                var text = delta.TryGetProperty("text", out var txt) ? txt.GetString() : null;
+                                if (text is not null)
+                                    openAiEvent = FormatOpenAiChunk(text);
+                            }
+                            else if (deltaType == "input_json_delta")
+                            {
+                                var json = delta.TryGetProperty("partial_json", out var pj) ? pj.GetString() : null;
+                                if (json is not null)
+                                {
+                                    var idx = parsed.TryGetProperty("index", out var idxEl) ? idxEl.GetInt32() : 0;
+                                    openAiEvent = FormatOpenAiToolCallDelta(idx, json);
+                                }
+                            }
                         }
                         break;
                     }
@@ -264,6 +316,50 @@ public static class AnthropicTranslator
                     {
                         index = 0,
                         delta = new { content },
+                    },
+                },
+            };
+            return $"data: {JsonSerializer.Serialize(chunk)}\n\n";
+        }
+
+        private static string FormatOpenAiToolCallStart(int index, string id, string name)
+        {
+            var chunk = new
+            {
+                choices = new object[]
+                {
+                    new
+                    {
+                        index = 0,
+                        delta = new
+                        {
+                            tool_calls = new object[]
+                            {
+                                new { index, id, type = "function", function = new { name, arguments = "" } }
+                            }
+                        },
+                    },
+                },
+            };
+            return $"data: {JsonSerializer.Serialize(chunk)}\n\n";
+        }
+
+        private static string FormatOpenAiToolCallDelta(int index, string arguments)
+        {
+            var chunk = new
+            {
+                choices = new object[]
+                {
+                    new
+                    {
+                        index = 0,
+                        delta = new
+                        {
+                            tool_calls = new object[]
+                            {
+                                new { index, function = new { arguments } }
+                            }
+                        },
                     },
                 },
             };

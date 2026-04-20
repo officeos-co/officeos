@@ -77,7 +77,7 @@ public sealed class LlmProviderDispatcher
         }
     }
 
-    private async Task<HttpResponseMessage> DispatchOpenAiCompatAsync(
+    private async Task<AgentResult<HttpResponseMessage>> DispatchOpenAiCompatAsync(
         string baseUrl,
         string apiKey,
         string model,
@@ -98,10 +98,17 @@ public sealed class LlmProviderDispatcher
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         req.Headers.Accept.ParseAdd("text/event-stream");
 
-        return await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        var response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            return new AgentError(AgentErrorCategory.LlmCall,
+                $"LLM provider returned {(int)response.StatusCode}: {errorBody}");
+        }
+        return response;
     }
 
-    private async Task<HttpResponseMessage> DispatchAnthropicAsync(
+    private async Task<AgentResult<HttpResponseMessage>> DispatchAnthropicAsync(
         string apiKey,
         string model,
         JsonElement requestBody,
@@ -119,10 +126,11 @@ public sealed class LlmProviderDispatcher
 
         var upstream = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        // If upstream failed, return as-is (controller will map status)
         if (!upstream.IsSuccessStatusCode)
         {
-            return upstream;
+            var errorBody = await upstream.Content.ReadAsStringAsync(ct);
+            return new AgentError(AgentErrorCategory.LlmCall,
+                $"Anthropic returned {(int)upstream.StatusCode}: {errorBody}");
         }
 
         // Wrap Anthropic SSE stream into OpenAI-compatible SSE stream
