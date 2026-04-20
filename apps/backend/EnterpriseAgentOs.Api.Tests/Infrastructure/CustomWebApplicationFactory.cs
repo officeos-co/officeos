@@ -25,7 +25,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             ["Production:ConnectionString"] = _postgres.GetConnectionString(),
             ["Production:Kubernetes:Enabled"] = "false",
             ["Production:Kubernetes:Namespace"] = "default",
-            ["Production:Kubernetes:Image"] = "harkro123/zeroclaw:latest",
+            ["Production:Kubernetes:Image"] = "harkro123/eaos-pod-executor:latest",
             ["Production:SkillRuntimeUrl"] = SkillRuntimeMock.Url!,
             ["Production:SkillGatewayUrl"] = SkillRuntimeMock.Url!,
             ["Production:FrontendOrigin"] = "http://localhost:5173",
