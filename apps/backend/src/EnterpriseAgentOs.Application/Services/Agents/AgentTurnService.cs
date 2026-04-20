@@ -113,8 +113,7 @@ public sealed class AgentTurnService
                     personalityPrompt,
                     PromptSections.ToolHonesty(),
                     PromptSections.Safety(),
-                    PromptSections.SkillsWithDescriptions(
-                        skillDetails.Select(s => new SkillSummaryForPrompt(s.Name, s.Description)).ToList()),
+                    PromptSections.SkillsWithDocs(skillDetails),
                     PromptSections.Workspace(agent.Name),
                     PromptSections.Runtime(),
                 }.Where(s => s is not null));

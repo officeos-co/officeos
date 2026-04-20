@@ -61,7 +61,7 @@ public static class SkillSeeder
                     IsSystem = systemSkills.Contains(name),
                     Status = "active",
                 };
-                SkillService.MapManifestToRecord(manifest, record);
+                record.ApplyManifest(manifest);
                 await catalog.UpsertAsync(record);
                 seeded++;
             }
@@ -72,7 +72,7 @@ public static class SkillSeeder
                 existing.Doc = manifest.Doc;
                 existing.IsSystem = systemSkills.Contains(name);
                 existing.UpdatedAt = DateTime.UtcNow;
-                SkillService.MapManifestToRecord(manifest, existing);
+                existing.ApplyManifest(manifest);
                 await catalog.UpsertAsync(existing);
                 updated++;
             }

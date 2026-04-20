@@ -69,11 +69,11 @@ public class SkillDashboardResolvers
     public IReadOnlyList<SkillCredentialFieldDto> GetCredentialFields([Parent] SkillDashboardDto skill)
     {
         if (string.IsNullOrWhiteSpace(skill.CredentialFieldsJson)) return Array.Empty<SkillCredentialFieldDto>();
-        var fields = JsonSerializer.Deserialize<RuntimeCredentialField[]>(
-            skill.CredentialFieldsJson,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
-        if (fields is null) return Array.Empty<SkillCredentialFieldDto>();
-        return fields.Select(f => new SkillCredentialFieldDto(f.Key, f.Label, f.Kind, f.Required, f.Placeholder, f.Help)).ToList();
+        // Use a temporary SkillRecord to leverage domain deserialization.
+        var record = new SkillRecord { CredentialFieldsJson = skill.CredentialFieldsJson };
+        return record.GetCredentialFields()
+            .Select(f => new SkillCredentialFieldDto(f.Key, f.Label, f.Kind, f.Required, f.Placeholder, f.Help))
+            .ToList();
     }
 
     public string GetSourceCodeUrl([Parent] SkillDashboardDto skill)
@@ -82,11 +82,10 @@ public class SkillDashboardResolvers
     public IReadOnlyList<SkillToolDto> GetTools([Parent] SkillDashboardDto skill)
     {
         if (string.IsNullOrWhiteSpace(skill.ActionsJson)) return Array.Empty<SkillToolDto>();
-        var actions = JsonSerializer.Deserialize<Dictionary<string, RuntimeActionManifest>>(
-            skill.ActionsJson,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true })
-            ?? new();
-        return actions.Select(kv => new SkillToolDto(kv.Key, kv.Value.Description)).ToList();
+        var record = new SkillRecord { ActionsJson = skill.ActionsJson };
+        return record.GetActions()
+            .Select(kv => new SkillToolDto(kv.Key, kv.Value.Description))
+            .ToList();
     }
 
     public SkillAuthorDto? GetAuthor([Parent] SkillDashboardDto skill)
@@ -97,12 +96,11 @@ public class SkillDashboardResolvers
 
     public IReadOnlyList<SkillContributorDto> GetContributors([Parent] SkillDashboardDto skill)
     {
-        if (string.IsNullOrWhiteSpace(skill.ContributorsJson))
-            return Array.Empty<SkillContributorDto>();
-        var contributors = JsonSerializer.Deserialize<ManifestContributor[]>(skill.ContributorsJson,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true });
-        if (contributors is null) return Array.Empty<SkillContributorDto>();
-        return contributors.Select(c => new SkillContributorDto(c.Name, c.Url)).ToList();
+        if (string.IsNullOrWhiteSpace(skill.ContributorsJson)) return Array.Empty<SkillContributorDto>();
+        var record = new SkillRecord { ContributorsJson = skill.ContributorsJson };
+        return record.GetContributors()
+            .Select(c => new SkillContributorDto(c.Name, c.Url))
+            .ToList();
     }
 }
 

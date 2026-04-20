@@ -41,12 +41,12 @@ public sealed class SkillReadTool : IAgentTool
                 $"Skill '{name}' not found. Available skills: {available}"));
         }
 
-        if (string.IsNullOrEmpty(skill.Doc))
+        if (!skill.HasDoc)
         {
             return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true,
                 $"# {skill.Name}\n\n{skill.Description}\n\n(No additional documentation available.)"));
         }
 
-        return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, skill.Doc));
+        return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, skill.Doc!));
     }
 }

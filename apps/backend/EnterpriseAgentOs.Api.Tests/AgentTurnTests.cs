@@ -168,27 +168,27 @@ public class AgentTurnTests
     [Fact]
     public void PromptSections_Skills_Returns_Null_When_Empty()
     {
-        var result = PromptSections.SkillsWithDescriptions(new List<SkillSummaryForPrompt>());
+        var result = PromptSections.SkillsWithDocs(new List<SkillRecord>());
         Assert.Null(result);
     }
 
     [Fact]
-    public void PromptSections_Skills_Injects_Only_Name_And_Description()
+    public void PromptSections_Skills_Injects_Full_Doc()
     {
-        var skills = new List<SkillSummaryForPrompt>
+        var skills = new List<SkillRecord>
         {
-            new("notion", "Search and manage Notion pages."),
-            new("github", "Manage GitHub repos and issues."),
+            new() { Name = "notion", Description = "Search and manage Notion pages.", Doc = "## Actions\n\n- search\n- read_page" },
+            new() { Name = "github", Description = "Manage GitHub repos and issues.", Doc = null },
         };
 
-        var result = PromptSections.SkillsWithDescriptions(skills);
+        var result = PromptSections.SkillsWithDocs(skills);
 
         Assert.NotNull(result);
-        Assert.Contains("**notion**", result);
-        Assert.Contains("Search and manage Notion pages.", result);
-        Assert.Contains("**github**", result);
-        Assert.Contains("skill_read", result); // Tells agent how to get full docs
-        Assert.DoesNotContain("SKILL.md", result); // No full body injected
+        Assert.Contains("### notion", result);
+        Assert.Contains("## Actions", result); // Full doc injected
+        Assert.Contains("- search", result);
+        Assert.Contains("### github", result);
+        Assert.Contains("Manage GitHub repos and issues.", result); // Falls back to description when no doc
     }
 
     [Fact]
@@ -199,9 +199,9 @@ public class AgentTurnTests
             PromptSections.DateTime(),
             PromptSections.ToolHonesty(),
             PromptSections.Safety(),
-            PromptSections.SkillsWithDescriptions(new List<SkillSummaryForPrompt>
+            PromptSections.SkillsWithDocs(new List<SkillRecord>
             {
-                new("notion", "Search pages"),
+                new() { Name = "notion", Description = "Search pages", Doc = "Use notion search to find pages." },
             }) ?? "",
             PromptSections.Workspace("test-agent"),
             PromptSections.Runtime());

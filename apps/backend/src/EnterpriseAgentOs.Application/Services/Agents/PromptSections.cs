@@ -1,7 +1,6 @@
-namespace EnterpriseAgentOs.Application.Services.Agents;
+using EnterpriseAgentOs.Domain.Models;
 
-/// <summary>Lightweight skill info for prompt injection (header only, not the full doc).</summary>
-public record SkillSummaryForPrompt(string Name, string Description);
+namespace EnterpriseAgentOs.Application.Services.Agents;
 
 /// <summary>
 /// Prompt sections for composing the system prompt. Ported from agent-core's PromptSection trait.
@@ -23,26 +22,27 @@ public static class PromptSections
            "- Never bypass security controls or disable safety mechanisms.\n" +
            "- Prefer moving to trash over permanent deletion.";
 
-    public static string? Skills(IReadOnlyList<string> installedSkills)
-    {
-        if (installedSkills.Count == 0) return null;
-        return "## Installed Skills\n\n" +
-               "Use 'skill_exec --help' to discover available actions.\n" +
-               "Use 'skill_read' tool to read the full documentation for a skill.\n\n" +
-               string.Join("\n", installedSkills.Select(s => $"- {s}"));
-    }
-
     /// <summary>
-    /// Skills section with descriptions injected (like Claude Code's skill headers).
-    /// Only name + description in the prompt — agent uses skill_read for the full body.
+    /// Skills section with full documentation injected (like Claude Code's skill headers).
+    /// Each skill's Doc (SKILL.md) is included so the agent knows available actions upfront.
     /// </summary>
-    public static string? SkillsWithDescriptions(IReadOnlyList<SkillSummaryForPrompt> skills)
+    public static string? SkillsWithDocs(IReadOnlyList<SkillRecord> skills)
     {
         if (skills.Count == 0) return null;
-        return "## Installed Skills\n\n" +
-               "Each skill has detailed documentation. Use the `skill_read` tool with the skill name to read it.\n" +
-               "Use `skill_exec <skill> --help` to discover executable actions.\n\n" +
-               string.Join("\n", skills.Select(s => $"- **{s.Name}**: {s.Description}"));
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("## Installed Skills");
+        sb.AppendLine();
+
+        foreach (var skill in skills)
+        {
+            sb.AppendLine($"### {skill.Name}");
+            sb.AppendLine();
+            sb.AppendLine(skill.FormatPromptSection());
+            sb.AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     public static string Workspace(string agentName)

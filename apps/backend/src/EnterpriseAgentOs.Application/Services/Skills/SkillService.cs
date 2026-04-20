@@ -4,12 +4,6 @@ public sealed class SkillService : ISkillService
 {
     private static readonly HashSet<string> SystemSkills = new(StringComparer.OrdinalIgnoreCase) { "browser" };
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
-
     private readonly ISkillRepository _skillRepository;
     private readonly ISkillCatalogRepository _skillCatalogRepository;
     private readonly IAgentSkillRepository _agentSkillRepository;
@@ -70,7 +64,7 @@ public sealed class SkillService : ISkillService
             return cached;
 
         var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
-        if (skill is null || skill.Status != "active") return null;
+        if (skill is null || !skill.IsActive) return null;
         var row = await _skillRepository.GetByNameAsync(skill.Name, ct);
         var dto = ToDto(skill, row);
 
@@ -101,7 +95,7 @@ public sealed class SkillService : ISkillService
                 IsSystem = systemSkills.Contains(n),
                 Status = "active",
             };
-            MapManifestToRecord(liveManifest, record);
+            record.ApplyManifest(liveManifest);
             await _skillCatalogRepository.UpsertAsync(record, ct);
         }
 
@@ -141,8 +135,7 @@ public sealed class SkillService : ISkillService
         var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null) return null;
 
-        var rawCredFields = DeserializeCredentialFields(skill);
-        var credFields = ToCredentialFields(rawCredFields);
+        var credFields = ToCredentialFields(skill.GetCredentialFields());
 
         var missing = credFields
             .Where(f => f.Required && string.IsNullOrWhiteSpace(GetField(credentials, f.Key)))
@@ -210,7 +203,7 @@ public sealed class SkillService : ISkillService
             if (!isSystem && (row is null || !row.Enabled || string.IsNullOrEmpty(row.EncryptedCredentials))) continue;
             if (assignedSkills is not null && !isSystem && !assignedSkills.Contains(skill.Name)) continue;
 
-            var actions = DeserializeActions(skill);
+            var actions = skill.GetActions();
 
             foreach (var (actionName, action) in actions)
             {
@@ -259,49 +252,10 @@ public sealed class SkillService : ISkillService
         return row?.RunTarget ?? "cloud";
     }
 
-    public static Dictionary<string, RuntimeActionManifest> DeserializeActions(SkillRecord skill)
-    {
-        if (string.IsNullOrWhiteSpace(skill.ActionsJson)) return new();
-        return JsonSerializer.Deserialize<Dictionary<string, RuntimeActionManifest>>(skill.ActionsJson, JsonOptions)
-            ?? new();
-    }
-
-    public static List<RuntimeCredentialField> DeserializeCredentialFields(SkillRecord skill)
-    {
-        if (string.IsNullOrWhiteSpace(skill.CredentialFieldsJson)) return new();
-        return JsonSerializer.Deserialize<List<RuntimeCredentialField>>(skill.CredentialFieldsJson, JsonOptions)
-            ?? new();
-    }
-
-    /// <summary>Copies manifest fields onto SkillRecord typed columns.</summary>
-    public static void MapManifestToRecord(RuntimeManifest manifest, SkillRecord record)
-    {
-        record.Logo = manifest.Logo;
-        record.License = manifest.License;
-        record.Repository = manifest.Repository;
-        record.RequiresApproval = manifest.RequiresApproval;
-        record.Readme = manifest.Readme;
-        record.Changelog = manifest.Changelog;
-        record.Category = manifest.Category;
-        record.AuthorName = manifest.Author?.Name;
-        record.AuthorUrl = manifest.Author?.Url;
-        record.Categories = manifest.Categories;
-        record.Keywords = manifest.Keywords;
-        record.ActionsJson = manifest.Actions is not null
-            ? JsonSerializer.Serialize(manifest.Actions, JsonOptions)
-            : null;
-        record.CredentialFieldsJson = manifest.CredentialFields is not null
-            ? JsonSerializer.Serialize(manifest.CredentialFields, JsonOptions)
-            : null;
-        record.ContributorsJson = manifest.Contributors is not null
-            ? JsonSerializer.Serialize(manifest.Contributors, JsonOptions)
-            : null;
-    }
-
     private static SkillDto ToDto(SkillRecord skill, SkillCredentialRecord? row)
     {
-        var actions = DeserializeActions(skill);
-        var credFields = DeserializeCredentialFields(skill);
+        var actions = skill.GetActions();
+        var credFields = skill.GetCredentialFields();
         var isSystem = skill.IsSystem || SystemSkills.Contains(skill.Name);
         var tools = actions
             .Select(kv =>

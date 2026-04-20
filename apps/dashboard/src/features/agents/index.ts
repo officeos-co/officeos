@@ -8,3 +8,7 @@ export * from "./api/useModels";
 export * from "./api/useCronJobs";
 export * from "./components/credential-dialog";
 export * from "./components/channel-onboarding-dialog";
+export * from "./components/integration-detail-tab";
+export * from "./components/integration-readme-tab";
+export * from "./components/integration-changelog-tab";
+export * from "./components/integration-comments-tab";

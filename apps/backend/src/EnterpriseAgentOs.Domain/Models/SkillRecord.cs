@@ -2,6 +2,12 @@ namespace EnterpriseAgentOs.Domain.Models;
 
 public sealed class SkillRecord
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+    };
+
     public Guid Id { get; init; } = Guid.NewGuid();
 
     [Required, MaxLength(64)]
@@ -79,4 +85,67 @@ public sealed class SkillRecord
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public UserRecord? Owner { get; set; }
+
+    // ── Computed properties ────────────────────────────────────────
+
+    public bool IsActive => Status == "active";
+
+    public bool HasDoc => !string.IsNullOrWhiteSpace(Doc);
+
+    // ── Domain methods ─────────────────────────────────────────────
+
+    /// <summary>Deserializes the ActionsJson column into typed action manifests.</summary>
+    public Dictionary<string, RuntimeActionManifest> GetActions()
+    {
+        if (string.IsNullOrWhiteSpace(ActionsJson)) return new();
+        return JsonSerializer.Deserialize<Dictionary<string, RuntimeActionManifest>>(ActionsJson, JsonOptions)
+            ?? new();
+    }
+
+    /// <summary>Deserializes the CredentialFieldsJson column into typed credential fields.</summary>
+    public List<RuntimeCredentialField> GetCredentialFields()
+    {
+        if (string.IsNullOrWhiteSpace(CredentialFieldsJson)) return new();
+        return JsonSerializer.Deserialize<List<RuntimeCredentialField>>(CredentialFieldsJson, JsonOptions)
+            ?? new();
+    }
+
+    /// <summary>Deserializes the ContributorsJson column into typed contributor records.</summary>
+    public List<ManifestContributor> GetContributors()
+    {
+        if (string.IsNullOrWhiteSpace(ContributorsJson)) return new();
+        return JsonSerializer.Deserialize<List<ManifestContributor>>(ContributorsJson, JsonOptions)
+            ?? new();
+    }
+
+    /// <summary>Applies manifest fields onto this record (used during seed/install).</summary>
+    public void ApplyManifest(RuntimeManifest manifest)
+    {
+        Logo = manifest.Logo;
+        License = manifest.License;
+        Repository = manifest.Repository;
+        RequiresApproval = manifest.RequiresApproval;
+        Readme = manifest.Readme;
+        Changelog = manifest.Changelog;
+        Category = manifest.Category;
+        AuthorName = manifest.Author?.Name;
+        AuthorUrl = manifest.Author?.Url;
+        Categories = manifest.Categories;
+        Keywords = manifest.Keywords;
+        ActionsJson = manifest.Actions is not null
+            ? JsonSerializer.Serialize(manifest.Actions, JsonOptions)
+            : null;
+        CredentialFieldsJson = manifest.CredentialFields is not null
+            ? JsonSerializer.Serialize(manifest.CredentialFields, JsonOptions)
+            : null;
+        ContributorsJson = manifest.Contributors is not null
+            ? JsonSerializer.Serialize(manifest.Contributors, JsonOptions)
+            : null;
+    }
+
+    /// <summary>Formats this skill's documentation for injection into the agent system prompt.</summary>
+    public string FormatPromptSection()
+    {
+        return HasDoc ? Doc!.Trim() : Description;
+    }
 }
