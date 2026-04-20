@@ -1,4 +1,5 @@
 using EnterpriseAgentOs.Application.Services.Agents;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EnterpriseAgentOs.Application.Services.AgentLogs;
 
@@ -14,7 +15,7 @@ public sealed class AgentLogService : IAgentLogService
     private readonly IAgentRepository _agents;
     private readonly IPostHogService _analytics;
     private readonly ILogger<AgentLogService> _logger;
-    private readonly AgentTurnService _turnService;
+    private readonly IServiceProvider _serviceProvider;
 
     public AgentLogService(
         IAgentLogRepository repo,
@@ -22,14 +23,14 @@ public sealed class AgentLogService : IAgentLogService
         IAgentRepository agents,
         IPostHogService analytics,
         ILogger<AgentLogService> logger,
-        AgentTurnService turnService)
+        IServiceProvider serviceProvider)
     {
         _repo = repo;
         _sender = sender;
         _agents = agents;
         _analytics = analytics;
         _logger = logger;
-        _turnService = turnService;
+        _serviceProvider = serviceProvider;
     }
 
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
@@ -77,7 +78,8 @@ public sealed class AgentLogService : IAgentLogService
         {
             try
             {
-                await _turnService.RunTurnAsync(agentId, content, correlationId, CancellationToken.None);
+                var turnService = _serviceProvider.GetRequiredService<AgentTurnService>();
+                await turnService.RunTurnAsync(agentId, content, correlationId, CancellationToken.None);
             }
             catch (Exception ex)
             {
