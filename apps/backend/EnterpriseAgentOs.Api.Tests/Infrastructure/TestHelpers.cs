@@ -96,7 +96,7 @@ public static class TestHelpers
     /// Creates an agent via the dashboard GraphQL and returns its ID.
     /// Requires an authenticated client.
     /// </summary>
-    public static async Task<Guid> CreateAgentAsync(HttpClient client, string name = "test-agent", string provider = "ollama")
+    public static async Task<Guid> CreateAgentAsync(HttpClient client, string name = "test-agent", string provider = "anthropic")
     {
         const string mutation = @"
             mutation($input: CreateAgentInput!) {

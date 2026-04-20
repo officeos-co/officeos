@@ -22,7 +22,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
             input = new
             {
                 name = "lifecycle-test",
-                provider = "ollama",
+                provider = "anthropic",
                 model = (string?)null,
                 prompt = (string?)null,
                 integrationSlugs = (string[]?)null,
@@ -32,7 +32,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
 
         var agent = data.GetProperty("createAgent");
         Assert.Equal("lifecycle-test", agent.GetProperty("name").GetString());
-        Assert.Equal("ollama", agent.GetProperty("provider").GetString());
+        Assert.Equal("anthropic", agent.GetProperty("provider").GetString());
         var status = agent.GetProperty("status").GetString();
         Assert.True(status == "pending" || status == "running",
             $"Expected pending or running, got {status}");
@@ -42,8 +42,8 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     public async Task ListAgents_ReturnsCreatedAgents()
     {
         var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
-        await Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-1", "ollama");
-        await Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-2", "ollama");
+        await Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-1", "anthropic");
+        await Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-2", "anthropic");
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ agents { id name } }");
         var agents = data.GetProperty("agents");
@@ -54,7 +54,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     public async Task GetAgent_ById_ReturnsAgent()
     {
         var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
-        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(client, "get-test", "ollama");
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(client, "get-test", "anthropic");
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(
             client,
@@ -83,7 +83,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     public async Task DeleteAgent_SoftDeletes_ThenExcludedFromList()
     {
         var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
-        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(client, "delete-test", "ollama");
+        var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(client, "delete-test", "anthropic");
 
         var delData = await Infrastructure.TestHelpers.GraphQLAsync(
             client,
@@ -141,7 +141,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     }
 
     [Theory]
-    [InlineData("ollama")]
+    [InlineData("anthropic")]
     [InlineData("anthropic")]
     [InlineData("google")]
     [InlineData("xai")]

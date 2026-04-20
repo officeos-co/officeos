@@ -47,7 +47,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         var agent = new AgentRecord
         {
             Name = "channel-test-agent",
-            Provider = "ollama",
+            Provider = "anthropic",
             Status = "running",
             ServiceUrl = _fakeAgent.ServiceUrl,
         };
@@ -156,7 +156,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         var agent = new AgentRecord
         {
             Name = "blocked-agent",
-            Provider = "ollama",
+            Provider = "anthropic",
             Status = "running",
             ServiceUrl = _fakeAgent.ServiceUrl,
         };

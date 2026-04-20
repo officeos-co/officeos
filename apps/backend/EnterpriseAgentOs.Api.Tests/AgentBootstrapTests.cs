@@ -36,7 +36,7 @@ public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWeb
         var client = await Infrastructure.TestHelpers
             .CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers
-            .CreateAgentAsync(client, "bootstrap-gateway-test", "ollama");
+            .CreateAgentAsync(client, "bootstrap-gateway-test", "anthropic");
 
         var payload = await GetBootstrapPayloadAsync(client, agentId);
         var gateway = payload.GetProperty("gateway");
@@ -66,7 +66,7 @@ public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWeb
         var client = await Infrastructure.TestHelpers
             .CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers
-            .CreateAgentAsync(client, "bootstrap-port-test", "ollama");
+            .CreateAgentAsync(client, "bootstrap-port-test", "anthropic");
 
         var payload = await GetBootstrapPayloadAsync(client, agentId);
         var port = payload.GetProperty("gateway").GetProperty("port").GetInt32();

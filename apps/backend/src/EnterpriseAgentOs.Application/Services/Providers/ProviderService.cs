@@ -72,12 +72,25 @@ public sealed class ProviderService : IProviderService
 
     public async Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
     {
+        // Check user-configured key in DB first
         var record = await _providerRepository.GetByNameAsync(name, ct);
-        if (record?.EncryptedApiKey is null)
-            return null;
+        if (record?.EncryptedApiKey is not null)
+            return _providerKeyProtector.Unprotect(record.EncryptedApiKey);
 
-        return _providerKeyProtector.Unprotect(record.EncryptedApiKey);
+        // Fall back to platform keys from config
+        return GetPlatformKey(name);
     }
+
+    private string? GetPlatformKey(string name) => name.ToLowerInvariant() switch
+    {
+        "anthropic" => NullIfEmpty(_platformKeysConfig.AnthropicApiKey),
+        "google" => NullIfEmpty(_platformKeysConfig.GeminiApiKey),
+        "xai" => NullIfEmpty(_platformKeysConfig.XaiApiKey),
+        "openai" => NullIfEmpty(_platformKeysConfig.OpenAiApiKey),
+        _ => null,
+    };
+
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     private static ProviderDto ToDto(ProviderRecord record) =>
         new(record.Id, record.Name, record.DisplayName, record.Configured, record.ConfiguredAt);
