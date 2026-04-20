@@ -9,4 +9,9 @@ public sealed class ProviderRecord
     public DateTime? ConfiguredAt { get; set; }
 
     public bool Configured => !string.IsNullOrEmpty(EncryptedApiKey);
+
+    /// <summary>
+    /// A provider is ready when it has an API key configured. All providers require keys.
+    /// </summary>
+    public bool IsReady => Configured;
 }

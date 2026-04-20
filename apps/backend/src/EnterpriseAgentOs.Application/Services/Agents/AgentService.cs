@@ -75,15 +75,11 @@ public sealed class AgentService : IAgentService
     {
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
-        var isKeyless = Domain.Services.KnownProviders.IsKeyless(request.Provider);
-        if (!isKeyless)
+        var apiKey = await _providerService.GetApiKeyForDispatchAsync(request.Provider, ct);
+        if (apiKey is null)
         {
-            var apiKey = await _providerService.GetDecryptedKeyAsync(request.Provider, ct);
-            if (apiKey is null)
-            {
-                throw new InvalidOperationException(
-                    $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
-            }
+            throw new InvalidOperationException(
+                $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
         }
 
         var record = new AgentRecord
@@ -156,14 +152,11 @@ public sealed class AgentService : IAgentService
         if (!string.IsNullOrWhiteSpace(request.Provider))
         {
             var provider = request.Provider.Trim().ToLowerInvariant();
-            if (!Domain.Services.KnownProviders.IsKeyless(provider))
+            var key = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
+            if (key is null)
             {
-                var key = await _providerService.GetDecryptedKeyAsync(provider, ct);
-                if (key is null)
-                {
-                    throw new InvalidOperationException(
-                        $"Provider '{provider}' is not configured.");
-                }
+                throw new InvalidOperationException(
+                    $"Provider '{provider}' is not configured. Set its API key on the Providers page first.");
             }
             record.Provider = provider;
         }

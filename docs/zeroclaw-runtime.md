@@ -108,30 +108,30 @@ Sections are registered via `SystemPromptBuilder::with_defaults()` and rendered 
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `src/agent/gateway_bootstrap.rs` | Single-env-var config derivation |
-| `src/agent/personality_bootstrap.rs` | Seeds embedded personality templates onto the pod PVC on first boot |
-| `src/agent/agent.rs` | Agent struct, turn loop, capability refresh |
-| `src/agent/prompt.rs` | System prompt builder |
-| `src/agent/personality.rs` | Personality file loader |
-| `src/tools/skill_exec/mod.rs` | GraphQL skill CLI tool |
-| `src/tools/traits.rs` | Tool trait definition |
-| `src/gateway/mod.rs` | HTTP + WebSocket server |
-| `src/providers/router.rs` | Multi-model routing |
-| `src/config/schema.rs` | Full config schema |
-| `src/memory/remote.rs` | Remote memory backend (HTTP calls to backend API) |
-| `src/memory/sqlite.rs` | Local SQLite memory backend (standalone mode) |
-| `src/memory/backend.rs` | Backend classifier (auto-selects remote when `ZEROCLAW_AGENT_ID` is set) |
+| File                                 | Purpose                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------ |
+| `src/agent/gateway_bootstrap.rs`     | Single-env-var config derivation                                         |
+| `src/agent/personality_bootstrap.rs` | Seeds embedded personality templates onto the pod PVC on first boot      |
+| `src/agent/agent.rs`                 | Agent struct, turn loop, capability refresh                              |
+| `src/agent/prompt.rs`                | System prompt builder                                                    |
+| `src/agent/personality.rs`           | Personality file loader                                                  |
+| `src/tools/skill_exec/mod.rs`        | GraphQL skill CLI tool                                                   |
+| `src/tools/traits.rs`                | Tool trait definition                                                    |
+| `src/gateway/mod.rs`                 | HTTP + WebSocket server                                                  |
+| `src/providers/router.rs`            | Multi-model routing                                                      |
+| `src/config/schema.rs`               | Full config schema                                                       |
+| `src/memory/remote.rs`               | Remote memory backend (HTTP calls to backend API)                        |
+| `src/memory/sqlite.rs`               | Local SQLite memory backend (standalone mode)                            |
+| `src/memory/backend.rs`              | Backend classifier (auto-selects remote when `ZEROCLAW_AGENT_ID` is set) |
 
 ## Memory backends
 
 The agent supports two memory backends, selected automatically:
 
-| Mode | Backend | Storage | When |
-|------|---------|---------|------|
-| **Managed** | `RemoteMemory` | Postgres (via backend API) | `ZEROCLAW_AGENT_ID` is set (K8s pod) |
-| **Standalone** | `SqliteMemory` | Local SQLite file | Running locally without backend |
+| Mode           | Backend        | Storage                    | When                                 |
+| -------------- | -------------- | -------------------------- | ------------------------------------ |
+| **Managed**    | `RemoteMemory` | Postgres (via backend API) | `ZEROCLAW_AGENT_ID` is set (K8s pod) |
+| **Standalone** | `SqliteMemory` | Local SQLite file          | Running locally without backend      |
 
 The `RemoteMemory` backend calls the backend's `/api/agents/me/memory`, `/api/agents/me/cache`, and `/api/agents/me/conversations` endpoints. This centralizes all agent data in the platform's Postgres database.
 

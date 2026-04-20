@@ -70,6 +70,15 @@ public sealed class ProviderService : IProviderService
         return _providerKeyProtector.Unprotect(record.EncryptedApiKey);
     }
 
+    public async Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
+    {
+        var record = await _providerRepository.GetByNameAsync(name, ct);
+        if (record?.EncryptedApiKey is null)
+            return null;
+
+        return _providerKeyProtector.Unprotect(record.EncryptedApiKey);
+    }
+
     private static ProviderDto ToDto(ProviderRecord record) =>
         new(record.Id, record.Name, record.DisplayName, record.Configured, record.ConfiguredAt);
 }

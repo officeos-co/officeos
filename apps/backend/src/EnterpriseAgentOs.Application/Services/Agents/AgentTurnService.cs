@@ -168,9 +168,12 @@ public sealed class AgentTurnService
             });
 
             var provider = agent.Provider;
-            var apiKey = Domain.Services.KnownProviders.IsKeyless(provider)
-                ? "platform"
-                : await _providerService.GetDecryptedKeyAsync(provider, ct) ?? "";
+            var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
+            if (apiKey is null)
+            {
+                log.Error(new AgentError(AgentErrorCategory.Configuration, $"Provider '{provider}' has no API key configured."));
+                return;
+            }
 
             var llmStart = Stopwatch.GetTimestamp();
             var llmResult = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);

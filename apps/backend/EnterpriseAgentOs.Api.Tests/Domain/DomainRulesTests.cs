@@ -61,30 +61,21 @@ public sealed class DomainRulesTests
     }
 
     // =========================================================================
-    // KnownProviders — moved to Domain
+    // ProviderRecord — rich domain model
     // =========================================================================
 
-    [Theory]
-    [InlineData("ollama")]
-    [InlineData("anthropic")]
-    [InlineData("google")]
-    [InlineData("xai")]
-    [InlineData("openai")]
-    public void KnownProviders_IsKeyless_ReturnsTrueForPlatformProviders(string provider)
+    [Fact]
+    public void ProviderRecord_IsReady_WhenKeyConfigured()
     {
-        Assert.True(EnterpriseAgentOs.Domain.Services.KnownProviders.IsKeyless(provider));
+        var provider = new EnterpriseAgentOs.Domain.Models.ProviderRecord { Name = "openai", EncryptedApiKey = "encrypted" };
+        Assert.True(provider.IsReady);
     }
 
     [Fact]
-    public void KnownProviders_IsKeyless_ReturnsFalseForByokProvider()
+    public void ProviderRecord_IsNotReady_WhenKeyMissing()
     {
-        Assert.False(EnterpriseAgentOs.Domain.Services.KnownProviders.IsKeyless("custom-provider"));
-    }
-
-    [Fact]
-    public void KnownProviders_IsKeyless_IsCaseInsensitive()
-    {
-        Assert.True(EnterpriseAgentOs.Domain.Services.KnownProviders.IsKeyless("Anthropic"));
+        var provider = new EnterpriseAgentOs.Domain.Models.ProviderRecord { Name = "openai" };
+        Assert.False(provider.IsReady);
     }
 
     // =========================================================================
