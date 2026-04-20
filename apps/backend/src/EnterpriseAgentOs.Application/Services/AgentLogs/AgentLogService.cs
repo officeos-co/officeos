@@ -78,12 +78,34 @@ public sealed class AgentLogService : IAgentLogService
         {
             try
             {
-                var turnService = _serviceProvider.GetRequiredService<AgentTurnService>();
+                using var scope = _serviceProvider.CreateScope();
+                var turnService = scope.ServiceProvider.GetRequiredService<AgentTurnService>();
                 await turnService.RunTurnAsync(agentId, content, correlationId, CancellationToken.None);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Turn failed for agent {AgentId}", agentId);
+
+                try
+                {
+                    using var errorScope = _serviceProvider.CreateScope();
+                    var repo = errorScope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
+                    var sender = errorScope.ServiceProvider.GetRequiredService<ITopicEventSender>();
+
+                    var errorRecord = await repo.AppendAsync(new AgentLogRecord
+                    {
+                        AgentId = agentId,
+                        Type = AgentLogType.Error,
+                        Content = $"Turn failed: {ex.Message}",
+                        CorrelationId = correlationId,
+                        Time = DateTime.UtcNow,
+                    });
+                    await sender.SendAsync($"agent-log:{agentId}", errorRecord.ToDto(), CancellationToken.None);
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogError(logEx, "Failed to log error for agent {AgentId}", agentId);
+                }
             }
         }, CancellationToken.None);
 
