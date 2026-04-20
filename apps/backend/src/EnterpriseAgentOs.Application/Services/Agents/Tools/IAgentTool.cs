@@ -11,5 +11,5 @@ public interface IAgentTool
 {
     string Name { get; }
     ToolSchema Schema { get; }
-    Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct = default);
+    Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default);
 }

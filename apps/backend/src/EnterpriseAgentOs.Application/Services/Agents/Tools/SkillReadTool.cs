@@ -27,7 +27,7 @@ public sealed class SkillReadTool : IAgentTool
             required = new[] { "name" }
         });
 
-    public Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var name = args.GetProperty("name").GetString() ?? "";
 
@@ -37,16 +37,16 @@ public sealed class SkillReadTool : IAgentTool
         if (skill is null)
         {
             var available = string.Join(", ", _skills.Select(s => s.Name));
-            return Task.FromResult(new ToolResult(false, "",
+            return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(false, "",
                 $"Skill '{name}' not found. Available skills: {available}"));
         }
 
         if (string.IsNullOrEmpty(skill.Doc))
         {
-            return Task.FromResult(new ToolResult(true,
+            return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true,
                 $"# {skill.Name}\n\n{skill.Description}\n\n(No additional documentation available.)"));
         }
 
-        return Task.FromResult(new ToolResult(true, skill.Doc));
+        return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, skill.Doc));
     }
 }

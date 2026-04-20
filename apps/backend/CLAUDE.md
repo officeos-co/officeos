@@ -67,14 +67,14 @@ EnterpriseAgentOs.sln
 
 ## Layer rules — the compiler enforces these
 
-| Layer | Can reference | Cannot reference |
-|-------|--------------|-----------------|
-| **Domain** | Nothing (zero deps) | Application, Infrastructure, Api |
-| **Application** | Domain, Infrastructure* | Api |
-| **Infrastructure** | Domain | Application, Api |
-| **Api** | Domain, Application, Infrastructure | — |
+| Layer              | Can reference                       | Cannot reference                 |
+| ------------------ | ----------------------------------- | -------------------------------- |
+| **Domain**         | Nothing (zero deps)                 | Application, Infrastructure, Api |
+| **Application**    | Domain, Infrastructure\*            | Api                              |
+| **Infrastructure** | Domain                              | Application, Api                 |
+| **Api**            | Domain, Application, Infrastructure | —                                |
 
-*Application references Infrastructure pragmatically (services use EaosDbContext directly). This is a known architectural violation to be resolved in a future refactor.
+\*Application references Infrastructure pragmatically (services use EaosDbContext directly). This is a known architectural violation to be resolved in a future refactor.
 
 ## Where does new code go? (Decision tree)
 
@@ -89,10 +89,10 @@ EnterpriseAgentOs.sln
 
 Two named HotChocolate schemas:
 
-| Endpoint | Schema | Auth | Shape |
-|----------|--------|------|-------|
-| `POST /api/graphql` | `agent` | Bearer agent-uuid | Dynamic — SkillTypeModule |
-| `POST /api/dashboard/graphql` | `dashboard` | Cookie session | Static — per-domain [ExtendObjectType] |
+| Endpoint                      | Schema      | Auth              | Shape                                  |
+| ----------------------------- | ----------- | ----------------- | -------------------------------------- |
+| `POST /api/graphql`           | `agent`     | Bearer agent-uuid | Dynamic — SkillTypeModule              |
+| `POST /api/dashboard/graphql` | `dashboard` | Cookie session    | Static — per-domain [ExtendObjectType] |
 
 ### Resolver conventions
 
@@ -107,14 +107,14 @@ Two named HotChocolate schemas:
 
 All DI registration goes through `Extensions/ServiceCollectionExtensions.cs`, not Program.cs.
 
-| What | Register in | Lifetime |
-|------|------------|----------|
-| Repository | `AddRepositories()` | Scoped |
-| Service | `AddApplicationServices()` | Scoped |
-| Background service | `AddBackgroundServices()` | Singleton |
-| Protector | `AddProtectors()` | Singleton |
-| HTTP client | `AddHttpClients()` | via AddHttpClient |
-| Typed config | `Program.cs` directly | Singleton |
+| What               | Register in                | Lifetime          |
+| ------------------ | -------------------------- | ----------------- |
+| Repository         | `AddRepositories()`        | Scoped            |
+| Service            | `AddApplicationServices()` | Scoped            |
+| Background service | `AddBackgroundServices()`  | Singleton         |
+| Protector          | `AddProtectors()`          | Singleton         |
+| HTTP client        | `AddHttpClients()`         | via AddHttpClient |
+| Typed config       | `Program.cs` directly      | Singleton         |
 
 ## Database schema
 
@@ -138,6 +138,32 @@ Always create a migration when changing any model. The app runs `MigrateAsync()`
 6. Register in `Extensions/ServiceCollectionExtensions.cs`
 7. If DB model needed: add to `Domain/Models/`, configure in `Infrastructure/Persistence/EaosDbContext.cs`, run migration
 
+## Logging — two separate systems
+
+| System                               | Purpose                                                                                  | Where it goes                                                               |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **AgentLogRecord** (AgentLogService) | Agent-visible event log — messages, tool calls, LLM calls, errors shown in the dashboard | Postgres `agent_logs` table, streamed to dashboard via GraphQL subscription |
+| **Serilog** (ILogger<T>)             | Operator/developer diagnostics — request traces, DI errors, infrastructure failures      | Structured logs to console/seq, never shown in dashboard                    |
+
+Everything goes to AgentLogRecord — agent turn events, auth failures, DI exceptions, infrastructure errors. The dashboard is the single pane of glass. Serilog is a secondary diagnostic channel for operators; it must never be the only place an event is recorded.
+
+## Error handling — Result pattern
+
+Agent-context code uses `AgentResult<T>` (in `Domain/Primitives/`) instead of exceptions. Named `AgentResult` to avoid conflict with `GreenDonut.Result` from HotChocolate.
+
+| Concept | Location |
+|---------|----------|
+| `AgentResult<T>` struct | `Domain/Primitives/Result.cs` |
+| `AgentError` record | `Domain/Primitives/AgentError.cs` |
+| `AgentErrorCategory` enum | `Domain/Primitives/AgentErrorCategory.cs` |
+
+**Rules:**
+- Infrastructure boundaries (PodConnection, LlmProviderDispatcher, tools) return `AgentResult<T>` instead of throwing
+- AgentTurnService matches on results and logs errors through `TurnLogger.Error(AgentError)`
+- `AgentLogType` has typed error subtypes: `ErrorPodConnection`, `ErrorLlmCall`, `ErrorToolExecution`, `ErrorSkillExecution`, `ErrorTurnOrchestration`, `ErrorMemory`, `ErrorConfiguration`
+- Try/catch only at external boundaries (WebSocket, HTTP, DB) — immediately convert to `AgentResult`
+- The outermost safety net in `AgentLogService.SendMessageAsync` is the only remaining catch-all
+
 ## Anti-patterns
 
 - **Importing Infrastructure from Domain.** Domain has zero dependencies. If an interface needs a type, that type must be in Domain.
@@ -150,3 +176,5 @@ Always create a migration when changing any model. The app runs `MigrateAsync()`
 - **Exposing credentials outside this service.** Decrypted here, injected per-request.
 - **Skipping migrations when changing Models/.**
 - **Adding EF Core or HotChocolate packages to Domain.** Domain must remain dependency-free.
+- **Throwing exceptions from agent-context code.** Return `AgentResult<T>` instead. Only the outermost safety net uses try/catch.
+- **Using `AgentLogType.Error` for new code.** Use the typed subtypes (`ErrorPodConnection`, `ErrorLlmCall`, etc.) via `TurnLogger.Error(AgentError)`.

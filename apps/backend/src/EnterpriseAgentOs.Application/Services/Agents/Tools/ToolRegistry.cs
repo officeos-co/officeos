@@ -27,11 +27,11 @@ public sealed class ToolRegistry
     }).ToArray();
 
     /// <summary>Dispatch a tool call by name.</summary>
-    public async Task<ToolResult> DispatchAsync(string toolName, JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> DispatchAsync(string toolName, JsonElement args, CancellationToken ct)
     {
         var tool = _tools.FirstOrDefault(t => t.Name == toolName);
         if (tool is null)
-            return new ToolResult(false, "", $"Unknown tool: {toolName}");
+            return new AgentError(AgentErrorCategory.ToolExecution, $"Unknown tool: {toolName}");
 
         return await tool.ExecuteAsync(args, ct);
     }

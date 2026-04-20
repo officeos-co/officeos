@@ -23,7 +23,7 @@ public sealed class HttpRequestTool : IAgentTool
             required = new[] { "url" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var url = args.GetProperty("url").GetString() ?? "";
         var methodStr = args.TryGetProperty("method", out var m) ? m.GetString() ?? "GET" : "GET";
@@ -57,11 +57,11 @@ public sealed class HttpRequestTool : IAgentTool
         }
         catch (TaskCanceledException)
         {
-            return new ToolResult(false, "", "Request timed out (30s).");
+            return new AgentError(AgentErrorCategory.ToolExecution, "http_request: Request timed out (30s)");
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", ex.Message);
+            return new AgentError(AgentErrorCategory.ToolExecution, $"http_request: {ex.Message}", ex.ToString());
         }
     }
 }
@@ -87,7 +87,7 @@ public sealed class WebFetchTool : IAgentTool
             required = new[] { "url" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var url = args.GetProperty("url").GetString() ?? "";
 
@@ -117,11 +117,11 @@ public sealed class WebFetchTool : IAgentTool
         }
         catch (TaskCanceledException)
         {
-            return new ToolResult(false, "", "Request timed out (30s).");
+            return new AgentError(AgentErrorCategory.ToolExecution, "web_fetch: Request timed out (30s)");
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", ex.Message);
+            return new AgentError(AgentErrorCategory.ToolExecution, $"web_fetch: {ex.Message}", ex.ToString());
         }
     }
 }

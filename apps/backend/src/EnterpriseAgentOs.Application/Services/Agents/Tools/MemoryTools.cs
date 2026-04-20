@@ -27,7 +27,7 @@ public sealed class MemoryStoreTool : IAgentTool
             required = new[] { "key", "content" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var key = args.GetProperty("key").GetString() ?? "";
         var content = args.GetProperty("content").GetString() ?? "";
@@ -39,7 +39,7 @@ public sealed class MemoryStoreTool : IAgentTool
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", ex.Message);
+            return new AgentError(AgentErrorCategory.Memory, $"memory_store: {ex.Message}", ex.ToString());
         }
     }
 }
@@ -68,29 +68,36 @@ public sealed class MemoryRecallTool : IAgentTool
             }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var query = args.TryGetProperty("query", out var q) ? q.GetString() ?? "" : "";
         var limit = args.TryGetProperty("limit", out var l) ? l.GetInt32() : 5;
 
-        var memories = await _agentMemoryRepository.ListAsync(_agentId, ct);
-
-        IEnumerable<AgentMemoryRecord> filtered = memories;
-        if (!string.IsNullOrEmpty(query))
+        try
         {
-            filtered = memories
-                .Where(m => m.Key.Contains(query, StringComparison.OrdinalIgnoreCase)
-                         || m.Content.Contains(query, StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(m =>
-                    CountOccurrences(m.Key + " " + m.Content, query));
+            var memories = await _agentMemoryRepository.ListAsync(_agentId, ct);
+
+            IEnumerable<AgentMemoryRecord> filtered = memories;
+            if (!string.IsNullOrEmpty(query))
+            {
+                filtered = memories
+                    .Where(m => m.Key.Contains(query, StringComparison.OrdinalIgnoreCase)
+                             || m.Content.Contains(query, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(m =>
+                        CountOccurrences(m.Key + " " + m.Content, query));
+            }
+
+            var results = filtered.Take(limit).ToList();
+            if (results.Count == 0)
+                return new ToolResult(true, "No memories found.");
+
+            var output = string.Join("\n\n", results.Select(m => $"### {m.Key}\n{m.Content}"));
+            return new ToolResult(true, output);
         }
-
-        var results = filtered.Take(limit).ToList();
-        if (results.Count == 0)
-            return new ToolResult(true, "No memories found.");
-
-        var output = string.Join("\n\n", results.Select(m => $"### {m.Key}\n{m.Content}"));
-        return new ToolResult(true, output);
+        catch (Exception ex)
+        {
+            return new AgentError(AgentErrorCategory.Memory, $"memory_recall: {ex.Message}", ex.ToString());
+        }
     }
 
     private static int CountOccurrences(string text, string pattern)
@@ -130,12 +137,20 @@ public sealed class MemoryForgetTool : IAgentTool
             required = new[] { "key" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var key = args.GetProperty("key").GetString() ?? "";
-        var deleted = await _agentMemoryRepository.DeleteAsync(_agentId, key, ct);
-        return deleted
-            ? new ToolResult(true, $"Forgot memory '{key}'.")
-            : new ToolResult(true, $"No memory found with key '{key}'.");
+
+        try
+        {
+            var deleted = await _agentMemoryRepository.DeleteAsync(_agentId, key, ct);
+            return deleted
+                ? new ToolResult(true, $"Forgot memory '{key}'.")
+                : new ToolResult(true, $"No memory found with key '{key}'.");
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(AgentErrorCategory.Memory, $"memory_forget: {ex.Message}", ex.ToString());
+        }
     }
 }

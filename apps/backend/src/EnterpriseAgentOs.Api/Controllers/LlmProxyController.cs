@@ -142,18 +142,15 @@ public sealed class LlmProxyController : ControllerBase
                 model);
         }
 
-        HttpResponseMessage upstream;
-        try
+        var dispatchResult = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, model, cachedBody, ct);
+        if (dispatchResult.IsFailure)
         {
-            upstream = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, model, cachedBody, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "LLM proxy: dispatch failed for provider {Provider} model {Model}", provider, model);
+            _logger.LogWarning("LLM proxy: dispatch failed for provider {Provider} model {Model}: {Error}", provider, model, dispatchResult.Error.Message);
             HttpContext.Response.StatusCode = StatusCodes.Status502BadGateway;
-            await HttpContext.Response.WriteAsJsonAsync(new { error = $"Upstream error: {ex.Message}" }, ct);
+            await HttpContext.Response.WriteAsJsonAsync(new { error = $"Upstream error: {dispatchResult.Error.Message}" }, ct);
             return;
         }
+        var upstream = dispatchResult.Value;
 
         await StreamAndRecordUsageAsync(upstream, agentId, model, ct);
     }

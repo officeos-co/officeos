@@ -9,6 +9,7 @@ global using HotChocolate.Subscriptions;
 global using Stripe;
 global using Stripe.Checkout;
 global using EnterpriseAgentOs.Domain.Models;
+global using EnterpriseAgentOs.Domain.Primitives;
 global using EnterpriseAgentOs.Domain.Interfaces.Agents;
 global using EnterpriseAgentOs.Domain.Interfaces.Skills;
 global using EnterpriseAgentOs.Domain.Interfaces.Providers;

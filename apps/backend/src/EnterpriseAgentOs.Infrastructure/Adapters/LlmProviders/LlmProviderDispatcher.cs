@@ -40,7 +40,7 @@ public sealed class LlmProviderDispatcher
     /// Returns a streaming <see cref="HttpResponseMessage"/> whose body
     /// is standard OpenAI SSE (<c>data: {...}\n\n</c> lines).
     /// </summary>
-    public async Task<HttpResponseMessage> DispatchAsync(
+    public async Task<AgentResult<HttpResponseMessage>> DispatchAsync(
         string provider,
         string apiKey,
         string model,
@@ -49,18 +49,32 @@ public sealed class LlmProviderDispatcher
     {
         _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, model);
 
-        if (provider.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            return await DispatchAnthropicAsync(apiKey, model, requestBody, ct);
-        }
+            if (provider.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
+            {
+                return await DispatchAnthropicAsync(apiKey, model, requestBody, ct);
+            }
 
-        if (!OpenAiCompatBaseUrls.TryGetValue(provider, out var baseUrl))
+            if (!OpenAiCompatBaseUrls.TryGetValue(provider, out var baseUrl))
+            {
+                return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
+            }
+
+            return await DispatchOpenAiCompatAsync(baseUrl, apiKey, model, requestBody, ct);
+        }
+        catch (TaskCanceledException ex)
         {
-            _logger.LogError("Unsupported provider {Provider} in dispatcher", provider);
-            throw new InvalidOperationException($"Unsupported provider: {provider}");
+            return new AgentError(AgentErrorCategory.LlmCall, "LLM call timed out", ex.Message);
         }
-
-        return await DispatchOpenAiCompatAsync(baseUrl, apiKey, model, requestBody, ct);
+        catch (HttpRequestException ex)
+        {
+            return new AgentError(AgentErrorCategory.LlmCall, $"LLM call failed: {ex.Message}", ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(AgentErrorCategory.LlmCall, $"Unexpected LLM error: {ex.Message}", ex.ToString());
+        }
     }
 
     private async Task<HttpResponseMessage> DispatchOpenAiCompatAsync(

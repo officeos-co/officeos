@@ -8,3 +8,4 @@ global using EnterpriseAgentOs.Domain.DTOs.AgentTemplates;
 global using EnterpriseAgentOs.Domain.DTOs.AgentLogs;
 global using EnterpriseAgentOs.Domain.DTOs.Auth;
 global using EnterpriseAgentOs.Domain.DTOs.Billing;
+global using EnterpriseAgentOs.Domain.Primitives;

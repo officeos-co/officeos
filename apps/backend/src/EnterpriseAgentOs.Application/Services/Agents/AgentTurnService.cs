@@ -81,17 +81,14 @@ public sealed class AgentTurnService
 
         // Connect to pod PTY.
         using var pod = new PodConnection();
-        try
+        var podStart = Stopwatch.GetTimestamp();
+        var podResult = await pod.ConnectAsync(agent.PodName, "default", agentId, ct);
+        if (podResult.IsFailure)
         {
-            var podStart = Stopwatch.GetTimestamp();
-            await pod.ConnectAsync(agent.PodName, "default", agentId, ct);
-            log.PodConnected((int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds);
-        }
-        catch (Exception ex)
-        {
-            log.Error($"Failed to connect to pod: {ex.Message}");
+            log.Error(podResult.Error);
             return;
         }
+        log.PodConnected((int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds);
 
         // Build tool registry with all 13 tools — direct to skill-runtime, no HTTP loopback.
         var registry = ToolRegistry.Create(
@@ -175,17 +172,14 @@ public sealed class AgentTurnService
                 ? "platform"
                 : await _providerService.GetDecryptedKeyAsync(provider, ct) ?? "";
 
-            HttpResponseMessage llmResponse;
             var llmStart = Stopwatch.GetTimestamp();
-            try
+            var llmResult = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
+            if (llmResult.IsFailure)
             {
-                llmResponse = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
-            }
-            catch (Exception ex)
-            {
-                log.Error($"LLM call failed: {ex.Message}");
+                log.Error(llmResult.Error);
                 return;
             }
+            var llmResponse = llmResult.Value;
 
             // 4. Parse SSE response.
             var (assistantContent, toolCalls) = await ParseSseResponseAsync(llmResponse, ct);
@@ -238,8 +232,23 @@ public sealed class AgentTurnService
 
                 // Dispatch with timing.
                 var toolStart = Stopwatch.GetTimestamp();
-                var result = await registry.DispatchAsync(tc.Name, args, ct);
+                var toolDispatchResult = await registry.DispatchAsync(tc.Name, args, ct);
                 var toolDurationMs = (int)Stopwatch.GetElapsedTime(toolStart).TotalMilliseconds;
+
+                if (toolDispatchResult.IsFailure)
+                {
+                    log.Error(toolDispatchResult.Error);
+                    log.ToolCallResult(tc.Name, false, toolDispatchResult.Error.Message, toolDurationMs);
+                    history.Push(new ChatMessage
+                    {
+                        Role = "tool",
+                        Content = $"[error] {toolDispatchResult.Error.Message}",
+                        ToolCallId = tc.Id,
+                    });
+                    continue;
+                }
+
+                var result = toolDispatchResult.Value;
                 var output = result.Success ? result.Output : $"[error] {result.Error}\n{result.Output}";
 
                 // Loop detection.

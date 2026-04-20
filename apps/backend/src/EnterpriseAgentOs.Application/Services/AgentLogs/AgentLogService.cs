@@ -15,7 +15,7 @@ public sealed class AgentLogService : IAgentLogService
     private readonly IAgentRepository _agentRepository;
     private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentLogService> _logger;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public AgentLogService(
         IAgentLogRepository agentLogRepository,
@@ -23,14 +23,14 @@ public sealed class AgentLogService : IAgentLogService
         IAgentRepository agentRepository,
         IPostHogService postHogService,
         ILogger<AgentLogService> logger,
-        IServiceProvider serviceProvider)
+        IServiceScopeFactory serviceScopeFactory)
     {
         _agentLogRepository = agentLogRepository;
         _topicEventSender = topicEventSender;
         _agentRepository = agentRepository;
         _postHogService = postHogService;
         _logger = logger;
-        _serviceProvider = serviceProvider;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
@@ -78,7 +78,7 @@ public sealed class AgentLogService : IAgentLogService
         {
             try
             {
-                using var scope = _serviceProvider.CreateScope();
+                using var scope = _serviceScopeFactory.CreateScope();
                 var turnService = scope.ServiceProvider.GetRequiredService<AgentTurnService>();
                 await turnService.RunTurnAsync(agentId, content, correlationId, CancellationToken.None);
             }
@@ -88,7 +88,7 @@ public sealed class AgentLogService : IAgentLogService
 
                 try
                 {
-                    using var errorScope = _serviceProvider.CreateScope();
+                    using var errorScope = _serviceScopeFactory.CreateScope();
                     var repo = errorScope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
                     var sender = errorScope.ServiceProvider.GetRequiredService<ITopicEventSender>();
 

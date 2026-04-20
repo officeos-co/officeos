@@ -22,11 +22,14 @@ public sealed class ShellTool : IAgentTool
             required = new[] { "command" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var command = args.GetProperty("command").GetString() ?? "";
-        var timeout = args.TryGetProperty("timeout_secs", out var t) ? t.GetInt32() : 60;
-        var (output, exitCode) = await _podConnection.ExecuteAsync(command, ct);
+        var execResult = await _podConnection.ExecuteAsync(command, ct);
+        if (execResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"shell: {execResult.Error.Message}", execResult.Error.Detail);
+
+        var (output, exitCode) = execResult.Value;
         return exitCode == 0
             ? new ToolResult(true, output)
             : new ToolResult(false, output, $"exit code {exitCode}");
@@ -54,7 +57,7 @@ public sealed class FileReadTool : IAgentTool
             required = new[] { "path" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var path = args.GetProperty("path").GetString() ?? "";
         var offset = args.TryGetProperty("offset", out var o) ? o.GetInt32() : 1;
@@ -66,7 +69,11 @@ public sealed class FileReadTool : IAgentTool
                 ? $"cat -n {ShellEscape(path)} | sed -n '{offset},$p'"
                 : $"cat -n {ShellEscape(path)}";
 
-        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
+        var execResult = await _podConnection.ExecuteAsync(cmd, ct);
+        if (execResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"file_read: {execResult.Error.Message}", execResult.Error.Detail);
+
+        var (output, exitCode) = execResult.Value;
         return exitCode == 0
             ? new ToolResult(true, output)
             : new ToolResult(false, "", output);
@@ -95,13 +102,17 @@ public sealed class FileWriteTool : IAgentTool
             required = new[] { "path", "content" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var path = args.GetProperty("path").GetString() ?? "";
         var content = args.GetProperty("content").GetString() ?? "";
 
         var cmd = $"mkdir -p \"$(dirname {ShellEscape(path)})\" && cat > {ShellEscape(path)} << 'EAOS_EOF'\n{content}\nEAOS_EOF";
-        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
+        var execResult = await _podConnection.ExecuteAsync(cmd, ct);
+        if (execResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"file_write: {execResult.Error.Message}", execResult.Error.Detail);
+
+        var (output, exitCode) = execResult.Value;
         return exitCode == 0
             ? new ToolResult(true, $"Wrote {content.Length} bytes to {path}")
             : new ToolResult(false, "", output);
@@ -131,7 +142,7 @@ public sealed class FileEditTool : IAgentTool
             required = new[] { "path", "old_string", "new_string" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var path = args.GetProperty("path").GetString() ?? "";
         var oldStr = args.GetProperty("old_string").GetString() ?? "";
@@ -139,7 +150,11 @@ public sealed class FileEditTool : IAgentTool
 
         // Count occurrences first
         var countCmd = $"grep -cF {ShellEscape(oldStr)} {ShellEscape(path)}";
-        var (countOut, _) = await _podConnection.ExecuteAsync(countCmd, ct);
+        var countResult = await _podConnection.ExecuteAsync(countCmd, ct);
+        if (countResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"file_edit: {countResult.Error.Message}", countResult.Error.Detail);
+
+        var (countOut, _) = countResult.Value;
         if (int.TryParse(countOut.Trim(), out var count))
         {
             if (count == 0) return new ToolResult(false, "", $"old_string not found in {path}");
@@ -148,7 +163,11 @@ public sealed class FileEditTool : IAgentTool
 
         // Use python for reliable string replacement
         var pyCmd = $"python3 -c \"\nimport sys\nwith open({PyEscape(path)}, 'r') as f: content = f.read()\ncontent = content.replace({PyEscape(oldStr)}, {PyEscape(newStr)}, 1)\nwith open({PyEscape(path)}, 'w') as f: f.write(content)\nprint(f'Edited {{len(content)}} bytes')\n\"";
-        var (output, exitCode) = await _podConnection.ExecuteAsync(pyCmd, ct);
+        var execResult = await _podConnection.ExecuteAsync(pyCmd, ct);
+        if (execResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"file_edit: {execResult.Error.Message}", execResult.Error.Detail);
+
+        var (output, exitCode) = execResult.Value;
         return exitCode == 0
             ? new ToolResult(true, output.Trim())
             : new ToolResult(false, "", output);
@@ -181,7 +200,7 @@ public sealed class ContentSearchTool : IAgentTool
             required = new[] { "pattern" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var pattern = args.GetProperty("pattern").GetString() ?? "";
         var searchPath = args.TryGetProperty("path", out var p) ? p.GetString() ?? "." : ".";
@@ -193,8 +212,11 @@ public sealed class ContentSearchTool : IAgentTool
         var includeFlag = include != null ? $" --include={ShellEscape(include)}" : "";
 
         var cmd = $"(command -v rg > /dev/null && rg -n{caseFlag} --max-count {maxResults} {ShellEscape(pattern)} {ShellEscape(searchPath)}) || grep -rn{caseFlag}{includeFlag} {ShellEscape(pattern)} {ShellEscape(searchPath)} | head -n {maxResults}";
-        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
+        var execResult = await _podConnection.ExecuteAsync(cmd, ct);
+        if (execResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"content_search: {execResult.Error.Message}", execResult.Error.Detail);
 
+        var (output, exitCode) = execResult.Value;
         return exitCode <= 1
             ? new ToolResult(true, string.IsNullOrEmpty(output) ? "No matches found." : output)
             : new ToolResult(false, "", output);
@@ -222,11 +244,15 @@ public sealed class GlobSearchTool : IAgentTool
             required = new[] { "pattern" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var pattern = args.GetProperty("pattern").GetString() ?? "";
         var cmd = $"find . -path {ShellEscape("./" + pattern)} -type f 2>/dev/null | head -n 1000 | sort";
-        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
+        var execResult = await _podConnection.ExecuteAsync(cmd, ct);
+        if (execResult.IsFailure)
+            return new AgentError(AgentErrorCategory.ToolExecution, $"glob_search: {execResult.Error.Message}", execResult.Error.Detail);
+
+        var (output, _) = execResult.Value;
         return new ToolResult(true, string.IsNullOrEmpty(output) ? "No files found." : output);
     }
 

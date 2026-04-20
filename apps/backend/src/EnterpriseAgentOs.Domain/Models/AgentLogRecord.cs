@@ -16,6 +16,13 @@ public enum AgentLogType
     AgentStartup,
     AgentShutdown,
     Error,
+    ErrorPodConnection,
+    ErrorLlmCall,
+    ErrorToolExecution,
+    ErrorSkillExecution,
+    ErrorTurnOrchestration,
+    ErrorMemory,
+    ErrorConfiguration,
 }
 
 /// <summary>

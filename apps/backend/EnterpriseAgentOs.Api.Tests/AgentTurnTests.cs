@@ -230,8 +230,9 @@ public class AgentTurnTests
         var args = JsonSerializer.SerializeToElement(new { name = "notion" });
         var result = await tool.ExecuteAsync(args, CancellationToken.None);
 
-        Assert.True(result.Success);
-        Assert.Contains("Full documentation here", result.Output);
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.Success);
+        Assert.Contains("Full documentation here", result.Value.Output);
     }
 
     [Fact]
@@ -246,9 +247,10 @@ public class AgentTurnTests
         var args = JsonSerializer.SerializeToElement(new { name = "nonexistent" });
         var result = await tool.ExecuteAsync(args, CancellationToken.None);
 
-        Assert.False(result.Success);
-        Assert.Contains("not found", result.Error!);
-        Assert.Contains("notion", result.Error!); // Lists available skills
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Value.Success);
+        Assert.Contains("not found", result.Value.Error!);
+        Assert.Contains("notion", result.Value.Error!); // Lists available skills
     }
 
     [Fact]
@@ -263,8 +265,9 @@ public class AgentTurnTests
         var args = JsonSerializer.SerializeToElement(new { name = "github" });
         var result = await tool.ExecuteAsync(args, CancellationToken.None);
 
-        Assert.True(result.Success);
-        Assert.Contains("GitHub", result.Output);
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.Success);
+        Assert.Contains("GitHub", result.Value.Output);
     }
 
     // ── ToolRegistry ────────────────────────────────────────────────────────
@@ -276,8 +279,8 @@ public class AgentTurnTests
         var args = JsonSerializer.SerializeToElement(new { });
         var result = await registry.DispatchAsync("nonexistent_tool", args, CancellationToken.None);
 
-        Assert.False(result.Success);
-        Assert.Contains("Unknown tool", result.Error!);
+        Assert.True(result.IsFailure);
+        Assert.Contains("Unknown tool", result.Error.Message);
     }
 
     [Fact]

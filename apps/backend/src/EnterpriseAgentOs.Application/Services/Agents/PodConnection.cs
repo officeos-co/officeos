@@ -13,24 +13,39 @@ public sealed class PodConnection : IDisposable
         _promptMarker = promptMarker;
     }
 
-    public async Task ConnectAsync(string podName, string ns, Guid agentId, CancellationToken ct)
+    public async Task<AgentResult<bool>> ConnectAsync(string podName, string ns, Guid agentId, CancellationToken ct)
     {
-        var uri = new Uri($"ws://{podName}.{ns}.svc.cluster.local:42617/ws?token={agentId}");
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(10));
-        await _ws.ConnectAsync(uri, cts.Token);
+        try
+        {
+            var uri = new Uri($"ws://{podName}.{ns}.svc.cluster.local:42617/ws?token={agentId}");
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(10));
+            await _ws.ConnectAsync(uri, cts.Token);
 
-        // Set custom PS1 for completion detection.
-        await SendRawAsync(JsonSerializer.Serialize(new { id = "init", input = $"export PS1='{_promptMarker}$?__\\n$ '\n" }), ct);
-        await ReadUntilPromptAsync(ct);
+            // Set custom PS1 for completion detection.
+            await SendRawAsync(JsonSerializer.Serialize(new { id = "init", input = $"export PS1='{_promptMarker}$?__\\n$ '\n" }), ct);
+            await ReadUntilPromptAsync(ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(AgentErrorCategory.PodConnection, $"Failed to connect to pod: {ex.Message}", ex.ToString());
+        }
     }
 
-    public async Task<(string Output, int ExitCode)> ExecuteAsync(string command, CancellationToken ct)
+    public async Task<AgentResult<(string Output, int ExitCode)>> ExecuteAsync(string command, CancellationToken ct)
     {
-        var id = $"cmd-{Interlocked.Increment(ref _counter)}";
-        var request = JsonSerializer.Serialize(new { id, input = command + "\n" });
-        await SendRawAsync(request, ct);
-        return await ReadUntilPromptAsync(ct);
+        try
+        {
+            var id = $"cmd-{Interlocked.Increment(ref _counter)}";
+            var request = JsonSerializer.Serialize(new { id, input = command + "\n" });
+            await SendRawAsync(request, ct);
+            return await ReadUntilPromptAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(AgentErrorCategory.PodConnection, $"Command execution failed: {ex.Message}", ex.ToString());
+        }
     }
 
     private async Task SendRawAsync(string text, CancellationToken ct)

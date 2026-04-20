@@ -35,7 +35,7 @@ public sealed class SkillExecTool : IAgentTool
             required = new[] { "command" }
         });
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var command = args.GetProperty("command").GetString() ?? "";
 
@@ -120,7 +120,7 @@ public sealed class SkillExecTool : IAgentTool
         return new ToolResult(true, output);
     }
 
-    private async Task<ToolResult> DispatchAsync(string skillName, string action, Dictionary<string, object> cliArgs, CancellationToken ct)
+    private async Task<AgentResult<ToolResult>> DispatchAsync(string skillName, string action, Dictionary<string, object> cliArgs, CancellationToken ct)
     {
         var skill = _skills.FirstOrDefault(s =>
             string.Equals(s.Name, skillName, StringComparison.OrdinalIgnoreCase));
@@ -153,7 +153,7 @@ public sealed class SkillExecTool : IAgentTool
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", $"Skill execution error: {ex.Message}");
+            return new AgentError(AgentErrorCategory.SkillExecution, $"skill_exec({skillName}/{action}): {ex.Message}", ex.ToString());
         }
     }
 
