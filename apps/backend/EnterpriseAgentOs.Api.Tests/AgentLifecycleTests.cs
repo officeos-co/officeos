@@ -177,6 +177,12 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     {
         var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
+        // Configure the provider first so we get past the key check
+        await Infrastructure.TestHelpers.GraphQLAsync(client, @"
+            mutation($providerName: String!, $apiKey: String!) {
+              setProviderKey(providerName: $providerName, apiKey: $apiKey) { name }
+            }", new { providerName = "openai", apiKey = "sk-test-key" });
+
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
               createAgent(input: $input) { id }
@@ -186,7 +192,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
             input = new
             {
                 name = "bad-model",
-                provider = "ollama",
+                provider = "openai",
                 model = "nonexistent-model-xyz",
                 prompt = (string?)null,
                 integrationSlugs = (string[]?)null,
