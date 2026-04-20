@@ -67,6 +67,37 @@ public sealed class ConversationHistory
         }
     }
 
+    /// <summary>
+    /// OpenClaw-style context pruning: soft-trims old tool results to reduce token usage.
+    /// Preserves recent turns byte-for-byte; older tool results get ellipsis-trimmed;
+    /// very old results get hard-cleared to a placeholder.
+    /// </summary>
+    public void PruneToolResults(int maxResultChars = 500, int keepRecentTurns = 4, int hardClearAfterTurns = 8)
+    {
+        var protectedStart = Math.Max(0, _messages.Count - keepRecentTurns);
+        var hardClearBoundary = Math.Max(0, _messages.Count - hardClearAfterTurns);
+
+        for (var i = 0; i < protectedStart; i++)
+        {
+            if (_messages[i].Role != "tool" || _messages[i].Content is null) continue;
+            var content = _messages[i].Content!;
+            if (content == "[tool result cleared]") continue; // already cleared
+
+            if (i < hardClearBoundary)
+            {
+                // Hard-clear very old tool results
+                _messages[i] = _messages[i] with { Content = "[tool result cleared]" };
+            }
+            else if (content.Length > maxResultChars)
+            {
+                // Soft-trim: keep beginning + end with ellipsis
+                var half = maxResultChars / 2;
+                var trimmed = content[..half] + "\n...\n" + content[^half..];
+                _messages[i] = _messages[i] with { Content = trimmed };
+            }
+        }
+    }
+
     private int EstimateTokens()
     {
         var totalChars = 0;

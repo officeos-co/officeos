@@ -22,7 +22,8 @@ import { AgentCronTab } from "@/features/agents/components/agent-cron-tab";
 import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
-import { SendIcon } from "lucide-react";
+import { useCreateSession, useActiveSession } from "@/features/agents";
+import { SendIcon, PlusIcon } from "lucide-react";
 
 /* ── Tabs (URL-driven) ───────────────────────────────────── */
 
@@ -103,6 +104,8 @@ export default function AgentDetailPage({
   const [model, setModel] = useState("");
   const [message, setMessage] = useState("");
   const { sendAgentMessage } = useSendAgentMessage();
+  const createSession = useCreateSession();
+  const { session: activeSession } = useActiveSession(id);
   const tab = (searchParams.get("tab") as TabKey) ?? "integrations";
 
   // Sync state from loaded agent
@@ -188,6 +191,14 @@ export default function AgentDetailPage({
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => createSession(id)}
+              >
+                <PlusIcon className="size-3.5" />
+                New Session
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 render={<Link href="/agents" />}
               >
                 All agents
@@ -224,6 +235,12 @@ export default function AgentDetailPage({
 
       {/* Sticky chat bar */}
       <div className="sticky bottom-0 z-10 border-t border-border bg-background/80 backdrop-blur-sm p-3 mt-auto">
+        {activeSession && (
+          <div className="flex items-center justify-center gap-2 mb-1.5 text-[10px] text-muted-foreground">
+            <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+            Session · {activeSession.messageCount} messages
+          </div>
+        )}
         <div className="flex items-center gap-2 max-w-3xl mx-auto">
           <Input
             value={message}

@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();
         services.AddScoped<IAgentPersonalityRepository, AgentPersonalityRepository>();
         services.AddScoped<IAgentCronJobRepository, AgentCronJobRepository>();
+        services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
         return services;
     }
 

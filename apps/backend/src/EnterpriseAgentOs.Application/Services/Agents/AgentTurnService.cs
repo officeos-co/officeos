@@ -121,6 +121,8 @@ public sealed class AgentTurnService
                 }.Where(s => s is not null));
 
             // 2. Build messages array with pruning.
+            // OpenClaw-style: soft-trim old tool results before token-based pruning.
+            history.PruneToolResults(maxResultChars: 500, keepRecentTurns: KeepRecent);
             history.Prune(MaxTokens, KeepRecent);
 
             var messages = new List<object>

@@ -31,6 +31,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
     public DbSet<AgentPersonalityRecord> AgentPersonalities => Set<AgentPersonalityRecord>();
     public DbSet<AgentCronJobRecord> AgentCronJobs => Set<AgentCronJobRecord>();
+    public DbSet<AgentSessionRecord> AgentSessions => Set<AgentSessionRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -281,6 +282,16 @@ public sealed class EaosDbContext : DbContext
             e.Property(j => j.Name).IsRequired().HasMaxLength(200);
             e.Property(j => j.Expression).IsRequired().HasMaxLength(64);
             e.Property(j => j.Prompt).HasColumnType("text").IsRequired();
+        });
+
+        modelBuilder.Entity<AgentSessionRecord>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => new { s.AgentId, s.Status });
+            e.Property(s => s.Status).IsRequired().HasMaxLength(16);
+            e.HasOne(s => s.Agent).WithMany()
+                .HasForeignKey(s => s.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
