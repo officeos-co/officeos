@@ -20,11 +20,11 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Middleware.AgentTokenAuth]
 public sealed class AgentBootstrapController : ControllerBase
 {
-    private readonly IAgentService _agents;
-    private readonly IAgentRepository _agentRepo;
-    private readonly IAgentSkillRepository _agentSkills;
-    private readonly SkillGatewayConfig _gateway;
-    private readonly IAgentLogService _logs;
+    private readonly IAgentService _agentService;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentSkillRepository _agentSkillRepository;
+    private readonly SkillGatewayConfig _skillGatewayConfig;
+    private readonly IAgentLogService _agentLogService;
 
     public AgentBootstrapController(
         IAgentService agents,
@@ -33,11 +33,11 @@ public sealed class AgentBootstrapController : ControllerBase
         SkillGatewayConfig gateway,
         IAgentLogService logs)
     {
-        _agents = agents;
-        _agentRepo = agentRepo;
-        _agentSkills = agentSkills;
-        _gateway = gateway;
-        _logs = logs;
+        _agentService = agents;
+        _agentRepository = agentRepo;
+        _agentSkillRepository = agentSkills;
+        _skillGatewayConfig = gateway;
+        _agentLogService = logs;
     }
 
     [HttpGet("{id:guid}")]
@@ -50,15 +50,15 @@ public sealed class AgentBootstrapController : ControllerBase
         var authedAgentId = (Guid)HttpContext.Items["agent-id"]!;
         if (authedAgentId != id) return Forbid();
 
-        var agent = await _agents.GetAsync(id, ct);
+        var agent = await _agentService.GetAsync(id, ct);
         if (agent is null) return NotFound();
 
         // Fetch the raw record so we can read the persisted system prompt.
-        var record = await _agentRepo.GetAsync(id, ct);
+        var record = await _agentRepository.GetAsync(id, ct);
         if (record is null) return NotFound();
 
-        var skills = await _agentSkills.ListSkillNamesByAgentAsync(id, ct);
-        var permRows = await _agentSkills.ListToolPermissionsAsync(id, ct);
+        var skills = await _agentSkillRepository.ListSkillNamesByAgentAsync(id, ct);
+        var permRows = await _agentSkillRepository.ListToolPermissionsAsync(id, ct);
 
         // Backend URL the pod should call for the LLM proxy. Prefer the
         // in-cluster service hostname when available; fall back to the
@@ -100,7 +100,7 @@ public sealed class AgentBootstrapController : ControllerBase
                         Mode: p.Permission.ToString().ToLowerInvariant()))
                     .ToList()));
 
-        await _logs.AppendAsync(new AgentLogRecord
+        await _agentLogService.AppendAsync(new AgentLogRecord
         {
             AgentId = id,
             Time = DateTime.UtcNow,

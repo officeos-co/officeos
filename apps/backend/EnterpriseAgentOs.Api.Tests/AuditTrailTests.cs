@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Api.Tests;
 
 public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public AuditTrailTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public AuditTrailTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     // ─────────────────────────────────────────────────────────────────────────
     // 1. Successful skill execution → audit entry recorded
@@ -14,19 +14,19 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
     {
         SeedNotionManifest();
 
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/execute").UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {"pages": ["page-1"]}}"""));
 
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_customWebApplicationFactory.CreateClient(), agentId);
         var execResponse = await agent.SkillExecAsync("notion", "search", new { query = "hello" });
         Assert.Equal(HttpStatusCode.OK, execResponse.StatusCode);
 
@@ -55,19 +55,19 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
     {
         SeedNotionManifest();
 
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/execute").UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {}}"""));
 
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_customWebApplicationFactory.CreateClient(), agentId);
 
         // Pass params that include both a sensitive key and a safe key
         var execResponse = await agent.SkillExecAsync("notion", "search", new
@@ -103,19 +103,19 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
     {
         SeedNotionManifest();
 
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/execute").UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(500)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"error": "internal skill runtime error"}"""));
 
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_customWebApplicationFactory.CreateClient(), agentId);
         var execResponse = await agent.SkillExecAsync("notion", "search", new { query = "fail" });
 
         // Execution should have resulted in a non-2xx from the backend
@@ -147,11 +147,11 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
     [Fact]
     public async Task AuditLog_RequiresDashboardAuth()
     {
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         // Unauthenticated client — no cookie
-        var anonClient = _factory.CreateClient();
+        var anonClient = _customWebApplicationFactory.CreateClient();
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(anonClient, AuditLogQuery,
             new { agentId, skip = 0, limit = 50 });
         // Dashboard GraphQL endpoint rejects unauthenticated calls via DashboardAuthMiddleware.
@@ -167,19 +167,19 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
     {
         SeedNotionManifest();
 
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/execute").UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {}}"""));
 
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient);
 
         await InstallAndConfigureNotionAsync(dashClient);
 
-        var agent = new Infrastructure.MockAgentClient(_factory.CreateClient(), agentId);
+        var agent = new Infrastructure.MockAgentClient(_customWebApplicationFactory.CreateClient(), agentId);
 
         // Execute the skill 5 times to produce 5 audit entries
         for (var i = 0; i < 5; i++)
@@ -207,14 +207,14 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
     {
         SeedNotionManifest();
 
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/execute").UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"success": true, "result": {}}"""));
 
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var agent1Id = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "isolation-agent-1");
         var agent2Id = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "isolation-agent-2");
@@ -222,7 +222,7 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
         await InstallAndConfigureNotionAsync(dashClient);
 
         // Execute skill only for agent 1
-        var agent1Client = new Infrastructure.MockAgentClient(_factory.CreateClient(), agent1Id);
+        var agent1Client = new Infrastructure.MockAgentClient(_customWebApplicationFactory.CreateClient(), agent1Id);
         var execResponse = await agent1Client.SkillExecAsync("notion", "search", new { query = "agent1-query" });
         Assert.Equal(HttpStatusCode.OK, execResponse.StatusCode);
 
@@ -273,8 +273,8 @@ public sealed class AuditTrailTests : IClassFixture<Infrastructure.CustomWebAppl
         ]
         """;
 
-        _factory.SkillRuntimeMock.Reset();
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock.Reset();
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/manifests").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)

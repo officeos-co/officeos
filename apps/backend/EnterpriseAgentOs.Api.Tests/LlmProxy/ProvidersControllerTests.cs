@@ -8,11 +8,11 @@ namespace EnterpriseAgentOs.Api.Tests.LlmProxy;
 [Collection("Integration")]
 public sealed class ProvidersControllerTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
     public ProvidersControllerTests(Infrastructure.CustomWebApplicationFactory factory)
     {
-        _factory = factory;
+        _customWebApplicationFactory = factory;
     }
 
     private const string SetProviderKeyMutation = @"
@@ -28,7 +28,7 @@ public sealed class ProvidersControllerTests : IClassFixture<Infrastructure.Cust
     [InlineData("xai")]
     public async Task Configure_NonOpenAiProvider_ReturnsError(string providerName)
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, SetProviderKeyMutation,
             new { providerName, apiKey = "sk-test-key" });
@@ -41,7 +41,7 @@ public sealed class ProvidersControllerTests : IClassFixture<Infrastructure.Cust
     [Fact]
     public async Task Configure_OpenAiProvider_Succeeds()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, SetProviderKeyMutation,
             new { providerName = "openai", apiKey = "sk-test-openai-key" });
@@ -53,7 +53,7 @@ public sealed class ProvidersControllerTests : IClassFixture<Infrastructure.Cust
     [Fact]
     public async Task List_Providers_NonOpenAi_ShowConfiguredTrue()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ providers { name configured } }");
         var providers = data.GetProperty("providers");

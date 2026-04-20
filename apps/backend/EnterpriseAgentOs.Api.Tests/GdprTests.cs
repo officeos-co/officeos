@@ -6,9 +6,9 @@ namespace EnterpriseAgentOs.Api.Tests;
 
 public sealed class GdprTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public GdprTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public GdprTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     // ── 1. Export returns user data ──────────────────────────────────────────
 
@@ -16,7 +16,7 @@ public sealed class GdprTests : IClassFixture<Infrastructure.CustomWebApplicatio
     public async Task GdprExport_ReturnsUserDataAsJson()
     {
         var email = $"gdpr-export-{Guid.NewGuid():N}@example.com";
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory, email: email);
         await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "export-test-agent");
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(
@@ -35,7 +35,7 @@ public sealed class GdprTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GdprExport_RequiresAuth()
     {
-        var anon = _factory.CreateClient();
+        var anon = _customWebApplicationFactory.CreateClient();
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(
             anon,
             "{ exportMyData { user { email } } }");
@@ -49,7 +49,7 @@ public sealed class GdprTests : IClassFixture<Infrastructure.CustomWebApplicatio
     public async Task GdprPurge_DeletesAllUserData()
     {
         var email = $"gdpr-purge-{Guid.NewGuid():N}@example.com";
-        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, email: email);
+        var dashClient = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory, email: email);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(dashClient, "purge-test-agent");
 
         // Confirm the agent exists before purge
@@ -70,7 +70,7 @@ public sealed class GdprTests : IClassFixture<Infrastructure.CustomWebApplicatio
         Assert.True(afterAuth.TryGetProperty("errors", out var errors) && errors.GetArrayLength() > 0);
 
         // Verify the agent record is gone in the DB
-        using var scope = _factory.Services.CreateScope();
+        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
         var agentInDb = await db.Agents.FindAsync(agentId);
         Assert.Null(agentInDb);
@@ -81,7 +81,7 @@ public sealed class GdprTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GdprPurge_RequiresAuth()
     {
-        var anon = _factory.CreateClient();
+        var anon = _customWebApplicationFactory.CreateClient();
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(
             anon,
             "mutation { purgeMyData }");

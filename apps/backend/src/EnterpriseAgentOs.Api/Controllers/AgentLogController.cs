@@ -11,11 +11,11 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Middleware.AgentTokenAuth]
 public sealed class AgentLogController : ControllerBase
 {
-    private readonly IAgentLogService _logs;
+    private readonly IAgentLogService _agentLogService;
 
     public AgentLogController(IAgentLogService logs)
     {
-        _logs = logs;
+        _agentLogService = logs;
     }
 
     public sealed record ForwardLogInput(
@@ -45,7 +45,7 @@ public sealed class AgentLogController : ControllerBase
             CorrelationId = input.CorrelationId,
         };
 
-        var saved = await _logs.AppendAsync(record, ct);
+        var saved = await _agentLogService.AppendAsync(record, ct);
         return Ok(saved.ToDto());
     }
 }

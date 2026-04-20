@@ -10,51 +10,51 @@ public sealed class AgentLogService : IAgentLogService
         "apikey", "token", "secret", "password", "credential", "key"
     ];
 
-    private readonly IAgentLogRepository _repo;
-    private readonly ITopicEventSender _sender;
-    private readonly IAgentRepository _agents;
-    private readonly IPostHogService _analytics;
+    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly ITopicEventSender _topicEventSender;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentLogService> _logger;
     private readonly IServiceProvider _serviceProvider;
 
     public AgentLogService(
-        IAgentLogRepository repo,
-        ITopicEventSender sender,
-        IAgentRepository agents,
-        IPostHogService analytics,
+        IAgentLogRepository agentLogRepository,
+        ITopicEventSender topicEventSender,
+        IAgentRepository agentRepository,
+        IPostHogService postHogService,
         ILogger<AgentLogService> logger,
         IServiceProvider serviceProvider)
     {
-        _repo = repo;
-        _sender = sender;
-        _agents = agents;
-        _analytics = analytics;
+        _agentLogRepository = agentLogRepository;
+        _topicEventSender = topicEventSender;
+        _agentRepository = agentRepository;
+        _postHogService = postHogService;
         _logger = logger;
         _serviceProvider = serviceProvider;
     }
 
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
-        => _repo.ListAsync(agentId, before, limit, ct);
+        => _agentLogRepository.ListAsync(agentId, before, limit, ct);
 
     public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default)
     {
         var limit = Math.Clamp(filters.Limit, 1, 200);
         var skip = Math.Max(filters.Skip, 0);
-        var (rows, total) = await _repo.ListGlobalAsync(filters.Search, filters.AgentName, filters.Type, skip, limit, ct);
+        var (rows, total) = await _agentLogRepository.ListGlobalAsync(filters.Search, filters.AgentName, filters.Type, skip, limit, ct);
         var items = rows.Select(r => r.Log.ToDto(r.AgentName)).ToList();
         return new GlobalLogsPage(items, total);
     }
 
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
-        var saved = await _repo.AppendAsync(record, ct);
-        await _sender.SendAsync($"agent-log:{saved.AgentId}", saved.ToDto(), ct);
+        var saved = await _agentLogRepository.AppendAsync(record, ct);
+        await _topicEventSender.SendAsync($"agent-log:{saved.AgentId}", saved.ToDto(), ct);
         return saved;
     }
 
     public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
     {
-        var agent = await _agents.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetAsync(agentId, ct);
         if (agent is null) throw new InvalidOperationException($"Agent {agentId} not found");
 
         var correlationId = Guid.NewGuid().ToString("N");
@@ -151,21 +151,21 @@ public sealed class AgentLogService : IAgentLogService
             CorrelationId = correlationId,
         };
 
-        await _repo.AppendPairAsync(toolCall, toolResult, ct);
-        await _sender.SendAsync($"agent-log:{agentId}", toolCall.ToDto(), ct);
-        await _sender.SendAsync($"agent-log:{agentId}", toolResult.ToDto(), ct);
+        await _agentLogRepository.AppendPairAsync(toolCall, toolResult, ct);
+        await _topicEventSender.SendAsync($"agent-log:{agentId}", toolCall.ToDto(), ct);
+        await _topicEventSender.SendAsync($"agent-log:{agentId}", toolResult.ToDto(), ct);
     }
 
     public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
     {
-        return await _repo.GetToolCallsAsync(agentId, limit, offset, ct);
+        return await _agentLogRepository.GetToolCallsAsync(agentId, limit, offset, ct);
     }
 
     public async Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(
         Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
     {
-        return await _repo.GetResultsByCorrelationAsync(agentId, correlationIds, ct);
+        return await _agentLogRepository.GetResultsByCorrelationAsync(agentId, correlationIds, ct);
     }
 
     // ── Secret redaction ─────────────────────────────────────────────────

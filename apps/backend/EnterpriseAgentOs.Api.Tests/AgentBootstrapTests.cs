@@ -8,10 +8,10 @@ namespace EnterpriseAgentOs.Api.Tests;
 /// </summary>
 public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
     public AgentBootstrapTests(Infrastructure.CustomWebApplicationFactory factory)
-        => _factory = factory;
+        => _customWebApplicationFactory = factory;
 
     /// <summary>
     /// Calls the bootstrap endpoint for an agent and returns the parsed JSON.
@@ -19,7 +19,7 @@ public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWeb
     private async Task<JsonElement> GetBootstrapPayloadAsync(HttpClient dashboardClient, Guid agentId)
     {
         // The bootstrap endpoint uses agent-UUID bearer auth, not session cookies.
-        var agentClient = _factory.CreateClient();
+        var agentClient = _customWebApplicationFactory.CreateClient();
         agentClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", agentId.ToString());
 
@@ -34,7 +34,7 @@ public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWeb
     public async Task Bootstrap_GatewayHost_IsValidIpAddress()
     {
         var client = await Infrastructure.TestHelpers
-            .CreateAuthenticatedClientAsync(_factory);
+            .CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers
             .CreateAgentAsync(client, "bootstrap-gateway-test", "ollama");
 
@@ -64,7 +64,7 @@ public sealed class AgentBootstrapTests : IClassFixture<Infrastructure.CustomWeb
     public async Task Bootstrap_GatewayPort_Is42617()
     {
         var client = await Infrastructure.TestHelpers
-            .CreateAuthenticatedClientAsync(_factory);
+            .CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers
             .CreateAgentAsync(client, "bootstrap-port-test", "ollama");
 

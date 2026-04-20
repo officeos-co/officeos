@@ -8,11 +8,11 @@ namespace EnterpriseAgentOs.Api.Middleware;
 /// </summary>
 public sealed class DashboardAuthMiddleware
 {
-    private readonly FieldDelegate _next;
+    private readonly FieldDelegate _fieldDelegate;
 
     public DashboardAuthMiddleware(FieldDelegate next)
     {
-        _next = next;
+        _fieldDelegate = next;
     }
 
     public async Task InvokeAsync(IMiddlewareContext context)
@@ -28,7 +28,7 @@ public sealed class DashboardAuthMiddleware
                     .Build());
         }
 
-        await _next(context);
+        await _fieldDelegate(context);
     }
 }
 

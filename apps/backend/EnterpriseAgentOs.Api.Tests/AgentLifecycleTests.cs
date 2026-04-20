@@ -2,16 +2,16 @@ namespace EnterpriseAgentOs.Api.Tests;
 
 public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public AgentLifecycleTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public AgentLifecycleTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     private const string AgentFields = "id name provider status";
 
     [Fact]
     public async Task CreateAgent_ReturnsCreatedWithPendingOrRunningStatus()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
@@ -41,7 +41,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task ListAgents_ReturnsCreatedAgents()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         await Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-1", "ollama");
         await Infrastructure.TestHelpers.CreateAgentAsync(client, "list-test-2", "ollama");
 
@@ -53,7 +53,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task GetAgent_ById_ReturnsAgent()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(client, "get-test", "ollama");
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(
@@ -69,7 +69,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task GetAgent_NonExistent_ReturnsNull()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(
             client,
@@ -82,7 +82,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task DeleteAgent_SoftDeletes_ThenExcludedFromList()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var agentId = await Infrastructure.TestHelpers.CreateAgentAsync(client, "delete-test", "ollama");
 
         var delData = await Infrastructure.TestHelpers.GraphQLAsync(
@@ -102,7 +102,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task DeleteAgent_NonExistent_ReturnsFalse()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(
             client,
@@ -115,7 +115,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task CreateAgent_WithUnconfiguredProvider_ReturnsError()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         // Use a truly unknown provider that is not in the keyless list and has no key configured
         const string mutation = @"
@@ -148,7 +148,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [InlineData("openai")]
     public async Task CreateAgent_WithKeylessProvider_SucceedsWithoutApiKey(string provider)
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         const string mutation = @"
             mutation($input: CreateAgentInput!) {
@@ -175,7 +175,7 @@ public sealed class AgentLifecycleTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task CreateAgent_WithInvalidModel_ReturnsError()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         const string mutation = @"
             mutation($input: CreateAgentInput!) {

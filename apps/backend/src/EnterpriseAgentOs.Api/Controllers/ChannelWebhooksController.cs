@@ -12,9 +12,9 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Route("api/webhooks")]
 public sealed class ChannelWebhooksController : ControllerBase
 {
-    private readonly IChannelRepository _repo;
-    private readonly ChannelMessageRouter _router;
-    private readonly ChannelAdapterRegistry _adapters;
+    private readonly IChannelRepository _channelRepository;
+    private readonly ChannelMessageRouter _channelMessageRouter;
+    private readonly ChannelAdapterRegistry _channelAdapterRegistry;
     private readonly ILogger<ChannelWebhooksController> _logger;
 
     public ChannelWebhooksController(
@@ -23,9 +23,9 @@ public sealed class ChannelWebhooksController : ControllerBase
         ChannelAdapterRegistry adapters,
         ILogger<ChannelWebhooksController> logger)
     {
-        _repo = repo;
-        _router = router;
-        _adapters = adapters;
+        _channelRepository = repo;
+        _channelMessageRouter = router;
+        _channelAdapterRegistry = adapters;
         _logger = logger;
     }
 
@@ -39,7 +39,7 @@ public sealed class ChannelWebhooksController : ControllerBase
     [HttpPost("{platform}/{endpoint?}")]
     public async Task<IActionResult> HandleWebhook(string platform, string? endpoint, CancellationToken ct)
     {
-        var adapter = _adapters.GetAdapter(platform);
+        var adapter = _channelAdapterRegistry.GetAdapter(platform);
         if (adapter is null)
         {
             _logger.LogWarning("No adapter registered for platform {Platform}", platform);
@@ -60,7 +60,7 @@ public sealed class ChannelWebhooksController : ControllerBase
 
         foreach (var connection in connections)
         {
-            var config = _router.GetDecryptedConfig(connection);
+            var config = _channelMessageRouter.GetDecryptedConfig(connection);
 
             // Extract headers for signature verification
             var headers = Request.Headers.ToDictionary(
@@ -101,7 +101,7 @@ public sealed class ChannelWebhooksController : ControllerBase
             }
 
             // Route message to bound agents
-            var responses = await _router.RouteMessageAsync(connection.Id, message.SenderIdentifier, message.Text, ct);
+            var responses = await _channelMessageRouter.RouteMessageAsync(connection.Id, message.SenderIdentifier, message.Text, ct);
 
             // Send replies back through the platform
             var httpClient = HttpContext.RequestServices
@@ -138,7 +138,7 @@ public sealed class ChannelWebhooksController : ControllerBase
         var connections = await ResolveConnectionsAsync(platform, endpoint, ct);
         foreach (var connection in connections)
         {
-            var config = _router.GetDecryptedConfig(connection);
+            var config = _channelMessageRouter.GetDecryptedConfig(connection);
             if (config.TryGetValue("verifyToken", out var token) &&
                 string.Equals(token, hubVerifyToken, StringComparison.Ordinal))
             {
@@ -155,7 +155,7 @@ public sealed class ChannelWebhooksController : ControllerBase
         // If endpoint is a GUID, resolve directly (e.g. Telegram uses /telegram/{connectionId})
         if (Guid.TryParse(endpoint, out var connectionId))
         {
-            var connection = await _repo.GetConnectionAsync(connectionId, ct);
+            var connection = await _channelRepository.GetConnectionAsync(connectionId, ct);
             if (connection is not null && connection.Enabled &&
                 string.Equals(connection.ChannelType, platform, StringComparison.OrdinalIgnoreCase))
             {
@@ -165,7 +165,7 @@ public sealed class ChannelWebhooksController : ControllerBase
         }
 
         // Otherwise, find all enabled connections for this platform
-        var all = await _repo.ListConnectionsAsync(ct);
+        var all = await _channelRepository.ListConnectionsAsync(ct);
         return all.Where(c =>
             string.Equals(c.ChannelType, platform, StringComparison.OrdinalIgnoreCase) &&
             c.Enabled).ToList();

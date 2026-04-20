@@ -4,12 +4,12 @@ namespace EnterpriseAgentOs.Application.Services.Agents.Tools;
 
 public sealed class MemoryStoreTool : IAgentTool
 {
-    private readonly IAgentMemoryRepository _repo;
+    private readonly IAgentMemoryRepository _agentMemoryRepository;
     private readonly Guid _agentId;
 
     public MemoryStoreTool(IAgentMemoryRepository repo, Guid agentId)
     {
-        _repo = repo;
+        _agentMemoryRepository = repo;
         _agentId = agentId;
     }
 
@@ -34,7 +34,7 @@ public sealed class MemoryStoreTool : IAgentTool
 
         try
         {
-            await _repo.UpsertAsync(_agentId, key, content, ct);
+            await _agentMemoryRepository.UpsertAsync(_agentId, key, content, ct);
             return new ToolResult(true, $"Stored memory '{key}'.");
         }
         catch (Exception ex)
@@ -46,12 +46,12 @@ public sealed class MemoryStoreTool : IAgentTool
 
 public sealed class MemoryRecallTool : IAgentTool
 {
-    private readonly IAgentMemoryRepository _repo;
+    private readonly IAgentMemoryRepository _agentMemoryRepository;
     private readonly Guid _agentId;
 
     public MemoryRecallTool(IAgentMemoryRepository repo, Guid agentId)
     {
-        _repo = repo;
+        _agentMemoryRepository = repo;
         _agentId = agentId;
     }
 
@@ -73,7 +73,7 @@ public sealed class MemoryRecallTool : IAgentTool
         var query = args.TryGetProperty("query", out var q) ? q.GetString() ?? "" : "";
         var limit = args.TryGetProperty("limit", out var l) ? l.GetInt32() : 5;
 
-        var memories = await _repo.ListAsync(_agentId, ct);
+        var memories = await _agentMemoryRepository.ListAsync(_agentId, ct);
 
         IEnumerable<AgentMemoryRecord> filtered = memories;
         if (!string.IsNullOrEmpty(query))
@@ -108,12 +108,12 @@ public sealed class MemoryRecallTool : IAgentTool
 
 public sealed class MemoryForgetTool : IAgentTool
 {
-    private readonly IAgentMemoryRepository _repo;
+    private readonly IAgentMemoryRepository _agentMemoryRepository;
     private readonly Guid _agentId;
 
     public MemoryForgetTool(IAgentMemoryRepository repo, Guid agentId)
     {
-        _repo = repo;
+        _agentMemoryRepository = repo;
         _agentId = agentId;
     }
 
@@ -133,7 +133,7 @@ public sealed class MemoryForgetTool : IAgentTool
     public async Task<ToolResult> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
         var key = args.GetProperty("key").GetString() ?? "";
-        var deleted = await _repo.DeleteAsync(_agentId, key, ct);
+        var deleted = await _agentMemoryRepository.DeleteAsync(_agentId, key, ct);
         return deleted
             ? new ToolResult(true, $"Forgot memory '{key}'.")
             : new ToolResult(true, $"No memory found with key '{key}'.");

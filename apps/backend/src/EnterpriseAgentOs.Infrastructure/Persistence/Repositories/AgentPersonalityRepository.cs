@@ -2,19 +2,19 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class AgentPersonalityRepository : IAgentPersonalityRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentPersonalityRepository(EaosDbContext db) => _db = db;
+    public AgentPersonalityRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<AgentPersonalityRecord>> ListAsync(Guid agentId, CancellationToken ct = default)
-        => await _db.AgentPersonalities
+        => await _eaosDbContext.AgentPersonalities
             .Where(p => p.AgentId == agentId)
             .OrderBy(p => p.FileName)
             .ToListAsync(ct);
 
     public async Task UpsertAsync(Guid agentId, string fileName, string content, CancellationToken ct = default)
     {
-        var existing = await _db.AgentPersonalities
+        var existing = await _eaosDbContext.AgentPersonalities
             .FirstOrDefaultAsync(p => p.AgentId == agentId && p.FileName == fileName, ct);
 
         if (existing is not null)
@@ -23,9 +23,9 @@ public sealed class AgentPersonalityRepository : IAgentPersonalityRepository
         }
         else
         {
-            _db.AgentPersonalities.Add(AgentPersonalityRecord.Create(agentId, fileName, content));
+            _eaosDbContext.AgentPersonalities.Add(AgentPersonalityRecord.Create(agentId, fileName, content));
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 }

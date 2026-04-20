@@ -2,20 +2,20 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.Stripe;
 
 public sealed class StripeWebhookService : IStripeWebhookService
 {
-    private readonly StripeConfig _config;
-    private readonly EaosDbContext _db;
+    private readonly StripeConfig _stripeConfig;
+    private readonly EaosDbContext _eaosDbContext;
     private readonly ILogger<StripeWebhookService> _logger;
 
     public StripeWebhookService(StripeConfig config, EaosDbContext db, ILogger<StripeWebhookService> logger)
     {
-        _config = config;
-        _db = db;
+        _stripeConfig = config;
+        _eaosDbContext = db;
         _logger = logger;
     }
 
     public async Task HandleAsync(string payload, string signature, CancellationToken ct = default)
     {
-        var stripeEvent = EventUtility.ConstructEvent(payload, signature, _config.WebhookSecret);
+        var stripeEvent = EventUtility.ConstructEvent(payload, signature, _stripeConfig.WebhookSecret);
         _logger.LogInformation("Stripe webhook event {EventType} received", stripeEvent.Type);
 
         switch (stripeEvent.Type)
@@ -40,7 +40,7 @@ public sealed class StripeWebhookService : IStripeWebhookService
                 break;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     private async Task OnCheckoutCompletedAsync(Event stripeEvent, CancellationToken ct)
@@ -56,11 +56,11 @@ public sealed class StripeWebhookService : IStripeWebhookService
 
         var limits = PlanLimits.ForIndividualPlan(plan ?? "free");
 
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        var sub = await _eaosDbContext.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
         if (sub is null)
         {
             sub = new UserSubscription { UserId = userId };
-            await _db.UserSubscriptions.AddAsync(sub, ct);
+            await _eaosDbContext.UserSubscriptions.AddAsync(sub, ct);
         }
 
         sub.StripeCustomerId = session.CustomerId;
@@ -80,7 +80,7 @@ public sealed class StripeWebhookService : IStripeWebhookService
     {
         if (stripeEvent.Data.Object is not Subscription stripeSub) return;
 
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(
+        var sub = await _eaosDbContext.UserSubscriptions.FirstOrDefaultAsync(
             s => s.StripeSubscriptionId == stripeSub.Id, ct);
         if (sub is null) return;
 
@@ -98,7 +98,7 @@ public sealed class StripeWebhookService : IStripeWebhookService
     {
         if (stripeEvent.Data.Object is not Subscription stripeSub) return;
 
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(
+        var sub = await _eaosDbContext.UserSubscriptions.FirstOrDefaultAsync(
             s => s.StripeSubscriptionId == stripeSub.Id, ct);
         if (sub is null) return;
 
@@ -118,7 +118,7 @@ public sealed class StripeWebhookService : IStripeWebhookService
         if (stripeEvent.Data.Object is not Invoice invoice) return;
 
         var subscriptionId = invoice.Parent?.SubscriptionDetails?.SubscriptionId;
-        var sub = await _db.UserSubscriptions.FirstOrDefaultAsync(
+        var sub = await _eaosDbContext.UserSubscriptions.FirstOrDefaultAsync(
             s => s.StripeSubscriptionId == subscriptionId, ct);
         if (sub is null) return;
 

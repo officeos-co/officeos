@@ -11,13 +11,13 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.PostHog;
 public sealed class PostHogService : IPostHogService
 {
     private readonly HttpClient _http;
-    private readonly PostHogConfig _config;
+    private readonly PostHogConfig _postHogConfig;
     private readonly ILogger<PostHogService> _logger;
 
     public PostHogService(HttpClient http, PostHogConfig config, ILogger<PostHogService> logger)
     {
         _http = http;
-        _config = config;
+        _postHogConfig = config;
         _logger = logger;
     }
 
@@ -49,7 +49,7 @@ public sealed class PostHogService : IPostHogService
     {
         return new Dictionary<string, object?>
         {
-            ["api_key"] = _config.ApiKey,
+            ["api_key"] = _postHogConfig.ApiKey,
             ["event"] = eventName,
             ["distinct_id"] = distinctId,
             ["properties"] = properties ?? new Dictionary<string, object?>(),
@@ -59,14 +59,14 @@ public sealed class PostHogService : IPostHogService
 
     private async Task PostAsync(string path, object payload, CancellationToken ct)
     {
-        if (!_config.Enabled || string.IsNullOrWhiteSpace(_config.ApiKey))
+        if (!_postHogConfig.Enabled || string.IsNullOrWhiteSpace(_postHogConfig.ApiKey))
         {
             return;
         }
 
         try
         {
-            var url = _config.Host.TrimEnd('/') + path;
+            var url = _postHogConfig.Host.TrimEnd('/') + path;
             var json = JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
             using var response = await _http.PostAsync(url, content, ct);

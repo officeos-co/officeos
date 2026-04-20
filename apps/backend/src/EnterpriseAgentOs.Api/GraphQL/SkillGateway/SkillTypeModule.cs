@@ -14,11 +14,11 @@ namespace EnterpriseAgentOs.Api.GraphQL.SkillGateway;
 /// </summary>
 public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.ITypeModule
 {
-    private readonly IServiceProvider _services;
+    private readonly IServiceProvider _serviceProvider;
 
     public SkillTypeModule(IServiceProvider services)
     {
-        _services = services;
+        _serviceProvider = services;
     }
 
     public event EventHandler<EventArgs>? TypesChanged;
@@ -29,7 +29,7 @@ public sealed class SkillTypeModule : HotChocolate.Execution.Configuration.IType
     {
         var types = new List<ITypeSystemMember>();
 
-        using var scope = _services.CreateScope();
+        using var scope = _serviceProvider.CreateScope();
         var catalog = scope.ServiceProvider.GetRequiredService<ISkillCatalogRepository>();
         var records = await catalog.ListActiveAsync(ct);
         var queryExtDef = new ObjectTypeDefinition("Query");

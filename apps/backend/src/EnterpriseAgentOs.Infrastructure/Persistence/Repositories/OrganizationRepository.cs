@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class OrganizationRepository : IOrganizationRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public OrganizationRepository(EaosDbContext db) => _db = db;
+    public OrganizationRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<OrganizationRecord> GetOrCreateDefaultAsync(
         Guid ownerUserId,
@@ -13,7 +13,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
         CancellationToken ct = default)
     {
         // Single-tenant-compatible: each user gets one default org. Model supports many.
-        var owned = await _db.Organizations
+        var owned = await _eaosDbContext.Organizations
             .FirstOrDefaultAsync(o => o.OwnerUserId == ownerUserId, ct);
         if (owned is not null) return owned;
 
@@ -22,9 +22,9 @@ public sealed class OrganizationRepository : IOrganizationRepository
             Name = string.IsNullOrWhiteSpace(ownerName) ? "My Organization" : $"{ownerName}'s Organization",
             OwnerUserId = ownerUserId,
         };
-        _db.Organizations.Add(org);
+        _eaosDbContext.Organizations.Add(org);
 
-        _db.OrgMembers.Add(new OrgMemberRecord
+        _eaosDbContext.OrgMembers.Add(new OrgMemberRecord
         {
             OrganizationId = org.Id,
             UserId = ownerUserId,
@@ -32,16 +32,16 @@ public sealed class OrganizationRepository : IOrganizationRepository
             Role = "Owner",
             Status = "active",
         });
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return org;
     }
 
     public Task<OrganizationRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _db.Organizations.FirstOrDefaultAsync(o => o.Id == id, ct);
+        => _eaosDbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, ct);
 
     public async Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(
         Guid organizationId, CancellationToken ct = default)
-        => await _db.OrgMembers
+        => await _eaosDbContext.OrgMembers
             .Where(m => m.OrganizationId == organizationId)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(ct);
@@ -49,7 +49,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
     public async Task<OrgMemberRecord> AddMemberAsync(
         Guid organizationId, string email, string role, string status, Guid? userId, CancellationToken ct = default)
     {
-        var existing = await _db.OrgMembers
+        var existing = await _eaosDbContext.OrgMembers
             .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.Email == email, ct);
         if (existing is not null) return existing;
 
@@ -61,27 +61,27 @@ public sealed class OrganizationRepository : IOrganizationRepository
             Status = status,
             UserId = userId,
         };
-        _db.OrgMembers.Add(member);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.OrgMembers.Add(member);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return member;
     }
 
     public async Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default)
     {
-        var m = await _db.OrgMembers.FirstOrDefaultAsync(x => x.Id == memberId, ct);
+        var m = await _eaosDbContext.OrgMembers.FirstOrDefaultAsync(x => x.Id == memberId, ct);
         if (m is null) return false;
-        _db.OrgMembers.Remove(m);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.OrgMembers.Remove(m);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<OrganizationRecord> RenameAsync(
         Guid organizationId, string name, CancellationToken ct = default)
     {
-        var org = await _db.Organizations.FirstOrDefaultAsync(o => o.Id == organizationId, ct)
+        var org = await _eaosDbContext.Organizations.FirstOrDefaultAsync(o => o.Id == organizationId, ct)
             ?? throw new InvalidOperationException($"organization {organizationId} not found");
         org.Name = name;
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return org;
     }
 }

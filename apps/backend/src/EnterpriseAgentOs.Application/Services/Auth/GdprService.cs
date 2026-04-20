@@ -2,11 +2,11 @@ namespace EnterpriseAgentOs.Application.Services.Auth;
 
 public sealed class GdprService : IGdprService
 {
-    private readonly IUserRepository _users;
-    private readonly IAgentRepository _agents;
-    private readonly IAgentLogRepository _agentLogs;
-    private readonly ISessionRepository _sessions;
-    private readonly ISkillRepository _skills;
+    private readonly IUserRepository _userRepository;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly ISessionRepository _sessionRepository;
+    private readonly ISkillRepository _skillRepository;
 
     public GdprService(
         IUserRepository users,
@@ -15,16 +15,16 @@ public sealed class GdprService : IGdprService
         ISessionRepository sessions,
         ISkillRepository skills)
     {
-        _users = users;
-        _agents = agents;
-        _agentLogs = agentLogs;
-        _sessions = sessions;
-        _skills = skills;
+        _userRepository = users;
+        _agentRepository = agents;
+        _agentLogRepository = agentLogs;
+        _sessionRepository = sessions;
+        _skillRepository = skills;
     }
 
     public async Task<GdprExportDto> ExportAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _users.GetByIdAsync(userId, ct)
+        var user = await _userRepository.GetByIdAsync(userId, ct)
             ?? throw new InvalidOperationException($"User {userId} not found");
 
         var userDto = new GdprUserDto(
@@ -34,7 +34,7 @@ public sealed class GdprService : IGdprService
             user.CreatedAt,
             user.LastLoginAt);
 
-        var agentRecords = await _agents.ListByOwnerAsync(userId, includeDeleted: false, ct);
+        var agentRecords = await _agentRepository.ListByOwnerAsync(userId, includeDeleted: false, ct);
         var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         var agents = agentRecords
@@ -47,7 +47,7 @@ public sealed class GdprService : IGdprService
             AgentLogType.MessageOut,
             AgentLogType.System
         };
-        var conversationLogs = await _agentLogs.ListByAgentIdsAsync(agentIds, conversationTypes, ct);
+        var conversationLogs = await _agentLogRepository.ListByAgentIdsAsync(agentIds, conversationTypes, ct);
         var conversations = conversationLogs
             .Select(l => new GdprConversationDto(
                 l.Id,
@@ -61,7 +61,7 @@ public sealed class GdprService : IGdprService
             .ToList();
 
         var toolCallTypes = new List<AgentLogType> { AgentLogType.ToolCall };
-        var toolCallLogs = await _agentLogs.ListByAgentIdsAsync(agentIds, toolCallTypes, ct);
+        var toolCallLogs = await _agentLogRepository.ListByAgentIdsAsync(agentIds, toolCallTypes, ct);
         var auditEntries = toolCallLogs
             .Select(l => new GdprAuditEntryDto(
                 l.Id,
@@ -74,7 +74,7 @@ public sealed class GdprService : IGdprService
                 l.Time))
             .ToList();
 
-        var skillCredentials = (await _skills.ListAsync(ct))
+        var skillCredentials = (await _skillRepository.ListAsync(ct))
             .Select(s => new GdprSkillCredentialDto(s.Id, s.SkillName, s.Enabled, s.ConfiguredAt))
             .ToList();
 
@@ -83,16 +83,16 @@ public sealed class GdprService : IGdprService
 
     public async Task PurgeAsync(Guid userId, CancellationToken ct = default)
     {
-        var agentRecords = await _agents.ListByOwnerAsync(userId, includeDeleted: true, ct);
+        var agentRecords = await _agentRepository.ListByOwnerAsync(userId, includeDeleted: true, ct);
         var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         if (agentIds.Count > 0)
         {
-            await _agentLogs.DeleteByAgentIdsAsync(agentIds, ct);
-            await _agents.HardDeleteByOwnerAsync(userId, ct);
+            await _agentLogRepository.DeleteByAgentIdsAsync(agentIds, ct);
+            await _agentRepository.HardDeleteByOwnerAsync(userId, ct);
         }
 
-        await _sessions.DeleteByUserIdAsync(userId, ct);
-        await _users.DeleteAsync(userId, ct);
+        await _sessionRepository.DeleteByUserIdAsync(userId, ct);
+        await _userRepository.DeleteAsync(userId, ct);
     }
 }

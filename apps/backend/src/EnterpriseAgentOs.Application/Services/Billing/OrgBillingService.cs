@@ -2,21 +2,21 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 
 public sealed class OrgBillingService : IOrgBillingService
 {
-    private readonly StripeConfig _config;
-    private readonly IOrgSubscriptionRepository _repo;
+    private readonly StripeConfig _stripeConfig;
+    private readonly IOrgSubscriptionRepository _orgSubscriptionRepository;
     private readonly ILogger<OrgBillingService> _logger;
 
     public OrgBillingService(StripeConfig config, IOrgSubscriptionRepository repo, ILogger<OrgBillingService> logger)
     {
-        _config = config;
-        _repo = repo;
+        _stripeConfig = config;
+        _orgSubscriptionRepository = repo;
         _logger = logger;
-        StripeConfiguration.ApiKey = _config.SecretKey;
+        StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
     public async Task<OrgSubscription> GetSubscriptionAsync(string orgId, CancellationToken ct = default)
     {
-        var sub = await _repo.GetByOrganizationIdAsync(orgId, ct);
+        var sub = await _orgSubscriptionRepository.GetByOrganizationIdAsync(orgId, ct);
         return sub ?? OrgSubscription.CreateDefaultFree(orgId);
     }
 
@@ -44,9 +44,9 @@ public sealed class OrgBillingService : IOrgBillingService
     {
         var priceId = (plan, billingCycle) switch
         {
-            ("team", "yearly") => _config.TeamYearlyPriceId,
-            ("team", _)        => _config.TeamMonthlyPriceId,
-            _                  => _config.FreePriceId,
+            ("team", "yearly") => _stripeConfig.TeamYearlyPriceId,
+            ("team", _)        => _stripeConfig.TeamMonthlyPriceId,
+            _                  => _stripeConfig.FreePriceId,
         };
         var sub = await new SubscriptionService().CreateAsync(
             new SubscriptionCreateOptions
@@ -62,11 +62,11 @@ public sealed class OrgBillingService : IOrgBillingService
 
     public async Task EnableOverageAsync(string orgId, string email, bool enabled, CancellationToken ct = default)
     {
-        var sub = await _repo.GetByOrganizationIdAsync(orgId, ct);
+        var sub = await _orgSubscriptionRepository.GetByOrganizationIdAsync(orgId, ct);
         if (sub is null)
         {
             sub = OrgSubscription.CreateDefaultFree(orgId);
-            await _repo.AddAsync(sub, ct);
+            await _orgSubscriptionRepository.AddAsync(sub, ct);
         }
 
         if (enabled)
@@ -84,7 +84,7 @@ public sealed class OrgBillingService : IOrgBillingService
                     new SubscriptionItemCreateOptions
                     {
                         Subscription = sub.StripeSubscriptionId,
-                        Price = _config.TeamOveragePriceId,
+                        Price = _stripeConfig.TeamOveragePriceId,
                     },
                     cancellationToken: ct);
                 sub.StripeOverageItemId = item.Id;
@@ -95,7 +95,7 @@ public sealed class OrgBillingService : IOrgBillingService
                     new SubscriptionCreateOptions
                     {
                         Customer = sub.StripeCustomerId,
-                        Items = [new SubscriptionItemOptions { Price = _config.TeamOveragePriceId }],
+                        Items = [new SubscriptionItemOptions { Price = _stripeConfig.TeamOveragePriceId }],
                     },
                     cancellationToken: ct);
                 sub.StripeSubscriptionId = newSub.Id;
@@ -119,7 +119,7 @@ public sealed class OrgBillingService : IOrgBillingService
             _logger.LogInformation("Overage disabled for org {OrgId}", orgId);
         }
 
-        await _repo.SaveChangesAsync(ct);
+        await _orgSubscriptionRepository.SaveChangesAsync(ct);
     }
 
 }

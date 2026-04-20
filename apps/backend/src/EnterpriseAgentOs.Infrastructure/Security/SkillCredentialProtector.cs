@@ -3,14 +3,14 @@ namespace EnterpriseAgentOs.Infrastructure.Security;
 public sealed class SkillCredentialProtector
 {
     private const string Purpose = "eaos.skill.credentials.v1";
-    private readonly IDataProtector _protector;
+    private readonly IDataProtector _dataProtector;
 
     public SkillCredentialProtector(IDataProtectionProvider provider)
     {
-        _protector = provider.CreateProtector(Purpose);
+        _dataProtector = provider.CreateProtector(Purpose);
     }
 
-    public string Protect(string plaintext) => _protector.Protect(plaintext);
+    public string Protect(string plaintext) => _dataProtector.Protect(plaintext);
 
-    public string Unprotect(string ciphertext) => _protector.Unprotect(ciphertext);
+    public string Unprotect(string ciphertext) => _dataProtector.Unprotect(ciphertext);
 }

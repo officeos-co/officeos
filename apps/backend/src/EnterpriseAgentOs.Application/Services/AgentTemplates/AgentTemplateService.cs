@@ -4,11 +4,11 @@ namespace EnterpriseAgentOs.Application.Services.AgentTemplates;
 
 public sealed class AgentTemplateService : IAgentTemplateService
 {
-    private readonly IAgentTemplateRepository _repo;
-    private readonly IAgentService _agents;
-    private readonly IAgentSkillRepository _agentSkills;
-    private readonly IChannelRepository _channels;
-    private readonly IPostHogService _analytics;
+    private readonly IAgentTemplateRepository _agentTemplateRepository;
+    private readonly IAgentService _agentService;
+    private readonly IAgentSkillRepository _agentSkillRepository;
+    private readonly IChannelRepository _channelRepository;
+    private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
@@ -19,23 +19,23 @@ public sealed class AgentTemplateService : IAgentTemplateService
         IPostHogService analytics,
         ILogger<AgentTemplateService> logger)
     {
-        _repo = repo;
-        _agents = agents;
-        _agentSkills = agentSkills;
-        _channels = channels;
-        _analytics = analytics;
+        _agentTemplateRepository = repo;
+        _agentService = agents;
+        _agentSkillRepository = agentSkills;
+        _channelRepository = channels;
+        _postHogService = analytics;
         _logger = logger;
     }
 
     public async Task<IReadOnlyList<AgentTemplateDto>> ListAsync(CancellationToken ct = default)
     {
-        var rows = await _repo.ListAsync(ct);
+        var rows = await _agentTemplateRepository.ListAsync(ct);
         return rows.Select(ToDto).ToList();
     }
 
     public async Task<AgentTemplateDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var row = await _repo.GetAsync(id, ct);
+        var row = await _agentTemplateRepository.GetAsync(id, ct);
         return row is null ? null : ToDto(row);
     }
 
@@ -47,24 +47,24 @@ public sealed class AgentTemplateService : IAgentTemplateService
         Guid ownerId,
         CancellationToken ct = default)
     {
-        var template = await _repo.GetAsync(templateId, ct)
+        var template = await _agentTemplateRepository.GetAsync(templateId, ct)
             ?? throw new InvalidOperationException($"Template '{templateId}' not found.");
 
         var dto = ToDto(template);
 
-        var agent = await _agents.CreateAsync(
+        var agent = await _agentService.CreateAsync(
             new CreateAgentRequest(name, provider, model, template.Prompt),
             ownerId: ownerId,
             ct);
 
         if (dto.Integrations.Count > 0)
         {
-            await _agentSkills.AssignAsync(agent.Id, dto.Integrations, ct);
+            await _agentSkillRepository.AssignAsync(agent.Id, dto.Integrations, ct);
         }
 
         if (dto.Channels.Count > 0)
         {
-            var connections = await _channels.ListConnectionsAsync(ct);
+            var connections = await _channelRepository.ListConnectionsAsync(ct);
             foreach (var slug in dto.Channels)
             {
                 var match = connections.FirstOrDefault(c =>
@@ -72,7 +72,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
                 if (match is null) continue;
                 try
                 {
-                    await _channels.CreateBindingAsync(new AgentChannelBindingRecord
+                    await _channelRepository.CreateBindingAsync(new AgentChannelBindingRecord
                     {
                         AgentId = agent.Id,
                         ChannelConnectionId = match.Id,
@@ -87,7 +87,7 @@ public sealed class AgentTemplateService : IAgentTemplateService
 
         _logger.LogInformation("Created agent {AgentId} from template {Template}", agent.Id, template.Name);
 
-        await _analytics.CaptureAsync(
+        await _postHogService.CaptureAsync(
             ownerId.ToString(),
             "agent_created_from_template",
             new Dictionary<string, object?>

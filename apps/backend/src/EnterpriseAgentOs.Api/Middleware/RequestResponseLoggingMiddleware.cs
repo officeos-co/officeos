@@ -9,12 +9,12 @@ public sealed class RequestResponseLoggingMiddleware
 
     private const int MaxBodyLogSize = 64 * 1024;
 
-    private readonly RequestDelegate _next;
+    private readonly RequestDelegate _requestDelegate;
     private readonly ILogger<RequestResponseLoggingMiddleware> _logger;
 
     public RequestResponseLoggingMiddleware(RequestDelegate next, ILogger<RequestResponseLoggingMiddleware> logger)
     {
-        _next = next;
+        _requestDelegate = next;
         _logger = logger;
     }
 
@@ -23,7 +23,7 @@ public sealed class RequestResponseLoggingMiddleware
         var path = context.Request.Path.Value ?? "";
         if (ExcludedPaths.Contains(path))
         {
-            await _next(context);
+            await _requestDelegate(context);
             return;
         }
 
@@ -39,7 +39,7 @@ public sealed class RequestResponseLoggingMiddleware
         using var responseBodyStream = new MemoryStream();
         context.Response.Body = responseBodyStream;
 
-        await _next(context);
+        await _requestDelegate(context);
 
         responseBodyStream.Seek(0, SeekOrigin.Begin);
         var responseBody = await ReadStreamAsync(responseBodyStream);

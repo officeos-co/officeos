@@ -10,13 +10,13 @@ namespace EnterpriseAgentOs.Application.Services.Agents.Tools;
 /// </summary>
 public sealed class SkillExecTool : IAgentTool
 {
-    private readonly SkillRuntimeClient _runtime;
+    private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ISkillService _skillService;
     private readonly IReadOnlyList<SkillRecord> _skills;
 
     public SkillExecTool(SkillRuntimeClient runtime, ISkillService skillService, IReadOnlyList<SkillRecord> skills)
     {
-        _runtime = runtime;
+        _skillRuntimeClient = runtime;
         _skillService = skillService;
         _skills = skills;
     }
@@ -135,7 +135,7 @@ public sealed class SkillExecTool : IAgentTool
 
         try
         {
-            var result = await _runtime.ExecuteAsync(skill.Name, action, cliArgs, creds, ct: ct);
+            var result = await _skillRuntimeClient.ExecuteAsync(skill.Name, action, cliArgs, creds, ct: ct);
 
             if (result.Success)
             {

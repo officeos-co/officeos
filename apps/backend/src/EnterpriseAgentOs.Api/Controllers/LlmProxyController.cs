@@ -17,11 +17,11 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Middleware.AgentTokenAuth]
 public sealed class LlmProxyController : ControllerBase
 {
-    private readonly IAgentService _agents;
-    private readonly IProviderService _providers;
-    private readonly LlmProviderDispatcher _dispatcher;
-    private readonly PlatformKeysConfig _platformKeys;
-    private readonly ICreditRecordingService _creditRecording;
+    private readonly IAgentService _agentService;
+    private readonly IProviderService _providerService;
+    private readonly LlmProviderDispatcher _llmProviderDispatcher;
+    private readonly PlatformKeysConfig _platformKeysConfig;
+    private readonly ICreditRecordingService _creditRecordingService;
     private readonly ILogger<LlmProxyController> _logger;
 
     public LlmProxyController(
@@ -32,11 +32,11 @@ public sealed class LlmProxyController : ControllerBase
         ICreditRecordingService creditRecording,
         ILogger<LlmProxyController> logger)
     {
-        _agents = agents;
-        _providers = providers;
-        _dispatcher = dispatcher;
-        _platformKeys = platformKeys;
-        _creditRecording = creditRecording;
+        _agentService = agents;
+        _providerService = providers;
+        _llmProviderDispatcher = dispatcher;
+        _platformKeysConfig = platformKeys;
+        _creditRecordingService = creditRecording;
         _logger = logger;
     }
 
@@ -51,7 +51,7 @@ public sealed class LlmProxyController : ControllerBase
             return;
         }
 
-        var agent = await _agents.GetAsync(agentId, ct);
+        var agent = await _agentService.GetAsync(agentId, ct);
         if (agent is null)
         {
             _logger.LogWarning("LLM proxy: agent {AgentId} not found", agentId);
@@ -97,7 +97,7 @@ public sealed class LlmProxyController : ControllerBase
 
         // 5. Resolve API key: BYOK (OpenAI only) → platform key fallback
         var byokKey = provider.Equals("openai", StringComparison.OrdinalIgnoreCase)
-            ? await _providers.GetDecryptedKeyAsync("openai", ct)
+            ? await _providerService.GetDecryptedKeyAsync("openai", ct)
             : null;
         var effectiveKey = byokKey ?? GetPlatformKeyForModel(resolvedModel);
 
@@ -117,11 +117,11 @@ public sealed class LlmProxyController : ControllerBase
 
     private string GetPlatformKeyForModel(string model) => model switch
     {
-        var m when m.StartsWith("claude") => _platformKeys.AnthropicApiKey,
-        var m when m.StartsWith("gpt")    => _platformKeys.OpenAiApiKey,
-        var m when m.StartsWith("gemini") => _platformKeys.GeminiApiKey,
-        var m when m.StartsWith("grok")   => _platformKeys.XaiApiKey,
-        _                                  => _platformKeys.AnthropicApiKey, // default
+        var m when m.StartsWith("claude") => _platformKeysConfig.AnthropicApiKey,
+        var m when m.StartsWith("gpt")    => _platformKeysConfig.OpenAiApiKey,
+        var m when m.StartsWith("gemini") => _platformKeysConfig.GeminiApiKey,
+        var m when m.StartsWith("grok")   => _platformKeysConfig.XaiApiKey,
+        _                                  => _platformKeysConfig.AnthropicApiKey, // default
     };
 
     private async Task DispatchDirectAsync(
@@ -145,7 +145,7 @@ public sealed class LlmProxyController : ControllerBase
         HttpResponseMessage upstream;
         try
         {
-            upstream = await _dispatcher.DispatchAsync(provider, apiKey, model, cachedBody, ct);
+            upstream = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, model, cachedBody, ct);
         }
         catch (Exception ex)
         {
@@ -214,7 +214,7 @@ public sealed class LlmProxyController : ControllerBase
         {
             try
             {
-                await _creditRecording.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
+                await _creditRecordingService.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
             }
             catch (Exception ex)
             {

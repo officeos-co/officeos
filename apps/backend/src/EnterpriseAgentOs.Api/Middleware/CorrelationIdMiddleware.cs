@@ -3,11 +3,11 @@ namespace EnterpriseAgentOs.Api.Middleware;
 public sealed class CorrelationIdMiddleware
 {
     private const string HeaderName = "X-Correlation-Id";
-    private readonly RequestDelegate _next;
+    private readonly RequestDelegate _requestDelegate;
 
     public CorrelationIdMiddleware(RequestDelegate next)
     {
-        _next = next;
+        _requestDelegate = next;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -19,7 +19,7 @@ public sealed class CorrelationIdMiddleware
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
         {
-            await _next(context);
+            await _requestDelegate(context);
         }
     }
 }

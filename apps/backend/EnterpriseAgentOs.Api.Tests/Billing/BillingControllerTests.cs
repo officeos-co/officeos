@@ -8,9 +8,9 @@ namespace EnterpriseAgentOs.Api.Tests.Billing;
 /// </summary>
 public sealed class BillingControllerTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public BillingControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public BillingControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     private const string SubscriptionQuery = @"
         {
@@ -29,7 +29,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task GetSubscription_ReturnsFreePlan()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         var sub = data.GetProperty("userSubscription");
@@ -39,7 +39,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task GetSubscription_FreePlan_HasCorrectCreditBudget()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         Assert.Equal(500_000L, data.GetProperty("userSubscription")
@@ -49,7 +49,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task GetSubscription_FreePlan_HasConcurrentAgentLimitOfOne()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         Assert.Equal(1, data.GetProperty("userSubscription")
@@ -59,7 +59,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task GetSubscription_FreePlan_IsActive()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, SubscriptionQuery);
         Assert.True(data.GetProperty("userSubscription").GetProperty("isActive").GetBoolean());
@@ -72,7 +72,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task Subscribe_WhenBillingDisabled_ReturnsError()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
 
         const string mutation = @"
             mutation($plan: String!, $billingCycle: String!) {
@@ -92,7 +92,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task Webhook_WhenBillingDisabled_Returns503()
     {
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
 
         var content = new StringContent("{\"type\":\"test\"}", Encoding.UTF8, "application/json");
         content.Headers.Add("Stripe-Signature", "t=1,v1=abc");
@@ -104,7 +104,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     [Fact]
     public async Task Webhook_WhenBillingDisabled_ReturnsErrorBody()
     {
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
 
         var content = new StringContent("{\"type\":\"test\"}", Encoding.UTF8, "application/json");
         content.Headers.Add("Stripe-Signature", "t=1,v1=abc");
@@ -118,7 +118,7 @@ public sealed class BillingControllerTests : IClassFixture<Infrastructure.Custom
     public async Task Webhook_Endpoint_Exists()
     {
         // The webhook route itself must still be reachable (not 404).
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
 
         var content = new StringContent("{}", Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/api/billing/webhook", content);

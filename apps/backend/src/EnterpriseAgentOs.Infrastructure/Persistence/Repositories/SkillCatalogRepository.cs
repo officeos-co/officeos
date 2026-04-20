@@ -2,21 +2,21 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class SkillCatalogRepository : ISkillCatalogRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
     public SkillCatalogRepository(EaosDbContext db)
     {
-        _db = db;
+        _eaosDbContext = db;
     }
 
     public async Task<IReadOnlyList<SkillRecord>> ListAsync(CancellationToken ct = default)
     {
-        return await _db.Skills.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct);
+        return await _eaosDbContext.Skills.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<SkillRecord>> ListActiveAsync(CancellationToken ct = default)
     {
-        return await _db.Skills.AsNoTracking()
+        return await _eaosDbContext.Skills.AsNoTracking()
             .Where(s => s.Status == "active")
             .OrderBy(s => s.Name)
             .ToListAsync(ct);
@@ -24,21 +24,21 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<SkillRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _db.Skills.FirstOrDefaultAsync(s => s.Id == id, ct);
+        return await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Id == id, ct);
     }
 
     public async Task<SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
-        return await _db.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
+        return await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
     }
 
     public async Task<SkillRecord> UpsertAsync(SkillRecord record, CancellationToken ct = default)
     {
-        var existing = await _db.Skills.FirstOrDefaultAsync(s => s.Name == record.Name, ct);
+        var existing = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == record.Name, ct);
         if (existing is null)
         {
-            _db.Skills.Add(record);
+            _eaosDbContext.Skills.Add(record);
         }
         else
         {
@@ -66,23 +66,23 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
             existing.IsSystem = record.IsSystem;
             existing.UpdatedAt = DateTime.UtcNow;
         }
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return existing ?? record;
     }
 
     public async Task<bool> DeleteByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
-        var row = await _db.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
+        var row = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
         if (row is null) return false;
-        _db.Skills.Remove(row);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.Skills.Remove(row);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<Dictionary<Guid, int>> BatchLikesCountAsync(IReadOnlyList<Guid> skillIds, CancellationToken ct = default)
     {
-        return await _db.SkillLikes
+        return await _eaosDbContext.SkillLikes
             .Where(l => skillIds.Contains(l.SkillId))
             .GroupBy(l => l.SkillId)
             .Select(g => new { g.Key, Count = g.Count() })
@@ -91,7 +91,7 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<HashSet<Guid>> BatchLikedByUserAsync(IReadOnlyList<Guid> skillIds, Guid userId, CancellationToken ct = default)
     {
-        var ids = await _db.SkillLikes
+        var ids = await _eaosDbContext.SkillLikes
             .Where(l => skillIds.Contains(l.SkillId) && l.UserId == userId)
             .Select(l => l.SkillId)
             .ToListAsync(ct);
@@ -100,7 +100,7 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<Dictionary<Guid, int>> BatchCommentCountAsync(IReadOnlyList<Guid> skillIds, CancellationToken ct = default)
     {
-        return await _db.SkillComments
+        return await _eaosDbContext.SkillComments
             .Where(c => skillIds.Contains(c.SkillId))
             .GroupBy(c => c.SkillId)
             .Select(g => new { g.Key, Count = g.Count() })
@@ -109,7 +109,7 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<HashSet<string>> BatchInstalledNamesAsync(CancellationToken ct = default)
     {
-        var names = await _db.SkillCredentials
+        var names = await _eaosDbContext.SkillCredentials
             .Where(r => r.Enabled)
             .Select(r => r.SkillName)
             .ToListAsync(ct);
@@ -118,7 +118,7 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<HashSet<string>> BatchConfiguredNamesAsync(CancellationToken ct = default)
     {
-        var names = await _db.SkillCredentials
+        var names = await _eaosDbContext.SkillCredentials
             .Where(r => r.Enabled && r.EncryptedCredentials != null)
             .Select(r => r.SkillName)
             .ToListAsync(ct);
@@ -127,7 +127,7 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<IReadOnlyList<SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)
     {
-        return await _db.SkillComments
+        return await _eaosDbContext.SkillComments
             .AsNoTracking()
             .Include(c => c.User)
             .Where(c => c.SkillId == skillId)
@@ -137,21 +137,21 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<bool> AddLikeAsync(Guid skillId, Guid userId, CancellationToken ct = default)
     {
-        var existing = await _db.SkillLikes
+        var existing = await _eaosDbContext.SkillLikes
             .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == userId, ct);
         if (existing is not null) return false;
-        _db.SkillLikes.Add(new SkillLikeRecord { SkillId = skillId, UserId = userId });
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.SkillLikes.Add(new SkillLikeRecord { SkillId = skillId, UserId = userId });
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<bool> RemoveLikeAsync(Guid skillId, Guid userId, CancellationToken ct = default)
     {
-        var existing = await _db.SkillLikes
+        var existing = await _eaosDbContext.SkillLikes
             .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == userId, ct);
         if (existing is null) return false;
-        _db.SkillLikes.Remove(existing);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.SkillLikes.Remove(existing);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
@@ -163,21 +163,21 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
             UserId = userId,
             Body = body.Trim(),
         };
-        _db.SkillComments.Add(record);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.SkillComments.Add(record);
+        await _eaosDbContext.SaveChangesAsync(ct);
         // Load user for DTO mapping
-        await _db.Entry(record).Reference(c => c.User).LoadAsync(ct);
+        await _eaosDbContext.Entry(record).Reference(c => c.User).LoadAsync(ct);
         return record;
     }
 
     public async Task<bool> DeleteCommentAsync(Guid commentId, Guid userId, CancellationToken ct = default)
     {
-        var comment = await _db.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
+        var comment = await _eaosDbContext.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
         if (comment is null) return false;
         if (comment.UserId != userId)
             throw new InvalidOperationException("Only the author may delete a comment.");
-        _db.SkillComments.Remove(comment);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.SkillComments.Remove(comment);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 }

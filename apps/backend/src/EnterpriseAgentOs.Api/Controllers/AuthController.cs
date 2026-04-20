@@ -4,10 +4,10 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Route("api/auth")]
 public sealed class AuthController : ControllerBase
 {
-    private readonly GoogleOAuthConfig _oauth;
-    private readonly IUserRepository _users;
-    private readonly ISessionRepository _sessions;
-    private readonly IHttpClientFactory _httpFactory;
+    private readonly GoogleOAuthConfig _googleOAuthConfig;
+    private readonly IUserRepository _userRepository;
+    private readonly ISessionRepository _sessionRepository;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
@@ -17,10 +17,10 @@ public sealed class AuthController : ControllerBase
         IHttpClientFactory httpFactory,
         ILogger<AuthController> logger)
     {
-        _oauth = oauth;
-        _users = users;
-        _sessions = sessions;
-        _httpFactory = httpFactory;
+        _googleOAuthConfig = oauth;
+        _userRepository = users;
+        _sessionRepository = sessions;
+        _httpClientFactory = httpFactory;
         _logger = logger;
     }
 
@@ -37,8 +37,8 @@ public sealed class AuthController : ControllerBase
         });
 
         var url = "https://accounts.google.com/o/oauth2/v2/auth"
-            + $"?client_id={Uri.EscapeDataString(_oauth.ClientId)}"
-            + $"&redirect_uri={Uri.EscapeDataString(_oauth.RedirectUri)}"
+            + $"?client_id={Uri.EscapeDataString(_googleOAuthConfig.ClientId)}"
+            + $"&redirect_uri={Uri.EscapeDataString(_googleOAuthConfig.RedirectUri)}"
             + "&response_type=code"
             + "&scope=openid%20email%20profile"
             + $"&state={Uri.EscapeDataString(state)}";
@@ -60,18 +60,18 @@ public sealed class AuthController : ControllerBase
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
-            if (string.IsNullOrEmpty(_oauth.ClientId) || string.IsNullOrEmpty(_oauth.ClientSecret))
+            if (string.IsNullOrEmpty(_googleOAuthConfig.ClientId) || string.IsNullOrEmpty(_googleOAuthConfig.ClientSecret))
                 return RedirectWithError("Google OAuth is not configured on the server.");
 
             // Exchange code for tokens
-            var client = _httpFactory.CreateClient();
+            var client = _httpClientFactory.CreateClient();
             var tokenResponse = await client.PostAsync("https://oauth2.googleapis.com/token",
                 new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     ["code"] = code,
-                    ["client_id"] = _oauth.ClientId,
-                    ["client_secret"] = _oauth.ClientSecret,
-                    ["redirect_uri"] = _oauth.RedirectUri,
+                    ["client_id"] = _googleOAuthConfig.ClientId,
+                    ["client_secret"] = _googleOAuthConfig.ClientSecret,
+                    ["redirect_uri"] = _googleOAuthConfig.RedirectUri,
                     ["grant_type"] = "authorization_code",
                 }), ct);
 
@@ -102,13 +102,13 @@ public sealed class AuthController : ControllerBase
             var avatar = userInfo.TryGetProperty("picture", out var p) ? p.GetString() : null;
 
             // Upsert user
-            var user = await _users.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
+            var user = await _userRepository.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
             _logger.LogInformation("OAuth: user upserted {Email} ({UserId})", email, user.Id);
 
             // Create session
             var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
             var tokenHash = Middleware.SessionAuthMiddleware.HashToken(sessionToken);
-            await _sessions.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
+            await _sessionRepository.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
             _logger.LogInformation("OAuth: session created for {Email}, hash prefix {HashPrefix}...",
                 email, tokenHash[..8]);
 

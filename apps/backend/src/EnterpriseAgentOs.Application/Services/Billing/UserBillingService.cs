@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 
 public sealed class UserBillingService : IUserBillingService
 {
-    private readonly StripeConfig _config;
-    private readonly FrontendConfig _frontend;
-    private readonly IUserSubscriptionRepository _repo;
+    private readonly StripeConfig _stripeConfig;
+    private readonly FrontendConfig _frontendConfig;
+    private readonly IUserSubscriptionRepository _userSubscriptionRepository;
     private readonly ILogger<UserBillingService> _logger;
 
     public UserBillingService(
@@ -13,16 +13,16 @@ public sealed class UserBillingService : IUserBillingService
         IUserSubscriptionRepository repo,
         ILogger<UserBillingService> logger)
     {
-        _config = config;
-        _frontend = frontend;
-        _repo = repo;
+        _stripeConfig = config;
+        _frontendConfig = frontend;
+        _userSubscriptionRepository = repo;
         _logger = logger;
-        StripeConfiguration.ApiKey = _config.SecretKey;
+        StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
     public async Task<UserSubscription> GetSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
-        var sub = await _repo.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
         return sub ?? UserSubscription.CreateDefaultFree(userId);
     }
 
@@ -39,9 +39,9 @@ public sealed class UserBillingService : IUserBillingService
 
         var priceId = (plan, billingCycle) switch
         {
-            ("pro", "yearly")  => _config.ProYearlyPriceId,
-            ("pro", "monthly") => _config.ProMonthlyPriceId,
-            _                  => _config.FreePriceId,
+            ("pro", "yearly")  => _stripeConfig.ProYearlyPriceId,
+            ("pro", "monthly") => _stripeConfig.ProMonthlyPriceId,
+            _                  => _stripeConfig.FreePriceId,
         };
 
         var options = new SessionCreateOptions
@@ -49,8 +49,8 @@ public sealed class UserBillingService : IUserBillingService
             Mode = "subscription",
             Customer = customerId,
             LineItems = [new SessionLineItemOptions { Price = priceId, Quantity = 1 }],
-            SuccessUrl = $"{_frontend.Origin}/settings/billing?checkout=success",
-            CancelUrl = $"{_frontend.Origin}/pricing",
+            SuccessUrl = $"{_frontendConfig.Origin}/settings/billing?checkout=success",
+            CancelUrl = $"{_frontendConfig.Origin}/pricing",
             Metadata = new Dictionary<string, string>
             {
                 ["userId"] = userId.ToString(),
@@ -70,7 +70,7 @@ public sealed class UserBillingService : IUserBillingService
         var options = new Stripe.BillingPortal.SessionCreateOptions
         {
             Customer = customerId,
-            ReturnUrl = $"{_frontend.Origin}/settings/billing",
+            ReturnUrl = $"{_frontendConfig.Origin}/settings/billing",
         };
         var session = await new Stripe.BillingPortal.SessionService().CreateAsync(options, cancellationToken: ct);
         return session.Url;
@@ -78,11 +78,11 @@ public sealed class UserBillingService : IUserBillingService
 
     public async Task EnableOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default)
     {
-        var sub = await _repo.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
         if (sub is null)
         {
             sub = UserSubscription.CreateDefaultFree(userId);
-            await _repo.AddAsync(sub, ct);
+            await _userSubscriptionRepository.AddAsync(sub, ct);
         }
 
         if (enabled)
@@ -90,7 +90,7 @@ public sealed class UserBillingService : IUserBillingService
             if (sub.OverageEnabled) return;
 
             var customerId = await GetOrCreateCustomerAsync(userId, email, ct);
-            var priceId = sub.Plan == "pro" ? _config.ProOveragePriceId : _config.FreeOveragePriceId;
+            var priceId = sub.Plan == "pro" ? _stripeConfig.ProOveragePriceId : _stripeConfig.FreeOveragePriceId;
 
             if (sub.StripeSubscriptionId is not null)
             {
@@ -130,14 +130,14 @@ public sealed class UserBillingService : IUserBillingService
             _logger.LogInformation("Overage disabled for user {UserId}", userId);
         }
 
-        await _repo.SaveChangesAsync(ct);
+        await _userSubscriptionRepository.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
         Guid userId, CancellationToken ct = default)
     {
-        var sub = await _repo.GetByUserIdAsync(userId, ct);
-        if (sub?.StripeCustomerId is null || !_config.Enabled)
+        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
+        if (sub?.StripeCustomerId is null || !_stripeConfig.Enabled)
         {
             return Array.Empty<InvoicePayload>();
         }
@@ -164,7 +164,7 @@ public sealed class UserBillingService : IUserBillingService
 
     private async Task<string> GetOrCreateCustomerAsync(Guid userId, string email, CancellationToken ct)
     {
-        var existing = await _repo.GetByUserIdAsync(userId, ct);
+        var existing = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
 
         if (existing?.StripeCustomerId is not null)
             return existing.StripeCustomerId;
@@ -179,14 +179,14 @@ public sealed class UserBillingService : IUserBillingService
 
         _logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
 
-        var sub = await _repo.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
         if (sub is null)
         {
             sub = UserSubscription.CreateDefaultFree(userId);
-            await _repo.AddAsync(sub, ct);
+            await _userSubscriptionRepository.AddAsync(sub, ct);
         }
         sub.StripeCustomerId = customer.Id;
-        await _repo.SaveChangesAsync(ct);
+        await _userSubscriptionRepository.SaveChangesAsync(ct);
 
         return customer.Id;
     }

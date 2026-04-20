@@ -2,37 +2,37 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class ProviderRepository : IProviderRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
     public ProviderRepository(EaosDbContext db)
     {
-        _db = db;
+        _eaosDbContext = db;
     }
 
     public async Task<IReadOnlyList<ProviderRecord>> ListAsync(CancellationToken ct = default)
     {
-        return await _db.Providers.AsNoTracking().OrderBy(p => p.DisplayName).ToListAsync(ct);
+        return await _eaosDbContext.Providers.AsNoTracking().OrderBy(p => p.DisplayName).ToListAsync(ct);
     }
 
     public async Task<ProviderRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
-        return await _db.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
+        return await _eaosDbContext.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
     }
 
     public async Task SaveAsync(ProviderRecord record, CancellationToken ct = default)
     {
-        var existing = await _db.Providers.FirstOrDefaultAsync(p => p.Name == record.Name, ct);
+        var existing = await _eaosDbContext.Providers.FirstOrDefaultAsync(p => p.Name == record.Name, ct);
         if (existing is null)
-            _db.Providers.Add(record);
+            _eaosDbContext.Providers.Add(record);
         else
-            _db.Entry(existing).CurrentValues.SetValues(record);
+            _eaosDbContext.Entry(existing).CurrentValues.SetValues(record);
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task<bool> ClearKeyAsync(string name, CancellationToken ct = default)
     {
-        var record = await _db.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
+        var record = await _eaosDbContext.Providers.FirstOrDefaultAsync(p => p.Name == name, ct);
         if (record is null)
         {
             return false;
@@ -40,7 +40,7 @@ public sealed class ProviderRepository : IProviderRepository
 
         record.EncryptedApiKey = null;
         record.ConfiguredAt = null;
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 }

@@ -11,14 +11,14 @@ namespace EnterpriseAgentOs.Application.Services.Agents;
 /// </summary>
 public sealed class AgentTurnService
 {
-    private readonly IAgentRepository _agents;
-    private readonly IAgentLogService _logs;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentLogService _agentLogService;
     private readonly PromptComposer _promptComposer;
-    private readonly LlmProviderDispatcher _llm;
-    private readonly IProviderService _providers;
-    private readonly IAgentMemoryRepository _memoryRepo;
-    private readonly IAgentSkillRepository _agentSkills;
-    private readonly SkillRuntimeClient _skillRuntime;
+    private readonly LlmProviderDispatcher _llmProviderDispatcher;
+    private readonly IProviderService _providerService;
+    private readonly IAgentMemoryRepository _agentMemoryRepository;
+    private readonly IAgentSkillRepository _agentSkillRepository;
+    private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ISkillService _skillService;
     private readonly ILogger<AgentTurnService> _logger;
 
@@ -38,14 +38,14 @@ public sealed class AgentTurnService
         ISkillService skillService,
         ILogger<AgentTurnService> logger)
     {
-        _agents = agents;
-        _logs = logs;
+        _agentRepository = agents;
+        _agentLogService = logs;
         _promptComposer = promptComposer;
-        _llm = llm;
-        _providers = providers;
-        _memoryRepo = memoryRepo;
-        _agentSkills = agentSkills;
-        _skillRuntime = skillRuntime;
+        _llmProviderDispatcher = llm;
+        _providerService = providers;
+        _agentMemoryRepository = memoryRepo;
+        _agentSkillRepository = agentSkills;
+        _skillRuntimeClient = skillRuntime;
         _skillService = skillService;
         _logger = logger;
     }
@@ -58,9 +58,9 @@ public sealed class AgentTurnService
     {
         var turnStart = Stopwatch.GetTimestamp();
         var log = new TurnLogger(agentId, correlationId,
-            record => _logs.AppendAsync(record).GetAwaiter().GetResult());
+            record => _agentLogService.AppendAsync(record).GetAwaiter().GetResult());
 
-        var agent = await _agents.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetAsync(agentId, ct);
         if (agent is null)
         {
             log.Error($"Agent {agentId} not found");
@@ -76,8 +76,8 @@ public sealed class AgentTurnService
         log.TurnStart(userMessage);
 
         // Fetch installed skills for the prompt and skill_exec tool.
-        var installedSkills = await _agentSkills.ListSkillNamesByAgentAsync(agentId, ct);
-        var skillDetails = await _agentSkills.ListSkillDetailsForAgentAsync(agentId, ct);
+        var installedSkills = await _agentSkillRepository.ListSkillNamesByAgentAsync(agentId, ct);
+        var skillDetails = await _agentSkillRepository.ListSkillDetailsForAgentAsync(agentId, ct);
 
         // Connect to pod PTY.
         using var pod = new PodConnection();
@@ -95,7 +95,7 @@ public sealed class AgentTurnService
 
         // Build tool registry with all 13 tools — direct to skill-runtime, no HTTP loopback.
         var registry = ToolRegistry.Create(
-            pod, _memoryRepo, agentId, _skillRuntime, _skillService, skillDetails);
+            pod, _agentMemoryRepository, agentId, _skillRuntimeClient, _skillService, skillDetails);
 
         // Initialize conversation history and loop detector.
         var history = new ConversationHistory();
@@ -173,13 +173,13 @@ public sealed class AgentTurnService
             var provider = agent.Provider;
             var apiKey = Domain.Services.KnownProviders.IsKeyless(provider)
                 ? "platform"
-                : await _providers.GetDecryptedKeyAsync(provider, ct) ?? "";
+                : await _providerService.GetDecryptedKeyAsync(provider, ct) ?? "";
 
             HttpResponseMessage llmResponse;
             var llmStart = Stopwatch.GetTimestamp();
             try
             {
-                llmResponse = await _llm.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
+                llmResponse = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
             }
             catch (Exception ex)
             {

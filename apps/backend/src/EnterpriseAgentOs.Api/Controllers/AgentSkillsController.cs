@@ -5,10 +5,10 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Middleware.AgentTokenAuth]
 public sealed class AgentSkillsController : ControllerBase
 {
-    private readonly ISkillService _service;
-    private readonly SkillRuntimeClient _runtime;
-    private readonly IBrowserSessionRepository _browserSessions;
-    private readonly IAgentLogService _agentLogs;
+    private readonly ISkillService _skillService;
+    private readonly SkillRuntimeClient _skillRuntimeClient;
+    private readonly IBrowserSessionRepository _browserSessionRepository;
+    private readonly IAgentLogService _agentLogService;
 
     private readonly ILogger<AgentSkillsController> _logger;
 
@@ -19,10 +19,10 @@ public sealed class AgentSkillsController : ControllerBase
         IAgentLogService agentLogs,
         ILogger<AgentSkillsController> logger)
     {
-        _service = service;
-        _runtime = runtime;
-        _browserSessions = browserSessions;
-        _agentLogs = agentLogs;
+        _skillService = service;
+        _skillRuntimeClient = runtime;
+        _browserSessionRepository = browserSessions;
+        _agentLogService = agentLogs;
         _logger = logger;
     }
 
@@ -30,7 +30,7 @@ public sealed class AgentSkillsController : ControllerBase
     public async Task<ActionResult<CapabilitiesResponse>> Capabilities(CancellationToken ct)
     {
         var agentId = (Guid)HttpContext.Items["agent-id"]!;
-        var response = await _service.ListCapabilitiesAsync(agentId, ct);
+        var response = await _skillService.ListCapabilitiesAsync(agentId, ct);
         return Ok(response);
     }
 
@@ -41,7 +41,7 @@ public sealed class AgentSkillsController : ControllerBase
 
         _logger.LogInformation("Agent skill-exec: {Skill}.{Action}", body.Skill, body.Action);
 
-        var creds = await _service.GetDecryptedCredentialsAsync(body.Skill, ct);
+        var creds = await _skillService.GetDecryptedCredentialsAsync(body.Skill, ct);
         if (creds is null)
         {
             _logger.LogWarning("Skill {Skill} not configured for cloud execution", body.Skill);
@@ -54,7 +54,7 @@ public sealed class AgentSkillsController : ControllerBase
         if (string.Equals(body.Skill, "browser", StringComparison.OrdinalIgnoreCase))
         {
             agentId = (Guid)HttpContext.Items["agent-id"]!;
-            var existingSession = await _browserSessions.GetByAgentAsync(agentId.Value, ct);
+            var existingSession = await _browserSessionRepository.GetByAgentAsync(agentId.Value, ct);
             if (existingSession is not null)
             {
                 sessionContext = new SessionContext
@@ -71,7 +71,7 @@ public sealed class AgentSkillsController : ControllerBase
 
         try
         {
-            var result = await _runtime.ExecuteAsync(
+            var result = await _skillRuntimeClient.ExecuteAsync(
                 body.Skill,
                 body.Action,
                 body.Params ?? new Dictionary<string, object>(),
@@ -87,11 +87,11 @@ public sealed class AgentSkillsController : ControllerBase
             {
                 if (string.IsNullOrEmpty(result.SessionMeta.SessionId))
                 {
-                    await _browserSessions.DeleteByAgentAsync(agentId.Value, ct);
+                    await _browserSessionRepository.DeleteByAgentAsync(agentId.Value, ct);
                 }
                 else
                 {
-                    await _browserSessions.UpsertAsync(agentId.Value,
+                    await _browserSessionRepository.UpsertAsync(agentId.Value,
                         result.SessionMeta.SessionId, result.SessionMeta.CookiesJson, ct);
                 }
             }
@@ -106,7 +106,7 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {result.Error}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _agentLogs.AppendAsync(new AgentLogRecord
+            await _agentLogService.AppendAsync(new AgentLogRecord
             {
                 AgentId = execAgentId,
                 Type = AgentLogType.System,
@@ -123,7 +123,7 @@ public sealed class AgentSkillsController : ControllerBase
             resultSummary = $"error: {ex.Message}";
             await RecordAuditAsync(execAgentId, body.Skill, body.Action, paramsJson, resultSummary, sw.ElapsedMilliseconds);
 
-            await _agentLogs.AppendAsync(new AgentLogRecord
+            await _agentLogService.AppendAsync(new AgentLogRecord
             {
                 AgentId = execAgentId,
                 Type = AgentLogType.System,
@@ -141,7 +141,7 @@ public sealed class AgentSkillsController : ControllerBase
     {
         try
         {
-            await _agentLogs.RecordToolCallAsync(agentId, null, skill, action, paramsJson, resultSummary, durationMs);
+            await _agentLogService.RecordToolCallAsync(agentId, null, skill, action, paramsJson, resultSummary, durationMs);
         }
         catch (Exception ex)
         {
@@ -158,7 +158,7 @@ public sealed class AgentSkillsController : ControllerBase
         [FromBody] JsonElement body,
         CancellationToken ct)
     {
-        var creds = await _service.GetDecryptedCredentialsAsync(skill, ct);
+        var creds = await _skillService.GetDecryptedCredentialsAsync(skill, ct);
         if (creds is null)
         {
             return Conflict(new { error = $"Skill '{skill}' is not installed or not configured." });
@@ -167,7 +167,7 @@ public sealed class AgentSkillsController : ControllerBase
         {
             var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(body.GetRawText())
                 ?? new Dictionary<string, object>();
-            var result = await _runtime.ExecuteAsync(skill, action, parameters, creds, ct: ct);
+            var result = await _skillRuntimeClient.ExecuteAsync(skill, action, parameters, creds, ct: ct);
             if (result.Success)
             {
                 return Ok(result.Result);

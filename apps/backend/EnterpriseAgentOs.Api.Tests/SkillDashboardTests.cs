@@ -2,8 +2,8 @@ namespace EnterpriseAgentOs.Api.Tests;
 
 public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
-    public SkillDashboardTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
+    public SkillDashboardTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     private void SeedManifests()
     {
@@ -27,8 +27,8 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
           }
         ]
         """;
-        _factory.SkillRuntimeMock.Reset();
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock.Reset();
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/manifests").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
@@ -40,7 +40,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     public async Task Skills_Query_Returns_Logo_Not_Emoji()
     {
         SeedManifests();
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         await Infrastructure.TestHelpers.InstallSkillAsync(client, "github");
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ skills { name logo sourceCodeUrl } }");
         var skills = data.GetProperty("skills");
@@ -56,8 +56,8 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task Skills_Query_Returns_Typed_Manifest_Fields()
     {
-        _factory.SkillRuntimeMock.Reset();
-        _factory.SkillRuntimeMock
+        _customWebApplicationFactory.SkillRuntimeMock.Reset();
+        _customWebApplicationFactory.SkillRuntimeMock
             .Given(Request.Create().WithPath("/manifests").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
@@ -90,7 +90,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
                 ]
                 """));
 
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         await Infrastructure.TestHelpers.InstallSkillAsync(client, "stock-analysis");
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, @"
@@ -138,7 +138,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     public async Task Skills_Query_Has_No_Emoji_Field()
     {
         SeedManifests();
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         await Infrastructure.TestHelpers.InstallSkillAsync(client, "github");
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, "{ skills { name emoji } }");
         Assert.True(raw.TryGetProperty("errors", out _));
@@ -148,7 +148,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     public async Task Skills_Query_Returns_Installed_Status()
     {
         SeedManifests();
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         await Infrastructure.TestHelpers.InstallSkillAsync(client, "github");
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ skills { name installed } }");
         var skill = data.GetProperty("skills").EnumerateArray().First(s => s.GetProperty("name").GetString() == "github");
@@ -158,7 +158,7 @@ public sealed class SkillDashboardTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task ChannelTypes_Query_Returns_Logo()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory);
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, "{ channelTypes { type displayName logo } }");
         var types = data.GetProperty("channelTypes");
         Assert.True(types.GetArrayLength() >= 6);

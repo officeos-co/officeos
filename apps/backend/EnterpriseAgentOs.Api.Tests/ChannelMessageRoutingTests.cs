@@ -8,11 +8,11 @@ namespace EnterpriseAgentOs.Api.Tests;
 /// </summary>
 public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
     private Infrastructure.FakeAgentWsServer _fakeAgent = null!;
 
     public ChannelMessageRoutingTests(Infrastructure.CustomWebApplicationFactory factory)
-        => _factory = factory;
+        => _customWebApplicationFactory = factory;
 
     public Task InitializeAsync()
     {
@@ -31,7 +31,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
     /// </summary>
     private async Task<(Guid ConnectionId, Guid AgentId)> SeedChannelBindingAsync()
     {
-        using var scope = _factory.Services.CreateScope();
+        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
 
         // Create a user
@@ -81,7 +81,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         _fakeAgent.SetResponse("Hello from agent");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
 
-        using var scope = _factory.Services.CreateScope();
+        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
         var logRepo = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
 
@@ -102,7 +102,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         _fakeAgent.SetResponse("Agent response text");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
 
-        using var scope = _factory.Services.CreateScope();
+        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
         var logRepo = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
 
@@ -123,7 +123,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         _fakeAgent.SetResponse("Hello from agent");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
 
-        using var scope = _factory.Services.CreateScope();
+        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
         var logRepo = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
 
@@ -142,7 +142,7 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
     [Fact]
     public async Task RouteMessage_PolicyBlocked_NoLogsCreated()
     {
-        using var scope = _factory.Services.CreateScope();
+        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
 
         var user = new UserRecord

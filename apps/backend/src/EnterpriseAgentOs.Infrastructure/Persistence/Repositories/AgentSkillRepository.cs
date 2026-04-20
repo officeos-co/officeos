@@ -2,16 +2,16 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class AgentSkillRepository : IAgentSkillRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
     public AgentSkillRepository(EaosDbContext db)
     {
-        _db = db;
+        _eaosDbContext = db;
     }
 
     public async Task<IReadOnlyList<AgentSkillRecord>> ListByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        return await _db.AgentSkills
+        return await _eaosDbContext.AgentSkills
             .AsNoTracking()
             .Where(a => a.AgentId == agentId)
             .OrderBy(a => a.SkillName)
@@ -20,7 +20,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
 
     public async Task<IReadOnlyList<string>> ListSkillNamesByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        return await _db.AgentSkills
+        return await _eaosDbContext.AgentSkills
             .AsNoTracking()
             .Where(a => a.AgentId == agentId)
             .Select(a => a.SkillName)
@@ -29,13 +29,13 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
 
     public async Task<IReadOnlyList<SkillRecord>> ListSkillDetailsForAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        var skillNames = await _db.AgentSkills
+        var skillNames = await _eaosDbContext.AgentSkills
             .AsNoTracking()
             .Where(a => a.AgentId == agentId)
             .Select(a => a.SkillName)
             .ToListAsync(ct);
 
-        return await _db.Skills
+        return await _eaosDbContext.Skills
             .AsNoTracking()
             .Where(s => skillNames.Contains(s.Name))
             .ToListAsync(ct);
@@ -43,7 +43,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
 
     public async Task AssignAsync(Guid agentId, IEnumerable<string> skillNames, CancellationToken ct = default)
     {
-        var existing = await _db.AgentSkills
+        var existing = await _eaosDbContext.AgentSkills
             .Where(a => a.AgentId == agentId)
             .Select(a => a.SkillName)
             .ToListAsync(ct);
@@ -55,7 +55,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
             var normalized = name.Trim().ToLowerInvariant();
             if (existingSet.Contains(normalized)) continue;
 
-            _db.AgentSkills.Add(new AgentSkillRecord
+            _eaosDbContext.AgentSkills.Add(new AgentSkillRecord
             {
                 AgentId = agentId,
                 SkillName = normalized,
@@ -63,25 +63,25 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
             });
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task<bool> RemoveAsync(Guid agentId, string skillName, CancellationToken ct = default)
     {
         var normalized = skillName.Trim().ToLowerInvariant();
-        var row = await _db.AgentSkills
+        var row = await _eaosDbContext.AgentSkills
             .FirstOrDefaultAsync(a => a.AgentId == agentId && a.SkillName == normalized, ct);
 
         if (row is null) return false;
 
-        _db.AgentSkills.Remove(row);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentSkills.Remove(row);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(Guid agentId, CancellationToken ct = default)
     {
-        return await _db.AgentToolPermissions
+        return await _eaosDbContext.AgentToolPermissions
             .AsNoTracking()
             .Where(p => p.AgentId == agentId)
             .ToListAsync(ct);
@@ -94,7 +94,7 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
         var skill = skillName.Trim().ToLowerInvariant();
         var tool = toolName.Trim();
 
-        var existing = await _db.AgentToolPermissions
+        var existing = await _eaosDbContext.AgentToolPermissions
             .FirstOrDefaultAsync(p => p.AgentId == agentId && p.SkillName == skill && p.ToolName == tool, ct);
 
         if (existing is null)
@@ -106,14 +106,14 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
                 ToolName = tool,
                 Permission = permission,
             };
-            _db.AgentToolPermissions.Add(existing);
+            _eaosDbContext.AgentToolPermissions.Add(existing);
         }
         else
         {
             existing.Permission = permission;
             existing.UpdatedAt = DateTime.UtcNow;
         }
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return existing;
     }
 }

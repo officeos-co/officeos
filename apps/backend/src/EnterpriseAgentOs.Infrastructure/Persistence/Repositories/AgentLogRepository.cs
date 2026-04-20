@@ -2,13 +2,13 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class AgentLogRepository : IAgentLogRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentLogRepository(EaosDbContext db) => _db = db;
+    public AgentLogRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<List<AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
     {
-        var q = _db.AgentLogs.Where(l => l.AgentId == agentId);
+        var q = _eaosDbContext.AgentLogs.Where(l => l.AgentId == agentId);
         if (before.HasValue) q = q.Where(l => l.Time < before.Value);
         return await q.OrderByDescending(l => l.Time).Take(limit).ToListAsync(ct);
     }
@@ -16,8 +16,8 @@ public sealed class AgentLogRepository : IAgentLogRepository
     public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
         string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
     {
-        var q = from l in _db.AgentLogs
-                join a in _db.Agents on l.AgentId equals a.Id
+        var q = from l in _eaosDbContext.AgentLogs
+                join a in _eaosDbContext.Agents on l.AgentId equals a.Id
                 select new { Log = l, AgentName = a.Name };
 
         if (type.HasValue)
@@ -43,25 +43,25 @@ public sealed class AgentLogRepository : IAgentLogRepository
 
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
-        _db.AgentLogs.Add(record);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentLogs.Add(record);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return record;
     }
 
     public async Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
     {
-        _db.AgentLogs.Add(toolCall);
-        _db.AgentLogs.Add(toolResult);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentLogs.Add(toolCall);
+        _eaosDbContext.AgentLogs.Add(toolResult);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _db.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
+        => _eaosDbContext.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
 
     public async Task<(List<AgentLogRecord> Items, int Total)> GetToolCallsAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
     {
-        var query = _db.AgentLogs
+        var query = _eaosDbContext.AgentLogs
             .Where(r => r.AgentId == agentId && r.Type == AgentLogType.ToolCall)
             .OrderByDescending(r => r.Time);
 
@@ -76,7 +76,7 @@ public sealed class AgentLogRepository : IAgentLogRepository
         if (correlationIds.Count == 0)
             return new Dictionary<string, AgentLogRecord>();
 
-        var rows = await _db.AgentLogs
+        var rows = await _eaosDbContext.AgentLogs
             .Where(r => r.AgentId == agentId
                         && r.Type == AgentLogType.ToolResult
                         && r.CorrelationId != null
@@ -92,13 +92,13 @@ public sealed class AgentLogRepository : IAgentLogRepository
     public async Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default)
     {
         if (agentIds.Count == 0) return;
-        await _db.AgentLogs.Where(l => agentIds.Contains(l.AgentId)).ExecuteDeleteAsync(ct);
+        await _eaosDbContext.AgentLogs.Where(l => agentIds.Contains(l.AgentId)).ExecuteDeleteAsync(ct);
     }
 
     public async Task<List<AgentLogRecord>> ListByAgentIdsAsync(IReadOnlyList<Guid> agentIds, IReadOnlyList<AgentLogType>? types = null, CancellationToken ct = default)
     {
         if (agentIds.Count == 0) return new List<AgentLogRecord>();
-        var q = _db.AgentLogs.AsNoTracking().Where(l => agentIds.Contains(l.AgentId));
+        var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => agentIds.Contains(l.AgentId));
         if (types is { Count: > 0 }) q = q.Where(l => types.Contains(l.Type));
         return await q.ToListAsync(ct);
     }

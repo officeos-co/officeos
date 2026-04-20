@@ -2,13 +2,13 @@ namespace EnterpriseAgentOs.Application.Services.Agents;
 
 public sealed class AgentService : IAgentService
 {
-    private readonly IAgentRepository _repository;
-    private readonly IAgentDeployer _deployer;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentDeployer _agentDeployer;
     private readonly IProviderService _providerService;
-    private readonly IPostHogService _analytics;
+    private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentService> _logger;
-    private readonly IMemoryCache _cache;
-    private readonly IAgentPersonalityRepository _personalityRepo;
+    private readonly IMemoryCache _memoryCache;
+    private readonly IAgentPersonalityRepository _agentPersonalityRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     private const string AgentListCacheKey = "agents:list";
@@ -23,28 +23,28 @@ public sealed class AgentService : IAgentService
         IMemoryCache cache,
         IAgentPersonalityRepository personalityRepo)
     {
-        _repository = repository;
-        _deployer = deployer;
+        _agentRepository = repository;
+        _agentDeployer = deployer;
         _providerService = providerService;
-        _analytics = analytics;
+        _postHogService = analytics;
         _logger = logger;
-        _cache = cache;
-        _personalityRepo = personalityRepo;
+        _memoryCache = cache;
+        _agentPersonalityRepository = personalityRepo;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
     {
-        if (_cache.TryGetValue(AgentListCacheKey, out IReadOnlyList<AgentDto>? cached) && cached is not null)
+        if (_memoryCache.TryGetValue(AgentListCacheKey, out IReadOnlyList<AgentDto>? cached) && cached is not null)
             return cached;
 
-        var records = await _repository.ListAsync(ct);
+        var records = await _agentRepository.ListAsync(ct);
         _logger.LogDebug("Listing {Count} agents, refreshing pod status", records.Count);
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
         var result = records.Select(ToDto).ToList();
 
-        _cache.Set(AgentListCacheKey, (IReadOnlyList<AgentDto>)result,
+        _memoryCache.Set(AgentListCacheKey, (IReadOnlyList<AgentDto>)result,
             new MemoryCacheEntryOptions
             { AbsoluteExpirationRelativeToNow = AgentCacheTtl });
         return result;
@@ -53,10 +53,10 @@ public sealed class AgentService : IAgentService
     public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var key = AgentCacheKey(id);
-        if (_cache.TryGetValue(key, out AgentDto? cached) && cached is not null)
+        if (_memoryCache.TryGetValue(key, out AgentDto? cached) && cached is not null)
             return cached;
 
-        var record = await _repository.GetAsync(id, ct);
+        var record = await _agentRepository.GetAsync(id, ct);
         if (record is null)
         {
             _logger.LogDebug("Agent {AgentId} not found", id);
@@ -65,7 +65,7 @@ public sealed class AgentService : IAgentService
         await RefreshStatusAsync(record, ct);
         var dto = ToDto(record);
 
-        _cache.Set(key, dto,
+        _memoryCache.Set(key, dto,
             new MemoryCacheEntryOptions
             { AbsoluteExpirationRelativeToNow = AgentCacheTtl });
         return dto;
@@ -97,37 +97,37 @@ public sealed class AgentService : IAgentService
 
         record.ValidateAndSetModel(request.Model);
 
-        await _repository.AddAsync(record, ct);
+        await _agentRepository.AddAsync(record, ct);
 
         // Seed default personality files — domain owns the content and validation.
         var defaults = AgentPersonalityRecord.CreateDefaults(record.Id, record.Name);
         foreach (var personality in defaults)
-            await _personalityRepo.UpsertAsync(record.Id, personality.FileName, personality.Content, ct);
+            await _agentPersonalityRepository.UpsertAsync(record.Id, personality.FileName, personality.Content, ct);
 
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
             record.Id, record.Name, record.Provider, record.Model);
 
         try
         {
-            var deployment = await _deployer.DeployAsync(record.Id, ct);
+            var deployment = await _agentDeployer.DeployAsync(record.Id, ct);
 
             record.MarkDeployed(deployment.PodName, deployment.ServiceUrl);
-            await _repository.UpdateAsync(record, ct);
+            await _agentRepository.UpdateAsync(record, ct);
             _logger.LogInformation("Agent {AgentId} deployed as pod {PodName}", record.Id, record.PodName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to deploy agent {AgentId}", record.Id);
             record.MarkFailed();
-            await _repository.UpdateAsync(record, ct);
+            await _agentRepository.UpdateAsync(record, ct);
         }
 
-        _cache.Remove(AgentListCacheKey);
-        _cache.Remove(AgentCacheKey(record.Id));
+        _memoryCache.Remove(AgentListCacheKey);
+        _memoryCache.Remove(AgentCacheKey(record.Id));
 
         if (ownerId is not null)
         {
-            await _analytics.CaptureAsync(
+            await _postHogService.CaptureAsync(
                 ownerId.Value.ToString(),
                 "agent_created",
                 new Dictionary<string, object?>
@@ -144,7 +144,7 @@ public sealed class AgentService : IAgentService
 
     public async Task<AgentDto?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default)
     {
-        var record = await _repository.GetAsync(id, ct);
+        var record = await _agentRepository.GetAsync(id, ct);
         if (record is null)
         {
             _logger.LogWarning("Patch failed: agent {AgentId} not found", id);
@@ -183,15 +183,15 @@ public sealed class AgentService : IAgentService
             record.Prompt = request.Prompt.Length == 0 ? null : request.Prompt;
         }
 
-        await _repository.UpdateAsync(record, ct);
-        _cache.Remove(AgentListCacheKey);
-        _cache.Remove(AgentCacheKey(id));
+        await _agentRepository.UpdateAsync(record, ct);
+        _memoryCache.Remove(AgentListCacheKey);
+        _memoryCache.Remove(AgentCacheKey(id));
         return ToDto(record);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var record = await _repository.GetAsync(id, ct);
+        var record = await _agentRepository.GetAsync(id, ct);
         if (record is null)
         {
             _logger.LogWarning("Delete failed: agent {AgentId} not found", id);
@@ -203,16 +203,16 @@ public sealed class AgentService : IAgentService
         if (record.HasPod)
         {
             _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", record.PodName, id);
-            await _deployer.RemoveAsync(record.PodName!, ct);
+            await _agentDeployer.RemoveAsync(record.PodName!, ct);
         }
 
-        var deleted = await _repository.SoftDeleteAsync(id, ct);
-        _cache.Remove(AgentListCacheKey);
-        _cache.Remove(AgentCacheKey(id));
+        var deleted = await _agentRepository.SoftDeleteAsync(id, ct);
+        _memoryCache.Remove(AgentListCacheKey);
+        _memoryCache.Remove(AgentCacheKey(id));
 
         if (deleted && record.OwnerId is not null)
         {
-            await _analytics.CaptureAsync(
+            await _postHogService.CaptureAsync(
                 record.OwnerId.Value.ToString(),
                 "agent_deleted",
                 new Dictionary<string, object?> { ["agent_id"] = id },
@@ -227,10 +227,10 @@ public sealed class AgentService : IAgentService
         if (!record.HasPod) return;
         try
         {
-            var live = await _deployer.GetStatusAsync(record.PodName, ct);
+            var live = await _agentDeployer.GetStatusAsync(record.PodName, ct);
             if (live != record.Status)
             {
-                await _repository.UpdateStatusAsync(record.Id, live, ct);
+                await _agentRepository.UpdateStatusAsync(record.Id, live, ct);
                 record.Status = live;
             }
         }

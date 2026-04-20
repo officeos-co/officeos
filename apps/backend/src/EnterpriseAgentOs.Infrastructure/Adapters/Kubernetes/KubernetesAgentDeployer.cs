@@ -6,10 +6,10 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     private const string StorageSize = "1Gi";
     private const string WorkspacePath = "/home";
 
-    private readonly IKubernetes _k8s;
+    private readonly IKubernetes _kubernetes;
     private readonly ILogger<KubernetesAgentDeployer> _logger;
-    private readonly KubernetesConfig _config;
-    private readonly SkillGatewayConfig _skillGateway;
+    private readonly KubernetesConfig _kubernetesConfig;
+    private readonly SkillGatewayConfig _skillGatewayConfig;
     private readonly string _namespace;
     private readonly string _image;
 
@@ -19,10 +19,10 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         SkillGatewayConfig skillGateway,
         ILogger<KubernetesAgentDeployer> logger)
     {
-        _k8s = k8s;
+        _kubernetes = k8s;
         _logger = logger;
-        _config = config;
-        _skillGateway = skillGateway;
+        _kubernetesConfig = config;
+        _skillGatewayConfig = skillGateway;
         _namespace = config.Namespace;
         _image = config.Image;
     }
@@ -60,7 +60,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
                 },
             },
         };
-        await _k8s.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(pvcManifest, _namespace, cancellationToken: ct);
+        await _kubernetes.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(pvcManifest, _namespace, cancellationToken: ct);
 
         // Two env vars — the only runtime inputs the pod accepts (see API.md §2).
         var env = new List<V1EnvVar>
@@ -111,7 +111,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
                 },
             },
         };
-        await _k8s.CoreV1.CreateNamespacedPodAsync(podManifest, _namespace, cancellationToken: ct);
+        await _kubernetes.CoreV1.CreateNamespacedPodAsync(podManifest, _namespace, cancellationToken: ct);
 
         var svcManifest = new V1Service
         {
@@ -130,7 +130,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
                 },
             },
         };
-        await _k8s.CoreV1.CreateNamespacedServiceAsync(svcManifest, _namespace, cancellationToken: ct);
+        await _kubernetes.CoreV1.CreateNamespacedServiceAsync(svcManifest, _namespace, cancellationToken: ct);
 
         _logger.LogInformation("Deployed agent {AgentId} as pod {Pod}", agentId, pod);
         return new AgentDeployment(pod, ServiceUrl(agentId));
@@ -140,12 +140,12 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     {
         try
         {
-            await TryDelete(() => _k8s.CoreV1.DeleteNamespacedPodAsync(podName, _namespace, cancellationToken: ct));
-            await TryDelete(() => _k8s.CoreV1.DeleteNamespacedServiceAsync(podName, _namespace, cancellationToken: ct));
+            await TryDelete(() => _kubernetes.CoreV1.DeleteNamespacedPodAsync(podName, _namespace, cancellationToken: ct));
+            await TryDelete(() => _kubernetes.CoreV1.DeleteNamespacedServiceAsync(podName, _namespace, cancellationToken: ct));
             var pvc = podName.StartsWith("zeroclaw-")
                 ? "zeroclaw-data-" + podName.Substring("zeroclaw-".Length)
                 : podName;
-            await TryDelete(() => _k8s.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(pvc, _namespace, cancellationToken: ct));
+            await TryDelete(() => _kubernetes.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(pvc, _namespace, cancellationToken: ct));
             return true;
         }
         catch (Exception ex)
@@ -159,7 +159,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     {
         try
         {
-            var pod = await _k8s.CoreV1.ReadNamespacedPodAsync(podName, _namespace, cancellationToken: ct);
+            var pod = await _kubernetes.CoreV1.ReadNamespacedPodAsync(podName, _namespace, cancellationToken: ct);
             return pod.Status?.Phase?.ToLowerInvariant() switch
             {
                 "running" => "running",
@@ -179,7 +179,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     {
         try
         {
-            using var stream = await _k8s.CoreV1.ReadNamespacedPodLogAsync(
+            using var stream = await _kubernetes.CoreV1.ReadNamespacedPodLogAsync(
                 podName, _namespace, tailLines: tailLines, cancellationToken: ct);
             using var reader = new StreamReader(stream);
             return await reader.ReadToEndAsync(ct);

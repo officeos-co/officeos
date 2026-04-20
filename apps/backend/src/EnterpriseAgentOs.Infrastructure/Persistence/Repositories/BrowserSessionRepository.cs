@@ -2,22 +2,22 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class BrowserSessionRepository : IBrowserSessionRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
     public BrowserSessionRepository(EaosDbContext db)
     {
-        _db = db;
+        _eaosDbContext = db;
     }
 
     public async Task<BrowserSessionRecord?> GetByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        return await _db.BrowserSessions
+        return await _eaosDbContext.BrowserSessions
             .FirstOrDefaultAsync(s => s.AgentId == agentId, ct);
     }
 
     public async Task<BrowserSessionRecord> UpsertAsync(Guid agentId, string runtimeSessionId, string? cookiesJson, CancellationToken ct = default)
     {
-        var existing = await _db.BrowserSessions
+        var existing = await _eaosDbContext.BrowserSessions
             .FirstOrDefaultAsync(s => s.AgentId == agentId, ct);
 
         if (existing is not null)
@@ -34,21 +34,21 @@ public sealed class BrowserSessionRepository : IBrowserSessionRepository
                 RuntimeSessionId = runtimeSessionId,
                 CookiesJson = cookiesJson,
             };
-            _db.BrowserSessions.Add(existing);
+            _eaosDbContext.BrowserSessions.Add(existing);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return existing;
     }
 
     public async Task DeleteByAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        var existing = await _db.BrowserSessions
+        var existing = await _eaosDbContext.BrowserSessions
             .FirstOrDefaultAsync(s => s.AgentId == agentId, ct);
         if (existing is not null)
         {
-            _db.BrowserSessions.Remove(existing);
-            await _db.SaveChangesAsync(ct);
+            _eaosDbContext.BrowserSessions.Remove(existing);
+            await _eaosDbContext.SaveChangesAsync(ct);
         }
     }
 }

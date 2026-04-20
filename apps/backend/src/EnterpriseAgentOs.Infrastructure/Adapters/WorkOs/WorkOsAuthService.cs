@@ -2,12 +2,12 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.WorkOs;
 
 public sealed class WorkOsAuthService : IWorkOsAuthService
 {
-    private readonly WorkOsConfig _config;
+    private readonly WorkOsConfig _workOsConfig;
     private readonly ILogger<WorkOsAuthService> _logger;
 
     public WorkOsAuthService(WorkOsConfig config, ILogger<WorkOsAuthService> logger)
     {
-        _config = config;
+        _workOsConfig = config;
         _logger = logger;
     }
 

@@ -2,23 +2,23 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class AgentMemoryRepository : IAgentMemoryRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentMemoryRepository(EaosDbContext db) => _db = db;
+    public AgentMemoryRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<AgentMemoryRecord?> GetAsync(Guid agentId, string key, CancellationToken ct = default)
-        => await _db.AgentMemories
+        => await _eaosDbContext.AgentMemories
             .FirstOrDefaultAsync(m => m.AgentId == agentId && m.Key == key, ct);
 
     public async Task<IReadOnlyList<AgentMemoryRecord>> ListAsync(Guid agentId, CancellationToken ct = default)
-        => await _db.AgentMemories
+        => await _eaosDbContext.AgentMemories
             .Where(m => m.AgentId == agentId)
             .OrderBy(m => m.Key)
             .ToListAsync(ct);
 
     public async Task UpsertAsync(Guid agentId, string key, string content, CancellationToken ct = default)
     {
-        var existing = await _db.AgentMemories
+        var existing = await _eaosDbContext.AgentMemories
             .FirstOrDefaultAsync(m => m.AgentId == agentId && m.Key == key, ct);
 
         if (existing is not null)
@@ -27,19 +27,19 @@ public sealed class AgentMemoryRepository : IAgentMemoryRepository
         }
         else
         {
-            _db.AgentMemories.Add(AgentMemoryRecord.Create(agentId, key, content));
+            _eaosDbContext.AgentMemories.Add(AgentMemoryRecord.Create(agentId, key, content));
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task<bool> DeleteAsync(Guid agentId, string key, CancellationToken ct = default)
     {
-        var record = await _db.AgentMemories
+        var record = await _eaosDbContext.AgentMemories
             .FirstOrDefaultAsync(m => m.AgentId == agentId && m.Key == key, ct);
         if (record is null) return false;
-        _db.AgentMemories.Remove(record);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentMemories.Remove(record);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 }

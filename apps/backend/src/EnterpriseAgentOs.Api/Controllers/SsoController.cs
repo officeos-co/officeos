@@ -4,8 +4,8 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Route("api/sso")]
 public sealed class SsoController : ControllerBase
 {
-    private readonly WorkOsConfig _config;
-    private readonly IWorkOsAuthService _workOs;
+    private readonly WorkOsConfig _workOsConfig;
+    private readonly IWorkOsAuthService _workOsAuthService;
     private readonly ILogger<SsoController> _logger;
 
     public SsoController(
@@ -13,15 +13,15 @@ public sealed class SsoController : ControllerBase
         IWorkOsAuthService workOs,
         ILogger<SsoController> logger)
     {
-        _config = config;
-        _workOs = workOs;
+        _workOsConfig = config;
+        _workOsAuthService = workOs;
         _logger = logger;
     }
 
     [HttpGet("initiate")]
     public async Task<IActionResult> Initiate([FromQuery] string? org, CancellationToken ct)
     {
-        if (!_config.Enabled)
+        if (!_workOsConfig.Enabled)
         {
             return StatusCode(503, new { error = "SSO not configured" });
         }
@@ -31,7 +31,7 @@ public sealed class SsoController : ControllerBase
             return BadRequest(new { error = "org query parameter is required" });
         }
 
-        var redirectUrl = await _workOs.InitiateSsoAsync(org, ct);
+        var redirectUrl = await _workOsAuthService.InitiateSsoAsync(org, ct);
 
         _logger.LogInformation("SSO initiation redirect for org {OrgId}", org);
 
@@ -44,7 +44,7 @@ public sealed class SsoController : ControllerBase
         [FromQuery] string? state,
         CancellationToken ct)
     {
-        if (!_config.Enabled)
+        if (!_workOsConfig.Enabled)
         {
             return StatusCode(503, new { error = "SSO not configured" });
         }
@@ -54,7 +54,7 @@ public sealed class SsoController : ControllerBase
             return BadRequest(new { error = "code and state query parameters are required" });
         }
 
-        var userInfo = await _workOs.HandleCallbackAsync(code, state, ct);
+        var userInfo = await _workOsAuthService.HandleCallbackAsync(code, state, ct);
 
         _logger.LogInformation("SSO callback succeeded for user {Email} in org {OrgId}",
             userInfo.Email, userInfo.OrganizationId);

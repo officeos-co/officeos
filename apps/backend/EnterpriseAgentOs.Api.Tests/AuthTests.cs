@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Api.Tests;
 
 public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public AuthTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public AuthTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     private const string MeQuery = @"{ me { id email name } }";
     private const string LogoutMutation = @"mutation { logout }";
@@ -12,7 +12,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GetMe_WithoutCookie_ReturnsAuthError()
     {
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
 
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
@@ -22,7 +22,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GetMe_WithInvalidSessionToken_ReturnsAuthError()
     {
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
         client.DefaultRequestHeaders.Add("Cookie", "eaos-session=totally-bogus-token");
 
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
@@ -33,7 +33,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GetMe_WithExpiredSession_ReturnsAuthError()
     {
-        var client = await Infrastructure.TestHelpers.CreateExpiredSessionClientAsync(_factory);
+        var client = await Infrastructure.TestHelpers.CreateExpiredSessionClientAsync(_customWebApplicationFactory);
 
         var raw = await Infrastructure.TestHelpers.GraphQLRawAsync(client, MeQuery);
 
@@ -43,7 +43,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GetMe_WithValidSession_ReturnsUserInfo()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "authed@example.com", "Auth User");
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory, "authed@example.com", "Auth User");
 
         var data = await Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
         var me = data.GetProperty("me");
@@ -55,7 +55,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task Logout_DeletesSession_SubsequentMeReturnsAuthError()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "logout@example.com");
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory, "logout@example.com");
 
         // Verify logged in
         var meData = await Infrastructure.TestHelpers.GraphQLAsync(client, MeQuery);
@@ -73,7 +73,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task UpdateProfile_Preferences_PersistsAndReturnsInMe()
     {
-        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_factory, "prefs@example.com", "Prefs User");
+        var client = await Infrastructure.TestHelpers.CreateAuthenticatedClientAsync(_customWebApplicationFactory, "prefs@example.com", "Prefs User");
 
         // Update profile with preferences
         const string updateMutation = @"
@@ -108,7 +108,7 @@ public sealed class AuthTests : IClassFixture<Infrastructure.CustomWebApplicatio
     [Fact]
     public async Task GoogleLogin_RedirectsToGoogleOAuth()
     {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _customWebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
         });

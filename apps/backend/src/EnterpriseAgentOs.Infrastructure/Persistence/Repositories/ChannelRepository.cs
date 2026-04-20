@@ -2,18 +2,18 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class ChannelRepository : IChannelRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
     public ChannelRepository(EaosDbContext db)
     {
-        _db = db;
+        _eaosDbContext = db;
     }
 
     // ---------- Channel Connections ----------
 
     public async Task<IReadOnlyList<ChannelConnectionRecord>> ListConnectionsAsync(CancellationToken ct = default)
     {
-        return await _db.ChannelConnections
+        return await _eaosDbContext.ChannelConnections
             .AsNoTracking()
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(ct);
@@ -21,38 +21,38 @@ public sealed class ChannelRepository : IChannelRepository
 
     public async Task<ChannelConnectionRecord?> GetConnectionAsync(Guid id, CancellationToken ct = default)
     {
-        return await _db.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
+        return await _eaosDbContext.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
     public async Task<ChannelConnectionRecord> CreateConnectionAsync(ChannelConnectionRecord record, CancellationToken ct = default)
     {
-        _db.ChannelConnections.Add(record);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.ChannelConnections.Add(record);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return record;
     }
 
     public async Task<ChannelConnectionRecord?> UpdateConnectionAsync(Guid id, Action<ChannelConnectionRecord> apply, CancellationToken ct = default)
     {
-        var row = await _db.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
+        var row = await _eaosDbContext.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (row is null) return null;
         apply(row);
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return row;
     }
 
     public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
     {
-        var row = await _db.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
+        var row = await _eaosDbContext.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (row is null) return false;
 
         // Also remove all bindings referencing this connection
-        var bindings = await _db.AgentChannelBindings
+        var bindings = await _eaosDbContext.AgentChannelBindings
             .Where(b => b.ChannelConnectionId == id)
             .ToListAsync(ct);
-        _db.AgentChannelBindings.RemoveRange(bindings);
+        _eaosDbContext.AgentChannelBindings.RemoveRange(bindings);
 
-        _db.ChannelConnections.Remove(row);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.ChannelConnections.Remove(row);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
@@ -60,7 +60,7 @@ public sealed class ChannelRepository : IChannelRepository
 
     public async Task<IReadOnlyList<AgentChannelBindingRecord>> ListBindingsAsync(Guid agentId, CancellationToken ct = default)
     {
-        return await _db.AgentChannelBindings
+        return await _eaosDbContext.AgentChannelBindings
             .AsNoTracking()
             .Include(b => b.ChannelConnection)
             .Where(b => b.AgentId == agentId)
@@ -70,39 +70,39 @@ public sealed class ChannelRepository : IChannelRepository
 
     public async Task<AgentChannelBindingRecord?> GetBindingAsync(Guid bindingId, CancellationToken ct = default)
     {
-        return await _db.AgentChannelBindings
+        return await _eaosDbContext.AgentChannelBindings
             .Include(b => b.ChannelConnection)
             .FirstOrDefaultAsync(b => b.Id == bindingId, ct);
     }
 
     public async Task<AgentChannelBindingRecord> CreateBindingAsync(AgentChannelBindingRecord record, CancellationToken ct = default)
     {
-        _db.AgentChannelBindings.Add(record);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentChannelBindings.Add(record);
+        await _eaosDbContext.SaveChangesAsync(ct);
 
         // Reload with connection included
-        return (await _db.AgentChannelBindings
+        return (await _eaosDbContext.AgentChannelBindings
             .Include(b => b.ChannelConnection)
             .FirstAsync(b => b.Id == record.Id, ct));
     }
 
     public async Task<AgentChannelBindingRecord?> UpdateBindingAsync(Guid bindingId, Action<AgentChannelBindingRecord> apply, CancellationToken ct = default)
     {
-        var row = await _db.AgentChannelBindings
+        var row = await _eaosDbContext.AgentChannelBindings
             .Include(b => b.ChannelConnection)
             .FirstOrDefaultAsync(b => b.Id == bindingId, ct);
         if (row is null) return null;
         apply(row);
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return row;
     }
 
     public async Task<bool> DeleteBindingAsync(Guid bindingId, CancellationToken ct = default)
     {
-        var row = await _db.AgentChannelBindings.FirstOrDefaultAsync(b => b.Id == bindingId, ct);
+        var row = await _eaosDbContext.AgentChannelBindings.FirstOrDefaultAsync(b => b.Id == bindingId, ct);
         if (row is null) return false;
-        _db.AgentChannelBindings.Remove(row);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentChannelBindings.Remove(row);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
@@ -110,7 +110,7 @@ public sealed class ChannelRepository : IChannelRepository
 
     public async Task<IReadOnlyList<AgentChannelBindingRecord>> FindBindingsByConnectionAsync(Guid connectionId, CancellationToken ct = default)
     {
-        return await _db.AgentChannelBindings
+        return await _eaosDbContext.AgentChannelBindings
             .AsNoTracking()
             .Include(b => b.Agent)
             .Include(b => b.ChannelConnection)

@@ -5,8 +5,8 @@ namespace EnterpriseAgentOs.Application.Services.Agents.Tools;
 /// <summary>Execute a shell command in the agent's OS.</summary>
 public sealed class ShellTool : IAgentTool
 {
-    private readonly PodConnection _pod;
-    public ShellTool(PodConnection pod) => _pod = pod;
+    private readonly PodConnection _podConnection;
+    public ShellTool(PodConnection pod) => _podConnection = pod;
 
     public string Name => "shell";
     public ToolSchema Schema => new("shell",
@@ -26,7 +26,7 @@ public sealed class ShellTool : IAgentTool
     {
         var command = args.GetProperty("command").GetString() ?? "";
         var timeout = args.TryGetProperty("timeout_secs", out var t) ? t.GetInt32() : 60;
-        var (output, exitCode) = await _pod.ExecuteAsync(command, ct);
+        var (output, exitCode) = await _podConnection.ExecuteAsync(command, ct);
         return exitCode == 0
             ? new ToolResult(true, output)
             : new ToolResult(false, output, $"exit code {exitCode}");
@@ -36,8 +36,8 @@ public sealed class ShellTool : IAgentTool
 /// <summary>Read a file with line numbers.</summary>
 public sealed class FileReadTool : IAgentTool
 {
-    private readonly PodConnection _pod;
-    public FileReadTool(PodConnection pod) => _pod = pod;
+    private readonly PodConnection _podConnection;
+    public FileReadTool(PodConnection pod) => _podConnection = pod;
 
     public string Name => "file_read";
     public ToolSchema Schema => new("file_read",
@@ -66,7 +66,7 @@ public sealed class FileReadTool : IAgentTool
                 ? $"cat -n {ShellEscape(path)} | sed -n '{offset},$p'"
                 : $"cat -n {ShellEscape(path)}";
 
-        var (output, exitCode) = await _pod.ExecuteAsync(cmd, ct);
+        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
         return exitCode == 0
             ? new ToolResult(true, output)
             : new ToolResult(false, "", output);
@@ -78,8 +78,8 @@ public sealed class FileReadTool : IAgentTool
 /// <summary>Write a file (creates parent directories).</summary>
 public sealed class FileWriteTool : IAgentTool
 {
-    private readonly PodConnection _pod;
-    public FileWriteTool(PodConnection pod) => _pod = pod;
+    private readonly PodConnection _podConnection;
+    public FileWriteTool(PodConnection pod) => _podConnection = pod;
 
     public string Name => "file_write";
     public ToolSchema Schema => new("file_write",
@@ -101,7 +101,7 @@ public sealed class FileWriteTool : IAgentTool
         var content = args.GetProperty("content").GetString() ?? "";
 
         var cmd = $"mkdir -p \"$(dirname {ShellEscape(path)})\" && cat > {ShellEscape(path)} << 'EAOS_EOF'\n{content}\nEAOS_EOF";
-        var (output, exitCode) = await _pod.ExecuteAsync(cmd, ct);
+        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
         return exitCode == 0
             ? new ToolResult(true, $"Wrote {content.Length} bytes to {path}")
             : new ToolResult(false, "", output);
@@ -113,8 +113,8 @@ public sealed class FileWriteTool : IAgentTool
 /// <summary>Exact string replacement in a file (must match exactly once).</summary>
 public sealed class FileEditTool : IAgentTool
 {
-    private readonly PodConnection _pod;
-    public FileEditTool(PodConnection pod) => _pod = pod;
+    private readonly PodConnection _podConnection;
+    public FileEditTool(PodConnection pod) => _podConnection = pod;
 
     public string Name => "file_edit";
     public ToolSchema Schema => new("file_edit",
@@ -139,7 +139,7 @@ public sealed class FileEditTool : IAgentTool
 
         // Count occurrences first
         var countCmd = $"grep -cF {ShellEscape(oldStr)} {ShellEscape(path)}";
-        var (countOut, _) = await _pod.ExecuteAsync(countCmd, ct);
+        var (countOut, _) = await _podConnection.ExecuteAsync(countCmd, ct);
         if (int.TryParse(countOut.Trim(), out var count))
         {
             if (count == 0) return new ToolResult(false, "", $"old_string not found in {path}");
@@ -148,7 +148,7 @@ public sealed class FileEditTool : IAgentTool
 
         // Use python for reliable string replacement
         var pyCmd = $"python3 -c \"\nimport sys\nwith open({PyEscape(path)}, 'r') as f: content = f.read()\ncontent = content.replace({PyEscape(oldStr)}, {PyEscape(newStr)}, 1)\nwith open({PyEscape(path)}, 'w') as f: f.write(content)\nprint(f'Edited {{len(content)}} bytes')\n\"";
-        var (output, exitCode) = await _pod.ExecuteAsync(pyCmd, ct);
+        var (output, exitCode) = await _podConnection.ExecuteAsync(pyCmd, ct);
         return exitCode == 0
             ? new ToolResult(true, output.Trim())
             : new ToolResult(false, "", output);
@@ -161,8 +161,8 @@ public sealed class FileEditTool : IAgentTool
 /// <summary>Search file contents using grep/ripgrep.</summary>
 public sealed class ContentSearchTool : IAgentTool
 {
-    private readonly PodConnection _pod;
-    public ContentSearchTool(PodConnection pod) => _pod = pod;
+    private readonly PodConnection _podConnection;
+    public ContentSearchTool(PodConnection pod) => _podConnection = pod;
 
     public string Name => "content_search";
     public ToolSchema Schema => new("content_search",
@@ -193,7 +193,7 @@ public sealed class ContentSearchTool : IAgentTool
         var includeFlag = include != null ? $" --include={ShellEscape(include)}" : "";
 
         var cmd = $"(command -v rg > /dev/null && rg -n{caseFlag} --max-count {maxResults} {ShellEscape(pattern)} {ShellEscape(searchPath)}) || grep -rn{caseFlag}{includeFlag} {ShellEscape(pattern)} {ShellEscape(searchPath)} | head -n {maxResults}";
-        var (output, exitCode) = await _pod.ExecuteAsync(cmd, ct);
+        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
 
         return exitCode <= 1
             ? new ToolResult(true, string.IsNullOrEmpty(output) ? "No matches found." : output)
@@ -206,8 +206,8 @@ public sealed class ContentSearchTool : IAgentTool
 /// <summary>Find files by glob pattern.</summary>
 public sealed class GlobSearchTool : IAgentTool
 {
-    private readonly PodConnection _pod;
-    public GlobSearchTool(PodConnection pod) => _pod = pod;
+    private readonly PodConnection _podConnection;
+    public GlobSearchTool(PodConnection pod) => _podConnection = pod;
 
     public string Name => "glob_search";
     public ToolSchema Schema => new("glob_search",
@@ -226,7 +226,7 @@ public sealed class GlobSearchTool : IAgentTool
     {
         var pattern = args.GetProperty("pattern").GetString() ?? "";
         var cmd = $"find . -path {ShellEscape("./" + pattern)} -type f 2>/dev/null | head -n 1000 | sort";
-        var (output, exitCode) = await _pod.ExecuteAsync(cmd, ct);
+        var (output, exitCode) = await _podConnection.ExecuteAsync(cmd, ct);
         return new ToolResult(true, string.IsNullOrEmpty(output) ? "No files found." : output);
     }
 

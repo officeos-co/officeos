@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Infrastructure.Persistence.Repositories;
 
 public sealed class SessionRepository : ISessionRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public SessionRepository(EaosDbContext db) => _db = db;
+    public SessionRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<SessionRecord> CreateAsync(Guid userId, string tokenHash, DateTime expiresAt, CancellationToken ct)
     {
@@ -14,33 +14,33 @@ public sealed class SessionRepository : ISessionRepository
             TokenHash = tokenHash,
             ExpiresAt = expiresAt,
         };
-        _db.Sessions.Add(session);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.Sessions.Add(session);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return session;
     }
 
     public async Task<SessionRecord?> GetByTokenHashAsync(string tokenHash, CancellationToken ct)
-        => await _db.Sessions.Include(s => s.User).FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
+        => await _eaosDbContext.Sessions.Include(s => s.User).FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
 
     public async Task DeleteAsync(string tokenHash, CancellationToken ct)
     {
-        var session = await _db.Sessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
+        var session = await _eaosDbContext.Sessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
         if (session is not null)
         {
-            _db.Sessions.Remove(session);
-            await _db.SaveChangesAsync(ct);
+            _eaosDbContext.Sessions.Remove(session);
+            await _eaosDbContext.SaveChangesAsync(ct);
         }
     }
 
     public async Task PurgeExpiredAsync(CancellationToken ct)
     {
-        var expired = await _db.Sessions.Where(s => s.ExpiresAt < DateTime.UtcNow).ToListAsync(ct);
-        _db.Sessions.RemoveRange(expired);
-        await _db.SaveChangesAsync(ct);
+        var expired = await _eaosDbContext.Sessions.Where(s => s.ExpiresAt < DateTime.UtcNow).ToListAsync(ct);
+        _eaosDbContext.Sessions.RemoveRange(expired);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task DeleteByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
-        await _db.Sessions.Where(s => s.UserId == userId).ExecuteDeleteAsync(ct);
+        await _eaosDbContext.Sessions.Where(s => s.UserId == userId).ExecuteDeleteAsync(ct);
     }
 }

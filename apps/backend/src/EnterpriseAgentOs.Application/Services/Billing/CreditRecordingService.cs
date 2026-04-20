@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Application.Services.Billing;
 
 public sealed class CreditRecordingService : ICreditRecordingService
 {
-    private readonly StripeConfig _config;
-    private readonly IAgentRepository _agentRepo;
-    private readonly IUserSubscriptionRepository _subRepo;
+    private readonly StripeConfig _stripeConfig;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IUserSubscriptionRepository _userSubscriptionRepository;
     private readonly ILogger<CreditRecordingService> _logger;
 
     public CreditRecordingService(
@@ -13,24 +13,24 @@ public sealed class CreditRecordingService : ICreditRecordingService
         IUserSubscriptionRepository subRepo,
         ILogger<CreditRecordingService> logger)
     {
-        _config = config;
-        _agentRepo = agentRepo;
-        _subRepo = subRepo;
+        _stripeConfig = config;
+        _agentRepository = agentRepo;
+        _userSubscriptionRepository = subRepo;
         _logger = logger;
-        StripeConfiguration.ApiKey = _config.SecretKey;
+        StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
     public async Task RecordCreditUsageAsync(Guid agentId, string model, long rawTokens, CancellationToken ct = default)
     {
-        var agent = await _agentRepo.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetAsync(agentId, ct);
         if (agent?.OwnerId is null) return;
 
         var credits = Domain.Services.ModelCostWeights.ToCredits(model, rawTokens);
-        var sub = await _subRepo.GetByUserIdAsync(agent.OwnerId.Value, ct);
+        var sub = await _userSubscriptionRepository.GetByUserIdAsync(agent.OwnerId.Value, ct);
         if (sub is null) return;
 
         sub.RecordCredits(credits);
-        await _subRepo.SaveChangesAsync(ct);
+        await _userSubscriptionRepository.SaveChangesAsync(ct);
 
         _logger.LogDebug(
             "Agent {AgentId} used {Credits} credits ({RawTokens} raw tokens on {Model}). " +
@@ -50,7 +50,7 @@ public sealed class CreditRecordingService : ICreditRecordingService
 
     private async Task FireMeterEventAsync(string eventName, string customerId, long credits, CancellationToken ct)
     {
-        var client = new StripeClient(_config.SecretKey);
+        var client = new StripeClient(_stripeConfig.SecretKey);
         await client.V2.Billing.MeterEvents.CreateAsync(
             new Stripe.V2.Billing.MeterEventCreateOptions
             {

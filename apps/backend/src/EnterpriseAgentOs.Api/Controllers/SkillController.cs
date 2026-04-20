@@ -9,18 +9,18 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Route("api/skills")]
 public sealed class SkillController : ControllerBase
 {
-    private readonly ISkillCatalogRepository _catalog;
-    private readonly IAmazonS3 _s3;
-    private readonly SkillStorageConfig _storage;
+    private readonly ISkillCatalogRepository _skillCatalogRepository;
+    private readonly IAmazonS3 _amazonS3;
+    private readonly SkillStorageConfig _skillStorageConfig;
 
     public SkillController(
         ISkillCatalogRepository catalog,
         IAmazonS3 s3,
         SkillStorageConfig storage)
     {
-        _catalog = catalog;
-        _s3 = s3;
-        _storage = storage;
+        _skillCatalogRepository = catalog;
+        _amazonS3 = s3;
+        _skillStorageConfig = storage;
     }
 
     // ---------- bundle download (for skill-runtime on-demand loading) ----------
@@ -28,15 +28,15 @@ public sealed class SkillController : ControllerBase
     [HttpGet("{name}/bundle")]
     public async Task<IActionResult> GetBundle(string name, CancellationToken ct)
     {
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null || string.IsNullOrEmpty(skill.BundleS3Key))
             return NotFound(new { error = "No bundle available for this skill" });
 
         try
         {
-            var response = await _s3.GetObjectAsync(new GetObjectRequest
+            var response = await _amazonS3.GetObjectAsync(new GetObjectRequest
             {
-                BucketName = _storage.Bucket,
+                BucketName = _skillStorageConfig.Bucket,
                 Key = skill.BundleS3Key,
             }, ct);
 

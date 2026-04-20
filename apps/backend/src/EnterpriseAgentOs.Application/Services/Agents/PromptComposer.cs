@@ -2,21 +2,21 @@ namespace EnterpriseAgentOs.Application.Services.Agents;
 
 public sealed class PromptComposer
 {
-    private readonly IAgentPersonalityRepository _personality;
-    private readonly IAgentMemoryRepository _memory;
+    private readonly IAgentPersonalityRepository _agentPersonalityRepository;
+    private readonly IAgentMemoryRepository _agentMemoryRepository;
 
     public PromptComposer(
         IAgentPersonalityRepository personality,
         IAgentMemoryRepository memory)
     {
-        _personality = personality;
-        _memory = memory;
+        _agentPersonalityRepository = personality;
+        _agentMemoryRepository = memory;
     }
 
     public async Task<string> ComposeAsync(Guid agentId, string? userPrompt, CancellationToken ct = default)
     {
-        var personalityFiles = await _personality.ListAsync(agentId, ct);
-        var memories = await _memory.ListAsync(agentId, ct);
+        var personalityFiles = await _agentPersonalityRepository.ListAsync(agentId, ct);
+        var memories = await _agentMemoryRepository.ListAsync(agentId, ct);
 
         var sections = new List<string>();
 

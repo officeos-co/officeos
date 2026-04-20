@@ -9,9 +9,9 @@ namespace EnterpriseAgentOs.Infrastructure.Adapters.Channels;
 /// </summary>
 public sealed class ChannelMessageRouter
 {
-    private readonly IChannelRepository _repo;
-    private readonly IAgentLogRepository _logRepo;
-    private readonly ChannelConfigProtector _protector;
+    private readonly IChannelRepository _channelRepository;
+    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly ChannelConfigProtector _channelConfigProtector;
     private readonly ILogger<ChannelMessageRouter> _logger;
 
     public ChannelMessageRouter(
@@ -20,9 +20,9 @@ public sealed class ChannelMessageRouter
         ChannelConfigProtector protector,
         ILogger<ChannelMessageRouter> logger)
     {
-        _repo = repo;
-        _logRepo = logRepo;
-        _protector = protector;
+        _channelRepository = repo;
+        _agentLogRepository = logRepo;
+        _channelConfigProtector = protector;
         _logger = logger;
     }
 
@@ -36,7 +36,7 @@ public sealed class ChannelMessageRouter
         string messageText,
         CancellationToken ct = default)
     {
-        var bindings = await _repo.FindBindingsByConnectionAsync(connectionId, ct);
+        var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
         var responses = new Dictionary<Guid, string>();
 
         foreach (var binding in bindings)
@@ -64,7 +64,7 @@ public sealed class ChannelMessageRouter
             var channelType = binding.ChannelConnection?.ChannelType ?? "unknown";
 
             // Log inbound channel message
-            await _logRepo.AppendAsync(new AgentLogRecord
+            await _agentLogRepository.AppendAsync(new AgentLogRecord
             {
                 AgentId = binding.AgentId,
                 Type = AgentLogType.ChannelIn,
@@ -79,7 +79,7 @@ public sealed class ChannelMessageRouter
                 responses[binding.AgentId] = response;
 
                 // Log outbound agent response
-                await _logRepo.AppendAsync(new AgentLogRecord
+                await _agentLogRepository.AppendAsync(new AgentLogRecord
                 {
                     AgentId = binding.AgentId,
                     Type = AgentLogType.ChannelOut,
@@ -103,7 +103,7 @@ public sealed class ChannelMessageRouter
         if (string.IsNullOrEmpty(connection.EncryptedConfig))
             return new Dictionary<string, string>();
 
-        var json = _protector.Unprotect(connection.EncryptedConfig);
+        var json = _channelConfigProtector.Unprotect(connection.EncryptedConfig);
         return JsonSerializer.Deserialize<Dictionary<string, string>>(json)
             ?? new Dictionary<string, string>();
     }

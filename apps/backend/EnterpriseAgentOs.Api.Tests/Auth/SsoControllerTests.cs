@@ -2,14 +2,14 @@ namespace EnterpriseAgentOs.Api.Tests.Auth;
 
 public sealed class SsoControllerTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public SsoControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public SsoControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     [Fact]
     public async Task Initiate_WhenSsoDisabled_Returns503()
     {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _customWebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
         });
@@ -24,7 +24,7 @@ public sealed class SsoControllerTests : IClassFixture<Infrastructure.CustomWebA
     [Fact]
     public async Task Initiate_WithoutOrgParam_Returns400()
     {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _customWebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
         });
@@ -38,7 +38,7 @@ public sealed class SsoControllerTests : IClassFixture<Infrastructure.CustomWebA
     [Fact]
     public async Task Callback_WhenSsoDisabled_Returns503()
     {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _customWebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
         });
@@ -53,7 +53,7 @@ public sealed class SsoControllerTests : IClassFixture<Infrastructure.CustomWebA
     [Fact]
     public async Task Callback_WithoutRequiredParams_Returns503_WhenDisabled()
     {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = _customWebApplicationFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false,
         });

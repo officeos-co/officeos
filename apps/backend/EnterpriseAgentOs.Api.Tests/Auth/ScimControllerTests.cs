@@ -2,14 +2,14 @@ namespace EnterpriseAgentOs.Api.Tests.Auth;
 
 public sealed class ScimControllerTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
-    private readonly Infrastructure.CustomWebApplicationFactory _factory;
+    private readonly Infrastructure.CustomWebApplicationFactory _customWebApplicationFactory;
 
-    public ScimControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _factory = factory;
+    public ScimControllerTests(Infrastructure.CustomWebApplicationFactory factory) => _customWebApplicationFactory = factory;
 
     [Fact]
     public async Task ProvisionUser_WhenScimDisabled_Returns503()
     {
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
 
         var payload = new { externalId = "ext_001", email = "user@corp.com", displayName = "Corp User" };
         var response = await client.PostAsJsonAsync("/api/scim/v2/Users", payload);
@@ -22,7 +22,7 @@ public sealed class ScimControllerTests : IClassFixture<Infrastructure.CustomWeb
     [Fact]
     public async Task DeprovisionUser_WhenScimDisabled_Returns503()
     {
-        var client = _factory.CreateClient();
+        var client = _customWebApplicationFactory.CreateClient();
 
         var response = await client.DeleteAsync("/api/scim/v2/Users/ext_001");
 

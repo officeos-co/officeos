@@ -20,14 +20,14 @@ public sealed class LlmProviderDispatcher
             ["ollama"] = "http://localhost:11434/v1",
         };
 
-    private readonly IHttpClientFactory _httpFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<LlmProviderDispatcher> _logger;
 
     public LlmProviderDispatcher(
         IHttpClientFactory httpFactory,
         ILogger<LlmProviderDispatcher> logger)
     {
-        _httpFactory = httpFactory;
+        _httpClientFactory = httpFactory;
         _logger = logger;
     }
 
@@ -76,7 +76,7 @@ public sealed class LlmProviderDispatcher
         dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
 
         var json = JsonSerializer.Serialize(dict);
-        var client = _httpFactory.CreateClient("llm-proxy");
+        var client = _httpClientFactory.CreateClient("llm-proxy");
         var req = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/chat/completions")
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json"),
@@ -94,7 +94,7 @@ public sealed class LlmProviderDispatcher
         CancellationToken ct)
     {
         var translated = AnthropicTranslator.TranslateRequest(requestBody, model);
-        var client = _httpFactory.CreateClient("llm-proxy");
+        var client = _httpClientFactory.CreateClient("llm-proxy");
         var req = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
         {
             Content = new StringContent(translated, Encoding.UTF8, "application/json"),

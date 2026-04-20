@@ -4,8 +4,8 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Route("api/scim/v2")]
 public sealed class ScimController : ControllerBase
 {
-    private readonly WorkOsConfig _config;
-    private readonly IWorkOsAuthService _workOs;
+    private readonly WorkOsConfig _workOsConfig;
+    private readonly IWorkOsAuthService _workOsAuthService;
     private readonly ILogger<ScimController> _logger;
 
     public ScimController(
@@ -13,8 +13,8 @@ public sealed class ScimController : ControllerBase
         IWorkOsAuthService workOs,
         ILogger<ScimController> logger)
     {
-        _config = config;
-        _workOs = workOs;
+        _workOsConfig = config;
+        _workOsAuthService = workOs;
         _logger = logger;
     }
 
@@ -23,7 +23,7 @@ public sealed class ScimController : ControllerBase
         [FromBody] ScimUserPayload payload,
         CancellationToken ct)
     {
-        if (!_config.Enabled)
+        if (!_workOsConfig.Enabled)
         {
             return StatusCode(503, new { error = "SSO not configured" });
         }
@@ -35,7 +35,7 @@ public sealed class ScimController : ControllerBase
             DisplayName: payload.DisplayName
         );
 
-        await _workOs.HandleScimProvisionAsync(evt, ct);
+        await _workOsAuthService.HandleScimProvisionAsync(evt, ct);
 
         _logger.LogInformation("SCIM: provisioned user {ExternalId}", payload.ExternalId);
 
@@ -45,7 +45,7 @@ public sealed class ScimController : ControllerBase
     [HttpDelete("Users/{id}")]
     public async Task<IActionResult> DeprovisionUser(string id, CancellationToken ct)
     {
-        if (!_config.Enabled)
+        if (!_workOsConfig.Enabled)
         {
             return StatusCode(503, new { error = "SSO not configured" });
         }
@@ -57,7 +57,7 @@ public sealed class ScimController : ControllerBase
             DisplayName: null
         );
 
-        await _workOs.HandleScimProvisionAsync(evt, ct);
+        await _workOsAuthService.HandleScimProvisionAsync(evt, ct);
 
         _logger.LogInformation("SCIM: deprovisioned user {ExternalId}", id);
 

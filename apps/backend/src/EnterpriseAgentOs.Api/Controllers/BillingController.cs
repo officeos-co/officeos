@@ -9,8 +9,8 @@ namespace EnterpriseAgentOs.Api.Controllers;
 [Route("api/billing")]
 public sealed class BillingController : ControllerBase
 {
-    private readonly IStripeWebhookService _webhook;
-    private readonly StripeConfig _config;
+    private readonly IStripeWebhookService _stripeWebhookService;
+    private readonly StripeConfig _stripeConfig;
     private readonly ILogger<BillingController> _logger;
 
     public BillingController(
@@ -18,8 +18,8 @@ public sealed class BillingController : ControllerBase
         StripeConfig config,
         ILogger<BillingController> logger)
     {
-        _webhook = webhook;
-        _config = config;
+        _stripeWebhookService = webhook;
+        _stripeConfig = config;
         _logger = logger;
     }
 
@@ -30,7 +30,7 @@ public sealed class BillingController : ControllerBase
     [Consumes("application/json")]
     public async Task<IActionResult> Webhook(CancellationToken ct)
     {
-        if (!_config.Enabled)
+        if (!_stripeConfig.Enabled)
             return StatusCode(503, new { error = "Billing not configured" });
 
         if (!Request.Headers.TryGetValue("Stripe-Signature", out var signature) || string.IsNullOrEmpty(signature))
@@ -42,7 +42,7 @@ public sealed class BillingController : ControllerBase
 
         try
         {
-            await _webhook.HandleAsync(payload, signature!, ct);
+            await _stripeWebhookService.HandleAsync(payload, signature!, ct);
             return Ok(new { received = true });
         }
         catch (Exception ex)

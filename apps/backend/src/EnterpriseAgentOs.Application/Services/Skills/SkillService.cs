@@ -10,13 +10,13 @@ public sealed class SkillService : ISkillService
         PropertyNameCaseInsensitive = true,
     };
 
-    private readonly ISkillRepository _repository;
-    private readonly ISkillCatalogRepository _catalog;
-    private readonly IAgentSkillRepository _agentSkills;
-    private readonly SkillCredentialProtector _protector;
-    private readonly SkillRuntimeClient _runtime;
+    private readonly ISkillRepository _skillRepository;
+    private readonly ISkillCatalogRepository _skillCatalogRepository;
+    private readonly IAgentSkillRepository _agentSkillRepository;
+    private readonly SkillCredentialProtector _skillCredentialProtector;
+    private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ILogger<SkillService> _logger;
-    private readonly IMemoryCache _cache;
+    private readonly IMemoryCache _memoryCache;
 
     private static readonly TimeSpan SkillCacheTtl = TimeSpan.FromMinutes(5);
     private const string SkillListCacheKey = "skills:list";
@@ -31,22 +31,22 @@ public sealed class SkillService : ISkillService
         ILogger<SkillService> logger,
         IMemoryCache cache)
     {
-        _repository = repository;
-        _catalog = catalog;
-        _agentSkills = agentSkills;
-        _protector = protector;
-        _runtime = runtime;
+        _skillRepository = repository;
+        _skillCatalogRepository = catalog;
+        _agentSkillRepository = agentSkills;
+        _skillCredentialProtector = protector;
+        _skillRuntimeClient = runtime;
         _logger = logger;
-        _cache = cache;
+        _memoryCache = cache;
     }
 
     public async Task<IReadOnlyList<SkillDto>> ListAsync(CancellationToken ct = default)
     {
-        if (_cache.TryGetValue(SkillListCacheKey, out IReadOnlyList<SkillDto>? cached) && cached is not null)
+        if (_memoryCache.TryGetValue(SkillListCacheKey, out IReadOnlyList<SkillDto>? cached) && cached is not null)
             return cached;
 
-        var skills = await _catalog.ListActiveAsync(ct);
-        var rows = (await _repository.ListAsync(ct))
+        var skills = await _skillCatalogRepository.ListActiveAsync(ct);
+        var rows = (await _skillRepository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
 
         var result = skills
@@ -57,7 +57,7 @@ public sealed class SkillService : ISkillService
             })
             .ToList();
 
-        _cache.Set(SkillListCacheKey, (IReadOnlyList<SkillDto>)result,
+        _memoryCache.Set(SkillListCacheKey, (IReadOnlyList<SkillDto>)result,
             new MemoryCacheEntryOptions
             { AbsoluteExpirationRelativeToNow = SkillCacheTtl });
         return result;
@@ -66,15 +66,15 @@ public sealed class SkillService : ISkillService
     public async Task<SkillDto?> GetAsync(string name, CancellationToken ct = default)
     {
         var key = SkillCacheKey(name);
-        if (_cache.TryGetValue(key, out SkillDto? cached) && cached is not null)
+        if (_memoryCache.TryGetValue(key, out SkillDto? cached) && cached is not null)
             return cached;
 
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null || skill.Status != "active") return null;
-        var row = await _repository.GetByNameAsync(skill.Name, ct);
+        var row = await _skillRepository.GetByNameAsync(skill.Name, ct);
         var dto = ToDto(skill, row);
 
-        _cache.Set(key, dto,
+        _memoryCache.Set(key, dto,
             new MemoryCacheEntryOptions
             { AbsoluteExpirationRelativeToNow = SkillCacheTtl });
         return dto;
@@ -84,7 +84,7 @@ public sealed class SkillService : ISkillService
     {
         var n = name.Trim().ToLowerInvariant();
 
-        var manifests = await _runtime.GetManifestsAsync(ct);
+        var manifests = await _skillRuntimeClient.GetManifestsAsync(ct);
         var liveManifest = manifests.FirstOrDefault(m =>
             string.Equals(m.Name.Trim(), n, StringComparison.OrdinalIgnoreCase));
 
@@ -102,34 +102,34 @@ public sealed class SkillService : ISkillService
                 Status = "active",
             };
             MapManifestToRecord(liveManifest, record);
-            await _catalog.UpsertAsync(record, ct);
+            await _skillCatalogRepository.UpsertAsync(record, ct);
         }
 
-        var skill = await _catalog.GetByNameAsync(n, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(n, ct);
         if (skill is null)
         {
             _logger.LogWarning("Install failed: skill {SkillName} not found in catalog", n);
             return null;
         }
-        var row = await _repository.UpsertAsync(skill.Name, enabled: true, encryptedCredentials: null, ct);
+        var row = await _skillRepository.UpsertAsync(skill.Name, enabled: true, encryptedCredentials: null, ct);
         _logger.LogInformation("Skill {SkillName} installed", skill.Name);
-        _cache.Remove(SkillListCacheKey);
-        _cache.Remove(SkillCacheKey(skill.Name));
+        _memoryCache.Remove(SkillListCacheKey);
+        _memoryCache.Remove(SkillCacheKey(skill.Name));
         return ToDto(skill, row);
     }
 
     public async Task<SkillDto?> UninstallAsync(string name, CancellationToken ct = default)
     {
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null)
         {
             _logger.LogWarning("Uninstall failed: skill {SkillName} not found in catalog", name);
             return null;
         }
-        var row = await _repository.UpsertAsync(skill.Name, enabled: false, encryptedCredentials: null, ct);
+        var row = await _skillRepository.UpsertAsync(skill.Name, enabled: false, encryptedCredentials: null, ct);
         _logger.LogInformation("Skill {SkillName} uninstalled", skill.Name);
-        _cache.Remove(SkillListCacheKey);
-        _cache.Remove(SkillCacheKey(skill.Name));
+        _memoryCache.Remove(SkillListCacheKey);
+        _memoryCache.Remove(SkillCacheKey(skill.Name));
         return ToDto(skill, row);
     }
 
@@ -138,7 +138,7 @@ public sealed class SkillService : ISkillService
         IReadOnlyDictionary<string, string> credentials,
         CancellationToken ct = default)
     {
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null) return null;
 
         var rawCredFields = DeserializeCredentialFields(skill);
@@ -160,13 +160,13 @@ public sealed class SkillService : ISkillService
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
         var json = JsonSerializer.Serialize(filtered);
-        var ciphertext = _protector.Protect(json);
+        var ciphertext = _skillCredentialProtector.Protect(json);
 
-        var row = await _repository.UpsertAsync(skill.Name, enabled: null, encryptedCredentials: ciphertext, ct);
+        var row = await _skillRepository.UpsertAsync(skill.Name, enabled: null, encryptedCredentials: ciphertext, ct);
         _logger.LogInformation("Credentials updated for skill {SkillName} ({FieldCount} fields)",
             skill.Name, filtered.Count);
-        _cache.Remove(SkillListCacheKey);
-        _cache.Remove(SkillCacheKey(skill.Name));
+        _memoryCache.Remove(SkillListCacheKey);
+        _memoryCache.Remove(SkillCacheKey(skill.Name));
         return ToDto(skill, row);
     }
 
@@ -174,24 +174,24 @@ public sealed class SkillService : ISkillService
         string name,
         CancellationToken ct = default)
     {
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null) return null;
-        var row = await _repository.GetByNameAsync(skill.Name, ct);
+        var row = await _skillRepository.GetByNameAsync(skill.Name, ct);
         if (row?.Enabled != true || string.IsNullOrEmpty(row.EncryptedCredentials))
         {
             if (skill.IsSystem || SystemSkills.Contains(name))
                 return new Dictionary<string, string>();
             return null;
         }
-        var plaintext = _protector.Unprotect(row.EncryptedCredentials);
+        var plaintext = _skillCredentialProtector.Unprotect(row.EncryptedCredentials);
         var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(plaintext);
         return parsed;
     }
 
     public async Task<CapabilitiesResponse> ListCapabilitiesAsync(Guid? agentId = null, CancellationToken ct = default)
     {
-        var skills = await _catalog.ListActiveAsync(ct);
-        var rows = (await _repository.ListAsync(ct))
+        var skills = await _skillCatalogRepository.ListActiveAsync(ct);
+        var rows = (await _skillRepository.ListAsync(ct))
             .ToDictionary(r => r.SkillName, StringComparer.OrdinalIgnoreCase);
         var caps = new List<CapabilityDto>();
         var docs = new List<SkillDocDto>();
@@ -199,7 +199,7 @@ public sealed class SkillService : ISkillService
         HashSet<string>? assignedSkills = null;
         if (agentId.HasValue)
         {
-            var names = await _agentSkills.ListSkillNamesByAgentAsync(agentId.Value, ct);
+            var names = await _agentSkillRepository.ListSkillNamesByAgentAsync(agentId.Value, ct);
             assignedSkills = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -233,7 +233,7 @@ public sealed class SkillService : ISkillService
 
     public async Task<SkillDto?> SetRunTargetAsync(string name, string runTarget, CancellationToken ct = default)
     {
-        var skill = await _catalog.GetByNameAsync(name, ct);
+        var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null)
         {
             _logger.LogWarning("SetRunTarget failed: skill {SkillName} not found in catalog", name);
@@ -242,20 +242,20 @@ public sealed class SkillService : ISkillService
         _logger.LogInformation("Setting run target for skill {SkillName} to {RunTarget}", name, runTarget);
 
         var n = name.Trim().ToLowerInvariant();
-        var row = await _repository.GetByNameAsync(n, ct);
+        var row = await _skillRepository.GetByNameAsync(n, ct);
         if (row is null)
         {
-            row = await _repository.UpsertAsync(n, enabled: false, encryptedCredentials: null, ct);
+            row = await _skillRepository.UpsertAsync(n, enabled: false, encryptedCredentials: null, ct);
         }
         row.RunTarget = runTarget == "runner" ? "runner" : null;
-        await _repository.SetRunTargetAsync(n, row.RunTarget, ct);
-        row = await _repository.GetByNameAsync(n, ct);
+        await _skillRepository.SetRunTargetAsync(n, row.RunTarget, ct);
+        row = await _skillRepository.GetByNameAsync(n, ct);
         return ToDto(skill, row);
     }
 
     public async Task<string> GetRunTargetAsync(string name, CancellationToken ct = default)
     {
-        var row = await _repository.GetByNameAsync(name.Trim().ToLowerInvariant(), ct);
+        var row = await _skillRepository.GetByNameAsync(name.Trim().ToLowerInvariant(), ct);
         return row?.RunTarget ?? "cloud";
     }
 

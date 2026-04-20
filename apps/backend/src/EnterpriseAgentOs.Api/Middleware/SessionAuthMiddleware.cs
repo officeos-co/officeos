@@ -2,7 +2,7 @@ namespace EnterpriseAgentOs.Api.Middleware;
 
 public sealed class SessionAuthMiddleware
 {
-    private readonly RequestDelegate _next;
+    private readonly RequestDelegate _requestDelegate;
     private readonly ILogger<SessionAuthMiddleware> _logger;
     private readonly string[] _skipPrefixes;
 
@@ -10,7 +10,7 @@ public sealed class SessionAuthMiddleware
 
     public SessionAuthMiddleware(RequestDelegate next, ILogger<SessionAuthMiddleware> logger, SessionAuthConfig config)
     {
-        _next = next;
+        _requestDelegate = next;
         _logger = logger;
         _skipPrefixes = config.SkipPrefixes;
     }
@@ -21,7 +21,7 @@ public sealed class SessionAuthMiddleware
 
         if (_skipPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
         {
-            await _next(context);
+            await _requestDelegate(context);
             return;
         }
 
@@ -29,7 +29,7 @@ public sealed class SessionAuthMiddleware
         if (string.IsNullOrWhiteSpace(cookie))
         {
             _logger.LogDebug("No eaos-session cookie on {Path}", path);
-            await _next(context);
+            await _requestDelegate(context);
             return;
         }
 
@@ -50,7 +50,7 @@ public sealed class SessionAuthMiddleware
                 {
                     _logger.LogWarning("Session not found for hash {HashPrefix}... on {Path}",
                         tokenHash[..8], path);
-                    await _next(context);
+                    await _requestDelegate(context);
                     return;
                 }
 
@@ -58,7 +58,7 @@ public sealed class SessionAuthMiddleware
                 {
                     _logger.LogWarning("Session expired for user {UserId} on {Path} (expired {Expiry})",
                         session.UserId, path, session.ExpiresAt);
-                    await _next(context);
+                    await _requestDelegate(context);
                     return;
                 }
 
@@ -66,7 +66,7 @@ public sealed class SessionAuthMiddleware
                 {
                     _logger.LogWarning("Session has no user loaded for user ID {UserId} on {Path}",
                         session.UserId, path);
-                    await _next(context);
+                    await _requestDelegate(context);
                     return;
                 }
 
@@ -85,7 +85,7 @@ public sealed class SessionAuthMiddleware
             _logger.LogError(ex, "Session auth failed on {Path}", path);
         }
 
-        await _next(context);
+        await _requestDelegate(context);
     }
 
     public static string HashToken(string token)

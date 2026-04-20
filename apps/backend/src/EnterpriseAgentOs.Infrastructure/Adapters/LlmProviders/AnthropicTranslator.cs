@@ -142,13 +142,13 @@ public static class AnthropicTranslator
     /// </summary>
     private sealed class TranslatingStream : Stream
     {
-        private readonly StreamReader _reader;
-        private readonly MemoryStream _buffer = new();
+        private readonly StreamReader _streamReader;
+        private readonly MemoryStream _memoryStream = new();
         private bool _done;
 
         public TranslatingStream(Stream source)
         {
-            _reader = new StreamReader(source, Encoding.UTF8);
+            _streamReader = new StreamReader(source, Encoding.UTF8);
         }
 
         public override bool CanRead => true;
@@ -170,9 +170,9 @@ public static class AnthropicTranslator
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken ct)
         {
             // If we have buffered output, return that first
-            if (_buffer.Position < _buffer.Length)
+            if (_memoryStream.Position < _memoryStream.Length)
             {
-                return await _buffer.ReadAsync(buffer, offset, count, ct);
+                return await _memoryStream.ReadAsync(buffer, offset, count, ct);
             }
 
             if (_done) return 0;
@@ -180,17 +180,17 @@ public static class AnthropicTranslator
             // Read lines from Anthropic SSE until we produce an OpenAI event
             while (true)
             {
-                var line = await _reader.ReadLineAsync(ct);
+                var line = await _streamReader.ReadLineAsync(ct);
                 if (line is null)
                 {
                     // Stream ended — emit [DONE]
                     _done = true;
                     var doneBytes = Encoding.UTF8.GetBytes("data: [DONE]\n\n");
-                    _buffer.SetLength(0);
-                    _buffer.Position = 0;
-                    await _buffer.WriteAsync(doneBytes, ct);
-                    _buffer.Position = 0;
-                    return await _buffer.ReadAsync(buffer, offset, count, ct);
+                    _memoryStream.SetLength(0);
+                    _memoryStream.Position = 0;
+                    await _memoryStream.WriteAsync(doneBytes, ct);
+                    _memoryStream.Position = 0;
+                    return await _memoryStream.ReadAsync(buffer, offset, count, ct);
                 }
 
                 if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
@@ -229,11 +229,11 @@ public static class AnthropicTranslator
                     {
                         _done = true;
                         var bytes = Encoding.UTF8.GetBytes("data: [DONE]\n\n");
-                        _buffer.SetLength(0);
-                        _buffer.Position = 0;
-                        await _buffer.WriteAsync(bytes, ct);
-                        _buffer.Position = 0;
-                        return await _buffer.ReadAsync(buffer, offset, count, ct);
+                        _memoryStream.SetLength(0);
+                        _memoryStream.Position = 0;
+                        await _memoryStream.WriteAsync(bytes, ct);
+                        _memoryStream.Position = 0;
+                        return await _memoryStream.ReadAsync(buffer, offset, count, ct);
                     }
                     case "message_delta":
                     {
@@ -245,11 +245,11 @@ public static class AnthropicTranslator
                 if (openAiEvent is not null)
                 {
                     var eventBytes = Encoding.UTF8.GetBytes(openAiEvent);
-                    _buffer.SetLength(0);
-                    _buffer.Position = 0;
-                    await _buffer.WriteAsync(eventBytes, ct);
-                    _buffer.Position = 0;
-                    return await _buffer.ReadAsync(buffer, offset, count, ct);
+                    _memoryStream.SetLength(0);
+                    _memoryStream.Position = 0;
+                    await _memoryStream.WriteAsync(eventBytes, ct);
+                    _memoryStream.Position = 0;
+                    return await _memoryStream.ReadAsync(buffer, offset, count, ct);
                 }
             }
         }
@@ -274,8 +274,8 @@ public static class AnthropicTranslator
         {
             if (disposing)
             {
-                _reader.Dispose();
-                _buffer.Dispose();
+                _streamReader.Dispose();
+                _memoryStream.Dispose();
             }
             base.Dispose(disposing);
         }
