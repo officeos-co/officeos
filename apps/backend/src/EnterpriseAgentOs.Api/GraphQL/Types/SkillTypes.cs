@@ -33,7 +33,14 @@ public sealed record SkillContributorDto(string Name, string? Url);
 
 [GraphQLName("SkillCredentialField")]
 public sealed record SkillCredentialFieldDto(
-    string Key, string Label, string Kind, bool Required, string? Placeholder, string? Help);
+    string Key, string Label, string Kind, bool Required, string? Placeholder, string? Help,
+    SkillOAuth2ConfigDto? Oauth2);
+
+[GraphQLName("SkillOAuth2Config")]
+public sealed record SkillOAuth2ConfigDto(string Provider, string[] Scopes);
+
+[GraphQLName("OAuthConnectionStatus")]
+public sealed record OAuthConnectionStatusDto(bool Connected, string? Email, string? Scopes);
 
 public sealed record SkillCredentialEntry(string Key, string Value);
 
@@ -69,10 +76,11 @@ public class SkillDashboardResolvers
     public IReadOnlyList<SkillCredentialFieldDto> GetCredentialFields([Parent] SkillDashboardDto skill)
     {
         if (string.IsNullOrWhiteSpace(skill.CredentialFieldsJson)) return Array.Empty<SkillCredentialFieldDto>();
-        // Use a temporary SkillRecord to leverage domain deserialization.
         var record = new SkillRecord { CredentialFieldsJson = skill.CredentialFieldsJson };
         return record.GetCredentialFields()
-            .Select(f => new SkillCredentialFieldDto(f.Key, f.Label, f.Kind, f.Required, f.Placeholder, f.Help))
+            .Select(f => new SkillCredentialFieldDto(
+                f.Key, f.Label, f.Kind, f.Required, f.Placeholder, f.Help,
+                f.Oauth2 is not null ? new SkillOAuth2ConfigDto(f.Oauth2.Provider, f.Oauth2.Scopes) : null))
             .ToList();
     }
 

@@ -35,19 +35,32 @@ export interface ActionDefinition<T extends z.ZodType = z.ZodType> {
 }
 
 /**
+ * OAuth2 provider configuration for credentials that use browser-based login.
+ * The backend handles the full OAuth2 flow — the skill just receives an access_token.
+ */
+export interface OAuth2CredentialConfig {
+  /** OAuth2 provider identifier. */
+  provider: "google" | "microsoft" | "github";
+  /** OAuth2 scopes to request. */
+  scopes: string[];
+}
+
+/**
  * Credential field definition — describes a single credential the skill needs.
  */
 export interface CredentialFieldDefinition {
   /** Human-readable label for the dashboard form (e.g. "Personal Access Token"). */
   label: string;
-  /** Input kind: "password" for secrets, "text" for short strings, "textarea" for multi-line. */
-  kind: "password" | "text" | "textarea";
+  /** Input kind: "password" for secrets, "text" for short strings, "textarea" for multi-line, "oauth2" for browser login. */
+  kind: "password" | "text" | "textarea" | "oauth2";
   /** Whether this field is required. Defaults to true. */
   required?: boolean;
   /** Placeholder text for the input field. */
   placeholder?: string;
   /** Help text shown below the input. */
   help?: string;
+  /** OAuth2 configuration — required when kind is "oauth2". */
+  oauth2?: OAuth2CredentialConfig;
 }
 
 export interface SkillAuthor {

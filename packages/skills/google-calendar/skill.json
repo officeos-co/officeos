@@ -22,10 +22,16 @@
   ],
   "credentials": {
     "access_token": {
-      "label": "OAuth2 Access Token",
-      "kind": "password",
-      "placeholder": "ya29.\\u2026",
-      "help": "Google OAuth2 access token with Calendar scopes."
+      "label": "Google Account",
+      "kind": "oauth2",
+      "help": "Connect your Google account to access Calendar.",
+      "oauth2": {
+        "provider": "google",
+        "scopes": [
+          "https://www.googleapis.com/auth/calendar",
+          "https://www.googleapis.com/auth/calendar.events"
+        ]
+      }
     }
   }
 }

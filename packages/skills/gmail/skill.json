@@ -22,10 +22,17 @@
   ],
   "credentials": {
     "access_token": {
-      "label": "OAuth2 Access Token",
-      "kind": "password",
-      "placeholder": "ya29.…",
-      "help": "Google OAuth2 access token with Gmail scopes."
+      "label": "Google Account",
+      "kind": "oauth2",
+      "help": "Connect your Google account to access Gmail.",
+      "oauth2": {
+        "provider": "google",
+        "scopes": [
+          "https://www.googleapis.com/auth/gmail.modify",
+          "https://www.googleapis.com/auth/gmail.send",
+          "https://www.googleapis.com/auth/gmail.labels"
+        ]
+      }
     }
   }
 }

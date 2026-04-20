@@ -40,6 +40,10 @@ const SKILLS_LIST_QUERY = gql`
         required
         placeholder
         help
+        oauth2 {
+          provider
+          scopes
+        }
       }
       tools {
         name
@@ -88,6 +92,10 @@ const SKILL_DETAIL_QUERY = gql`
         required
         placeholder
         help
+        oauth2 {
+          provider
+          scopes
+        }
       }
       tools {
         name
@@ -191,6 +199,7 @@ type RawSkill = {
     required: boolean;
     placeholder: string | null;
     help: string | null;
+    oauth2: { provider: string; scopes: string[] } | null;
   }> | null;
   likes: number;
   likedByMe: boolean;
@@ -232,6 +241,7 @@ function mapSkill(s: RawSkill): Integration {
       required: f.required,
       placeholder: f.placeholder ?? null,
       help: f.help ?? null,
+      oauth2: f.oauth2 ?? null,
     })),
     doc: s.doc ?? "",
     sourceCodeUrl: s.sourceCodeUrl ?? "",
@@ -482,4 +492,26 @@ export function useDeleteSkillComment() {
       },
     });
   };
+}
+
+const OAUTH_STATUS_QUERY = gql`
+  query OAuthConnectionStatus($provider: String!) {
+    oauthConnectionStatus(provider: $provider) {
+      connected
+      email
+      scopes
+    }
+  }
+`;
+
+export function useOAuthStatus(provider: string | null) {
+  const { data, loading, refetch } = useQuery(OAUTH_STATUS_QUERY, {
+    variables: { provider: provider ?? "" },
+    skip: !provider,
+    fetchPolicy: "network-only",
+  });
+  const status = data?.oauthConnectionStatus as
+    | { connected: boolean; email: string | null; scopes: string | null }
+    | undefined;
+  return { connected: status?.connected ?? false, email: status?.email ?? null, loading, refetch };
 }

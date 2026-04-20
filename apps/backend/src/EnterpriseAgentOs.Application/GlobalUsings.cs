@@ -32,3 +32,6 @@ global using EnterpriseAgentOs.Domain.DTOs.Channels;
 global using EnterpriseAgentOs.Infrastructure.Configuration;
 global using EnterpriseAgentOs.Infrastructure.Security;
 global using EnterpriseAgentOs.Infrastructure.Adapters.SkillRuntime;
+global using EnterpriseAgentOs.Infrastructure.Persistence;
+global using Microsoft.EntityFrameworkCore;
+global using System.Net.Http.Json;

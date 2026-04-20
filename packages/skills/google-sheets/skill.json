@@ -23,10 +23,15 @@
   ],
   "credentials": {
     "access_token": {
-      "label": "OAuth2 Access Token",
-      "kind": "password",
-      "placeholder": "ya29.…",
-      "help": "Google OAuth2 access token with Sheets scopes."
+      "label": "Google Account",
+      "kind": "oauth2",
+      "help": "Connect your Google account to access Sheets.",
+      "oauth2": {
+        "provider": "google",
+        "scopes": [
+          "https://www.googleapis.com/auth/spreadsheets"
+        ]
+      }
     }
   }
 }

@@ -21,15 +21,17 @@
     }
   ],
   "credentials": {
-    "service_account_json": {
-      "label": "Service Account JSON",
-      "kind": "textarea"
-    },
-    "calendar_id": {
-      "label": "Calendar ID (optional)",
-      "kind": "text",
-      "placeholder": "primary",
-      "help": "Defaults to 'primary'. Use the calendar's email address for shared calendars."
+    "access_token": {
+      "label": "Google Account",
+      "kind": "oauth2",
+      "help": "Connect your Google account to access Drive and Calendar.",
+      "oauth2": {
+        "provider": "google",
+        "scopes": [
+          "https://www.googleapis.com/auth/drive.readonly",
+          "https://www.googleapis.com/auth/calendar.readonly"
+        ]
+      }
     }
   }
 }

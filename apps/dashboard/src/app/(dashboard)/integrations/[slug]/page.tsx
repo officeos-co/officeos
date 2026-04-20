@@ -399,6 +399,7 @@ export default function IntegrationDetailPage({
           open={credDialogOpen}
           onOpenChange={setCredDialogOpen}
           name={integration.name}
+          slug={integration.slug}
           logo={integration.logo}
           credentials={integration.credentialFields}
           onSave={handleSaveCredentials}

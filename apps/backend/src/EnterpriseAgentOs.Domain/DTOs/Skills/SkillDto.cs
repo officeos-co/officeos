@@ -105,6 +105,13 @@ public sealed class RuntimeCredentialField
     public required bool Required { get; set; }
     public string? Placeholder { get; set; }
     public string? Help { get; set; }
+    public OAuth2FieldConfig? Oauth2 { get; set; }
+}
+
+public sealed class OAuth2FieldConfig
+{
+    public required string Provider { get; set; }
+    public required string[] Scopes { get; set; }
 }
 
 public sealed class ManifestAuthor

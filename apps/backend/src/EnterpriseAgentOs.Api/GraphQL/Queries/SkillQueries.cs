@@ -108,4 +108,16 @@ public class SkillQueries
             return new Types.AgentSkillDto(name, mapped);
         }).ToList();
     }
+
+    [GraphQLName("oauthConnectionStatus")]
+    public async Task<Types.OAuthConnectionStatusDto> GetOAuthConnectionStatus(
+        string provider,
+        [Service] EaosDbContext db,
+        CancellationToken ct)
+    {
+        var token = await db.OAuthTokens.FirstOrDefaultAsync(t => t.Provider == provider, ct);
+        if (token is null)
+            return new Types.OAuthConnectionStatusDto(false, null, null);
+        return new Types.OAuthConnectionStatusDto(true, token.Email, token.Scopes);
+    }
 }

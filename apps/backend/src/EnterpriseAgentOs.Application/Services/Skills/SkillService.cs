@@ -11,6 +11,9 @@ public sealed class SkillService : ISkillService
     private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ILogger<SkillService> _logger;
     private readonly IMemoryCache _memoryCache;
+    private readonly EaosDbContext _db;
+    private readonly IHttpClientFactory _httpFactory;
+    private readonly GoogleOAuthConfig _googleOAuthConfig;
 
     private static readonly TimeSpan SkillCacheTtl = TimeSpan.FromMinutes(5);
     private const string SkillListCacheKey = "skills:list";
@@ -23,7 +26,10 @@ public sealed class SkillService : ISkillService
         SkillCredentialProtector protector,
         SkillRuntimeClient runtime,
         ILogger<SkillService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        EaosDbContext db,
+        IHttpClientFactory httpFactory,
+        GoogleOAuthConfig googleOAuthConfig)
     {
         _skillRepository = repository;
         _skillCatalogRepository = catalog;
@@ -32,6 +38,9 @@ public sealed class SkillService : ISkillService
         _skillRuntimeClient = runtime;
         _logger = logger;
         _memoryCache = cache;
+        _db = db;
+        _httpFactory = httpFactory;
+        _googleOAuthConfig = googleOAuthConfig;
     }
 
     public async Task<IReadOnlyList<SkillDto>> ListAsync(CancellationToken ct = default)
@@ -170,6 +179,22 @@ public sealed class SkillService : ISkillService
         var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null) return null;
         var row = await _skillRepository.GetByNameAsync(skill.Name, ct);
+
+        // Check if this skill uses OAuth2 credentials
+        var credFields = skill.GetCredentialFields();
+        var oauthField = credFields.FirstOrDefault(f => f.Kind == "oauth2" && f.Oauth2 is not null);
+        if (oauthField is not null)
+        {
+            var token = await GetOAuthAccessTokenAsync(oauthField.Oauth2!.Provider, ct);
+            if (token is null)
+            {
+                if (skill.IsSystem || SystemSkills.Contains(name))
+                    return new Dictionary<string, string>();
+                return null;
+            }
+            return new Dictionary<string, string> { [oauthField.Key] = token };
+        }
+
         if (row?.Enabled != true || string.IsNullOrEmpty(row.EncryptedCredentials))
         {
             if (skill.IsSystem || SystemSkills.Contains(name))
@@ -180,6 +205,61 @@ public sealed class SkillService : ISkillService
         var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(plaintext);
         return parsed;
     }
+
+    private async Task<string?> GetOAuthAccessTokenAsync(string provider, CancellationToken ct)
+    {
+        var tokenRecord = await _db.OAuthTokens.FirstOrDefaultAsync(t => t.Provider == provider, ct);
+        if (tokenRecord is null || string.IsNullOrEmpty(tokenRecord.EncryptedAccessToken))
+            return null;
+
+        // If token is expired (or within 5 min of expiry), refresh it
+        if (tokenRecord.ExpiresAtUtc.HasValue && tokenRecord.ExpiresAtUtc.Value < DateTime.UtcNow.AddMinutes(5))
+        {
+            if (string.IsNullOrEmpty(tokenRecord.EncryptedRefreshToken))
+            {
+                _logger.LogWarning("OAuth token for {Provider} expired and no refresh token available", provider);
+                return null;
+            }
+
+            var refreshToken = _skillCredentialProtector.Unprotect(tokenRecord.EncryptedRefreshToken);
+            var newToken = await RefreshGoogleTokenAsync(refreshToken, ct);
+            if (newToken is null) return null;
+
+            tokenRecord.EncryptedAccessToken = _skillCredentialProtector.Protect(newToken.AccessToken!);
+            tokenRecord.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(newToken.ExpiresIn > 0 ? newToken.ExpiresIn : 3600);
+            tokenRecord.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            return newToken.AccessToken;
+        }
+
+        return _skillCredentialProtector.Unprotect(tokenRecord.EncryptedAccessToken);
+    }
+
+    private async Task<OAuthTokenRefreshResult?> RefreshGoogleTokenAsync(string refreshToken, CancellationToken ct)
+    {
+        var http = _httpFactory.CreateClient();
+        var res = await http.PostAsync("https://oauth2.googleapis.com/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["refresh_token"] = refreshToken,
+                ["client_id"] = _googleOAuthConfig.ClientId,
+                ["client_secret"] = _googleOAuthConfig.ClientSecret,
+                ["grant_type"] = "refresh_token",
+            }), ct);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            _logger.LogError("Google token refresh failed: {Status}", res.StatusCode);
+            return null;
+        }
+
+        return await res.Content.ReadFromJsonAsync<OAuthTokenRefreshResult>(ct);
+    }
+
+    private sealed record OAuthTokenRefreshResult(
+        [property: System.Text.Json.Serialization.JsonPropertyName("access_token")] string? AccessToken,
+        [property: System.Text.Json.Serialization.JsonPropertyName("expires_in")] int ExpiresIn);
 
     public async Task<CapabilitiesResponse> ListCapabilitiesAsync(Guid? agentId = null, CancellationToken ct = default)
     {

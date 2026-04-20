@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useIntegrations, useInstallSkill } from "@/features/agents"
+import { useIntegrations, useInstallSkill, CredentialDialog } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, AlertCircleIcon } from "lucide-react"
@@ -32,6 +32,9 @@ export default function IntegrationsPage() {
   const [pageSize, setPageSize] = useState<number>(50)
   const [page, setPage] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [configSlug, setConfigSlug] = useState<string | null>(null)
+
+  const configIntegration = configSlug ? integrations.find((i) => i.slug === configSlug) : null
 
   const allCategories = useMemo(() => {
     const cats = new Set<string>()
@@ -58,6 +61,18 @@ export default function IntegrationsPage() {
     e.stopPropagation()
     await installSkill(slug)
     trackSkillInstalled(slug)
+  }
+
+  async function handleInstallAndConfigure(slug: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    await installSkill(slug)
+    trackSkillInstalled(slug)
+    setConfigSlug(slug)
+  }
+
+  function handleConfigure(slug: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setConfigSlug(slug)
   }
 
   return (
@@ -141,14 +156,18 @@ export default function IntegrationsPage() {
                   </div>
                   {integration.installed ? (
                     integration.credentialFields.length > 0 && !integration.configured ? (
-                      <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-amber-700">
-                        <AlertCircleIcon className="size-3" /> Setup needed
-                      </span>
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={(e) => handleConfigure(integration.slug, e)}>
+                        <AlertCircleIcon className="size-3" /> Configure
+                      </Button>
                     ) : (
                       <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
                         <CheckIcon className="size-3" /> Installed
                       </span>
                     )
+                  ) : integration.credentialFields.length > 0 ? (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => handleInstallAndConfigure(integration.slug, e)}>
+                      <PlusIcon className="size-3" /> Install
+                    </Button>
                   ) : (
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => handleAdd(integration.slug, e)}>
                       <PlusIcon className="size-3" /> Add
@@ -205,6 +224,18 @@ export default function IntegrationsPage() {
           </div>
         )}
       </div>
+
+      {configIntegration && (
+        <CredentialDialog
+          open={!!configSlug}
+          onOpenChange={(open) => { if (!open) setConfigSlug(null) }}
+          name={configIntegration.name}
+          slug={configIntegration.slug}
+          logo={configIntegration.logo}
+          credentials={configIntegration.credentialFields}
+          onSave={() => {}}
+        />
+      )}
     </>
   )
 }

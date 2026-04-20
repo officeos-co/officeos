@@ -3,6 +3,11 @@ export type Tool = {
   description: string
 }
 
+export type OAuth2Config = {
+  provider: string
+  scopes: string[]
+}
+
 export type CredentialField = {
   key: string
   label: string
@@ -10,6 +15,7 @@ export type CredentialField = {
   required: boolean
   placeholder: string | null
   help: string | null
+  oauth2: OAuth2Config | null
 }
 
 export type SkillAuthor = {

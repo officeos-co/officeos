@@ -9,6 +9,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentRecord> Agents => Set<AgentRecord>();
     public DbSet<ProviderRecord> Providers => Set<ProviderRecord>();
     public DbSet<SkillCredentialRecord> SkillCredentials => Set<SkillCredentialRecord>();
+    public DbSet<OAuthTokenRecord> OAuthTokens => Set<OAuthTokenRecord>();
     public DbSet<UserRecord> Users => Set<UserRecord>();
     public DbSet<SessionRecord> Sessions => Set<SessionRecord>();
     public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();
@@ -63,6 +64,17 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(s => s.SkillName).IsUnique();
             e.Property(s => s.SkillName).IsRequired().HasMaxLength(64);
             e.Property(s => s.EncryptedCredentials).HasMaxLength(16384);
+        });
+
+        modelBuilder.Entity<OAuthTokenRecord>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.HasIndex(o => o.Provider).IsUnique();
+            e.Property(o => o.Provider).IsRequired().HasMaxLength(32);
+            e.Property(o => o.EncryptedAccessToken).HasMaxLength(16384);
+            e.Property(o => o.EncryptedRefreshToken).HasMaxLength(16384);
+            e.Property(o => o.Scopes).HasMaxLength(4096);
+            e.Property(o => o.Email).HasMaxLength(256);
         });
 
         modelBuilder.Entity<UserRecord>(e =>
