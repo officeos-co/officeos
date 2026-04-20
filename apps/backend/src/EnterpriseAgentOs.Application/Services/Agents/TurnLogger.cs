@@ -69,30 +69,9 @@ public sealed class TurnLogger
 
     public void Error(AgentError agentError)
     {
-        var logType = agentError.Category switch
-        {
-            AgentErrorCategory.PodConnection => AgentLogType.ErrorPodConnection,
-            AgentErrorCategory.LlmCall => AgentLogType.ErrorLlmCall,
-            AgentErrorCategory.ToolExecution => AgentLogType.ErrorToolExecution,
-            AgentErrorCategory.SkillExecution => AgentLogType.ErrorSkillExecution,
-            AgentErrorCategory.TurnOrchestration => AgentLogType.ErrorTurnOrchestration,
-            AgentErrorCategory.Memory => AgentLogType.ErrorMemory,
-            AgentErrorCategory.Configuration => AgentLogType.ErrorConfiguration,
-            _ => AgentLogType.Error,
-        };
-
-        var content = agentError.Detail is not null
-            ? $"{agentError.Category}: {agentError.Message}\n{agentError.Detail}"
-            : $"{agentError.Category}: {agentError.Message}";
-
-        _emit(new AgentLogRecord
-        {
-            AgentId = _agentId,
-            Type = logType,
-            Content = content,
-            CorrelationId = _correlationId,
-            Time = DateTime.UtcNow,
-        });
+        var record = agentError.ToLogRecord(_agentId);
+        record.CorrelationId = _correlationId;
+        _emit(record);
     }
 
     private void Emit(AgentLogType type, string content, string? tool = null,

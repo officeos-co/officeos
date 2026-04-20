@@ -93,11 +93,15 @@ public sealed class CronJobSchedulerService : BackgroundService
             {
                 _logger.LogWarning(ex, "Invalid cron expression for job {JobId}: {Expression}",
                     job.Id, job.Expression);
+                var error = new AgentError(AgentErrorCategory.Configuration, $"Invalid cron expression: {job.Expression}", ex.Message);
+                await logService.AppendAsync(error.ToLogRecord(job.AgentId), ct);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to fire cron job {JobId} for agent {AgentId}",
                     job.Id, job.AgentId);
+                var error = new AgentError(AgentErrorCategory.TurnOrchestration, $"Cron job '{job.Name}' failed: {ex.Message}", ex.ToString());
+                await logService.AppendAsync(error.ToLogRecord(job.AgentId), ct);
             }
         }
     }
