@@ -162,13 +162,13 @@ public class AgentTurnTests
     {
         var section = PromptSections.DateTime();
         Assert.Contains("UTC", section);
-        Assert.Contains("CRITICAL CONTEXT", section);
+        Assert.Contains("Current Date", section);
     }
 
     [Fact]
     public void PromptSections_Skills_Returns_Null_When_Empty()
     {
-        var result = PromptSections.SkillsWithDocs(new List<SkillRecord>());
+        var result = PromptSections.Skills(new List<SkillRecord>());
         Assert.Null(result);
     }
 
@@ -181,34 +181,75 @@ public class AgentTurnTests
             new() { Name = "github", Description = "Manage GitHub repos and issues.", Doc = null },
         };
 
-        var result = PromptSections.SkillsWithDocs(skills);
+        var result = PromptSections.Skills(skills);
 
         Assert.NotNull(result);
         Assert.Contains("### notion", result);
-        Assert.Contains("## Actions", result); // Full doc injected
+        Assert.Contains("## Actions", result);
         Assert.Contains("- search", result);
         Assert.Contains("### github", result);
-        Assert.Contains("Manage GitHub repos and issues.", result); // Falls back to description when no doc
+        Assert.Contains("Manage GitHub repos and issues.", result);
     }
 
     [Fact]
-    public void PromptSections_No_Tool_Schema_In_Prompt()
+    public void PromptSections_ProjectContext_Wraps_Files_In_Tags()
     {
-        // The system prompt should never contain tool schemas — those go via the LLM tools parameter.
+        var files = new List<AgentPersonalityRecord>
+        {
+            AgentPersonalityRecord.Create(Guid.NewGuid(), "SOUL.md", "Be helpful."),
+            AgentPersonalityRecord.Create(Guid.NewGuid(), "IDENTITY.md", "Your name is TestBot."),
+        };
+
+        var result = PromptSections.ProjectContext(files, null);
+
+        Assert.NotNull(result);
+        Assert.Contains("<file path=\"SOUL.md\">", result);
+        Assert.Contains("Be helpful.", result);
+        Assert.Contains("<file path=\"IDENTITY.md\">", result);
+        Assert.Contains("</file>", result);
+    }
+
+    [Fact]
+    public void PromptSections_ProjectContext_Includes_UserPrompt()
+    {
+        var result = PromptSections.ProjectContext(new List<AgentPersonalityRecord>(), "Custom instructions here.");
+
+        Assert.NotNull(result);
+        Assert.Contains("<file path=\"PROMPT.md\">", result);
+        Assert.Contains("Custom instructions here.", result);
+    }
+
+    [Fact]
+    public void PromptSections_Memory_Returns_Null_When_Empty()
+    {
+        var result = PromptSections.Memory(new List<AgentMemoryRecord>());
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void PromptSections_OpenClaw_Section_Order()
+    {
+        // Verify all sections compose in OpenClaw order without tool schemas.
         var allSections = string.Join("\n",
-            PromptSections.DateTime(),
-            PromptSections.ToolHonesty(),
+            PromptSections.Tooling(),
             PromptSections.Safety(),
-            PromptSections.SkillsWithDocs(new List<SkillRecord>
+            PromptSections.Skills(new List<SkillRecord>
             {
                 new() { Name = "notion", Description = "Search pages", Doc = "Use notion search to find pages." },
             }) ?? "",
             PromptSections.Workspace("test-agent"),
+            PromptSections.DateTime(),
             PromptSections.Runtime());
 
         Assert.DoesNotContain("\"type\": \"object\"", allSections);
         Assert.DoesNotContain("\"parameters\"", allSections);
         Assert.DoesNotContain("\"required\"", allSections);
+        // Verify OpenClaw section order: Tooling before Safety before Skills
+        var toolingIdx = allSections.IndexOf("## Tooling");
+        var safetyIdx = allSections.IndexOf("## Safety");
+        var skillsIdx = allSections.IndexOf("## Installed Skills");
+        Assert.True(toolingIdx < safetyIdx);
+        Assert.True(safetyIdx < skillsIdx);
     }
 
     // ── SkillReadTool ───────────────────────────────────────────────────────
@@ -336,16 +377,27 @@ public class AgentTurnTests
     // ── Personality ─────────────────────────────────────────────────────────
 
     [Fact]
-    public void AgentPersonalityRecord_CreateDefaults_Seeds_Soul_And_Identity()
+    public void AgentPersonalityRecord_CreateDefaults_Seeds_OpenClaw_Files()
     {
         var agentId = Guid.NewGuid();
         var defaults = AgentPersonalityRecord.CreateDefaults(agentId, "TestBot");
 
-        Assert.Equal(2, defaults.Count);
-        Assert.Equal("SOUL.md", defaults[0].FileName);
-        Assert.Equal("IDENTITY.md", defaults[1].FileName);
-        Assert.Contains("autonomous AI agent", defaults[0].Content);
-        Assert.Contains("TestBot", defaults[1].Content);
+        Assert.Equal(4, defaults.Count);
+        var fileNames = defaults.Select(d => d.FileName).ToList();
+        Assert.Contains("AGENTS.md", fileNames);
+        Assert.Contains("SOUL.md", fileNames);
+        Assert.Contains("IDENTITY.md", fileNames);
+        Assert.Contains("USER.md", fileNames);
+
+        var soul = defaults.First(d => d.FileName == "SOUL.md");
+        Assert.Contains("Core Truths", soul.Content);
+        Assert.Contains("genuinely helpful", soul.Content);
+
+        var identity = defaults.First(d => d.FileName == "IDENTITY.md");
+        Assert.Contains("TestBot", identity.Content);
+
+        var agents = defaults.First(d => d.FileName == "AGENTS.md");
+        Assert.Contains("Security & Boundaries", agents.Content);
     }
 
     [Fact]
@@ -356,21 +408,30 @@ public class AgentTurnTests
     }
 
     [Fact]
-    public void AgentPersonalityRecord_CompositionOrder_Known_Files_First()
+    public void AgentPersonalityRecord_CompositionOrder_OpenClaw_Order()
     {
         var agentId = Guid.NewGuid();
+        var agents = AgentPersonalityRecord.Create(agentId, "AGENTS.md", "rules");
         var soul = AgentPersonalityRecord.Create(agentId, "SOUL.md", "soul content");
-        var custom = AgentPersonalityRecord.Create(agentId, "CUSTOM.md", "custom content");
+        var tools = AgentPersonalityRecord.Create(agentId, "TOOLS.md", "tools");
         var identity = AgentPersonalityRecord.Create(agentId, "IDENTITY.md", "identity");
+        var user = AgentPersonalityRecord.Create(agentId, "USER.md", "user");
+        var memory = AgentPersonalityRecord.Create(agentId, "MEMORY.md", "memory");
         var bootstrap = AgentPersonalityRecord.Create(agentId, "BOOTSTRAP.md", "bootstrap");
+        var custom = AgentPersonalityRecord.Create(agentId, "CUSTOM.md", "custom content");
 
-        var ordered = new[] { soul, custom, identity, bootstrap }
+        var ordered = new[] { custom, bootstrap, user, identity, tools, soul, agents, memory }
             .OrderBy(p => p.CompositionOrder)
             .ToList();
 
-        Assert.Equal("SOUL.md", ordered[0].FileName);
-        Assert.Equal("IDENTITY.md", ordered[1].FileName);
-        Assert.Equal("BOOTSTRAP.md", ordered[2].FileName);
-        Assert.Equal("CUSTOM.md", ordered[3].FileName); // Unknown files come last
+        // OpenClaw order: AGENTS → SOUL → TOOLS → IDENTITY → USER → MEMORY → BOOTSTRAP → custom
+        Assert.Equal("AGENTS.md", ordered[0].FileName);
+        Assert.Equal("SOUL.md", ordered[1].FileName);
+        Assert.Equal("TOOLS.md", ordered[2].FileName);
+        Assert.Equal("IDENTITY.md", ordered[3].FileName);
+        Assert.Equal("USER.md", ordered[4].FileName);
+        Assert.Equal("MEMORY.md", ordered[5].FileName);
+        Assert.Equal("BOOTSTRAP.md", ordered[6].FileName);
+        Assert.Equal("CUSTOM.md", ordered[7].FileName); // Unknown files come last
     }
 }

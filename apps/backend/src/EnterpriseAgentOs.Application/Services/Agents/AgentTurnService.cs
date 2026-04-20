@@ -104,17 +104,19 @@ public sealed class AgentTurnService
         // Turn loop: compose prompt → call LLM → dispatch tools → repeat.
         for (var i = 0; i < MaxIterations; i++)
         {
-            // 1. Compose system prompt fresh each iteration (from agent-core's prompt.rs).
-            var personalityPrompt = await _promptComposer.ComposeAsync(agentId, agent.Prompt, ct);
+            // 1. Compose system prompt in OpenClaw section order:
+            //    Tooling → Safety → Skills → Workspace → Project Context → Memory → DateTime → Runtime
+            var promptCtx = await _promptComposer.LoadAsync(agentId, ct);
             var systemPrompt = string.Join("\n\n",
                 new[]
                 {
-                    PromptSections.DateTime(),
-                    personalityPrompt,
-                    PromptSections.ToolHonesty(),
+                    PromptSections.Tooling(),
                     PromptSections.Safety(),
-                    PromptSections.SkillsWithDocs(skillDetails),
+                    PromptSections.Skills(skillDetails),
                     PromptSections.Workspace(agent.Name),
+                    PromptSections.ProjectContext(promptCtx.PersonalityFiles, agent.Prompt),
+                    PromptSections.Memory(promptCtx.Memories),
+                    PromptSections.DateTime(),
                     PromptSections.Runtime(),
                 }.Where(s => s is not null));
 

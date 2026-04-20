@@ -1,5 +1,9 @@
 namespace EnterpriseAgentOs.Application.Services.Agents;
 
+/// <summary>
+/// Fetches personality files and memories for prompt composition.
+/// The actual prompt assembly happens in AgentTurnService via PromptSections.
+/// </summary>
 public sealed class PromptComposer
 {
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
@@ -13,27 +17,16 @@ public sealed class PromptComposer
         _agentMemoryRepository = memory;
     }
 
-    public async Task<string> ComposeAsync(Guid agentId, string? userPrompt, CancellationToken ct = default)
+    /// <summary>Loads all personality files and memories for prompt composition.</summary>
+    public async Task<PromptContext> LoadAsync(Guid agentId, CancellationToken ct = default)
     {
         var personalityFiles = await _agentPersonalityRepository.ListAsync(agentId, ct);
         var memories = await _agentMemoryRepository.ListAsync(agentId, ct);
-
-        var sections = new List<string>();
-
-        // Domain model owns the composition order via CompositionOrder property.
-        foreach (var file in personalityFiles.OrderBy(p => p.CompositionOrder))
-            sections.Add(file.Content);
-
-        if (!string.IsNullOrWhiteSpace(userPrompt))
-            sections.Add(userPrompt);
-
-        if (memories.Count > 0)
-        {
-            var memorySection = "## Memory\n\n" +
-                string.Join("\n\n", memories.Select(m => $"### {m.Key}\n{m.Content}"));
-            sections.Add(memorySection);
-        }
-
-        return string.Join("\n\n---\n\n", sections);
+        return new PromptContext(personalityFiles, memories);
     }
 }
+
+/// <summary>All context needed to compose the system prompt for a turn.</summary>
+public sealed record PromptContext(
+    IReadOnlyList<AgentPersonalityRecord> PersonalityFiles,
+    IReadOnlyList<AgentMemoryRecord> Memories);
