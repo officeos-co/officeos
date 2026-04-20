@@ -5,5 +5,6 @@ export * from "./api/useAgentTemplates";
 export * from "./api/useSendAgentMessage";
 export * from "./api/useProviders";
 export * from "./api/useModels";
+export * from "./api/useCronJobs";
 export * from "./components/credential-dialog";
 export * from "./components/channel-onboarding-dialog";

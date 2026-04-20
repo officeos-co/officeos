@@ -36,7 +36,7 @@ import { useAgent } from "@/features/agents"
 import { useAgentLogs } from "@/features/analytics"
 import { useSendAgentMessage } from "@/features/agents"
 import { useIntegrations } from "@/features/agents"
-import { useChannels, useModels } from "@/features/agents"
+import { useChannels, useModels, useCronJobs } from "@/features/agents"
 import {
   SendIcon,
   ClockIcon,
@@ -457,49 +457,6 @@ function MemoryTab() {
 
 /* ── Cron tab ────────────────────────────────────────────── */
 
-type CronJob = {
-  id: string
-  name: string
-  expression: string
-  human: string
-  prompt: string
-  enabled: boolean
-  lastRun: string | null
-  nextRun: string
-}
-
-const mockCronJobs: CronJob[] = [
-  {
-    id: "cron_001",
-    name: "Daily research digest",
-    expression: "0 9 * * 1-5",
-    human: "Every weekday at 9:00 AM",
-    prompt: "Search for the latest AI industry news and compile a digest. Post the summary to #research on Slack.",
-    enabled: true,
-    lastRun: "Today at 09:00",
-    nextRun: "Tomorrow at 09:00",
-  },
-  {
-    id: "cron_002",
-    name: "Weekly ticket cleanup",
-    expression: "0 17 * * 5",
-    human: "Every Friday at 5:00 PM",
-    prompt: "Review all open Linear issues older than 14 days. Comment on stale ones asking for updates. Close issues with no activity in 30 days.",
-    enabled: true,
-    lastRun: "Last Friday at 17:00",
-    nextRun: "Friday at 17:00",
-  },
-  {
-    id: "cron_003",
-    name: "Compliance check",
-    expression: "0 8 1 * *",
-    human: "1st of every month at 8:00 AM",
-    prompt: "Search for new regulatory updates relevant to our industry. Cross-reference against internal policies in Notion. Flag any gaps to #compliance.",
-    enabled: false,
-    lastRun: "Apr 1 at 08:00",
-    nextRun: "May 1 at 08:00",
-  },
-]
 
 const CRON_PRESETS = [
   { label: "Every hour", expression: "0 * * * *" },
@@ -510,38 +467,30 @@ const CRON_PRESETS = [
   { label: "1st of every month", expression: "0 8 1 * *" },
 ]
 
-function CronTab() {
-  const [jobs, setJobs] = useState<CronJob[]>(mockCronJobs)
+function CronTab({ agentId }: { agentId: string }) {
+  const { jobs, loading, createCronJob, setCronJobEnabled, deleteCronJob } = useCronJobs(agentId)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState("")
   const [expression, setExpression] = useState("")
   const [prompt, setPrompt] = useState("")
 
-  function handleCreate() {
-    const newJob: CronJob = {
-      id: `cron_${Date.now()}`,
-      name: name || "Untitled job",
-      expression,
-      human: CRON_PRESETS.find((p) => p.expression === expression)?.label ?? expression,
-      prompt,
-      enabled: true,
-      lastRun: null,
-      nextRun: "Pending first run",
-    }
-    setJobs([newJob, ...jobs])
+  async function handleCreate() {
+    await createCronJob(name || "Untitled job", expression, prompt)
     setDialogOpen(false)
     setName("")
     setExpression("")
     setPrompt("")
   }
 
-  function toggleEnabled(id: string) {
-    setJobs((prev) => prev.map((j) => j.id === id ? { ...j, enabled: !j.enabled } : j))
+  function toggleEnabled(id: string, currentEnabled: boolean) {
+    setCronJobEnabled(id, !currentEnabled)
   }
 
   function deleteJob(id: string) {
-    setJobs((prev) => prev.filter((j) => j.id !== id))
+    deleteCronJob(id)
   }
+
+  if (loading) return <div className="pt-4"><Skeleton className="h-32 w-full rounded-xl" /></div>
 
   return (
     <div className="pt-4 space-y-4">
@@ -561,18 +510,18 @@ function CronTab() {
         {jobs.map((job) => (
           <div key={job.id} className="rounded-xl border border-border">
             <div className="flex items-center gap-4 px-4 py-3">
-              <Switch checked={job.enabled} onCheckedChange={() => toggleEnabled(job.id)} />
+              <Switch checked={job.enabled} onCheckedChange={() => toggleEnabled(job.id, job.enabled)} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-medium ${!job.enabled ? "text-muted-foreground" : ""}`}>{job.name}</span>
                   <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{job.expression}</code>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">{job.human}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{CRON_PRESETS.find((p) => p.expression === job.expression)?.label ?? job.expression}</div>
               </div>
               <div className="flex items-center gap-4 shrink-0 text-xs text-muted-foreground">
                 <div className="text-right hidden sm:block">
-                  <div>Last: {job.lastRun ?? "Never"}</div>
-                  <div>Next: {job.nextRun}</div>
+                  <div>Last: {job.lastRunAt ? new Date(job.lastRunAt).toLocaleString() : "Never"}</div>
+                  <div>Next: {job.nextRunAt ? new Date(job.nextRunAt).toLocaleString() : "Pending"}</div>
                 </div>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteJob(job.id)}>
                   <Trash2Icon className="size-3.5" />
@@ -792,7 +741,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
           {tab === "integrations" && <AgentTab agentId={id} />}
           {tab === "logs" && <LogsTab agentId={id} />}
           {tab === "memory" && <MemoryTab />}
-          {tab === "cron" && <CronTab />}
+          {tab === "cron" && <CronTab agentId={id} />}
         </div>
       </div>
 

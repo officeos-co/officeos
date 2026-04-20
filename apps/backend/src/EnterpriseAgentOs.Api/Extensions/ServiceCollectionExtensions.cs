@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
         services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();
         services.AddScoped<IAgentPersonalityRepository, AgentPersonalityRepository>();
+        services.AddScoped<IAgentCronJobRepository, AgentCronJobRepository>();
         return services;
     }
 
@@ -52,6 +53,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
     {
+        services.AddHostedService<Application.Services.CronJobs.CronJobSchedulerService>();
         return services;
     }
 

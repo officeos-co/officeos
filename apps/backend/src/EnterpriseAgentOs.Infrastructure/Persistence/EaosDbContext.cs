@@ -30,6 +30,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<OrgMemberRecord> OrgMembers => Set<OrgMemberRecord>();
     public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
     public DbSet<AgentPersonalityRecord> AgentPersonalities => Set<AgentPersonalityRecord>();
+    public DbSet<AgentCronJobRecord> AgentCronJobs => Set<AgentCronJobRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -271,6 +272,15 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(p => p.Agent).WithMany()
                 .HasForeignKey(p => p.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentCronJobRecord>(e =>
+        {
+            e.HasKey(j => j.Id);
+            e.HasIndex(j => j.AgentId);
+            e.Property(j => j.Name).IsRequired().HasMaxLength(200);
+            e.Property(j => j.Expression).IsRequired().HasMaxLength(64);
+            e.Property(j => j.Prompt).HasColumnType("text").IsRequired();
         });
     }
 }
