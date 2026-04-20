@@ -21,7 +21,7 @@ Kubernetes-native platform for running autonomous AI agents. Single-tenant, self
 | `apps/dashboard/` | The product — operators manage agents, skills, providers here | `apps/dashboard/CLAUDE.md` |
 | `apps/backend/` | Central orchestrator — all state, credentials, K8s control, LLM proxy | `apps/backend/CLAUDE.md` |
 | `apps/website/` | Public landing page + changelog — no backend, pure marketing | `apps/website/CLAUDE.md` |
-| `packages/agent-core/` | Rust agent binary — runs inside each K8s pod (1.0 rewrite) | `packages/agent-core/CLAUDE.md` |
+| `packages/pod-executor/` | Go PTY-over-WebSocket — bash execution engine in agent pods | `packages/pod-executor/CLAUDE.md` |
 | `packages/skills/` | First-party TypeScript skill packages | `packages/skills/CLAUDE.md` |
 | `packages/skill-sdk/` | `@harro/skill-sdk` — `defineSkill`, Zod, type interfaces | `packages/skill-sdk/CLAUDE.md` |
 | `packages/skill-runtime/` | Node.js service that executes skills and serves the HTTP skill API | `packages/skill-runtime/CLAUDE.md` |
@@ -42,14 +42,13 @@ Browser
               ├─► K8s API        Spawns/terminates agent pods, reads live pod status
               └─► skill-runtime  Node.js — executes TypeScript skills, exposes HTTP API
 
-backend spawns pods running ──► packages/agent-core/  (Rust binary, image: harkro123/zeroclaw:latest)
-  Pod boots with ZEROCLAW_AGENT_ID only. Calls backend to get everything:
-  provider config, LLM proxy endpoint, GraphQL skill gateway, and the user-supplied systemPrompt.
+backend spawns pods running ──► packages/pod-executor/  (Go binary, image: harkro123/eaos-pod-executor:latest)
+  Pod boots with AGENT_TOKEN only. Exposes a bash PTY over WebSocket on port 42617.
+  Backend connects per-turn, sends bash commands, receives streamed output.
+  No LLM calls, no prompt composition, no memory — pure OS execution.
 
-  Personality `.md` templates (SOUL.md, IDENTITY.md, AGENTS.md, BOOTSTRAP.md, ...) are embedded
-  in the agent-core binary via `include_str!` and seeded locally to the pod's PVC on first boot.
-  Backend ships `systemPrompt` only; the pod substitutes it into BOOTSTRAP.md at seed time.
-  There is no shared vault — no CouchDB, no cross-agent personality store.
+  Personality files and memory are stored in Postgres, composed by the backend.
+  The agent turn loop runs in the backend as an async Task.
 
 apps/website/    Next.js — public landing page + /changelog. No backend connection. No auth.
 ```
@@ -84,7 +83,7 @@ No manual build or deploy commands ever.
 | `deploy-backend-prod.yml` | `apps/backend/**`, `k8s/backend.yaml` | Tests → `harkro123/eaos-backend:latest` | `kubectl rollout restart deployment/eaos-backend-prod` |
 | `deploy-dashboard-prod.yml` | `apps/dashboard/**`, `k8s/frontend.yaml` | `harkro123/eaos-frontend:latest` | `kubectl rollout restart deployment/eaos-frontend-prod` |
 | `deploy-website-prod.yml` | `apps/website/**`, `changelog/**`, `k8s/website.yaml` | `harkro123/eaos-website:latest` | `kubectl rollout restart deployment/eaos-website-prod` |
-| `build-zeroclaw-image.yml` | `packages/agent-core/**` | `harkro123/zeroclaw:latest` | No deploy — new pods pick up `:latest` on next spawn |
+| `build-pod-executor.yml` | `packages/pod-executor/**` | `harkro123/eaos-pod-executor:latest` | No deploy — new pods pick up `:latest` on next spawn |
 | `build-skill-runtime.yml` | `packages/skill-runtime/**`, `packages/skill-sdk/**`, `packages/skills/**` | `harkro123/eaos-skill-runtime:latest` | Rollout restart + seed manifests to backend DB via `POST /api/internal/seed-manifests` |
 | `publish-skill-sdk.yml` | `packages/skill-sdk/**` | — | npm publish `@harro/skill-sdk` |
 | `sync-skill-repos.yml` | `packages/skills/**` | — | Syncs first-party skills to their individual repos |

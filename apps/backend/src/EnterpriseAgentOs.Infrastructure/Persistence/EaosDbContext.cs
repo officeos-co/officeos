@@ -28,6 +28,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentTemplateRecord> AgentTemplates => Set<AgentTemplateRecord>();
     public DbSet<OrganizationRecord> Organizations => Set<OrganizationRecord>();
     public DbSet<OrgMemberRecord> OrgMembers => Set<OrgMemberRecord>();
+    public DbSet<AgentMemoryRecord> AgentMemories => Set<AgentMemoryRecord>();
+    public DbSet<AgentPersonalityRecord> AgentPersonalities => Set<AgentPersonalityRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -247,6 +249,28 @@ public sealed class EaosDbContext : DbContext
             e.Property(m => m.Email).IsRequired().HasMaxLength(256);
             e.Property(m => m.Role).IsRequired().HasMaxLength(16);
             e.Property(m => m.Status).IsRequired().HasMaxLength(16);
+        });
+
+        modelBuilder.Entity<AgentMemoryRecord>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Key).HasMaxLength(512).IsRequired();
+            e.Property(m => m.Content).HasColumnType("text").IsRequired();
+            e.HasIndex(m => new { m.AgentId, m.Key }).IsUnique();
+            e.HasOne(m => m.Agent).WithMany()
+                .HasForeignKey(m => m.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentPersonalityRecord>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.FileName).HasMaxLength(128).IsRequired();
+            e.Property(p => p.Content).HasColumnType("text").IsRequired();
+            e.HasIndex(p => new { p.AgentId, p.FileName }).IsUnique();
+            e.HasOne(p => p.Agent).WithMany()
+                .HasForeignKey(p => p.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

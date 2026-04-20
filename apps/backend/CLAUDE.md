@@ -23,6 +23,7 @@ EnterpriseAgentOs.sln
 │
 ├── src/EnterpriseAgentOs.Application/     ← References: Domain only (+ Infrastructure pragmatically)
 │   ├── Services/<Domain>/                  Business logic implementations
+│   │   └── Agents/                         AgentTurnService, PodConnection, PromptComposer
 │   ├── DTOs/<Domain>/                      Application-layer DTOs
 │   └── GlobalUsings.cs
 │

@@ -27,6 +27,20 @@ public sealed class AgentSkillRepository : IAgentSkillRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<SkillRecord>> ListSkillDetailsForAgentAsync(Guid agentId, CancellationToken ct = default)
+    {
+        var skillNames = await _db.AgentSkills
+            .AsNoTracking()
+            .Where(a => a.AgentId == agentId)
+            .Select(a => a.SkillName)
+            .ToListAsync(ct);
+
+        return await _db.Skills
+            .AsNoTracking()
+            .Where(s => skillNames.Contains(s.Name))
+            .ToListAsync(ct);
+    }
+
     public async Task AssignAsync(Guid agentId, IEnumerable<string> skillNames, CancellationToken ct = default)
     {
         var existing = await _db.AgentSkills

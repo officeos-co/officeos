@@ -4,7 +4,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
 {
     private const int ZeroclawPort = 42617;
     private const string StorageSize = "1Gi";
-    private const string WorkspacePath = "/zeroclaw-data";
+    private const string WorkspacePath = "/home";
 
     private readonly IKubernetes _k8s;
     private readonly ILogger<KubernetesAgentDeployer> _logger;
@@ -30,7 +30,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
     private static string PodName(Guid id) => $"zeroclaw-{id.ToString("N").Substring(0, 8)}";
     private static string PvcName(Guid id) => $"zeroclaw-data-{id.ToString("N").Substring(0, 8)}";
     private string ServiceUrl(Guid id) =>
-        $"ws://{PodName(id)}.{_namespace}.svc.cluster.local:{ZeroclawPort}/ws/chat";
+        $"ws://{PodName(id)}.{_namespace}.svc.cluster.local:{ZeroclawPort}/ws";
 
     public async Task<AgentDeployment> DeployAsync(
         Guid agentId,
@@ -65,8 +65,7 @@ public sealed class KubernetesAgentDeployer : IAgentDeployer
         // Two env vars — the only runtime inputs the pod accepts (see API.md §2).
         var env = new List<V1EnvVar>
         {
-            new("ZEROCLAW_AGENT_ID", agentId.ToString()),
-            new("BACKEND_URL", $"http://eaos-backend-prod.{_namespace}.svc.cluster.local:8000"),
+            new("AGENT_TOKEN", agentId.ToString()),
         };
 
         var podManifest = new V1Pod

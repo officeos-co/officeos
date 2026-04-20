@@ -1,0 +1,36 @@
+name: Build Pod Executor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/pod-executor/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Test
+        working-directory: packages/pod-executor
+        run: go test -v ./...
+
+      - name: Build
+        working-directory: packages/pod-executor
+        run: CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o pod-executor .
+
+      - uses: docker/login-action@v3
+        with:
+          username: harkro123
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: packages/pod-executor
+          push: true
+          tags: harkro123/eaos-pod-executor:latest

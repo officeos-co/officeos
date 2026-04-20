@@ -18,6 +18,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
         services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
+        services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();
+        services.AddScoped<IAgentPersonalityRepository, AgentPersonalityRepository>();
         return services;
     }
 
@@ -43,6 +45,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGdprService, Application.Services.Auth.GdprService>();
         services.AddScoped<IAgentTemplateService, Application.Services.AgentTemplates.AgentTemplateService>();
         services.AddScoped<IAgentLogService, Application.Services.AgentLogs.AgentLogService>();
+        services.AddScoped<Application.Services.Agents.PromptComposer>();
+        services.AddScoped<Application.Services.Agents.AgentTurnService>();
         return services;
     }
 

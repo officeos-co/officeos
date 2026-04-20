@@ -8,6 +8,7 @@ public sealed class AgentService : IAgentService
     private readonly IPostHogService _analytics;
     private readonly ILogger<AgentService> _logger;
     private readonly IMemoryCache _cache;
+    private readonly IAgentPersonalityRepository _personalityRepo;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     private const string AgentListCacheKey = "agents:list";
@@ -19,7 +20,8 @@ public sealed class AgentService : IAgentService
         IProviderService providerService,
         IPostHogService analytics,
         ILogger<AgentService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IAgentPersonalityRepository personalityRepo)
     {
         _repository = repository;
         _deployer = deployer;
@@ -27,6 +29,7 @@ public sealed class AgentService : IAgentService
         _analytics = analytics;
         _logger = logger;
         _cache = cache;
+        _personalityRepo = personalityRepo;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
@@ -95,6 +98,12 @@ public sealed class AgentService : IAgentService
         record.ValidateAndSetModel(request.Model);
 
         await _repository.AddAsync(record, ct);
+
+        // Seed default personality files — domain owns the content and validation.
+        var defaults = AgentPersonalityRecord.CreateDefaults(record.Id, record.Name);
+        foreach (var personality in defaults)
+            await _personalityRepo.UpsertAsync(record.Id, personality.FileName, personality.Content, ct);
+
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
             record.Id, record.Name, record.Provider, record.Model);
 

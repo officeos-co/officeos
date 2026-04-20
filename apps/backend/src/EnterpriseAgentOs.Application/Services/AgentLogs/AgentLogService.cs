@@ -1,3 +1,5 @@
+using EnterpriseAgentOs.Application.Services.Agents;
+
 namespace EnterpriseAgentOs.Application.Services.AgentLogs;
 
 public sealed class AgentLogService : IAgentLogService
@@ -12,19 +14,22 @@ public sealed class AgentLogService : IAgentLogService
     private readonly IAgentRepository _agents;
     private readonly IPostHogService _analytics;
     private readonly ILogger<AgentLogService> _logger;
+    private readonly AgentTurnService _turnService;
 
     public AgentLogService(
         IAgentLogRepository repo,
         ITopicEventSender sender,
         IAgentRepository agents,
         IPostHogService analytics,
-        ILogger<AgentLogService> logger)
+        ILogger<AgentLogService> logger,
+        AgentTurnService turnService)
     {
         _repo = repo;
         _sender = sender;
         _agents = agents;
         _analytics = analytics;
         _logger = logger;
+        _turnService = turnService;
     }
 
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
@@ -48,96 +53,39 @@ public sealed class AgentLogService : IAgentLogService
 
     public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
     {
-        var agent = await _agents.GetAsync(agentId, ct)
-            ?? throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage($"Agent '{agentId}' not found.")
-                    .SetCode("NOT_FOUND")
-                    .Build());
+        var agent = await _agents.GetAsync(agentId, ct);
+        if (agent is null) throw new InvalidOperationException($"Agent {agentId} not found");
 
-        var record = new AgentLogRecord
+        var correlationId = Guid.NewGuid().ToString("N");
+
+        var record = await AppendAsync(new AgentLogRecord
         {
-            AgentId = agent.Id,
-            Time = DateTime.UtcNow,
+            AgentId = agentId,
             Type = AgentLogType.MessageIn,
             Content = content,
-            CorrelationId = Guid.NewGuid().ToString(),
-        };
+            CorrelationId = correlationId,
+            Time = DateTime.UtcNow,
+        });
 
-        var saved = await AppendAsync(record, ct);
-
-        await KickAgentPodAsync(agent, content, record.CorrelationId!, ct);
-
-        await _analytics.CaptureAsync(
-            userId.ToString(),
-            "agent_message_sent",
-            new Dictionary<string, object?>
-            {
-                ["agent_id"] = agentId,
-                ["content_length"] = content?.Length ?? 0,
-            },
-            ct);
-
-        return saved;
-    }
-
-    // ── Pod kick ─────────────────────────────────────────────────────────
-
-    private async Task KickAgentPodAsync(
-        AgentRecord agent,
-        string content,
-        string correlationId,
-        CancellationToken ct)
-    {
         if (string.IsNullOrEmpty(agent.PodName))
         {
-            _logger.LogWarning("Agent {AgentId} has no pod deployed — message queued only", agent.Id);
-            await AppendAsync(new AgentLogRecord
-            {
-                AgentId = agent.Id,
-                Time = DateTime.UtcNow,
-                Type = AgentLogType.System,
-                Content = "Agent pod not deployed, message queued",
-                CorrelationId = correlationId,
-            }, ct);
-            return;
+            _logger.LogWarning("Agent {AgentId} has no pod, message queued only", agentId);
+            return record;
         }
 
-        try
+        _ = Task.Run(async () =>
         {
-            using var ws = new System.Net.WebSockets.ClientWebSocket();
-            var uri = new Uri($"ws://{agent.PodName}.default.svc.cluster.local:42617/ws?token={agent.Id}");
-            using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            connectCts.CancelAfter(TimeSpan.FromSeconds(5));
-            await ws.ConnectAsync(uri, connectCts.Token);
-
-            var payload = JsonSerializer.Serialize(new
+            try
             {
-                type = "user_message",
-                text = content,
-                id = correlationId,
-            });
-            var bytes = Encoding.UTF8.GetBytes(payload);
-            await ws.SendAsync(
-                new ArraySegment<byte>(bytes),
-                System.Net.WebSockets.WebSocketMessageType.Text,
-                endOfMessage: true,
-                ct);
-
-            await ws.CloseOutputAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, null, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to deliver message to agent pod {PodName}", agent.PodName);
-            await AppendAsync(new AgentLogRecord
+                await _turnService.RunTurnAsync(agentId, content, correlationId, CancellationToken.None);
+            }
+            catch (Exception ex)
             {
-                AgentId = agent.Id,
-                Time = DateTime.UtcNow,
-                Type = AgentLogType.Error,
-                Content = $"Failed to deliver message to agent pod: {ex.Message}",
-                CorrelationId = correlationId,
-            }, ct);
-        }
+                _logger.LogError(ex, "Turn failed for agent {AgentId}", agentId);
+            }
+        }, CancellationToken.None);
+
+        return record;
     }
 
     // ── Audit (merged from Entities/Audit) ───────────────────────────────
