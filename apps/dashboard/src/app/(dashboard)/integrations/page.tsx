@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useIntegrations, useInstallSkill, CredentialDialog } from "@/features/agents"
+import { useIntegrations, useInstallSkill, CredentialDialog, IntegrationCard } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SearchIcon, HeartIcon, PlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, AlertCircleIcon } from "lucide-react"
+import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZES = [25, 50, 100] as const
@@ -56,24 +56,6 @@ export default function IntegrationsPage() {
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   const installedCount = integrations.filter((i) => i.installed).length
-
-  async function handleAdd(slug: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    await installSkill(slug)
-    trackSkillInstalled(slug)
-  }
-
-  async function handleInstallAndConfigure(slug: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    await installSkill(slug)
-    trackSkillInstalled(slug)
-    setConfigSlug(slug)
-  }
-
-  function handleConfigure(slug: string, e: React.MouseEvent) {
-    e.stopPropagation()
-    setConfigSlug(slug)
-  }
 
   return (
     <>
@@ -143,53 +125,14 @@ export default function IntegrationsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {paged.map((integration) => (
-              <button
+              <IntegrationCard
                 key={integration.slug}
-                type="button"
+                integration={integration}
+                variant="marketplace"
+                onInstall={() => { installSkill(integration.slug); trackSkillInstalled(integration.slug) }}
+                onConfigure={() => setConfigSlug(integration.slug)}
                 onClick={() => router.push(`/integrations/${integration.slug}`)}
-                className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="size-8 shrink-0 [&>svg]:size-8" dangerouslySetInnerHTML={{ __html: integration.logo }} />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-medium text-sm">{integration.name}</span>
-                  </div>
-                  {integration.installed ? (
-                    integration.credentialFields.length > 0 && !integration.configured ? (
-                      <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={(e) => handleConfigure(integration.slug, e)}>
-                        <AlertCircleIcon className="size-3" /> Configure
-                      </Button>
-                    ) : (
-                      <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
-                        <CheckIcon className="size-3" /> Installed
-                      </span>
-                    )
-                  ) : integration.credentialFields.length > 0 ? (
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => handleInstallAndConfigure(integration.slug, e)}>
-                      <PlusIcon className="size-3" /> Install
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={(e) => handleAdd(integration.slug, e)}>
-                      <PlusIcon className="size-3" /> Add
-                    </Button>
-                  )}
-                </div>
-                <p className="text-sm line-clamp-2 text-muted-foreground">{integration.description}</p>
-                {integration.categories.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {integration.categories.map((cat) => (
-                      <span key={cat} className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{integration.tools.length} tools</span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1"><HeartIcon className="size-3" />{integration.likes}</span>
-                </div>
-              </button>
+              />
             ))}
           </div>
         )}

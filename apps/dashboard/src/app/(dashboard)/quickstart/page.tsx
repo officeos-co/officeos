@@ -18,10 +18,12 @@ import {
 } from "@/components/ui/select"
 import { builtInTools, type Tool } from "@/features/agents/data/integrations"
 import { type Channel, type ChannelPermissions } from "@/features/agents/data/channels"
-import { useIntegrations } from "@/features/agents"
-import { useChannels } from "@/features/agents"
-import { useAgentTemplates } from "@/features/agents"
-import { useCreateAgent, useModels } from "@/features/agents"
+import {
+  useIntegrations, useInstallSkill, useSetSkillCredentials,
+  useChannels, useAgentTemplates, useCreateAgent, useModels,
+  CredentialDialog, ChannelOnboardingDialog,
+  IntegrationCard, ChannelCard,
+} from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { type Template } from "@/features/agents/data/agent-templates"
 import {
@@ -31,11 +33,8 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   TerminalIcon,
-  RadioIcon,
   AlertTriangleIcon,
   ExternalLinkIcon,
-  PackageCheckIcon,
-  SettingsIcon,
 } from "lucide-react"
 
 /* ── Permission types ────────────────────────────────────── */
@@ -176,6 +175,10 @@ export default function QuickstartPage() {
   const { createAgent } = useCreateAgent()
   const { models, defaultModelId } = useModels()
   const { trackAgentCreated } = useAnalytics()
+  const installSkill = useInstallSkill()
+  const setSkillCredentials = useSetSkillCredentials()
+  const [configureSlug, setConfigureSlug] = useState<string | null>(null)
+  const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null)
   const [launching, setLaunching] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
@@ -335,31 +338,16 @@ export default function QuickstartPage() {
                 <Link href="/integrations" className="text-xs text-muted-foreground hover:text-foreground">Manage integrations →</Link>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {sortedIntegrations.map((i) => {
-                  const active = selectedIntegrations.has(i.slug)
-                  const needsSetup = i.credentialFields.length > 0 && !i.configured
-                  return (
-                    <button key={i.slug} type="button" onClick={() => toggleIntegration(i.slug)}
-                      className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? (needsSetup ? "border-amber-400 bg-amber-50" : "border-primary bg-primary/5") : "border-border hover:bg-muted/50"}`}>
-                      <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: i.logo }} />
-                      <span className="flex-1 truncate">{i.name}</span>
-                      {i.installed && i.configured && (
-                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
-                          <PackageCheckIcon className="size-3" />
-                          Ready
-                        </span>
-                      )}
-                      {i.installed && !i.configured && (
-                        <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 shrink-0">
-                          <SettingsIcon className="size-3" />
-                          Setup
-                        </span>
-                      )}
-                      {active && needsSetup && <AlertTriangleIcon className="size-3.5 text-amber-500 shrink-0" />}
-                      {active && !needsSetup && <CheckIcon className="size-3.5 text-primary shrink-0" />}
-                    </button>
-                  )
-                })}
+                {sortedIntegrations.map((i) => (
+                  <IntegrationCard
+                    key={i.slug}
+                    integration={i}
+                    selected={selectedIntegrations.has(i.slug)}
+                    onInstall={() => installSkill(i.slug)}
+                    onConfigure={() => setConfigureSlug(i.slug)}
+                    onToggle={() => toggleIntegration(i.slug)}
+                  />
+                ))}
               </div>
             </div>
 
@@ -373,22 +361,15 @@ export default function QuickstartPage() {
                 <Link href="/channels" className="text-xs text-muted-foreground hover:text-foreground">Manage channels →</Link>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {sortedChannels.map((c) => {
-                  const active = selectedChannels.has(c.slug)
-                  return (
-                    <button key={c.slug} type="button" onClick={() => toggleChannel(c.slug)}
-                      className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
-                      <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: c.logo }} />
-                      <span className="flex-1 truncate">{c.name}</span>
-                      {c.added && (
-                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
-                          Connected
-                        </span>
-                      )}
-                      {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
-                    </button>
-                  )
-                })}
+                {sortedChannels.map((c) => (
+                  <ChannelCard
+                    key={c.slug}
+                    channel={c}
+                    selected={selectedChannels.has(c.slug)}
+                    onConnect={() => setOnboardChannel(c)}
+                    onToggle={() => toggleChannel(c.slug)}
+                  />
+                ))}
               </div>
             </div>
 
@@ -508,6 +489,36 @@ export default function QuickstartPage() {
           </div>
         </div>
       </div>
+
+      {/* Credential dialog for inline configure */}
+      {configureSlug && (() => {
+        const i = integrations.find((x) => x.slug === configureSlug)
+        if (!i) return null
+        return (
+          <CredentialDialog
+            open
+            onOpenChange={(open) => { if (!open) setConfigureSlug(null) }}
+            name={i.name}
+            slug={i.slug}
+            logo={i.logo}
+            credentials={i.credentialFields}
+            onSave={(values) => {
+              setSkillCredentials(i.slug, values)
+              setConfigureSlug(null)
+            }}
+          />
+        )
+      })()}
+
+      {/* Channel onboarding dialog for inline connect */}
+      {onboardChannel && (
+        <ChannelOnboardingDialog
+          open
+          onOpenChange={(open) => { if (!open) setOnboardChannel(null) }}
+          channel={onboardChannel}
+          onComplete={() => setOnboardChannel(null)}
+        />
+      )}
     </>
   )
 }
