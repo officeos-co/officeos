@@ -10,10 +10,13 @@
     <ContainerRepository>harkro123/eaos-backend</ContainerRepository>
     <ContainerImageTag>latest</ContainerImageTag>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0</ContainerBaseImage>
-    <ContainerPort Include="8000" />
+  </PropertyGroup>
+
+  <ItemGroup Label="Container config">
+    <ContainerPort Include="8000" Type="tcp" />
     <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://+:8000" />
     <ContainerEnvironmentVariable Include="ASPNETCORE_ENVIRONMENT" Value="Production" />
-  </PropertyGroup>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="HotChocolate.AspNetCore" Version="14.3.0" />
