@@ -49,7 +49,6 @@ public static class TestHelpers
 
         var response = await client.PostAsJsonAsync(DashboardGraphQLPath, payload);
         // Don't throw on non-success — caller inspects body.
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return doc.RootElement.Clone();
     }
 
@@ -125,7 +124,6 @@ public static class TestHelpers
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var tokenHash = Middleware.SessionAuthMiddleware.HashToken(sessionToken);
 
-        using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
 
         var user = new UserRecord

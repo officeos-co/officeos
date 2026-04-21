@@ -1,7 +1,6 @@
 namespace EnterpriseAgentOs.Api.Tests.Domain;
 
 using EnterpriseAgentOs.Domain.Models;
-using EnterpriseAgentOs.Domain.DTOs.Billing;
 
 /// <summary>
 /// Tests for business rules that belong on Domain models — TDD RED phase.

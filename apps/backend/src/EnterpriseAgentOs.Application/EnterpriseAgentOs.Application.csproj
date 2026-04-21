@@ -19,4 +19,8 @@
     <PackageReference Include="HotChocolate.AspNetCore" Version="14.3.0" />
     <PackageReference Include="Stripe.net" Version="51.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EnterpriseAgentOs.Api" />
+    <InternalsVisibleTo Include="EnterpriseAgentOs.Api.Tests" />
+  </ItemGroup>
 </Project>

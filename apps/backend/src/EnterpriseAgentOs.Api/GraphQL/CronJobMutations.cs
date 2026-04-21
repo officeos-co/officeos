@@ -1,0 +1,44 @@
+using EnterpriseAgentOs.Api.GraphQL;
+using EnterpriseAgentOs.Domain.Interfaces;
+
+namespace EnterpriseAgentOs.Api.GraphQL;
+
+[ExtendObjectType(typeof(GraphQLMutations))]
+public class CronJobMutations
+{
+    public async Task<CronJobPayload> CreateCronJob(
+        CreateCronJobInput input,
+        IResolverContext context,
+        [Service] IAgentCronJobRepository repo,
+        CancellationToken ct)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+
+        var record = await repo.CreateAsync(input.AgentId, input.Name, input.Expression, input.Prompt, ct);
+        return new CronJobPayload(
+            record.Id, record.AgentId, record.Name, record.Expression, record.Prompt,
+            record.Enabled, record.LastRunAt, record.NextRunAt, record.CreatedAt);
+    }
+
+    public async Task<bool> SetCronJobEnabled(
+        Guid id,
+        bool enabled,
+        IResolverContext context,
+        [Service] IAgentCronJobRepository repo,
+        CancellationToken ct)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        await repo.SetEnabledAsync(id, enabled, ct);
+        return true;
+    }
+
+    public async Task<bool> DeleteCronJob(
+        Guid id,
+        IResolverContext context,
+        [Service] IAgentCronJobRepository repo,
+        CancellationToken ct)
+    {
+        _ = Middleware.DashboardAuthContextExtensions.GetUser(context);
+        return await repo.DeleteAsync(id, ct);
+    }
+}

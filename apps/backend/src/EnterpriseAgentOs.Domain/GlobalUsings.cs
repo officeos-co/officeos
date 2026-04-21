@@ -1,11 +1,4 @@
 global using System.ComponentModel.DataAnnotations;
 global using System.Text.Json;
 global using EnterpriseAgentOs.Domain.Models;
-global using EnterpriseAgentOs.Domain.DTOs.Agents;
-global using EnterpriseAgentOs.Domain.DTOs.Skills;
-global using EnterpriseAgentOs.Domain.DTOs.Providers;
-global using EnterpriseAgentOs.Domain.DTOs.AgentTemplates;
-global using EnterpriseAgentOs.Domain.DTOs.AgentLogs;
-global using EnterpriseAgentOs.Domain.DTOs.Auth;
-global using EnterpriseAgentOs.Domain.DTOs.Billing;
 global using EnterpriseAgentOs.Domain.Primitives;

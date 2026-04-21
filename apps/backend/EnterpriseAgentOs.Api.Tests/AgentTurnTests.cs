@@ -1,6 +1,5 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Application.Services.Agents;
-using EnterpriseAgentOs.Application.Services.Agents.Tools;
+using EnterpriseAgentOs.Application.Services;
 using EnterpriseAgentOs.Domain.Models;
 using EnterpriseAgentOs.Domain.Services;
 

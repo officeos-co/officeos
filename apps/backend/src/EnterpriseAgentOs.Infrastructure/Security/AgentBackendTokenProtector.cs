@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Infrastructure.Security;
 
-public sealed class AgentBackendTokenProtector
+internal sealed class AgentBackendTokenProtector
 {
     private const string Purpose = "eaos.agent.backend_token.v1";
     private readonly IDataProtector _dataProtector;

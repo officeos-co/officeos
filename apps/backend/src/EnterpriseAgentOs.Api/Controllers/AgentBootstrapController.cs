@@ -41,7 +41,7 @@ public sealed class AgentBootstrapController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<GraphQL.Types.AgentBootstrapPayload>> GetBootstrap(
+    public async Task<ActionResult<GraphQL.AgentBootstrapPayload>> GetBootstrap(
         Guid id,
         CancellationToken ct)
     {
@@ -73,28 +73,28 @@ public sealed class AgentBootstrapController : ControllerBase
         var gatewayHost = "0.0.0.0";
         var gatewayPort = 42617;
 
-        var payload = new GraphQL.Types.AgentBootstrapPayload(
+        var payload = new GraphQL.AgentBootstrapPayload(
             AgentId: id,
             DisplayName: agent.Name,
             SystemPrompt: record.Prompt,
-            Provider: new GraphQL.Types.AgentProviderBootstrap(
+            Provider: new GraphQL.AgentProviderBootstrap(
                 Name: agent.Provider,
                 Model: agent.Model ?? "auto",
                 ApiUrl: proxyUrl,
                 TokenRef: null),
-            Proxy: new GraphQL.Types.AgentProxyBootstrap(
+            Proxy: new GraphQL.AgentProxyBootstrap(
                 Url: proxyUrl,
                 Token: null),
-            Gateway: new GraphQL.Types.AgentGatewayBootstrap(
+            Gateway: new GraphQL.AgentGatewayBootstrap(
                 Host: gatewayHost,
                 Port: gatewayPort,
                 TlsCertRef: null),
             Skills: skills
-                .Select(n => new GraphQL.Types.AgentInstalledSkillSummary(n))
+                .Select(n => new GraphQL.AgentInstalledSkillSummary(n))
                 .ToList(),
-            ToolPermissions: new GraphQL.Types.AgentToolPermissionsBootstrap(
+            ToolPermissions: new GraphQL.AgentToolPermissionsBootstrap(
                 permRows
-                    .Select(p => new GraphQL.Types.AgentBootstrapToolPermission(
+                    .Select(p => new GraphQL.AgentBootstrapToolPermission(
                         Skill: p.SkillName,
                         Tool: p.ToolName,
                         Mode: p.Permission.ToString().ToLowerInvariant()))

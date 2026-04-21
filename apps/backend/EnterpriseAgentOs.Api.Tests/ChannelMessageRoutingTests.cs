@@ -81,7 +81,6 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         _fakeAgent.SetResponse("Hello from agent");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
 
-        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
         var logRepo = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
 
@@ -102,7 +101,6 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         _fakeAgent.SetResponse("Agent response text");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
 
-        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
         var logRepo = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
 
@@ -123,7 +121,6 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
         _fakeAgent.SetResponse("Hello from agent");
         var (connectionId, agentId) = await SeedChannelBindingAsync();
 
-        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var router = scope.ServiceProvider.GetRequiredService<ChannelMessageRouter>();
         var logRepo = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
 
@@ -142,7 +139,6 @@ public sealed class ChannelMessageRoutingTests : IClassFixture<Infrastructure.Cu
     [Fact]
     public async Task RouteMessage_PolicyBlocked_NoLogsCreated()
     {
-        using var scope = _customWebApplicationFactory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
 
         var user = new UserRecord

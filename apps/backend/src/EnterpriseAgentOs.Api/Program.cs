@@ -34,16 +34,9 @@ builder.Services
     .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir))
     .SetApplicationName("EnterpriseAgentOs.Api");
 
-// Database
-builder.Services.AddDbContext<EaosDbContext>(options =>
-    options.UseNpgsql(ValueManager.GetValue<string>("ConnectionString")));
-
-// DI — services, repositories, protectors, HTTP clients
-EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddHttpClients(
-    EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddProtectors(
-        EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddBackgroundServices(
-            EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddApplicationServices(
-                EnterpriseAgentOs.Api.Extensions.ServiceCollectionExtensions.AddRepositories(builder.Services)))));
+// DI — each layer registers its own services
+builder.Services.AddInfrastructure(ValueManager.GetValue<string>("ConnectionString"));
+builder.Services.AddApplication();
 
 // Infrastructure configs — bind from nested appsettings sections
 var envSection = ValueManager.GetConfiguration().GetSection(ValueManager.GetEnvironmentName());
@@ -126,14 +119,14 @@ builder.Services.AddSingleton(postHogConfig);
 //   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
 //   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<EnterpriseAgentOs.Api.GraphQL.SkillGateway.SkillTypeModule>();
+builder.Services.AddSingleton<EnterpriseAgentOs.Api.GraphQL.SkillTypeModule>();
 
 builder.Services
     .AddGraphQLServer("agent")
-    .AddQueryType<EnterpriseAgentOs.Api.GraphQL.SkillGateway.Query>()
-    .AddMutationType<EnterpriseAgentOs.Api.GraphQL.SkillGateway.AgentSchemaMutations>()
-    .AddTypeModule<EnterpriseAgentOs.Api.GraphQL.SkillGateway.SkillTypeModule>()
-    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.GraphQL.SkillGateway.AgentAuthInterceptor>()
+    .AddQueryType<EnterpriseAgentOs.Api.GraphQL.Query>()
+    .AddMutationType<EnterpriseAgentOs.Api.GraphQL.AgentSchemaMutations>()
+    .AddTypeModule<EnterpriseAgentOs.Api.GraphQL.SkillTypeModule>()
+    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.GraphQL.AgentAuthInterceptor>()
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
 
@@ -168,9 +161,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
     var providerRepo = scope.ServiceProvider.GetRequiredService<IProviderRepository>();
-    await EnterpriseAgentOs.Application.Services.Providers.ProviderSeeder.SeedAsync(providerRepo);
-    await EnterpriseAgentOs.Application.Services.Skills.SkillSeeder.SeedAsync(scope.ServiceProvider);
-    await EnterpriseAgentOs.Application.Services.AgentTemplates.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
+    await EnterpriseAgentOs.Application.Services.ProviderSeeder.SeedAsync(providerRepo);
+    await EnterpriseAgentOs.Application.Services.SkillSeeder.SeedAsync(scope.ServiceProvider);
+    await EnterpriseAgentOs.Application.Services.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())
