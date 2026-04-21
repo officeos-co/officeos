@@ -42,34 +42,14 @@ public sealed class SkillExecTool : IAgentTool
         if (command.Trim() is "--help" or "")
             return GetHelp();
 
-        // Parse: skill action --arg1 val1 --arg2 val2
-        var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2)
+        var parsed = SkillExecParser.Parse(command);
+        if (parsed is null)
             return new ToolResult(false, "", "Usage: skill_exec <skill> <action> [--arg value ...]");
 
-        var skillName = parts[0];
-        var action = parts[1];
+        var (skillName, action, cliArgs) = parsed.Value;
 
         if (action == "--help")
             return GetSkillHelp(skillName);
-
-        // Parse CLI args
-        var cliArgs = new Dictionary<string, object>();
-        for (var i = 2; i < parts.Length; i++)
-        {
-            if (parts[i].StartsWith("--") && i + 1 < parts.Length)
-            {
-                var key = parts[i][2..];
-                var value = parts[++i];
-                // Coerce types: int, bool, or string
-                if (int.TryParse(value, out var intVal))
-                    cliArgs[key] = intVal;
-                else if (bool.TryParse(value, out var boolVal))
-                    cliArgs[key] = boolVal;
-                else
-                    cliArgs[key] = value;
-            }
-        }
 
         return await DispatchAsync(skillName, action, cliArgs, ct);
     }

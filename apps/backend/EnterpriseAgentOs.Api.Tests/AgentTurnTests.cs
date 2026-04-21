@@ -434,4 +434,144 @@ public class AgentTurnTests
         Assert.Equal("BOOTSTRAP.md", ordered[6].FileName);
         Assert.Equal("CUSTOM.md", ordered[7].FileName); // Unknown files come last
     }
+
+    // ── SkillExecTool CLI parsing ─────────────────────────────────────────
+
+    [Fact]
+    public void CliParser_Strips_Quotes_From_Values()
+    {
+        var parsed = SkillExecParser.Parse(
+            "google-calendar list_events --time_min \"2026-04-21T00:00:00Z\" --time_max \"2026-04-21T23:59:59Z\"");
+
+        Assert.NotNull(parsed);
+        Assert.Equal("google-calendar", parsed.Value.Skill);
+        Assert.Equal("list_events", parsed.Value.Action);
+        Assert.Equal("2026-04-21T00:00:00Z", parsed.Value.Args["time_min"]);
+        Assert.Equal("2026-04-21T23:59:59Z", parsed.Value.Args["time_max"]);
+    }
+
+    [Fact]
+    public void CliParser_Handles_Quoted_Values_With_Spaces()
+    {
+        var parsed = SkillExecParser.Parse(
+            "notion search --query \"meeting notes for monday\"");
+
+        Assert.NotNull(parsed);
+        Assert.Equal("notion", parsed.Value.Skill);
+        Assert.Equal("search", parsed.Value.Action);
+        Assert.Equal("meeting notes for monday", parsed.Value.Args["query"]);
+    }
+
+    [Fact]
+    public void CliParser_Handles_Single_Quoted_Values()
+    {
+        var parsed = SkillExecParser.Parse(
+            "notion search --query 'weekly standup'");
+
+        Assert.NotNull(parsed);
+        Assert.Equal("weekly standup", parsed.Value.Args["query"]);
+    }
+
+    [Fact]
+    public void CliParser_Coerces_Int_And_Bool()
+    {
+        var parsed = SkillExecParser.Parse(
+            "github list_issues --max_results 25 --include_closed true");
+        Assert.NotNull(parsed);
+        var args = parsed.Value.Args;
+
+        Assert.Equal(25, args["max_results"]);
+        Assert.Equal(true, args["include_closed"]);
+    }
+
+    [Fact]
+    public void CliParser_Returns_Null_For_Too_Few_Parts()
+    {
+        var result = SkillExecParser.Parse("onlyskill");
+        Assert.Null(result);
+    }
+
+    // ── ConversationHistory Prune: multi-tool-call orphaning ──────────────
+
+    [Fact]
+    public void History_Prune_Does_Not_Orphan_Multi_ToolCall_Results()
+    {
+        var history = new ConversationHistory();
+
+        // System message
+        history.Push(new ChatMessage { Role = "system", Content = "You are a test agent." });
+
+        // Old assistant with 3 tool calls
+        history.Push(new ChatMessage
+        {
+            Role = "assistant",
+            Content = "",
+            ToolCalls = new List<ChatToolCall>
+            {
+                new() { Id = "call_1", Name = "skill_exec", Arguments = "{}" },
+                new() { Id = "call_2", Name = "skill_exec", Arguments = "{}" },
+                new() { Id = "call_3", Name = "skill_exec", Arguments = "{}" },
+            }
+        });
+        history.Push(new ChatMessage { Role = "tool", Content = "result 1", ToolCallId = "call_1" });
+        history.Push(new ChatMessage { Role = "tool", Content = "result 2", ToolCallId = "call_2" });
+        history.Push(new ChatMessage { Role = "tool", Content = "result 3", ToolCallId = "call_3" });
+
+        // Recent messages to keep
+        history.Push(new ChatMessage { Role = "user", Content = "What happened?" });
+        history.Push(new ChatMessage { Role = "assistant", Content = "Here's what I found." });
+
+        history.Prune(maxTokens: 100, keepRecent: 2);
+
+        // After pruning, every tool message must have a preceding assistant with matching tool_calls
+        AssertNoOrphanedToolMessages(history);
+    }
+
+    [Fact]
+    public void History_Phase2_Drop_Does_Not_Orphan_Tool_Messages()
+    {
+        var history = new ConversationHistory();
+
+        history.Push(new ChatMessage { Role = "system", Content = "system" });
+
+        // assistant with tool call
+        history.Push(new ChatMessage
+        {
+            Role = "assistant",
+            Content = "",
+            ToolCalls = new List<ChatToolCall>
+            {
+                new() { Id = "call_a", Name = "shell", Arguments = "{}" },
+            }
+        });
+        history.Push(new ChatMessage { Role = "tool", Content = new string('x', 5000), ToolCallId = "call_a" });
+
+        // Recent
+        history.Push(new ChatMessage { Role = "user", Content = "Done?" });
+
+        history.Prune(maxTokens: 50, keepRecent: 1);
+
+        AssertNoOrphanedToolMessages(history);
+    }
+
+    private static void AssertNoOrphanedToolMessages(ConversationHistory history)
+    {
+        var msgs = history.Messages;
+        for (var i = 0; i < msgs.Count; i++)
+        {
+            if (msgs[i].Role != "tool") continue;
+            var toolCallId = msgs[i].ToolCallId;
+            // There must be a preceding assistant message that contains this tool call ID
+            var found = false;
+            for (var j = i - 1; j >= 0; j--)
+            {
+                if (msgs[j].Role == "assistant" && msgs[j].ToolCalls?.Any(tc => tc.Id == toolCallId) == true)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            Assert.True(found, $"Orphaned tool message at index {i} with ToolCallId '{toolCallId}' — no preceding assistant with matching tool_calls.");
+        }
+    }
 }
