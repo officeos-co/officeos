@@ -79,14 +79,27 @@ public sealed class AgentTurnService
         var installedSkills = await _agentSkillRepository.ListSkillNamesByAgentAsync(agentId, ct);
         var skillDetails = await _agentSkillRepository.ListSkillDetailsForAgentAsync(agentId, ct);
 
-        // Connect to pod PTY.
+        // Connect to pod PTY — retry until the pod is ready (e.g. bootstrap turn).
         using var pod = new PodConnection();
         var podStart = Stopwatch.GetTimestamp();
-        var podResult = await pod.ConnectAsync(agent.PodName, "default", agentId, ct);
-        if (podResult.IsFailure)
+        const int maxRetries = 12;
+        const int retryDelayMs = 5_000; // 5s between attempts → up to 60s total wait
+        AgentResult<bool> podResult = default;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            log.Error(podResult.Error);
-            return;
+            podResult = await pod.ConnectAsync(agent.PodName, "default", agentId, ct);
+            if (podResult.IsSuccess) break;
+
+            if (attempt == maxRetries)
+            {
+                log.Error(podResult.Error);
+                return;
+            }
+
+            _logger.LogInformation(
+                "Pod not ready for agent {AgentId}, retry {Attempt}/{Max} in {Delay}ms",
+                agentId, attempt, maxRetries, retryDelayMs);
+            await Task.Delay(retryDelayMs, ct);
         }
         log.PodConnected((int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds);
 
