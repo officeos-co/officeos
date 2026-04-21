@@ -2,7 +2,7 @@ namespace EnterpriseAgentOs.Application.Services.Agents;
 
 /// <summary>
 /// Fetches personality files and memories for prompt composition.
-/// The actual prompt assembly happens in AgentTurnService via PromptSections.
+/// The actual prompt assembly happens via Domain.Services.SystemPromptComposer.
 /// </summary>
 public sealed class PromptComposer
 {

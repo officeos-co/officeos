@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,31 +11,41 @@ import {
 } from "@/components/permission-cards";
 import { builtInTools } from "@/features/agents/data/integrations";
 import { type ChannelPermissions } from "@/features/agents/data/channels";
-import { useAgent } from "@/features/agents/api/useAgents";
 import { useIntegrations } from "@/features/agents/api/useIntegrations";
 import { useChannels } from "@/features/agents/api/useChannels";
-import { CheckIcon, TerminalIcon } from "lucide-react";
+import { useAgentBindings } from "@/features/agents/api/useAgentBindings";
+import { CheckIcon, TerminalIcon, PackageCheckIcon } from "lucide-react";
 
 export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
-  const { agent } = useAgent(agentId);
   const { integrations } = useIntegrations();
   const { channels } = useChannels();
-  const current = agent ?? {
-    id: agentId,
-    name: "",
-    model: "",
-    status: "stopped",
-    prompt: "",
-    integrations: [] as string[],
-    channels: [] as string[],
-    createdAt: Date.now(),
-  };
+  const { skillSlugs, channelSlugs, loading: bindingsLoading } =
+    useAgentBindings(agentId);
+  const initializedRef = useRef(false);
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
-    new Set(current.integrations),
+    new Set(),
   );
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
-    new Set(current.channels),
+    new Set(),
   );
+
+  // Sync from backend bindings once loaded
+  useEffect(() => {
+    if (!bindingsLoading && !initializedRef.current) {
+      initializedRef.current = true;
+      if (skillSlugs.length > 0)
+        setSelectedIntegrations(new Set(skillSlugs));
+      if (channelSlugs.length > 0) {
+        setSelectedChannels(new Set(channelSlugs));
+        const cp: Record<string, ChannelPermissions> = {};
+        for (const slug of channelSlugs) {
+          const ch = channels.find((c) => c.slug === slug);
+          if (ch) cp[slug] = { ...ch.defaultPermissions };
+        }
+        setChannelPerms(cp);
+      }
+    }
+  }, [bindingsLoading, skillSlugs, channelSlugs, channels]);
   const [toolPermissions, setToolPermissions] = useState<
     Record<string, ToolPermission>
   >({});
@@ -44,14 +54,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   >({});
   const [channelPerms, setChannelPerms] = useState<
     Record<string, ChannelPermissions>
-  >(() => {
-    const cp: Record<string, ChannelPermissions> = {};
-    for (const slug of current.channels) {
-      const ch = channels.find((c) => c.slug === slug);
-      if (ch) cp[slug] = { ...ch.defaultPermissions };
-    }
-    return cp;
-  });
+  >({});
 
   function toggleIntegration(slug: string) {
     setSelectedIntegrations((prev) => {
@@ -110,6 +113,12 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                   dangerouslySetInnerHTML={{ __html: i.logo }}
                 />
                 <span className="flex-1 truncate">{i.name}</span>
+                {i.installed && (
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
+                    <PackageCheckIcon className="size-3" />
+                    Installed
+                  </span>
+                )}
                 {active && (
                   <CheckIcon className="size-3.5 text-primary shrink-0" />
                 )}
@@ -137,6 +146,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                   dangerouslySetInnerHTML={{ __html: c.logo }}
                 />
                 <span className="flex-1 truncate">{c.name}</span>
+                {c.added && (
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
+                    Connected
+                  </span>
+                )}
                 {active && (
                   <CheckIcon className="size-3.5 text-primary shrink-0" />
                 )}

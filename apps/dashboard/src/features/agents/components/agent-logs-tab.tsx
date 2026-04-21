@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentLogs } from "@/features/analytics/api/useAgentLogs";
 import {
   ArrowDownLeftIcon,
@@ -14,8 +15,34 @@ import {
   XIcon,
 } from "lucide-react";
 
+function LogSkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <tr key={i} className="border-b last:border-0">
+          <td className="px-3 py-2.5">
+            <Skeleton className="size-6 rounded" />
+          </td>
+          <td className="px-3 py-2.5">
+            <Skeleton className="h-5 w-16 rounded" />
+          </td>
+          <td className="px-3 py-2.5">
+            <Skeleton className="h-5 w-20 rounded" />
+          </td>
+          <td className="px-3 py-2.5">
+            <Skeleton className="h-4 w-48 rounded" />
+          </td>
+          <td className="px-3 py-2.5 text-right">
+            <Skeleton className="h-4 w-16 rounded ml-auto" />
+          </td>
+        </tr>
+      ))}
+    </>
+  );
+}
+
 export function AgentLogsTab({ agentId }: { agentId: string }) {
-  const { logs } = useAgentLogs(agentId);
+  const { logs, loading } = useAgentLogs(agentId);
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const selectedLog = logs.find((l) => l.id === selectedLogId) ?? null;
 
@@ -106,7 +133,8 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
                 </td>
               </tr>
             ))}
-            {logs.length === 0 && (
+            {logs.length === 0 && loading && <LogSkeletonRows />}
+            {logs.length === 0 && !loading && (
               <tr>
                 <td
                   colSpan={5}

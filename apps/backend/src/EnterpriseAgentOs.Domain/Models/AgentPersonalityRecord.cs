@@ -102,6 +102,10 @@ public sealed class AgentPersonalityRecord
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>Renders this personality file as a tagged block for system prompt injection.</summary>
+    public string FormatPromptSection()
+        => $"<file path=\"{FileName}\">\n{Content.Trim()}\n</file>";
+
     /// <summary>Returns the sort order for prompt composition. Known files first, others after.</summary>
     public int CompositionOrder
     {

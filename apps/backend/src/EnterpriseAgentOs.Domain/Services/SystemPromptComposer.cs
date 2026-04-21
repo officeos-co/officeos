@@ -1,16 +1,42 @@
 using EnterpriseAgentOs.Domain.Models;
 
-namespace EnterpriseAgentOs.Application.Services.Agents;
+namespace EnterpriseAgentOs.Domain.Services;
 
 /// <summary>
-/// System prompt sections composed in OpenClaw order:
-/// 1. Tooling  2. Safety  3. Skills  4. Workspace  5. Project Context (bootstrap files)
-/// 6. Current Date &amp; Time  7. Runtime
-/// Each section returns a string or null (null = omitted from prompt).
+/// Pure domain service that composes the system prompt from domain models.
+/// No I/O, no dependencies — takes loaded data, returns a string.
+/// Section order follows OpenClaw convention:
+/// 1. Tooling  2. Safety  3. Skills  4. Workspace
+/// 5. Project Context (personality files)  6. Memory  7. DateTime  8. Runtime
 /// </summary>
-public static class PromptSections
+public static class SystemPromptComposer
 {
-    // ── 1. Tooling ──────────────────────────────────────────────────────────
+    /// <summary>
+    /// Composes the full system prompt from all available context.
+    /// Null sections are omitted.
+    /// </summary>
+    public static string Compose(
+        string agentName,
+        string? userPrompt,
+        IReadOnlyList<SkillRecord> skills,
+        IReadOnlyList<AgentPersonalityRecord> personalityFiles,
+        IReadOnlyList<AgentMemoryRecord> memories)
+    {
+        return string.Join("\n\n",
+            new[]
+            {
+                Tooling(),
+                Safety(),
+                Skills(skills),
+                Workspace(agentName),
+                ProjectContext(personalityFiles, userPrompt),
+                Memory(memories),
+                CurrentDateTime(),
+                Runtime(),
+            }.Where(s => s is not null));
+    }
+
+    // ── Sections ────────────────────────────────────────────────────────────
 
     public static string Tooling()
         => "## Tooling\n\n" +
@@ -18,8 +44,6 @@ public static class PromptSections
            "Do not invent file contents, command outputs, or API responses.\n" +
            "Use `skill_exec <skill> <action>` to run skill actions. " +
            "Use `skill_read <skill>` to read full documentation for a skill.";
-
-    // ── 2. Safety ───────────────────────────────────────────────────────────
 
     public static string Safety()
         => "## Safety\n\n" +
@@ -30,12 +54,6 @@ public static class PromptSections
            "- Internal actions (reading, organizing, learning) — do freely.\n" +
            "- External actions (sending emails, posting, API calls to third parties) — require explicit confirmation.";
 
-    // ── 3. Skills ───────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Skills section with full documentation injected.
-    /// Each skill's Doc (SKILL.md) is included so the agent knows available actions upfront.
-    /// </summary>
     public static string? Skills(IReadOnlyList<SkillRecord> skills)
     {
         if (skills.Count == 0) return null;
@@ -55,16 +73,12 @@ public static class PromptSections
         return sb.ToString().TrimEnd();
     }
 
-    // ── 4. Workspace ────────────────────────────────────────────────────────
-
     public static string Workspace(string agentName)
         => $"## Workspace\n\nAgent: {agentName}\nWorking directory: /home";
 
-    // ── 5. Project Context (bootstrap files) ────────────────────────────────
-
     /// <summary>
-    /// Composes bootstrap personality files (AGENTS.md, SOUL.md, IDENTITY.md, USER.md, etc.)
-    /// into the "Project Context" section, matching OpenClaw's workspace files injection.
+    /// Composes personality files into the "Project Context" section.
+    /// Each file renders itself via <see cref="AgentPersonalityRecord.FormatPromptSection"/>.
     /// </summary>
     public static string? ProjectContext(IReadOnlyList<AgentPersonalityRecord> files, string? userPrompt)
     {
@@ -77,9 +91,7 @@ public static class PromptSections
 
         foreach (var file in ordered)
         {
-            sb.AppendLine($"<file path=\"{file.FileName}\">");
-            sb.AppendLine(file.Content.Trim());
-            sb.AppendLine("</file>");
+            sb.AppendLine(file.FormatPromptSection());
             sb.AppendLine();
         }
 
@@ -94,10 +106,9 @@ public static class PromptSections
         return sb.ToString().TrimEnd();
     }
 
-    // ── 6. Memory ───────────────────────────────────────────────────────────
-
     /// <summary>
-    /// Composes agent memories into a section, matching OpenClaw's MEMORY.md approach.
+    /// Composes memories into a section.
+    /// Each memory renders itself via <see cref="AgentMemoryRecord.FormatPromptSection"/>.
     /// </summary>
     public static string? Memory(IReadOnlyList<AgentMemoryRecord> memories)
     {
@@ -109,20 +120,15 @@ public static class PromptSections
 
         foreach (var m in memories)
         {
-            sb.AppendLine($"### {m.Key}");
-            sb.AppendLine(m.Content);
+            sb.AppendLine(m.FormatPromptSection());
             sb.AppendLine();
         }
 
         return sb.ToString().TrimEnd();
     }
 
-    // ── 7. Current Date & Time ──────────────────────────────────────────────
-
-    public static string DateTime()
+    public static string CurrentDateTime()
         => $"## Current Date & Time\n\n{System.DateTime.UtcNow:O} UTC";
-
-    // ── 8. Runtime ──────────────────────────────────────────────────────────
 
     public static string Runtime()
         => "## Runtime\n\nHost: EnterpriseAgentOS | Platform: Linux (Kubernetes pod)";

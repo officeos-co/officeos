@@ -151,6 +151,9 @@ export type CreateAgentHookInput = {
   /** Per-tool allow/deny overrides. `tool` is a "skill:tool" key. */
   toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>;
   channelSlugs: string[];
+  /** If set, the backend sends this as the first message after creation,
+   *  triggering the agent's first turn. */
+  bootstrapMessage?: string;
 };
 
 function providerFromModel(model: string): string {
@@ -176,6 +179,7 @@ export function useCreateAgent() {
             toolNames: input.toolNames,
             toolPermissions: input.toolPermissions,
             channelSlugs: input.channelSlugs,
+            bootstrapMessage: input.bootstrapMessage ?? null,
           },
         },
         update(cache, { data: result }) {

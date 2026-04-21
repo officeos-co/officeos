@@ -100,6 +100,14 @@ public sealed class AgentService : IAgentService
         foreach (var personality in defaults)
             await _agentPersonalityRepository.UpsertAsync(record.Id, personality.FileName, personality.Content, ct);
 
+        // If the user supplied a system prompt, persist it as BOOTSTRAP.md so
+        // the agent's prompt composition includes it on every turn.
+        if (!string.IsNullOrWhiteSpace(request.Prompt))
+        {
+            await _agentPersonalityRepository.UpsertAsync(
+                record.Id, "BOOTSTRAP.md", request.Prompt.Trim(), ct);
+        }
+
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
             record.Id, record.Name, record.Provider, record.Model);
 

@@ -28,6 +28,10 @@ public sealed class AgentMemoryRecord
 
     // ── Domain logic ─────────────────────────────────────────────────────────
 
+    /// <summary>Renders this memory as a section for system prompt injection.</summary>
+    public string FormatPromptSection()
+        => $"### {Key}\n{Content}";
+
     /// <summary>Updates the memory content and bumps the timestamp.</summary>
     public void UpdateContent(string content)
     {

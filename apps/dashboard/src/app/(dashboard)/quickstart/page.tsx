@@ -34,6 +34,8 @@ import {
   RadioIcon,
   AlertTriangleIcon,
   ExternalLinkIcon,
+  PackageCheckIcon,
+  SettingsIcon,
 } from "lucide-react"
 
 /* ── Permission types ────────────────────────────────────── */
@@ -223,6 +225,13 @@ export default function QuickstartPage() {
   }
 
   const filteredTemplates = templates.filter((t) => !search || t.name.toLowerCase().includes(search.toLowerCase()))
+  // Sort: installed+configured first, then installed, then rest
+  const sortedIntegrations = [...integrations].sort((a, b) => {
+    const scoreA = (a.installed ? 2 : 0) + (a.configured ? 1 : 0)
+    const scoreB = (b.installed ? 2 : 0) + (b.configured ? 1 : 0)
+    return scoreB - scoreA
+  })
+  const sortedChannels = [...channels].sort((a, b) => (a.added === b.added ? 0 : a.added ? -1 : 1))
   const activeIntegrations = integrations.filter((i) => selectedIntegrations.has(i.slug))
   const activeChannels = channels.filter((c) => selectedChannels.has(c.slug))
 
@@ -246,13 +255,25 @@ export default function QuickstartPage() {
               for (const [prefix, mode] of Object.entries(groupPermissions)) {
                 if (mode === "deny") tpList.push({ tool: prefix, mode: "DENY" })
               }
+
+              // Merge user prompt into template prompt for the system prompt.
+              // The user's prompt field becomes additional context in the
+              // bootstrap message so the agent actually acts on it.
+              const templatePrompt = selectedTemplate?.prompt ?? ""
+              const userPrompt = prompt.trim()
+              const systemPrompt = templatePrompt || userPrompt
+              const bootstrapMessage = userPrompt && templatePrompt
+                ? `${templatePrompt}\n\n---\n\nAdditional instructions:\n${userPrompt}`
+                : systemPrompt
+
               const created = await createAgent({
                 name: agentName.trim(),
                 model,
-                systemPrompt: prompt,
+                systemPrompt,
                 toolNames: Array.from(selectedIntegrations),
                 toolPermissions: tpList,
                 channelSlugs: Array.from(selectedChannels),
+                bootstrapMessage: bootstrapMessage || undefined,
               })
               trackAgentCreated({
                 agentName: agentName.trim(),
@@ -314,7 +335,7 @@ export default function QuickstartPage() {
                 <Link href="/integrations" className="text-xs text-muted-foreground hover:text-foreground">Manage integrations →</Link>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {integrations.map((i) => {
+                {sortedIntegrations.map((i) => {
                   const active = selectedIntegrations.has(i.slug)
                   const needsSetup = i.credentialFields.length > 0 && !i.configured
                   return (
@@ -322,6 +343,18 @@ export default function QuickstartPage() {
                       className={`relative flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? (needsSetup ? "border-amber-400 bg-amber-50" : "border-primary bg-primary/5") : "border-border hover:bg-muted/50"}`}>
                       <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: i.logo }} />
                       <span className="flex-1 truncate">{i.name}</span>
+                      {i.installed && i.configured && (
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
+                          <PackageCheckIcon className="size-3" />
+                          Ready
+                        </span>
+                      )}
+                      {i.installed && !i.configured && (
+                        <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 shrink-0">
+                          <SettingsIcon className="size-3" />
+                          Setup
+                        </span>
+                      )}
                       {active && needsSetup && <AlertTriangleIcon className="size-3.5 text-amber-500 shrink-0" />}
                       {active && !needsSetup && <CheckIcon className="size-3.5 text-primary shrink-0" />}
                     </button>
@@ -340,13 +373,18 @@ export default function QuickstartPage() {
                 <Link href="/channels" className="text-xs text-muted-foreground hover:text-foreground">Manage channels →</Link>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {channels.map((c) => {
+                {sortedChannels.map((c) => {
                   const active = selectedChannels.has(c.slug)
                   return (
                     <button key={c.slug} type="button" onClick={() => toggleChannel(c.slug)}
                       className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
                       <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: c.logo }} />
                       <span className="flex-1 truncate">{c.name}</span>
+                      {c.added && (
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
+                          Connected
+                        </span>
+                      )}
                       {active && <CheckIcon className="size-3.5 text-primary shrink-0" />}
                     </button>
                   )
@@ -434,8 +472,8 @@ export default function QuickstartPage() {
           </div>
         </div>
 
-        {/* Right: Templates panel */}
-        <div className="hidden w-[420px] shrink-0 border-l border-border overflow-y-auto lg:block">
+        {/* Right: Templates panel — sticky */}
+        <div className="hidden w-[420px] shrink-0 border-l border-border lg:block sticky top-0 self-start h-screen overflow-y-auto">
           <div className="p-4 space-y-3">
             <h3 className="text-sm font-medium">Templates</h3>
             <div className="relative">

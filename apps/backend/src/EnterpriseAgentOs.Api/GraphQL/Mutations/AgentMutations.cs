@@ -12,6 +12,7 @@ public class AgentMutations
         [Service] IAgentService agents,
         [Service] IAgentSkillRepository agentSkills,
         [Service] IChannelRepository channels,
+        [Service] IAgentLogService agentLogs,
         [Service] IMemoryCache cache,
         CancellationToken ct)
     {
@@ -75,6 +76,18 @@ public class AgentMutations
                     // already bound — skip
                 }
             }
+        }
+
+        // Send bootstrap as the agent's first turn so it starts working
+        // immediately after creation. If an explicit bootstrap message was
+        // provided (template prompt + user additions), use that. Otherwise
+        // fall back to the system prompt so the agent always gets a first turn.
+        var bootstrap = !string.IsNullOrWhiteSpace(input.BootstrapMessage)
+            ? input.BootstrapMessage
+            : input.Prompt;
+        if (!string.IsNullOrWhiteSpace(bootstrap))
+        {
+            await agentLogs.SendMessageAsync(dto.Id, bootstrap, user.Id, ct);
         }
 
         cache.Remove(AgentListQueryCacheKey);

@@ -8,7 +8,8 @@ public sealed record CreateAgentInput(
     List<string>? IntegrationSlugs,
     List<string>? ChannelSlugs,
     List<string>? ToolNames,
-    List<ToolPermissionInput>? ToolPermissions);
+    List<ToolPermissionInput>? ToolPermissions,
+    string? BootstrapMessage = null);
 
 /// <summary>
 /// Per-tool allow/deny override submitted alongside agent creation.

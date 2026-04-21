@@ -104,21 +104,14 @@ public sealed class AgentTurnService
         // Turn loop: compose prompt → call LLM → dispatch tools → repeat.
         for (var i = 0; i < MaxIterations; i++)
         {
-            // 1. Compose system prompt in OpenClaw section order:
-            //    Tooling → Safety → Skills → Workspace → Project Context → Memory → DateTime → Runtime
+            // 1. Compose system prompt — domain service owns section order and rendering.
             var promptCtx = await _promptComposer.LoadAsync(agentId, ct);
-            var systemPrompt = string.Join("\n\n",
-                new[]
-                {
-                    PromptSections.Tooling(),
-                    PromptSections.Safety(),
-                    PromptSections.Skills(skillDetails),
-                    PromptSections.Workspace(agent.Name),
-                    PromptSections.ProjectContext(promptCtx.PersonalityFiles, agent.Prompt),
-                    PromptSections.Memory(promptCtx.Memories),
-                    PromptSections.DateTime(),
-                    PromptSections.Runtime(),
-                }.Where(s => s is not null));
+            var systemPrompt = Domain.Services.SystemPromptComposer.Compose(
+                agent.Name,
+                agent.Prompt,
+                skillDetails,
+                promptCtx.PersonalityFiles,
+                promptCtx.Memories);
 
             // 2. Build messages array with pruning.
             // OpenClaw-style: soft-trim old tool results before token-based pruning.

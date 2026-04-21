@@ -2,6 +2,7 @@ using System.Text.Json;
 using EnterpriseAgentOs.Application.Services.Agents;
 using EnterpriseAgentOs.Application.Services.Agents.Tools;
 using EnterpriseAgentOs.Domain.Models;
+using EnterpriseAgentOs.Domain.Services;
 
 namespace EnterpriseAgentOs.Api.Tests;
 
@@ -160,7 +161,7 @@ public class AgentTurnTests
     [Fact]
     public void PromptSections_DateTime_Contains_UTC()
     {
-        var section = PromptSections.DateTime();
+        var section = SystemPromptComposer.CurrentDateTime();
         Assert.Contains("UTC", section);
         Assert.Contains("Current Date", section);
     }
@@ -168,7 +169,7 @@ public class AgentTurnTests
     [Fact]
     public void PromptSections_Skills_Returns_Null_When_Empty()
     {
-        var result = PromptSections.Skills(new List<SkillRecord>());
+        var result = SystemPromptComposer.Skills(new List<SkillRecord>());
         Assert.Null(result);
     }
 
@@ -181,7 +182,7 @@ public class AgentTurnTests
             new() { Name = "github", Description = "Manage GitHub repos and issues.", Doc = null },
         };
 
-        var result = PromptSections.Skills(skills);
+        var result = SystemPromptComposer.Skills(skills);
 
         Assert.NotNull(result);
         Assert.Contains("### notion", result);
@@ -200,7 +201,7 @@ public class AgentTurnTests
             AgentPersonalityRecord.Create(Guid.NewGuid(), "IDENTITY.md", "Your name is TestBot."),
         };
 
-        var result = PromptSections.ProjectContext(files, null);
+        var result = SystemPromptComposer.ProjectContext(files, null);
 
         Assert.NotNull(result);
         Assert.Contains("<file path=\"SOUL.md\">", result);
@@ -212,7 +213,7 @@ public class AgentTurnTests
     [Fact]
     public void PromptSections_ProjectContext_Includes_UserPrompt()
     {
-        var result = PromptSections.ProjectContext(new List<AgentPersonalityRecord>(), "Custom instructions here.");
+        var result = SystemPromptComposer.ProjectContext(new List<AgentPersonalityRecord>(), "Custom instructions here.");
 
         Assert.NotNull(result);
         Assert.Contains("<file path=\"PROMPT.md\">", result);
@@ -222,7 +223,7 @@ public class AgentTurnTests
     [Fact]
     public void PromptSections_Memory_Returns_Null_When_Empty()
     {
-        var result = PromptSections.Memory(new List<AgentMemoryRecord>());
+        var result = SystemPromptComposer.Memory(new List<AgentMemoryRecord>());
         Assert.Null(result);
     }
 
@@ -231,15 +232,15 @@ public class AgentTurnTests
     {
         // Verify all sections compose in OpenClaw order without tool schemas.
         var allSections = string.Join("\n",
-            PromptSections.Tooling(),
-            PromptSections.Safety(),
-            PromptSections.Skills(new List<SkillRecord>
+            SystemPromptComposer.Tooling(),
+            SystemPromptComposer.Safety(),
+            SystemPromptComposer.Skills(new List<SkillRecord>
             {
                 new() { Name = "notion", Description = "Search pages", Doc = "Use notion search to find pages." },
             }) ?? "",
-            PromptSections.Workspace("test-agent"),
-            PromptSections.DateTime(),
-            PromptSections.Runtime());
+            SystemPromptComposer.Workspace("test-agent"),
+            SystemPromptComposer.CurrentDateTime(),
+            SystemPromptComposer.Runtime());
 
         Assert.DoesNotContain("\"type\": \"object\"", allSections);
         Assert.DoesNotContain("\"parameters\"", allSections);
