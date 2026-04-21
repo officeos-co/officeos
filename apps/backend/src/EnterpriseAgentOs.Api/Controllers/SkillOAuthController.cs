@@ -141,8 +141,25 @@ public sealed class SkillOAuthController : ControllerBase
             : existing.EncryptedRefreshToken; // keep old refresh token if not returned
         existing.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn > 0 ? tokenData.ExpiresIn : 3600);
         existing.Email = email;
-        existing.ReplaceScopes((tokenData.Scope ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries));
         existing.UpdatedAt = DateTime.UtcNow;
+
+        // Remove old scopes directly via DbContext to avoid concurrency issues with tracked entities
+        if (existing.GrantedScopes.Count > 0)
+        {
+            _db.OAuthGrantedScopes.RemoveRange(existing.GrantedScopes);
+            await _db.SaveChangesAsync();
+        }
+
+        // Add new scopes
+        existing.GrantedScopes.Clear();
+        foreach (var scope in (tokenData.Scope ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            existing.GrantedScopes.Add(new OAuthGrantedScopeRecord
+            {
+                OAuthTokenId = existing.Id,
+                Scope = scope,
+            });
+        }
 
         await _db.SaveChangesAsync();
         _logger.LogInformation("OAuth tokens stored for provider {Provider}, email {Email}", provider, email);
