@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>EnterpriseAgentOs.Api</RootNamespace>
     <AssemblyName>EnterpriseAgentOs.Api</AssemblyName>
+    <!-- Container publishing (dotnet publish /t:PublishContainer) -->
+    <ContainerRepository>harkro123/eaos-backend</ContainerRepository>
+    <ContainerImageTag>latest</ContainerImageTag>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0</ContainerBaseImage>
+    <ContainerPort Include="8000" />
+    <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://+:8000" />
+    <ContainerEnvironmentVariable Include="ASPNETCORE_ENVIRONMENT" Value="Production" />
   </PropertyGroup>
 
   <ItemGroup>
