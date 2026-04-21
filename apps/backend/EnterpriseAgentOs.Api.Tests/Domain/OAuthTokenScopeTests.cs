@@ -1,6 +1,5 @@
 namespace EnterpriseAgentOs.Api.Tests.Domain;
 
-using EnterpriseAgentOs.Domain.Models;
 
 /// <summary>
 /// Tests for OAuth2 scope management on OAuthTokenRecord.

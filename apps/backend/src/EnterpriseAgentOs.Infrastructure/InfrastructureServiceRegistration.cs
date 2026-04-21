@@ -1,7 +1,3 @@
-using EnterpriseAgentOs.Domain.Interfaces;
-using EnterpriseAgentOs.Infrastructure.Adapters;
-using EnterpriseAgentOs.Infrastructure.Persistence;
-using EnterpriseAgentOs.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 

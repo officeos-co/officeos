@@ -1,6 +1,4 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Application.Services;
-using EnterpriseAgentOs.Domain.Models;
 
 namespace EnterpriseAgentOs.Api.Tests;
 

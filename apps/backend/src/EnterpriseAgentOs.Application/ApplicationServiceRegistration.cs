@@ -1,5 +1,3 @@
-using EnterpriseAgentOs.Application.Services;
-using EnterpriseAgentOs.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EnterpriseAgentOs.Application;

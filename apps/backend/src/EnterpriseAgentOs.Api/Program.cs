@@ -119,26 +119,26 @@ builder.Services.AddSingleton(postHogConfig);
 //   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
 //   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<EnterpriseAgentOs.Api.GraphQL.SkillTypeModule>();
+builder.Services.AddSingleton<SkillTypeModule>();
 
 builder.Services
     .AddGraphQLServer("agent")
-    .AddQueryType<EnterpriseAgentOs.Api.GraphQL.Query>()
-    .AddMutationType<EnterpriseAgentOs.Api.GraphQL.AgentSchemaMutations>()
-    .AddTypeModule<EnterpriseAgentOs.Api.GraphQL.SkillTypeModule>()
-    .AddHttpRequestInterceptor<EnterpriseAgentOs.Api.GraphQL.AgentAuthInterceptor>()
+    .AddQueryType<Query>()
+    .AddMutationType<AgentSchemaMutations>()
+    .AddTypeModule<SkillTypeModule>()
+    .AddHttpRequestInterceptor<AgentAuthInterceptor>()
     .DisableIntrospection(false)
     .SetIntrospectionAllowedDepth(20, 20);
 
 var dashboardGql = builder.Services
     .AddGraphQLServer("dashboard")
-    .AddQueryType<EnterpriseAgentOs.Api.GraphQLQueries>()
-    .AddMutationType<EnterpriseAgentOs.Api.GraphQLMutations>()
-    .AddSubscriptionType<EnterpriseAgentOs.Api.GraphQLSubscriptions>()
+    .AddQueryType<GraphQLQueries>()
+    .AddMutationType<GraphQLMutations>()
+    .AddSubscriptionType<GraphQLSubscriptions>()
     .AddInMemorySubscriptions();
-EnterpriseAgentOs.Api.Extensions.GraphQLRegistrationExtensions.AddDomainTypeExtensions(
+GraphQLRegistrationExtensions.AddDomainTypeExtensions(
     dashboardGql, typeof(Program).Assembly)
-    .UseField<EnterpriseAgentOs.Api.Middleware.DashboardAuthMiddleware>()
+    .UseField<DashboardAuthMiddleware>()
     .DisableIntrospection(false);
 
 // CORS
@@ -161,9 +161,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
     var providerRepo = scope.ServiceProvider.GetRequiredService<IProviderRepository>();
-    await EnterpriseAgentOs.Application.Services.ProviderSeeder.SeedAsync(providerRepo);
-    await EnterpriseAgentOs.Application.Services.SkillSeeder.SeedAsync(scope.ServiceProvider);
-    await EnterpriseAgentOs.Application.Services.AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
+    await ProviderSeeder.SeedAsync(providerRepo);
+    await SkillSeeder.SeedAsync(scope.ServiceProvider);
+    await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())
@@ -172,8 +172,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.CorrelationIdMiddleware>();
-app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.RequestResponseLoggingMiddleware>();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.GetLevel = (httpContext, elapsed, ex) =>
@@ -196,13 +196,13 @@ app.UseSerilogRequestLogging(options =>
 
 app.UseRouting();
 app.UseCors(FrontendCorsPolicy);
-app.UseMiddleware<EnterpriseAgentOs.Api.Middleware.SessionAuthMiddleware>();
+app.UseMiddleware<SessionAuthMiddleware>();
 
 app.UseWebSockets();
 
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 
-EnterpriseAgentOs.Api.Endpoints.AgentProxyEndpoints.MapAgentProxyEndpoints(app);
+AgentProxyEndpoints.MapAgentProxyEndpoints(app);
 app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
     .RequireCors(FrontendCorsPolicy);

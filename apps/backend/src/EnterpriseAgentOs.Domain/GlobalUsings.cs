@@ -1,4 +1,12 @@
 global using System.ComponentModel.DataAnnotations;
 global using System.Text.Json;
-global using EnterpriseAgentOs.Domain.Models;
-global using EnterpriseAgentOs.Domain.Primitives;
+global using EnterpriseAgentOs.Domain.Agents;
+global using EnterpriseAgentOs.Domain.Auth;
+global using EnterpriseAgentOs.Domain.Billing;
+global using EnterpriseAgentOs.Domain.Channels;
+global using EnterpriseAgentOs.Domain.Common;
+global using EnterpriseAgentOs.Domain.Organizations;
+global using EnterpriseAgentOs.Domain.Providers;
+global using EnterpriseAgentOs.Domain.Skills;
+global using EnterpriseAgentOs.Domain.Common.Primitives;
+global using EnterpriseAgentOs.Domain.Common.Services;

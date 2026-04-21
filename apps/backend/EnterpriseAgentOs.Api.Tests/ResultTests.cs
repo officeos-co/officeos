@@ -1,4 +1,3 @@
-using EnterpriseAgentOs.Domain.Primitives;
 
 namespace EnterpriseAgentOs.Api.Tests;
 
