@@ -34,10 +34,17 @@ public sealed class SkillOAuthController : ControllerBase
     /// Dashboard calls this to get the redirect URL.
     /// </summary>
     [HttpGet("{provider}/start")]
-    public IActionResult Start(string provider, [FromQuery] string scopes, [FromQuery] string? returnUrl)
+    public async Task<IActionResult> Start(string provider, [FromQuery] string scopes, [FromQuery] string? returnUrl)
     {
         if (provider != "google")
             return BadRequest($"Unsupported OAuth provider: {provider}");
+
+        // Merge requested scopes with already-granted scopes so the new token covers everything
+        var requestedScopes = scopes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var existing = await _db.OAuthTokens.Include(t => t.GrantedScopes).FirstOrDefaultAsync(t => t.Provider == provider);
+        var mergedScopes = existing is not null
+            ? string.Join(' ', existing.MergedScopesWith(requestedScopes))
+            : scopes;
 
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         Response.Cookies.Append("skill-oauth-state", state, new CookieOptions
@@ -65,7 +72,7 @@ public sealed class SkillOAuthController : ControllerBase
             + "&response_type=code"
             + "&access_type=offline"
             + "&prompt=consent"
-            + $"&scope={Uri.EscapeDataString(scopes)}"
+            + $"&scope={Uri.EscapeDataString(mergedScopes)}"
             + $"&state={Uri.EscapeDataString(state)}";
 
         return Redirect(url);
@@ -121,7 +128,7 @@ public sealed class SkillOAuthController : ControllerBase
         catch { /* non-critical */ }
 
         // Store tokens — upsert by provider
-        var existing = await _db.OAuthTokens.FirstOrDefaultAsync(t => t.Provider == provider);
+        var existing = await _db.OAuthTokens.Include(t => t.GrantedScopes).FirstOrDefaultAsync(t => t.Provider == provider);
         if (existing is null)
         {
             existing = new OAuthTokenRecord { Provider = provider };
@@ -134,7 +141,7 @@ public sealed class SkillOAuthController : ControllerBase
             : existing.EncryptedRefreshToken; // keep old refresh token if not returned
         existing.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn > 0 ? tokenData.ExpiresIn : 3600);
         existing.Email = email;
-        existing.Scopes = tokenData.Scope ?? "";
+        existing.ReplaceScopes((tokenData.Scope ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries));
         existing.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -154,7 +161,7 @@ public sealed class SkillOAuthController : ControllerBase
     [HttpGet("{provider}/status")]
     public async Task<IActionResult> Status(string provider)
     {
-        var token = await _db.OAuthTokens.FirstOrDefaultAsync(t => t.Provider == provider);
+        var token = await _db.OAuthTokens.Include(t => t.GrantedScopes).FirstOrDefaultAsync(t => t.Provider == provider);
         if (token is null)
             return Ok(new { connected = false });
 
@@ -162,7 +169,7 @@ public sealed class SkillOAuthController : ControllerBase
         {
             connected = true,
             email = token.Email,
-            scopes = token.Scopes,
+            scopes = string.Join(' ', token.GetScopeSet()),
             expiresAt = token.ExpiresAtUtc,
         });
     }

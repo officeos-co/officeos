@@ -40,7 +40,7 @@ public sealed record SkillCredentialFieldDto(
 public sealed record SkillOAuth2ConfigDto(string Provider, string[] Scopes);
 
 [GraphQLName("OAuthConnectionStatus")]
-public sealed record OAuthConnectionStatusDto(bool Connected, string? Email, string? Scopes);
+public sealed record OAuthConnectionStatusDto(bool Connected, string? Email, string? Scopes, bool NeedsReauth, string[] MissingScopes);
 
 public sealed record SkillCredentialEntry(string Key, string Value);
 

@@ -10,6 +10,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<ProviderRecord> Providers => Set<ProviderRecord>();
     public DbSet<SkillCredentialRecord> SkillCredentials => Set<SkillCredentialRecord>();
     public DbSet<OAuthTokenRecord> OAuthTokens => Set<OAuthTokenRecord>();
+    public DbSet<OAuthGrantedScopeRecord> OAuthGrantedScopes => Set<OAuthGrantedScopeRecord>();
     public DbSet<UserRecord> Users => Set<UserRecord>();
     public DbSet<SessionRecord> Sessions => Set<SessionRecord>();
     public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();
@@ -73,8 +74,15 @@ public sealed class EaosDbContext : DbContext
             e.Property(o => o.Provider).IsRequired().HasMaxLength(32);
             e.Property(o => o.EncryptedAccessToken).HasMaxLength(16384);
             e.Property(o => o.EncryptedRefreshToken).HasMaxLength(16384);
-            e.Property(o => o.Scopes).HasMaxLength(4096);
             e.Property(o => o.Email).HasMaxLength(256);
+            e.HasMany(o => o.GrantedScopes).WithOne(s => s.OAuthToken).HasForeignKey(s => s.OAuthTokenId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OAuthGrantedScopeRecord>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => new { s.OAuthTokenId, s.Scope }).IsUnique();
+            e.Property(s => s.Scope).IsRequired().HasMaxLength(512);
         });
 
         modelBuilder.Entity<UserRecord>(e =>

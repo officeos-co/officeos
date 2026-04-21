@@ -18,7 +18,7 @@ import { CheckCircle2 } from "lucide-react"
 function OAuthField({ field, skillSlug }: { field: CredentialField; skillSlug?: string }) {
   const provider = field.oauth2?.provider ?? null
   const scopes = field.oauth2?.scopes ?? []
-  const { connected, email, refetch } = useOAuthStatus(provider)
+  const { connected, email, needsReauth, refetch } = useOAuthStatus(provider, scopes)
 
   const returnUrl = skillSlug ? `/integrations/${skillSlug}` : "/integrations"
 
@@ -36,7 +36,7 @@ function OAuthField({ field, skillSlug }: { field: CredentialField; skillSlug?: 
     }).then(() => refetch())
   }
 
-  if (connected) {
+  if (connected && !needsReauth) {
     return (
       <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
         <div className="flex items-center gap-2">
@@ -46,6 +46,19 @@ function OAuthField({ field, skillSlug }: { field: CredentialField; skillSlug?: 
         <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={handleDisconnect}>
           Disconnect
         </Button>
+      </div>
+    )
+  }
+
+  if (connected && needsReauth) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <span className="text-sm text-amber-800">Connected as {email ?? provider} — missing permissions</span>
+          <Button variant="outline" size="sm" className="text-xs" onClick={handleConnect}>
+            Upgrade permissions
+          </Button>
+        </div>
       </div>
     )
   }

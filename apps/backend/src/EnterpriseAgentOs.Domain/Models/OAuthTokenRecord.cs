@@ -19,8 +19,8 @@ public sealed class OAuthTokenRecord
     /// <summary>Encrypted refresh token.</summary>
     public string? EncryptedRefreshToken { get; set; }
 
-    /// <summary>Combined scopes granted by the user (union of all skills requesting this provider).</summary>
-    public string Scopes { get; set; } = string.Empty;
+    /// <summary>Individual scopes granted by the user for this provider.</summary>
+    public ICollection<OAuthGrantedScopeRecord> GrantedScopes { get; init; } = new List<OAuthGrantedScopeRecord>();
 
     /// <summary>When the access token expires (UTC).</summary>
     public DateTime? ExpiresAtUtc { get; set; }
@@ -31,4 +31,53 @@ public sealed class OAuthTokenRecord
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // ── Domain behavior ──
+
+    /// <summary>Returns true if every scope in <paramref name="requiredScopes"/> is granted.</summary>
+    public bool CoversScopes(IEnumerable<string> requiredScopes)
+    {
+        var granted = GrantedScopes.Select(s => s.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return requiredScopes.All(s => granted.Contains(s));
+    }
+
+    /// <summary>Returns the subset of <paramref name="requiredScopes"/> not yet granted.</summary>
+    public IReadOnlyList<string> MissingScopes(IEnumerable<string> requiredScopes)
+    {
+        var granted = GrantedScopes.Select(s => s.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return requiredScopes.Where(s => !granted.Contains(s)).ToList();
+    }
+
+    /// <summary>Returns all granted scopes as a set for bulk comparisons.</summary>
+    public HashSet<string> GetScopeSet() =>
+        GrantedScopes.Select(s => s.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Replaces all granted scopes with <paramref name="scopes"/>.
+    /// Call this after a token exchange — Google returns the full set of granted scopes.
+    /// </summary>
+    public void ReplaceScopes(IEnumerable<string> scopes)
+    {
+        GrantedScopes.Clear();
+        foreach (var scope in scopes.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            GrantedScopes.Add(new OAuthGrantedScopeRecord
+            {
+                OAuthTokenId = Id,
+                Scope = scope,
+            });
+        }
+    }
+
+    /// <summary>
+    /// Returns the union of existing granted scopes and <paramref name="additionalScopes"/>.
+    /// Used by the Start endpoint to build the full scope list for the authorization URL.
+    /// </summary>
+    public HashSet<string> MergedScopesWith(IEnumerable<string> additionalScopes)
+    {
+        var merged = GetScopeSet();
+        foreach (var s in additionalScopes)
+            merged.Add(s);
+        return merged;
+    }
 }

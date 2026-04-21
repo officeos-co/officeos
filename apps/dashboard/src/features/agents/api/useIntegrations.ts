@@ -502,23 +502,31 @@ export function useDeleteSkillComment() {
 }
 
 const OAUTH_STATUS_QUERY = gql`
-  query OAuthConnectionStatus($provider: String!) {
-    oauthConnectionStatus(provider: $provider) {
+  query OAuthConnectionStatus($provider: String!, $requiredScopes: [String!]) {
+    oauthConnectionStatus(provider: $provider, requiredScopes: $requiredScopes) {
       connected
       email
       scopes
+      needsReauth
+      missingScopes
     }
   }
 `;
 
-export function useOAuthStatus(provider: string | null) {
+export function useOAuthStatus(provider: string | null, requiredScopes?: string[]) {
   const { data, loading, refetch } = useQuery(OAUTH_STATUS_QUERY, {
-    variables: { provider: provider ?? "" },
+    variables: { provider: provider ?? "", requiredScopes: requiredScopes ?? [] },
     skip: !provider,
     fetchPolicy: "network-only",
   });
   const status = data?.oauthConnectionStatus as
-    | { connected: boolean; email: string | null; scopes: string | null }
+    | { connected: boolean; email: string | null; scopes: string | null; needsReauth: boolean; missingScopes: string[] }
     | undefined;
-  return { connected: status?.connected ?? false, email: status?.email ?? null, loading, refetch };
+  return {
+    connected: status?.connected ?? false,
+    email: status?.email ?? null,
+    needsReauth: status?.needsReauth ?? false,
+    loading,
+    refetch,
+  };
 }

@@ -129,14 +129,15 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
             .Select(r => r.SkillName)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Single query: connected OAuth providers
-        var connectedProviders = (await _eaosDbContext.OAuthTokens
+        // Load connected OAuth tokens with their granted scopes
+        var oauthTokens = await _eaosDbContext.OAuthTokens
             .Where(t => t.EncryptedAccessToken != null)
-            .Select(t => t.Provider)
-            .ToListAsync(ct))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .Include(t => t.GrantedScopes)
+            .ToListAsync(ct);
 
-        if (connectedProviders.Count == 0)
+        var providerTokens = oauthTokens.ToDictionary(t => t.Provider, StringComparer.OrdinalIgnoreCase);
+
+        if (providerTokens.Count == 0)
             return result;
 
         // For installed skills without manual creds, check if they use a connected OAuth provider
@@ -164,7 +165,13 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
         {
             var fields = JsonSerializer.Deserialize<List<RuntimeCredentialField>>(sf.CredentialFieldsJson!, jsonOpts);
             var oauthField = fields?.FirstOrDefault(f => f.Kind == "oauth2" && f.Oauth2 is not null);
-            if (oauthField is not null && connectedProviders.Contains(oauthField.Oauth2!.Provider))
+            if (oauthField is null) continue;
+
+            var provider = oauthField.Oauth2!.Provider;
+            if (!providerTokens.TryGetValue(provider, out var token)) continue;
+
+            // Check that the token's granted scopes cover all scopes required by this skill
+            if (token.CoversScopes(oauthField.Oauth2.Scopes ?? []))
                 result.Add(sf.Name);
         }
 
