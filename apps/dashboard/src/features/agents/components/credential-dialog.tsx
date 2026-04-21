@@ -20,17 +20,17 @@ function OAuthField({ field, skillSlug }: { field: CredentialField; skillSlug?: 
   const scopes = field.oauth2?.scopes ?? []
   const { connected, email, refetch } = useOAuthStatus(provider)
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ""
   const returnUrl = skillSlug ? `/integrations/${skillSlug}` : "/integrations"
 
   function handleConnect() {
     const scopeStr = scopes.join(" ")
-    const url = `${apiUrl}/api/skills/oauth/${provider}/start?scopes=${encodeURIComponent(scopeStr)}&returnUrl=${encodeURIComponent(returnUrl)}`
+    // Route through dashboard's /api/* proxy so cookies are on the same domain
+    const url = `/api/skills/oauth/${provider}/start?scopes=${encodeURIComponent(scopeStr)}&returnUrl=${encodeURIComponent(returnUrl)}`
     window.location.href = url
   }
 
   function handleDisconnect() {
-    fetch(`${apiUrl}/api/skills/oauth/${provider}`, {
+    fetch(`/api/skills/oauth/${provider}`, {
       method: "DELETE",
       credentials: "include",
     }).then(() => refetch())

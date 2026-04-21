@@ -59,10 +59,9 @@ public sealed class SkillOAuthController : ControllerBase
             });
         }
 
-        var redirectUri = $"{BaseUrl}/api/skills/oauth/google/callback";
         var url = "https://accounts.google.com/o/oauth2/v2/auth"
             + $"?client_id={Uri.EscapeDataString(_googleConfig.ClientId)}"
-            + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
+            + $"&redirect_uri={Uri.EscapeDataString(_googleConfig.SkillOAuthRedirectUri)}"
             + "&response_type=code"
             + "&access_type=offline"
             + "&prompt=consent"
@@ -89,7 +88,6 @@ public sealed class SkillOAuthController : ControllerBase
         Response.Cookies.Delete("skill-oauth-state");
 
         // Exchange code for tokens
-        var redirectUri = $"{BaseUrl}/api/skills/oauth/google/callback";
         var http = _httpFactory.CreateClient();
         var tokenRes = await http.PostAsync("https://oauth2.googleapis.com/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
@@ -97,7 +95,7 @@ public sealed class SkillOAuthController : ControllerBase
                 ["code"] = code,
                 ["client_id"] = _googleConfig.ClientId,
                 ["client_secret"] = _googleConfig.ClientSecret,
-                ["redirect_uri"] = redirectUri,
+                ["redirect_uri"] = _googleConfig.SkillOAuthRedirectUri,
                 ["grant_type"] = "authorization_code",
             }));
 
@@ -183,9 +181,6 @@ public sealed class SkillOAuthController : ControllerBase
         }
         return Ok(new { disconnected = true });
     }
-
-    private string BaseUrl =>
-        $"{Request.Scheme}://{Request.Host}";
 
     private bool IsLocalhost =>
         Request.Host.Host is "localhost" or "127.0.0.1";
