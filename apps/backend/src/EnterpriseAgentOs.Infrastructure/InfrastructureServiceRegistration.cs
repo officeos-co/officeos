@@ -32,7 +32,6 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
 
         // Adapters
-        services.AddScoped<IWorkOsAuthService, WorkOsAuthService>();
         services.AddScoped<ChannelMessageRouter>();
         services.AddSingleton<IChannelAdapter, SlackAdapter>();
         services.AddSingleton<IChannelAdapter, TelegramAdapter>();

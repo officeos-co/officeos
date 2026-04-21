@@ -57,10 +57,6 @@ var googleOAuthConfig = new GoogleOAuthConfig();
 envSection.GetSection("GoogleOAuth").Bind(googleOAuthConfig);
 builder.Services.AddSingleton(googleOAuthConfig);
 
-var workOsConfig = new WorkOsConfig();
-envSection.GetSection("WorkOs").Bind(workOsConfig);
-builder.Services.AddSingleton(workOsConfig);
-
 var skillStorageConfig = new SkillStorageConfig();
 envSection.GetSection("Minio").Bind(skillStorageConfig);
 builder.Services.AddSingleton(skillStorageConfig);
