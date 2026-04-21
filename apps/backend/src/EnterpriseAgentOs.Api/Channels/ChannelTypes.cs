@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.Channels;
 
-// ── Output types ──────────────────────────────────────────────────────────
+// ── Output types (projections that exclude sensitive/nav fields) ─────────
 
 public sealed record ChannelConnectionGqlDto(
     Guid Id,
@@ -16,22 +16,6 @@ public sealed record AgentChannelBindingGqlDto(
     bool Enabled,
     ChannelBindingConfig? Config,
     DateTime CreatedAt);
-
-public sealed record ChannelTypeGqlDto(
-    string Type, string DisplayName, string Description, string Logo,
-    IReadOnlyList<OnboardingStepGqlDto> OnboardingSteps);
-
-public sealed record OnboardingStepGqlDto(
-    string Type,
-    string Title,
-    string Description,
-    string? Value,
-    string? InputKey,
-    string? InputLabel,
-    string? InputPlaceholder,
-    string? InputHelp,
-    string InputKind,
-    bool InputRequired);
 
 // ── Input types ───────────────────────────────────────────────────────────
 

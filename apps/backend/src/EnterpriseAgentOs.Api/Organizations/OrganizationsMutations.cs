@@ -9,7 +9,7 @@ public class OrganizationsMutations
         cache.Remove($"org:dashboard:{user.Id}");
     }
 
-    public async Task<OrgMemberPayload> InviteMember(
+    public async Task<OrgMemberRecord> InviteMember(
         InviteMemberInput input,
         IResolverContext context,
         [Service] IOrganizationRepository orgs,
@@ -37,8 +37,7 @@ public class OrganizationsMutations
         }
         var member = await orgs.AddMemberAsync(org.Id, input.Email.Trim().ToLowerInvariant(), role, "invited", null, ct);
         InvalidateOrgCache(cache, context);
-        return new OrgMemberPayload(
-            member.Id, member.OrganizationId, member.UserId, member.Email, null, member.Role, member.Status, member.CreatedAt);
+        return member;
     }
 
     public async Task<bool> RemoveMember(
@@ -92,9 +91,7 @@ public class OrganizationsMutations
         var renamed = await orgs.RenameAsync(org.Id, input.Name.Trim(), ct);
         var members = await orgs.ListMembersAsync(renamed.Id, ct);
         var result = new OrganizationPayload(
-            renamed.Id, renamed.Name, renamed.OwnerUserId, renamed.CreatedAt,
-            members.Select(m => new OrgMemberPayload(
-                m.Id, m.OrganizationId, m.UserId, m.Email, null, m.Role, m.Status, m.CreatedAt)).ToList());
+            renamed.Id, renamed.Name, renamed.OwnerUserId, renamed.CreatedAt, members);
         InvalidateOrgCache(cache, context);
         return result;
     }

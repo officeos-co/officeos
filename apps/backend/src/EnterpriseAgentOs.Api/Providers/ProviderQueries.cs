@@ -3,14 +3,13 @@ namespace EnterpriseAgentOs.Api.Providers;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class ProviderQueries
 {
-    public async Task<IReadOnlyList<ProviderGqlDto>> GetProviders(
+    public async Task<IReadOnlyList<ProviderDto>> GetProviders(
         IResolverContext context,
         [Service] IProviderService providers,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        var rows = await providers.ListAsync(ct);
-        return rows.Select(ProviderGraphQLMapper.ToDto).ToList();
+        return await providers.ListAsync(ct);
     }
 
     public IReadOnlyList<string> GetProviderModels(

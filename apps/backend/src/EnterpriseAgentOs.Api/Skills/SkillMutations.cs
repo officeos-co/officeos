@@ -191,7 +191,7 @@ public class SkillMutations
         return await agentSkills.RemoveAsync(agentId, skillName, ct);
     }
 
-    public async Task<AgentToolPermissionDto> SetAgentToolPermission(
+    public async Task<AgentToolPermissionRecord> SetAgentToolPermission(
         Guid agentId,
         string skillName,
         string toolName,
@@ -201,7 +201,6 @@ public class SkillMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        var record = await agentSkills.UpsertToolPermissionAsync(agentId, skillName, toolName, permission, ct);
-        return new AgentToolPermissionDto(record.SkillName, record.ToolName, record.Permission);
+        return await agentSkills.UpsertToolPermissionAsync(agentId, skillName, toolName, permission, ct);
     }
 }

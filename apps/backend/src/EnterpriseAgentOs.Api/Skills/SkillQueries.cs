@@ -104,10 +104,7 @@ public class SkillQueries
         return names.Select(name =>
         {
             grouped.TryGetValue(name, out var rows);
-            var mapped = (rows ?? new List<AgentToolPermissionRecord>())
-                .Select(r => new AgentToolPermissionDto(r.SkillName, r.ToolName, r.Permission))
-                .ToList();
-            return new AgentSkillDto(name, mapped);
+            return new AgentSkillDto(name, (IReadOnlyList<AgentToolPermissionRecord>)(rows ?? new List<AgentToolPermissionRecord>()));
         }).ToList();
     }
 

@@ -5,14 +5,3 @@ public sealed record CreateCronJobInput(
     string Name,
     string Expression,
     string Prompt);
-
-public sealed record CronJobPayload(
-    Guid Id,
-    Guid AgentId,
-    string Name,
-    string Expression,
-    string Prompt,
-    bool Enabled,
-    DateTime? LastRunAt,
-    DateTime? NextRunAt,
-    DateTime CreatedAt);

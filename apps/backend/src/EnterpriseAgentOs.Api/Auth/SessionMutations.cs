@@ -7,7 +7,7 @@ public class SessionMutations
     /// Creates a new session for an agent, ending any active session.
     /// Sends a bootstrap message to initialize the new session context.
     /// </summary>
-    public async Task<AgentSessionDto> CreateSession(
+    public async Task<AgentSessionRecord> CreateSession(
         Guid agentId,
         IResolverContext context,
         [Service] IAgentSessionRepository sessions,
@@ -43,11 +43,11 @@ public class SessionMutations
         };
         await logs.AppendAsync(log, ct);
 
-        return AgentSessionDto.FromRecord(session);
+        return session;
     }
 
     /// <summary>Ends the active session for an agent.</summary>
-    public async Task<AgentSessionDto?> EndSession(
+    public async Task<AgentSessionRecord?> EndSession(
         Guid agentId,
         IResolverContext context,
         [Service] IAgentSessionRepository sessions,
@@ -60,20 +60,6 @@ public class SessionMutations
 
         active.End();
         await sessions.SaveChangesAsync(ct);
-        return AgentSessionDto.FromRecord(active);
+        return active;
     }
-}
-
-/// <summary>GraphQL DTO for agent sessions.</summary>
-public sealed record AgentSessionDto(
-    Guid Id,
-    Guid AgentId,
-    string Status,
-    int MessageCount,
-    DateTime LastActivityAt,
-    DateTime CreatedAt,
-    DateTime? EndedAt)
-{
-    public static AgentSessionDto FromRecord(AgentSessionRecord r) =>
-        new(r.Id, r.AgentId, r.Status, r.MessageCount, r.LastActivityAt, r.CreatedAt, r.EndedAt);
 }

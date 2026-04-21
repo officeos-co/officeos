@@ -20,9 +20,7 @@ public class OrganizationsQueries
         var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
         var members = await orgs.ListMembersAsync(org.Id, ct);
         var result = new OrganizationPayload(
-            org.Id, org.Name, org.OwnerUserId, org.CreatedAt,
-            members.Select(m => new OrgMemberPayload(
-                m.Id, m.OrganizationId, m.UserId, m.Email, null, m.Role, m.Status, m.CreatedAt)).ToList());
+            org.Id, org.Name, org.OwnerUserId, org.CreatedAt, members);
 
         cache.Set(cacheKey, result,
             new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = OrgCacheTtl });

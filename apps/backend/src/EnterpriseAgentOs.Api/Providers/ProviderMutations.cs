@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Api.Providers;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class ProviderMutations
 {
-    public async Task<ProviderGqlDto> SetProviderKey(
+    public async Task<ProviderDto> SetProviderKey(
         string providerName,
         string apiKey,
         IResolverContext context,
@@ -28,10 +28,10 @@ public class ProviderMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return ProviderGraphQLMapper.ToDto(dto);
+        return dto;
     }
 
-    public async Task<ProviderGqlDto> ClearProviderKey(
+    public async Task<ProviderDto> ClearProviderKey(
         string providerName,
         IResolverContext context,
         [Service] IProviderService providers,
@@ -50,6 +50,6 @@ public class ProviderMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return ProviderGraphQLMapper.ToDto(row);
+        return row;
     }
 }

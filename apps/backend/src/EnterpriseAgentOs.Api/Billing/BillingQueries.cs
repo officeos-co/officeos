@@ -67,10 +67,10 @@ public class BillingQueries
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
         return new PlanLimitsDto(
-            ToDto(PlanLimits.IndividualFree),
-            ToDto(PlanLimits.IndividualPro),
-            ToDto(PlanLimits.OrgFree),
-            ToDto(PlanLimits.OrgTeam));
+            PlanLimits.IndividualFree,
+            PlanLimits.IndividualPro,
+            PlanLimits.OrgFree,
+            PlanLimits.OrgTeam);
     }
 
     public IReadOnlyList<ModelCostWeightDto> GetModelCostWeights(IResolverContext context)
@@ -82,9 +82,7 @@ public class BillingQueries
     }
 
     /// <summary>
-    /// Unified billing info for the dashboard /billing page. Plan, current
-    /// usage, extra-usage on/off (replaces old auto-reload), invoices synced
-    /// from Stripe.
+    /// Unified billing info for the dashboard /billing page.
     /// </summary>
     public async Task<BillingPayload> Billing(
         IResolverContext context,
@@ -123,26 +121,29 @@ public class BillingQueries
         return result;
     }
 
-    public async Task<UsageSummaryDto> GetTokenUsage(
+    public async Task<UserSubscriptionDto> GetTokenUsage(
         string? range,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
         CancellationToken ct)
     {
-        // range reserved for future aggregations (e.g. "7d", "30d"); current service
-        // only exposes month-to-date against the subscription row.
         _ = range;
         var user = DashboardAuthContextExtensions.GetUser(context);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
-        var (remaining, _) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        return new UsageSummaryDto(
-            sub.CreditsUsedThisMonth,
+        var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
+        return new UserSubscriptionDto(
+            sub.Id,
+            sub.UserId,
+            sub.Plan,
+            sub.BillingCycle,
+            sub.ConcurrentAgentLimit,
             sub.CreditBudgetPerMonth,
+            sub.CreditsUsedThisMonth,
             remaining,
+            overBudget,
+            sub.OverageEnabled,
             sub.PeriodStart,
-            sub.PeriodEnd);
+            sub.PeriodEnd,
+            sub.IsActive);
     }
-
-    private static PlanLimitDto ToDto(PlanLimit p) =>
-        new(p.Plan, p.ConcurrentAgents, p.CreditsPerMonth);
 }
