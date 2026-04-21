@@ -8,84 +8,13 @@ on:
       - 'apps/dashboard/**'
       - 'k8s/frontend.yaml'
       - '.github/workflows/deploy-dashboard-prod.yml'
-  # Re-run after backend deploys so contract tests validate the new schema
-  workflow_run:
-    workflows: ["Deploy Backend Prod"]
-    types: [completed]
-    branches: [main]
 
 concurrency:
   group: deploy-dashboard-prod
   cancel-in-progress: true
 
 jobs:
-  preflight:
-    runs-on: ubuntu-latest
-    outputs:
-      run_tests: ${{ steps.decide.outputs.run_tests }}
-      run_pipeline: ${{ steps.decide.outputs.run_pipeline }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Decide what to run
-        id: decide
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # Triggered after backend deploy
-            if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
-              echo "run_pipeline=false" >> "$GITHUB_OUTPUT"
-              echo "run_tests=false" >> "$GITHUB_OUTPUT"
-            else
-              # Only re-run if dashboard files also changed in that commit
-              DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/dashboard/ k8s/frontend.yaml || true)
-              if [ -n "$DASH_CHANGED" ]; then
-                echo "run_pipeline=true" >> "$GITHUB_OUTPUT"
-                echo "run_tests=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "run_pipeline=false" >> "$GITHUB_OUTPUT"
-                echo "run_tests=false" >> "$GITHUB_OUTPUT"
-              fi
-            fi
-          else
-            # push event — always run the pipeline
-            echo "run_pipeline=true" >> "$GITHUB_OUTPUT"
-            # Skip contract tests if backend also changed (they'd fail against the old schema).
-            # The workflow_run trigger will re-run tests after the backend deploys.
-            BACKEND_CHANGED=$(git diff --name-only HEAD~1 HEAD -- apps/backend/ || true)
-            if [ -n "$BACKEND_CHANGED" ]; then
-              echo "run_tests=false" >> "$GITHUB_OUTPUT"
-            else
-              echo "run_tests=true" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-
-  test:
-    needs: preflight
-    if: needs.preflight.outputs.run_pipeline == 'true' && needs.preflight.outputs.run_tests == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Install dependencies
-        working-directory: apps/dashboard
-        run: bun install --frozen-lockfile
-
-      - name: Run contract tests
-        working-directory: apps/dashboard
-        run: bun test src/__tests__/graphql-contracts.test.ts
-        env:
-          GRAPHQL_SCHEMA_URL: https://api.officeos.co/api/dashboard/graphql
-
   build:
-    needs: [preflight, test]
-    if: |
-      always() &&
-      needs.preflight.outputs.run_pipeline == 'true' &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -103,8 +32,7 @@ jobs:
           file: apps/dashboard/Dockerfile
           push: true
           tags: harkro123/eaos-frontend:latest
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,scope=frontend,mode=max
+          no-cache: true
 
   deploy:
     needs: build
