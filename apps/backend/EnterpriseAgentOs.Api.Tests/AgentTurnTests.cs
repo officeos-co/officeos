@@ -574,4 +574,189 @@ public class AgentTurnTests
             Assert.True(found, $"Orphaned tool message at index {i} with ToolCallId '{toolCallId}' — no preceding assistant with matching tool_calls.");
         }
     }
+
+    // ── Parser edge cases ─────────────────────────────────────────────────
+
+    [Fact]
+    public void CliParser_Empty_Quoted_String()
+    {
+        var parsed = SkillExecParser.Parse("notion search --query \"\"");
+        Assert.NotNull(parsed);
+        Assert.Equal("", parsed.Value.Args["query"]);
+    }
+
+    [Fact]
+    public void CliParser_Escaped_Quotes_Inside_Quoted_String()
+    {
+        // LLMs often send: --query "he said \"hello\""
+        var parsed = SkillExecParser.Parse("notion search --query \"he said \\\"hello\\\"\"");
+        Assert.NotNull(parsed);
+        Assert.Equal("he said \"hello\"", parsed.Value.Args["query"]);
+    }
+
+    [Fact]
+    public void CliParser_Mixed_Quotes_Single_Inside_Double()
+    {
+        var parsed = SkillExecParser.Parse("notion search --query \"it's a test\"");
+        Assert.NotNull(parsed);
+        Assert.Equal("it's a test", parsed.Value.Args["query"]);
+    }
+
+    [Fact]
+    public void CliParser_Json_Value_In_Single_Quotes()
+    {
+        var parsed = SkillExecParser.Parse("github list_issues --filter '{\"status\": \"open\"}'");
+        Assert.NotNull(parsed);
+        Assert.Equal("{\"status\": \"open\"}", parsed.Value.Args["filter"]);
+    }
+
+    [Fact]
+    public void CliParser_Unclosed_Quote_Uses_Rest_Of_String()
+    {
+        // Graceful degradation: unclosed quote should capture rest of input
+        var parsed = SkillExecParser.Parse("notion search --query \"unclosed value");
+        Assert.NotNull(parsed);
+        Assert.Equal("unclosed value", parsed.Value.Args["query"]);
+    }
+
+    [Fact]
+    public void CliParser_Flag_Without_Value_At_End()
+    {
+        // --verbose at end with no value should not crash or eat the next arg
+        var parsed = SkillExecParser.Parse("github list_issues --repo myrepo --verbose");
+        Assert.NotNull(parsed);
+        Assert.Equal("myrepo", parsed.Value.Args["repo"]);
+        // --verbose has no value, should not appear in args (or be handled gracefully)
+        Assert.False(parsed.Value.Args.ContainsKey("verbose"));
+    }
+
+    [Fact]
+    public void CliParser_Value_Starting_With_Dash_Not_Treated_As_Flag()
+    {
+        // Negative number or ISO date with timezone offset
+        var parsed = SkillExecParser.Parse("stock get_price --change -5.2");
+        Assert.NotNull(parsed);
+        Assert.Equal("-5.2", parsed.Value.Args["change"]);
+    }
+
+    [Fact]
+    public void CliParser_Equals_Syntax()
+    {
+        // Some LLMs use --key=value syntax
+        var parsed = SkillExecParser.Parse("github list_issues --repo=myrepo --state=open");
+        Assert.NotNull(parsed);
+        Assert.Equal("myrepo", parsed.Value.Args["repo"]);
+        Assert.Equal("open", parsed.Value.Args["state"]);
+    }
+
+    // ── Prune edge cases ──────────────────────────────────────────────────
+
+    [Fact]
+    public void Prune_Incomplete_Tool_Results_Does_Not_Orphan()
+    {
+        // Assistant requested 3 tool calls but only 2 results arrived (crash mid-turn)
+        var history = new ConversationHistory();
+        history.Push(new ChatMessage { Role = "system", Content = "sys" });
+        history.Push(new ChatMessage
+        {
+            Role = "assistant", Content = "",
+            ToolCalls = new List<ChatToolCall>
+            {
+                new() { Id = "c1", Name = "a", Arguments = "{}" },
+                new() { Id = "c2", Name = "b", Arguments = "{}" },
+                new() { Id = "c3", Name = "c", Arguments = "{}" },
+            }
+        });
+        history.Push(new ChatMessage { Role = "tool", Content = "r1", ToolCallId = "c1" });
+        history.Push(new ChatMessage { Role = "tool", Content = "r2", ToolCallId = "c2" });
+        // c3 result missing — user message came instead
+        history.Push(new ChatMessage { Role = "user", Content = "What happened?" });
+        history.Push(new ChatMessage { Role = "assistant", Content = "Sorry, something failed." });
+
+        history.Prune(maxTokens: 50, keepRecent: 2);
+
+        AssertNoOrphanedToolMessages(history);
+    }
+
+    [Fact]
+    public void Prune_Multiple_ToolCall_Groups_Back_To_Back()
+    {
+        var history = new ConversationHistory();
+        history.Push(new ChatMessage { Role = "system", Content = "sys" });
+
+        // Group 1: 2 tool calls
+        history.Push(new ChatMessage
+        {
+            Role = "assistant", Content = "",
+            ToolCalls = new List<ChatToolCall>
+            {
+                new() { Id = "a1", Name = "x", Arguments = "{}" },
+                new() { Id = "a2", Name = "y", Arguments = "{}" },
+            }
+        });
+        history.Push(new ChatMessage { Role = "tool", Content = "r1", ToolCallId = "a1" });
+        history.Push(new ChatMessage { Role = "tool", Content = "r2", ToolCallId = "a2" });
+
+        // Group 2: 2 tool calls
+        history.Push(new ChatMessage
+        {
+            Role = "assistant", Content = "",
+            ToolCalls = new List<ChatToolCall>
+            {
+                new() { Id = "b1", Name = "x", Arguments = "{}" },
+                new() { Id = "b2", Name = "y", Arguments = "{}" },
+            }
+        });
+        history.Push(new ChatMessage { Role = "tool", Content = "r3", ToolCallId = "b1" });
+        history.Push(new ChatMessage { Role = "tool", Content = "r4", ToolCallId = "b2" });
+
+        // Recent
+        history.Push(new ChatMessage { Role = "user", Content = "done" });
+
+        history.Prune(maxTokens: 50, keepRecent: 1);
+
+        AssertNoOrphanedToolMessages(history);
+    }
+
+    [Fact]
+    public void Prune_Phase2_Only_System_And_Tool_Does_Not_Infinite_Loop()
+    {
+        // Pathological: system + orphaned tool (shouldn't happen, but must not infinite loop)
+        var history = new ConversationHistory();
+        history.Push(new ChatMessage { Role = "system", Content = new string('x', 5000) });
+        history.Push(new ChatMessage { Role = "tool", Content = new string('y', 5000), ToolCallId = "orphan" });
+
+        // Should terminate, not loop forever
+        history.Prune(maxTokens: 10, keepRecent: 0);
+
+        // The orphaned tool should be dropped since it has no parent
+        Assert.True(history.Count <= 2);
+    }
+
+    [Fact]
+    public void Prune_Protected_ToolCalls_Not_Touched()
+    {
+        var history = new ConversationHistory();
+        history.Push(new ChatMessage { Role = "system", Content = "sys" });
+        history.Push(new ChatMessage
+        {
+            Role = "assistant", Content = "",
+            ToolCalls = new List<ChatToolCall>
+            {
+                new() { Id = "c1", Name = "shell", Arguments = "{}" },
+                new() { Id = "c2", Name = "shell", Arguments = "{}" },
+            }
+        });
+        history.Push(new ChatMessage { Role = "tool", Content = "result1", ToolCallId = "c1" });
+        history.Push(new ChatMessage { Role = "tool", Content = "result2", ToolCallId = "c2" });
+
+        // keepRecent=4 means all 4 non-system messages are protected
+        history.Prune(maxTokens: 50, keepRecent: 4);
+
+        // assistant with tool_calls should still be intact
+        var assistant = history.Messages.First(m => m.Role == "assistant");
+        Assert.NotNull(assistant.ToolCalls);
+        Assert.Equal(2, assistant.ToolCalls.Count);
+        AssertNoOrphanedToolMessages(history);
+    }
 }
