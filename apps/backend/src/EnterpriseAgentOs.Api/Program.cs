@@ -202,7 +202,6 @@ app.UseWebSockets();
 
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 
-AgentProxyEndpoints.MapAgentProxyEndpoints(app);
 app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
     .RequireCors(FrontendCorsPolicy);

@@ -75,4 +75,3 @@ global using EnterpriseAgentOs.Api.Providers;
 global using EnterpriseAgentOs.Api.Skills;
 global using EnterpriseAgentOs.Api.SkillGateway;
 global using EnterpriseAgentOs.Api.Common.Extensions;
-global using EnterpriseAgentOs.Api.Common.Endpoints;
