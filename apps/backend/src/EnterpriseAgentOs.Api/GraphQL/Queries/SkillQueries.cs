@@ -62,13 +62,15 @@ public class SkillQueries
         var likedByMe = await catalog.BatchLikedByUserAsync(ids, user.Id, ct);
         var commentCounts = await catalog.BatchCommentCountAsync(ids, ct);
 
+        var configuredNames = await catalog.BatchConfiguredNamesAsync(ct);
+
         return dto with
         {
             LikesCount = likesCounts.GetValueOrDefault(dto.Id),
             IsLikedByMe = likedByMe.Contains(dto.Id),
             CommentCount = commentCounts.GetValueOrDefault(dto.Id),
             IsInstalled = credRow?.Enabled == true,
-            IsConfigured = credRow?.Enabled == true && credRow?.EncryptedCredentials != null,
+            IsConfigured = configuredNames.Contains(name),
         };
     }
 

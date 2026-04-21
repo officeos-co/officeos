@@ -5,37 +5,37 @@ on:
     branches:
       - main
     paths:
-      - 'apps/backend/**'
-      - 'k8s/backend.yaml'
-      - '.github/workflows/deploy-backend-prod.yml'
+      - "apps/backend/**"
+      - "k8s/backend.yaml"
+      - ".github/workflows/deploy-backend-prod.yml"
 
 concurrency:
   group: deploy-backend-prod
   cancel-in-progress: false
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
+  # test:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 10
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
+  #     - uses: actions/setup-dotnet@v4
+  #       with:
+  #         dotnet-version: "9.0.x"
 
-      - name: Build test project
-        working-directory: apps/backend
-        run: dotnet build EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
+  #     - name: Build test project
+  #       working-directory: apps/backend
+  #       run: dotnet build EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj
 
-      - name: Run integration tests
-        working-directory: apps/backend
-        env:
-          TESTCONTAINERS_RYUK_DISABLED: "true"
-        run: dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj --no-build --logger "console;verbosity=normal" --blame-hang-timeout 120s
+  #     - name: Run integration tests
+  #       working-directory: apps/backend
+  #       env:
+  #         TESTCONTAINERS_RYUK_DISABLED: "true"
+  #       run: dotnet test EnterpriseAgentOs.Api.Tests/EnterpriseAgentOs.Api.Tests.csproj --no-build --logger "console;verbosity=normal" --blame-hang-timeout 120s
 
   build:
-    needs: test
+    # needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

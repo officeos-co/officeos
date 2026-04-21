@@ -49,6 +49,8 @@ const SKILLS_LIST_QUERY = gql`
         name
         description
       }
+      createdAt
+      updatedAt
     }
   }
 `;
@@ -101,6 +103,8 @@ const SKILL_DETAIL_QUERY = gql`
         name
         description
       }
+      createdAt
+      updatedAt
     }
   }
 `;
@@ -264,7 +268,9 @@ export function useIntegrations(): {
   loading: boolean;
   error?: Error;
 } {
-  const { data, loading, error } = useQuery(SKILLS_LIST_QUERY);
+  const { data, loading, error } = useQuery(SKILLS_LIST_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
   const raw: RawSkill[] = data?.skills ?? [];
   const integrations = raw.map(mapSkill);
   return { integrations, loading, error: error ?? undefined };
@@ -274,14 +280,15 @@ export function useIntegration(slug: string): {
   integration: Integration | null;
   loading: boolean;
   error?: Error;
+  refetch: () => void;
 } {
-  const { data, loading, error } = useQuery(SKILL_DETAIL_QUERY, {
+  const { data, loading, error, refetch } = useQuery(SKILL_DETAIL_QUERY, {
     variables: { name: slug },
     skip: !slug,
   });
   const raw: RawSkill | null = data?.skill ?? null;
   const integration = raw ? mapSkill(raw) : null;
-  return { integration, loading, error: error ?? undefined };
+  return { integration, loading, error: error ?? undefined, refetch };
 }
 
 export type SkillComment = {

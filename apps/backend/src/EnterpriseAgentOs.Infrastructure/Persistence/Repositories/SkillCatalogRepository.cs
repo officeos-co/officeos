@@ -118,11 +118,57 @@ public sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<HashSet<string>> BatchConfiguredNamesAsync(CancellationToken ct = default)
     {
-        var names = await _eaosDbContext.SkillCredentials
-            .Where(r => r.Enabled && r.EncryptedCredentials != null)
-            .Select(r => r.SkillName)
+        // Single query: all installed skill names + whether they have manual credentials
+        var installed = await _eaosDbContext.SkillCredentials
+            .Where(r => r.Enabled)
+            .Select(r => new { r.SkillName, HasCreds = r.EncryptedCredentials != null })
             .ToListAsync(ct);
-        return names.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var result = installed
+            .Where(r => r.HasCreds)
+            .Select(r => r.SkillName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Single query: connected OAuth providers
+        var connectedProviders = (await _eaosDbContext.OAuthTokens
+            .Where(t => t.EncryptedAccessToken != null)
+            .Select(t => t.Provider)
+            .ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (connectedProviders.Count == 0)
+            return result;
+
+        // For installed skills without manual creds, check if they use a connected OAuth provider
+        var unconfiguredNames = installed
+            .Where(r => !r.HasCreds)
+            .Select(r => r.SkillName)
+            .ToList();
+
+        if (unconfiguredNames.Count == 0)
+            return result;
+
+        // Single query: fetch credential field JSON for unconfigured installed skills
+        var skillFields = await _eaosDbContext.Skills
+            .Where(s => unconfiguredNames.Contains(s.Name) && s.CredentialFieldsJson != null)
+            .Select(s => new { s.Name, s.CredentialFieldsJson })
+            .ToListAsync(ct);
+
+        var jsonOpts = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+        };
+
+        foreach (var sf in skillFields)
+        {
+            var fields = JsonSerializer.Deserialize<List<RuntimeCredentialField>>(sf.CredentialFieldsJson!, jsonOpts);
+            var oauthField = fields?.FirstOrDefault(f => f.Kind == "oauth2" && f.Oauth2 is not null);
+            if (oauthField is not null && connectedProviders.Contains(oauthField.Oauth2!.Provider))
+                result.Add(sf.Name);
+        }
+
+        return result;
     }
 
     public async Task<IReadOnlyList<SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { notFound, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,10 @@ export default function IntegrationDetailPage({
   const searchParams = useSearchParams();
   const tab = (searchParams.get("tab") as TabKey) ?? "detail";
 
-  const { integration, loading } = useIntegration(slug);
+  const { integration, loading, refetch } = useIntegration(slug);
+
+  // Refetch on mount — ensures fresh configured status after OAuth callback redirect
+  useEffect(() => { refetch(); }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
   const likeSkill = useLikeSkill();
   const { commentOnSkill } = useCommentOnSkill();
   const deleteComment = useDeleteSkillComment();
