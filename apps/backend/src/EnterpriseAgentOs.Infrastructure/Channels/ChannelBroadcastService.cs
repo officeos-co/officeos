@@ -97,29 +97,45 @@ public sealed class ChannelGateway : IChannelGateway
         try
         {
             var json = _configProtector.Unprotect(connection.EncryptedConfig);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-            var credsJson = dict?.GetValueOrDefault("credsJson");
+            var outerDict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            var credsJson = outerDict?.GetValueOrDefault("credsJson");
             if (string.IsNullOrEmpty(credsJson))
             {
-                _logger.LogWarning("Connection {Id}: decrypted config has no 'credsJson' key. Keys: {Keys}",
-                    connection.Id, dict is not null ? string.Join(", ", dict.Keys) : "null");
+                _logger.LogWarning("Connection {Id}: no 'credsJson' key in config", connection.Id);
                 return null;
             }
 
+            // New format: credsJson is a JSON object like {"creds.json": "...", "session-x.json": "..."}
+            // Old format: credsJson is the raw creds.json content with "me" at top level
             using var doc = JsonDocument.Parse(credsJson);
+
+            // Check if top-level has "me" (old format — raw creds.json)
             if (doc.RootElement.TryGetProperty("me", out var me) &&
                 me.TryGetProperty("id", out var idProp))
             {
-                var rawJid = idProp.GetString();
-                _logger.LogDebug("Connection {Id}: extracted raw JID {Jid}", connection.Id, rawJid);
-                return NormalizeWhatsAppJid(rawJid);
+                return NormalizeWhatsAppJid(idProp.GetString());
             }
 
-            _logger.LogWarning("Connection {Id}: creds JSON has no 'me.id' property", connection.Id);
+            // New format: look for "creds.json" key, then parse that
+            if (doc.RootElement.TryGetProperty("creds.json", out var credsFile))
+            {
+                var rawCreds = credsFile.GetString();
+                if (!string.IsNullOrEmpty(rawCreds))
+                {
+                    using var credsDoc = JsonDocument.Parse(rawCreds);
+                    if (credsDoc.RootElement.TryGetProperty("me", out var me2) &&
+                        me2.TryGetProperty("id", out var idProp2))
+                    {
+                        return NormalizeWhatsAppJid(idProp2.GetString());
+                    }
+                }
+            }
+
+            _logger.LogWarning("Connection {Id}: could not find 'me.id' in auth state", connection.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Connection {Id}: failed to extract owner JID from creds", connection.Id);
+            _logger.LogError(ex, "Connection {Id}: failed to extract owner JID", connection.Id);
         }
         return null;
     }

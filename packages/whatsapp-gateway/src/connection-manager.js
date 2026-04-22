@@ -274,12 +274,22 @@ class WhatsAppConnection {
     this.socket = null;
   }
 
-  // ── Credential persistence via backend API ──────────────────────
+  // ── Auth state persistence via backend API ──────────────────────
+  // Persists the ENTIRE auth directory (creds, sessions, pre-keys,
+  // sender keys, app-state-sync keys) as a single JSON blob.
 
   async #persistCreds() {
     try {
-      const credsPath = path.join(this.#authDir, "creds.json");
-      const credsJson = await fs.readFile(credsPath, "utf-8");
+      const files = await fs.readdir(this.#authDir);
+      const authState = {};
+
+      for (const file of files) {
+        if (!file.endsWith(".json")) continue;
+        const content = await fs.readFile(path.join(this.#authDir, file), "utf-8");
+        authState[file] = content;
+      }
+
+      const credsJson = JSON.stringify(authState);
 
       await fetch(
         `${this.#backendUrl}/api/internal/wa/creds/${this.#connectionId}`,
@@ -289,9 +299,12 @@ class WhatsAppConnection {
           body: JSON.stringify({ credsJson }),
         }
       );
-      log.debug({ connectionId: this.#connectionId }, "Creds persisted to backend");
+      log.debug(
+        { connectionId: this.#connectionId, fileCount: Object.keys(authState).length },
+        "Auth state persisted to backend"
+      );
     } catch (err) {
-      log.error({ err }, "Failed to persist creds");
+      log.error({ err }, "Failed to persist auth state");
     }
   }
 
@@ -307,11 +320,39 @@ class WhatsAppConnection {
       const { credsJson } = await res.json();
       if (!credsJson) return;
 
-      const credsPath = path.join(this.#authDir, "creds.json");
-      await fs.writeFile(credsPath, credsJson, { mode: 0o600 });
-      log.info({ connectionId: this.#connectionId }, "Creds restored from backend");
+      // Try new format (full auth state object) first, fall back to legacy (just creds.json)
+      let authState;
+      try {
+        authState = JSON.parse(credsJson);
+      } catch {
+        // Legacy format: credsJson is the raw creds.json content
+        authState = { "creds.json": credsJson };
+      }
+
+      // If it's a string (legacy format where credsJson was the raw JSON), wrap it
+      if (typeof authState === "string") {
+        authState = { "creds.json": authState };
+      }
+
+      // If it doesn't have any .json keys, it's likely the raw creds object itself
+      const keys = Object.keys(authState);
+      if (keys.length > 0 && !keys[0].endsWith(".json")) {
+        authState = { "creds.json": credsJson };
+      }
+
+      let fileCount = 0;
+      for (const [filename, content] of Object.entries(authState)) {
+        if (!filename.endsWith(".json")) continue;
+        await fs.writeFile(path.join(this.#authDir, filename), content, { mode: 0o600 });
+        fileCount++;
+      }
+
+      log.info(
+        { connectionId: this.#connectionId, fileCount },
+        "Auth state restored from backend"
+      );
     } catch (err) {
-      log.debug({ err }, "No saved creds to restore (first connection)");
+      log.debug({ err }, "No saved auth state to restore (first connection)");
     }
   }
 }
