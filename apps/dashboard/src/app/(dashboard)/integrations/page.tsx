@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useIntegrations, useInstallSkill, CredentialDialog, IntegrationCard } from "@/features/agents"
+import { useIntegrations, useInstallSkill, sortIntegrations, CredentialDialog, IntegrationCard } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
@@ -33,6 +33,7 @@ export default function IntegrationsPage() {
   const [page, setPage] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [configSlug, setConfigSlug] = useState<string | null>(null)
+  const [installingSlug, setInstallingSlug] = useState<string | null>(null)
 
   const configIntegration = configSlug ? integrations.find((i) => i.slug === configSlug) : null
 
@@ -43,13 +44,14 @@ export default function IntegrationsPage() {
   }, [integrations])
 
   const filtered = useMemo(() => {
-    return integrations.filter((i) => {
+    const list = integrations.filter((i) => {
       if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
       if (view === "installed" && !i.installed) return false
       if (view === "explore" && i.installed) return false
       if (selectedCategory && !i.categories.includes(selectedCategory)) return false
       return true
     })
+    return sortIntegrations(list)
   }, [integrations, search, view, selectedCategory])
 
   const totalPages = Math.ceil(filtered.length / pageSize)
@@ -129,7 +131,12 @@ export default function IntegrationsPage() {
                 key={integration.slug}
                 integration={integration}
                 variant="marketplace"
-                onInstall={() => { installSkill(integration.slug); trackSkillInstalled(integration.slug) }}
+                installing={installingSlug === integration.slug}
+                onInstall={async () => {
+                  setInstallingSlug(integration.slug)
+                  try { await installSkill(integration.slug); trackSkillInstalled(integration.slug) }
+                  finally { setInstallingSlug(null) }
+                }}
                 onConfigure={() => setConfigSlug(integration.slug)}
                 onClick={() => router.push(`/integrations/${integration.slug}`)}
               />

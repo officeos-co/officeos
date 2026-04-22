@@ -6,6 +6,7 @@ import {
   SettingsIcon,
   PlugIcon,
   CheckIcon,
+  LoaderIcon,
 } from "lucide-react"
 
 type IntegrationCardProps = {
@@ -14,6 +15,7 @@ type IntegrationCardProps = {
   /** "quickstart" shows Install → Configure → Use/Added flow.
    *  "marketplace" shows Install/Configure/Installed badge for the catalog. */
   variant?: "quickstart" | "marketplace"
+  installing?: boolean
   onInstall?: () => void
   onConfigure?: () => void
   onToggle?: () => void
@@ -24,6 +26,7 @@ export function IntegrationCard({
   integration: i,
   selected = false,
   variant = "quickstart",
+  installing = false,
   onInstall,
   onConfigure,
   onToggle,
@@ -49,6 +52,7 @@ export function IntegrationCard({
             ready={ready}
             needsCreds={needsCreds}
             selected={false}
+            installing={installing}
             onInstall={onInstall}
             onConfigure={onConfigure}
           />
@@ -87,6 +91,7 @@ export function IntegrationCard({
         ready={ready}
         needsCreds={needsCreds}
         selected={selected}
+        installing={installing}
         onInstall={onInstall}
         onConfigure={onConfigure}
         onToggle={onToggle}
@@ -100,6 +105,7 @@ function IntegrationAction({
   ready,
   needsCreds,
   selected,
+  installing,
   onInstall,
   onConfigure,
   onToggle,
@@ -108,16 +114,17 @@ function IntegrationAction({
   ready: boolean
   needsCreds: boolean
   selected: boolean
+  installing?: boolean
   onInstall?: () => void
   onConfigure?: () => void
   onToggle?: () => void
 }) {
   if (!i.installed) {
     return (
-      <button type="button" onClick={(e) => { e.stopPropagation(); onInstall?.() }}
-        className="flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground hover:bg-muted/80 transition-colors shrink-0">
-        <DownloadIcon className="size-3" />
-        Install
+      <button type="button" disabled={installing} onClick={(e) => { e.stopPropagation(); onInstall?.() }}
+        className="flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground hover:bg-muted/70 transition-colors shrink-0 disabled:opacity-50">
+        {installing ? <LoaderIcon className="size-3 animate-spin" /> : <DownloadIcon className="size-3" />}
+        {installing ? "Installing…" : "Install"}
       </button>
     )
   }

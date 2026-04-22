@@ -143,8 +143,10 @@ export default function AgentDetailPage({
 
   const submit = () => {
     if (!message.trim()) return;
-    sendAgentMessage(id, message);
+    const content = message;
     setMessage("");
+    // Fire-and-forget — the optimistic log entry appears immediately
+    sendAgentMessage(id, content);
   };
 
   return (

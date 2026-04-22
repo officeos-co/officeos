@@ -14,11 +14,12 @@ import {
 import type { CredentialField } from "../data/integrations"
 import { useOAuthStatus } from "../api/useIntegrations"
 import { CheckCircle2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function OAuthField({ field, skillSlug }: { field: CredentialField; skillSlug?: string }) {
   const provider = field.oauth2?.provider ?? null
   const scopes = field.oauth2?.scopes ?? []
-  const { connected, email, needsReauth, refetch } = useOAuthStatus(provider, scopes)
+  const { connected, email, needsReauth, loading, refetch } = useOAuthStatus(provider, scopes)
 
   const returnUrl = skillSlug ? `/integrations/${skillSlug}` : "/integrations"
 
@@ -34,6 +35,18 @@ function OAuthField({ field, skillSlug }: { field: CredentialField; skillSlug?: 
       method: "DELETE",
       credentials: "include",
     }).then(() => refetch())
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-4 rounded" />
+          <Skeleton className="h-4 w-36" />
+        </div>
+        <Skeleton className="h-7 w-20 rounded-md" />
+      </div>
+    )
   }
 
   if (connected && !needsReauth) {

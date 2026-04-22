@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useIntegration,
   useSkillComments,
@@ -34,6 +35,7 @@ import {
   KeyIcon,
   CheckCircle2Icon,
   AlertCircleIcon,
+  LoaderIcon,
 } from "lucide-react";
 
 /* ── Tab config (URL-driven, like agent detail) ──────────────── */
@@ -73,8 +75,38 @@ export default function IntegrationDetailPage({
   );
   const [credDialogOpen, setCredDialogOpen] = useState(false);
 
+  const [installLoading, setInstallLoading] = useState(false);
+  const [uninstallLoading, setUninstallLoading] = useState(false);
+
   if (!integration) {
-    if (loading) return null;
+    if (loading) {
+      return (
+        <>
+          <PageHeader group="Integrations" page="Loading..." />
+          <div className="flex flex-1 flex-col p-4 pt-0">
+            <div className="flex items-start gap-4 mb-4">
+              <Skeleton className="size-12 rounded-xl shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-96" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+            <Skeleton className="h-10 w-full mb-6" />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 max-w-6xl mx-auto w-full">
+              <div className="space-y-4">
+                <Skeleton className="h-32 w-full rounded-xl" />
+                <Skeleton className="h-48 w-full rounded-xl" />
+              </div>
+              <div className="hidden lg:block space-y-6">
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-32 w-full rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
     return notFound();
   }
 
@@ -126,15 +158,28 @@ export default function IntegrationDetailPage({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => uninstallSkill(integration.slug)}
+                disabled={uninstallLoading}
+                onClick={async () => {
+                  setUninstallLoading(true);
+                  try { await uninstallSkill(integration.slug); }
+                  finally { setUninstallLoading(false); }
+                }}
               >
-                <XIcon className="size-4" />
-                Uninstall
+                {uninstallLoading ? <LoaderIcon className="size-4 animate-spin" /> : <XIcon className="size-4" />}
+                {uninstallLoading ? "Uninstalling…" : "Uninstall"}
               </Button>
             ) : (
-              <Button size="sm" onClick={() => installSkill(integration.slug)}>
-                <DownloadIcon className="size-4" />
-                Install
+              <Button
+                size="sm"
+                disabled={installLoading}
+                onClick={async () => {
+                  setInstallLoading(true);
+                  try { await installSkill(integration.slug); }
+                  finally { setInstallLoading(false); }
+                }}
+              >
+                {installLoading ? <LoaderIcon className="size-4 animate-spin" /> : <DownloadIcon className="size-4" />}
+                {installLoading ? "Installing…" : "Install"}
               </Button>
             )}
           </div>

@@ -19,7 +19,7 @@ import {
 import { builtInTools, type Tool } from "@/features/agents/data/integrations"
 import { type Channel, type ChannelPermissions } from "@/features/agents/data/channels"
 import {
-  useIntegrations, useInstallSkill, useSetSkillCredentials,
+  useIntegrations, useInstallSkill, useSetSkillCredentials, sortIntegrations,
   useChannels, useAgentTemplates, useCreateAgent, useModels,
   CredentialDialog, ChannelOnboardingDialog,
   IntegrationCard, ChannelCard,
@@ -228,12 +228,8 @@ export default function QuickstartPage() {
   }
 
   const filteredTemplates = templates.filter((t) => !search || t.name.toLowerCase().includes(search.toLowerCase()))
-  // Sort: installed+configured first, then installed, then rest
-  const sortedIntegrations = [...integrations].sort((a, b) => {
-    const scoreA = (a.installed ? 2 : 0) + (a.configured ? 1 : 0)
-    const scoreB = (b.installed ? 2 : 0) + (b.configured ? 1 : 0)
-    return scoreB - scoreA
-  })
+  const [installingSlug, setInstallingSlug] = useState<string | null>(null)
+  const sortedIntegrations = sortIntegrations(integrations)
   const sortedChannels = [...channels].sort((a, b) => (a.added === b.added ? 0 : a.added ? -1 : 1))
   const activeIntegrations = integrations.filter((i) => selectedIntegrations.has(i.slug))
   const activeChannels = channels.filter((c) => selectedChannels.has(c.slug))
@@ -343,7 +339,12 @@ export default function QuickstartPage() {
                     key={i.slug}
                     integration={i}
                     selected={selectedIntegrations.has(i.slug)}
-                    onInstall={() => installSkill(i.slug)}
+                    installing={installingSlug === i.slug}
+                    onInstall={async () => {
+                      setInstallingSlug(i.slug)
+                      try { await installSkill(i.slug) }
+                      finally { setInstallingSlug(null) }
+                    }}
                     onConfigure={() => setConfigureSlug(i.slug)}
                     onToggle={() => toggleIntegration(i.slug)}
                   />

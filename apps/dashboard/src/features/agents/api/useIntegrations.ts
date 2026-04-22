@@ -334,8 +334,8 @@ export function useSkillComments(skillId: string): {
 }
 
 export function useInstallSkill() {
-  const [fn] = useMutation(INSTALL_SKILL);
-  return async (name: string) => {
+  const [fn, { loading }] = useMutation(INSTALL_SKILL);
+  const install = async (name: string) => {
     await fn({
       variables: { name },
       optimisticResponse: { installSkill: true },
@@ -347,11 +347,12 @@ export function useInstallSkill() {
       },
     });
   };
+  return Object.assign(install, { loading });
 }
 
 export function useUninstallSkill() {
-  const [fn] = useMutation(UNINSTALL_SKILL);
-  return async (name: string) => {
+  const [fn, { loading }] = useMutation(UNINSTALL_SKILL);
+  const uninstall = async (name: string) => {
     await fn({
       variables: { name },
       optimisticResponse: { uninstallSkill: true },
@@ -363,6 +364,7 @@ export function useUninstallSkill() {
       },
     });
   };
+  return Object.assign(uninstall, { loading });
 }
 
 export function useSetSkillCredentials() {
@@ -512,6 +514,16 @@ const OAUTH_STATUS_QUERY = gql`
     }
   }
 `;
+
+/** Consistent sort: installed+configured first, then installed, then alphabetical. */
+export function sortIntegrations(list: Integration[]): Integration[] {
+  return [...list].sort((a, b) => {
+    const scoreA = (a.installed ? 2 : 0) + (a.configured ? 1 : 0);
+    const scoreB = (b.installed ? 2 : 0) + (b.configured ? 1 : 0);
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 export function useOAuthStatus(provider: string | null, requiredScopes?: string[]) {
   const { data, loading, refetch } = useQuery(OAUTH_STATUS_QUERY, {
