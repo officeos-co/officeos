@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace EnterpriseAgentOs.Application.Channel;
 
 /// <summary>
@@ -10,17 +12,23 @@ internal sealed class ChannelService : IChannelService
     private readonly IChannelRepository _repo;
     private readonly IChannelGateway _gateway;
     private readonly IChannelConfigProtector _protector;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ChannelService> _logger;
+
+    /// <summary>Track in-flight test message attempts to avoid concurrent fires per connection.</summary>
+    private static readonly ConcurrentDictionary<Guid, byte> _pendingTestMessages = new();
 
     public ChannelService(
         IChannelRepository repo,
         IChannelGateway gateway,
         IChannelConfigProtector protector,
+        IServiceScopeFactory scopeFactory,
         ILogger<ChannelService> logger)
     {
         _repo = repo;
         _gateway = gateway;
         _protector = protector;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -131,20 +139,36 @@ internal sealed class ChannelService : IChannelService
             row.EncryptedConfig = _protector.Protect(JsonSerializer.Serialize(configDict));
         }, ct);
 
-        // Fire-and-forget: attempt test message in the background with a delay
-        // so SaveCreds returns immediately and the sidecar can finish initializing.
-        // If it fails, the next creds save will retry (NeedsTestMessage stays true).
-        if (connection.NeedsTestMessage)
+        // Fire-and-forget with a new DI scope (the current request scope will be
+        // disposed before the background task runs). Guard against concurrent fires.
+        if (connection.NeedsTestMessage && _pendingTestMessages.TryAdd(connectionId, 0))
         {
             var ownerJid = ChannelConnectionRecord.ExtractWhatsAppOwnerJid(credsJson);
             if (!string.IsNullOrEmpty(ownerJid))
             {
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                    _logger.LogInformation("Attempting WhatsApp test message for {Id}, owner: {Jid}", connectionId, ownerJid);
-                    await SendTestMessageAsync(connectionId, ownerJid, CancellationToken.None);
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5));
+                        using var scope = _scopeFactory.CreateScope();
+                        var scopedService = scope.ServiceProvider.GetRequiredService<IChannelService>();
+                        _logger.LogInformation("Attempting WhatsApp test message for {Id}, owner: {Jid}", connectionId, ownerJid);
+                        await scopedService.SendTestMessageAsync(connectionId, ownerJid, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Background test message failed for {Id} (will retry on next creds save)", connectionId);
+                    }
+                    finally
+                    {
+                        _pendingTestMessages.TryRemove(connectionId, out _);
+                    }
                 });
+            }
+            else
+            {
+                _pendingTestMessages.TryRemove(connectionId, out _);
             }
         }
     }
