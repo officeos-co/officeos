@@ -17,10 +17,13 @@ import { useChannels, useCreateChannelConnection, useBindChannelToAgent } from "
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PlusIcon, RadioIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { useFilterParams } from "@/hooks/useFilterParams"
 
 const PAGE_SIZES = [25, 50, 100] as const
 
 type View = "all" | "connected" | "available"
+
+const FILTER_DEFAULTS = { view: "all", size: "50", page: "0" } as const
 
 export default function ChannelsPage() {
   const router = useRouter()
@@ -30,10 +33,17 @@ export default function ChannelsPage() {
   const { trackChannelConnected } = useAnalytics()
   void createChannelConnection
   void bindChannelToAgent
-  const [view, setView] = useState<View>("all")
   const [onboardingChannel, setOnboardingChannel] = useState<Channel | null>(null)
-  const [pageSize, setPageSize] = useState<number>(50)
-  const [page, setPage] = useState(0)
+
+  const { get, set: setParams } = useFilterParams(FILTER_DEFAULTS, "/channels")
+
+  const view = (get("view") as View) ?? "all"
+  const pageSize = Number(get("size")) || 50
+  const page = Number(get("page")) || 0
+
+  const setView = (v: View) => setParams({ view: v, page: null })
+  const setPageSize = (v: number) => setParams({ size: String(v), page: null })
+  const setPage = (v: number) => setParams({ page: String(v) })
 
   const filtered = useMemo(() => {
     return channels.filter((c) => {

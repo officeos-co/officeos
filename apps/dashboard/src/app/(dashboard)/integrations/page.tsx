@@ -17,23 +17,35 @@ import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFilterParams } from "@/hooks/useFilterParams"
 
 const PAGE_SIZES = [25, 50, 100] as const
 
 type View = "all" | "installed" | "explore"
+
+const FILTER_DEFAULTS = { q: null, view: "all", size: "50", page: "0", category: null } as const
 
 export default function IntegrationsPage() {
   const router = useRouter()
   const { integrations, loading } = useIntegrations()
   const installSkill = useInstallSkill()
   const { trackSkillInstalled } = useAnalytics()
-  const [search, setSearch] = useState("")
-  const [view, setView] = useState<View>("all")
-  const [pageSize, setPageSize] = useState<number>(50)
-  const [page, setPage] = useState(0)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [configSlug, setConfigSlug] = useState<string | null>(null)
   const [installingSlug, setInstallingSlug] = useState<string | null>(null)
+
+  const { get, set: setParams } = useFilterParams(FILTER_DEFAULTS, "/integrations")
+
+  const search = get("q") ?? ""
+  const view = (get("view") as View) ?? "all"
+  const pageSize = Number(get("size")) || 50
+  const page = Number(get("page")) || 0
+  const selectedCategory = get("category")
+
+  const setSearch = (v: string) => setParams({ q: v, page: null })
+  const setView = (v: View) => setParams({ view: v, page: null })
+  const setPageSize = (v: number) => setParams({ size: String(v), page: null })
+  const setPage = (v: number) => setParams({ page: String(v) })
+  const setSelectedCategory = (v: string | null) => setParams({ category: v, page: null })
 
   const configIntegration = configSlug ? integrations.find((i) => i.slug === configSlug) : null
 
