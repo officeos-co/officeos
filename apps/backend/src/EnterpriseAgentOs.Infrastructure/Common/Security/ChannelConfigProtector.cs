@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Infrastructure.Common.Security;
 
-public sealed class ChannelConfigProtector
+public sealed class ChannelConfigProtector : IChannelConfigProtector
 {
     private const string Purpose = "eaos.channel.config.v1";
     private readonly IDataProtector _dataProtector;

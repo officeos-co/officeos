@@ -66,8 +66,7 @@ public sealed class ChannelMessageRouter
             {
                 await _channelRepository.UpdateBindingAsync(binding.Id, b =>
                 {
-                    b.LastSenderIdentifier = senderIdentifier;
-                    b.LastChannelId = channelId ?? senderIdentifier;
+                    b.UpdateReplyContext(senderIdentifier, channelId);
                 }, ct);
             }
             catch (Exception ex)

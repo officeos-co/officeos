@@ -20,9 +20,59 @@ public sealed class ChannelConnectionRecord
 
     public bool Enabled { get; set; } = true;
 
+    /// <summary>Whether a test/welcome message has been sent on this connection.</summary>
+    public bool TestMessageSent { get; set; }
+
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>FK to UserRecord — the admin who created this connection.</summary>
     public Guid? CreatedById { get; set; }
     public UserRecord? CreatedBy { get; set; }
+
+    // ── Domain logic ─────────────────────────────────────────────────
+
+    public bool IsWhatsApp => string.Equals(ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Whether this connection has platform credentials configured.</summary>
+    public bool IsConfigured => !string.IsNullOrEmpty(EncryptedConfig);
+
+    /// <summary>Whether this connection still needs a test message.</summary>
+    public bool NeedsTestMessage => !TestMessageSent;
+
+    public void MarkTestMessageSent() => TestMessageSent = true;
+
+    /// <summary>Factory: validates channel type and creates a new connection.</summary>
+    public static ChannelConnectionRecord Create(string channelType, string displayName, Guid createdById)
+    {
+        var definition = ChannelTypes.GetByType(channelType)
+            ?? throw new InvalidOperationException($"Unknown channel type: {channelType}");
+
+        return new ChannelConnectionRecord
+        {
+            ChannelType = definition.Type, // normalized
+            DisplayName = displayName,
+            CreatedById = createdById,
+        };
+    }
+
+    /// <summary>Apply a partial update. Only non-null fields are changed.</summary>
+    public void ApplyUpdate(string? displayName, bool? enabled)
+    {
+        if (displayName is not null) DisplayName = displayName;
+        if (enabled.HasValue) Enabled = enabled.Value;
+    }
+
+    /// <summary>Extract the owner JID from WhatsApp creds JSON (me.id field).</summary>
+    public static string? ExtractWhatsAppOwnerJid(string credsJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(credsJson);
+            if (doc.RootElement.TryGetProperty("me", out var me) &&
+                me.TryGetProperty("id", out var idProp))
+                return idProp.GetString();
+        }
+        catch { /* malformed creds */ }
+        return null;
+    }
 }

@@ -39,4 +39,19 @@ public sealed class AgentChannelBindingRecord
     public string? LastSenderIdentifier { get; set; }
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+
+    // ── Domain logic ─────────────────────────────────────────────────
+
+    /// <summary>Whether this binding has a known reply-to destination.</summary>
+    public bool HasReplyContext => !string.IsNullOrEmpty(LastChannelId) || !string.IsNullOrEmpty(LastSenderIdentifier);
+
+    /// <summary>Best destination for outbound messages.</summary>
+    public string? ReplyDestination => LastChannelId ?? LastSenderIdentifier;
+
+    /// <summary>Update the reply-to context from an inbound message.</summary>
+    public void UpdateReplyContext(string senderIdentifier, string? channelId)
+    {
+        LastSenderIdentifier = senderIdentifier;
+        LastChannelId = channelId ?? senderIdentifier;
+    }
 }
