@@ -57,7 +57,7 @@ public class ChannelQueries
         return ChannelTypes.All;
     }
 
-    public WhatsAppConnectionStatusPayload WhatsAppConnectionStatus(
+    public WhatsAppConnectionStatusPayload GetWhatsAppConnectionStatus(
         Guid connectionId,
         IResolverContext context,
         [Service] WhatsAppGatewayService gateway)
