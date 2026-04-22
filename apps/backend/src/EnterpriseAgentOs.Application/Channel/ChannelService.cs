@@ -8,15 +8,18 @@ internal sealed class ChannelService : IChannelService
 {
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelGateway _gateway;
+    private readonly ChannelConfigProtector _configProtector;
     private readonly ILogger<ChannelService> _logger;
 
     public ChannelService(
         IChannelRepository channelRepository,
         IChannelGateway gateway,
+        ChannelConfigProtector configProtector,
         ILogger<ChannelService> logger)
     {
         _channelRepository = channelRepository;
         _gateway = gateway;
+        _configProtector = configProtector;
         _logger = logger;
     }
 
@@ -48,6 +51,62 @@ internal sealed class ChannelService : IChannelService
                     "Failed to broadcast to {ChannelType} binding {BindingId} for agent {AgentId}",
                     binding.ChannelConnection.ChannelType, binding.Id, agentId);
             }
+        }
+    }
+
+    public async Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
+    {
+        var existing = await _channelRepository.GetConnectionAsync(connectionId, ct);
+        if (existing is null) return;
+
+        var isFirstPairing = string.IsNullOrEmpty(existing.EncryptedConfig);
+
+        var encrypted = _configProtector.Protect(
+            JsonSerializer.Serialize(new Dictionary<string, string> { ["credsJson"] = credsJson }));
+
+        await _channelRepository.UpdateConnectionAsync(connectionId, row =>
+        {
+            row.EncryptedConfig = encrypted;
+        }, ct);
+
+        if (isFirstPairing)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(credsJson);
+                if (doc.RootElement.TryGetProperty("me", out var me) &&
+                    me.TryGetProperty("id", out var idProp))
+                {
+                    var ownerJid = idProp.GetString();
+                    if (!string.IsNullOrEmpty(ownerJid))
+                    {
+                        _logger.LogInformation("First WhatsApp pairing for {Id}, owner: {Jid}", connectionId, ownerJid);
+                        await SendTestMessageAsync(connectionId, ownerJid, ct);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send test message for WhatsApp connection {Id}", connectionId);
+            }
+        }
+    }
+
+    public async Task<string?> LoadWhatsAppCredsAsync(Guid connectionId, CancellationToken ct = default)
+    {
+        var connection = await _channelRepository.GetConnectionAsync(connectionId, ct);
+        if (connection is null || string.IsNullOrEmpty(connection.EncryptedConfig))
+            return null;
+
+        try
+        {
+            var json = _configProtector.Unprotect(connection.EncryptedConfig);
+            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            return dict?.GetValueOrDefault("credsJson");
+        }
+        catch
+        {
+            return null;
         }
     }
 

@@ -8,20 +8,14 @@ namespace EnterpriseAgentOs.Api.Channels;
 [Route("api/internal")]
 public sealed class WhatsAppInternalController : ControllerBase
 {
-    private readonly IChannelRepository _channelRepository;
     private readonly ChannelMessageRouter _channelMessageRouter;
-    private readonly ChannelConfigProtector _channelConfigProtector;
     private readonly ILogger<WhatsAppInternalController> _logger;
 
     public WhatsAppInternalController(
-        IChannelRepository repo,
         ChannelMessageRouter router,
-        ChannelConfigProtector protector,
         ILogger<WhatsAppInternalController> logger)
     {
-        _channelRepository = repo;
         _channelMessageRouter = router;
-        _channelConfigProtector = protector;
         _logger = logger;
     }
 
@@ -79,19 +73,16 @@ public sealed class WhatsAppInternalController : ControllerBase
     /// Save WhatsApp session credentials from the sidecar.
     /// </summary>
     [HttpPost("wa/creds/{connectionId}")]
-    public async Task<IActionResult> SaveCreds(Guid connectionId, [FromBody] WhatsAppCredsRequest request, CancellationToken ct)
+    public async Task<IActionResult> SaveCreds(
+        Guid connectionId,
+        [FromBody] WhatsAppCredsRequest request,
+        [FromServices] IChannelService channelService,
+        CancellationToken ct)
     {
         if (string.IsNullOrEmpty(request.CredsJson))
             return BadRequest();
 
-        var encrypted = _channelConfigProtector.Protect(
-            JsonSerializer.Serialize(new Dictionary<string, string> { ["credsJson"] = request.CredsJson }));
-
-        await _channelRepository.UpdateConnectionAsync(connectionId, row =>
-        {
-            row.EncryptedConfig = encrypted;
-        }, ct);
-
+        await channelService.SaveWhatsAppCredsAsync(connectionId, request.CredsJson, ct);
         return Ok();
     }
 
@@ -99,23 +90,13 @@ public sealed class WhatsAppInternalController : ControllerBase
     /// Load WhatsApp session credentials for the sidecar.
     /// </summary>
     [HttpGet("wa/creds/{connectionId}")]
-    public async Task<IActionResult> LoadCreds(Guid connectionId, CancellationToken ct)
+    public async Task<IActionResult> LoadCreds(
+        Guid connectionId,
+        [FromServices] IChannelService channelService,
+        CancellationToken ct)
     {
-        var connection = await _channelRepository.GetConnectionAsync(connectionId, ct);
-        if (connection is null || string.IsNullOrEmpty(connection.EncryptedConfig))
-            return Ok(new { credsJson = (string?)null });
-
-        try
-        {
-            var json = _channelConfigProtector.Unprotect(connection.EncryptedConfig);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-            var credsJson = dict?.GetValueOrDefault("credsJson");
-            return Ok(new { credsJson });
-        }
-        catch
-        {
-            return Ok(new { credsJson = (string?)null });
-        }
+        var credsJson = await channelService.LoadWhatsAppCredsAsync(connectionId, ct);
+        return Ok(new { credsJson });
     }
 }
 

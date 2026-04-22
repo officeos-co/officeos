@@ -32,4 +32,16 @@ public interface IChannelService
     /// Called when a channel is first connected (QR scan, webhook config, etc.).
     /// </summary>
     Task SendTestMessageAsync(Guid connectionId, string destination, CancellationToken ct = default);
+
+    /// <summary>
+    /// Persist WhatsApp session credentials. On first pairing (no prior config),
+    /// extracts the owner JID and sends a test message automatically.
+    /// </summary>
+    Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
+
+    /// <summary>
+    /// Load WhatsApp session credentials for the sidecar.
+    /// Returns the raw creds JSON, or null if not found.
+    /// </summary>
+    Task<string?> LoadWhatsAppCredsAsync(Guid connectionId, CancellationToken ct = default);
 }
