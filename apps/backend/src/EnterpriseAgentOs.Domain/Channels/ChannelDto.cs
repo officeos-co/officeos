@@ -97,15 +97,10 @@ public static class ChannelTypes
                 new("input", "Application ID", "Your Discord application ID.", InputKey: "applicationId", InputHelp: "Found on the General Information page"),
                 new("input", "Public Key", "Used to verify interaction payloads from Discord.", InputKey: "publicKey", InputHelp: "Found on the General Information page"),
             }),
-        new ChannelTypeDefinition("whatsapp", "WhatsApp", "Connect via WhatsApp Business API",
+        new ChannelTypeDefinition("whatsapp", "WhatsApp", "Connect via QR code — like WhatsApp Web",
             "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.67-2.08-.18-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.58c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.27.49 1.7.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35zm-5.42 7.4A9.87 9.87 0 0 1 7 20.07l-.36-.21-3.73.98.99-3.63-.24-.37a9.87 9.87 0 0 1-1.51-5.26c0-5.45 4.44-9.89 9.9-9.89a9.89 9.89 0 0 1 9.89 9.9c0 5.45-4.44 9.88-9.9 9.88zm8.41-18.29A11.82 11.82 0 0 0 12.05 0C5.47 0 .1 5.37.1 11.95c0 2.1.55 4.16 1.6 5.97L0 24l6.24-1.64a11.94 11.94 0 0 0 5.81 1.49c6.58 0 11.94-5.37 11.94-11.95a11.87 11.87 0 0 0-3.53-8.41z\"/></svg>",
-            new OnboardingStep[]
-            {
-                new("url", "Set Up WhatsApp Business", "Go to Meta for Developers to configure your WhatsApp Business API.", Value: "https://developers.facebook.com/apps"),
-                new("input", "Phone Number ID", "Your WhatsApp Business phone number ID.", InputKey: "phoneNumberId", InputHelp: "Found in WhatsApp > Getting Started"),
-                new("input", "Access Token", "Meta Graph API access token.", InputKey: "accessToken", InputKind: "password"),
-                new("input", "Verify Token", "Token for webhook verification.", InputKey: "verifyToken", InputHelp: "You choose this value — must match your webhook config"),
-            }),
+            // No onboarding steps — WhatsApp uses QR code pairing, handled by the dashboard's dedicated WhatsApp flow
+            Array.Empty<OnboardingStep>()),
         new ChannelTypeDefinition("teams", "Microsoft Teams", "Connect to Microsoft Teams",
             "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20.63 8.26h-3.67c.59-.55.96-1.34.96-2.21a2.9 2.9 0 0 0-2.9-2.9c-.58 0-1.12.17-1.57.47A3.62 3.62 0 0 0 10.2 2a3.62 3.62 0 0 0-3.63 3.63c0 .96.38 1.83.99 2.48H4.97a.94.94 0 0 0-.94.94v5.53a5.57 5.57 0 0 0 5.57 5.57h1.13a5.57 5.57 0 0 0 5.56-5.57v-.52h4.34a.94.94 0 0 0 .94-.94V9.2a.94.94 0 0 0-.94-.94zM15.02 4.4a1.66 1.66 0 1 1 0 3.31 1.66 1.66 0 0 1 0-3.31zM10.2 3.24a2.39 2.39 0 1 1 0 4.78 2.39 2.39 0 0 1 0-4.78zm5.28 11.34a4.33 4.33 0 0 1-4.33 4.33H9.72a4.33 4.33 0 0 1-4.33-4.33V9.5h5.4v2.1a.94.94 0 0 0 .94.93h4.75v2.05zm4.9-1.76h-3.91V9.5h3.9v3.32z\"/></svg>",
             new OnboardingStep[]

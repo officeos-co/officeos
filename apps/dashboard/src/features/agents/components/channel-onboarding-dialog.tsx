@@ -68,11 +68,11 @@ export function ChannelOnboardingDialog({
     }
   }, [waStatus]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Timeout: if QR doesn't arrive within 15s, show error state
+  // Timeout: if QR doesn't arrive within 30s, show error state
   const shouldTimeout = !!whatsappConnectionId && waStatus !== "qr" && waStatus !== "open" && waStatus !== "error"
   useEffect(() => {
     if (!shouldTimeout) return
-    const t = setTimeout(() => setWaTimedOut(true), 15000)
+    const t = setTimeout(() => setWaTimedOut(true), 30000)
     return () => clearTimeout(t)
   }, [shouldTimeout])
 

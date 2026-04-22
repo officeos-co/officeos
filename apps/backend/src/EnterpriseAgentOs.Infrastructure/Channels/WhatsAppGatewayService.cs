@@ -194,11 +194,16 @@ public sealed class WhatsAppGatewayService : BackgroundService
 
             socket.EV.Connection.Update += (sender, state) =>
             {
+                _logger.LogDebug("WhatsApp connection {Id} state update: Connection={Connection}, QR={HasQR}",
+                    connectionId, state.Connection, state.QR is not null);
+
                 if (state.QR is not null)
                 {
                     _pendingQrCodes[connectionId] = state.QR;
                     _connectionStates[connectionId] = "qr";
                     ConnectionStatusChanged?.Invoke(connectionId, "qr", state.QR);
+                    _logger.LogInformation("QR code generated for WhatsApp connection {Id} (length: {Len})",
+                        connectionId, state.QR.Length);
                 }
 
                 if (state.Connection == WAConnectionState.Open)
