@@ -135,7 +135,9 @@ public sealed class WhatsAppGatewayService : IDisposable
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Failed to send WhatsApp message: {Status}", response.StatusCode);
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to send WhatsApp message: {Status} {Body}", response.StatusCode, body);
+                throw new InvalidOperationException($"WhatsApp sidecar returned {response.StatusCode}: {body}");
             }
         }
     }

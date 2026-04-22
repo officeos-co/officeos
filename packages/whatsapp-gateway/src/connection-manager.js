@@ -71,10 +71,25 @@ export class ConnectionManager {
   }
 
   async sendMessage(connectionId, jid, text) {
-    const conn = this.#connections.get(connectionId);
-    if (!conn || !conn.socket) {
-      throw new Error(`Connection ${connectionId} not active`);
+    let conn = this.#connections.get(connectionId);
+
+    // Auto-reconnect if connection isn't active (e.g. after pod restart)
+    if (!conn || !conn.socket || conn.status !== "open") {
+      log.info({ connectionId }, "Connection not active, auto-reconnecting");
+      await this.connect(connectionId);
+      conn = this.#connections.get(connectionId);
+
+      // Wait up to 30s for connection to become open
+      const deadline = Date.now() + 30_000;
+      while (conn && conn.status !== "open" && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+
+      if (!conn?.socket || conn.status !== "open") {
+        throw new Error(`Connection ${connectionId} failed to reconnect`);
+      }
     }
+
     await conn.socket.sendMessage(jid, { text });
   }
 }

@@ -37,31 +37,22 @@ public sealed class ChannelGateway : IChannelGateway
     {
         var connection = await _channelRepository.GetConnectionAsync(connectionId, ct);
         if (connection is null)
-        {
-            _logger.LogWarning("Connection {Id} not found, cannot send", connectionId);
-            return;
-        }
+            throw new InvalidOperationException($"Connection {connectionId} not found");
 
         if (string.Equals(connection.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
         {
-            // Resolve destination from creds: extract owner JID, normalize
             var destination = ExtractWhatsAppOwnerJid(connection);
             if (string.IsNullOrEmpty(destination))
-            {
-                _logger.LogWarning("WhatsApp connection {Id} has no owner JID in creds, cannot send", connectionId);
-                return;
-            }
+                throw new InvalidOperationException($"WhatsApp connection {connectionId} has no owner JID in creds");
 
+            _logger.LogInformation("Sending WhatsApp message to {Jid} on connection {Id}", destination, connectionId);
             await _whatsApp.SendMessageAsync(connectionId, destination, text);
             return;
         }
 
         var adapter = _adapterRegistry.GetAdapter(connection.ChannelType);
         if (adapter is null)
-        {
-            _logger.LogWarning("No adapter for channel type {Type}, cannot send", connection.ChannelType);
-            return;
-        }
+            throw new InvalidOperationException($"No adapter for channel type {connection.ChannelType}");
 
         var config = DecryptConfig(connection);
         var defaultChannel = config.GetValueOrDefault("defaultChannelId") ?? "";
