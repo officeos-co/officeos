@@ -62,12 +62,17 @@ public sealed class ChannelConnectionRecord
         if (enabled.HasValue) Enabled = enabled.Value;
     }
 
-    /// <summary>Extract the owner JID from WhatsApp creds JSON (me.id field).</summary>
-    public static string? ExtractWhatsAppOwnerJid(string credsJson)
+    /// <summary>
+    /// Extract the owner identifier from channel credentials JSON.
+    /// For WhatsApp, this is the raw me.id field — platform-specific
+    /// normalization (e.g. stripping device suffixes) happens in the gateway.
+    /// </summary>
+    public static string? ExtractOwnerIdentifier(string credsJson)
     {
         try
         {
             using var doc = JsonDocument.Parse(credsJson);
+            // WhatsApp: me.id
             if (doc.RootElement.TryGetProperty("me", out var me) &&
                 me.TryGetProperty("id", out var idProp))
                 return idProp.GetString();

@@ -143,7 +143,7 @@ internal sealed class ChannelService : IChannelService
         // disposed before the background task runs). Guard against concurrent fires.
         if (connection.NeedsTestMessage && _pendingTestMessages.TryAdd(connectionId, 0))
         {
-            var ownerJid = ChannelConnectionRecord.ExtractWhatsAppOwnerJid(credsJson);
+            var ownerJid = ChannelConnectionRecord.ExtractOwnerIdentifier(credsJson);
             if (!string.IsNullOrEmpty(ownerJid))
             {
                 _ = Task.Run(async () =>

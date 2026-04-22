@@ -114,9 +114,11 @@ public sealed class WhatsAppGatewayService : IDisposable
 
     /// <summary>
     /// Send a message through an active WhatsApp connection.
+    /// JIDs are normalized before sending (device suffix stripped).
     /// </summary>
     public async Task SendMessageAsync(Guid connectionId, string jid, string text)
     {
+        var normalizedJid = NormalizeJid(jid);
         var converted = MarkdownFormatConverter.Convert(text, "whatsapp");
         var chunks = PlatformTextChunker.ChunkForPlatform(converted, "whatsapp");
 
@@ -125,7 +127,7 @@ public sealed class WhatsAppGatewayService : IDisposable
             var payload = JsonSerializer.Serialize(new
             {
                 connectionId = connectionId.ToString(),
-                jid,
+                jid = normalizedJid,
                 text = chunk,
             });
             var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
@@ -136,6 +138,19 @@ public sealed class WhatsAppGatewayService : IDisposable
                 _logger.LogError("Failed to send WhatsApp message: {Status}", response.StatusCode);
             }
         }
+    }
+
+    /// <summary>
+    /// Strips the device suffix from a WhatsApp JID.
+    /// "4915209530377:7@s.whatsapp.net" → "4915209530377@s.whatsapp.net"
+    /// </summary>
+    private static string NormalizeJid(string jid)
+    {
+        var colonIdx = jid.IndexOf(':');
+        var atIdx = jid.IndexOf('@');
+        if (colonIdx > 0 && atIdx > colonIdx)
+            return string.Concat(jid.AsSpan(0, colonIdx), jid.AsSpan(atIdx));
+        return jid;
     }
 
     public void Dispose()
