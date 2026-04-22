@@ -54,11 +54,10 @@ public static class InfrastructureServiceRegistration
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient("channel-platform");
+        services.AddHttpClient("whatsapp-gateway");
 
-        // Background services
-        services.AddSingleton<WhatsAppSessionStore>();
+        // WhatsApp gateway (HTTP proxy to Baileys sidecar)
         services.AddSingleton<WhatsAppGatewayService>();
-        services.AddHostedService(sp => sp.GetRequiredService<WhatsAppGatewayService>());
 
         return services;
     }

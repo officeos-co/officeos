@@ -53,6 +53,10 @@ var skillRuntimeConfig = new SkillRuntimeConfig();
 envSection.GetSection("SkillRuntime").Bind(skillRuntimeConfig);
 builder.Services.AddSingleton(skillRuntimeConfig);
 
+var whatsAppGatewayConfig = new WhatsAppGatewayConfig();
+envSection.GetSection("WhatsAppGateway").Bind(whatsAppGatewayConfig);
+builder.Services.AddSingleton(whatsAppGatewayConfig);
+
 var googleOAuthConfig = new GoogleOAuthConfig();
 envSection.GetSection("GoogleOAuth").Bind(googleOAuthConfig);
 builder.Services.AddSingleton(googleOAuthConfig);

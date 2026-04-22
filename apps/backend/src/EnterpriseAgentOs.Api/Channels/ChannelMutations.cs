@@ -49,11 +49,11 @@ public class ChannelMutations
         var created = await repo.CreateConnectionAsync(record, ct);
         InvalidateChannelCaches(cache);
 
-        // For WhatsApp, start the gateway connection (QR code pairing)
+        // For WhatsApp, start the sidecar connection (QR code pairing)
         if (string.Equals(input.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
         {
             var gateway = context.Services.GetRequiredService<WhatsAppGatewayService>();
-            gateway.StartConnection(created.Id);
+            await gateway.StartConnectionAsync(created.Id);
         }
 
         return ChannelGraphQLMapper.ToDto(created);
@@ -106,7 +106,7 @@ public class ChannelMutations
         if (existing is not null && string.Equals(existing.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
         {
             var gateway = context.Services.GetRequiredService<WhatsAppGatewayService>();
-            gateway.StopConnection(id);
+            await gateway.StopConnectionAsync(id);
         }
 
         var result = await repo.DeleteConnectionAsync(id, ct);

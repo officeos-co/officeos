@@ -153,6 +153,33 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
+        # ── WhatsApp Baileys sidecar ──────────────────────────────
+        - name: whatsapp-gateway
+          image: harkro123/eaos-whatsapp-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3002
+              name: wa-gateway
+              protocol: TCP
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 5
+            periodSeconds: 10
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -286,13 +313,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 3001
+              port: 3002
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health
-              port: 3001
+              port: 3002
             initialDelaySeconds: 5
             periodSeconds: 10
 

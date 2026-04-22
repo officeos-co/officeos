@@ -8,8 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\EnterpriseAgentOs.Domain\EnterpriseAgentOs.Domain.csproj" />
-    <ProjectReference Include="..\..\lib\BaileysCSharp\BaileysCSharp\BaileysCSharp.csproj" />
-    <!-- Application reference removed — Infrastructure only references Domain -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Cronos" Version="0.12.0" />
