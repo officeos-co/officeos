@@ -10,6 +10,7 @@ internal sealed class ChannelService : IChannelService
     private readonly IChannelRepository _repo;
     private readonly IChannelGateway _gateway;
     private readonly IChannelConfigProtector _protector;
+    private readonly IAgentLogRepository _agentLogRepo;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ChannelService> _logger;
 
@@ -17,12 +18,14 @@ internal sealed class ChannelService : IChannelService
         IChannelRepository repo,
         IChannelGateway gateway,
         IChannelConfigProtector protector,
+        IAgentLogRepository agentLogRepo,
         IServiceScopeFactory scopeFactory,
         ILogger<ChannelService> logger)
     {
         _repo = repo;
         _gateway = gateway;
         _protector = protector;
+        _agentLogRepo = agentLogRepo;
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
@@ -78,13 +81,36 @@ internal sealed class ChannelService : IChannelService
             if (!binding.Enabled || binding.ChannelConnection is null)
                 continue;
 
+            var channelType = binding.ChannelConnection.ChannelType;
+            var correlationId = Guid.NewGuid().ToString("N");
+
             try
             {
                 await _gateway.SendAsync(binding.ChannelConnectionId, text, ct);
+
+                // Log successful outbound delivery
+                await _agentLogRepo.AppendAsync(new AgentLogRecord
+                {
+                    AgentId = agentId,
+                    Type = AgentLogType.ChannelOut,
+                    Channel = channelType,
+                    Content = text,
+                    CorrelationId = correlationId,
+                }, ct);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Broadcast failed for binding {BindingId}", binding.Id);
+
+                // Log delivery failure to agent timeline
+                await _agentLogRepo.AppendAsync(new AgentLogRecord
+                {
+                    AgentId = agentId,
+                    Type = AgentLogType.Error,
+                    Channel = channelType,
+                    Content = $"Failed to deliver message via {channelType}: {ex.Message}",
+                    CorrelationId = correlationId,
+                }, ct);
             }
         }
     }

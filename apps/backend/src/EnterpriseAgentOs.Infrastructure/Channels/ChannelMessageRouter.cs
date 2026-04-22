@@ -100,6 +100,16 @@ public sealed class ChannelMessageRouter
             {
                 _logger.LogError(ex, "Failed to forward message to agent {AgentId}", binding.AgentId);
                 responses[binding.AgentId] = "Sorry, I'm having trouble processing your message right now.";
+
+                // Log error to agent timeline
+                await _agentLogRepository.AppendAsync(new AgentLogRecord
+                {
+                    AgentId = binding.AgentId,
+                    Type = AgentLogType.Error,
+                    Channel = channelType,
+                    Content = $"Failed to process inbound {channelType} message: {ex.Message}",
+                    CorrelationId = correlationId,
+                }, ct);
             }
         }
 
