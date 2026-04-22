@@ -131,15 +131,20 @@ internal sealed class ChannelService : IChannelService
             row.EncryptedConfig = _protector.Protect(JsonSerializer.Serialize(configDict));
         }, ct);
 
-        // Send test message on first successful pairing (retries on each creds save
-        // until the sidecar is ready to accept sends)
+        // Fire-and-forget: attempt test message in the background with a delay
+        // so SaveCreds returns immediately and the sidecar can finish initializing.
+        // If it fails, the next creds save will retry (NeedsTestMessage stays true).
         if (connection.NeedsTestMessage)
         {
             var ownerJid = ChannelConnectionRecord.ExtractWhatsAppOwnerJid(credsJson);
             if (!string.IsNullOrEmpty(ownerJid))
             {
-                _logger.LogInformation("Attempting WhatsApp test message for {Id}, owner: {Jid}", connectionId, ownerJid);
-                await SendTestMessageAsync(connectionId, ownerJid, ct);
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    _logger.LogInformation("Attempting WhatsApp test message for {Id}, owner: {Jid}", connectionId, ownerJid);
+                    await SendTestMessageAsync(connectionId, ownerJid, CancellationToken.None);
+                });
             }
         }
     }
