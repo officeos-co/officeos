@@ -41,7 +41,7 @@ export function ChannelOnboardingDialog({
   const [error, setError] = useState<string | null>(null)
   const [whatsappConnectionId, setWhatsappConnectionId] = useState<string | null>(null)
   const isWhatsApp = channel.slug === "whatsapp"
-  const { status: waStatus, qrData } = useWhatsAppConnectionStatus(
+  const { status: waStatus, qrData, error: waError } = useWhatsAppConnectionStatus(
     isWhatsApp ? whatsappConnectionId : null
   )
   const hasSteps = channel.onboarding.length > 0
@@ -54,7 +54,10 @@ export function ChannelOnboardingDialog({
     setError(null)
     setConnecting(false)
     setWhatsappConnectionId(null)
+    setWaTimedOut(false)
   }
+
+  const [waTimedOut, setWaTimedOut] = useState(false)
 
   // Close dialog when WhatsApp connects successfully
   useEffect(() => {
@@ -63,7 +66,15 @@ export function ChannelOnboardingDialog({
       reset()
       onOpenChange(false)
     }
-  }, [waStatus])
+  }, [waStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Timeout: if QR doesn't arrive within 15s, show error state
+  const shouldTimeout = !!whatsappConnectionId && waStatus !== "qr" && waStatus !== "open" && waStatus !== "error"
+  useEffect(() => {
+    if (!shouldTimeout) return
+    const t = setTimeout(() => setWaTimedOut(true), 15000)
+    return () => clearTimeout(t)
+  }, [shouldTimeout])
 
   async function handleComplete() {
     setConnecting(true)
@@ -146,18 +157,31 @@ export function ChannelOnboardingDialog({
                 </div>
                 <p className="text-sm font-medium">Connected!</p>
               </div>
-            ) : waStatus === "error" ? (
-              <p className="text-sm text-destructive">Connection failed. Please try again.</p>
+            ) : waStatus === "error" || waError || waTimedOut ? (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <p className="text-sm text-destructive">
+                  {waTimedOut ? "Timed out waiting for QR code. The server may be unavailable." : "Connection failed. Please try again."}
+                </p>
+                <Button size="sm" variant="outline" onClick={() => { setWhatsappConnectionId(null); setConnecting(false); setWaTimedOut(false) }}>
+                  Retry
+                </Button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-2 py-6">
                 <LoaderIcon className="size-6 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Connecting to WhatsApp...</p>
+                <p className="text-sm text-muted-foreground">Waiting for QR code...</p>
+                <p className="text-xs text-muted-foreground">This can take a few seconds</p>
               </div>
             )}
             <div className="flex items-center gap-2 pt-2">
               <Button size="sm" variant="ghost" onClick={() => { reset(); onOpenChange(false) }}>
                 Cancel
               </Button>
+              {waStatus !== "qr" && waStatus !== "open" && !waError && (
+                <Button size="sm" variant="outline" className="ml-auto" onClick={() => { setWhatsappConnectionId(null); setConnecting(false) }}>
+                  Retry
+                </Button>
+              )}
             </div>
           </div>
         ) : isWhatsApp && !whatsappConnectionId ? (
