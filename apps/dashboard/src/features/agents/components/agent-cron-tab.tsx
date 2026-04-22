@@ -14,32 +14,167 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCronJobs } from "@/features/agents/api/useCronJobs";
-import { ClockIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  ClockIcon,
+  PlusIcon,
+  Trash2Icon,
+  HeartPulseIcon,
+} from "lucide-react";
 
-const CRON_PRESETS = [
-  { label: "Every hour", expression: "0 * * * *" },
-  { label: "Every day at 9 AM", expression: "0 9 * * *" },
-  { label: "Every weekday at 9 AM", expression: "0 9 * * 1-5" },
-  { label: "Every Monday at 9 AM", expression: "0 9 * * 1" },
-  { label: "Every Friday at 5 PM", expression: "0 17 * * 5" },
-  { label: "1st of every month", expression: "0 8 1 * *" },
+type Frequency =
+  | "every-30-min"
+  | "every-hour"
+  | "every-day"
+  | "every-weekday"
+  | "every-week"
+  | "every-month";
+
+const FREQUENCIES: { value: Frequency; label: string; description: string }[] =
+  [
+    {
+      value: "every-30-min",
+      label: "Every 30 minutes",
+      description: "Heartbeat — keeps the agent checking in regularly",
+    },
+    {
+      value: "every-hour",
+      label: "Every hour",
+      description: "Runs once per hour at the top of the hour",
+    },
+    {
+      value: "every-day",
+      label: "Every day",
+      description: "Runs once a day at a specific time",
+    },
+    {
+      value: "every-weekday",
+      label: "Every weekday",
+      description: "Monday through Friday at a specific time",
+    },
+    {
+      value: "every-week",
+      label: "Every week",
+      description: "Once a week on a specific day and time",
+    },
+    {
+      value: "every-month",
+      label: "Every month",
+      description: "Once a month on a specific day and time",
+    },
+  ];
+
+const DAYS_OF_WEEK = [
+  { value: "1", label: "Monday" },
+  { value: "2", label: "Tuesday" },
+  { value: "3", label: "Wednesday" },
+  { value: "4", label: "Thursday" },
+  { value: "5", label: "Friday" },
+  { value: "6", label: "Saturday" },
+  { value: "0", label: "Sunday" },
 ];
+
+function buildCronExpression(
+  frequency: Frequency,
+  hour: string,
+  minute: string,
+  dayOfWeek: string,
+  dayOfMonth: string,
+): string {
+  const h = parseInt(hour, 10) || 9;
+  const m = parseInt(minute, 10) || 0;
+  switch (frequency) {
+    case "every-30-min":
+      return "*/30 * * * *";
+    case "every-hour":
+      return "0 * * * *";
+    case "every-day":
+      return `${m} ${h} * * *`;
+    case "every-weekday":
+      return `${m} ${h} * * 1-5`;
+    case "every-week":
+      return `${m} ${h} * * ${dayOfWeek}`;
+    case "every-month":
+      return `${m} ${h} ${parseInt(dayOfMonth, 10) || 1} * *`;
+  }
+}
+
+function describeExpression(expression: string): string {
+  const known: Record<string, string> = {
+    "*/30 * * * *": "Every 30 minutes",
+    "0 * * * *": "Every hour",
+  };
+  if (known[expression]) return known[expression];
+
+  const parts = expression.split(" ");
+  if (parts.length !== 5) return expression;
+  const [min, hour, dom, , dow] = parts;
+
+  const timeStr = `${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+
+  if (dom !== "*" && dow === "*") {
+    return `Monthly on day ${dom} at ${timeStr}`;
+  }
+  if (dow === "1-5") return `Weekdays at ${timeStr}`;
+  if (dow !== "*") {
+    const dayName = DAYS_OF_WEEK.find((d) => d.value === dow)?.label ?? dow;
+    return `Every ${dayName} at ${timeStr}`;
+  }
+  if (hour !== "*" && dom === "*" && dow === "*") return `Daily at ${timeStr}`;
+
+  return expression;
+}
+
+function isHeartbeat(expression: string): boolean {
+  return expression === "*/30 * * * *";
+}
 
 export function AgentCronTab({ agentId }: { agentId: string }) {
   const { jobs, loading, createCronJob, setCronJobEnabled, deleteCronJob } =
     useCronJobs(agentId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
-  const [expression, setExpression] = useState("");
+  const [frequency, setFrequency] = useState<Frequency>("every-day");
+  const [hour, setHour] = useState("09");
+  const [minute, setMinute] = useState("00");
+  const [dayOfWeek, setDayOfWeek] = useState("1");
+  const [dayOfMonth, setDayOfMonth] = useState("1");
   const [prompt, setPrompt] = useState("");
 
-  async function handleCreate() {
-    await createCronJob(name || "Untitled job", expression, prompt);
-    setDialogOpen(false);
+  const needsTime = !["every-30-min", "every-hour"].includes(frequency);
+  const needsDayOfWeek = frequency === "every-week";
+  const needsDayOfMonth = frequency === "every-month";
+
+  function resetForm() {
     setName("");
-    setExpression("");
+    setFrequency("every-day");
+    setHour("09");
+    setMinute("00");
+    setDayOfWeek("1");
+    setDayOfMonth("1");
     setPrompt("");
+  }
+
+  async function handleCreate() {
+    const expression = buildCronExpression(
+      frequency,
+      hour,
+      minute,
+      dayOfWeek,
+      dayOfMonth,
+    );
+    const jobName =
+      name || (isHeartbeat(expression) ? "Heartbeat" : "Untitled schedule");
+    await createCronJob(jobName, expression, prompt);
+    setDialogOpen(false);
+    resetForm();
   }
 
   if (loading)
@@ -55,7 +190,7 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
         <div>
           <h3 className="text-sm font-medium">Scheduled tasks</h3>
           <p className="text-xs text-muted-foreground">
-            Cron jobs run this agent on a schedule with a specific prompt.
+            Run this agent on a schedule with a specific prompt.
           </p>
         </div>
         <Button size="sm" onClick={() => setDialogOpen(true)}>
@@ -75,18 +210,17 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
+                  {isHeartbeat(job.expression) && (
+                    <HeartPulseIcon className="size-3.5 text-rose-500" />
+                  )}
                   <span
                     className={`text-sm font-medium ${!job.enabled ? "text-muted-foreground" : ""}`}
                   >
                     {job.name}
                   </span>
-                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                    {job.expression}
-                  </code>
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {CRON_PRESETS.find((p) => p.expression === job.expression)
-                    ?.label ?? job.expression}
+                  {describeExpression(job.expression)}
                 </div>
               </div>
               <div className="flex items-center gap-4 shrink-0 text-xs text-muted-foreground">
@@ -127,7 +261,8 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
           <ClockIcon className="size-8 text-muted-foreground/30 mb-3" />
           <p className="text-sm font-medium">No scheduled tasks</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Create a cron job to run this agent on a schedule.
+            Create a schedule to run this agent automatically — including
+            heartbeats.
           </p>
           <Button
             size="sm"
@@ -145,7 +280,8 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
           <DialogHeader>
             <DialogTitle>New scheduled task</DialogTitle>
             <DialogDescription>
-              Run this agent automatically on a cron schedule.
+              Run this agent automatically on a schedule. Use &ldquo;Every 30
+              minutes&rdquo; for a heartbeat.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -155,42 +291,117 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
                 id="cron-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Daily research digest"
+                placeholder={
+                  frequency === "every-30-min"
+                    ? "e.g. Heartbeat"
+                    : "e.g. Daily research digest"
+                }
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Schedule</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {CRON_PRESETS.map((p) => (
+            <div className="space-y-3">
+              <Label>Frequency</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {FREQUENCIES.map((f) => (
                   <button
-                    key={p.expression}
+                    key={f.value}
                     type="button"
-                    onClick={() => setExpression(p.expression)}
-                    className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                      expression === p.expression
+                    onClick={() => setFrequency(f.value)}
+                    className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                      frequency === f.value
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted/50"
                     }`}
                   >
-                    {p.label}
+                    <div className="flex items-center gap-2">
+                      {f.value === "every-30-min" && (
+                        <HeartPulseIcon className="size-3.5 text-rose-500 shrink-0" />
+                      )}
+                      <span className="text-sm font-medium">{f.label}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {f.description}
+                    </p>
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={expression}
-                  onChange={(e) => setExpression(e.target.value)}
-                  placeholder="Custom: 0 9 * * 1-5"
-                  className="max-w-[200px] font-mono text-xs"
-                />
-                {expression && (
-                  <span className="text-xs text-muted-foreground">
-                    {CRON_PRESETS.find((p) => p.expression === expression)
-                      ?.label ?? "Custom schedule"}
-                  </span>
-                )}
-              </div>
+
+              {needsTime && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground shrink-0">
+                    At
+                  </Label>
+                  <Select value={hour} onValueChange={(v) => v && setHour(v)}>
+                    <SelectTrigger className="w-[80px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <SelectItem
+                          key={i}
+                          value={i.toString().padStart(2, "0")}
+                        >
+                          {i.toString().padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-muted-foreground">:</span>
+                  <Select value={minute} onValueChange={(v) => v && setMinute(v)}>
+                    <SelectTrigger className="w-[80px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["00", "15", "30", "45"].map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-muted-foreground">UTC</span>
+                </div>
+              )}
+
+              {needsDayOfWeek && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground shrink-0">
+                    On
+                  </Label>
+                  <Select value={dayOfWeek} onValueChange={(v) => v && setDayOfWeek(v)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS_OF_WEEK.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {needsDayOfMonth && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground shrink-0">
+                    On day
+                  </Label>
+                  <Select value={dayOfMonth} onValueChange={(v) => v && setDayOfMonth(v)}>
+                    <SelectTrigger className="w-[80px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 28 }, (_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          {i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -199,7 +410,11 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
                 id="cron-prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="What should the agent do on this schedule?"
+                placeholder={
+                  frequency === "every-30-min"
+                    ? "e.g. Check for new tasks, review pending items, and report anything urgent."
+                    : "What should the agent do on this schedule?"
+                }
                 rows={3}
               />
             </div>
@@ -212,11 +427,7 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
             >
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={handleCreate}
-              disabled={!expression.trim()}
-            >
+            <Button size="sm" onClick={handleCreate} disabled={!prompt.trim()}>
               Create schedule
             </Button>
           </div>
