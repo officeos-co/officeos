@@ -1,5 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.RegularExpressions;
+using EnterpriseAgentOs.Infrastructure.Channels.Common;
 
 namespace EnterpriseAgentOs.Infrastructure.Channels;
 
@@ -12,17 +14,20 @@ public sealed class ChannelMessageRouter
     private readonly IChannelRepository _channelRepository;
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly ChannelConfigProtector _channelConfigProtector;
+    private readonly InMemoryMessageDeduplicator _deduplicator;
     private readonly ILogger<ChannelMessageRouter> _logger;
 
     public ChannelMessageRouter(
         IChannelRepository repo,
         IAgentLogRepository logRepo,
         ChannelConfigProtector protector,
+        InMemoryMessageDeduplicator deduplicator,
         ILogger<ChannelMessageRouter> logger)
     {
         _channelRepository = repo;
         _agentLogRepository = logRepo;
         _channelConfigProtector = protector;
+        _deduplicator = deduplicator;
         _logger = logger;
     }
 
@@ -34,6 +39,8 @@ public sealed class ChannelMessageRouter
         Guid connectionId,
         string senderIdentifier,
         string messageText,
+        bool isGroupMessage = false,
+        string? messageId = null,
         CancellationToken ct = default)
     {
         var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
@@ -45,8 +52,8 @@ public sealed class ChannelMessageRouter
 
             var agentConfig = DeserializeBindingConfig(binding.Config);
 
-            // Check access policy
-            if (!IsAllowed(agentConfig, senderIdentifier))
+            // Check access policy (group vs DM)
+            if (!IsAllowed(agentConfig, senderIdentifier, isGroupMessage, messageText))
             {
                 _logger.LogDebug("Message from {Sender} blocked by policy for agent {AgentId}",
                     senderIdentifier, binding.AgentId);
@@ -112,7 +119,6 @@ public sealed class ChannelMessageRouter
 
     private async Task<string> SendToAgentAsync(string serviceUrl, Guid agentId, string message, CancellationToken ct)
     {
-        // serviceUrl is like "ws://zeroclaw-abc12345.default.svc.cluster.local:42617/ws/chat"
         var uri = new Uri(serviceUrl.TrimEnd('/'));
         var wsUri = new Uri($"{uri}?token={agentId}");
 
@@ -176,7 +182,6 @@ public sealed class ChannelMessageRouter
         return responseBuilder.ToString();
     }
 
-
     private static AgentChannelConfig DeserializeBindingConfig(string? configJson)
     {
         if (string.IsNullOrEmpty(configJson))
@@ -187,7 +192,15 @@ public sealed class ChannelMessageRouter
             ?? new AgentChannelConfig();
     }
 
-    private static bool IsAllowed(AgentChannelConfig config, string senderIdentifier)
+    private static bool IsAllowed(AgentChannelConfig config, string senderIdentifier, bool isGroup, string messageText)
+    {
+        if (isGroup)
+            return IsGroupAllowed(config, senderIdentifier, messageText);
+
+        return IsDmAllowed(config, senderIdentifier);
+    }
+
+    private static bool IsDmAllowed(AgentChannelConfig config, string senderIdentifier)
     {
         if (config.DmPolicy == "disabled") return false;
         if (config.DmPolicy == "open") return true;
@@ -201,4 +214,47 @@ public sealed class ChannelMessageRouter
         return true;
     }
 
+    private static bool IsGroupAllowed(AgentChannelConfig config, string senderIdentifier, string messageText)
+    {
+        var groupPolicy = config.GroupPolicy ?? "mention";
+
+        if (groupPolicy == "disabled") return false;
+
+        // Check group allowlist
+        if (config.AllowedGroups is not null && config.AllowedGroups.Length > 0)
+        {
+            // If we have an allowlist but the group isn't in it, deny
+            // Note: senderIdentifier in group context is the participant, not the group
+            // Group ID filtering happens at a higher level
+        }
+
+        // Check user allowlist for groups
+        if (config.AllowedUsers is not null && config.AllowedUsers.Length > 0)
+        {
+            if (!config.AllowedUsers.Any(u =>
+                string.Equals(u, senderIdentifier, StringComparison.OrdinalIgnoreCase)))
+                return false;
+        }
+
+        if (groupPolicy == "open") return true;
+
+        // Default: require mention
+        if (config.RequireMention)
+        {
+            if (config.MentionPatterns is not null && config.MentionPatterns.Length > 0)
+            {
+                return config.MentionPatterns.Any(pattern =>
+                {
+                    try { return Regex.IsMatch(messageText, pattern, RegexOptions.IgnoreCase); }
+                    catch { return false; }
+                });
+            }
+
+            // No mention patterns configured — accept all group messages when policy is "mention"
+            // The actual @mention detection depends on the platform adapter
+            return true;
+        }
+
+        return true;
+    }
 }

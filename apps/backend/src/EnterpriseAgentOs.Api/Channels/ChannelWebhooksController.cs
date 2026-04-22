@@ -15,17 +15,20 @@ public sealed class ChannelWebhooksController : ControllerBase
     private readonly IChannelRepository _channelRepository;
     private readonly ChannelMessageRouter _channelMessageRouter;
     private readonly ChannelAdapterRegistry _channelAdapterRegistry;
+    private readonly InMemoryMessageDeduplicator _deduplicator;
     private readonly ILogger<ChannelWebhooksController> _logger;
 
     public ChannelWebhooksController(
         IChannelRepository repo,
         ChannelMessageRouter router,
         ChannelAdapterRegistry adapters,
+        InMemoryMessageDeduplicator deduplicator,
         ILogger<ChannelWebhooksController> logger)
     {
         _channelRepository = repo;
         _channelMessageRouter = router;
         _channelAdapterRegistry = adapters;
+        _deduplicator = deduplicator;
         _logger = logger;
     }
 
@@ -100,8 +103,17 @@ public sealed class ChannelWebhooksController : ControllerBase
                 return Ok();
             }
 
+            // Deduplication check
+            if (message.MessageId is not null && _deduplicator.IsDuplicate(platform, message.MessageId))
+            {
+                _logger.LogDebug("Duplicate {Platform} message {MessageId} skipped", platform, message.MessageId);
+                return Ok();
+            }
+
             // Route message to bound agents
-            var responses = await _channelMessageRouter.RouteMessageAsync(connection.Id, message.SenderIdentifier, message.Text, ct);
+            var responses = await _channelMessageRouter.RouteMessageAsync(
+                connection.Id, message.SenderIdentifier, message.Text,
+                isGroupMessage: message.IsGroupMessage, messageId: message.MessageId, ct: ct);
 
             // Send replies back through the platform
             var httpClient = HttpContext.RequestServices
@@ -110,7 +122,14 @@ public sealed class ChannelWebhooksController : ControllerBase
 
             foreach (var (_, responseText) in responses)
             {
-                await adapter.SendReplyAsync(httpClient, config, message.ChannelId, responseText, ct);
+                try
+                {
+                    await adapter.SendReplyAsync(httpClient, config, message.ChannelId, responseText, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send {Platform} reply on connection {Id}", platform, connection.Id);
+                }
             }
 
             return Ok();

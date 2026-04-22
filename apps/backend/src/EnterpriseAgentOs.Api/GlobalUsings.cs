@@ -45,6 +45,7 @@ global using EnterpriseAgentOs.Infrastructure.Agents;
 global using EnterpriseAgentOs.Infrastructure.Auth;
 global using EnterpriseAgentOs.Infrastructure.Billing;
 global using EnterpriseAgentOs.Infrastructure.Channels;
+global using EnterpriseAgentOs.Infrastructure.Channels.Common;
 global using EnterpriseAgentOs.Infrastructure.Common;
 global using EnterpriseAgentOs.Infrastructure.Organizations;
 global using EnterpriseAgentOs.Infrastructure.Providers;

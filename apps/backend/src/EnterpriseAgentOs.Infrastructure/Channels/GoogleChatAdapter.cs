@@ -1,10 +1,18 @@
+using System.Collections.Concurrent;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using EnterpriseAgentOs.Infrastructure.Channels.Common;
 
 namespace EnterpriseAgentOs.Infrastructure.Channels;
 
 internal sealed class GoogleChatAdapter : IChannelAdapter
 {
     public string ChannelType => "google-chat";
+    public int MaxMessageLength => 4096;
+
+    private static readonly ConcurrentDictionary<string, (string Token, DateTimeOffset Expiry)> _tokenCache = new();
 
     /// <summary>
     /// Google Chat sends a Bearer JWT signed by Google's service account.
@@ -50,10 +58,16 @@ internal sealed class GoogleChatAdapter : IChannelAdapter
     public ChannelInboundMessage? ParseInbound(JsonElement body)
     {
         var eventType = body.TryGetProperty("type", out var t) ? t.GetString() : null;
+
+        // Ignore non-message events
         if (eventType == "ADDED_TO_SPACE") return null;
+        if (eventType == "CARD_CLICKED") return null;
         if (eventType != "MESSAGE") return null;
 
         if (!body.TryGetProperty("message", out var message)) return null;
+
+        // Use message.name as the unique message ID for dedup
+        var messageId = message.TryGetProperty("name", out var mname) ? mname.GetString() : null;
 
         // Prefer argumentText (without @mention) over text
         var text = message.TryGetProperty("argumentText", out var argText)
@@ -62,18 +76,35 @@ internal sealed class GoogleChatAdapter : IChannelAdapter
 
         if (string.IsNullOrEmpty(text)) return null;
 
+        // Sender info
         var senderId = body.TryGetProperty("user", out var user) && user.TryGetProperty("name", out var uname)
             ? uname.GetString() ?? "" : "";
 
+        var senderDisplayName = body.TryGetProperty("user", out var u2) && u2.TryGetProperty("displayName", out var dname)
+            ? dname.GetString() : null;
+
+        // Space info + group detection
         var spaceName = body.TryGetProperty("space", out var space) && space.TryGetProperty("name", out var sname)
             ? sname.GetString() ?? "" : "";
+
+        var spaceType = body.TryGetProperty("space", out var sp2) && sp2.TryGetProperty("type", out var stype)
+            ? stype.GetString() ?? "" : "";
+
+        var isGroup = spaceType is "ROOM" or "SPACE";
 
         var threadName = message.TryGetProperty("thread", out var thread) && thread.TryGetProperty("name", out var tname)
             ? tname.GetString() ?? "" : "";
 
         var channelId = string.IsNullOrEmpty(threadName) ? spaceName : $"{spaceName}|{threadName}";
 
-        return new ChannelInboundMessage(senderId, channelId, text);
+        return new ChannelInboundMessage(
+            senderId,
+            channelId,
+            text,
+            MessageId: messageId,
+            IsGroupMessage: isGroup,
+            GroupId: isGroup ? spaceName : null,
+            SenderDisplayName: senderDisplayName);
     }
 
     public async Task SendReplyAsync(HttpClient client, Dictionary<string, string> config, string channelId, string text, CancellationToken ct = default)
@@ -88,22 +119,31 @@ internal sealed class GoogleChatAdapter : IChannelAdapter
         var accessToken = await GetServiceAccountTokenAsync(client, saJson, ct);
         if (string.IsNullOrEmpty(accessToken)) return;
 
-        var messageObj = new Dictionary<string, object> { ["text"] = text };
-        if (!string.IsNullOrEmpty(threadName))
-            messageObj["thread"] = new { name = threadName };
+        var chunks = PlatformTextChunker.Chunk(text, 4096);
 
-        var payload = JsonSerializer.Serialize(messageObj);
-        var url = $"https://chat.googleapis.com/v1/{spaceName}/messages";
-        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        foreach (var chunk in chunks)
         {
-            Content = new StringContent(payload, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        await client.SendAsync(request, ct);
+            var messageObj = new Dictionary<string, object> { ["text"] = chunk };
+            if (!string.IsNullOrEmpty(threadName))
+                messageObj["thread"] = new { name = threadName };
+
+            var payload = JsonSerializer.Serialize(messageObj);
+            var url = $"https://chat.googleapis.com/v1/{spaceName}/messages";
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(payload, Encoding.UTF8, "application/json"),
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            await client.SendAsync(request, ct);
+        }
     }
 
     private static async Task<string?> GetServiceAccountTokenAsync(HttpClient client, string serviceAccountJson, CancellationToken ct)
     {
+        // Check cache first
+        if (_tokenCache.TryGetValue(serviceAccountJson, out var cached) && cached.Expiry > DateTimeOffset.UtcNow.AddMinutes(2))
+            return cached.Token;
+
         try
         {
             var sa = JsonSerializer.Deserialize<JsonElement>(serviceAccountJson);
@@ -151,7 +191,14 @@ internal sealed class GoogleChatAdapter : IChannelAdapter
 
             var body = await response.Content.ReadAsStringAsync(ct);
             var json = JsonSerializer.Deserialize<JsonElement>(body);
-            return json.TryGetProperty("access_token", out var token) ? token.GetString() : null;
+            var token = json.TryGetProperty("access_token", out var tokenEl) ? tokenEl.GetString() : null;
+
+            if (token is not null)
+            {
+                _tokenCache[serviceAccountJson] = (token, now.AddMinutes(28));
+            }
+
+            return token;
         }
         catch
         {

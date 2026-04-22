@@ -46,6 +46,7 @@ public static class InfrastructureServiceRegistration
         services.AddSingleton<ProviderKeyProtector>();
         services.AddSingleton<SkillCredentialProtector>();
         services.AddSingleton<ChannelConfigProtector>();
+        services.AddSingleton<Channels.Common.InMemoryMessageDeduplicator>();
 
         // HTTP clients
         services.AddHttpClient<SkillRuntimeClient>();

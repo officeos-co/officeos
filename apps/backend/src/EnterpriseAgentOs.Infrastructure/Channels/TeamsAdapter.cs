@@ -1,14 +1,18 @@
+using System.Collections.Concurrent;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using EnterpriseAgentOs.Infrastructure.Channels.Common;
+
 namespace EnterpriseAgentOs.Infrastructure.Channels;
 
 internal sealed class TeamsAdapter : IChannelAdapter
 {
     public string ChannelType => "teams";
+    public int MaxMessageLength => 28000;
 
-    /// <summary>
-    /// Microsoft Bot Framework sends a JWT Bearer token in the Authorization header.
-    /// We validate the basic structure, issuer, audience, and expiry without full
-    /// JWKS verification (which requires fetching Microsoft's public keys).
-    /// </summary>
+    private static readonly ConcurrentDictionary<string, (string Token, DateTimeOffset Expiry)> TokenCache = new();
+
     public bool VerifySignature(byte[] rawBody, Dictionary<string, string> config, IDictionary<string, string> headers)
     {
         if (!config.TryGetValue("appId", out var appId) || string.IsNullOrEmpty(appId))
@@ -24,14 +28,12 @@ internal sealed class TeamsAdapter : IChannelAdapter
 
         try
         {
-            // Decode JWT payload (base64url)
             var parts = token.Split('.');
             if (parts.Length != 3) return false;
 
             var payloadJson = Encoding.UTF8.GetString(DecodeBase64Url(parts[1]));
             var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson);
 
-            // Validate issuer
             var issuer = payload.TryGetProperty("iss", out var iss) ? iss.GetString() ?? "" : "";
             var validIssuers = new[]
             {
@@ -42,12 +44,10 @@ internal sealed class TeamsAdapter : IChannelAdapter
             if (!validIssuers.Any(vi => string.Equals(vi, issuer, StringComparison.OrdinalIgnoreCase)))
                 return false;
 
-            // Validate audience matches app ID
             var aud = payload.TryGetProperty("aud", out var a) ? a.GetString() ?? "" : "";
             if (!string.Equals(aud, appId, StringComparison.OrdinalIgnoreCase))
                 return false;
 
-            // Check expiry
             if (payload.TryGetProperty("exp", out var exp))
             {
                 var expTime = DateTimeOffset.FromUnixTimeSeconds(exp.GetInt64());
@@ -70,16 +70,53 @@ internal sealed class TeamsAdapter : IChannelAdapter
         var text = body.TryGetProperty("text", out var txt) ? txt.GetString() ?? "" : "";
         if (string.IsNullOrEmpty(text)) return null;
 
-        var fromId = body.TryGetProperty("from", out var from) && from.TryGetProperty("id", out var fid)
-            ? fid.GetString() ?? "" : "";
+        var fromId = "";
+        string? displayName = null;
+        if (body.TryGetProperty("from", out var from))
+        {
+            fromId = from.TryGetProperty("id", out var fid) ? fid.GetString() ?? "" : "";
+            displayName = from.TryGetProperty("name", out var fn) ? fn.GetString() : null;
+        }
 
-        var conversationId = body.TryGetProperty("conversation", out var conv) && conv.TryGetProperty("id", out var cid)
-            ? cid.GetString() ?? "" : "";
+        var conversationId = "";
+        var isGroup = false;
+        if (body.TryGetProperty("conversation", out var conv))
+        {
+            conversationId = conv.TryGetProperty("id", out var cid) ? cid.GetString() ?? "" : "";
+            var convType = conv.TryGetProperty("conversationType", out var ct) ? ct.GetString() : null;
+            isGroup = convType != "personal";
+        }
 
         var serviceUrl = body.TryGetProperty("serviceUrl", out var su) ? su.GetString() ?? "" : "";
 
-        // Encode both for SendReplyAsync
-        return new ChannelInboundMessage(fromId, $"{serviceUrl}|{conversationId}", text);
+        // Deduplication: use activity id
+        var messageId = body.TryGetProperty("id", out var mid) ? mid.GetString() : null;
+
+        // Parse attachments
+        List<ChannelMediaAttachment>? media = null;
+        if (body.TryGetProperty("attachments", out var attachments) && attachments.ValueKind == JsonValueKind.Array)
+        {
+            media = new();
+            foreach (var att in attachments.EnumerateArray())
+            {
+                var contentType = att.TryGetProperty("contentType", out var ct2) ? ct2.GetString() ?? "" : "";
+                var contentUrl = att.TryGetProperty("contentUrl", out var cu) ? cu.GetString() : null;
+                var name = att.TryGetProperty("name", out var n) ? n.GetString() : null;
+                var mediaType = contentType.StartsWith("image/") ? "image"
+                    : contentType.StartsWith("video/") ? "video"
+                    : contentType.StartsWith("audio/") ? "audio"
+                    : "document";
+                media.Add(new ChannelMediaAttachment(mediaType, contentUrl, contentType, name));
+            }
+        }
+
+        return new ChannelInboundMessage(
+            fromId, $"{serviceUrl}|{conversationId}", text,
+            MessageId: messageId,
+            IsGroupMessage: isGroup,
+            GroupId: isGroup ? conversationId : null,
+            SenderDisplayName: displayName,
+            Media: media);
     }
 
     public async Task SendReplyAsync(HttpClient client, Dictionary<string, string> config, string channelId, string text, CancellationToken ct = default)
@@ -92,21 +129,31 @@ internal sealed class TeamsAdapter : IChannelAdapter
         var serviceUrl = parts[0];
         var conversationId = parts[1];
 
-        var botToken = await GetBotTokenAsync(client, appId, appSecret, ct);
+        var botToken = await GetCachedBotTokenAsync(client, appId, appSecret, ct);
         if (string.IsNullOrEmpty(botToken)) return;
 
-        var activity = JsonSerializer.Serialize(new { type = "message", text });
-        var url = $"{serviceUrl.TrimEnd('/')}/v3/conversations/{conversationId}/activities";
-        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        var chunks = PlatformTextChunker.ChunkForPlatform(text, "teams");
+
+        foreach (var chunk in chunks)
         {
-            Content = new StringContent(activity, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", botToken);
-        await client.SendAsync(request, ct);
+            var activity = JsonSerializer.Serialize(new { type = "message", text = chunk, textFormat = "markdown" });
+            var url = $"{serviceUrl.TrimEnd('/')}/v3/conversations/{conversationId}/activities";
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(activity, Encoding.UTF8, "application/json"),
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", botToken);
+            await client.SendAsync(request, ct);
+        }
     }
 
-    private static async Task<string?> GetBotTokenAsync(HttpClient client, string appId, string appSecret, CancellationToken ct)
+    private static async Task<string?> GetCachedBotTokenAsync(HttpClient client, string appId, string appSecret, CancellationToken ct)
     {
+        var cacheKey = appId;
+
+        if (TokenCache.TryGetValue(cacheKey, out var cached) && cached.Expiry > DateTimeOffset.UtcNow.AddMinutes(2))
+            return cached.Token;
+
         var form = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "client_credentials"),
@@ -121,7 +168,13 @@ internal sealed class TeamsAdapter : IChannelAdapter
 
         var body = await response.Content.ReadAsStringAsync(ct);
         var json = JsonSerializer.Deserialize<JsonElement>(body);
-        return json.TryGetProperty("access_token", out var token) ? token.GetString() : null;
+        var token = json.TryGetProperty("access_token", out var t) ? t.GetString() : null;
+        var expiresIn = json.TryGetProperty("expires_in", out var ei) ? ei.GetInt32() : 3600;
+
+        if (token is not null)
+            TokenCache[cacheKey] = (token, DateTimeOffset.UtcNow.AddSeconds(expiresIn));
+
+        return token;
     }
 
     private static byte[] DecodeBase64Url(string input)
