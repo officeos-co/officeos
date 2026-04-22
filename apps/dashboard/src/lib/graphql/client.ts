@@ -23,10 +23,24 @@ import { createClient } from "graphql-ws"
 
 const HTTP_ENDPOINT = "/api/dashboard/graphql"
 
-function toWsUrl(path: string): string {
-  if (typeof window === "undefined") return path
+/**
+ * WebSocket URL for subscriptions.
+ *
+ * Next.js rewrites proxy HTTP requests but do NOT handle WebSocket upgrades.
+ * Subscriptions must connect directly to the backend. In production the backend
+ * is at api.officeos.co; in dev it's localhost:5000 (or NEXT_PUBLIC_API_URL).
+ */
+function getWsUrl(): string {
+  if (typeof window === "undefined") return HTTP_ENDPOINT
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
+  if (apiUrl) {
+    // Dev / explicit config — convert http(s) to ws(s)
+    const ws = apiUrl.replace(/^http/, "ws")
+    return `${ws}/api/dashboard/graphql`
+  }
+  // Production — backend is on a different subdomain
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-  return `${proto}//${window.location.host}${path}`
+  return `${proto}//api.officeos.co/api/dashboard/graphql`
 }
 
 const httpLink = new HttpLink({
@@ -58,7 +72,7 @@ const wsLink =
   typeof window !== "undefined"
     ? new GraphQLWsLink(
         createClient({
-          url: toWsUrl(HTTP_ENDPOINT),
+          url: getWsUrl(),
           // Browser WS inherits cookies from the origin automatically when
           // the backend is same-site; for cross-site we rely on the auth
           // token being accepted via the HTTP session handshake.
