@@ -89,7 +89,10 @@ public sealed class ChannelGateway : IChannelGateway
     private string? ExtractWhatsAppOwnerJid(ChannelConnectionRecord connection)
     {
         if (string.IsNullOrEmpty(connection.EncryptedConfig))
+        {
+            _logger.LogWarning("Connection {Id}: EncryptedConfig is null/empty — connection was never paired or creds were lost", connection.Id);
             return null;
+        }
 
         try
         {

@@ -20,6 +20,25 @@ public sealed class WhatsAppInternalController : ControllerBase
     }
 
     /// <summary>
+    /// Called by the sidecar on startup to discover which connections to restore.
+    /// Returns all enabled channel connections that have credentials stored.
+    /// </summary>
+    [HttpGet("channel/connections")]
+    public async Task<IActionResult> ListActiveConnections(
+        [FromServices] IChannelRepository repo,
+        CancellationToken ct)
+    {
+        var all = await repo.ListConnectionsAsync(ct);
+        var active = all
+            .Where(c => c.Enabled && !string.IsNullOrEmpty(c.EncryptedConfig))
+            .Select(c => new { id = c.Id.ToString(), channelType = c.ChannelType })
+            .ToList();
+
+        _logger.LogInformation("Sidecar requested active connections: {Count} found", active.Count);
+        return Ok(new { connections = active });
+    }
+
+    /// <summary>
     /// Receive an inbound WhatsApp message from the sidecar, route to agents, return responses.
     /// </summary>
     [HttpPost("channel/inbound")]

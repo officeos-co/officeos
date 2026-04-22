@@ -58,7 +58,37 @@ app.post("/send", async (req, res) => {
   }
 });
 
+// ── Startup: restore all known connections from backend ─────────────
+async function restoreConnections() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/internal/channel/connections`);
+    if (!res.ok) {
+      log.warn({ status: res.status }, "Failed to fetch active connections from backend");
+      return;
+    }
+
+    const { connections } = await res.json();
+    const whatsappConnections = connections.filter((c) => c.channelType === "whatsapp");
+
+    log.info({ count: whatsappConnections.length }, "Restoring WhatsApp connections from backend");
+
+    for (const conn of whatsappConnections) {
+      try {
+        await manager.connect(conn.id);
+        log.info({ connectionId: conn.id }, "Connection restored");
+      } catch (err) {
+        log.error({ err, connectionId: conn.id }, "Failed to restore connection");
+      }
+    }
+  } catch (err) {
+    log.error({ err }, "Failed to restore connections on startup");
+  }
+}
+
 // ── Start ───────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   log.info({ port: PORT, backendUrl: BACKEND_URL }, "WhatsApp gateway started");
+
+  // Wait a few seconds for the backend to be ready, then restore connections
+  setTimeout(() => restoreConnections(), 5000);
 });
