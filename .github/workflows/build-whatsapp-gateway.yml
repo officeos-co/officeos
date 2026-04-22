@@ -33,8 +33,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Restart backend deployment (picks up new sidecar)
-        uses: steebchen/kubectl@v2.0.0
+      - name: Connect to cluster via Tailscale
+        uses: tailscale/github-action@v3
         with:
-          config: ${{ secrets.KUBE_CONFIG }}
-          command: rollout restart deployment/eaos-backend-prod -n default
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Restart backend deployment (picks up new sidecar)
+        run: |
+          kubectl config set-cluster nova --server=https://tailscale-operator.tail82aae1.ts.net:443 --insecure-skip-tls-verify=true
+          kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
+          kubectl rollout restart deployment/eaos-backend-prod
+          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
