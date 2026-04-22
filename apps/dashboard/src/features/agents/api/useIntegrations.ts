@@ -333,6 +333,27 @@ export function useSkillComments(skillId: string): {
   return { comments, loading, error: error ?? undefined, refetch };
 }
 
+/** Apollo defaults to `id` as the cache key. Skills are looked up by `name`
+ *  (the slug), so we need to find the matching cache ID from the list query. */
+function findSkillCacheId(
+  cache: import("@apollo/client").ApolloCache<unknown>,
+  name: string,
+): string | undefined {
+  const data = cache.readQuery<{ skills: Array<{ id: string; name: string }> }>(
+    { query: SKILLS_LIST_QUERY },
+  );
+  const skill = data?.skills?.find((s) => s.name === name);
+  if (skill) return cache.identify({ __typename: "Skill", id: skill.id });
+
+  // Also check the single-skill detail query
+  const detail = cache.readQuery<{ skill: { id: string; name: string } | null }>(
+    { query: SKILL_DETAIL_QUERY, variables: { name } },
+  );
+  if (detail?.skill) return cache.identify({ __typename: "Skill", id: detail.skill.id });
+
+  return undefined;
+}
+
 export function useInstallSkill() {
   const [fn, { loading }] = useMutation(INSTALL_SKILL);
   const install = async (name: string) => {
@@ -340,10 +361,10 @@ export function useInstallSkill() {
       variables: { name },
       optimisticResponse: { installSkill: true },
       update(cache) {
-        cache.modify({
-          id: cache.identify({ __typename: "Skill", name }),
-          fields: { installed: () => true },
-        });
+        const cacheId = findSkillCacheId(cache, name);
+        if (cacheId) {
+          cache.modify({ id: cacheId, fields: { installed: () => true } });
+        }
       },
     });
   };
@@ -357,10 +378,10 @@ export function useUninstallSkill() {
       variables: { name },
       optimisticResponse: { uninstallSkill: true },
       update(cache) {
-        cache.modify({
-          id: cache.identify({ __typename: "Skill", name }),
-          fields: { installed: () => false },
-        });
+        const cacheId = findSkillCacheId(cache, name);
+        if (cacheId) {
+          cache.modify({ id: cacheId, fields: { installed: () => false } });
+        }
       },
     });
   };
@@ -378,10 +399,10 @@ export function useSetSkillCredentials() {
       variables: { name, credentials: entries },
       optimisticResponse: { setSkillCredentials: true },
       update(cache) {
-        cache.modify({
-          id: cache.identify({ __typename: "Skill", name }),
-          fields: { configured: () => true },
-        });
+        const cacheId = findSkillCacheId(cache, name);
+        if (cacheId) {
+          cache.modify({ id: cacheId, fields: { configured: () => true } });
+        }
       },
     });
   };
