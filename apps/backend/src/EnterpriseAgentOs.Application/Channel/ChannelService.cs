@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 namespace EnterpriseAgentOs.Application.Channel;
 
 /// <summary>
@@ -14,9 +12,6 @@ internal sealed class ChannelService : IChannelService
     private readonly IChannelConfigProtector _protector;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ChannelService> _logger;
-
-    /// <summary>Track in-flight test message attempts to avoid concurrent fires per connection.</summary>
-    private static readonly ConcurrentDictionary<Guid, byte> _pendingTestMessages = new();
 
     public ChannelService(
         IChannelRepository repo,
@@ -46,11 +41,6 @@ internal sealed class ChannelService : IChannelService
         var created = await _repo.CreateConnectionAsync(record, ct);
 
         await _gateway.StartConnectionAsync(created.Id, created.ChannelType, ct);
-
-        // Webhook-based channels are immediately connected; WhatsApp sends
-        // its test message later via SaveWhatsAppCredsAsync when the sidecar is ready.
-        if (!created.IsWhatsApp && !string.IsNullOrEmpty(defaultChannelId))
-            await SendTestMessageAsync(created.Id, defaultChannelId, ct);
 
         return created;
     }
@@ -85,26 +75,21 @@ internal sealed class ChannelService : IChannelService
 
         foreach (var binding in bindings)
         {
-            if (!binding.Enabled || binding.ChannelConnection is null || !binding.HasReplyContext)
+            if (!binding.Enabled || binding.ChannelConnection is null)
                 continue;
 
             try
             {
-                await _gateway.SendAsync(
-                    binding.ChannelConnectionId,
-                    binding.ChannelConnection.ChannelType,
-                    binding.ReplyDestination!,
-                    text, ct);
+                await _gateway.SendAsync(binding.ChannelConnectionId, text, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Broadcast failed for {ChannelType} binding {BindingId}",
-                    binding.ChannelConnection.ChannelType, binding.Id);
+                _logger.LogError(ex, "Broadcast failed for binding {BindingId}", binding.Id);
             }
         }
     }
 
-    public async Task SendTestMessageAsync(Guid connectionId, string destination, CancellationToken ct = default)
+    public async Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default)
     {
         var connection = await _repo.GetConnectionAsync(connectionId, ct);
         if (connection is null) return;
@@ -114,20 +99,19 @@ internal sealed class ChannelService : IChannelService
 
         try
         {
-            await _gateway.SendAsync(connectionId, connection.ChannelType, destination, message, ct);
+            await _gateway.SendAsync(connectionId, message, ct);
             connection.MarkTestMessageSent();
             await _repo.UpdateConnectionAsync(connectionId, row => row.MarkTestMessageSent(), ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Test message failed on {ChannelType} connection {Id}",
-                connection.ChannelType, connectionId);
+            _logger.LogError(ex, "Test message failed on connection {Id}", connectionId);
         }
     }
 
-    // ── WhatsApp creds ──────────────────────────────────────────────
+    // ── Channel creds ──────────────────────────────────────────────
 
-    public async Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
+    public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
         var connection = await _repo.GetConnectionAsync(connectionId, ct);
         if (connection is null) return;
@@ -139,59 +123,28 @@ internal sealed class ChannelService : IChannelService
             row.EncryptedConfig = _protector.Protect(JsonSerializer.Serialize(configDict));
         }, ct);
 
-        // Set owner JID as default reply destination on all bindings so
-        // broadcast works even before the first inbound message
-        var ownerIdentifier = ChannelConnectionRecord.ExtractOwnerIdentifier(credsJson);
-        if (!string.IsNullOrEmpty(ownerIdentifier))
+        // Fire-and-forget test message with a new DI scope
+        if (connection.NeedsTestMessage)
         {
-            var bindings = await _repo.FindBindingsByConnectionAsync(connectionId, ct);
-            foreach (var binding in bindings)
+            _ = Task.Run(async () =>
             {
-                if (!binding.HasReplyContext)
+                try
                 {
-                    await _repo.UpdateBindingAsync(binding.Id, b =>
-                    {
-                        b.UpdateReplyContext(ownerIdentifier, ownerIdentifier);
-                    }, ct);
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    using var scope = _scopeFactory.CreateScope();
+                    var scopedService = scope.ServiceProvider.GetRequiredService<IChannelService>();
+                    _logger.LogInformation("Attempting test message for connection {Id}", connectionId);
+                    await scopedService.SendTestMessageAsync(connectionId, CancellationToken.None);
                 }
-            }
-        }
-
-        // Fire-and-forget with a new DI scope (the current request scope will be
-        // disposed before the background task runs). Guard against concurrent fires.
-        if (connection.NeedsTestMessage && _pendingTestMessages.TryAdd(connectionId, 0))
-        {
-            var ownerJid = ChannelConnectionRecord.ExtractOwnerIdentifier(credsJson);
-            if (!string.IsNullOrEmpty(ownerJid))
-            {
-                _ = Task.Run(async () =>
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(5));
-                        using var scope = _scopeFactory.CreateScope();
-                        var scopedService = scope.ServiceProvider.GetRequiredService<IChannelService>();
-                        _logger.LogInformation("Attempting WhatsApp test message for {Id}, owner: {Jid}", connectionId, ownerJid);
-                        await scopedService.SendTestMessageAsync(connectionId, ownerJid, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Background test message failed for {Id} (will retry on next creds save)", connectionId);
-                    }
-                    finally
-                    {
-                        _pendingTestMessages.TryRemove(connectionId, out _);
-                    }
-                });
-            }
-            else
-            {
-                _pendingTestMessages.TryRemove(connectionId, out _);
-            }
+                    _logger.LogWarning(ex, "Background test message failed for {Id} (will retry on next creds save)", connectionId);
+                }
+            });
         }
     }
 
-    public async Task<string?> LoadWhatsAppCredsAsync(Guid connectionId, CancellationToken ct = default)
+    public async Task<string?> LoadChannelCredsAsync(Guid connectionId, CancellationToken ct = default)
     {
         var connection = await _repo.GetConnectionAsync(connectionId, ct);
         if (connection is null || !connection.IsConfigured) return null;

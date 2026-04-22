@@ -26,32 +26,5 @@ public sealed class AgentChannelBindingRecord
     /// </summary>
     public string? Config { get; set; }
 
-    /// <summary>
-    /// Platform-specific destination for outbound messages (Slack channel ID,
-    /// Discord channel ID, WhatsApp JID, etc.). Updated on every inbound message.
-    /// </summary>
-    public string? LastChannelId { get; set; }
-
-    /// <summary>
-    /// Last sender identifier (used for WhatsApp JID, Telegram chat ID, etc.).
-    /// Updated on every inbound message.
-    /// </summary>
-    public string? LastSenderIdentifier { get; set; }
-
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-
-    // ── Domain logic ─────────────────────────────────────────────────
-
-    /// <summary>Whether this binding has a known reply-to destination.</summary>
-    public bool HasReplyContext => !string.IsNullOrEmpty(LastChannelId) || !string.IsNullOrEmpty(LastSenderIdentifier);
-
-    /// <summary>Best destination for outbound messages.</summary>
-    public string? ReplyDestination => LastChannelId ?? LastSenderIdentifier;
-
-    /// <summary>Update the reply-to context from an inbound message.</summary>
-    public void UpdateReplyContext(string senderIdentifier, string? channelId)
-    {
-        LastSenderIdentifier = senderIdentifier;
-        LastChannelId = channelId ?? senderIdentifier;
-    }
 }

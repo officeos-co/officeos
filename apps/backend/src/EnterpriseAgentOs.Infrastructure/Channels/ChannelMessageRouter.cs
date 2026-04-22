@@ -61,19 +61,6 @@ public sealed class ChannelMessageRouter
                 continue;
             }
 
-            // Track last inbound sender so outbound broadcast knows where to reply
-            try
-            {
-                await _channelRepository.UpdateBindingAsync(binding.Id, b =>
-                {
-                    b.UpdateReplyContext(senderIdentifier, channelId);
-                }, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to update last sender for binding {BindingId}", binding.Id);
-            }
-
             var serviceUrl = binding.Agent.ServiceUrl;
             if (string.IsNullOrEmpty(serviceUrl))
             {

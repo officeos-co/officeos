@@ -57,15 +57,15 @@ public sealed class WhatsAppInternalController : ControllerBase
         [FromServices] IChannelService channelService,
         CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(request.ConnectionId) || string.IsNullOrEmpty(request.SenderJid))
+        if (string.IsNullOrEmpty(request.ConnectionId))
             return BadRequest();
 
         if (!Guid.TryParse(request.ConnectionId, out var connectionId))
             return BadRequest("Invalid connectionId");
 
-        _logger.LogInformation("Channel connected: {ConnectionId}, owner JID: {Jid}", connectionId, request.SenderJid);
+        _logger.LogInformation("Channel connected: {ConnectionId}", connectionId);
 
-        await channelService.SendTestMessageAsync(connectionId, request.SenderJid, ct);
+        await channelService.SendTestMessageAsync(connectionId, ct);
         return Ok();
     }
 
@@ -82,7 +82,7 @@ public sealed class WhatsAppInternalController : ControllerBase
         if (string.IsNullOrEmpty(request.CredsJson))
             return BadRequest();
 
-        await channelService.SaveWhatsAppCredsAsync(connectionId, request.CredsJson, ct);
+        await channelService.SaveChannelCredsAsync(connectionId, request.CredsJson, ct);
         return Ok();
     }
 
@@ -95,7 +95,7 @@ public sealed class WhatsAppInternalController : ControllerBase
         [FromServices] IChannelService channelService,
         CancellationToken ct)
     {
-        var credsJson = await channelService.LoadWhatsAppCredsAsync(connectionId, ct);
+        var credsJson = await channelService.LoadChannelCredsAsync(connectionId, ct);
         return Ok(new { credsJson });
     }
 }

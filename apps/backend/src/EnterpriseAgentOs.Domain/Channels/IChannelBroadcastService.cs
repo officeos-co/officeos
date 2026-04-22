@@ -1,18 +1,17 @@
 namespace EnterpriseAgentOs.Domain.Channels;
 
 /// <summary>
-/// Infrastructure abstraction: sends a single message to a specific channel
-/// connection + destination. Platform-specific details (WhatsApp JID vs
-/// Slack channel ID vs adapter.SendReplyAsync) live behind this interface.
+/// Infrastructure abstraction: sends a single message through a channel
+/// connection. The gateway resolves the destination internally per platform.
 /// </summary>
 public interface IChannelGateway
 {
     /// <summary>
     /// Send <paramref name="text"/> through the channel connection identified
-    /// by <paramref name="connectionId"/> to the given <paramref name="destination"/>
-    /// (JID, Slack channel ID, etc.).
+    /// by <paramref name="connectionId"/>. The gateway resolves the destination
+    /// internally from the connection's credentials/config.
     /// </summary>
-    Task SendAsync(Guid connectionId, string channelType, string destination, string text, CancellationToken ct = default);
+    Task SendAsync(Guid connectionId, string text, CancellationToken ct = default);
 
     /// <summary>
     /// Start a platform-specific connection process (e.g. WhatsApp QR pairing).
@@ -36,7 +35,7 @@ public interface IChannelService
     // ── Broadcasting ──────────────────────────────────────────────────
 
     Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default);
-    Task SendTestMessageAsync(Guid connectionId, string destination, CancellationToken ct = default);
+    Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default);
 
     // ── Connection lifecycle ─────────────────────────────────────────
 
@@ -44,8 +43,8 @@ public interface IChannelService
     Task<ChannelConnectionRecord> UpdateConnectionAsync(Guid id, string? displayName, bool? enabled, string? configJson, CancellationToken ct = default);
     Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default);
 
-    // ── WhatsApp creds ───────────────────────────────────────────────
+    // ── Channel creds ───────────────────────────────────────────────
 
-    Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
-    Task<string?> LoadWhatsAppCredsAsync(Guid connectionId, CancellationToken ct = default);
+    Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
+    Task<string?> LoadChannelCredsAsync(Guid connectionId, CancellationToken ct = default);
 }

@@ -31,8 +31,6 @@ public sealed class ChannelConnectionRecord
 
     // ── Domain logic ─────────────────────────────────────────────────
 
-    public bool IsWhatsApp => string.Equals(ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>Whether this connection has platform credentials configured.</summary>
     public bool IsConfigured => !string.IsNullOrEmpty(EncryptedConfig);
 
@@ -62,22 +60,4 @@ public sealed class ChannelConnectionRecord
         if (enabled.HasValue) Enabled = enabled.Value;
     }
 
-    /// <summary>
-    /// Extract the owner identifier from channel credentials JSON.
-    /// For WhatsApp, this is the raw me.id field — platform-specific
-    /// normalization (e.g. stripping device suffixes) happens in the gateway.
-    /// </summary>
-    public static string? ExtractOwnerIdentifier(string credsJson)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(credsJson);
-            // WhatsApp: me.id
-            if (doc.RootElement.TryGetProperty("me", out var me) &&
-                me.TryGetProperty("id", out var idProp))
-                return idProp.GetString();
-        }
-        catch { /* malformed creds */ }
-        return null;
-    }
 }
