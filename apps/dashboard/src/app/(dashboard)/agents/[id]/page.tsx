@@ -230,7 +230,7 @@ export default function AgentDetailPage({
         <div className="flex-1 flex flex-col">
           {tab === "integrations" && <AgentIntegrationsTab agentId={id} />}
           {tab === "logs" && <AgentLogsTab agentId={id} />}
-          {tab === "memory" && <AgentMemoryTab />}
+          {tab === "memory" && <AgentMemoryTab agentId={id} />}
           {tab === "cron" && <AgentCronTab agentId={id} />}
         </div>
       </div>

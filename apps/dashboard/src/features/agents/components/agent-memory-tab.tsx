@@ -3,7 +3,8 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { mockFileTree, type FileNode } from "@/features/agents/data/agent-mock";
+import type { FileNode } from "@/features/agents/data/agent-mock";
+import { useAgentMemories } from "@/features/agents";
 import { ChevronRightIcon, FileTextIcon, FolderIcon } from "lucide-react";
 
 function FileTreeItem({
@@ -70,9 +71,10 @@ function FileTreeItem({
   );
 }
 
-export function AgentMemoryTab() {
-  const [selectedPath, setSelectedPath] = useState("USER.md");
-  const [content, setContent] = useState(mockFileTree[0]?.content ?? "");
+export function AgentMemoryTab({ agentId }: { agentId: string }) {
+  const { fileTree, loading } = useAgentMemories(agentId);
+  const [selectedPath, setSelectedPath] = useState("");
+  const [content, setContent] = useState("");
 
   function handleSelect(path: string, fileContent: string) {
     setSelectedPath(path);
@@ -84,10 +86,16 @@ export function AgentMemoryTab() {
       {/* File browser */}
       <div className="w-56 shrink-0 overflow-y-auto rounded-xl border border-border bg-card">
         <div className="px-3 py-2.5 border-b border-border text-xs font-medium text-muted-foreground">
-          Files
+          Memories
         </div>
         <div className="p-1.5">
-          {mockFileTree.map((node) => (
+          {loading && (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">Loading…</p>
+          )}
+          {!loading && fileTree.length === 0 && (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">No memories yet</p>
+          )}
+          {fileTree.map((node) => (
             <FileTreeItem
               key={node.name}
               node={node}

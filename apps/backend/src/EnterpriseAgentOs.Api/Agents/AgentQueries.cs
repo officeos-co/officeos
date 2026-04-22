@@ -25,6 +25,16 @@ public class AgentQueries
         return result;
     }
 
+    public async Task<IReadOnlyList<AgentMemoryRecord>> GetAgentMemories(
+        Guid agentId,
+        IResolverContext context,
+        [Service] IAgentMemoryRepository memories,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return await memories.ListAsync(agentId, ct);
+    }
+
     public async Task<AgentDto?> GetAgent(
         Guid id,
         IResolverContext context,
