@@ -96,17 +96,28 @@ public sealed class ChannelGateway : IChannelGateway
             var json = _configProtector.Unprotect(connection.EncryptedConfig);
             var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
             var credsJson = dict?.GetValueOrDefault("credsJson");
-            if (string.IsNullOrEmpty(credsJson)) return null;
+            if (string.IsNullOrEmpty(credsJson))
+            {
+                _logger.LogWarning("Connection {Id}: decrypted config has no 'credsJson' key. Keys: {Keys}",
+                    connection.Id, dict is not null ? string.Join(", ", dict.Keys) : "null");
+                return null;
+            }
 
             using var doc = JsonDocument.Parse(credsJson);
             if (doc.RootElement.TryGetProperty("me", out var me) &&
                 me.TryGetProperty("id", out var idProp))
             {
                 var rawJid = idProp.GetString();
+                _logger.LogDebug("Connection {Id}: extracted raw JID {Jid}", connection.Id, rawJid);
                 return NormalizeWhatsAppJid(rawJid);
             }
+
+            _logger.LogWarning("Connection {Id}: creds JSON has no 'me.id' property", connection.Id);
         }
-        catch { /* malformed creds */ }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Connection {Id}: failed to extract owner JID from creds", connection.Id);
+        }
         return null;
     }
 
