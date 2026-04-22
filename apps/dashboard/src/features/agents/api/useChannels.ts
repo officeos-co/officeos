@@ -1,6 +1,6 @@
 "use client"
 
-import { gql, useMutation, useQuery, useSubscription } from "@apollo/client"
+import { gql, useMutation, useQuery } from "@apollo/client"
 import type { Channel } from "../data/channels"
 import { sanitizeSvg } from "@/lib/sanitize-svg"
 
@@ -60,8 +60,8 @@ const BIND_CHANNEL = gql`
   }
 `
 
-const WHATSAPP_STATUS_SUBSCRIPTION = gql`
-  subscription WhatsAppConnectionStatus($connectionId: UUID!) {
+const WHATSAPP_STATUS_QUERY = gql`
+  query WhatsAppConnectionStatus($connectionId: UUID!) {
     whatsAppConnectionStatus(connectionId: $connectionId) {
       connectionId
       status
@@ -71,9 +71,12 @@ const WHATSAPP_STATUS_SUBSCRIPTION = gql`
 `
 
 export function useWhatsAppConnectionStatus(connectionId: string | null) {
-  const { data, loading, error } = useSubscription(WHATSAPP_STATUS_SUBSCRIPTION, {
+  const { data, loading, error } = useQuery(WHATSAPP_STATUS_QUERY, {
     variables: { connectionId },
     skip: !connectionId,
+    // Poll every 2s while waiting for QR / connection
+    pollInterval: connectionId ? 2000 : 0,
+    fetchPolicy: "network-only",
   })
 
   return {

@@ -31,8 +31,7 @@ const AGENT_LOGS_QUERY = gql`
 `
 
 /** Module-local sink for mock mode so the dev UX mirrors real behaviour without
- *  needing Apollo's cache. Callers that need to render the message immediately
- *  can read this, but the normal path is the log subscription. */
+ *  needing Apollo's cache. */
 export const mockSentMessages: AgentLog[] = []
 
 export function useSendAgentMessage() {
