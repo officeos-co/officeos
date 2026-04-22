@@ -32,7 +32,8 @@ public class ChannelMutations
         }
 
         string? encrypted = null;
-        if (!string.IsNullOrWhiteSpace(input.ConfigJson))
+        if (!string.IsNullOrWhiteSpace(input.ConfigJson)
+            && input.ConfigJson.Trim() != "{}")
         {
             encrypted = protector.Protect(input.ConfigJson);
         }
