@@ -59,6 +59,18 @@ public sealed class ChannelGateway : IChannelGateway
         await adapter.SendReplyAsync(httpClient, config, destination, text, ct);
     }
 
+    public async Task StartConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default)
+    {
+        if (string.Equals(channelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
+            await _whatsApp.StartConnectionAsync(connectionId);
+    }
+
+    public async Task StopConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default)
+    {
+        if (string.Equals(channelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
+            await _whatsApp.StopConnectionAsync(connectionId);
+    }
+
     private Dictionary<string, string> DecryptConfig(ChannelConnectionRecord connection)
     {
         if (string.IsNullOrEmpty(connection.EncryptedConfig))

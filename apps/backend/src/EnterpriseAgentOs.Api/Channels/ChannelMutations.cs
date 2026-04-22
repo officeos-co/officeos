@@ -15,108 +15,63 @@ public class ChannelMutations
     public async Task<ChannelConnectionGqlDto> CreateChannelConnection(
         CreateChannelConnectionInput input,
         IResolverContext context,
-        [Service] IChannelRepository repo,
-        [Service] ChannelConfigProtector protector,
+        [Service] IChannelService channelService,
         [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
 
-        if (ChannelTypes.GetByType(input.ChannelType) is null)
+        try
+        {
+            var created = await channelService.CreateConnectionAsync(
+                input.ChannelType, input.DisplayName, input.ConfigJson,
+                input.DefaultChannelId, user.Id, ct);
+
+            InvalidateChannelCaches(cache);
+            return ChannelGraphQLMapper.ToDto(created);
+        }
+        catch (InvalidOperationException ex)
         {
             throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage($"Unknown channel type: {input.ChannelType}")
-                    .SetCode("BAD_INPUT")
-                    .Build());
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
         }
-
-        string? encrypted = null;
-        if (!string.IsNullOrWhiteSpace(input.ConfigJson)
-            && input.ConfigJson.Trim() != "{}")
-        {
-            encrypted = protector.Protect(input.ConfigJson);
-        }
-
-        var record = new ChannelConnectionRecord
-        {
-            ChannelType = input.ChannelType.ToLowerInvariant(),
-            DisplayName = input.DisplayName,
-            EncryptedConfig = encrypted,
-            CreatedById = user.Id,
-        };
-
-        var created = await repo.CreateConnectionAsync(record, ct);
-        InvalidateChannelCaches(cache);
-
-        // For WhatsApp, start the sidecar connection (QR code pairing).
-        // Test message is sent when the sidecar calls POST /api/internal/channel/connected.
-        if (string.Equals(input.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
-        {
-            var gateway = context.Services.GetRequiredService<WhatsAppGatewayService>();
-            await gateway.StartConnectionAsync(created.Id);
-        }
-        else if (!string.IsNullOrEmpty(input.DefaultChannelId))
-        {
-            // Webhook-based channels are immediately connected — send a test message
-            var channelService = context.Services.GetRequiredService<IChannelService>();
-            await channelService.SendTestMessageAsync(created.Id, input.DefaultChannelId, ct);
-        }
-
-        return ChannelGraphQLMapper.ToDto(created);
     }
 
     public async Task<ChannelConnectionGqlDto> UpdateChannelConnection(
         Guid id,
         UpdateChannelConnectionInput input,
         IResolverContext context,
-        [Service] IChannelRepository repo,
-        [Service] ChannelConfigProtector protector,
+        [Service] IChannelService channelService,
         [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
-        var updated = await repo.UpdateConnectionAsync(id, row =>
+        try
         {
-            if (input.DisplayName is not null)
-                row.DisplayName = input.DisplayName;
-            if (input.Enabled.HasValue)
-                row.Enabled = input.Enabled.Value;
-            if (!string.IsNullOrWhiteSpace(input.ConfigJson))
-                row.EncryptedConfig = protector.Protect(input.ConfigJson);
-        }, ct);
+            var updated = await channelService.UpdateConnectionAsync(
+                id, input.DisplayName, input.Enabled, input.ConfigJson, ct);
 
-        if (updated is null)
+            InvalidateChannelCaches(cache, id);
+            return ChannelGraphQLMapper.ToDto(updated);
+        }
+        catch (InvalidOperationException ex)
         {
             throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage($"Channel connection '{id}' not found.")
-                    .SetCode("NOT_FOUND")
-                    .Build());
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("NOT_FOUND").Build());
         }
-        InvalidateChannelCaches(cache, id);
-        return ChannelGraphQLMapper.ToDto(updated);
     }
 
     public async Task<bool> DeleteChannelConnection(
         Guid id,
         IResolverContext context,
-        [Service] IChannelRepository repo,
+        [Service] IChannelService channelService,
         [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
-        // Stop WhatsApp connection if applicable
-        var existing = await repo.GetConnectionAsync(id, ct);
-        if (existing is not null && string.Equals(existing.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
-        {
-            var gateway = context.Services.GetRequiredService<WhatsAppGatewayService>();
-            await gateway.StopConnectionAsync(id);
-        }
-
-        var result = await repo.DeleteConnectionAsync(id, ct);
+        var result = await channelService.DeleteConnectionAsync(id, ct);
         InvalidateChannelCaches(cache, id);
         return result;
     }

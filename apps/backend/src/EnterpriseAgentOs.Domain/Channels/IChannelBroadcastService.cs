@@ -13,6 +13,18 @@ public interface IChannelGateway
     /// (JID, Slack channel ID, etc.).
     /// </summary>
     Task SendAsync(Guid connectionId, string channelType, string destination, string text, CancellationToken ct = default);
+
+    /// <summary>
+    /// Start a platform-specific connection process (e.g. WhatsApp QR pairing).
+    /// No-op for platforms that don't need it.
+    /// </summary>
+    Task StartConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default);
+
+    /// <summary>
+    /// Stop/disconnect a platform-specific connection.
+    /// No-op for platforms that don't need it.
+    /// </summary>
+    Task StopConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -21,27 +33,19 @@ public interface IChannelGateway
 /// </summary>
 public interface IChannelService
 {
-    /// <summary>
-    /// Broadcast a text message to every channel bound to the given agent.
-    /// Skips bindings with no known reply-to destination.
-    /// </summary>
-    Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default);
+    // ── Broadcasting ──────────────────────────────────────────────────
 
-    /// <summary>
-    /// Send a test/welcome message through a connection to confirm it is working.
-    /// Called when a channel is first connected (QR scan, webhook config, etc.).
-    /// </summary>
+    Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default);
     Task SendTestMessageAsync(Guid connectionId, string destination, CancellationToken ct = default);
 
-    /// <summary>
-    /// Persist WhatsApp session credentials. On first pairing (no prior config),
-    /// extracts the owner JID and sends a test message automatically.
-    /// </summary>
-    Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
+    // ── Connection lifecycle ─────────────────────────────────────────
 
-    /// <summary>
-    /// Load WhatsApp session credentials for the sidecar.
-    /// Returns the raw creds JSON, or null if not found.
-    /// </summary>
+    Task<ChannelConnectionRecord> CreateConnectionAsync(string channelType, string displayName, string? configJson, string? defaultChannelId, Guid createdById, CancellationToken ct = default);
+    Task<ChannelConnectionRecord> UpdateConnectionAsync(Guid id, string? displayName, bool? enabled, string? configJson, CancellationToken ct = default);
+    Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default);
+
+    // ── WhatsApp creds ───────────────────────────────────────────────
+
+    Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
     Task<string?> LoadWhatsAppCredsAsync(Guid connectionId, CancellationToken ct = default);
 }

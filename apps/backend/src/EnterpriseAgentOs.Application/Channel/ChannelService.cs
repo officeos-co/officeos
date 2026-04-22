@@ -2,7 +2,8 @@ namespace EnterpriseAgentOs.Application.Channel;
 
 /// <summary>
 /// Application-layer channel orchestration. Works exclusively with Domain
-/// abstractions — no infrastructure dependencies.
+/// abstractions — no infrastructure dependencies beyond the pragmatic
+/// ChannelConfigProtector reference.
 /// </summary>
 internal sealed class ChannelService : IChannelService
 {
@@ -23,6 +24,70 @@ internal sealed class ChannelService : IChannelService
         _logger = logger;
     }
 
+    // ── Connection lifecycle ─────────────────────────────────────────
+
+    public async Task<ChannelConnectionRecord> CreateConnectionAsync(
+        string channelType, string displayName, string? configJson,
+        string? defaultChannelId, Guid createdById, CancellationToken ct = default)
+    {
+        if (ChannelTypes.GetByType(channelType) is null)
+            throw new InvalidOperationException($"Unknown channel type: {channelType}");
+
+        string? encrypted = null;
+        if (!string.IsNullOrWhiteSpace(configJson) && configJson.Trim() != "{}")
+            encrypted = _configProtector.Protect(configJson);
+
+        var record = new ChannelConnectionRecord
+        {
+            ChannelType = channelType.ToLowerInvariant(),
+            DisplayName = displayName,
+            EncryptedConfig = encrypted,
+            CreatedById = createdById,
+        };
+
+        var created = await _channelRepository.CreateConnectionAsync(record, ct);
+
+        // Start platform-specific connection (e.g. WhatsApp QR pairing)
+        await _gateway.StartConnectionAsync(created.Id, created.ChannelType, ct);
+
+        // For webhook-based channels that are immediately connected, send test message
+        if (!string.Equals(channelType, "whatsapp", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(defaultChannelId))
+        {
+            await SendTestMessageAsync(created.Id, defaultChannelId, ct);
+        }
+
+        return created;
+    }
+
+    public async Task<ChannelConnectionRecord> UpdateConnectionAsync(
+        Guid id, string? displayName, bool? enabled, string? configJson, CancellationToken ct = default)
+    {
+        var updated = await _channelRepository.UpdateConnectionAsync(id, row =>
+        {
+            if (displayName is not null) row.DisplayName = displayName;
+            if (enabled.HasValue) row.Enabled = enabled.Value;
+            if (!string.IsNullOrWhiteSpace(configJson))
+                row.EncryptedConfig = _configProtector.Protect(configJson);
+        }, ct);
+
+        if (updated is null)
+            throw new InvalidOperationException($"Channel connection '{id}' not found.");
+
+        return updated;
+    }
+
+    public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
+    {
+        var existing = await _channelRepository.GetConnectionAsync(id, ct);
+        if (existing is not null)
+            await _gateway.StopConnectionAsync(id, existing.ChannelType, ct);
+
+        return await _channelRepository.DeleteConnectionAsync(id, ct);
+    }
+
+    // ── Broadcasting ────────────────────────────────────────────────
+
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
         var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
@@ -33,26 +98,47 @@ internal sealed class ChannelService : IChannelService
             if (binding.ChannelConnection is null) continue;
 
             var destination = binding.LastChannelId ?? binding.LastSenderIdentifier;
-            if (string.IsNullOrEmpty(destination))
-                continue; // no inbound context yet — nowhere to send
+            if (string.IsNullOrEmpty(destination)) continue;
 
             try
             {
                 await _gateway.SendAsync(
                     binding.ChannelConnectionId,
                     binding.ChannelConnection.ChannelType,
-                    destination,
-                    text,
-                    ct);
+                    destination, text, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "Failed to broadcast to {ChannelType} binding {BindingId} for agent {AgentId}",
+                _logger.LogError(ex, "Failed to broadcast to {ChannelType} binding {BindingId} for agent {AgentId}",
                     binding.ChannelConnection.ChannelType, binding.Id, agentId);
             }
         }
     }
+
+    public async Task SendTestMessageAsync(Guid connectionId, string destination, CancellationToken ct = default)
+    {
+        var connection = await _channelRepository.GetConnectionAsync(connectionId, ct);
+        if (connection is null)
+        {
+            _logger.LogWarning("Cannot send test message — connection {Id} not found", connectionId);
+            return;
+        }
+
+        var message = $"✅ {connection.DisplayName} connected successfully!\n\n"
+                    + "This channel is now active and ready to receive messages from your agents.";
+
+        try
+        {
+            await _gateway.SendAsync(connectionId, connection.ChannelType, destination, message, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send test message on {ChannelType} connection {Id}",
+                connection.ChannelType, connectionId);
+        }
+    }
+
+    // ── WhatsApp creds ──────────────────────────────────────────────
 
     public async Task SaveWhatsAppCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
@@ -107,29 +193,6 @@ internal sealed class ChannelService : IChannelService
         catch
         {
             return null;
-        }
-    }
-
-    public async Task SendTestMessageAsync(Guid connectionId, string destination, CancellationToken ct = default)
-    {
-        var connection = await _channelRepository.GetConnectionAsync(connectionId, ct);
-        if (connection is null)
-        {
-            _logger.LogWarning("Cannot send test message — connection {Id} not found", connectionId);
-            return;
-        }
-
-        var message = $"✅ {connection.DisplayName} connected successfully!\n\n"
-                    + "This channel is now active and ready to receive messages from your agents.";
-
-        try
-        {
-            await _gateway.SendAsync(connectionId, connection.ChannelType, destination, message, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send test message on {ChannelType} connection {Id}",
-                connection.ChannelType, connectionId);
         }
     }
 }
