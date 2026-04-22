@@ -30,6 +30,9 @@ jobs:
         working-directory: apps/backend
         run: dotnet publish src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj -c Release /t:PublishContainer
 
+      - name: Push to Docker Hub
+        run: docker push harkro123/eaos-backend:latest
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
