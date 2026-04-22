@@ -145,17 +145,33 @@ internal sealed class ChannelService : IChannelService
         var existing = await _channelRepository.GetConnectionAsync(connectionId, ct);
         if (existing is null) return;
 
-        var isFirstPairing = string.IsNullOrEmpty(existing.EncryptedConfig);
+        // Check if test message was already sent (stored in the config dict)
+        var testMessageSent = false;
+        if (!string.IsNullOrEmpty(existing.EncryptedConfig))
+        {
+            try
+            {
+                var existingJson = _configProtector.Unprotect(existing.EncryptedConfig);
+                var existingDict = JsonSerializer.Deserialize<Dictionary<string, string>>(existingJson);
+                testMessageSent = existingDict?.ContainsKey("testMessageSent") == true;
+            }
+            catch { /* corrupt config — will be overwritten */ }
+        }
 
-        var encrypted = _configProtector.Protect(
-            JsonSerializer.Serialize(new Dictionary<string, string> { ["credsJson"] = credsJson }));
+        // Persist creds
+        var configDict = new Dictionary<string, string> { ["credsJson"] = credsJson };
+        if (testMessageSent)
+            configDict["testMessageSent"] = "true";
+
+        var encrypted = _configProtector.Protect(JsonSerializer.Serialize(configDict));
 
         await _channelRepository.UpdateConnectionAsync(connectionId, row =>
         {
             row.EncryptedConfig = encrypted;
         }, ct);
 
-        if (isFirstPairing)
+        // On each creds save, if me.id is present and test message hasn't been sent yet, try
+        if (!testMessageSent)
         {
             try
             {
@@ -166,14 +182,24 @@ internal sealed class ChannelService : IChannelService
                     var ownerJid = idProp.GetString();
                     if (!string.IsNullOrEmpty(ownerJid))
                     {
-                        _logger.LogInformation("First WhatsApp pairing for {Id}, owner: {Jid}", connectionId, ownerJid);
-                        await SendTestMessageAsync(connectionId, ownerJid, ct);
+                        _logger.LogInformation("Sending WhatsApp test message for {Id}, owner: {Jid}", connectionId, ownerJid);
+                        await _gateway.SendAsync(connectionId, "whatsapp", ownerJid,
+                            $"✅ Connected successfully!\n\nThis WhatsApp channel is now active and ready to receive messages from your agents.", ct);
+
+                        // Mark as sent so we don't retry
+                        configDict["testMessageSent"] = "true";
+                        var updated = _configProtector.Protect(JsonSerializer.Serialize(configDict));
+                        await _channelRepository.UpdateConnectionAsync(connectionId, row =>
+                        {
+                            row.EncryptedConfig = updated;
+                        }, ct);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send test message for WhatsApp connection {Id}", connectionId);
+                // Will retry on next creds save when the connection is ready
+                _logger.LogDebug(ex, "Test message not sent yet for WhatsApp connection {Id} (will retry)", connectionId);
             }
         }
     }
