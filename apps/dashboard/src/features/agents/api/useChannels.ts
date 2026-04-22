@@ -109,8 +109,9 @@ export function useChannels(): {
       inputRequired?: boolean | null
     }>
   }> = data?.channelTypes ?? []
-  const connections: Array<{ channelType: string }> = data?.channelConnections ?? []
+  const connections: Array<{ id: string; channelType: string }> = data?.channelConnections ?? []
   const connectedSlugs = new Set(connections.map((c) => c.channelType))
+  const connectionByType = new Map(connections.map((c) => [c.channelType, c.id]))
 
   const channels: Channel[] = types.map((t) => ({
     name: t.displayName,
@@ -119,6 +120,7 @@ export function useChannels(): {
     description: t.description ?? "",
     defaultPermissions: { receive: "ask" as const, send: "ask" as const, initiate: "ask" as const },
     added: connectedSlugs.has(t.type),
+    connectionId: connectionByType.get(t.type) ?? null,
     onboarding: (t.onboardingSteps ?? []).map((s) => ({
       type: s.type as "url" | "qr" | "input" | "copy",
       title: s.title,

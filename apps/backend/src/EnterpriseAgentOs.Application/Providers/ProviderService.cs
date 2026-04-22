@@ -1,5 +1,6 @@
 namespace EnterpriseAgentOs.Application.Providers;
 
+//todo shouldnt that be like a service in the domain?
 internal sealed class ProviderService : IProviderService
 {
     private readonly IProviderRepository _providerRepository;

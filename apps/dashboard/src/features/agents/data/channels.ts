@@ -24,5 +24,6 @@ export type Channel = {
   description: string
   defaultPermissions: ChannelPermissions
   added: boolean
+  connectionId: string | null
   onboarding: OnboardingStep[]
 }

@@ -21,6 +21,7 @@ public interface ISkillService
 
     Task<CapabilitiesResponse> ListCapabilitiesAsync(Guid? agentId = null, CancellationToken ct = default);
 
+    //todo we dont eevn have run target
     /// <summary>
     /// Sets where a skill executes: "cloud" (default) or "runner" (self-hosted).
     /// </summary>

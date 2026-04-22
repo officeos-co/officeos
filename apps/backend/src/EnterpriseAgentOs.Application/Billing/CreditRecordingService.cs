@@ -37,6 +37,7 @@ internal sealed class CreditRecordingService : ICreditRecordingService
             "User {UserId}: {Used}/{Budget} credits this month.",
             agentId, credits, rawTokens, model, agent.OwnerId, sub.CreditsUsedThisMonth, sub.CreditBudgetPerMonth);
 
+        //TODO: This might be critical what if customerid is 0, should the user then be able to just have unlimited credit? Generelly we shouldnt need to verify customer id in billing that should be checked once at start
         if (sub.OverageEnabled
             && sub.StripeOverageItemId is not null
             && sub.StripeCustomerId is not null
