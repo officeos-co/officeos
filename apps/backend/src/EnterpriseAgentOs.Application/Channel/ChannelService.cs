@@ -139,6 +139,24 @@ internal sealed class ChannelService : IChannelService
             row.EncryptedConfig = _protector.Protect(JsonSerializer.Serialize(configDict));
         }, ct);
 
+        // Set owner JID as default reply destination on all bindings so
+        // broadcast works even before the first inbound message
+        var ownerIdentifier = ChannelConnectionRecord.ExtractOwnerIdentifier(credsJson);
+        if (!string.IsNullOrEmpty(ownerIdentifier))
+        {
+            var bindings = await _repo.FindBindingsByConnectionAsync(connectionId, ct);
+            foreach (var binding in bindings)
+            {
+                if (!binding.HasReplyContext)
+                {
+                    await _repo.UpdateBindingAsync(binding.Id, b =>
+                    {
+                        b.UpdateReplyContext(ownerIdentifier, ownerIdentifier);
+                    }, ct);
+                }
+            }
+        }
+
         // Fire-and-forget with a new DI scope (the current request scope will be
         // disposed before the background task runs). Guard against concurrent fires.
         if (connection.NeedsTestMessage && _pendingTestMessages.TryAdd(connectionId, 0))
