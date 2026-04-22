@@ -15,6 +15,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IGdprService, GdprService>();
         services.AddScoped<IAgentTemplateService, AgentTemplateService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
+        services.AddScoped<IChannelService, Channel.ChannelService>();
         services.AddScoped<PromptComposer>();
         services.AddScoped<AgentTurnService>();
 

@@ -33,6 +33,7 @@ public static class InfrastructureServiceRegistration
 
         // Adapters
         services.AddScoped<ChannelMessageRouter>();
+        services.AddScoped<IChannelGateway, ChannelGateway>();
         services.AddSingleton<IChannelAdapter, SlackAdapter>();
         services.AddSingleton<IChannelAdapter, TelegramAdapter>();
         services.AddSingleton<IChannelAdapter, DiscordAdapter>();

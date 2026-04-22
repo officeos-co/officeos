@@ -22,7 +22,8 @@ public sealed record AgentChannelBindingGqlDto(
 public sealed record CreateChannelConnectionInput(
     string ChannelType,
     string DisplayName,
-    string ConfigJson);
+    string ConfigJson,
+    string? DefaultChannelId = null);
 
 public sealed record UpdateChannelConnectionInput(
     string? DisplayName,

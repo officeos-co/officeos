@@ -41,6 +41,7 @@ public sealed class ChannelMessageRouter
         string messageText,
         bool isGroupMessage = false,
         string? messageId = null,
+        string? channelId = null,
         CancellationToken ct = default)
     {
         var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
@@ -58,6 +59,20 @@ public sealed class ChannelMessageRouter
                 _logger.LogDebug("Message from {Sender} blocked by policy for agent {AgentId}",
                     senderIdentifier, binding.AgentId);
                 continue;
+            }
+
+            // Track last inbound sender so outbound broadcast knows where to reply
+            try
+            {
+                await _channelRepository.UpdateBindingAsync(binding.Id, b =>
+                {
+                    b.LastSenderIdentifier = senderIdentifier;
+                    b.LastChannelId = channelId ?? senderIdentifier;
+                }, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update last sender for binding {BindingId}", binding.Id);
             }
 
             var serviceUrl = binding.Agent.ServiceUrl;

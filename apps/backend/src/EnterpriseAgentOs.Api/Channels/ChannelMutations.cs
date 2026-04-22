@@ -49,11 +49,18 @@ public class ChannelMutations
         var created = await repo.CreateConnectionAsync(record, ct);
         InvalidateChannelCaches(cache);
 
-        // For WhatsApp, start the sidecar connection (QR code pairing)
+        // For WhatsApp, start the sidecar connection (QR code pairing).
+        // Test message is sent when the sidecar calls POST /api/internal/channel/connected.
         if (string.Equals(input.ChannelType, "whatsapp", StringComparison.OrdinalIgnoreCase))
         {
             var gateway = context.Services.GetRequiredService<WhatsAppGatewayService>();
             await gateway.StartConnectionAsync(created.Id);
+        }
+        else if (!string.IsNullOrEmpty(input.DefaultChannelId))
+        {
+            // Webhook-based channels are immediately connected — send a test message
+            var channelService = context.Services.GetRequiredService<IChannelService>();
+            await channelService.SendTestMessageAsync(created.Id, input.DefaultChannelId, ct);
         }
 
         return ChannelGraphQLMapper.ToDto(created);

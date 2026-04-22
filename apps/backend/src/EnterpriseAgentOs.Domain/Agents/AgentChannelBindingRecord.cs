@@ -26,5 +26,17 @@ public sealed class AgentChannelBindingRecord
     /// </summary>
     public string? Config { get; set; }
 
+    /// <summary>
+    /// Platform-specific destination for outbound messages (Slack channel ID,
+    /// Discord channel ID, WhatsApp JID, etc.). Updated on every inbound message.
+    /// </summary>
+    public string? LastChannelId { get; set; }
+
+    /// <summary>
+    /// Last sender identifier (used for WhatsApp JID, Telegram chat ID, etc.).
+    /// Updated on every inbound message.
+    /// </summary>
+    public string? LastSenderIdentifier { get; set; }
+
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

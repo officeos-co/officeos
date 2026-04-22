@@ -13,6 +13,7 @@ internal sealed class AgentLogService : IAgentLogService
     private readonly ITopicEventSender _topicEventSender;
     private readonly IAgentRepository _agentRepository;
     private readonly IPostHogService _postHogService;
+    private readonly IChannelService _channelService;
     private readonly ILogger<AgentLogService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
 
@@ -21,6 +22,7 @@ internal sealed class AgentLogService : IAgentLogService
         ITopicEventSender topicEventSender,
         IAgentRepository agentRepository,
         IPostHogService postHogService,
+        IChannelService channelService,
         ILogger<AgentLogService> logger,
         IServiceScopeFactory serviceScopeFactory)
     {
@@ -28,6 +30,7 @@ internal sealed class AgentLogService : IAgentLogService
         _topicEventSender = topicEventSender;
         _agentRepository = agentRepository;
         _postHogService = postHogService;
+        _channelService = channelService;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
     }
@@ -48,6 +51,23 @@ internal sealed class AgentLogService : IAgentLogService
     {
         var saved = await _agentLogRepository.AppendAsync(record, ct);
         await _topicEventSender.SendAsync($"agent-log:{saved.AgentId}", saved.ToDto(), ct);
+
+        // Broadcast text messages to all bound channels
+        if (saved.Type == AgentLogType.MessageOut && !string.IsNullOrEmpty(saved.Content))
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _channelService.BroadcastAsync(saved.AgentId, saved.Content, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Channel broadcast failed for agent {AgentId}", saved.AgentId);
+                }
+            }, CancellationToken.None);
+        }
+
         return saved;
     }
 

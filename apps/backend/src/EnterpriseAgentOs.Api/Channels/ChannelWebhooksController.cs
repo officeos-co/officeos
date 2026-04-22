@@ -110,27 +110,12 @@ public sealed class ChannelWebhooksController : ControllerBase
                 return Ok();
             }
 
-            // Route message to bound agents
-            var responses = await _channelMessageRouter.RouteMessageAsync(
+            // Route message to bound agents — replies are broadcast to all channels
+            // via ChannelBroadcastService (triggered by MessageOut log append)
+            await _channelMessageRouter.RouteMessageAsync(
                 connection.Id, message.SenderIdentifier, message.Text,
-                isGroupMessage: message.IsGroupMessage, messageId: message.MessageId, ct: ct);
-
-            // Send replies back through the platform
-            var httpClient = HttpContext.RequestServices
-                .GetRequiredService<IHttpClientFactory>()
-                .CreateClient("channel-platform");
-
-            foreach (var (_, responseText) in responses)
-            {
-                try
-                {
-                    await adapter.SendReplyAsync(httpClient, config, message.ChannelId, responseText, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send {Platform} reply on connection {Id}", platform, connection.Id);
-                }
-            }
+                isGroupMessage: message.IsGroupMessage, messageId: message.MessageId,
+                channelId: message.ChannelId, ct: ct);
 
             return Ok();
         }

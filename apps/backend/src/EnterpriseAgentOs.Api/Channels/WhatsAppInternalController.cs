@@ -42,11 +42,37 @@ public sealed class WhatsAppInternalController : ControllerBase
         _logger.LogInformation("WhatsApp inbound from {Sender} on connection {Id} (group: {IsGroup})",
             sender, connectionId, request.IsGroup);
 
+        // Route to agents — replies are broadcast to all channels
+        // via ChannelBroadcastService (triggered by MessageOut log append)
         var responses = await _channelMessageRouter.RouteMessageAsync(
             connectionId, sender ?? "", request.Text,
-            isGroupMessage: request.IsGroup, messageId: request.MessageId, ct: ct);
+            isGroupMessage: request.IsGroup, messageId: request.MessageId,
+            channelId: request.IsGroup ? request.SenderJid : sender, ct: ct);
 
         return Ok(new { responses });
+    }
+
+    /// <summary>
+    /// Called by the sidecar when a WhatsApp connection is fully established
+    /// (QR code scanned, session authenticated). Sends a test message to
+    /// confirm the channel is working.
+    /// </summary>
+    [HttpPost("channel/connected")]
+    public async Task<IActionResult> HandleConnected(
+        [FromBody] ChannelConnectedRequest request,
+        [FromServices] IChannelService channelService,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(request.ConnectionId) || string.IsNullOrEmpty(request.SenderJid))
+            return BadRequest();
+
+        if (!Guid.TryParse(request.ConnectionId, out var connectionId))
+            return BadRequest("Invalid connectionId");
+
+        _logger.LogInformation("Channel connected: {ConnectionId}, owner JID: {Jid}", connectionId, request.SenderJid);
+
+        await channelService.SendTestMessageAsync(connectionId, request.SenderJid, ct);
+        return Ok();
     }
 
     /// <summary>
@@ -102,3 +128,7 @@ public sealed record WhatsAppInboundRequest(
     bool IsGroup);
 
 public sealed record WhatsAppCredsRequest(string? CredsJson);
+
+public sealed record ChannelConnectedRequest(
+    string? ConnectionId,
+    string? SenderJid);
