@@ -60,35 +60,40 @@ app.post("/send", async (req, res) => {
 
 // ── Startup: restore all known connections from backend ─────────────
 async function restoreConnections() {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/internal/channel/connections`);
-    if (!res.ok) {
-      log.warn({ status: res.status }, "Failed to fetch active connections from backend");
-      return;
-    }
-
-    const { connections } = await res.json();
-    const whatsappConnections = connections.filter((c) => c.channelType === "whatsapp");
-
-    log.info({ count: whatsappConnections.length }, "Restoring WhatsApp connections from backend");
-
-    for (const conn of whatsappConnections) {
-      try {
-        await manager.connect(conn.id);
-        log.info({ connectionId: conn.id }, "Connection restored");
-      } catch (err) {
-        log.error({ err, connectionId: conn.id }, "Failed to restore connection");
+  // Wait for backend to be ready (retry with backoff)
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/internal/channel/connections`);
+      if (!res.ok) {
+        log.warn({ status: res.status, attempt }, "Backend not ready yet");
+        await new Promise((r) => setTimeout(r, attempt * 3000));
+        continue;
       }
+
+      const { connections } = await res.json();
+      const whatsappConnections = connections.filter((c) => c.channelType === "whatsapp");
+
+      log.info({ count: whatsappConnections.length }, "Restoring WhatsApp connections from backend");
+
+      for (const conn of whatsappConnections) {
+        try {
+          await manager.connect(conn.id);
+          log.info({ connectionId: conn.id }, "Connection restored");
+        } catch (err) {
+          log.error({ err, connectionId: conn.id }, "Failed to restore connection");
+        }
+      }
+      return; // success
+    } catch (err) {
+      log.warn({ err: err.message, attempt }, "Backend not reachable, retrying...");
+      await new Promise((r) => setTimeout(r, attempt * 3000));
     }
-  } catch (err) {
-    log.error({ err }, "Failed to restore connections on startup");
   }
+  log.error("Failed to restore connections after 10 attempts");
 }
 
 // ── Start ───────────────────────────────────────────────────────────
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   log.info({ port: PORT, backendUrl: BACKEND_URL }, "WhatsApp gateway started");
-
-  // Wait a few seconds for the backend to be ready, then restore connections
-  setTimeout(() => restoreConnections(), 5000);
+  restoreConnections();
 });
