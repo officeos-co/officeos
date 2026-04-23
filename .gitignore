@@ -79,3 +79,5 @@ web/dist/*
 # ── Wrangler ─────────────────────────────────────────────────
 .wrangler/
 
+
+apps/channels
