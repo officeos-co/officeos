@@ -26,6 +26,7 @@ global using EnterpriseAgentOs.Domain.Features.Channels;
 global using EnterpriseAgentOs.Domain.Common;
 global using EnterpriseAgentOs.Domain.Features.Organizations;
 global using EnterpriseAgentOs.Domain.Features.Providers;
+global using EnterpriseAgentOs.Domain.Features.PostHog;
 global using EnterpriseAgentOs.Domain.Features.Skills;
 global using EnterpriseAgentOs.Domain.Common.Primitives;
 global using EnterpriseAgentOs.Domain.Events;

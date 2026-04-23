@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common;
+namespace EnterpriseAgentOs.Domain.Features.PostHog;
 
 public interface IPostHogService
 {

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common;
+namespace EnterpriseAgentOs.Domain.Features.PostHog;
 
 // One input record per tracked use-case in dashboard. Keep them flat and
 // strongly typed — the goal is to make the GraphQL schema the source of truth

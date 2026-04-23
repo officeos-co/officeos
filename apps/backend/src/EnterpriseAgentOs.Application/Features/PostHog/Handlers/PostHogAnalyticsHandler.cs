@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Agents.Handlers;
+namespace EnterpriseAgentOs.Application.Features.PostHog.Handlers;
 
 internal sealed class PostHogAnalyticsHandler :
     INotificationHandler<AgentCreatedEvent>,
