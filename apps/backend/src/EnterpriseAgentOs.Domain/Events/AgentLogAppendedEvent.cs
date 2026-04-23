@@ -1,4 +1,4 @@
-using EnterpriseAgentOs.Domain.Agents;
+using EnterpriseAgentOs.Domain.Features.AgentLogs;
 
 namespace EnterpriseAgentOs.Domain.Events;
 

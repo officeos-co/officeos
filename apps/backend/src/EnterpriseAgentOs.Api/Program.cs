@@ -80,22 +80,16 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
         config);
 });
 
-// Kubernetes deployer
-if (kubernetesConfig.Enabled)
+
+builder.Services.AddSingleton<IKubernetes>(_ =>
 {
-    builder.Services.AddSingleton<IKubernetes>(_ =>
-    {
-        var config = KubernetesClientConfiguration.IsInCluster()
-            ? KubernetesClientConfiguration.InClusterConfig()
-            : KubernetesClientConfiguration.BuildDefaultConfig();
-        return new Kubernetes(config);
-    });
-    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
-}
-else
-{
-    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
-}
+    var config = KubernetesClientConfiguration.IsInCluster()
+        ? KubernetesClientConfiguration.InClusterConfig()
+        : KubernetesClientConfiguration.BuildDefaultConfig();
+    return new Kubernetes(config);
+});
+builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
+
 
 // Billing
 var stripeConfig = new StripeConfig();

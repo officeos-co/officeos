@@ -48,7 +48,7 @@ public static class InfrastructureServiceRegistration
         services.AddSingleton<SkillCredentialProtector>();
         services.AddSingleton<ChannelConfigProtector>();
         services.AddSingleton<IChannelConfigProtector>(sp => sp.GetRequiredService<ChannelConfigProtector>());
-        services.AddSingleton<Channels.Common.InMemoryMessageDeduplicator>();
+        services.AddSingleton<Features.Channels.Common.InMemoryMessageDeduplicator>();
 
         // HTTP clients
         services.AddHttpClient<SkillRuntimeClient>();
