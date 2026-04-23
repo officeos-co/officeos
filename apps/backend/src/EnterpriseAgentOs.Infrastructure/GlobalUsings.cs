@@ -20,6 +20,7 @@ global using EnterpriseAgentOs.Domain.Organizations;
 global using EnterpriseAgentOs.Domain.Providers;
 global using EnterpriseAgentOs.Domain.Skills;
 global using EnterpriseAgentOs.Domain.Common.Primitives;
+global using EnterpriseAgentOs.Domain.Events;
 global using EnterpriseAgentOs.Infrastructure.Agents;
 global using EnterpriseAgentOs.Infrastructure.Auth;
 global using EnterpriseAgentOs.Infrastructure.Billing;

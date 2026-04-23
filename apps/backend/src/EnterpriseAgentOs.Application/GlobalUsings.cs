@@ -40,3 +40,5 @@ global using EnterpriseAgentOs.Application.CronJobs;
 global using EnterpriseAgentOs.Application.Providers;
 global using EnterpriseAgentOs.Application.Skills;
 global using EnterpriseAgentOs.Domain.Common.Services;
+global using EnterpriseAgentOs.Domain.Events;
+global using EnterpriseAgentOs.Application.EventHandlers;

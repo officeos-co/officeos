@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using EnterpriseAgentOs.Infrastructure.Channels.Common;
+using MediatR;
 
 namespace EnterpriseAgentOs.Infrastructure.Channels;
 
@@ -12,20 +13,20 @@ namespace EnterpriseAgentOs.Infrastructure.Channels;
 public sealed class ChannelMessageRouter
 {
     private readonly IChannelRepository _channelRepository;
-    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly IPublisher _publisher;
     private readonly ChannelConfigProtector _channelConfigProtector;
     private readonly InMemoryMessageDeduplicator _deduplicator;
     private readonly ILogger<ChannelMessageRouter> _logger;
 
     public ChannelMessageRouter(
         IChannelRepository repo,
-        IAgentLogRepository logRepo,
+        IPublisher publisher,
         ChannelConfigProtector protector,
         InMemoryMessageDeduplicator deduplicator,
         ILogger<ChannelMessageRouter> logger)
     {
         _channelRepository = repo;
-        _agentLogRepository = logRepo;
+        _publisher = publisher;
         _channelConfigProtector = protector;
         _deduplicator = deduplicator;
         _logger = logger;
@@ -71,45 +72,28 @@ public sealed class ChannelMessageRouter
             var correlationId = Guid.NewGuid().ToString("N");
             var channelType = binding.ChannelConnection?.ChannelType ?? "unknown";
 
-            // Log inbound channel message
-            await _agentLogRepository.AppendAsync(new AgentLogRecord
-            {
-                AgentId = binding.AgentId,
-                Type = AgentLogType.ChannelIn,
-                Channel = channelType,
-                Content = messageText,
-                CorrelationId = correlationId,
-            }, ct);
+            // Log inbound channel message via event
+            await _publisher.Publish(new ChannelMessageRoutedEvent(
+                binding.AgentId, AgentLogType.ChannelIn, channelType, messageText, correlationId), ct);
 
             try
             {
                 var response = await SendToAgentAsync(serviceUrl, binding.AgentId, messageText, ct);
                 responses[binding.AgentId] = response;
 
-                // Log outbound agent response
-                await _agentLogRepository.AppendAsync(new AgentLogRecord
-                {
-                    AgentId = binding.AgentId,
-                    Type = AgentLogType.ChannelOut,
-                    Channel = channelType,
-                    Content = response,
-                    CorrelationId = correlationId,
-                }, ct);
+                // Log outbound agent response via event
+                await _publisher.Publish(new ChannelMessageRoutedEvent(
+                    binding.AgentId, AgentLogType.ChannelOut, channelType, response, correlationId), ct);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to forward message to agent {AgentId}", binding.AgentId);
                 responses[binding.AgentId] = "Sorry, I'm having trouble processing your message right now.";
 
-                // Log error to agent timeline
-                await _agentLogRepository.AppendAsync(new AgentLogRecord
-                {
-                    AgentId = binding.AgentId,
-                    Type = AgentLogType.Error,
-                    Channel = channelType,
-                    Content = $"Failed to process inbound {channelType} message: {ex.Message}",
-                    CorrelationId = correlationId,
-                }, ct);
+                // Log error via event
+                await _publisher.Publish(new ChannelMessageRoutedEvent(
+                    binding.AgentId, AgentLogType.Error, channelType,
+                    $"Failed to process inbound {channelType} message: {ex.Message}", correlationId), ct);
             }
         }
 

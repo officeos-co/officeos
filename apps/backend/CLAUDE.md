@@ -151,13 +151,14 @@ Everything goes to AgentLogRecord — agent turn events, auth failures, DI excep
 
 Agent-context code uses `AgentResult<T>` (in `Domain/Primitives/`) instead of exceptions. Named `AgentResult` to avoid conflict with `GreenDonut.Result` from HotChocolate.
 
-| Concept | Location |
-|---------|----------|
-| `AgentResult<T>` struct | `Domain/Primitives/Result.cs` |
-| `AgentError` record | `Domain/Primitives/AgentError.cs` |
+| Concept                   | Location                                  |
+| ------------------------- | ----------------------------------------- |
+| `AgentResult<T>` struct   | `Domain/Primitives/Result.cs`             |
+| `AgentError` record       | `Domain/Primitives/AgentError.cs`         |
 | `AgentErrorCategory` enum | `Domain/Primitives/AgentErrorCategory.cs` |
 
 **Rules:**
+
 - Infrastructure boundaries (PodConnection, LlmProviderDispatcher, tools) return `AgentResult<T>` instead of throwing
 - AgentTurnService matches on results and logs errors through `TurnLogger.Error(AgentError)`
 - `AgentLogType` has typed error subtypes: `ErrorPodConnection`, `ErrorLlmCall`, `ErrorToolExecution`, `ErrorSkillExecution`, `ErrorTurnOrchestration`, `ErrorMemory`, `ErrorConfiguration`

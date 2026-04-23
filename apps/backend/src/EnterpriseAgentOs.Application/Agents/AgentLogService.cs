@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+using MediatR;
 
 namespace EnterpriseAgentOs.Application.Agents;
 
@@ -10,26 +10,20 @@ internal sealed class AgentLogService : IAgentLogService
     ];
 
     private readonly IAgentLogRepository _agentLogRepository;
-    private readonly ITopicEventSender _topicEventSender;
     private readonly IAgentRepository _agentRepository;
-    private readonly IPostHogService _postHogService;
+    private readonly IPublisher _publisher;
     private readonly ILogger<AgentLogService> _logger;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public AgentLogService(
         IAgentLogRepository agentLogRepository,
-        ITopicEventSender topicEventSender,
         IAgentRepository agentRepository,
-        IPostHogService postHogService,
-        ILogger<AgentLogService> logger,
-        IServiceScopeFactory serviceScopeFactory)
+        IPublisher publisher,
+        ILogger<AgentLogService> logger)
     {
         _agentLogRepository = agentLogRepository;
-        _topicEventSender = topicEventSender;
         _agentRepository = agentRepository;
-        _postHogService = postHogService;
+        _publisher = publisher;
         _logger = logger;
-        _serviceScopeFactory = serviceScopeFactory;
     }
 
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
@@ -47,28 +41,7 @@ internal sealed class AgentLogService : IAgentLogService
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
         var saved = await _agentLogRepository.AppendAsync(record, ct);
-        await _topicEventSender.SendAsync($"agent-log:{saved.AgentId}", saved.ToDto(), ct);
-
-        // Broadcast text messages to all bound channels.
-        // Uses a new DI scope because the current scope may be disposed
-        // before the background task runs (e.g. when the turn runs in a scoped Task.Run).
-        if (saved.Type == AgentLogType.MessageOut && !string.IsNullOrEmpty(saved.Content))
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    using var scope = _serviceScopeFactory.CreateScope();
-                    var channelService = scope.ServiceProvider.GetRequiredService<IChannelService>();
-                    await channelService.BroadcastAsync(saved.AgentId, saved.Content, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Channel broadcast failed for agent {AgentId}", saved.AgentId);
-                }
-            }, CancellationToken.None);
-        }
-
+        await _publisher.Publish(new AgentLogAppendedEvent(saved), ct);
         return saved;
     }
 
@@ -94,40 +67,7 @@ internal sealed class AgentLogService : IAgentLogService
             return record;
         }
 
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                using var scope = _serviceScopeFactory.CreateScope();
-                var turnService = scope.ServiceProvider.GetRequiredService<AgentTurnService>();
-                await turnService.RunTurnAsync(agentId, content, correlationId, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Turn failed for agent {AgentId}", agentId);
-
-                try
-                {
-                    using var errorScope = _serviceScopeFactory.CreateScope();
-                    var repo = errorScope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
-                    var sender = errorScope.ServiceProvider.GetRequiredService<ITopicEventSender>();
-
-                    var errorRecord = await repo.AppendAsync(new AgentLogRecord
-                    {
-                        AgentId = agentId,
-                        Type = AgentLogType.Error,
-                        Content = $"Turn failed: {ex.Message}",
-                        CorrelationId = correlationId,
-                        Time = DateTime.UtcNow,
-                    });
-                    await sender.SendAsync($"agent-log:{agentId}", errorRecord.ToDto(), CancellationToken.None);
-                }
-                catch (Exception logEx)
-                {
-                    _logger.LogError(logEx, "Failed to log error for agent {AgentId}", agentId);
-                }
-            }
-        }, CancellationToken.None);
+        await _publisher.Publish(new MessageReceivedEvent(agentId, content, correlationId, agent.PodName), ct);
 
         return record;
     }
@@ -172,8 +112,8 @@ internal sealed class AgentLogService : IAgentLogService
         };
 
         await _agentLogRepository.AppendPairAsync(toolCall, toolResult, ct);
-        await _topicEventSender.SendAsync($"agent-log:{agentId}", toolCall.ToDto(), ct);
-        await _topicEventSender.SendAsync($"agent-log:{agentId}", toolResult.ToDto(), ct);
+        await _publisher.Publish(new AgentLogAppendedEvent(toolCall), ct);
+        await _publisher.Publish(new AgentLogAppendedEvent(toolResult), ct);
     }
 
     public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(

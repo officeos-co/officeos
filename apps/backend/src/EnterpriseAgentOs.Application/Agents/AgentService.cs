@@ -1,3 +1,5 @@
+using MediatR;
+
 namespace EnterpriseAgentOs.Application.Agents;
 
 internal sealed class AgentService : IAgentService
@@ -5,10 +7,10 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentDeployer _agentDeployer;
     private readonly IProviderService _providerService;
-    private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentService> _logger;
     private readonly IMemoryCache _memoryCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
+    private readonly IPublisher _publisher;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     private const string AgentListCacheKey = "agents:list";
@@ -18,18 +20,18 @@ internal sealed class AgentService : IAgentService
         IAgentRepository repository,
         IAgentDeployer deployer,
         IProviderService providerService,
-        IPostHogService analytics,
         ILogger<AgentService> logger,
         IMemoryCache cache,
-        IAgentPersonalityRepository personalityRepo)
+        IAgentPersonalityRepository personalityRepo,
+        IPublisher publisher)
     {
         _agentRepository = repository;
         _agentDeployer = deployer;
         _providerService = providerService;
-        _postHogService = analytics;
         _logger = logger;
         _memoryCache = cache;
         _agentPersonalityRepository = personalityRepo;
+        _publisher = publisher;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
@@ -111,37 +113,7 @@ internal sealed class AgentService : IAgentService
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
             record.Id, record.Name, record.Provider, record.Model);
 
-        try
-        {
-            var deployment = await _agentDeployer.DeployAsync(record.Id, ct);
-
-            record.MarkDeployed(deployment.PodName, deployment.ServiceUrl);
-            await _agentRepository.UpdateAsync(record, ct);
-            _logger.LogInformation("Agent {AgentId} deployed as pod {PodName}", record.Id, record.PodName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to deploy agent {AgentId}", record.Id);
-            record.MarkFailed();
-            await _agentRepository.UpdateAsync(record, ct);
-        }
-
-        _memoryCache.Remove(AgentListCacheKey);
-        _memoryCache.Remove(AgentCacheKey(record.Id));
-
-        if (ownerId is not null)
-        {
-            await _postHogService.CaptureAsync(
-                ownerId.Value.ToString(),
-                "agent_created",
-                new Dictionary<string, object?>
-                {
-                    ["agent_id"] = record.Id,
-                    ["provider"] = record.Provider,
-                    ["model"] = record.Model,
-                },
-                ct);
-        }
+        await _publisher.Publish(new AgentCreatedEvent(record.Id, record.Provider, record.Model, ownerId), ct);
 
         return ToDto(record);
     }
@@ -185,8 +157,7 @@ internal sealed class AgentService : IAgentService
         }
 
         await _agentRepository.UpdateAsync(record, ct);
-        _memoryCache.Remove(AgentListCacheKey);
-        _memoryCache.Remove(AgentCacheKey(id));
+        await _publisher.Publish(new AgentUpdatedEvent(id), ct);
         return ToDto(record);
     }
 
@@ -201,24 +172,10 @@ internal sealed class AgentService : IAgentService
 
         _logger.LogInformation("Deleting agent {AgentId} ({AgentName})", id, record.Name);
 
-        if (record.HasPod)
-        {
-            _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", record.PodName, id);
-            await _agentDeployer.RemoveAsync(record.PodName!, ct);
-        }
-
         var deleted = await _agentRepository.SoftDeleteAsync(id, ct);
-        _memoryCache.Remove(AgentListCacheKey);
-        _memoryCache.Remove(AgentCacheKey(id));
 
-        if (deleted && record.OwnerId is not null)
-        {
-            await _postHogService.CaptureAsync(
-                record.OwnerId.Value.ToString(),
-                "agent_deleted",
-                new Dictionary<string, object?> { ["agent_id"] = id },
-                ct);
-        }
+        if (deleted)
+            await _publisher.Publish(new AgentDeletedEvent(id, record.PodName, record.HasPod, record.OwnerId), ct);
 
         return deleted;
     }

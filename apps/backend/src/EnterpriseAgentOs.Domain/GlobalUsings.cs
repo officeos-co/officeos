@@ -10,3 +10,4 @@ global using EnterpriseAgentOs.Domain.Providers;
 global using EnterpriseAgentOs.Domain.Skills;
 global using EnterpriseAgentOs.Domain.Common.Primitives;
 global using EnterpriseAgentOs.Domain.Common.Services;
+global using EnterpriseAgentOs.Domain.Events;

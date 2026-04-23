@@ -37,6 +37,9 @@ builder.Services
 // DI — each layer registers its own services
 builder.Services.AddInfrastructure(ValueManager.GetValue<string>("ConnectionString"));
 builder.Services.AddApplication();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
+    typeof(EnterpriseAgentOs.Application.ApplicationServiceRegistration).Assembly,
+    typeof(Program).Assembly));
 
 // Infrastructure configs — bind from nested appsettings sections
 var envSection = ValueManager.GetConfiguration().GetSection(ValueManager.GetEnvironmentName());

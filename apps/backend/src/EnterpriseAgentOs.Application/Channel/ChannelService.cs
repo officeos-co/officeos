@@ -1,3 +1,5 @@
+using MediatR;
+
 namespace EnterpriseAgentOs.Application.Channel;
 
 /// <summary>
@@ -10,23 +12,20 @@ internal sealed class ChannelService : IChannelService
     private readonly IChannelRepository _repo;
     private readonly IChannelGateway _gateway;
     private readonly IChannelConfigProtector _protector;
-    private readonly IAgentLogRepository _agentLogRepo;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPublisher _publisher;
     private readonly ILogger<ChannelService> _logger;
 
     public ChannelService(
         IChannelRepository repo,
         IChannelGateway gateway,
         IChannelConfigProtector protector,
-        IAgentLogRepository agentLogRepo,
-        IServiceScopeFactory scopeFactory,
+        IPublisher publisher,
         ILogger<ChannelService> logger)
     {
         _repo = repo;
         _gateway = gateway;
         _protector = protector;
-        _agentLogRepo = agentLogRepo;
-        _scopeFactory = scopeFactory;
+        _publisher = publisher;
         _logger = logger;
     }
 
@@ -88,29 +87,16 @@ internal sealed class ChannelService : IChannelService
             {
                 await _gateway.SendAsync(binding.ChannelConnectionId, text, ct);
 
-                // Log successful outbound delivery
-                await _agentLogRepo.AppendAsync(new AgentLogRecord
-                {
-                    AgentId = agentId,
-                    Type = AgentLogType.ChannelOut,
-                    Channel = channelType,
-                    Content = text,
-                    CorrelationId = correlationId,
-                }, ct);
+                await _publisher.Publish(new ChannelMessageRoutedEvent(
+                    agentId, AgentLogType.ChannelOut, channelType, text, correlationId), ct);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Broadcast failed for binding {BindingId}", binding.Id);
 
-                // Log delivery failure to agent timeline
-                await _agentLogRepo.AppendAsync(new AgentLogRecord
-                {
-                    AgentId = agentId,
-                    Type = AgentLogType.Error,
-                    Channel = channelType,
-                    Content = $"Failed to deliver message via {channelType}: {ex.Message}",
-                    CorrelationId = correlationId,
-                }, ct);
+                await _publisher.Publish(new ChannelMessageRoutedEvent(
+                    agentId, AgentLogType.Error, channelType,
+                    $"Failed to deliver message via {channelType}: {ex.Message}", correlationId), ct);
             }
         }
     }
@@ -149,25 +135,8 @@ internal sealed class ChannelService : IChannelService
             row.EncryptedConfig = _protector.Protect(JsonSerializer.Serialize(configDict));
         }, ct);
 
-        // Fire-and-forget test message with a new DI scope
         if (connection.NeedsTestMessage)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
-                    using var scope = _scopeFactory.CreateScope();
-                    var scopedService = scope.ServiceProvider.GetRequiredService<IChannelService>();
-                    _logger.LogInformation("Attempting test message for connection {Id}", connectionId);
-                    await scopedService.SendTestMessageAsync(connectionId, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Background test message failed for {Id} (will retry on next creds save)", connectionId);
-                }
-            });
-        }
+            await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
     }
 
     public async Task<string?> LoadChannelCredsAsync(Guid connectionId, CancellationToken ct = default)
