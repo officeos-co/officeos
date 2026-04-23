@@ -35,6 +35,7 @@ global using EnterpriseAgentOs.Infrastructure.Features.AgentLogs;
 global using EnterpriseAgentOs.Infrastructure.Features.Auth;
 global using EnterpriseAgentOs.Infrastructure.Features.Billing;
 global using EnterpriseAgentOs.Infrastructure.Features.Channels;
+global using System.Net.Http;
 global using EnterpriseAgentOs.Infrastructure.Features.Llm;
 global using EnterpriseAgentOs.Infrastructure.Features.PostHog;
 global using EnterpriseAgentOs.Infrastructure.Features.Skills;

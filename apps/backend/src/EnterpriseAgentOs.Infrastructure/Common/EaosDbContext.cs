@@ -176,7 +176,6 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(c => c.Id);
             e.Property(c => c.ChannelType).IsRequired().HasMaxLength(32);
             e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
-            e.Property(c => c.EncryptedConfig).HasColumnType("text");
             e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById);
         });
 

@@ -57,16 +57,6 @@ public class ChannelQueries
         return ChannelTypes.All;
     }
 
-    public async Task<WhatsAppConnectionStatusPayload> GetWhatsAppConnectionStatus(
-        Guid connectionId,
-        IResolverContext context,
-        [Service] WhatsAppGatewayService gateway)
-    {
-        _ = DashboardAuthContextExtensions.GetUser(context);
-        var status = await gateway.GetStatusAsync(connectionId);
-        return new WhatsAppConnectionStatusPayload(connectionId, status.Status, status.QrData);
-    }
-
     public async Task<IReadOnlyList<AgentChannelBindingGqlDto>> GetAgentChannelBindings(
         Guid agentId,
         IResolverContext context,

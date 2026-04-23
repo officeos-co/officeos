@@ -25,7 +25,7 @@ public class ChannelMutations
         {
             var created = await channelService.CreateConnectionAsync(
                 input.ChannelType, input.DisplayName, input.ConfigJson,
-                input.DefaultChannelId, user.Id, ct);
+                user.Id, ct);
 
             InvalidateChannelCaches(cache);
             return ChannelGraphQLMapper.ToDto(created);
@@ -50,7 +50,7 @@ public class ChannelMutations
         try
         {
             var updated = await channelService.UpdateConnectionAsync(
-                id, input.DisplayName, input.Enabled, input.ConfigJson, ct);
+                id, input.DisplayName, input.Enabled, ct);
 
             InvalidateChannelCaches(cache, id);
             return ChannelGraphQLMapper.ToDto(updated);

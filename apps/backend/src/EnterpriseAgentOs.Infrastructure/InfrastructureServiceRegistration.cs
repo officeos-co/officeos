@@ -32,34 +32,24 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
 
         // Adapters
-        services.AddScoped<ChannelMessageRouter>();
-        services.AddScoped<IChannelGateway, ChannelGateway>();
-        services.AddSingleton<IChannelAdapter, SlackAdapter>();
-        services.AddSingleton<IChannelAdapter, TelegramAdapter>();
-        services.AddSingleton<IChannelAdapter, DiscordAdapter>();
-        services.AddSingleton<IChannelAdapter, TeamsAdapter>();
-        services.AddSingleton<IChannelAdapter, GoogleChatAdapter>();
-        services.AddSingleton<ChannelAdapterRegistry>();
+        services.AddScoped<IChannelGateway, ChannelMicroserviceGateway>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 
         // Protectors
         services.AddSingleton<ProviderKeyProtector>();
         services.AddSingleton<SkillCredentialProtector>();
-        services.AddSingleton<ChannelConfigProtector>();
-        services.AddSingleton<IChannelConfigProtector>(sp => sp.GetRequiredService<ChannelConfigProtector>());
-        services.AddSingleton<Features.Channels.Common.InMemoryMessageDeduplicator>();
 
         // HTTP clients
         services.AddHttpClient<SkillRuntimeClient>();
         services.AddHttpClient<IPostHogService, PostHogService>();
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
-        services.AddHttpClient("channel-platform");
-        services.AddHttpClient("whatsapp-gateway");
-
-        // WhatsApp gateway (HTTP proxy to Baileys sidecar)
-        services.AddSingleton<WhatsAppGatewayService>();
+        services.AddHttpClient("channel-microservice", client =>
+        {
+            client.BaseAddress = new Uri(
+                Environment.GetEnvironmentVariable("CHANNEL_SERVICE_URL") ?? "http://localhost:3100");
+        });
 
         return services;
     }

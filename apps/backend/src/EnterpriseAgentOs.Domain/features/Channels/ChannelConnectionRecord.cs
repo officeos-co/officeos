@@ -1,9 +1,9 @@
 namespace EnterpriseAgentOs.Domain.Features.Channels;
 
 /// <summary>
-/// Org-level channel connection. One per external platform (e.g. one Slack
-/// workspace, one Telegram bot). Config is a DataProtection-wrapped JSON blob
-/// whose schema varies by channel type.
+/// Lightweight metadata record for a channel connection. The backend stores only
+/// identity + display info. All platform credentials, config, and connection state
+/// live in the channel microservice (apps/channels).
 /// </summary>
 public sealed class ChannelConnectionRecord
 {
@@ -15,13 +15,7 @@ public sealed class ChannelConnectionRecord
     [Required, MaxLength(200)]
     public string DisplayName { get; set; } = string.Empty;
 
-    /// <summary>Protected JSON object with platform tokens/secrets.</summary>
-    public string? EncryptedConfig { get; set; }
-
     public bool Enabled { get; set; } = true;
-
-    /// <summary>Whether a test/welcome message has been sent on this connection.</summary>
-    public bool TestMessageSent { get; set; }
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
@@ -31,14 +25,6 @@ public sealed class ChannelConnectionRecord
 
     // ── Domain logic ─────────────────────────────────────────────────
 
-    /// <summary>Whether this connection has platform credentials configured.</summary>
-    public bool IsConfigured => !string.IsNullOrEmpty(EncryptedConfig);
-
-    /// <summary>Whether this connection still needs a test message.</summary>
-    public bool NeedsTestMessage => !TestMessageSent;
-
-    public void MarkTestMessageSent() => TestMessageSent = true;
-
     /// <summary>Factory: validates channel type and creates a new connection.</summary>
     public static ChannelConnectionRecord Create(string channelType, string displayName, Guid createdById)
     {
@@ -47,7 +33,7 @@ public sealed class ChannelConnectionRecord
 
         return new ChannelConnectionRecord
         {
-            ChannelType = definition.Type, // normalized
+            ChannelType = definition.Type,
             DisplayName = displayName,
             CreatedById = createdById,
         };
@@ -59,5 +45,4 @@ public sealed class ChannelConnectionRecord
         if (displayName is not null) DisplayName = displayName;
         if (enabled.HasValue) Enabled = enabled.Value;
     }
-
 }

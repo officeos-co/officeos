@@ -55,7 +55,6 @@ global using EnterpriseAgentOs.Infrastructure.Features.AgentLogs;
 global using EnterpriseAgentOs.Infrastructure.Features.Auth;
 global using EnterpriseAgentOs.Infrastructure.Features.Billing;
 global using EnterpriseAgentOs.Infrastructure.Features.Channels;
-global using EnterpriseAgentOs.Infrastructure.Features.Channels.Common;
 global using EnterpriseAgentOs.Infrastructure.Common;
 global using EnterpriseAgentOs.Infrastructure.Features.Organizations;
 global using EnterpriseAgentOs.Infrastructure.Features.Providers;

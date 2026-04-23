@@ -3,60 +3,50 @@ using MediatR;
 namespace EnterpriseAgentOs.Application.Features.Channels;
 
 /// <summary>
-/// Application-layer channel orchestration. Coordinates domain models,
-/// repository, gateway, and config protector — no business logic here,
-/// only orchestration of domain operations.
+/// Thin orchestration layer. Backend owns connection metadata + bindings in its DB.
+/// All platform-specific work (creds, send, webhooks) is delegated to the channel
+/// microservice via IChannelGateway.
 /// </summary>
 internal sealed class ChannelService : IChannelService
 {
     private readonly IChannelRepository _repo;
     private readonly IChannelGateway _gateway;
-    private readonly IChannelConfigProtector _protector;
     private readonly IPublisher _publisher;
     private readonly ILogger<ChannelService> _logger;
 
     public ChannelService(
         IChannelRepository repo,
         IChannelGateway gateway,
-        IChannelConfigProtector protector,
         IPublisher publisher,
         ILogger<ChannelService> logger)
     {
         _repo = repo;
         _gateway = gateway;
-        _protector = protector;
         _publisher = publisher;
         _logger = logger;
     }
 
-    // ── Connection lifecycle ─────────────────────────────────────────
-
     public async Task<ChannelConnectionRecord> CreateConnectionAsync(
         string channelType, string displayName, string? configJson,
-        string? defaultChannelId, Guid createdById, CancellationToken ct = default)
+        Guid createdById, CancellationToken ct = default)
     {
         var record = ChannelConnectionRecord.Create(channelType, displayName, createdById);
-
-        if (!string.IsNullOrWhiteSpace(configJson) && configJson.Trim() != "{}")
-            record.EncryptedConfig = _protector.Protect(configJson);
-
         var created = await _repo.CreateConnectionAsync(record, ct);
 
+        // Tell microservice to set up the platform connection
         await _gateway.StartConnectionAsync(created.Id, created.ChannelType, ct);
+
+        // If config was provided (API tokens etc.), forward to microservice
+        if (!string.IsNullOrWhiteSpace(configJson))
+            await _gateway.SaveCredsAsync(created.Id, configJson, ct);
 
         return created;
     }
 
     public async Task<ChannelConnectionRecord> UpdateConnectionAsync(
-        Guid id, string? displayName, bool? enabled, string? configJson, CancellationToken ct = default)
+        Guid id, string? displayName, bool? enabled, CancellationToken ct = default)
     {
-        var updated = await _repo.UpdateConnectionAsync(id, row =>
-        {
-            row.ApplyUpdate(displayName, enabled);
-            if (!string.IsNullOrWhiteSpace(configJson))
-                row.EncryptedConfig = _protector.Protect(configJson);
-        }, ct);
-
+        var updated = await _repo.UpdateConnectionAsync(id, row => row.ApplyUpdate(displayName, enabled), ct);
         return updated ?? throw new InvalidOperationException($"Channel connection '{id}' not found.");
     }
 
@@ -68,8 +58,6 @@ internal sealed class ChannelService : IChannelService
 
         return await _repo.DeleteConnectionAsync(id, ct);
     }
-
-    // ── Broadcasting ────────────────────────────────────────────────
 
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
@@ -112,8 +100,6 @@ internal sealed class ChannelService : IChannelService
         try
         {
             await _gateway.SendAsync(connectionId, message, ct);
-            connection.MarkTestMessageSent();
-            await _repo.UpdateConnectionAsync(connectionId, row => row.MarkTestMessageSent(), ct);
         }
         catch (Exception ex)
         {
@@ -121,35 +107,11 @@ internal sealed class ChannelService : IChannelService
         }
     }
 
-    // ── Channel creds ──────────────────────────────────────────────
-
     public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
-        var connection = await _repo.GetConnectionAsync(connectionId, ct);
-        if (connection is null) return;
+        // Forward creds to microservice — it owns all platform secrets
+        await _gateway.SaveCredsAsync(connectionId, credsJson, ct);
 
-        // Persist creds
-        var configDict = new Dictionary<string, string> { ["credsJson"] = credsJson };
-        await _repo.UpdateConnectionAsync(connectionId, row =>
-        {
-            row.EncryptedConfig = _protector.Protect(JsonSerializer.Serialize(configDict));
-        }, ct);
-
-        if (connection.NeedsTestMessage)
-            await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
-    }
-
-    public async Task<string?> LoadChannelCredsAsync(Guid connectionId, CancellationToken ct = default)
-    {
-        var connection = await _repo.GetConnectionAsync(connectionId, ct);
-        if (connection is null || !connection.IsConfigured) return null;
-
-        try
-        {
-            var json = _protector.Unprotect(connection.EncryptedConfig!);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-            return dict?.GetValueOrDefault("credsJson");
-        }
-        catch { return null; }
+        await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
     }
 }

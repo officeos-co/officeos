@@ -1,6 +1,7 @@
 global using System.Text.Json;
 global using System.Text;
 global using System.Net.Http.Headers;
+global using System.Net.Http.Json;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.EntityFrameworkCore;
@@ -39,7 +40,6 @@ global using EnterpriseAgentOs.Infrastructure.Features.AgentCronJobs;
 global using EnterpriseAgentOs.Infrastructure.Features.Auth;
 global using EnterpriseAgentOs.Infrastructure.Features.Billing;
 global using EnterpriseAgentOs.Infrastructure.Features.Channels;
-global using EnterpriseAgentOs.Infrastructure.Features.Channels.Common;
 global using EnterpriseAgentOs.Infrastructure.Common;
 global using EnterpriseAgentOs.Infrastructure.Features.Organizations;
 global using EnterpriseAgentOs.Infrastructure.Features.Providers;
