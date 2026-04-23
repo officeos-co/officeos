@@ -41,7 +41,6 @@ internal sealed class AgentLogService : IAgentLogService
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
         var saved = await _agentLogRepository.AppendAsync(record, ct);
-        await _publisher.Publish(new AgentLogAppendedEvent(saved), ct);
         return saved;
     }
 
@@ -112,8 +111,6 @@ internal sealed class AgentLogService : IAgentLogService
         };
 
         await _agentLogRepository.AppendPairAsync(toolCall, toolResult, ct);
-        await _publisher.Publish(new AgentLogAppendedEvent(toolCall), ct);
-        await _publisher.Publish(new AgentLogAppendedEvent(toolResult), ct);
     }
 
     public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(

@@ -2,7 +2,7 @@ using MediatR;
 
 namespace EnterpriseAgentOs.Application.Features.AgentLogs.Handlers;
 
-internal sealed class BroadcastToChannelsHandler : INotificationHandler<AgentLogAppendedEvent>
+internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageOutEvent>
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<BroadcastToChannelsHandler> _logger;
@@ -13,15 +13,14 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<AgentLog
         _logger = logger;
     }
 
-    public Task Handle(AgentLogAppendedEvent notification, CancellationToken ct)
+    public Task Handle(MessageOutEvent notification, CancellationToken ct)
     {
-        var record = notification.Record;
-        if (record.Type != AgentLogType.MessageOut || string.IsNullOrEmpty(record.Content))
+        if (string.IsNullOrEmpty(notification.Content))
             return Task.CompletedTask;
 
         BackgroundWork.Run<IChannelService>(
             _scopeFactory,
-            svc => svc.BroadcastAsync(record.AgentId, record.Content, CancellationToken.None),
+            svc => svc.BroadcastAsync(notification.AgentId, notification.Content, CancellationToken.None),
             _logger);
 
         return Task.CompletedTask;
