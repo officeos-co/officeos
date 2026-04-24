@@ -25,4 +25,6 @@ public sealed class UserRecord
     /// <summary>Free-text personal preferences that apply to all agents (e.g. "keep explanations brief").</summary>
     [MaxLength(4000)]
     public string? Preferences { get; set; }
+
+    public UserSubscription? Subscription { get; init; }
 }

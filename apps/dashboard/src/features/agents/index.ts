@@ -1,5 +1,4 @@
 export * from "./api/useAgents";
-export * from "./api/useAgentMemories";
 export * from "./api/useAgentBindings";
 export * from "./api/useIntegrations";
 export * from "./api/useChannels";

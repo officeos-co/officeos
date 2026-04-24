@@ -3,7 +3,13 @@ namespace EnterpriseAgentOs.Domain.Features.Agents;
 public interface IAgentRepository
 {
     Task<IReadOnlyList<AgentRecord>> ListAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Loads the full agent aggregate — personality files, installed skills,
+    /// skill details, memories, and active session.
+    /// </summary>
     Task<AgentRecord?> GetAsync(Guid id, CancellationToken ct = default);
+
     Task AddAsync(AgentRecord record, CancellationToken ct = default);
     Task UpdateAsync(AgentRecord record, CancellationToken ct = default);
     Task<bool> SoftDeleteAsync(Guid id, CancellationToken ct = default);

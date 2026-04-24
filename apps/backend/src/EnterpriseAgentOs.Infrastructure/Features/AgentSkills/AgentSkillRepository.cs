@@ -122,7 +122,7 @@ internal sealed class AgentSkillRepository : IAgentSkillRepository
         }
     }
 
-    private static SkillRecord ToSkillRecord(SkillEntity e) => new()
+    internal static SkillRecord ToSkillRecord(SkillEntity e) => new()
     {
         Id = e.Id, Name = e.Name, Title = e.Title, Description = e.Description,
         Doc = e.Doc, Source = e.Source, Logo = e.Logo, License = e.License,

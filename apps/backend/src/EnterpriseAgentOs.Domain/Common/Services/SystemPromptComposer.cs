@@ -14,6 +14,13 @@ public static class SystemPromptComposer
     /// Composes the full system prompt from all available context.
     /// Null sections are omitted.
     /// </summary>
+    /// <summary>
+    /// Composes the system prompt from the agent aggregate — uses the agent's
+    /// personality files, memories, and skill details directly.
+    /// </summary>
+    public static string Compose(AgentRecord agent) =>
+        Compose(agent.Name, agent.Prompt, agent.SkillDetails, agent.PersonalityFiles, agent.Memories);
+
     public static string Compose(
         string agentName,
         string? userPrompt,

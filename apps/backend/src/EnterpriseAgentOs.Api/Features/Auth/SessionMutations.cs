@@ -3,19 +3,19 @@ namespace EnterpriseAgentOs.Api.Features.Auth;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class SessionMutations
 {
-    /// <summary>
-    /// Creates a new session for an agent, ending any active session.
-    /// Sends a bootstrap message to initialize the new session context.
-    /// </summary>
     public async Task<AgentSessionRecord> CreateSession(
         Guid agentId,
         IResolverContext context,
+        [Service] IAgentRepository agentRepo,
         [Service] IAgentSessionRepository sessions,
-        [Service] IAgentPersonalityRepository personalities,
         [Service] IAgentLogService logs,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
+
+        var agent = await agentRepo.GetAsync(agentId, ct)
+            ?? throw new GraphQLException(
+                ErrorBuilder.New().SetMessage("Agent not found.").SetCode("NOT_FOUND").Build());
 
         // End any active session
         var active = await sessions.GetActiveAsync(agentId, ct);
@@ -30,23 +30,20 @@ public class SessionMutations
         var session = AgentSessionRecord.Create(agentId);
         await sessions.CreateAsync(session, ct);
 
-        // Send bootstrap message
-        var personalityFiles = await personalities.ListAsync(agentId, ct);
-        var bootstrapMsg = session.FormatBootstrapMessage(personalityFiles, isFirstSession: isFirst);
+        // Bootstrap from the agent's personality files (already on the aggregate)
+        var bootstrapMsg = session.FormatBootstrapMessage(agent.PersonalityFiles, isFirstSession: isFirst);
 
-        var log = new AgentLogRecord
+        await logs.AppendAsync(new AgentLogRecord
         {
             AgentId = agentId,
             Time = DateTime.UtcNow,
             Type = AgentLogType.System,
             Content = bootstrapMsg,
-        };
-        await logs.AppendAsync(log, ct);
+        }, ct);
 
         return session;
     }
 
-    /// <summary>Ends the active session for an agent.</summary>
     public async Task<AgentSessionRecord?> EndSession(
         Guid agentId,
         IResolverContext context,

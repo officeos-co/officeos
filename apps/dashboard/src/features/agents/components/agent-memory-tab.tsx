@@ -4,7 +4,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { FileNode } from "@/features/agents/data/agent-mock";
-import { useAgentMemories } from "@/features/agents";
+import { useAgent } from "@/features/agents";
 import { ChevronRightIcon, FileTextIcon, FolderIcon } from "lucide-react";
 
 function FileTreeItem({
@@ -72,7 +72,12 @@ function FileTreeItem({
 }
 
 export function AgentMemoryTab({ agentId }: { agentId: string }) {
-  const { fileTree, loading } = useAgentMemories(agentId);
+  const { agent, loading } = useAgent(agentId);
+  const fileTree: FileNode[] = (agent?.memories ?? []).map((m) => ({
+    name: m.key,
+    type: "file" as const,
+    content: m.content,
+  }));
   const [selectedPath, setSelectedPath] = useState("");
   const [content, setContent] = useState("");
 

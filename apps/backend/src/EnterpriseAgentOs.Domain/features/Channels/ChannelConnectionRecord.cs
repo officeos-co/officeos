@@ -23,6 +23,8 @@ public sealed class ChannelConnectionRecord
     public Guid? CreatedById { get; init; }
     public UserRecord? CreatedBy { get; init; }
 
+    public IReadOnlyList<AgentChannelBindingRecord> Bindings { get; init; } = [];
+
     // ── Domain logic ─────────────────────────────────────────────────
 
     /// <summary>Factory: validates channel type and creates a new connection.</summary>

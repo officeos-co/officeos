@@ -86,6 +86,8 @@ public sealed class SkillRecord
 
     public UserRecord? Owner { get; set; }
 
+    public SkillCredentialRecord? Credential { get; init; }
+
     // ── Computed properties ────────────────────────────────────────
 
     public bool IsActive => Status == "active";

@@ -2,23 +2,7 @@
 
 import { gql, useQuery } from "@apollo/client";
 import { USE_MOCKS } from "@/lib/graphql/mock-mode";
-
-const AGENT_SKILLS_QUERY = gql`
-  query AgentSkills($agentId: UUID!) {
-    agentSkills(agentId: $agentId) {
-      skillName
-    }
-  }
-`;
-
-const AGENT_CHANNEL_BINDINGS_QUERY = gql`
-  query AgentChannelBindings($agentId: UUID!) {
-    agentChannelBindings(agentId: $agentId) {
-      id
-      channelConnectionId
-    }
-  }
-`;
+import { useAgent } from "./useAgents";
 
 const CHANNEL_CONNECTIONS_QUERY = gql`
   query ChannelConnectionsForBindings {
@@ -30,22 +14,15 @@ const CHANNEL_CONNECTIONS_QUERY = gql`
 `;
 
 /**
- * Returns the skill slugs and channel slugs bound to this agent.
- * Resolves channelConnectionId → channelType slug via the connections list.
+ * Reads skill and channel bindings from the agent aggregate.
+ * Only needs one extra query for channel connections (to resolve IDs → slugs).
  */
 export function useAgentBindings(agentId: string): {
   skillSlugs: string[];
   channelSlugs: string[];
   loading: boolean;
 } {
-  const { data: skillsData, loading: skillsLoading } = useQuery(
-    AGENT_SKILLS_QUERY,
-    { variables: { agentId }, skip: USE_MOCKS || !agentId },
-  );
-  const { data: bindingsData, loading: bindingsLoading } = useQuery(
-    AGENT_CHANNEL_BINDINGS_QUERY,
-    { variables: { agentId }, skip: USE_MOCKS || !agentId },
-  );
+  const { agent, loading: agentLoading } = useAgent(agentId);
   const { data: connectionsData, loading: connectionsLoading } = useQuery(
     CHANNEL_CONNECTIONS_QUERY,
     { skip: USE_MOCKS },
@@ -59,19 +36,14 @@ export function useAgentBindings(agentId: string): {
     };
   }
 
-  const skillSlugs: string[] = (skillsData?.agentSkills ?? []).map(
-    (s: { skillName: string }) => s.skillName,
-  );
+  const skillSlugs = (agent?.installedSkills ?? []).map((s) => s.skillName);
 
-  // Resolve connection IDs to channel type slugs
   const connections: Array<{ id: string; channelType: string }> =
     connectionsData?.channelConnections ?? [];
   const connMap = new Map(connections.map((c) => [c.id, c.channelType]));
-  const bindings: Array<{ channelConnectionId: string }> =
-    bindingsData?.agentChannelBindings ?? [];
   const channelSlugs = [
     ...new Set(
-      bindings
+      (agent?.channelBindings ?? [])
         .map((b) => connMap.get(b.channelConnectionId))
         .filter((s): s is string => !!s),
     ),
@@ -80,6 +52,6 @@ export function useAgentBindings(agentId: string): {
   return {
     skillSlugs,
     channelSlugs,
-    loading: skillsLoading || bindingsLoading || connectionsLoading,
+    loading: agentLoading || connectionsLoading,
   };
 }

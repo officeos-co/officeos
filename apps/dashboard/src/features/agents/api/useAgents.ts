@@ -28,6 +28,32 @@ const AGENT_QUERY = gql`
       status
       prompt
       createdAt
+      memories {
+        id
+        key
+        content
+        updatedAt
+      }
+      installedSkills {
+        skillName
+      }
+      channelBindings {
+        id
+        channelConnectionId
+      }
+      personalityFiles {
+        id
+        fileName
+        content
+      }
+      activeSession {
+        id
+        status
+        messageCount
+        lastActivityAt
+        createdAt
+        endedAt
+      }
     }
   }
 `;
@@ -74,6 +100,45 @@ function humanAgo(iso: string | number | null | undefined): string {
   return `${w} week${w === 1 ? "" : "s"} ago`;
 }
 
+/* ── Types ──────────────────────────────────────────────── */
+
+export type AgentMemory = {
+  id: string;
+  key: string;
+  content: string;
+  updatedAt: string;
+};
+
+export type AgentSkillBinding = {
+  skillName: string;
+};
+
+export type AgentChannelBinding = {
+  id: string;
+  channelConnectionId: string;
+};
+
+export type AgentPersonalityFile = {
+  id: string;
+  fileName: string;
+  content: string;
+};
+
+export type AgentFull = AgentDetail & {
+  memories: AgentMemory[];
+  installedSkills: AgentSkillBinding[];
+  channelBindings: AgentChannelBinding[];
+  personalityFiles: AgentPersonalityFile[];
+  activeSession: {
+    id: string;
+    status: string;
+    messageCount: number;
+    lastActivityAt: string;
+    createdAt: string;
+    endedAt: string | null;
+  } | null;
+};
+
 /* ── Hooks ───────────────────────────────────────────────── */
 
 export function useAgents(): {
@@ -103,7 +168,7 @@ export function useAgents(): {
 }
 
 export function useAgent(id: string): {
-  agent: AgentDetail | null;
+  agent: AgentFull | null;
   loading: boolean;
   error?: Error;
 } {
@@ -111,28 +176,23 @@ export function useAgent(id: string): {
     variables: { id },
     skip: USE_MOCKS || !id,
   });
-  if (USE_MOCKS) return { agent: mockAgent, loading: false };
-  const a = data?.agent as
-    | {
-        id: string;
-        name: string;
-        model: string;
-        status: string;
-        prompt: string;
-        createdAt?: string;
-      }
-    | null
-    | undefined;
+  if (USE_MOCKS) return { agent: { ...mockAgent, memories: [], installedSkills: [], channelBindings: [], personalityFiles: [], activeSession: null }, loading: false };
+  const a = data?.agent;
   if (!a) return { agent: null, loading, error: error ?? undefined };
-  const agent: AgentDetail = {
+  const agent: AgentFull = {
     id: a.id,
     name: a.name,
     model: a.model,
     status: (a.status ?? "stopped").toLowerCase(),
     prompt: a.prompt ?? "",
-    integrations: [],
+    integrations: (a.installedSkills ?? []).map((s: AgentSkillBinding) => s.skillName),
     channels: [],
     createdAt: a.createdAt ? Date.parse(a.createdAt) : Date.now(),
+    memories: a.memories ?? [],
+    installedSkills: a.installedSkills ?? [],
+    channelBindings: a.channelBindings ?? [],
+    personalityFiles: a.personalityFiles ?? [],
+    activeSession: a.activeSession ?? null,
   };
   return { agent, loading, error: error ?? undefined };
 }
@@ -192,11 +252,11 @@ export function useCreateAgent() {
                 agents: [
                   ...existing.agents,
                   {
-                    __typename: "Agent",
+                    __typename: "AgentRecord",
                     id: result.createAgent.id,
                     name: result.createAgent.name,
                     model: input.model,
-                    status: "stopped",
+                    status: "pending",
                     createdAt: new Date().toISOString(),
                   },
                 ],
@@ -220,8 +280,6 @@ export function useUpdateAgent() {
         name: string;
         model: string;
         prompt: string;
-        integrations: string[];
-        channels: string[];
       }>,
     ) => {
       if (USE_MOCKS) return { id, name: input.name ?? mockAgent.name };
@@ -229,7 +287,7 @@ export function useUpdateAgent() {
         variables: { id, input },
         optimisticResponse: {
           updateAgent: {
-            __typename: "Agent",
+            __typename: "AgentRecord",
             id,
             name: input.name ?? "",
           },
@@ -257,7 +315,7 @@ export function useDeleteAgent() {
               data: { agents: existing.agents.filter((a) => a.id !== id) },
             });
           }
-          cache.evict({ id: cache.identify({ __typename: "Agent", id }) });
+          cache.evict({ id: cache.identify({ __typename: "AgentRecord", id }) });
           cache.gc();
         },
       });

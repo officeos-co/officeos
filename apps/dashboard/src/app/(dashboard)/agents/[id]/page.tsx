@@ -22,7 +22,7 @@ import { AgentCronTab } from "@/features/agents/components/agent-cron-tab";
 import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
-import { useCreateSession, useActiveSession } from "@/features/agents";
+import { useCreateSession } from "@/features/agents";
 import { SendIcon, PlusIcon } from "lucide-react";
 
 /* ── Tabs (URL-driven) ───────────────────────────────────── */
@@ -105,7 +105,7 @@ export default function AgentDetailPage({
   const [message, setMessage] = useState("");
   const { sendAgentMessage } = useSendAgentMessage();
   const createSession = useCreateSession();
-  const { session: activeSession } = useActiveSession(id);
+  const activeSession = agent?.activeSession ?? null;
   const tab = (searchParams.get("tab") as TabKey) ?? "integrations";
 
   // Sync state from loaded agent

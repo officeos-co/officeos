@@ -16,7 +16,6 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IAgentTemplateService, AgentTemplateService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<IChannelService, Features.Channels.ChannelService>();
-        services.AddScoped<PromptComposer>();
         services.AddScoped<AgentTurnService>();
 
         // Background services

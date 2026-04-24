@@ -11,20 +11,6 @@ export interface AgentSession {
   endedAt: string | null;
 }
 
-const ACTIVE_SESSION_QUERY = gql`
-  query ActiveSession($agentId: UUID!) {
-    activeSession(agentId: $agentId) {
-      id
-      agentId
-      status
-      messageCount
-      lastActivityAt
-      createdAt
-      endedAt
-    }
-  }
-`;
-
 const AGENT_SESSIONS_QUERY = gql`
   query AgentSessions($agentId: UUID!, $limit: Int) {
     agentSessions(agentId: $agentId, limit: $limit) {
@@ -63,17 +49,6 @@ const END_SESSION_MUTATION = gql`
   }
 `;
 
-export function useActiveSession(agentId: string) {
-  if (USE_MOCKS) {
-    return { session: null as AgentSession | null, loading: false };
-  }
-  const { data, loading } = useQuery(ACTIVE_SESSION_QUERY, {
-    variables: { agentId },
-    skip: !agentId,
-  });
-  return { session: data?.activeSession as AgentSession | null, loading };
-}
-
 export function useAgentSessions(agentId: string, limit = 20) {
   if (USE_MOCKS) {
     return { sessions: [] as AgentSession[], loading: false };
@@ -94,7 +69,7 @@ export function useCreateSession() {
   return async (agentId: string) => {
     const { data } = await mutate({
       variables: { agentId },
-      refetchQueries: ["ActiveSession", "AgentSessions"],
+      refetchQueries: ["AgentSessions", "Agent"],
     });
     return data?.createSession as AgentSession;
   };
@@ -106,7 +81,7 @@ export function useEndSession() {
   return async (agentId: string) => {
     const { data } = await mutate({
       variables: { agentId },
-      refetchQueries: ["ActiveSession", "AgentSessions"],
+      refetchQueries: ["AgentSessions", "Agent"],
     });
     return data?.endSession as AgentSession | null;
   };

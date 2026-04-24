@@ -7,11 +7,9 @@ internal sealed class AgentTurnService
 {
     private readonly IAgentRepository _agentRepository;
     private readonly IPublisher _publisher;
-    private readonly PromptComposer _promptComposer;
     private readonly LlmProviderDispatcher _llmProviderDispatcher;
     private readonly IProviderService _providerService;
     private readonly IAgentMemoryRepository _agentMemoryRepository;
-    private readonly IAgentSkillRepository _agentSkillRepository;
     private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ISkillService _skillService;
     private readonly ILogger<AgentTurnService> _logger;
@@ -23,22 +21,18 @@ internal sealed class AgentTurnService
     public AgentTurnService(
         IAgentRepository agents,
         IPublisher publisher,
-        PromptComposer promptComposer,
         LlmProviderDispatcher llm,
         IProviderService providers,
         IAgentMemoryRepository memoryRepo,
-        IAgentSkillRepository agentSkills,
         SkillRuntimeClient skillRuntime,
         ISkillService skillService,
         ILogger<AgentTurnService> logger)
     {
         _agentRepository = agents;
         _publisher = publisher;
-        _promptComposer = promptComposer;
         _llmProviderDispatcher = llm;
         _providerService = providers;
         _agentMemoryRepository = memoryRepo;
-        _agentSkillRepository = agentSkills;
         _skillRuntimeClient = skillRuntime;
         _skillService = skillService;
         _logger = logger;
@@ -62,9 +56,6 @@ internal sealed class AgentTurnService
         }
 
         await _publisher.Publish(new TurnStartedEvent(agentId, correlationId, userMessage), ct);
-
-        var installedSkills = await _agentSkillRepository.ListSkillNamesByAgentAsync(agentId, ct);
-        var skillDetails = await _agentSkillRepository.ListSkillDetailsForAgentAsync(agentId, ct);
 
         using var pod = new PodConnection();
         var podStart = Stopwatch.GetTimestamp();
@@ -90,7 +81,7 @@ internal sealed class AgentTurnService
         await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds), ct);
 
         var registry = ToolRegistry.Create(
-            pod, _agentMemoryRepository, agentId, _skillRuntimeClient, _skillService, skillDetails);
+            pod, _agentMemoryRepository, agentId, _skillRuntimeClient, _skillService, agent.SkillDetails);
 
         var history = new ConversationHistory();
         var loopDetector = new LoopDetector();
@@ -100,10 +91,7 @@ internal sealed class AgentTurnService
 
         for (var i = 0; i < MaxIterations; i++)
         {
-            var promptCtx = await _promptComposer.LoadAsync(agentId, ct);
-            var systemPrompt = SystemPromptComposer.Compose(
-                agent.Name, agent.Prompt, skillDetails,
-                promptCtx.PersonalityFiles, promptCtx.Memories);
+            var systemPrompt = SystemPromptComposer.Compose(agent);
 
             history.PruneToolResults(maxResultChars: 500, keepRecentTurns: KeepRecent);
             history.Prune(MaxTokens, KeepRecent);

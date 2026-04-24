@@ -16,13 +16,36 @@ internal sealed class AgentRepository : IAgentRepository
             .Where(a => !a.IsDeleted)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync(ct);
-        return entities.Select(ToAgentRecord).ToList();
+        return entities.Select(e => ToAgentRecord(e)).ToList();
     }
 
     public async Task<AgentRecord?> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Agents.FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, ct);
-        return entity is null ? null : ToAgentRecord(entity);
+        var entity = await _eaosDbContext.Agents.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, ct);
+        if (entity is null) return null;
+
+        var personalityFiles = await _eaosDbContext.AgentPersonalities.AsNoTracking()
+            .Where(p => p.AgentId == id).ToListAsync(ct);
+        var memories = await _eaosDbContext.AgentMemories.AsNoTracking()
+            .Where(m => m.AgentId == id).ToListAsync(ct);
+        var skills = await _eaosDbContext.AgentSkills.AsNoTracking()
+            .Where(s => s.AgentId == id).ToListAsync(ct);
+        var skillNames = skills.Select(s => s.SkillName).ToList();
+        var skillDetailEntities = skillNames.Count > 0
+            ? await _eaosDbContext.Skills.AsNoTracking()
+                .Where(s => skillNames.Contains(s.Name)).ToListAsync(ct)
+            : [];
+        var session = await _eaosDbContext.AgentSessions.AsNoTracking()
+            .Where(s => s.AgentId == id && s.Status == "active")
+            .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
+
+        return ToAgentRecord(entity,
+            personalityFiles: personalityFiles.Select(ToAgentPersonalityRecord).ToList(),
+            memories: memories.Select(ToAgentMemoryRecord).ToList(),
+            installedSkills: skills.Select(ToAgentSkillRecord).ToList(),
+            skillDetails: skillDetailEntities.Select(AgentSkillRepository.ToSkillRecord).ToList(),
+            activeSession: session is null ? null : ToAgentSessionRecord(session));
     }
 
     public async Task AddAsync(AgentRecord record, CancellationToken ct = default)
@@ -63,7 +86,7 @@ internal sealed class AgentRepository : IAgentRepository
         var q = _eaosDbContext.Agents.AsNoTracking().Where(a => a.OwnerId == ownerId);
         if (!includeDeleted) q = q.Where(a => !a.IsDeleted);
         var entities = await q.OrderByDescending(a => a.CreatedAt).ToListAsync(ct);
-        return entities.Select(ToAgentRecord).ToList();
+        return entities.Select(e => ToAgentRecord(e)).ToList();
     }
 
     public async Task HardDeleteByOwnerAsync(Guid ownerId, CancellationToken ct = default)
@@ -71,7 +94,42 @@ internal sealed class AgentRepository : IAgentRepository
         await _eaosDbContext.Agents.Where(a => a.OwnerId == ownerId).ExecuteDeleteAsync(ct);
     }
 
-    internal static AgentRecord ToAgentRecord(AgentEntity e) => new()
+    // ── Mapping: child records ──────────────────────────────────────
+
+    private static AgentPersonalityRecord ToAgentPersonalityRecord(AgentPersonalityEntity e) => new()
+    {
+        Id = e.Id, AgentId = e.AgentId, FileName = e.FileName, Content = e.Content,
+        CreatedAt = e.CreatedAt, UpdatedAt = e.UpdatedAt,
+    };
+
+    private static AgentMemoryRecord ToAgentMemoryRecord(AgentMemoryEntity e) => new()
+    {
+        Id = e.Id, AgentId = e.AgentId, Key = e.Key, Content = e.Content,
+        CreatedAt = e.CreatedAt, UpdatedAt = e.UpdatedAt,
+    };
+
+    private static AgentSkillRecord ToAgentSkillRecord(AgentSkillEntity e) => new()
+    {
+        Id = e.Id, AgentId = e.AgentId, SkillName = e.SkillName, EnabledAt = e.EnabledAt,
+    };
+
+    private static AgentSessionRecord ToAgentSessionRecord(AgentSessionEntity e) => new()
+    {
+        Id = e.Id, AgentId = e.AgentId, Status = e.Status, MessageCount = e.MessageCount,
+        LastActivityAt = e.LastActivityAt, CreatedAt = e.CreatedAt, EndedAt = e.EndedAt,
+    };
+
+    // ── Mapping: agent ──────────────────────────────────────────────
+
+    internal static AgentRecord ToAgentRecord(
+        AgentEntity e,
+        IReadOnlyList<AgentPersonalityRecord>? personalityFiles = null,
+        IReadOnlyList<AgentMemoryRecord>? memories = null,
+        IReadOnlyList<AgentSkillRecord>? installedSkills = null,
+        IReadOnlyList<SkillRecord>? skillDetails = null,
+        IReadOnlyList<AgentCronJobRecord>? cronJobs = null,
+        IReadOnlyList<AgentChannelBindingRecord>? channelBindings = null,
+        AgentSessionRecord? activeSession = null) => new()
     {
         Id = e.Id,
         Name = e.Name,
@@ -85,6 +143,13 @@ internal sealed class AgentRepository : IAgentRepository
         IsDeleted = e.IsDeleted,
         OwnerId = e.OwnerId,
         EncryptedBackendToken = e.EncryptedBackendToken,
+        PersonalityFiles = personalityFiles ?? [],
+        Memories = memories ?? [],
+        InstalledSkills = installedSkills ?? [],
+        SkillDetails = skillDetails ?? [],
+        CronJobs = cronJobs ?? [],
+        ChannelBindings = channelBindings ?? [],
+        ActiveSession = activeSession,
     };
 
     private static AgentEntity ToAgentEntity(AgentRecord r) => new()
