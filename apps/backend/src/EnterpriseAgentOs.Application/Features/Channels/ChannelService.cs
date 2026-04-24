@@ -73,7 +73,7 @@ internal sealed class ChannelService : IChannelService
 
             try
             {
-                await _gateway.SendAsync(binding.ChannelConnectionId, text, ct);
+                await _gateway.SendAsync(binding.ChannelConnectionId, text, ct: ct);
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
                     agentId, AgentLogType.ChannelOut, channelType, text, correlationId), ct);
@@ -99,7 +99,7 @@ internal sealed class ChannelService : IChannelService
 
         try
         {
-            await _gateway.SendAsync(connectionId, message, ct);
+            await _gateway.SendAsync(connectionId, message, ct: ct);
         }
         catch (Exception ex)
         {

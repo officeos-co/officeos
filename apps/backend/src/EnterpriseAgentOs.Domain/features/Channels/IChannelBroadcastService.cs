@@ -5,7 +5,7 @@ namespace EnterpriseAgentOs.Domain.Features.Channels;
 /// </summary>
 public interface IChannelGateway
 {
-    Task SendAsync(Guid connectionId, string text, CancellationToken ct = default);
+    Task SendAsync(Guid connectionId, string text, string? platformId = null, string? threadId = null, CancellationToken ct = default);
     Task StartConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default);
     Task StopConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default);
     Task SaveCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);

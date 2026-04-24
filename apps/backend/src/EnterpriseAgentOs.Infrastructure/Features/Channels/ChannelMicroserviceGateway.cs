@@ -15,9 +15,9 @@ public sealed class ChannelMicroserviceGateway : IChannelGateway
         _logger = logger;
     }
 
-    public async Task SendAsync(Guid connectionId, string text, CancellationToken ct = default)
+    public async Task SendAsync(Guid connectionId, string text, string? platformId = null, string? threadId = null, CancellationToken ct = default)
     {
-        var payload = new { connectionId, text };
+        var payload = new { connectionId, text, platformId, threadId };
         var response = await _http.PostAsJsonAsync("/api/send", payload, ct);
         response.EnsureSuccessStatusCode();
     }
