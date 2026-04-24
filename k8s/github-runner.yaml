@@ -55,7 +55,7 @@ spec:
             - name: RUNNER_SCOPE
               value: "repo"
             - name: REPO_URL
-              value: "https://github.com/HarKro753/routing-engine"
+              value: "https://github.com/HarKro753/EnterpriseAgentOs"
             - name: LABELS
               value: "self-hosted,linux,x64"
             - name: RUNNER_NAME_PREFIX
