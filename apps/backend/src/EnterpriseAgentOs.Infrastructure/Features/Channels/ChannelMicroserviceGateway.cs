@@ -1,44 +1,37 @@
 namespace EnterpriseAgentOs.Infrastructure.Features.Channels;
 
 /// <summary>
-/// HTTP proxy to the channels microservice (apps/channels).
-/// Replaces the old per-platform adapter registry with a single HTTP client.
+/// HTTP proxy to the channel sidecar (same K8s pod, localhost:3100).
 /// </summary>
-public sealed class ChannelMicroserviceGateway : IChannelGateway
+public sealed class ChannelSidecarGateway : IChannelGateway
 {
     private readonly HttpClient _http;
-    private readonly ILogger<ChannelMicroserviceGateway> _logger;
+    private readonly ILogger<ChannelSidecarGateway> _logger;
 
-    public ChannelMicroserviceGateway(IHttpClientFactory httpClientFactory, ILogger<ChannelMicroserviceGateway> logger)
+    public ChannelSidecarGateway(IHttpClientFactory httpClientFactory, ILogger<ChannelSidecarGateway> logger)
     {
-        _http = httpClientFactory.CreateClient("channel-microservice");
+        _http = httpClientFactory.CreateClient("channel-sidecar");
         _logger = logger;
     }
 
-    public async Task SendAsync(Guid connectionId, string text, string? platformId = null, string? threadId = null, CancellationToken ct = default)
+    public async Task SendAsync(string channelType, string platformId, string? threadId,
+                                object message, CancellationToken ct = default)
     {
-        var payload = new { connectionId, text, platformId, threadId };
-        var response = await _http.PostAsJsonAsync("/api/send", payload, ct);
+        var payload = new { channelType, platformId, threadId, message };
+        var response = await _http.PostAsJsonAsync("/send", payload, ct);
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task StartConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default)
+    public async Task ReloadAsync(CancellationToken ct = default)
     {
-        var payload = new { connectionId, channelType };
-        var response = await _http.PostAsJsonAsync("/api/connections/start", payload, ct);
-        response.EnsureSuccessStatusCode();
-    }
-
-    public async Task StopConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default)
-    {
-        var response = await _http.DeleteAsync($"/api/connections/{connectionId}", ct);
-        response.EnsureSuccessStatusCode();
-    }
-
-    public async Task SaveCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
-    {
-        var payload = new { connectionId, credsJson };
-        var response = await _http.PostAsJsonAsync($"/api/connections/{connectionId}/creds", payload, ct);
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            var response = await _http.PostAsync("/reload", null, ct);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Channel sidecar reload failed — sidecar may not be running");
+        }
     }
 }

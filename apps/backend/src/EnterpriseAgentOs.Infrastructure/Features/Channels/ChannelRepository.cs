@@ -140,6 +140,7 @@ internal sealed class ChannelRepository : IChannelRepository
         Enabled = e.Enabled,
         CreatedAt = e.CreatedAt,
         CreatedById = e.CreatedById,
+        EncryptedCreds = e.EncryptedCreds,
     };
 
     private static ChannelConnectionEntity ToChannelConnectionEntity(ChannelConnectionRecord r) => new()
@@ -150,6 +151,7 @@ internal sealed class ChannelRepository : IChannelRepository
         Enabled = r.Enabled,
         CreatedAt = r.CreatedAt,
         CreatedById = r.CreatedById,
+        EncryptedCreds = r.EncryptedCreds,
     };
 
     private static void MapToChannelConnectionEntity(ChannelConnectionRecord r, ChannelConnectionEntity e)
@@ -158,6 +160,7 @@ internal sealed class ChannelRepository : IChannelRepository
         e.DisplayName = r.DisplayName;
         e.Enabled = r.Enabled;
         e.CreatedById = r.CreatedById;
+        e.EncryptedCreds = r.EncryptedCreds;
     }
 
     private static AgentChannelBindingRecord ToAgentChannelBindingRecord(AgentChannelBindingEntity e) => new()

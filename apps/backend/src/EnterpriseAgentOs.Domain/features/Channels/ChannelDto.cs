@@ -50,19 +50,12 @@ public sealed record UpdateAgentChannelBindingRequest(
     AgentChannelConfig? Config);
 
 /// <summary>
-/// Agent-specific channel configuration. All fields are optional and
-/// default to sensible values in the message router.
+/// Agent-specific channel configuration.
 /// </summary>
 public sealed record AgentChannelConfig
 {
-    public string DmPolicy { get; init; } = "open";
-    public string GroupPolicy { get; init; } = "mention";
-    public string[]? AllowedUsers { get; init; }
-    public string[]? AllowedGroups { get; init; }
-    public bool RequireMention { get; init; } = true;
-    public string[]? MentionPatterns { get; init; }
-    public int HistoryLimit { get; init; } = 10;
-    public string StreamingMode { get; init; } = "off";
+    public string? PlatformId { get; init; }
+    public string? ThreadId { get; init; }
 }
 
 /// <summary>

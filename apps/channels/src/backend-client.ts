@@ -1,6 +1,28 @@
 import { BACKEND_URL } from './config.js';
 import { log } from './log.js';
 
+export interface ActiveConnection {
+  connectionId: string;
+  channelType: string;
+  creds: Record<string, string>;
+}
+
+export async function fetchActiveConnections(): Promise<ActiveConnection[]> {
+  const url = `${BACKEND_URL}/api/channels/active`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      log.error('Failed to fetch active connections', { status: res.status });
+      return [];
+    }
+    return await res.json() as ActiveConnection[];
+  } catch (err) {
+    log.error('Failed to fetch active connections', { err });
+    return [];
+  }
+}
+
+// Keep existing forwardInbound function but simplify the interface
 interface InboundPayload {
   connectionId: string;
   senderIdentifier: string;

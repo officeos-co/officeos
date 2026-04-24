@@ -1,46 +1,41 @@
-import { mkdirSync } from 'fs';
-import { join } from 'path';
 import express from 'express';
-import { PORT, BACKEND_URL, DATA_DIR } from './config.js';
-import { initDb } from './db/connection.js';
-import { listActive } from './db/connection-store.js';
-import { activateAll, activeConnectionCount } from './connection-manager.js';
+import { PORT, BACKEND_URL } from './config.js';
+import { reloadFromBackend, activeAdapterCount, shutdownAll } from './connection-manager.js';
 import { log } from './log.js';
 import sendRoutes from './routes/send.js';
-import connectionRoutes from './routes/connections.js';
+import reloadRoutes from './routes/reload.js';
 import webhookRoutes from './routes/webhooks.js';
 
+// Import channel adapter registrations
+import './channels/index.js';
+
 async function main() {
-  mkdirSync(DATA_DIR, { recursive: true });
-  const dbPath = join(DATA_DIR, 'channels.db');
-  initDb(dbPath);
-  log.info('Database initialized', { dbPath });
-
-  const activeRows = listActive() as Array<{ id: string; channel_type: string; creds_json: string }>;
-  await activateAll(activeRows);
-  log.info('Connections restored', { count: activeRows.length });
-
   const app = express();
   app.use(express.json());
 
   app.use(sendRoutes);
-  app.use(connectionRoutes);
+  app.use(reloadRoutes);
   app.use(webhookRoutes);
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', activeConnections: activeConnectionCount() });
+    res.json({ status: 'ok', activeAdapters: activeAdapterCount() });
   });
+
+  // Load active connections from backend on startup
+  log.info('Loading channel configuration from backend...', { backendUrl: BACKEND_URL });
+  await reloadFromBackend();
 
   const server = app.listen(PORT, () => {
-    log.info('Channel service started', { port: PORT, backendUrl: BACKEND_URL });
+    log.info('Channel sidecar started', { port: PORT, backendUrl: BACKEND_URL, adapters: activeAdapterCount() });
   });
 
-  const shutdown = () => {
+  const shutdown = async () => {
     log.info('Shutting down...');
+    await shutdownAll();
     server.close(() => process.exit(0));
   };
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', () => shutdown());
+  process.on('SIGINT', () => shutdown());
 }
 
 main().catch((err) => {

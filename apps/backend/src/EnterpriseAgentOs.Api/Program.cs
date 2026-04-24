@@ -195,6 +195,7 @@ app.UseWebSockets();
 
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapPost("/api/channels/inbound", ChannelInboundEndpoint.Handle);
+app.MapGet("/api/channels/active", ChannelActiveEndpoint.Handle);
 
 app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")

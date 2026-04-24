@@ -31,17 +31,8 @@ public sealed record UpdateChannelConnectionInput(
     bool? Enabled);
 
 public sealed record ChannelBindingConfigInput(
-    ChannelPermission Receive,
-    ChannelPermission Send,
-    ChannelPermission Initiate,
-    string? DmPolicy,
-    string? GroupPolicy,
-    List<string>? AllowedUsers,
-    List<string>? AllowedGroups,
-    bool? RequireMention,
-    List<string>? MentionPatterns,
-    int? HistoryLimit,
-    string? StreamingMode);
+    string? PlatformId,
+    string? ThreadId);
 
 internal static class ChannelGraphQLMapper
 {
@@ -82,17 +73,8 @@ internal static class ChannelGraphQLMapper
     {
         var cfg = new ChannelBindingConfig
         {
-            Receive = input.Receive,
-            Send = input.Send,
-            Initiate = input.Initiate,
-            DmPolicy = input.DmPolicy,
-            GroupPolicy = input.GroupPolicy,
-            AllowedUsers = input.AllowedUsers,
-            AllowedGroups = input.AllowedGroups,
-            RequireMention = input.RequireMention,
-            MentionPatterns = input.MentionPatterns,
-            HistoryLimit = input.HistoryLimit,
-            StreamingMode = input.StreamingMode,
+            PlatformId = input.PlatformId,
+            ThreadId = input.ThreadId,
         };
         return JsonSerializer.Serialize(cfg);
     }

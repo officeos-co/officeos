@@ -1,29 +1,31 @@
 import { Router } from 'express';
-import { getActiveConnection } from '../connection-manager.js';
+import { getAdapter } from '../connection-manager.js';
+import { log } from '../log.js';
 
 const router = Router();
 
-router.post('/api/send', async (req, res) => {
-  const { connectionId, text, platformId, threadId } = req.body;
+router.post('/send', async (req, res) => {
+  const { channelType, platformId, threadId, message } = req.body;
 
-  if (!connectionId || !text || !platformId) {
-    res.status(400).json({ error: 'connectionId, text, and platformId are required' });
+  if (!channelType || !platformId || !message) {
+    res.status(400).json({ error: 'channelType, platformId, and message are required' });
     return;
   }
 
-  const conn = getActiveConnection(connectionId);
-  if (!conn) {
-    res.status(404).json({ error: 'Connection not found or not active' });
+  const adapter = getAdapter(channelType);
+  if (!adapter) {
+    res.status(404).json({ error: `No active adapter for channel type: ${channelType}` });
     return;
   }
 
   try {
-    const messageId = await conn.adapter.deliver(platformId, threadId ?? null, {
-      kind: 'chat',
-      content: text,
+    const messageId = await adapter.deliver(platformId, threadId ?? null, {
+      kind: message.kind || 'chat',
+      content: message.content ?? message,
     });
     res.json({ ok: true, messageId });
   } catch (err) {
+    log.error('Send failed', { channelType, platformId, err });
     res.status(502).json({ error: 'Delivery failed', detail: String(err) });
   }
 });

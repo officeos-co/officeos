@@ -1,27 +1,26 @@
+using System.Text.Json;
 using MediatR;
 
 namespace EnterpriseAgentOs.Application.Features.Channels;
 
-/// <summary>
-/// Thin orchestration layer. Backend owns connection metadata + bindings in its DB.
-/// All platform-specific work (creds, send, webhooks) is delegated to the channel
-/// microservice via IChannelGateway.
-/// </summary>
 internal sealed class ChannelService : IChannelService
 {
     private readonly IChannelRepository _repo;
     private readonly IChannelGateway _gateway;
+    private readonly ChannelCredentialProtector _protector;
     private readonly IPublisher _publisher;
     private readonly ILogger<ChannelService> _logger;
 
     public ChannelService(
         IChannelRepository repo,
         IChannelGateway gateway,
+        ChannelCredentialProtector protector,
         IPublisher publisher,
         ILogger<ChannelService> logger)
     {
         _repo = repo;
         _gateway = gateway;
+        _protector = protector;
         _publisher = publisher;
         _logger = logger;
     }
@@ -31,15 +30,12 @@ internal sealed class ChannelService : IChannelService
         Guid createdById, CancellationToken ct = default)
     {
         var record = ChannelConnectionRecord.Create(channelType, displayName, createdById);
-        var created = await _repo.CreateConnectionAsync(record, ct);
 
-        // Tell microservice to set up the platform connection
-        await _gateway.StartConnectionAsync(created.Id, created.ChannelType, ct);
-
-        // If config was provided (API tokens etc.), forward to microservice
         if (!string.IsNullOrWhiteSpace(configJson))
-            await _gateway.SaveCredsAsync(created.Id, configJson, ct);
+            record.EncryptedCreds = _protector.Protect(configJson);
 
+        var created = await _repo.CreateConnectionAsync(record, ct);
+        await _gateway.ReloadAsync(ct);
         return created;
     }
 
@@ -47,16 +43,20 @@ internal sealed class ChannelService : IChannelService
         Guid id, string? displayName, bool? enabled, CancellationToken ct = default)
     {
         var updated = await _repo.UpdateConnectionAsync(id, row => row.ApplyUpdate(displayName, enabled), ct);
-        return updated ?? throw new InvalidOperationException($"Channel connection '{id}' not found.");
+        if (updated is null) throw new InvalidOperationException($"Channel connection '{id}' not found.");
+
+        if (enabled.HasValue)
+            await _gateway.ReloadAsync(ct);
+
+        return updated;
     }
 
     public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
     {
-        var existing = await _repo.GetConnectionAsync(id, ct);
-        if (existing is not null)
-            await _gateway.StopConnectionAsync(id, existing.ChannelType, ct);
-
-        return await _repo.DeleteConnectionAsync(id, ct);
+        var deleted = await _repo.DeleteConnectionAsync(id, ct);
+        if (deleted)
+            await _gateway.ReloadAsync(ct);
+        return deleted;
     }
 
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
@@ -71,9 +71,26 @@ internal sealed class ChannelService : IChannelService
             var channelType = binding.ChannelConnection.ChannelType;
             var correlationId = Guid.NewGuid().ToString("N");
 
+            ChannelBindingConfig? config = null;
+            if (!string.IsNullOrEmpty(binding.Config))
+            {
+                try { config = JsonSerializer.Deserialize<ChannelBindingConfig>(binding.Config); }
+                catch { /* ignore malformed config */ }
+            }
+
+            var platformId = config?.PlatformId;
+            var threadId = config?.ThreadId;
+
+            if (string.IsNullOrEmpty(platformId))
+            {
+                _logger.LogWarning("Binding {BindingId} has no PlatformId configured, skipping", binding.Id);
+                continue;
+            }
+
             try
             {
-                await _gateway.SendAsync(binding.ChannelConnectionId, text, ct: ct);
+                await _gateway.SendAsync(channelType, platformId, threadId,
+                    new { kind = "text", content = text }, ct);
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
                     agentId, AgentLogType.ChannelOut, channelType, text, correlationId), ct);
@@ -94,12 +111,13 @@ internal sealed class ChannelService : IChannelService
         var connection = await _repo.GetConnectionAsync(connectionId, ct);
         if (connection is null) return;
 
-        var message = $"✅ {connection.DisplayName} connected successfully!\n\n"
-                    + "This channel is now active and ready to receive messages from your agents.";
+        var message = $"✅ {connection.DisplayName} connected successfully!";
 
         try
         {
-            await _gateway.SendAsync(connectionId, message, ct: ct);
+            // Test message — no specific platformId, sidecar adapter handles default delivery
+            await _gateway.SendAsync(connection.ChannelType, "default", null,
+                new { kind = "text", content = message }, ct);
         }
         catch (Exception ex)
         {
@@ -109,9 +127,12 @@ internal sealed class ChannelService : IChannelService
 
     public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
-        // Forward creds to microservice — it owns all platform secrets
-        await _gateway.SaveCredsAsync(connectionId, credsJson, ct);
+        await _repo.UpdateConnectionAsync(connectionId, record =>
+        {
+            record.EncryptedCreds = _protector.Protect(credsJson);
+        }, ct);
 
+        await _gateway.ReloadAsync(ct);
         await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
     }
 }

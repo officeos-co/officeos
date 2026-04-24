@@ -32,20 +32,21 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
 
         // Adapters
-        services.AddScoped<IChannelGateway, ChannelMicroserviceGateway>();
+        services.AddScoped<IChannelGateway, ChannelSidecarGateway>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 
         // Protectors
         services.AddSingleton<ProviderKeyProtector>();
         services.AddSingleton<SkillCredentialProtector>();
+        services.AddSingleton<ChannelCredentialProtector>();
 
         // HTTP clients
         services.AddHttpClient<SkillRuntimeClient>();
         services.AddHttpClient<IPostHogService, PostHogService>();
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
-        services.AddHttpClient("channel-microservice", client =>
+        services.AddHttpClient("channel-sidecar", client =>
         {
             client.BaseAddress = new Uri(
                 Environment.GetEnvironmentVariable("CHANNEL_SERVICE_URL") ?? "http://localhost:3100");

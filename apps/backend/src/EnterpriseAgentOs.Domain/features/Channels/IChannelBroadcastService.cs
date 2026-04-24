@@ -1,19 +1,18 @@
 namespace EnterpriseAgentOs.Domain.Features.Channels;
 
 /// <summary>
-/// Proxy to the channel microservice. All platform logic lives there.
+/// Proxy to the channel sidecar. Runs in the same K8s pod on localhost.
 /// </summary>
 public interface IChannelGateway
 {
-    Task SendAsync(Guid connectionId, string text, string? platformId = null, string? threadId = null, CancellationToken ct = default);
-    Task StartConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default);
-    Task StopConnectionAsync(Guid connectionId, string channelType, CancellationToken ct = default);
-    Task SaveCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
+    Task SendAsync(string channelType, string platformId, string? threadId,
+                   object message, CancellationToken ct = default);
+    Task ReloadAsync(CancellationToken ct = default);
 }
 
 /// <summary>
 /// Application-level channel orchestration. Backend owns bindings + metadata,
-/// delegates all platform work to the channel microservice via IChannelGateway.
+/// delegates platform delivery to the channel sidecar via IChannelGateway.
 /// </summary>
 public interface IChannelService
 {
