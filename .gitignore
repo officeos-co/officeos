@@ -80,5 +80,4 @@ web/dist/*
 .wrangler/
 
 
-apps/channels
 apps/agent
