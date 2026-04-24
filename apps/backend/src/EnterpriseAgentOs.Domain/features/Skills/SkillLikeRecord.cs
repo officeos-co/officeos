@@ -8,11 +8,11 @@ public sealed class SkillLikeRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
-    public Guid SkillId { get; set; }
-    public SkillRecord? Skill { get; set; }
+    public Guid SkillId { get; init; }
+    public SkillRecord? Skill { get; init; }
 
-    public Guid UserId { get; set; }
-    public UserRecord? User { get; set; }
+    public Guid UserId { get; init; }
+    public UserRecord? User { get; init; }
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

@@ -11,7 +11,7 @@ public sealed class SkillCredentialRecord
     public Guid Id { get; init; } = Guid.NewGuid();
 
     [Required]
-    public string SkillName { get; set; } = string.Empty;
+    public string SkillName { get; init; } = string.Empty;
 
     public bool Enabled { get; set; }
 

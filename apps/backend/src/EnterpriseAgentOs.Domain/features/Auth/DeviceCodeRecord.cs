@@ -5,10 +5,10 @@ public sealed class DeviceCodeRecord
     public Guid Id { get; init; } = Guid.NewGuid();
 
     [Required, MaxLength(64)]
-    public string DeviceCode { get; set; } = string.Empty;
+    public string DeviceCode { get; init; } = string.Empty;
 
     [Required, MaxLength(16)]
-    public string UserCode { get; set; } = string.Empty;
+    public string UserCode { get; init; } = string.Empty;
 
     public Guid? UserId { get; set; }
 
@@ -18,7 +18,7 @@ public sealed class DeviceCodeRecord
     [MaxLength(200)]
     public string? RunnerName { get; set; }
 
-    public DateTime ExpiresAt { get; set; }
+    public DateTime ExpiresAt { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime? LastPolledAt { get; set; }
 

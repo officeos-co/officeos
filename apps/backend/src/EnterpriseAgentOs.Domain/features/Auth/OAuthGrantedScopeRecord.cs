@@ -13,5 +13,5 @@ public sealed class OAuthGrantedScopeRecord
 
     /// <summary>Full scope URI, e.g. "https://www.googleapis.com/auth/gmail.modify".</summary>
     [Required, MaxLength(512)]
-    public string Scope { get; set; } = string.Empty;
+    public string Scope { get; init; } = string.Empty;
 }

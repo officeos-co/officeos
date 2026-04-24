@@ -9,12 +9,12 @@ public sealed class AgentChannelBindingRecord
     public Guid Id { get; init; } = Guid.NewGuid();
 
     /// <summary>FK to AgentRecord.</summary>
-    public Guid AgentId { get; set; }
-    public AgentRecord? Agent { get; set; }
+    public Guid AgentId { get; init; }
+    public AgentRecord? Agent { get; init; }
 
     /// <summary>FK to ChannelConnectionRecord.</summary>
-    public Guid ChannelConnectionId { get; set; }
-    public ChannelConnectionRecord? ChannelConnection { get; set; }
+    public Guid ChannelConnectionId { get; init; }
+    public ChannelConnectionRecord? ChannelConnection { get; init; }
 
     public bool Enabled { get; set; } = true;
 

@@ -2,10 +2,10 @@ namespace EnterpriseAgentOs.Domain.Features.Billing;
 
 public sealed class UserSubscription
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Id { get; init; } = Guid.NewGuid();
 
     /// <summary>FK → UserRecord.Id</summary>
-    public Guid UserId { get; set; }
+    public Guid UserId { get; init; }
 
     /// <summary>"free" or "pro"</summary>
     public string Plan { get; set; } = "free";

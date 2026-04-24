@@ -2,8 +2,8 @@ namespace EnterpriseAgentOs.Domain.Features.Billing;
 
 public sealed class OrgSubscription
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string OrganizationId { get; set; } = string.Empty;
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public string OrganizationId { get; init; } = string.Empty;
 
     /// <summary>"free", "team", or "enterprise"</summary>
     public string Plan { get; set; } = "free";

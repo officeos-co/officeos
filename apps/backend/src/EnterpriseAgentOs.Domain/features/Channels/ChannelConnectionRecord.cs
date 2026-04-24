@@ -10,7 +10,7 @@ public sealed class ChannelConnectionRecord
     public Guid Id { get; init; } = Guid.NewGuid();
 
     [Required, MaxLength(32)]
-    public string ChannelType { get; set; } = string.Empty;
+    public string ChannelType { get; init; } = string.Empty;
 
     [Required, MaxLength(200)]
     public string DisplayName { get; set; } = string.Empty;
@@ -20,8 +20,8 @@ public sealed class ChannelConnectionRecord
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>FK to UserRecord — the admin who created this connection.</summary>
-    public Guid? CreatedById { get; set; }
-    public UserRecord? CreatedBy { get; set; }
+    public Guid? CreatedById { get; init; }
+    public UserRecord? CreatedBy { get; init; }
 
     // ── Domain logic ─────────────────────────────────────────────────
 

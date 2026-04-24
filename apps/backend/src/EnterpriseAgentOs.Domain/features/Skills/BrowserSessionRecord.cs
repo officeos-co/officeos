@@ -4,7 +4,7 @@ public sealed class BrowserSessionRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
-    public Guid AgentId { get; set; }
+    public Guid AgentId { get; init; }
 
     [Required]
     public string RuntimeSessionId { get; set; } = string.Empty;

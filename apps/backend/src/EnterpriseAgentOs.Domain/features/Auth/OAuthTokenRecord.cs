@@ -11,7 +11,7 @@ public sealed class OAuthTokenRecord
 
     /// <summary>OAuth2 provider identifier (e.g. "google", "microsoft", "github").</summary>
     [Required, MaxLength(32)]
-    public string Provider { get; set; } = string.Empty;
+    public string Provider { get; init; } = string.Empty;
 
     /// <summary>Encrypted access token.</summary>
     public string? EncryptedAccessToken { get; set; }

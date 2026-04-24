@@ -4,10 +4,10 @@ public sealed class AgentSkillRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
-    public Guid AgentId { get; set; }
+    public Guid AgentId { get; init; }
 
     [Required]
-    public string SkillName { get; set; } = string.Empty;
+    public string SkillName { get; init; }
 
-    public DateTimeOffset EnabledAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset EnabledAt { get; init; } = DateTimeOffset.UtcNow;
 }

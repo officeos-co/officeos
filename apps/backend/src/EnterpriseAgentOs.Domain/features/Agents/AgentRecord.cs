@@ -5,9 +5,9 @@ public sealed class AgentRecord
     public Guid Id { get; init; } = Guid.NewGuid();
 
     [Required]
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; }
 
-    public string Provider { get; set; } = string.Empty;
+    public string Provider { get; set; }
 
     public string? Model { get; set; }
 
@@ -28,7 +28,7 @@ public sealed class AgentRecord
     public bool IsDeleted { get; set; }
 
     /// <summary>FK → UserRecord.Id. Set at creation time from the authenticated user.</summary>
-    public Guid? OwnerId { get; set; }
+    public Guid? OwnerId { get; init; }
 
     /// <summary>
     /// Bearer token the agent pod presents back to this backend on

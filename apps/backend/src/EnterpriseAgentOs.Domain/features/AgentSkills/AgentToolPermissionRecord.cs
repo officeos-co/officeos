@@ -16,14 +16,14 @@ public sealed class AgentToolPermissionRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
-    public Guid AgentId { get; set; }
-    public AgentRecord? Agent { get; set; }
+    public Guid AgentId { get; init; }
+    public AgentRecord? Agent { get; init; }
 
     [Required, MaxLength(64)]
-    public string SkillName { get; set; } = string.Empty;
+    public string SkillName { get; init; }
 
     [Required, MaxLength(64)]
-    public string ToolName { get; set; } = string.Empty;
+    public string ToolName { get; init; }
 
     public ToolPermission Permission { get; set; } = ToolPermission.Allow;
 
