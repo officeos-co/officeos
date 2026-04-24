@@ -1,0 +1,2 @@
+- nicht alles in einer Entity file als Entities.cs osneern auf splitten eine datei pro entity mit selbene namen
+- statt map to entity auch namen ddees entitys nutzen in repository

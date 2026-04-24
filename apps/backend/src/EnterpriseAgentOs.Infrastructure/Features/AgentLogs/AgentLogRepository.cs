@@ -10,7 +10,8 @@ internal sealed class AgentLogRepository : IAgentLogRepository
     {
         var q = _eaosDbContext.AgentLogs.Where(l => l.AgentId == agentId);
         if (before.HasValue) q = q.Where(l => l.Time < before.Value);
-        return await q.OrderByDescending(l => l.Time).Take(limit).ToListAsync(ct);
+        var entities = await q.OrderByDescending(l => l.Time).Take(limit).ToListAsync(ct);
+        return entities.Select(ToAgentLogRecord).ToList();
     }
 
     public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
@@ -38,25 +39,28 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
         var total = await q.CountAsync(ct);
         var rows = await q.OrderByDescending(x => x.Log.Time).Skip(skip).Take(limit).ToListAsync(ct);
-        return (rows.Select(x => new GlobalLogRow(x.Log, x.AgentName)).ToList(), total);
+        return (rows.Select(x => new GlobalLogRow(ToAgentLogRecord(x.Log), x.AgentName)).ToList(), total);
     }
 
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentLogs.Add(record);
+        _eaosDbContext.AgentLogs.Add(ToAgentLogEntity(record));
         await _eaosDbContext.SaveChangesAsync(ct);
         return record;
     }
 
     public async Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentLogs.Add(toolCall);
-        _eaosDbContext.AgentLogs.Add(toolResult);
+        _eaosDbContext.AgentLogs.Add(ToAgentLogEntity(toolCall));
+        _eaosDbContext.AgentLogs.Add(ToAgentLogEntity(toolResult));
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _eaosDbContext.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
+    public async Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var entity = await _eaosDbContext.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
+        return entity is null ? null : ToAgentLogRecord(entity);
+    }
 
     public async Task<(List<AgentLogRecord> Items, int Total)> GetToolCallsAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
@@ -66,8 +70,8 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             .OrderByDescending(r => r.Time);
 
         var total = await query.CountAsync(ct);
-        var items = await query.Skip(offset).Take(limit).ToListAsync(ct);
-        return (items, total);
+        var entities = await query.Skip(offset).Take(limit).ToListAsync(ct);
+        return (entities.Select(ToAgentLogRecord).ToList(), total);
     }
 
     public async Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(
@@ -76,14 +80,15 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         if (correlationIds.Count == 0)
             return new Dictionary<string, AgentLogRecord>();
 
-        var rows = await _eaosDbContext.AgentLogs
+        var entities = await _eaosDbContext.AgentLogs
             .Where(r => r.AgentId == agentId
                         && r.Type == AgentLogType.ToolResult
                         && r.CorrelationId != null
                         && correlationIds.Contains(r.CorrelationId))
             .ToListAsync(ct);
 
-        return rows
+        return entities
+            .Select(ToAgentLogRecord)
             .Where(r => r.CorrelationId is not null)
             .GroupBy(r => r.CorrelationId!)
             .ToDictionary(g => g.Key, g => g.First());
@@ -100,6 +105,40 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         if (agentIds.Count == 0) return new List<AgentLogRecord>();
         var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => agentIds.Contains(l.AgentId));
         if (types is { Count: > 0 }) q = q.Where(l => types.Contains(l.Type));
-        return await q.ToListAsync(ct);
+        var entities = await q.ToListAsync(ct);
+        return entities.Select(ToAgentLogRecord).ToList();
     }
+
+    private static AgentLogRecord ToAgentLogRecord(AgentLogEntity e) => new()
+    {
+        Id = e.Id,
+        AgentId = e.AgentId,
+        Time = e.Time,
+        Type = e.Type,
+        Tool = e.Tool,
+        Integration = e.Integration,
+        Channel = e.Channel,
+        Content = e.Content,
+        DurationMs = e.DurationMs,
+        InputTokens = e.InputTokens,
+        OutputTokens = e.OutputTokens,
+        CorrelationId = e.CorrelationId,
+        Agent = null,
+    };
+
+    private static AgentLogEntity ToAgentLogEntity(AgentLogRecord r) => new()
+    {
+        Id = r.Id,
+        AgentId = r.AgentId,
+        Time = r.Time,
+        Type = r.Type,
+        Tool = r.Tool,
+        Integration = r.Integration,
+        Channel = r.Channel,
+        Content = r.Content,
+        DurationMs = r.DurationMs,
+        InputTokens = r.InputTokens,
+        OutputTokens = r.OutputTokens,
+        CorrelationId = r.CorrelationId,
+    };
 }

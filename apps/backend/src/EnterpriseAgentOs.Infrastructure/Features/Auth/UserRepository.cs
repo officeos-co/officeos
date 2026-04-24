@@ -9,31 +9,37 @@ internal sealed class UserRepository : IUserRepository
     public async Task<UserRecord> UpsertByGoogleSubjectAsync(
         string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
-        var user = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
-        if (user is null)
+        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
+        if (entity is null)
         {
-            user = new UserRecord
+            entity = new UserEntity
             {
+                Id = Guid.NewGuid(),
                 GoogleSubjectId = googleSubjectId,
                 Email = email,
                 Name = name,
                 AvatarUrl = avatarUrl,
+                CreatedAt = DateTime.UtcNow,
+                LastLoginAt = DateTime.UtcNow,
             };
-            _eaosDbContext.Users.Add(user);
+            _eaosDbContext.Users.Add(entity);
         }
         else
         {
-            user.Email = email;
-            user.Name = name;
-            user.AvatarUrl = avatarUrl;
-            user.LastLoginAt = DateTime.UtcNow;
+            entity.Email = email;
+            entity.Name = name;
+            entity.AvatarUrl = avatarUrl;
+            entity.LastLoginAt = DateTime.UtcNow;
         }
         await _eaosDbContext.SaveChangesAsync(ct);
-        return user;
+        return ToUserRecord(entity);
     }
 
     public async Task<UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
-        => await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+    {
+        var entity = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+        return entity is null ? null : ToUserRecord(entity);
+    }
 
     public async Task<UserRecord> UpdateProfileAsync(
         Guid id,
@@ -44,19 +50,51 @@ internal sealed class UserRepository : IUserRepository
         string? preferences,
         CancellationToken ct = default)
     {
-        var user = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
+        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
             ?? throw new InvalidOperationException($"user {id} not found");
-        if (name is not null) user.Name = name;
-        if (displayName is not null) user.DisplayName = displayName;
-        if (timezone is not null) user.Timezone = timezone;
-        if (notificationPrefsJson is not null) user.NotificationPrefsJson = notificationPrefsJson;
-        if (preferences is not null) user.Preferences = preferences;
+        if (name is not null) entity.Name = name;
+        if (displayName is not null) entity.DisplayName = displayName;
+        if (timezone is not null) entity.Timezone = timezone;
+        if (notificationPrefsJson is not null) entity.NotificationPrefsJson = notificationPrefsJson;
+        if (preferences is not null) entity.Preferences = preferences;
         await _eaosDbContext.SaveChangesAsync(ct);
-        return user;
+        return ToUserRecord(entity);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await _eaosDbContext.Users.Where(u => u.Id == id).ExecuteDeleteAsync(ct);
     }
+
+    // ── Mapping ──────────────────────────────────────────────────────
+
+    internal static UserRecord ToUserRecord(UserEntity e) => new()
+    {
+        Id = e.Id,
+        Email = e.Email,
+        Name = e.Name,
+        AvatarUrl = e.AvatarUrl,
+        GoogleSubjectId = e.GoogleSubjectId,
+        CreatedAt = e.CreatedAt,
+        LastLoginAt = e.LastLoginAt,
+        DisplayName = e.DisplayName,
+        Timezone = e.Timezone,
+        NotificationPrefsJson = e.NotificationPrefsJson,
+        Preferences = e.Preferences,
+    };
+
+    private static UserEntity ToUserEntity(UserRecord r) => new()
+    {
+        Id = r.Id,
+        Email = r.Email,
+        Name = r.Name,
+        AvatarUrl = r.AvatarUrl,
+        GoogleSubjectId = r.GoogleSubjectId,
+        CreatedAt = r.CreatedAt,
+        LastLoginAt = r.LastLoginAt,
+        DisplayName = r.DisplayName,
+        Timezone = r.Timezone,
+        NotificationPrefsJson = r.NotificationPrefsJson,
+        Preferences = r.Preferences,
+    };
 }

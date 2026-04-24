@@ -2,6 +2,8 @@ using MediatR;
 
 namespace EnterpriseAgentOs.Application.Features.Agents.Handlers;
 
+//TODO also ich finde die loesung nicht wirklich clean. Kann der cache nicht einfach automatisch gecleant werden
+
 internal sealed class InvalidateAgentCacheHandler :
     INotificationHandler<AgentCreatedEvent>,
     INotificationHandler<AgentDeletedEvent>,

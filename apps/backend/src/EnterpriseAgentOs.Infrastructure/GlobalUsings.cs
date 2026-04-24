@@ -42,6 +42,7 @@ global using EnterpriseAgentOs.Infrastructure.Features.Auth;
 global using EnterpriseAgentOs.Infrastructure.Features.Billing;
 global using EnterpriseAgentOs.Infrastructure.Features.Channels;
 global using EnterpriseAgentOs.Infrastructure.Common;
+global using EnterpriseAgentOs.Infrastructure.Common.Entities;
 global using EnterpriseAgentOs.Infrastructure.Features.Organizations;
 global using EnterpriseAgentOs.Infrastructure.Features.Providers;
 global using EnterpriseAgentOs.Infrastructure.Features.Skills;

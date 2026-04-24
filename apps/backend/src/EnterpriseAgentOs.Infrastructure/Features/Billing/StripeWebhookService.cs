@@ -59,7 +59,7 @@ internal sealed class StripeWebhookService : IStripeWebhookService
         var sub = await _eaosDbContext.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
         if (sub is null)
         {
-            sub = new UserSubscription { UserId = userId };
+            sub = new UserSubscriptionEntity { UserId = userId };
             await _eaosDbContext.UserSubscriptions.AddAsync(sub, ct);
         }
 

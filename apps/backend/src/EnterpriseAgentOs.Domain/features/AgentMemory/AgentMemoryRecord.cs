@@ -4,10 +4,10 @@ public sealed class AgentMemoryRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
-    public string Key { get; private set; } = null!;
-    public string Content { get; private set; } = null!;
+    public string Key { get; set; } = null!;
+    public string Content { get; set; } = null!;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public AgentRecord Agent { get; init; } = null!;
 

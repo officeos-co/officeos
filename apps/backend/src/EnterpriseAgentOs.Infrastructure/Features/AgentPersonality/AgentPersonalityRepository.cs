@@ -7,10 +7,13 @@ internal sealed class AgentPersonalityRepository : IAgentPersonalityRepository
     public AgentPersonalityRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<AgentPersonalityRecord>> ListAsync(Guid agentId, CancellationToken ct = default)
-        => await _eaosDbContext.AgentPersonalities
+    {
+        var entities = await _eaosDbContext.AgentPersonalities
             .Where(p => p.AgentId == agentId)
             .OrderBy(p => p.FileName)
             .ToListAsync(ct);
+        return entities.Select(ToAgentPersonalityRecord).ToList();
+    }
 
     public async Task UpsertAsync(Guid agentId, string fileName, string content, CancellationToken ct = default)
     {
@@ -19,13 +22,36 @@ internal sealed class AgentPersonalityRepository : IAgentPersonalityRepository
 
         if (existing is not null)
         {
-            existing.UpdateContent(content);
+            existing.Content = content;
+            existing.UpdatedAt = DateTime.UtcNow;
         }
         else
         {
-            _eaosDbContext.AgentPersonalities.Add(AgentPersonalityRecord.Create(agentId, fileName, content));
+            var record = AgentPersonalityRecord.Create(agentId, fileName, content);
+            _eaosDbContext.AgentPersonalities.Add(ToAgentPersonalityEntity(record));
         }
 
         await _eaosDbContext.SaveChangesAsync(ct);
     }
+
+    private static AgentPersonalityRecord ToAgentPersonalityRecord(AgentPersonalityEntity e) => new()
+    {
+        Id = e.Id,
+        AgentId = e.AgentId,
+        FileName = e.FileName,
+        Content = e.Content,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt,
+        Agent = null!,
+    };
+
+    private static AgentPersonalityEntity ToAgentPersonalityEntity(AgentPersonalityRecord r) => new()
+    {
+        Id = r.Id,
+        AgentId = r.AgentId,
+        FileName = r.FileName,
+        Content = r.Content,
+        CreatedAt = r.CreatedAt,
+        UpdatedAt = r.UpdatedAt,
+    };
 }

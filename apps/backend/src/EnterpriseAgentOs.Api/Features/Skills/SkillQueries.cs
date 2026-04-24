@@ -119,8 +119,9 @@ public class SkillQueries
         if (token is null)
             return new OAuthConnectionStatusDto(false, null, null, false, []);
 
-        var missing = token.MissingScopes(requiredScopes ?? []);
-        var scopeString = string.Join(' ', token.GetScopeSet());
+        var grantedSet = token.GrantedScopes.Select(s => s.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missing = (requiredScopes ?? []).Where(s => !grantedSet.Contains(s)).ToList();
+        var scopeString = string.Join(' ', grantedSet);
 
         return new OAuthConnectionStatusDto(true, token.Email, scopeString, missing.Count > 0, missing.ToArray());
     }

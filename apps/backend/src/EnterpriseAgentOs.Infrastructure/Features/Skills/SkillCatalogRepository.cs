@@ -11,26 +11,30 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<IReadOnlyList<SkillRecord>> ListAsync(CancellationToken ct = default)
     {
-        return await _eaosDbContext.Skills.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct);
+        var entities = await _eaosDbContext.Skills.AsNoTracking().OrderBy(s => s.Name).ToListAsync(ct);
+        return entities.Select(ToSkillRecord).ToList();
     }
 
     public async Task<IReadOnlyList<SkillRecord>> ListActiveAsync(CancellationToken ct = default)
     {
-        return await _eaosDbContext.Skills.AsNoTracking()
+        var entities = await _eaosDbContext.Skills.AsNoTracking()
             .Where(s => s.Status == "active")
             .OrderBy(s => s.Name)
             .ToListAsync(ct);
+        return entities.Select(ToSkillRecord).ToList();
     }
 
     public async Task<SkillRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Id == id, ct);
+        var entity = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Id == id, ct);
+        return entity is null ? null : ToSkillRecord(entity);
     }
 
     public async Task<SkillRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
-        return await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
+        var entity = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
+        return entity is null ? null : ToSkillRecord(entity);
     }
 
     public async Task<SkillRecord> UpsertAsync(SkillRecord record, CancellationToken ct = default)
@@ -38,7 +42,10 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
         var existing = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == record.Name, ct);
         if (existing is null)
         {
-            _eaosDbContext.Skills.Add(record);
+            var entity = ToSkillEntity(record);
+            _eaosDbContext.Skills.Add(entity);
+            await _eaosDbContext.SaveChangesAsync(ct);
+            return ToSkillRecord(entity);
         }
         else
         {
@@ -65,17 +72,17 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
             existing.BuildError = record.BuildError;
             existing.IsSystem = record.IsSystem;
             existing.UpdatedAt = DateTime.UtcNow;
+            await _eaosDbContext.SaveChangesAsync(ct);
+            return ToSkillRecord(existing);
         }
-        await _eaosDbContext.SaveChangesAsync(ct);
-        return existing ?? record;
     }
 
     public async Task<bool> DeleteByNameAsync(string name, CancellationToken ct = default)
     {
         var n = name.Trim().ToLowerInvariant();
-        var row = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
-        if (row is null) return false;
-        _eaosDbContext.Skills.Remove(row);
+        var entity = await _eaosDbContext.Skills.FirstOrDefaultAsync(s => s.Name == n, ct);
+        if (entity is null) return false;
+        _eaosDbContext.Skills.Remove(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
@@ -130,12 +137,13 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // Load connected OAuth tokens with their granted scopes
-        var oauthTokens = await _eaosDbContext.OAuthTokens
+        var oauthTokenEntities = await _eaosDbContext.OAuthTokens
             .Where(t => t.EncryptedAccessToken != null)
             .Include(t => t.GrantedScopes)
             .ToListAsync(ct);
 
-        var providerTokens = oauthTokens.ToDictionary(t => t.Provider, StringComparer.OrdinalIgnoreCase);
+        var oauthTokenRecords = oauthTokenEntities.Select(ToOAuthTokenRecord).ToList();
+        var providerTokens = oauthTokenRecords.ToDictionary(t => t.Provider, StringComparer.OrdinalIgnoreCase);
 
         if (providerTokens.Count == 0)
             return result;
@@ -180,12 +188,13 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<IReadOnlyList<SkillCommentRecord>> ListCommentsBySkillAsync(Guid skillId, CancellationToken ct = default)
     {
-        return await _eaosDbContext.SkillComments
+        var entities = await _eaosDbContext.SkillComments
             .AsNoTracking()
             .Include(c => c.User)
             .Where(c => c.SkillId == skillId)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(ct);
+        return entities.Select(ToSkillCommentRecord).ToList();
     }
 
     public async Task<bool> AddLikeAsync(Guid skillId, Guid userId, CancellationToken ct = default)
@@ -193,7 +202,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
         var existing = await _eaosDbContext.SkillLikes
             .FirstOrDefaultAsync(l => l.SkillId == skillId && l.UserId == userId, ct);
         if (existing is not null) return false;
-        _eaosDbContext.SkillLikes.Add(new SkillLikeRecord { SkillId = skillId, UserId = userId });
+        _eaosDbContext.SkillLikes.Add(new SkillLikeEntity { Id = Guid.NewGuid(), SkillId = skillId, UserId = userId, CreatedAt = DateTime.UtcNow });
         await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
@@ -210,27 +219,127 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
 
     public async Task<SkillCommentRecord> AddCommentAsync(Guid skillId, Guid userId, string body, CancellationToken ct = default)
     {
-        var record = new SkillCommentRecord
+        var entity = new SkillCommentEntity
         {
+            Id = Guid.NewGuid(),
             SkillId = skillId,
             UserId = userId,
             Body = body.Trim(),
+            CreatedAt = DateTime.UtcNow,
         };
-        _eaosDbContext.SkillComments.Add(record);
+        _eaosDbContext.SkillComments.Add(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
         // Load user for DTO mapping
-        await _eaosDbContext.Entry(record).Reference(c => c.User).LoadAsync(ct);
-        return record;
+        await _eaosDbContext.Entry(entity).Reference(c => c.User).LoadAsync(ct);
+        return ToSkillCommentRecord(entity);
     }
 
     public async Task<bool> DeleteCommentAsync(Guid commentId, Guid userId, CancellationToken ct = default)
     {
-        var comment = await _eaosDbContext.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
-        if (comment is null) return false;
-        if (comment.UserId != userId)
+        var entity = await _eaosDbContext.SkillComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
+        if (entity is null) return false;
+        if (entity.UserId != userId)
             throw new InvalidOperationException("Only the author may delete a comment.");
-        _eaosDbContext.SkillComments.Remove(comment);
+        _eaosDbContext.SkillComments.Remove(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
         return true;
+    }
+
+    // ── Mapping ──────────────────────────────────────────────────────
+
+    private static SkillRecord ToSkillRecord(SkillEntity e) => new()
+    {
+        Id = e.Id,
+        Name = e.Name,
+        Title = e.Title,
+        Description = e.Description,
+        Doc = e.Doc,
+        Source = e.Source,
+        Logo = e.Logo,
+        License = e.License,
+        Repository = e.Repository,
+        RequiresApproval = e.RequiresApproval,
+        Readme = e.Readme,
+        Changelog = e.Changelog,
+        Category = e.Category,
+        AuthorName = e.AuthorName,
+        AuthorUrl = e.AuthorUrl,
+        Categories = e.Categories,
+        Keywords = e.Keywords,
+        ActionsJson = e.ActionsJson,
+        CredentialFieldsJson = e.CredentialFieldsJson,
+        ContributorsJson = e.ContributorsJson,
+        BundleS3Key = e.BundleS3Key,
+        Version = e.Version,
+        Status = e.Status,
+        BuildError = e.BuildError,
+        GitHubRepoUrl = e.GitHubRepoUrl,
+        GitHubBranch = e.GitHubBranch,
+        IsSystem = e.IsSystem,
+        OwnerId = e.OwnerId,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt,
+    };
+
+    private static SkillEntity ToSkillEntity(SkillRecord r) => new()
+    {
+        Id = r.Id,
+        Name = r.Name,
+        Title = r.Title,
+        Description = r.Description,
+        Doc = r.Doc,
+        Source = r.Source,
+        Logo = r.Logo,
+        License = r.License,
+        Repository = r.Repository,
+        RequiresApproval = r.RequiresApproval,
+        Readme = r.Readme,
+        Changelog = r.Changelog,
+        Category = r.Category,
+        AuthorName = r.AuthorName,
+        AuthorUrl = r.AuthorUrl,
+        Categories = r.Categories,
+        Keywords = r.Keywords,
+        ActionsJson = r.ActionsJson,
+        CredentialFieldsJson = r.CredentialFieldsJson,
+        ContributorsJson = r.ContributorsJson,
+        BundleS3Key = r.BundleS3Key,
+        Version = r.Version,
+        Status = r.Status,
+        BuildError = r.BuildError,
+        GitHubRepoUrl = r.GitHubRepoUrl,
+        GitHubBranch = r.GitHubBranch,
+        IsSystem = r.IsSystem,
+        OwnerId = r.OwnerId,
+        CreatedAt = r.CreatedAt,
+        UpdatedAt = r.UpdatedAt,
+    };
+
+    private static SkillCommentRecord ToSkillCommentRecord(SkillCommentEntity e) => new()
+    {
+        Id = e.Id,
+        SkillId = e.SkillId,
+        UserId = e.UserId,
+        Body = e.Body,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt,
+        User = e.User is not null ? UserRepository.ToUserRecord(e.User) : null,
+    };
+
+    private static OAuthTokenRecord ToOAuthTokenRecord(OAuthTokenEntity e)
+    {
+        var record = new OAuthTokenRecord
+        {
+            Id = e.Id,
+            Provider = e.Provider,
+            EncryptedAccessToken = e.EncryptedAccessToken,
+            EncryptedRefreshToken = e.EncryptedRefreshToken,
+            ExpiresAtUtc = e.ExpiresAtUtc,
+            Email = e.Email,
+            CreatedAt = e.CreatedAt,
+            UpdatedAt = e.UpdatedAt,
+        };
+        record.ReplaceScopes(e.GrantedScopes.Select(s => s.Scope));
+        return record;
     }
 }

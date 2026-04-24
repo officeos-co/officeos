@@ -11,13 +11,15 @@ internal sealed class SkillRepository : ISkillRepository
 
     public async Task<IReadOnlyList<SkillCredentialRecord>> ListAsync(CancellationToken ct = default)
     {
-        return await _eaosDbContext.SkillCredentials.AsNoTracking().OrderBy(s => s.SkillName).ToListAsync(ct);
+        var entities = await _eaosDbContext.SkillCredentials.AsNoTracking().OrderBy(s => s.SkillName).ToListAsync(ct);
+        return entities.Select(ToSkillCredentialRecord).ToList();
     }
 
     public async Task<SkillCredentialRecord?> GetByNameAsync(string skillName, CancellationToken ct = default)
     {
         var name = skillName.Trim().ToLowerInvariant();
-        return await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
+        var entity = await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
+        return entity is null ? null : ToSkillCredentialRecord(entity);
     }
 
     public async Task<SkillCredentialRecord> UpsertAsync(
@@ -27,36 +29,38 @@ internal sealed class SkillRepository : ISkillRepository
         CancellationToken ct = default)
     {
         var name = skillName.Trim().ToLowerInvariant();
-        var row = await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
-        if (row is null)
+        var entity = await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
+        if (entity is null)
         {
-            row = new SkillCredentialRecord
+            entity = new SkillCredentialEntity
             {
+                Id = Guid.NewGuid(),
                 SkillName = name,
                 Enabled = enabled ?? false,
                 EncryptedCredentials = encryptedCredentials,
                 ConfiguredAt = encryptedCredentials is null ? null : DateTime.UtcNow,
             };
-            _eaosDbContext.SkillCredentials.Add(row);
+            _eaosDbContext.SkillCredentials.Add(entity);
         }
         else
         {
-            if (enabled.HasValue) row.Enabled = enabled.Value;
+            if (enabled.HasValue) entity.Enabled = enabled.Value;
             if (encryptedCredentials is not null)
             {
-                row.EncryptedCredentials = encryptedCredentials;
-                row.ConfiguredAt = DateTime.UtcNow;
+                entity.EncryptedCredentials = encryptedCredentials;
+                entity.ConfiguredAt = DateTime.UtcNow;
             }
         }
         await _eaosDbContext.SaveChangesAsync(ct);
-        return row;
+        return ToSkillCredentialRecord(entity);
     }
 
     public async Task<bool> DeleteByNameAsync(string skillName, CancellationToken ct = default)
     {
-        var row = await GetByNameAsync(skillName, ct);
-        if (row is null) return false;
-        _eaosDbContext.SkillCredentials.Remove(row);
+        var name = skillName.Trim().ToLowerInvariant();
+        var entity = await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
+        if (entity is null) return false;
+        _eaosDbContext.SkillCredentials.Remove(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
@@ -64,16 +68,38 @@ internal sealed class SkillRepository : ISkillRepository
     public async Task SetRunTargetAsync(string skillName, string? runTarget, CancellationToken ct = default)
     {
         var name = skillName.Trim().ToLowerInvariant();
-        var row = await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
-        if (row is null)
+        var entity = await _eaosDbContext.SkillCredentials.FirstOrDefaultAsync(s => s.SkillName == name, ct);
+        if (entity is null)
         {
-            row = new SkillCredentialRecord { SkillName = name, RunTarget = runTarget };
-            _eaosDbContext.SkillCredentials.Add(row);
+            entity = new SkillCredentialEntity { Id = Guid.NewGuid(), SkillName = name, RunTarget = runTarget };
+            _eaosDbContext.SkillCredentials.Add(entity);
         }
         else
         {
-            row.RunTarget = runTarget;
+            entity.RunTarget = runTarget;
         }
         await _eaosDbContext.SaveChangesAsync(ct);
     }
+
+    // ── Mapping ──────────────────────────────────────────────────────
+
+    private static SkillCredentialRecord ToSkillCredentialRecord(SkillCredentialEntity e) => new()
+    {
+        Id = e.Id,
+        SkillName = e.SkillName,
+        Enabled = e.Enabled,
+        EncryptedCredentials = e.EncryptedCredentials,
+        ConfiguredAt = e.ConfiguredAt,
+        RunTarget = e.RunTarget,
+    };
+
+    private static SkillCredentialEntity ToSkillCredentialEntity(SkillCredentialRecord r) => new()
+    {
+        Id = r.Id,
+        SkillName = r.SkillName,
+        Enabled = r.Enabled,
+        EncryptedCredentials = r.EncryptedCredentials,
+        ConfiguredAt = r.ConfiguredAt,
+        RunTarget = r.RunTarget,
+    };
 }

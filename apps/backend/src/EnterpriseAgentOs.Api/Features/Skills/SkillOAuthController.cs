@@ -42,9 +42,17 @@ public sealed class SkillOAuthController : ControllerBase
         // Merge requested scopes with already-granted scopes so the new token covers everything
         var requestedScopes = scopes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var existing = await _db.OAuthTokens.Include(t => t.GrantedScopes).FirstOrDefaultAsync(t => t.Provider == provider);
-        var mergedScopes = existing is not null
-            ? string.Join(' ', existing.MergedScopesWith(requestedScopes))
-            : scopes;
+        HashSet<string> mergedScopeSet;
+        if (existing is not null)
+        {
+            mergedScopeSet = existing.GrantedScopes.Select(s => s.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var s in requestedScopes) mergedScopeSet.Add(s);
+        }
+        else
+        {
+            mergedScopeSet = requestedScopes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        var mergedScopes = string.Join(' ', mergedScopeSet);
 
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         Response.Cookies.Append("skill-oauth-state", state, new CookieOptions
@@ -131,7 +139,7 @@ public sealed class SkillOAuthController : ControllerBase
         var existing = await _db.OAuthTokens.Include(t => t.GrantedScopes).FirstOrDefaultAsync(t => t.Provider == provider);
         if (existing is null)
         {
-            existing = new OAuthTokenRecord { Provider = provider };
+            existing = new OAuthTokenEntity { Id = Guid.NewGuid(), Provider = provider, CreatedAt = DateTime.UtcNow };
             _db.OAuthTokens.Add(existing);
         }
 
@@ -154,8 +162,9 @@ public sealed class SkillOAuthController : ControllerBase
         existing.GrantedScopes.Clear();
         foreach (var scope in (tokenData.Scope ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            existing.GrantedScopes.Add(new OAuthGrantedScopeRecord
+            existing.GrantedScopes.Add(new OAuthGrantedScopeEntity
             {
+                Id = Guid.NewGuid(),
                 OAuthTokenId = existing.Id,
                 Scope = scope,
             });
@@ -186,7 +195,7 @@ public sealed class SkillOAuthController : ControllerBase
         {
             connected = true,
             email = token.Email,
-            scopes = string.Join(' ', token.GetScopeSet()),
+            scopes = string.Join(' ', token.GrantedScopes.Select(s => s.Scope)),
             expiresAt = token.ExpiresAtUtc,
         });
     }

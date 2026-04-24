@@ -2,17 +2,15 @@ namespace EnterpriseAgentOs.Domain.Features.AgentCronJobs;
 
 public sealed class AgentCronJobRecord
 {
-    public Guid Id { get; private set; }
-    public Guid AgentId { get; private set; }
-    public string Name { get; private set; } = string.Empty;
-    public string Expression { get; private set; } = string.Empty;
-    public string Prompt { get; private set; } = string.Empty;
-    public bool Enabled { get; private set; }
-    public DateTime? LastRunAt { get; private set; }
-    public DateTime? NextRunAt { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-
-    private AgentCronJobRecord() { }
+    public Guid Id { get; set; }
+    public Guid AgentId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Expression { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public bool Enabled { get; set; }
+    public DateTime? LastRunAt { get; set; }
+    public DateTime? NextRunAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public static AgentCronJobRecord Create(Guid agentId, string name, string expression, string prompt)
     {

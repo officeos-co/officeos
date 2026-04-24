@@ -77,6 +77,7 @@ internal sealed class AgentService : IAgentService
     {
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
+
         var apiKey = await _providerService.GetApiKeyForDispatchAsync(request.Provider, ct);
         if (apiKey is null)
         {
@@ -104,6 +105,8 @@ internal sealed class AgentService : IAgentService
 
         // If the user supplied a system prompt, persist it as BOOTSTRAP.md so
         // the agent's prompt composition includes it on every turn.
+
+        //TODO should be inserted into bootstrap put that logic into domain not replaced entirely
         if (!string.IsNullOrWhiteSpace(request.Prompt))
         {
             await _agentPersonalityRepository.UpsertAsync(

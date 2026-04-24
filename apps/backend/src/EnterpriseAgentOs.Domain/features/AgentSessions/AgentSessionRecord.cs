@@ -12,12 +12,12 @@ public sealed class AgentSessionRecord
 
     /// <summary>"active" | "ended"</summary>
     [Required, MaxLength(16)]
-    public string Status { get; private set; } = "active";
+    public string Status { get; set; } = "active";
 
-    public int MessageCount { get; private set; }
-    public DateTime LastActivityAt { get; private set; } = DateTime.UtcNow;
+    public int MessageCount { get; set; }
+    public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public DateTime? EndedAt { get; private set; }
+    public DateTime? EndedAt { get; set; }
 
     public AgentRecord? Agent { get; init; }
 

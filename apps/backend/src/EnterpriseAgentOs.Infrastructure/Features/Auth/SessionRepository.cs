@@ -8,26 +8,33 @@ internal sealed class SessionRepository : ISessionRepository
 
     public async Task<SessionRecord> CreateAsync(Guid userId, string tokenHash, DateTime expiresAt, CancellationToken ct)
     {
-        var session = new SessionRecord
+        var entity = new SessionEntity
         {
+            Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = tokenHash,
             ExpiresAt = expiresAt,
+            CreatedAt = DateTime.UtcNow,
         };
-        _eaosDbContext.Sessions.Add(session);
+        _eaosDbContext.Sessions.Add(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
-        return session;
+        return ToSessionRecord(entity);
     }
 
     public async Task<SessionRecord?> GetByTokenHashAsync(string tokenHash, CancellationToken ct)
-        => await _eaosDbContext.Sessions.Include(s => s.User).FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
+    {
+        var entity = await _eaosDbContext.Sessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
+        return entity is null ? null : ToSessionRecord(entity);
+    }
 
     public async Task DeleteAsync(string tokenHash, CancellationToken ct)
     {
-        var session = await _eaosDbContext.Sessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
-        if (session is not null)
+        var entity = await _eaosDbContext.Sessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
+        if (entity is not null)
         {
-            _eaosDbContext.Sessions.Remove(session);
+            _eaosDbContext.Sessions.Remove(entity);
             await _eaosDbContext.SaveChangesAsync(ct);
         }
     }
@@ -43,4 +50,25 @@ internal sealed class SessionRepository : ISessionRepository
     {
         await _eaosDbContext.Sessions.Where(s => s.UserId == userId).ExecuteDeleteAsync(ct);
     }
+
+    // ── Mapping ──────────────────────────────────────────────────────
+
+    private static SessionRecord ToSessionRecord(SessionEntity e) => new()
+    {
+        Id = e.Id,
+        UserId = e.UserId,
+        TokenHash = e.TokenHash,
+        ExpiresAt = e.ExpiresAt,
+        CreatedAt = e.CreatedAt,
+        User = e.User is not null ? UserRepository.ToUserRecord(e.User) : null,
+    };
+
+    private static SessionEntity ToSessionEntity(SessionRecord r) => new()
+    {
+        Id = r.Id,
+        UserId = r.UserId,
+        TokenHash = r.TokenHash,
+        ExpiresAt = r.ExpiresAt,
+        CreatedAt = r.CreatedAt,
+    };
 }
