@@ -1,7 +1,4 @@
-using EnterpriseAgentOs.Domain.Events;
-using EnterpriseAgentOs.Domain.Features.AgentLogs;
 using EnterpriseAgentOs.Domain.Features.Channels;
-using MediatR;
 
 namespace EnterpriseAgentOs.Api.Features.Channels;
 
@@ -17,29 +14,12 @@ public static class ChannelInboundEndpoint
 
     public static async Task<IResult> Handle(
         ChannelInboundRequest request,
-        IChannelRepository channelRepository,
-        IPublisher publisher,
+        IChannelService channelService,
         CancellationToken ct)
     {
-        var bindings = await channelRepository.FindBindingsByConnectionAsync(request.ConnectionId, ct);
-        var agentIds = new List<Guid>();
-
-        foreach (var binding in bindings)
-        {
-            if (!binding.Enabled) continue;
-
-            var channelType = binding.ChannelConnection?.ChannelType ?? "unknown";
-            var correlationId = Guid.NewGuid().ToString("N");
-
-            await publisher.Publish(new ChannelMessageRoutedEvent(
-                binding.AgentId, AgentLogType.ChannelIn, channelType,
-                request.MessageText, correlationId), ct);
-
-            await publisher.Publish(new MessageReceivedEvent(
-                binding.AgentId, request.MessageText, correlationId, null), ct);
-
-            agentIds.Add(binding.AgentId);
-        }
+        var agentIds = await channelService.RouteInboundAsync(
+            request.ConnectionId, request.SenderIdentifier, request.MessageText,
+            request.IsGroupMessage, request.MessageId, request.ChannelId, ct);
 
         return Results.Ok(new { agentIds });
     }

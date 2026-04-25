@@ -49,9 +49,10 @@ internal sealed class GdprService : IGdprService
         };
         var conversationLogs = await _agentLogRepository.ListByAgentIdsAsync(agentIds, conversationTypes, ct);
         var conversations = conversationLogs
+            .Where(l => l.AgentId.HasValue)
             .Select(l => new GdprConversationDto(
                 l.Id,
-                l.AgentId,
+                l.AgentId!.Value,
                 l.Type == AgentLogType.MessageIn ? "user"
                     : l.Type == AgentLogType.MessageOut ? "assistant"
                     : "system",
@@ -63,9 +64,10 @@ internal sealed class GdprService : IGdprService
         var toolCallTypes = new List<AgentLogType> { AgentLogType.ToolCall };
         var toolCallLogs = await _agentLogRepository.ListByAgentIdsAsync(agentIds, toolCallTypes, ct);
         var auditEntries = toolCallLogs
+            .Where(l => l.AgentId.HasValue)
             .Select(l => new GdprAuditEntryDto(
                 l.Id,
-                l.AgentId,
+                l.AgentId!.Value,
                 l.Integration ?? string.Empty,
                 l.Tool ?? string.Empty,
                 l.Content,

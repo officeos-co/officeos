@@ -18,8 +18,9 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
     {
         var q = from l in _eaosDbContext.AgentLogs
-                join a in _eaosDbContext.Agents on l.AgentId equals a.Id
-                select new { Log = l, AgentName = a.Name };
+                join a in _eaosDbContext.Agents on l.AgentId equals a.Id into agents
+                from a in agents.DefaultIfEmpty()
+                select new { Log = l, AgentName = a != null ? a.Name : "(unbound)" };
 
         if (type.HasValue)
         {
@@ -97,13 +98,13 @@ internal sealed class AgentLogRepository : IAgentLogRepository
     public async Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default)
     {
         if (agentIds.Count == 0) return;
-        await _eaosDbContext.AgentLogs.Where(l => agentIds.Contains(l.AgentId)).ExecuteDeleteAsync(ct);
+        await _eaosDbContext.AgentLogs.Where(l => l.AgentId.HasValue && agentIds.Contains(l.AgentId.Value)).ExecuteDeleteAsync(ct);
     }
 
     public async Task<List<AgentLogRecord>> ListByAgentIdsAsync(IReadOnlyList<Guid> agentIds, IReadOnlyList<AgentLogType>? types = null, CancellationToken ct = default)
     {
         if (agentIds.Count == 0) return new List<AgentLogRecord>();
-        var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => agentIds.Contains(l.AgentId));
+        var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => l.AgentId.HasValue && agentIds.Contains(l.AgentId.Value));
         if (types is { Count: > 0 }) q = q.Where(l => types.Contains(l.Type));
         var entities = await q.ToListAsync(ct);
         return entities.Select(ToAgentLogRecord).ToList();

@@ -59,6 +59,46 @@ internal sealed class ChannelService : IChannelService
         return deleted;
     }
 
+    public async Task<IReadOnlyList<Guid>> RouteInboundAsync(
+        Guid connectionId, string senderIdentifier, string messageText,
+        bool isGroupMessage, string? messageId, string? channelId,
+        CancellationToken ct = default)
+    {
+        var bindings = await _repo.FindBindingsByConnectionAsync(connectionId, ct);
+        var agentIds = new List<Guid>();
+
+        // Log even when no agent bindings exist for this connection
+        if (bindings.Count == 0)
+        {
+            var connection = await _repo.GetConnectionAsync(connectionId, ct);
+            var channelType = connection?.ChannelType ?? "unknown";
+
+            await _publisher.Publish(new ChannelMessageRoutedEvent(
+                null, AgentLogType.ChannelIn, channelType,
+                messageText, Guid.NewGuid().ToString("N")), ct);
+        }
+
+        foreach (var binding in bindings)
+        {
+            var channelType = binding.ChannelConnection?.ChannelType ?? "unknown";
+            var correlationId = Guid.NewGuid().ToString("N");
+
+            // Always log the inbound message, even if the binding is disabled
+            await _publisher.Publish(new ChannelMessageRoutedEvent(
+                binding.AgentId, AgentLogType.ChannelIn, channelType,
+                messageText, correlationId), ct);
+
+            if (!binding.Enabled) continue;
+
+            await _publisher.Publish(new MessageReceivedEvent(
+                binding.AgentId, messageText, correlationId, null), ct);
+
+            agentIds.Add(binding.AgentId);
+        }
+
+        return agentIds;
+    }
+
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
         var bindings = await _repo.ListBindingsAsync(agentId, ct);

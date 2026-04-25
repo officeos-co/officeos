@@ -2,7 +2,7 @@ namespace EnterpriseAgentOs.Domain.Features.AgentLogs;
 
 public sealed record AgentLogDto(
     Guid Id,
-    Guid AgentId,
+    Guid? AgentId,
     string? AgentName,
     DateTime Time,
     AgentLogType Type,
@@ -36,7 +36,7 @@ public sealed record AppendAgentLogInput(
 // Audit types (merged from Entities/Audit)
 public sealed record AuditEntry(
     Guid Id,
-    Guid AgentId,
+    Guid? AgentId,
     Guid? UserId,
     string SkillName,
     string Action,

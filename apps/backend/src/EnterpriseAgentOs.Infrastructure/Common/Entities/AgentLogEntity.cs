@@ -5,7 +5,7 @@ namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 public sealed class AgentLogEntity
 {
     public Guid Id { get; set; }
-    public Guid AgentId { get; set; }
+    public Guid? AgentId { get; set; }
     public DateTime Time { get; set; }
     public AgentLogType Type { get; set; }
     public string? Tool { get; set; }

@@ -235,7 +235,7 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(l => l.CorrelationId);
             e.Property(l => l.Content).HasColumnType("text");
             e.Property(l => l.Type).HasConversion<string>().HasMaxLength(32);
-            e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).IsRequired(false).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentToolPermissionEntity>(e =>
