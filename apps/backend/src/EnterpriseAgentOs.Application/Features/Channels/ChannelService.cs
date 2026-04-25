@@ -90,8 +90,11 @@ internal sealed class ChannelService : IChannelService
 
             if (!binding.Enabled) continue;
 
+            // Extract plain text from the Chat SDK JSON envelope
+            var plainText = ExtractPlainText(messageText);
+
             await _publisher.Publish(new MessageReceivedEvent(
-                binding.AgentId, messageText, correlationId, null), ct);
+                binding.AgentId, plainText, correlationId, null), ct);
 
             agentIds.Add(binding.AgentId);
         }
@@ -241,5 +244,26 @@ internal sealed class ChannelService : IChannelService
 
         await _gateway.ReloadAsync(ct);
         await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
+    }
+
+    /// <summary>
+    /// Extract the plain text from a Chat SDK JSON message envelope.
+    /// Falls back to the raw string if it's not valid JSON or has no "text" field.
+    /// </summary>
+    private static string ExtractPlainText(string messageText)
+    {
+        if (string.IsNullOrEmpty(messageText) || messageText[0] != '{')
+            return messageText;
+
+        using var doc = JsonDocument.Parse(messageText);
+        if (doc.RootElement.TryGetProperty("text", out var textProp) &&
+            textProp.ValueKind == JsonValueKind.String)
+        {
+            var text = textProp.GetString();
+            if (!string.IsNullOrEmpty(text))
+                return text;
+        }
+
+        return messageText;
     }
 }

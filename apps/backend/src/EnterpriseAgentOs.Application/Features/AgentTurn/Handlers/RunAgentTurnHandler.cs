@@ -15,9 +15,6 @@ internal sealed class RunAgentTurnHandler : INotificationHandler<MessageReceived
 
     public Task Handle(MessageReceivedEvent notification, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(notification.PodName))
-            return Task.CompletedTask;
-
         BackgroundWork.Run<AgentTurnService>(
             _scopeFactory,
             async svc =>
