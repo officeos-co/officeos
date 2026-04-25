@@ -11,6 +11,9 @@ internal sealed class AgentService : IAgentService
     private readonly IMemoryCache _memoryCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
+    private readonly IAgentSkillRepository _agentSkillRepository;
+    private readonly IChannelRepository _channelRepository;
+    private readonly IAgentLogService _agentLogService;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     private const string AgentListCacheKey = "agents:list";
@@ -23,7 +26,10 @@ internal sealed class AgentService : IAgentService
         ILogger<AgentService> logger,
         IMemoryCache cache,
         IAgentPersonalityRepository personalityRepo,
-        IPublisher publisher)
+        IPublisher publisher,
+        IAgentSkillRepository agentSkillRepository,
+        IChannelRepository channelRepository,
+        IAgentLogService agentLogService)
     {
         _agentRepository = repository;
         _agentDeployer = deployer;
@@ -32,6 +38,9 @@ internal sealed class AgentService : IAgentService
         _memoryCache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
+        _agentSkillRepository = agentSkillRepository;
+        _channelRepository = channelRepository;
+        _agentLogService = agentLogService;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
@@ -181,6 +190,55 @@ internal sealed class AgentService : IAgentService
             await _publisher.Publish(new AgentDeletedEvent(id, record.PodName, record.HasPod, record.OwnerId), ct);
 
         return deleted;
+    }
+
+    public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
+    {
+        // Installed skills
+        if (init.ToolNames is { Count: > 0 })
+        {
+            await _agentSkillRepository.AssignAsync(agentId, init.ToolNames, ct);
+        }
+
+        // Per-tool allow/deny overrides
+        if (init.ToolPermissions is { Count: > 0 })
+        {
+            foreach (var tp in init.ToolPermissions)
+            {
+                var (skill, tool) = AgentToolPermissionRecord.ParseToolKey(tp.Tool);
+                await _agentSkillRepository.UpsertToolPermissionAsync(agentId, skill, tool, tp.Mode, ct);
+            }
+        }
+
+        // Channel bindings
+        if (init.ChannelSlugs is { Count: > 0 })
+        {
+            var connections = await _channelRepository.ListConnectionsAsync(ct);
+            foreach (var slug in init.ChannelSlugs)
+            {
+                var match = connections.FirstOrDefault(c =>
+                    string.Equals(c.ChannelType, slug, StringComparison.OrdinalIgnoreCase));
+                if (match is null) continue;
+                try
+                {
+                    await _channelRepository.CreateBindingAsync(new AgentChannelBindingRecord
+                    {
+                        AgentId = agentId,
+                        ChannelConnectionId = match.Id,
+                    }, ct);
+                }
+                catch (DbUpdateException)
+                {
+                    // already bound — skip
+                }
+            }
+        }
+
+        // Bootstrap message
+        if (!string.IsNullOrWhiteSpace(init.BootstrapMessage))
+        {
+            await _agentLogService.SendMessageAsync(agentId, init.BootstrapMessage, userId, ct);
+        }
     }
 
     private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)

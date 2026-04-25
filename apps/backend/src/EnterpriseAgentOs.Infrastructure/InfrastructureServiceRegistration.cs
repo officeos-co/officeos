@@ -35,6 +35,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
+        services.AddScoped<ISkillOAuthService, SkillOAuthService>();
 
         // Protectors
         services.AddSingleton<ProviderKeyProtector>();

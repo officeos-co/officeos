@@ -88,9 +88,5 @@ public sealed class SessionAuthMiddleware
         await _requestDelegate(context);
     }
 
-    public static string HashToken(string token)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexStringLower(bytes);
-    }
+    public static string HashToken(string token) => SessionTokenHasher.Hash(token);
 }

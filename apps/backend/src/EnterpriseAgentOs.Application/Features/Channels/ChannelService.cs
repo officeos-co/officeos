@@ -165,6 +165,49 @@ internal sealed class ChannelService : IChannelService
         }
     }
 
+    public async Task<AgentChannelBindingRecord> BindAgentAsync(Guid agentId, Guid channelConnectionId, string? configJson, CancellationToken ct = default)
+    {
+        var connection = await _repo.GetConnectionAsync(channelConnectionId, ct);
+        if (connection is null)
+            throw new InvalidOperationException("Channel connection not found.");
+
+        var record = new AgentChannelBindingRecord
+        {
+            AgentId = agentId,
+            ChannelConnectionId = channelConnectionId,
+            Config = configJson,
+        };
+
+        return await _repo.CreateBindingAsync(record, ct);
+    }
+
+    public async Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default)
+    {
+        var bindings = await _repo.ListBindingsAsync(agentId, ct);
+        var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
+        if (match is null) return false;
+        return await _repo.DeleteBindingAsync(match.Id, ct);
+    }
+
+    public async Task<AgentChannelBindingRecord> UpdateBindingConfigAsync(Guid agentId, Guid channelConnectionId, string configJson, CancellationToken ct = default)
+    {
+        var bindings = await _repo.ListBindingsAsync(agentId, ct);
+        var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
+        if (match is null)
+            throw new InvalidOperationException("Binding not found for agent + channel connection.");
+
+        var updated = await _repo.UpdateBindingAsync(match.Id, row =>
+        {
+            if (row.AgentId != agentId) return;
+            row.Config = configJson;
+        }, ct);
+
+        if (updated is null)
+            throw new InvalidOperationException("Binding not found.");
+
+        return updated;
+    }
+
     public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
         await _repo.UpdateConnectionAsync(connectionId, record =>

@@ -10,9 +10,6 @@ public class AgentDashboardMutations
         CreateAgentInput input,
         IResolverContext context,
         [Service] IAgentService agents,
-        [Service] IAgentSkillRepository agentSkills,
-        [Service] IChannelRepository channels,
-        [Service] IAgentLogService agentLogs,
         [Service] IMemoryCache cache,
         CancellationToken ct)
     {
@@ -34,56 +31,23 @@ public class AgentDashboardMutations
                     .Build());
         }
 
-        // Installed skills — accept either IntegrationSlugs (legacy) or ToolNames.
         var toolNames = input.ToolNames is { Count: > 0 }
             ? input.ToolNames
             : input.IntegrationSlugs;
-        if (toolNames is { Count: > 0 })
-        {
-            await agentSkills.AssignAsync(dto.Id, toolNames, ct);
-        }
 
-        // Persist per-tool allow/deny overrides.
-        if (input.ToolPermissions is { Count: > 0 })
-        {
-            foreach (var tp in input.ToolPermissions)
-            {
-                var (skill, tool) = AgentToolPermissionRecord.ParseToolKey(tp.Tool);
-                await agentSkills.UpsertToolPermissionAsync(dto.Id, skill, tool, tp.Mode, ct);
-            }
-        }
-
-        if (input.ChannelSlugs is { Count: > 0 })
-        {
-            var connections = await channels.ListConnectionsAsync(ct);
-            foreach (var slug in input.ChannelSlugs)
-            {
-                var match = connections.FirstOrDefault(c =>
-                    string.Equals(c.ChannelType, slug, StringComparison.OrdinalIgnoreCase));
-                if (match is null) continue;
-                try
-                {
-                    await channels.CreateBindingAsync(new AgentChannelBindingRecord
-                    {
-                        AgentId = dto.Id,
-                        ChannelConnectionId = match.Id,
-                    }, ct);
-                }
-                catch (DbUpdateException)
-                {
-                    // already bound — skip
-                }
-            }
-        }
-
-        // Send bootstrap as the agent's first turn.
         var bootstrap = !string.IsNullOrWhiteSpace(input.BootstrapMessage)
             ? input.BootstrapMessage
             : input.Prompt;
-        if (!string.IsNullOrWhiteSpace(bootstrap))
-        {
-            await agentLogs.SendMessageAsync(dto.Id, bootstrap, user.Id, ct);
-        }
+
+        await agents.InitializeAgentAsync(
+            dto.Id,
+            user.Id,
+            new AgentInitRequest(
+                toolNames,
+                input.ToolPermissions?.Select(tp => new AgentToolPermissionInit(tp.Tool, tp.Mode)).ToList(),
+                input.ChannelSlugs,
+                bootstrap),
+            ct);
 
         cache.Remove(AgentListQueryCacheKey);
         return dto;

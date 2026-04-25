@@ -23,4 +23,7 @@ public interface IChannelService
     Task<ChannelConnectionRecord> UpdateConnectionAsync(Guid id, string? displayName, bool? enabled, CancellationToken ct = default);
     Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default);
     Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default);
+    Task<AgentChannelBindingRecord> BindAgentAsync(Guid agentId, Guid channelConnectionId, string? configJson, CancellationToken ct = default);
+    Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default);
+    Task<AgentChannelBindingRecord> UpdateBindingConfigAsync(Guid agentId, Guid channelConnectionId, string configJson, CancellationToken ct = default);
 }

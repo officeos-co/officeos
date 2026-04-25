@@ -75,6 +75,7 @@ global using EnterpriseAgentOs.Application.Features.Billing;
 global using EnterpriseAgentOs.Application.Features.Channels;
 global using EnterpriseAgentOs.Application.Features.CronJobs;
 global using EnterpriseAgentOs.Application.Features.Providers;
+global using EnterpriseAgentOs.Application.Features.Organizations;
 global using EnterpriseAgentOs.Application.Features.Skills;
 global using EnterpriseAgentOs.Api.Common;
 global using EnterpriseAgentOs.Api.Common.Middleware;
