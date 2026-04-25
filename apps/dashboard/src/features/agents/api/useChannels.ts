@@ -60,32 +60,6 @@ const BIND_CHANNEL = gql`
   }
 `
 
-const WHATSAPP_STATUS_QUERY = gql`
-  query WhatsAppConnectionStatus($connectionId: UUID!) {
-    whatsAppConnectionStatus(connectionId: $connectionId) {
-      connectionId
-      status
-      qrData
-    }
-  }
-`
-
-export function useWhatsAppConnectionStatus(connectionId: string | null) {
-  const { data, loading, error } = useQuery(WHATSAPP_STATUS_QUERY, {
-    variables: { connectionId },
-    skip: !connectionId,
-    // Poll every 2s while waiting for QR / connection
-    pollInterval: connectionId ? 2000 : 0,
-    fetchPolicy: "network-only",
-  })
-
-  return {
-    status: (data?.whatsAppConnectionStatus?.status as string) ?? "connecting",
-    qrData: (data?.whatsAppConnectionStatus?.qrData as string) ?? null,
-    loading,
-    error: error ?? undefined,
-  }
-}
 
 export function useChannels(): {
   channels: Channel[]

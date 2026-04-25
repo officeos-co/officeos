@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,14 +13,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import type { Channel } from "../data/channels"
-import { useCreateChannelConnection, useWhatsAppConnectionStatus } from "../api/useChannels"
-import { QRCodeSVG } from "qrcode.react"
+import { useCreateChannelConnection } from "../api/useChannels"
 import {
   ExternalLinkIcon,
   CopyIcon,
   QrCodeIcon,
   LoaderIcon,
-  CheckIcon,
 } from "lucide-react"
 
 export function ChannelOnboardingDialog({
@@ -39,11 +37,6 @@ export function ChannelOnboardingDialog({
   const [step, setStep] = useState(0)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [whatsappConnectionId, setWhatsappConnectionId] = useState<string | null>(null)
-  const isWhatsApp = channel.slug === "whatsapp"
-  const { status: waStatus, qrData, error: waError } = useWhatsAppConnectionStatus(
-    isWhatsApp ? whatsappConnectionId : null
-  )
   const hasSteps = channel.onboarding.length > 0
   const current = hasSteps ? channel.onboarding[step] : null
   const isLast = hasSteps && step === channel.onboarding.length - 1
@@ -53,52 +46,20 @@ export function ChannelOnboardingDialog({
     setInputs({})
     setError(null)
     setConnecting(false)
-    setWhatsappConnectionId(null)
-    setWaTimedOut(false)
   }
-
-  const [waTimedOut, setWaTimedOut] = useState(false)
-
-  // Close dialog when WhatsApp connects successfully
-  useEffect(() => {
-    if (isWhatsApp && waStatus === "open") {
-      onComplete()
-      reset()
-      onOpenChange(false)
-    }
-  }, [waStatus]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Timeout: if QR doesn't arrive within 30s, show error state
-  const shouldTimeout = !!whatsappConnectionId && waStatus !== "qr" && waStatus !== "open" && waStatus !== "error"
-  useEffect(() => {
-    if (!shouldTimeout) return
-    const t = setTimeout(() => setWaTimedOut(true), 30000)
-    return () => clearTimeout(t)
-  }, [shouldTimeout])
 
   async function handleComplete() {
     setConnecting(true)
     setError(null)
     try {
-      if (isWhatsApp) {
-        // Create connection — backend starts WASocket and generates QR
-        const result = await createChannelConnection({
-          channelType: channel.slug,
-          displayName: channel.name,
-          config: {},
-        })
-        setWhatsappConnectionId(result.id)
-        // Don't close — wait for QR scan + subscription to report "open"
-      } else {
-        await createChannelConnection({
-          channelType: channel.slug,
-          displayName: channel.name,
-          config: inputs,
-        })
-        onComplete()
-        reset()
-        onOpenChange(false)
-      }
+      await createChannelConnection({
+        channelType: channel.slug,
+        displayName: channel.name,
+        config: inputs,
+      })
+      onComplete()
+      reset()
+      onOpenChange(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to connect channel")
       setConnecting(false)
@@ -129,75 +90,7 @@ export function ChannelOnboardingDialog({
           <p className="text-sm text-destructive pt-1">{error}</p>
         )}
 
-        {isWhatsApp && whatsappConnectionId ? (
-          <div className="space-y-4 pt-2">
-            {waStatus === "qr" && qrData ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Scan this QR code with WhatsApp on your phone to connect.
-                </p>
-                <div className="rounded-lg border border-border p-6 flex flex-col items-center gap-3">
-                  <QRCodeSVG
-                    value={qrData}
-                    size={192}
-                    level="M"
-                    bgColor="transparent"
-                    fgColor="currentColor"
-                    className="text-foreground"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Open WhatsApp → Settings → Linked Devices → Link a Device
-                  </p>
-                </div>
-              </>
-            ) : waStatus === "open" ? (
-              <div className="flex flex-col items-center gap-2 py-4">
-                <div className="size-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <CheckIcon className="size-6 text-emerald-600" />
-                </div>
-                <p className="text-sm font-medium">Connected!</p>
-              </div>
-            ) : waStatus === "error" || waError || waTimedOut ? (
-              <div className="flex flex-col items-center gap-2 py-4">
-                <p className="text-sm text-destructive">
-                  {waTimedOut ? "Timed out waiting for QR code. The server may be unavailable." : "Connection failed. Please try again."}
-                </p>
-                <Button size="sm" variant="outline" onClick={() => { setWhatsappConnectionId(null); setConnecting(false); setWaTimedOut(false) }}>
-                  Retry
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 py-6">
-                <LoaderIcon className="size-6 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Waiting for QR code...</p>
-                <p className="text-xs text-muted-foreground">This can take a few seconds</p>
-              </div>
-            )}
-            <div className="flex items-center gap-2 pt-2">
-              <Button size="sm" variant="ghost" onClick={() => { reset(); onOpenChange(false) }}>
-                Cancel
-              </Button>
-              {waStatus !== "qr" && waStatus !== "open" && !waError && (
-                <Button size="sm" variant="outline" className="ml-auto" onClick={() => { setWhatsappConnectionId(null); setConnecting(false) }}>
-                  Retry
-                </Button>
-              )}
-            </div>
-          </div>
-        ) : isWhatsApp && !whatsappConnectionId ? (
-          <div className="space-y-3 pt-2">
-            <p className="text-sm text-muted-foreground">
-              Connect your WhatsApp account by scanning a QR code. Your phone stays connected — this works like WhatsApp Web.
-            </p>
-            <div className="flex items-center gap-2 pt-2">
-              <Button size="sm" onClick={handleComplete} disabled={connecting}>
-                {connecting && <LoaderIcon className="size-3 animate-spin" />}
-                Generate QR Code
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)} className="ml-auto" disabled={connecting}>Cancel</Button>
-            </div>
-          </div>
-        ) : !hasSteps ? (
+        {!hasSteps ? (
           <div className="space-y-3 pt-2">
             <p className="text-sm text-muted-foreground">
               Connect {channel.name} to start receiving and sending messages through your agents.
