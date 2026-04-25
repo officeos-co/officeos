@@ -65,9 +65,11 @@ spec:
             - name: DISABLE_AUTO_UPDATE
               value: "false"
             - name: EPHEMERAL
-              value: "true"
+              value: "false"
             - name: ACCESS_TOKEN
               value: "REDACTED_GITHUB_TOKEN"
+            - name: DISABLE_TAILSCALED
+              value: "true"
             - name: DOCKER_HOST
               value: "tcp://localhost:2375"
             - name: PATH
