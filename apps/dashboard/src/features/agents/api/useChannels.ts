@@ -224,3 +224,23 @@ export function useBindChannelToAgent() {
     ...state,
   }
 }
+
+const UNBIND_CHANNEL = gql`
+  mutation UnbindChannelFromAgent($agentId: UUID!, $channelConnectionId: UUID!) {
+    unbindChannelFromAgent(agentId: $agentId, channelConnectionId: $channelConnectionId)
+  }
+`
+
+export function useUnbindChannelFromAgent() {
+  const [fn, state] = useMutation(UNBIND_CHANNEL)
+  return {
+    unbindChannelFromAgent: async (connectionId: string, agentId: string) => {
+      const { data } = await fn({
+        variables: { agentId, channelConnectionId: connectionId },
+        optimisticResponse: { unbindChannelFromAgent: true },
+      })
+      return Boolean(data?.unbindChannelFromAgent)
+    },
+    ...state,
+  }
+}

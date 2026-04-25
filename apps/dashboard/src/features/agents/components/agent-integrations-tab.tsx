@@ -12,7 +12,7 @@ import {
 import { builtInTools } from "@/features/agents/data/integrations";
 import { type ChannelPermissions } from "@/features/agents/data/channels";
 import { useIntegrations } from "@/features/agents/api/useIntegrations";
-import { useChannels } from "@/features/agents/api/useChannels";
+import { useChannels, useBindChannelToAgent, useUnbindChannelFromAgent } from "@/features/agents/api/useChannels";
 import { useAgentBindings } from "@/features/agents/api/useAgentBindings";
 import { CheckIcon, TerminalIcon, PackageCheckIcon } from "lucide-react";
 
@@ -21,7 +21,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { channels } = useChannels();
   const { skillSlugs, channelSlugs, loading: bindingsLoading } =
     useAgentBindings(agentId);
+  const { bindChannelToAgent } = useBindChannelToAgent();
+  const { unbindChannelFromAgent } = useUnbindChannelFromAgent();
   const initializedRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const [initialChannelSlugs, setInitialChannelSlugs] = useState<Set<string>>(new Set());
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
     new Set(),
   );
@@ -36,7 +40,9 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       if (skillSlugs.length > 0)
         setSelectedIntegrations(new Set(skillSlugs));
       if (channelSlugs.length > 0) {
-        setSelectedChannels(new Set(channelSlugs));
+        const slugSet = new Set(channelSlugs);
+        setSelectedChannels(slugSet);
+        setInitialChannelSlugs(slugSet);
         const cp: Record<string, ChannelPermissions> = {};
         for (const slug of channelSlugs) {
           const ch = channels.find((c) => c.slug === slug);
@@ -223,7 +229,39 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       )}
 
       <div className="flex items-center gap-3 pb-8">
-        <Button size="sm">Save changes</Button>
+        <Button
+          size="sm"
+          disabled={saving}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              // Diff channel bindings: bind new, unbind removed
+              const toAdd = [...selectedChannels].filter((s) => !initialChannelSlugs.has(s));
+              const toRemove = [...initialChannelSlugs].filter((s) => !selectedChannels.has(s));
+
+              for (const slug of toAdd) {
+                const ch = channels.find((c) => c.slug === slug);
+                if (ch?.connectionId) {
+                  await bindChannelToAgent(ch.connectionId, agentId);
+                }
+              }
+              for (const slug of toRemove) {
+                const ch = channels.find((c) => c.slug === slug);
+                if (ch?.connectionId) {
+                  await unbindChannelFromAgent(ch.connectionId, agentId);
+                }
+              }
+
+              setInitialChannelSlugs(new Set(selectedChannels));
+            } catch (e) {
+              console.error("Failed to save integrations", e);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {saving ? "Saving..." : "Save changes"}
+        </Button>
       </div>
     </div>
   );
