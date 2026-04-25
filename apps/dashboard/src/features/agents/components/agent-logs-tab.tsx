@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentLogs } from "@/features/analytics/api/useAgentLogs";
 import {
@@ -12,7 +11,6 @@ import {
   SquareIcon,
   AlertTriangleIcon,
   InfoIcon,
-  XIcon,
 } from "lucide-react";
 
 function LogSkeletonRows() {
@@ -47,11 +45,9 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
   const selectedLog = logs.find((l) => l.id === selectedLogId) ?? null;
 
   return (
-    <div className="flex flex-1 pt-4 gap-0 min-h-0">
+    <div className="flex flex-1 pt-4 gap-3 min-h-0">
       {/* Log list — left side */}
-      <div
-        className={`flex-1 overflow-auto border rounded-lg ${selectedLog ? "max-w-[60%]" : ""}`}
-      >
+      <div className="flex-1 overflow-auto border rounded-lg">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left sticky top-0 bg-background">
@@ -148,20 +144,12 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
         </table>
       </div>
 
-      {/* Detail panel — right side */}
-      {selectedLog && (
-        <div className="w-[40%] border rounded-lg ml-3 flex flex-col overflow-auto">
-          <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 bg-background">
-            <h3 className="text-sm font-semibold">Log detail</h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={() => setSelectedLogId(null)}
-            >
-              <XIcon className="size-4" />
-            </Button>
-          </div>
+      {/* Detail panel — right side, always visible */}
+      <div className="w-[340px] shrink-0 border rounded-lg flex flex-col sticky top-0 self-start max-h-[calc(100vh-12rem)] overflow-auto">
+        <div className="px-4 py-3 border-b sticky top-0 bg-background z-10">
+          <h3 className="text-sm font-semibold">Log detail</h3>
+        </div>
+        {selectedLog ? (
           <div className="px-4 py-3 space-y-3 text-sm">
             <div className="grid grid-cols-[100px_1fr] gap-y-2 gap-x-3">
               <span className="text-muted-foreground">Type</span>
@@ -228,8 +216,12 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
               </pre>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex items-center justify-center flex-1 text-sm text-muted-foreground py-8">
+            Select a log entry to view details
+          </div>
+        )}
+      </div>
     </div>
   );
 }

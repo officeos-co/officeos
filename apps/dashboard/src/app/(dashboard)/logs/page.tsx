@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import type { AgentLog } from "@/types/logs"
 import { PageHeader } from "@/components/page-header"
 import { LogTable } from "@/components/log-table"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,79 @@ import {
 const ALL_TYPES = ["All", "tool_call", "tool_result", "channel_in", "channel_out", "message_in", "message_out", "system"] as const
 const PAGE_SIZES = [10, 25, 50] as const
 
+function LogDetailPanel({ log }: { log: AgentLog & { agentName?: string } | null }) {
+  if (!log) {
+    return (
+      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+        Select a log entry to view details
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 py-3 space-y-3 text-sm">
+      <div className="grid grid-cols-[100px_1fr] gap-y-2 gap-x-3">
+        <span className="text-muted-foreground">Type</span>
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs w-fit">
+          {log.type.replace(/_/g, " ")}
+        </span>
+
+        <span className="text-muted-foreground">Time</span>
+        <span className="text-xs">{new Date(log.time).toLocaleString()}</span>
+
+        {log.agentName && (
+          <>
+            <span className="text-muted-foreground">Agent</span>
+            <span className="text-xs">{log.agentName}</span>
+          </>
+        )}
+
+        {log.tool && (
+          <>
+            <span className="text-muted-foreground">Tool</span>
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs w-fit">{log.tool}</code>
+          </>
+        )}
+
+        {log.channel && (
+          <>
+            <span className="text-muted-foreground">Channel</span>
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs w-fit">{log.channel}</code>
+          </>
+        )}
+
+        {log.integration && (
+          <>
+            <span className="text-muted-foreground">Integration</span>
+            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs w-fit">{log.integration}</code>
+          </>
+        )}
+
+        {log.durationMs != null && (
+          <>
+            <span className="text-muted-foreground">Duration</span>
+            <span className="text-xs">{log.durationMs}ms</span>
+          </>
+        )}
+
+        {log.tokens && (
+          <>
+            <span className="text-muted-foreground">Tokens</span>
+            <span className="text-xs">{log.tokens.input} in / {log.tokens.output} out</span>
+          </>
+        )}
+      </div>
+
+      <div className="pt-2 border-t">
+        <span className="text-xs font-medium text-muted-foreground">Content</span>
+        <pre className="mt-1.5 rounded bg-muted p-3 text-xs whitespace-pre-wrap break-words font-mono">
+          {log.content}
+        </pre>
+      </div>
+    </div>
+  )
+}
+
 export default function LogsPage() {
   const { logs: allLogs } = useGlobalLogs()
   const ALL_AGENTS = ["All", ...Array.from(new Set(allLogs.map((l) => l.agentName)))]
@@ -31,6 +105,7 @@ export default function LogsPage() {
   const [agentFilter, setAgentFilter] = useState("All")
   const [pageSize, setPageSize] = useState<number>(25)
   const [page, setPage] = useState(0)
+  const [selectedLog, setSelectedLog] = useState<(AgentLog & { agentName?: string }) | null>(null)
 
   const filtered = useMemo(() => {
     return allLogs.filter((l) => {
@@ -56,63 +131,79 @@ export default function LogsPage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 max-w-sm">
-            <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search logs..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-              className="pl-8"
-            />
-          </div>
-          <Select value={agentFilter} onValueChange={(v) => { if (v) { setAgentFilter(v); setPage(0) } }}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Agent" />
-            </SelectTrigger>
-            <SelectContent>
-              {ALL_AGENTS.map((a) => <SelectItem key={a} value={a}>{a === "All" ? "All agents" : a}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={(v) => { if (v) { setTypeFilter(v); setPage(0) } }}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ALL_TYPES.map((t) => <SelectItem key={t} value={t}>{t === "All" ? "All types" : t.replace("_", " ")}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <LogTable logs={paged} showAgent />
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span>Rows per page</span>
-            <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
-              <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
+      <div className="flex flex-1 gap-3 p-4 pt-0 min-h-0">
+        {/* Left — table + toolbar + pagination */}
+        <div className="flex flex-col gap-4 flex-1 min-w-0">
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 max-w-sm">
+              <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search logs..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+                className="pl-8"
+              />
+            </div>
+            <Select value={agentFilter} onValueChange={(v) => { if (v) { setAgentFilter(v); setPage(0) } }}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Agent" />
+              </SelectTrigger>
               <SelectContent>
-                {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
+                {ALL_AGENTS.map((a) => <SelectItem key={a} value={a}>{a === "All" ? "All agents" : a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={(v) => { if (v) { setTypeFilter(v); setPage(0) } }}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {ALL_TYPES.map((t) => <SelectItem key={t} value={t}>{t === "All" ? "All types" : t.replace("_", " ")}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs">
-              {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}` : "0 results"}
-            </span>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
-              <ChevronLeftIcon className="size-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-              <ChevronRightIcon className="size-4" />
-            </Button>
+
+          {/* Table */}
+          <div className="overflow-auto border rounded-lg">
+            <LogTable
+              logs={paged}
+              showAgent
+              selectedLogId={selectedLog?.id}
+              onSelectLog={(log) => setSelectedLog(selectedLog?.id === log.id ? null : log)}
+            />
           </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>Rows per page</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
+                <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-xs">
+                {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}` : "0 results"}
+              </span>
+              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
+                <ChevronRightIcon className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right — always-visible detail panel */}
+        <div className="w-[340px] shrink-0 border rounded-lg flex flex-col sticky top-0 self-start max-h-[calc(100vh-8rem)] overflow-auto">
+          <div className="px-4 py-3 border-b sticky top-0 bg-background z-10">
+            <h3 className="text-sm font-semibold">Log detail</h3>
+          </div>
+          <LogDetailPanel log={selectedLog} />
         </div>
       </div>
     </>

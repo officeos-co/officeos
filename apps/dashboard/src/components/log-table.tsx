@@ -50,9 +50,13 @@ function formatTime(ts: number) {
 export function LogTable({
   logs,
   showAgent = false,
+  selectedLogId,
+  onSelectLog,
 }: {
   logs: (AgentLog & { agentName?: string })[]
   showAgent?: boolean
+  selectedLogId?: string | null
+  onSelectLog?: (log: AgentLog & { agentName?: string }) => void
 }) {
   return (
     <table className="w-full text-sm">
@@ -69,7 +73,7 @@ export function LogTable({
       </thead>
       <tbody>
         {logs.map((log) => (
-          <tr key={log.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+          <tr key={log.id} onClick={() => onSelectLog?.(log)} className={`border-b last:border-0 transition-colors ${onSelectLog ? "cursor-pointer" : ""} ${selectedLogId === log.id ? "bg-muted" : "hover:bg-muted/50"}`}>
             <td className="px-3 py-2.5">
               <div className="flex size-6 items-center justify-center">{logIcon(log)}</div>
             </td>
