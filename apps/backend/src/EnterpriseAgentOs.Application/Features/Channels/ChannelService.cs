@@ -9,6 +9,7 @@ internal sealed class ChannelService : IChannelService
     private readonly IChannelGateway _gateway;
     private readonly ChannelCredentialProtector _protector;
     private readonly IPublisher _publisher;
+    private readonly ChannelReplyContext _replyContext;
     private readonly ILogger<ChannelService> _logger;
 
     public ChannelService(
@@ -16,12 +17,14 @@ internal sealed class ChannelService : IChannelService
         IChannelGateway gateway,
         ChannelCredentialProtector protector,
         IPublisher publisher,
+        ChannelReplyContext replyContext,
         ILogger<ChannelService> logger)
     {
         _repo = repo;
         _gateway = gateway;
         _protector = protector;
         _publisher = publisher;
+        _replyContext = replyContext;
         _logger = logger;
     }
 
@@ -93,6 +96,11 @@ internal sealed class ChannelService : IChannelService
             // Extract plain text from the Chat SDK JSON envelope
             var plainText = ExtractPlainText(messageText);
 
+            // Stash the reply target so the outbound handler can deliver
+            // the response back to the same conversation — no DB, pure in-memory
+            if (!string.IsNullOrEmpty(channelId))
+                _replyContext.Set(correlationId, channelType, channelId, channelId);
+
             await _publisher.Publish(new MessageReceivedEvent(
                 binding.AgentId, plainText, correlationId), ct);
 
@@ -157,7 +165,7 @@ internal sealed class ChannelService : IChannelService
             try
             {
                 await _gateway.SendAsync(channelType, platformId, threadId,
-                    new { kind = "text", content = text }, ct);
+                    ChannelMessage.Text(text), ct);
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
                     agentId, AgentLogType.ChannelOut, channelType, text, correlationId), ct);
@@ -184,7 +192,7 @@ internal sealed class ChannelService : IChannelService
         {
             // Test message — no specific platformId, sidecar adapter handles default delivery
             await _gateway.SendAsync(connection.ChannelType, "default", null,
-                new { kind = "text", content = message }, ct);
+                ChannelMessage.Text(message), ct);
         }
         catch (Exception ex)
         {

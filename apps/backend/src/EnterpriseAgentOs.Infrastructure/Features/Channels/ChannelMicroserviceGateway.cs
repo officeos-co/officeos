@@ -15,9 +15,9 @@ public sealed class ChannelSidecarGateway : IChannelGateway
     }
 
     public async Task SendAsync(string channelType, string platformId, string? threadId,
-                                object message, CancellationToken ct = default)
+                                ChannelMessage message, CancellationToken ct = default)
     {
-        var payload = new { channelType, platformId, threadId, message };
+        var payload = new { channelType, platformId, threadId, message = new { kind = message.Kind, content = message.Content } };
         var response = await _http.PostAsJsonAsync("/send", payload, ct);
         response.EnsureSuccessStatusCode();
     }

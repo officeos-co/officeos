@@ -6,7 +6,7 @@ namespace EnterpriseAgentOs.Domain.Features.Channels;
 public interface IChannelGateway
 {
     Task SendAsync(string channelType, string platformId, string? threadId,
-                   object message, CancellationToken ct = default);
+                   ChannelMessage message, CancellationToken ct = default);
     Task ReloadAsync(CancellationToken ct = default);
 }
 
