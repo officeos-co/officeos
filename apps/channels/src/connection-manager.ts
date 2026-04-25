@@ -51,7 +51,7 @@ export async function reloadFromBackend(): Promise<void> {
       await adapter.setup({
         onInbound(platformId, threadId, message) {
           forwardInbound({
-            connectionId: '', // backend resolves via channelType + platformId
+            channelType,
             senderIdentifier: platformId,
             messageText: typeof message.content === 'string'
               ? message.content

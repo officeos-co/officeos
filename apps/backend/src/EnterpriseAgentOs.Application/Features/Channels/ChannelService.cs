@@ -99,6 +99,30 @@ internal sealed class ChannelService : IChannelService
         return agentIds;
     }
 
+    public async Task<IReadOnlyList<Guid>> RouteInboundByChannelTypeAsync(
+        string channelType, string senderIdentifier, string messageText,
+        bool isGroupMessage, string? messageId, string? channelId,
+        CancellationToken ct = default)
+    {
+        var connections = await _repo.FindConnectionsByChannelTypeAsync(channelType, ct);
+        if (connections.Count == 0)
+        {
+            await _publisher.Publish(new ChannelMessageRoutedEvent(
+                null, AgentLogType.ChannelIn, channelType,
+                messageText, Guid.NewGuid().ToString("N")), ct);
+            return [];
+        }
+
+        var allAgentIds = new List<Guid>();
+        foreach (var connection in connections)
+        {
+            var agentIds = await RouteInboundAsync(connection.Id, senderIdentifier, messageText,
+                isGroupMessage, messageId, channelId, ct);
+            allAgentIds.AddRange(agentIds);
+        }
+        return allAgentIds;
+    }
+
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
         var bindings = await _repo.ListBindingsAsync(agentId, ct);

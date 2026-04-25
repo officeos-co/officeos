@@ -17,6 +17,7 @@ public interface IChannelGateway
 public interface IChannelService
 {
     Task<IReadOnlyList<Guid>> RouteInboundAsync(Guid connectionId, string senderIdentifier, string messageText, bool isGroupMessage, string? messageId, string? channelId, CancellationToken ct = default);
+    Task<IReadOnlyList<Guid>> RouteInboundByChannelTypeAsync(string channelType, string senderIdentifier, string messageText, bool isGroupMessage, string? messageId, string? channelId, CancellationToken ct = default);
     Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default);
     Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default);
     Task<ChannelConnectionRecord> CreateConnectionAsync(string channelType, string displayName, string? configJson, Guid createdById, CancellationToken ct = default);

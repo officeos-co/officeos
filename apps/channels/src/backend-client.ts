@@ -24,7 +24,7 @@ export async function fetchActiveConnections(): Promise<ActiveConnection[]> {
 
 // Keep existing forwardInbound function but simplify the interface
 interface InboundPayload {
-  connectionId: string;
+  channelType: string;
   senderIdentifier: string;
   messageText: string;
   isGroupMessage: boolean;
