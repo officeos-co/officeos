@@ -20,7 +20,7 @@ internal sealed class OrgBillingService : IOrgBillingService
         return sub ?? OrgSubscription.CreateDefaultFree(orgId);
     }
 
-    public async Task<(long Remaining, bool OverBudget)> CheckCreditBudgetAsync(string orgId, CancellationToken ct = default)
+    public async Task<CreditBudgetResult> CheckCreditBudgetAsync(string orgId, CancellationToken ct = default)
     {
         var sub = await GetSubscriptionAsync(orgId, ct);
         return sub.CheckBudget();

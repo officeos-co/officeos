@@ -128,17 +128,7 @@ var dashboardGql = builder.Services
     .AddQueryType<GraphQLQueries>()
     .AddMutationType<GraphQLMutations>()
     .AddSubscriptionType<GraphQLSubscriptions>()
-    .AddInMemorySubscriptions()
-    .AddType(new ObjectType<UserSubscription>(d =>
-    {
-        d.Name("UserSubscription");
-        d.Ignore(x => x.CheckBudget());
-    }))
-    .AddType(new ObjectType<OrgSubscription>(d =>
-    {
-        d.Name("OrgSubscription");
-        d.Ignore(x => x.CheckBudget());
-    }));
+    .AddInMemorySubscriptions();
 GraphQLRegistrationExtensions.AddDomainTypeExtensions(
     dashboardGql, typeof(Program).Assembly)
     .UseField<DashboardAuthMiddleware>()

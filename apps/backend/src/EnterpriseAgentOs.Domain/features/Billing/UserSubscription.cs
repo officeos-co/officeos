@@ -54,10 +54,10 @@ public sealed class UserSubscription
     }
 
     /// <summary>Returns remaining credits and whether the budget is exceeded.</summary>
-    public (long Remaining, bool OverBudget) CheckBudget()
+    public CreditBudgetResult CheckBudget()
     {
         var remaining = CreditBudgetPerMonth - CreditsUsedThisMonth;
-        return (remaining, remaining < 0);
+        return new CreditBudgetResult(remaining, remaining < 0);
     }
 
     /// <summary>Records credit usage against this subscription.</summary>

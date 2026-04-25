@@ -26,7 +26,7 @@ internal sealed class UserBillingService : IUserBillingService
         return sub ?? UserSubscription.CreateDefaultFree(userId);
     }
 
-    public async Task<(long Remaining, bool OverBudget)> CheckCreditBudgetAsync(Guid userId, CancellationToken ct = default)
+    public async Task<CreditBudgetResult> CheckCreditBudgetAsync(Guid userId, CancellationToken ct = default)
     {
         var sub = await GetSubscriptionAsync(userId, ct);
         return sub.CheckBudget();
