@@ -94,7 +94,7 @@ internal sealed class ChannelService : IChannelService
             var plainText = ExtractPlainText(messageText);
 
             await _publisher.Publish(new MessageReceivedEvent(
-                binding.AgentId, plainText, correlationId, null), ct);
+                binding.AgentId, plainText, correlationId), ct);
 
             agentIds.Add(binding.AgentId);
         }

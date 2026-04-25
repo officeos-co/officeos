@@ -66,7 +66,7 @@ internal sealed class AgentLogService : IAgentLogService
             return record;
         }
 
-        await _publisher.Publish(new MessageReceivedEvent(agentId, content, correlationId, agent.PodName), ct);
+        await _publisher.Publish(new MessageReceivedEvent(agentId, content, correlationId), ct);
 
         return record;
     }
