@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'apps/website/**'
-      - 'changelog/**'
-      - 'k8s/website.yaml'
-      - '.github/workflows/deploy-website-prod.yml'
+      - "apps/website/**"
+      - "changelog/**"
+      - "k8s/website.yaml"
+      - ".github/workflows/deploy-website-prod.yml"
 
 concurrency:
   group: deploy-website-prod
@@ -44,7 +44,7 @@ jobs:
 
       - name: Apply manifest and restart website
         run: |
-          kubectl config set-cluster nova --server=https://localhost:6443 --insecure-skip-tls-verify=true
+          kubectl config set-cluster nova --server=https://REDACTED_KUBE_SERVER_IP:6443 --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
