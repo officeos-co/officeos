@@ -283,7 +283,7 @@ export function Navbar() {
               </div>
 
               <Link
-                className="btn-glow ml-2 flex h-8 w-fit items-center justify-center rounded-full bg-secondary px-4 font-normal text-sm tracking-wide"
+                className="btn-glow ml-2 flex h-8 w-fit items-center justify-center rounded-full bg-secondary px-4 font-normal text-sm text-white tracking-wide"
                 href="https://dashboard.officeos.co"
               >
                 Start Free

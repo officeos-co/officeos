@@ -4,6 +4,7 @@ import { CTASection } from "@/components/sections/cta-section";
 import { FAQSection } from "@/components/sections/faq-section";
 import { FooterSection } from "@/components/sections/footer-section";
 import { GrowthSection } from "@/components/sections/growth-section";
+import { QuoteSection } from "@/components/sections/quote-section";
 import { HeroSection } from "@/components/sections/hero-section";
 import { Navbar } from "@/components/sections/navbar";
 import { TrustSection } from "@/components/sections/trust-section";
@@ -90,6 +91,7 @@ export default function Home() {
         <HeroSection />
         <CompanyShowcase />
         <BentoSection />
+        <QuoteSection />
         <GrowthSection />
         <TrustSection />
         <FAQSection />

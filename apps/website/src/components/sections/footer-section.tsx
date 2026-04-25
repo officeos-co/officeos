@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
+import Image from "next/image";
 import Link from "next/link";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -61,6 +62,13 @@ export function FooterSection() {
       <div className="flex flex-col p-10 md:flex-row md:items-start md:justify-between">
         <div className="mx-0 flex max-w-xs flex-col items-start justify-start gap-y-5">
           <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo.svg"
+              alt="OfficeOS"
+              width={20}
+              height={20}
+              className="h-[1.125rem] w-[1.125rem]"
+            />
             <p className="font-semibold text-primary text-xl">OfficeOS</p>
           </Link>
           <p className="font-medium text-muted-foreground tracking-tight">
