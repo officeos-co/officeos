@@ -342,7 +342,7 @@ export function CTASection() {
               href="https://dashboard.officeos.co"
               className="btn-glow mt-5 flex h-10 items-center gap-1.5 rounded-full bg-secondary px-5 text-sm font-medium text-white tracking-wide transition-all hover:bg-secondary/80 active:scale-95"
             >
-              Get Started
+              Start Free
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
