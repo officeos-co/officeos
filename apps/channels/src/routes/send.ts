@@ -19,9 +19,14 @@ router.post('/send', async (req, res) => {
   }
 
   try {
+    // Normalize content: backend sends { kind: "text", content: "string" }
+    // but deliver() expects content to be an object with text/markdown keys
+    const rawContent = message.content ?? message;
+    const content = typeof rawContent === 'string' ? { text: rawContent } : rawContent;
+
     const messageId = await adapter.deliver(platformId, threadId ?? null, {
       kind: message.kind || 'chat',
-      content: message.content ?? message,
+      content,
     });
     res.json({ ok: true, messageId });
   } catch (err) {
