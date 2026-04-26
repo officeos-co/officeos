@@ -29,4 +29,31 @@ internal static class BackgroundWork
             }
         });
     }
+
+    public static void Run<T1, T2>(
+        IServiceScopeFactory scopeFactory,
+        Func<T1, T2, Task> work,
+        ILogger logger,
+        TimeSpan? delay = null)
+        where T1 : notnull where T2 : notnull
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (delay.HasValue)
+                    await Task.Delay(delay.Value);
+
+                using var scope = scopeFactory.CreateScope();
+                var s1 = scope.ServiceProvider.GetRequiredService<T1>();
+                var s2 = scope.ServiceProvider.GetRequiredService<T2>();
+                await work(s1, s2);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Background work failed for {Service1}+{Service2}",
+                    typeof(T1).Name, typeof(T2).Name);
+            }
+        });
+    }
 }
