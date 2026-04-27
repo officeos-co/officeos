@@ -11,17 +11,30 @@ import {
 import { builtInTools } from "@/features/agents/data/integrations";
 import { type ChannelPermissions } from "@/features/agents/data/channels";
 import { useIntegrations } from "@/features/agents/api/useIntegrations";
-import { useChannels, useBindChannelToAgent, useUnbindChannelFromAgent } from "@/features/agents/api/useChannels";
+import {
+  useChannels,
+  useBindChannelToAgent,
+  useUnbindChannelFromAgent,
+} from "@/features/agents/api/useChannels";
 import { useAgentBindings } from "@/features/agents/api/useAgentBindings";
+import {
+  useAssignSkillToAgent,
+  useUnassignSkillFromAgent,
+} from "@/features/agents/api/useAgentSkills";
 import { CheckIcon, TerminalIcon, PackageCheckIcon } from "lucide-react";
 
 export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { integrations } = useIntegrations();
   const { channels } = useChannels();
-  const { skillSlugs, channelSlugs, loading: bindingsLoading } =
-    useAgentBindings(agentId);
+  const {
+    skillSlugs,
+    channelSlugs,
+    loading: bindingsLoading,
+  } = useAgentBindings(agentId);
   const { bindChannelToAgent } = useBindChannelToAgent();
   const { unbindChannelFromAgent } = useUnbindChannelFromAgent();
+  const assignSkill = useAssignSkillToAgent();
+  const unassignSkill = useUnassignSkillFromAgent();
   const initializedRef = useRef(false);
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
     new Set(),
@@ -34,8 +47,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   useEffect(() => {
     if (!bindingsLoading && !initializedRef.current) {
       initializedRef.current = true;
-      if (skillSlugs.length > 0)
-        setSelectedIntegrations(new Set(skillSlugs));
+      if (skillSlugs.length > 0) setSelectedIntegrations(new Set(skillSlugs));
       if (channelSlugs.length > 0) {
         const slugSet = new Set(channelSlugs);
         setSelectedChannels(slugSet);
@@ -48,6 +60,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       }
     }
   }, [bindingsLoading, skillSlugs, channelSlugs, channels]);
+
   const [toolPermissions, setToolPermissions] = useState<
     Record<string, ToolPermission>
   >({});
@@ -58,13 +71,33 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     Record<string, ChannelPermissions>
   >({});
 
-  function toggleIntegration(slug: string) {
+  async function toggleIntegration(slug: string) {
+    const wasSelected = selectedIntegrations.has(slug);
+
+    // Optimistic UI
     setSelectedIntegrations((prev) => {
       const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
+      if (wasSelected) next.delete(slug);
       else next.add(slug);
       return next;
     });
+
+    try {
+      if (wasSelected) {
+        await unassignSkill(agentId, slug);
+      } else {
+        await assignSkill(agentId, slug);
+      }
+    } catch (e) {
+      console.error("Failed to toggle skill", e);
+      // Revert on failure
+      setSelectedIntegrations((prev) => {
+        const next = new Set(prev);
+        if (wasSelected) next.add(slug);
+        else next.delete(slug);
+        return next;
+      });
+    }
   }
 
   async function toggleChannel(slug: string) {
@@ -189,22 +222,21 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
 
       <Separator />
 
-      {/* Tool permissions */}
-      <div className="space-y-3">
-        <Label>Tool permissions</Label>
+      {/* Tool permissions — coming soon */}
+      <div className="space-y-3 pointer-events-none opacity-50">
+        <Label className="flex items-center gap-2">
+          Tool permissions
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Coming soon</span>
+        </Label>
         <ToolPermissionCard
           title="Built-in tools"
           subtitle="agent_toolset"
           icon={<TerminalIcon className="size-4" />}
           tools={builtInTools}
           permissions={toolPermissions}
-          onToggle={(k, p) =>
-            setToolPermissions((prev) => ({ ...prev, [k]: p }))
-          }
+          onToggle={() => {}}
           groupPerm={groupPermissions["builtin"] ?? "allow"}
-          onGroupPerm={(p) =>
-            setGroupPermissions((prev) => ({ ...prev, builtin: p }))
-          }
+          onGroupPerm={() => {}}
           prefix="builtin"
         />
         {activeIntegrations.map((i) => (
@@ -220,30 +252,27 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
             }
             tools={i.tools}
             permissions={toolPermissions}
-            onToggle={(k, p) =>
-              setToolPermissions((prev) => ({ ...prev, [k]: p }))
-            }
+            onToggle={() => {}}
             groupPerm={groupPermissions[i.slug] ?? "allow"}
-            onGroupPerm={(p) =>
-              setGroupPermissions((prev) => ({ ...prev, [i.slug]: p }))
-            }
+            onGroupPerm={() => {}}
             prefix={i.slug}
           />
         ))}
       </div>
 
-      {/* Channel permissions */}
+      {/* Channel permissions — coming soon */}
       {activeChannels.length > 0 && (
-        <div className="space-y-3">
-          <Label>Channel permissions</Label>
+        <div className="space-y-3 pointer-events-none opacity-50">
+          <Label className="flex items-center gap-2">
+            Channel permissions
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Coming soon</span>
+          </Label>
           {activeChannels.map((c) => (
             <ChannelPermissionCard
               key={c.slug}
               channel={c}
               perms={channelPerms[c.slug] ?? c.defaultPermissions}
-              onChange={(p) =>
-                setChannelPerms((prev) => ({ ...prev, [c.slug]: p }))
-              }
+              onChange={() => {}}
             />
           ))}
         </div>

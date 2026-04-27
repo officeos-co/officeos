@@ -1,70 +1,49 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { useEffect } from "react"
+import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { useCost } from "@/features/analytics"
-import { useModels } from "@/features/agents"
-import {
-  DownloadIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
+import { DownloadIcon } from "lucide-react"
+import { useCost, useUsage } from "@/features/analytics"
 
-const RANGES = ["Last 7 days", "Last 14 days", "Last 30 days", "Month to date"] as const
-const GROUP_BY = ["Day", "Model"] as const
-
-function rangeDays(range: string): number {
-  if (range === "Last 7 days") return 7
-  if (range === "Last 14 days") return 14
-  if (range === "Month to date") return new Date().getDate()
-  return 30
-}
-
-function usd(n: number) {
-  return `$${n.toFixed(2)}`
-}
-
-function formatDate(d: string) {
-  const date = new Date(d + "T00:00:00")
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+function formatCredits(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return n.toLocaleString()
 }
 
 export default function CostPage() {
-  const { dailyCost: mockDailyCost } = useCost()
-  const { models } = useModels()
-  const [range, setRange] = useState<string>("Month to date")
-  const [groupBy, setGroupBy] = useState<string>("Day")
-  const [model, setModel] = useState("All")
+  const { weights, loading: weightsLoading, error: weightsError } = useCost()
+  const { usage, loading: usageLoading, error: usageError } = useUsage()
 
-  const days = rangeDays(range)
-  const data = useMemo(() => mockDailyCost.slice(-days), [days, mockDailyCost])
+  const loading = weightsLoading || usageLoading
+  const error = weightsError || usageError
 
-  const totals = useMemo(() => ({
-    tokenCost: data.reduce((s, d) => s + d.tokenCost, 0),
-    webSearchCost: data.reduce((s, d) => s + d.webSearchCost, 0),
-    codeExecCost: data.reduce((s, d) => s + d.codeExecCost, 0),
-    runtimeCost: data.reduce((s, d) => s + d.runtimeCost, 0),
-  }), [data])
+  useEffect(() => {
+    if (error) toast.error("Failed to load cost data", { description: error.message })
+  }, [error])
 
-  const totalAll = totals.tokenCost + totals.webSearchCost + totals.codeExecCost + totals.runtimeCost
+  if (loading && !weights.length) {
+    return (
+      <>
+        <PageHeader group="Analytics" page="Cost" />
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto w-full">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+      </>
+    )
+  }
 
-  const chartData = data.map((d) => ({
-    date: formatDate(d.date),
-    tokens: d.tokenCost,
-    search: d.webSearchCost,
-    code: d.codeExecCost,
-    runtime: d.runtimeCost,
-    total: d.tokenCost + d.webSearchCost + d.codeExecCost + d.runtimeCost,
-  }))
+  const sorted = [...weights].sort((a, b) => a.weight - b.weight)
+  const baselineModel = sorted.find((w) => w.weight === 1)
+
+  const pct = usage && usage.creditBudgetPerMonth > 0
+    ? Math.min(100, (usage.creditsUsedThisMonth / usage.creditBudgetPerMonth) * 100)
+    : 0
 
   return (
     <>
@@ -79,89 +58,75 @@ export default function CostPage() {
         }
       />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto w-full">
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={groupBy} onValueChange={(v) => { if (v) setGroupBy(v) }}>
-            <SelectTrigger className="w-[140px]">
-              <span className="text-muted-foreground mr-1">Group by:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {GROUP_BY.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>
-            <SelectTrigger className="w-[160px]">
-              <span className="text-muted-foreground mr-1">Model:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              {models.map((m) => (
-                <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-1 ml-auto">
-            <Button variant="outline" size="icon" className="h-8 w-8">
-              <ChevronLeftIcon className="size-4" />
-            </Button>
-            <Select value={range} onValueChange={(v) => { if (v) setRange(v) }}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RANGES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon" className="h-8 w-8">
-              <ChevronRightIcon className="size-4" />
-            </Button>
+        {/* Credit summary */}
+        {usage && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border p-4">
+              <div className="text-sm text-muted-foreground">Credits used</div>
+              <div className="text-2xl font-semibold mt-1">{formatCredits(usage.creditsUsedThisMonth)}</div>
+            </div>
+            <div className="rounded-xl border border-border p-4">
+              <div className="text-sm text-muted-foreground">Monthly budget</div>
+              <div className="text-2xl font-semibold mt-1">{formatCredits(usage.creditBudgetPerMonth)}</div>
+            </div>
+            <div className="rounded-xl border border-border p-4">
+              <div className="text-sm text-muted-foreground">Budget used</div>
+              <div className="text-2xl font-semibold mt-1">{pct.toFixed(1)}%</div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Cost summary cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-border p-4">
-            <div className="text-sm text-muted-foreground">Total token cost</div>
-            <div className="text-2xl font-semibold mt-1">{usd(totals.tokenCost)}</div>
-          </div>
-          <div className="rounded-xl border border-border p-4">
-            <div className="text-sm text-muted-foreground">Web search cost</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Broken down by agent</div>
-            <div className="text-2xl font-semibold mt-1">{usd(totals.webSearchCost)}</div>
-          </div>
-          <div className="rounded-xl border border-border p-4">
-            <div className="text-sm text-muted-foreground">Code execution cost</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Broken down by agent</div>
-            <div className="text-2xl font-semibold mt-1">{usd(totals.codeExecCost)}</div>
-          </div>
-          <div className="rounded-xl border border-border p-4">
-            <div className="text-sm text-muted-foreground">Session runtime cost</div>
-            <div className="text-xs text-muted-foreground mt-0.5">Broken down by agent</div>
-            <div className="text-2xl font-semibold mt-1">{usd(totals.runtimeCost)}</div>
-          </div>
-        </div>
+        <Separator />
 
-        {/* Daily cost stacked area chart */}
+        {/* Model cost weights */}
         <div className="rounded-xl border border-border p-4">
-          <div className="mb-1 text-sm font-medium">Daily cost breakdown</div>
-          <div className="text-xs text-muted-foreground mb-4">Total: {usd(totalAll)}</div>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData} barGap={0} barCategoryGap="20%">
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} width={40} />
-              <Tooltip
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--popover)" }}
-                formatter={(value) => usd(Number(value))}
-              />
-              <Bar dataKey="tokens" name="Tokens" stackId="1" fill="var(--primary)" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="search" name="Web search" stackId="1" fill="var(--chart-2)" />
-              <Bar dataKey="code" name="Code exec" stackId="1" fill="var(--chart-3)" />
-              <Bar dataKey="runtime" name="Runtime" stackId="1" fill="var(--chart-4)" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="text-sm font-medium mb-1">Model credit weights</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Each model consumes credits at a different rate.
+            {baselineModel && <> {baselineModel.model} is the baseline (1×).</>}
+            {" "}Unknown models default to 20×.
+          </p>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left">
+                <th className="px-0 py-2.5 font-medium">Model</th>
+                <th className="px-0 py-2.5 font-medium text-right">Weight</th>
+                <th className="px-0 py-2.5 font-medium text-right">Credits per 1k tokens</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((w) => (
+                <tr key={w.model} className="border-b last:border-0">
+                  <td className="px-0 py-2.5 font-mono text-xs">{w.model}</td>
+                  <td className="px-0 py-2.5 text-right">{w.weight}×</td>
+                  <td className="px-0 py-2.5 text-right">{formatCredits(w.weight * 1000)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Visual weight comparison */}
+        <div className="rounded-xl border border-border p-4">
+          <h3 className="text-sm font-medium mb-4">Relative cost comparison</h3>
+          <div className="space-y-3">
+            {sorted.map((w) => {
+              const maxWeight = sorted[sorted.length - 1]?.weight ?? 1
+              const barPct = (w.weight / maxWeight) * 100
+              return (
+                <div key={w.model} className="flex items-center gap-3">
+                  <span className="text-xs font-mono w-36 shrink-0 truncate">{w.model}</span>
+                  <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded bg-primary transition-all"
+                      style={{ width: `${barPct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground w-8 text-right">{w.weight}×</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </>

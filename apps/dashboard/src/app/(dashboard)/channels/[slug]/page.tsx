@@ -89,10 +89,11 @@ export default function ChannelDetailPage({
           </div>
         </div>
 
-        {/* Default permissions */}
-        <div className="rounded-xl border border-border bg-card">
+        {/* Default permissions — coming soon */}
+        <div className="rounded-xl border border-border bg-card pointer-events-none opacity-50">
           <div className="px-4 py-3 border-b border-border">
             <span className="text-sm font-medium">Default Permissions</span>
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Coming soon</span>
           </div>
           {([
             { key: "receive", label: "Receive messages", icon: BellIcon, desc: "Agent receives incoming messages from this channel" },
