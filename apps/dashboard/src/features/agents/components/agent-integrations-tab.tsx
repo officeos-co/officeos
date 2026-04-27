@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   ToolPermissionCard,
@@ -24,8 +23,6 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { bindChannelToAgent } = useBindChannelToAgent();
   const { unbindChannelFromAgent } = useUnbindChannelFromAgent();
   const initializedRef = useRef(false);
-  const [saving, setSaving] = useState(false);
-  const [initialChannelSlugs, setInitialChannelSlugs] = useState<Set<string>>(new Set());
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
     new Set(),
   );
@@ -42,7 +39,6 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       if (channelSlugs.length > 0) {
         const slugSet = new Set(channelSlugs);
         setSelectedChannels(slugSet);
-        setInitialChannelSlugs(slugSet);
         const cp: Record<string, ChannelPermissions> = {};
         for (const slug of channelSlugs) {
           const ch = channels.find((c) => c.slug === slug);
@@ -71,27 +67,52 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     });
   }
 
-  function toggleChannel(slug: string) {
+  async function toggleChannel(slug: string) {
+    const wasSelected = selectedChannels.has(slug);
+    const ch = channels.find((c) => c.slug === slug);
+
+    // Optimistically update UI
     setSelectedChannels((prev) => {
       const next = new Set(prev);
-      if (next.has(slug)) {
-        next.delete(slug);
-        setChannelPerms((cp) => {
-          const n = { ...cp };
-          delete n[slug];
-          return n;
-        });
-      } else {
-        next.add(slug);
-        const ch = channels.find((c) => c.slug === slug);
-        if (ch)
-          setChannelPerms((cp) => ({
-            ...cp,
-            [slug]: { ...ch.defaultPermissions },
-          }));
-      }
+      if (wasSelected) next.delete(slug);
+      else next.add(slug);
       return next;
     });
+
+    if (wasSelected) {
+      setChannelPerms((cp) => {
+        const n = { ...cp };
+        delete n[slug];
+        return n;
+      });
+      if (ch?.connectionId) {
+        try {
+          await unbindChannelFromAgent(ch.connectionId, agentId);
+        } catch (e) {
+          console.error("Failed to unbind channel", e);
+          setSelectedChannels((prev) => new Set(prev).add(slug));
+        }
+      }
+    } else {
+      if (ch) {
+        setChannelPerms((cp) => ({
+          ...cp,
+          [slug]: { ...ch.defaultPermissions },
+        }));
+        if (ch.connectionId) {
+          try {
+            await bindChannelToAgent(ch.connectionId, agentId);
+          } catch (e) {
+            console.error("Failed to bind channel", e);
+            setSelectedChannels((prev) => {
+              const next = new Set(prev);
+              next.delete(slug);
+              return next;
+            });
+          }
+        }
+      }
+    }
   }
 
   const activeIntegrations = integrations.filter((i) =>
@@ -228,41 +249,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         </div>
       )}
 
-      <div className="flex items-center gap-3 pb-8">
-        <Button
-          size="sm"
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              // Diff channel bindings: bind new, unbind removed
-              const toAdd = [...selectedChannels].filter((s) => !initialChannelSlugs.has(s));
-              const toRemove = [...initialChannelSlugs].filter((s) => !selectedChannels.has(s));
-
-              for (const slug of toAdd) {
-                const ch = channels.find((c) => c.slug === slug);
-                if (ch?.connectionId) {
-                  await bindChannelToAgent(ch.connectionId, agentId);
-                }
-              }
-              for (const slug of toRemove) {
-                const ch = channels.find((c) => c.slug === slug);
-                if (ch?.connectionId) {
-                  await unbindChannelFromAgent(ch.connectionId, agentId);
-                }
-              }
-
-              setInitialChannelSlugs(new Set(selectedChannels));
-            } catch (e) {
-              console.error("Failed to save integrations", e);
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          {saving ? "Saving..." : "Save changes"}
-        </Button>
-      </div>
+      <div className="pb-8" />
     </div>
   );
 }
