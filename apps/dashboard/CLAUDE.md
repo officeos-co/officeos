@@ -35,4 +35,4 @@ Next.js 16 app (App Router, React 19, Tailwind v4, bun). Uses Apollo Client for 
 - **No WebSocket subscriptions** — real-time uses polling. Next.js rewrites don't support WS upgrades.
 - **Standalone Docker output** (`output: "standalone"` in next.config.ts). Production image uses `bun server.js`.
 - **Auth**: Cookie-based (`credentials: "include"` on Apollo). `AuthProvider` wraps all client components via `providers.tsx`.
-- **Production backend**: `https://api.officeos.co`; local dev: `http://localhost:5000`.
+- **Environment config**: Single env var `APP_ENV` (development|staging|production) set via K8s manifest (or `.env.local` for dev). All URLs derived in `src/lib/env.ts` — mirrors backend's `appsettings.json` pattern. No build args or CI/CD env vars.

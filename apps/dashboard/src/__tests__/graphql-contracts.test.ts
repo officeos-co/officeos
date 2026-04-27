@@ -3,8 +3,10 @@ import { buildClientSchema, getIntrospectionQuery, parse, validate } from "graph
 import { readFileSync, readdirSync, statSync, existsSync } from "fs"
 import { join, relative } from "path"
 
+import { envConfig } from "../lib/env"
+
 const SCHEMA_URL =
-  process.env.GRAPHQL_SCHEMA_URL ?? "https://api.officeos.co/api/dashboard/graphql"
+  process.env.GRAPHQL_SCHEMA_URL ?? `${envConfig.apiUrl}/api/dashboard/graphql`
 
 const SRC_DIR = join(import.meta.dir, "..")
 

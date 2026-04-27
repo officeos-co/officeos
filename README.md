@@ -50,4 +50,4 @@ https://github.com/42wim/matterbridge
 | ------------------------------- | ------------------------------------------------------------- |
 | `staging.officeos.co`           | `http://eaos-website-staging.default.svc.cluster.local:3000`  |
 | `staging-dashboard.officeos.co` | `http://eaos-frontend-staging.default.svc.cluster.local:3000` |
-| `.staging-apiofficeos.co`       | `http://eaos-backend-staging.default.svc.cluster.local:8000`  |
+| `staging-api.officeos.co`       | `http://eaos-backend-staging.default.svc.cluster.local:8000`  |

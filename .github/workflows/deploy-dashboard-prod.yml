@@ -37,8 +37,6 @@ jobs:
           file: apps/dashboard/Dockerfile
           push: true
           tags: harkro123/eaos-frontend:latest
-          build-args: |
-            NEXT_PUBLIC_API_URL=https://staging-api.officeos.co
           no-cache: true
 
       - name: Build and push (prod)
@@ -49,8 +47,6 @@ jobs:
           file: apps/dashboard/Dockerfile
           push: true
           tags: harkro123/eaos-frontend:${{ github.ref_name }}
-          build-args: |
-            NEXT_PUBLIC_API_URL=https://api.officeos.co
           no-cache: true
 
   deploy:

@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
-
-const backendUrl =
-  process.env.NODE_ENV === "production"
-    ? "https://api.officeos.co"
-    : "http://localhost:5000";
+import { envConfig } from "./src/lib/env";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -11,7 +7,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${backendUrl}/api/:path*`,
+        destination: `${envConfig.apiUrl}/api/:path*`,
       },
     ];
   },
