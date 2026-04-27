@@ -29,7 +29,6 @@ import {
   SparklesIcon,
 } from "lucide-react"
 import { useAuthContext } from "@/contexts/AuthContext"
-import Link from "next/link"
 
 function Initials(name: string) {
   return name
@@ -90,11 +89,9 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/pricing">
-                  <SparklesIcon />
-                  Upgrade Plan
-                </Link>
+              <DropdownMenuItem onClick={() => window.location.href = "/pricing"}>
+                <SparklesIcon />
+                Upgrade Plan
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
