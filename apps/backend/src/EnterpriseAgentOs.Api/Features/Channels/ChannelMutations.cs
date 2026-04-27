@@ -100,6 +100,14 @@ public class ChannelMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage("This channel is already bound to the agent.")
+                    .SetCode("DUPLICATE_BINDING")
+                    .Build());
+        }
     }
 
     public async Task<bool> UnbindChannelFromAgent(

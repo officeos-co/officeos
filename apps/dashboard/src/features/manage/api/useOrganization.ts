@@ -7,7 +7,6 @@ export type OrgMember = {
   organizationId: string
   userId: string | null
   email: string
-  name: string | null
   role: "Owner" | "Admin" | "Member"
   status: "active" | "invited"
   joinedAgo: string
@@ -31,7 +30,6 @@ const ORG_QUERY = gql`
         organizationId
         userId
         email
-        name
         role
         status
         createdAt
@@ -47,7 +45,6 @@ const INVITE_MEMBER = gql`
       organizationId
       userId
       email
-      name
       role
       status
       createdAt
@@ -89,7 +86,6 @@ type MemberRaw = {
   organizationId: string
   userId: string | null
   email: string
-  name: string | null
   role: string
   status: string
   createdAt: string
@@ -101,7 +97,6 @@ function toMember(m: MemberRaw): OrgMember {
     organizationId: m.organizationId,
     userId: m.userId,
     email: m.email,
-    name: m.name,
     role: (m.role as OrgMember["role"]) ?? "Member",
     status: (m.status as OrgMember["status"]) ?? "invited",
     joinedAgo: humanAgo(m.createdAt),
@@ -141,7 +136,6 @@ export function useInviteMember() {
             organizationId: "",
             userId: null,
             email: input.email,
-            name: null,
             role: input.role ?? "Member",
             status: "invited",
             createdAt: new Date().toISOString(),

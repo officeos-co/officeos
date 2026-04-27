@@ -35,15 +35,6 @@ mutation UpdateAgent($id: UUID!, $input: UpdateAgentInput!) {
   }
 }
 
-query AgentMemories($agentId: UUID!) {
-  agentMemories(agentId: $agentId) {
-    id
-    key
-    content
-    updatedAt
-  }
-}
-
 mutation DeleteAgent($id: UUID!) {
   deleteAgent(id: $id)
 }
