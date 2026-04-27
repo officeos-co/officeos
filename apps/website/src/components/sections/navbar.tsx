@@ -1,5 +1,6 @@
 "use client";
 
+import { siteConfig } from "@/lib/site";
 import {
   ChevronDown,
   Menu,
@@ -284,7 +285,7 @@ export function Navbar() {
 
               <Link
                 className="btn-glow ml-2 flex h-8 w-fit items-center justify-center rounded-full bg-secondary px-4 font-normal text-sm text-white tracking-wide"
-                href="https://dashboard.officeos.co"
+                href={siteConfig.dashboardUrl}
               >
                 Start Free
               </Link>
@@ -436,7 +437,7 @@ export function Navbar() {
                 </div>
 
                 <Link
-                  href="https://dashboard.officeos.co"
+                  href={siteConfig.dashboardUrl}
                   onClick={() => setIsDrawerOpen(false)}
                   className="btn-glow flex h-8 w-full items-center justify-center rounded-full bg-secondary px-4 font-normal text-sm tracking-wide transition-all ease-out hover:bg-secondary/80 active:scale-95"
                 >

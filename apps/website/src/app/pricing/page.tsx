@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { siteConfig } from "@/lib/site";
 import { Navbar } from "@/components/sections/navbar";
 import { Check, Leaf, Sparkles } from "lucide-react";
 
@@ -16,7 +17,7 @@ const individualPlans = [
     price: "Free",
     period: null,
     cta: "Start Free",
-    ctaHref: "https://dashboard.officeos.co",
+    ctaHref: siteConfig.dashboardUrl,
     highlight: false,
     prefix: null,
     features: [
@@ -36,7 +37,7 @@ const individualPlans = [
     price: "$29",
     period: "/ month",
     cta: "Start Free",
-    ctaHref: "https://dashboard.officeos.co",
+    ctaHref: siteConfig.dashboardUrl,
     highlight: true,
     prefix: "Everything in Free and:",
     features: [
@@ -58,7 +59,7 @@ const teamPlans = [
     price: "$99",
     period: "/ month",
     cta: "Start Free",
-    ctaHref: "https://dashboard.officeos.co",
+    ctaHref: siteConfig.dashboardUrl,
     highlight: false,
     prefix: "Everything in Pro and:",
     features: [
@@ -208,7 +209,7 @@ export default function PricingPage() {
           </p>
           <div className="flex flex-row items-center justify-center gap-3">
             <Link
-              href="https://dashboard.officeos.co"
+              href={siteConfig.dashboardUrl}
               className="flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-6 text-sm font-normal text-primary-foreground tracking-wide shadow-sm transition-all hover:bg-secondary/80 active:scale-95"
             >
               Start Free

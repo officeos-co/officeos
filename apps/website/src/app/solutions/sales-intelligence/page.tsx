@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { siteConfig } from "@/lib/site";
 import {
   Search,
   Database,
@@ -185,7 +186,7 @@ export default function SalesIntelligence() {
           </h2>
           <div className="flex flex-row items-center justify-center gap-3">
             <Link
-              href="https://dashboard.officeos.co"
+              href={siteConfig.dashboardUrl}
               className="flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-6 text-sm font-normal text-primary-foreground tracking-wide shadow-sm transition-all hover:bg-secondary/80 active:scale-95"
             >
               Start Free

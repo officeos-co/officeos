@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { siteConfig } from "@/lib/site";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Marquee } from "@/components/ui/marquee";
@@ -339,7 +340,7 @@ export function CTASection() {
             </p>
 
             <Link
-              href="https://dashboard.officeos.co"
+              href={siteConfig.dashboardUrl}
               className="btn-glow mt-5 flex h-10 items-center gap-1.5 rounded-full bg-secondary px-5 text-sm font-medium text-white tracking-wide transition-all hover:bg-secondary/80 active:scale-95"
             >
               Start Free

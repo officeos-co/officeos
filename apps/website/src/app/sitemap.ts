@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { siteConfig } from "@/lib/site";
 
-const baseUrl = "https://www.officeos.co";
+const baseUrl = siteConfig.url;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

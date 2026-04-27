@@ -1,3 +1,4 @@
+import { siteConfig } from "@/lib/site";
 import { Navbar } from "@/components/sections/navbar";
 import { FooterSection } from "@/components/sections/footer-section";
 
@@ -47,7 +48,7 @@ export default function Support() {
             <ul className="space-y-3 list-disc pl-5">
               <li>
                 <a
-                  href="https://docs.officeos.co"
+                  href={siteConfig.docsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary underline underline-offset-4 hover:text-primary/80"

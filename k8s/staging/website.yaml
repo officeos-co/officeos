@@ -24,6 +24,9 @@ spec:
         - name: website
           image: harkro123/eaos-website:latest
           imagePullPolicy: Always
+          env:
+            - name: APP_ENV
+              value: "staging"
           ports:
             - containerPort: 3000
               name: http

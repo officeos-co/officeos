@@ -24,6 +24,9 @@ spec:
         - name: website
           image: harkro123/eaos-website:IMAGE_TAG
           imagePullPolicy: Always
+          env:
+            - name: APP_ENV
+              value: "production"
           ports:
             - containerPort: 3000
               name: http
