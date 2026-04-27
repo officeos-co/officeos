@@ -12,11 +12,13 @@ internal sealed class AgentTurnService
     private readonly IAgentMemoryRepository _agentMemoryRepository;
     private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ISkillService _skillService;
+    private readonly IAgentLogRepository _agentLogRepository;
     private readonly ILogger<AgentTurnService> _logger;
 
     private const int MaxIterations = 25;
     private const int MaxTokens = 8192;
     private const int KeepRecent = 4;
+    private const int HistoryLoadLimit = 50;
 
     public AgentTurnService(
         IAgentRepository agents,
@@ -26,6 +28,7 @@ internal sealed class AgentTurnService
         IAgentMemoryRepository memoryRepo,
         SkillRuntimeClient skillRuntime,
         ISkillService skillService,
+        IAgentLogRepository agentLogRepository,
         ILogger<AgentTurnService> logger)
     {
         _agentRepository = agents;
@@ -35,6 +38,7 @@ internal sealed class AgentTurnService
         _agentMemoryRepository = memoryRepo;
         _skillRuntimeClient = skillRuntime;
         _skillService = skillService;
+        _agentLogRepository = agentLogRepository;
         _logger = logger;
     }
 
@@ -86,6 +90,53 @@ internal sealed class AgentTurnService
         var history = new ConversationHistory();
         var loopDetector = new LoopDetector();
         var totalToolCalls = 0;
+
+        // Seed history from recent logs — includes messages, tool calls, and tool results.
+        // Deduplication: ChannelOut is skipped when MessageOut exists for the same correlationId.
+        // ChannelIn raw JSON → plain text extraction.
+        var recentLogs = await _agentLogRepository.ListAsync(agentId, before: null, limit: HistoryLoadLimit, ct);
+        var ordered = recentLogs.OrderBy(l => l.Time).ToList();
+
+        var outCorrelations = new HashSet<string>(
+            ordered.Where(l => l.Type == AgentLogType.MessageOut && l.CorrelationId is not null)
+                   .Select(l => l.CorrelationId!));
+
+        // Build a queue of tool call IDs so ToolResult can reference the matching ToolCall
+        var pendingToolCallIds = new Queue<string>();
+
+        foreach (var log in ordered)
+        {
+            switch (log.Type)
+            {
+                case AgentLogType.MessageIn:
+                    history.Push(new ChatMessage { Role = "user", Content = log.Content ?? "" });
+                    break;
+                case AgentLogType.ChannelIn:
+                    history.Push(new ChatMessage { Role = "user", Content = ExtractPlainText(log.Content ?? "") });
+                    break;
+                case AgentLogType.MessageOut:
+                    history.Push(new ChatMessage { Role = "assistant", Content = log.Content ?? "" });
+                    break;
+                case AgentLogType.ChannelOut when log.CorrelationId is not null && outCorrelations.Contains(log.CorrelationId):
+                    break; // Skip — MessageOut already covers this turn
+                case AgentLogType.ChannelOut:
+                    history.Push(new ChatMessage { Role = "assistant", Content = log.Content ?? "" });
+                    break;
+                case AgentLogType.ToolCall:
+                    var tcId = log.Id.ToString("N");
+                    pendingToolCallIds.Enqueue(tcId);
+                    history.Push(new ChatMessage
+                    {
+                        Role = "assistant", Content = null,
+                        ToolCalls = [new ChatToolCall { Id = tcId, Name = log.Tool ?? "unknown", Arguments = log.Content ?? "{}" }],
+                    });
+                    break;
+                case AgentLogType.ToolResult:
+                    var matchId = pendingToolCallIds.Count > 0 ? pendingToolCallIds.Dequeue() : log.Id.ToString("N");
+                    history.Push(new ChatMessage { Role = "tool", Content = log.Content ?? "", ToolCallId = matchId });
+                    break;
+            }
+        }
 
         history.Push(new ChatMessage { Role = "user", Content = userMessage });
 
@@ -265,5 +316,22 @@ internal sealed class AgentTurnService
 
         return (content.Length > 0 ? content.ToString() : null,
             toolCalls.Values.Select(tc => new ParsedToolCall(tc.Id, tc.Name, tc.Args.ToString())).ToList());
+    }
+
+    /// <summary>
+    /// Extracts plain text from a Chat SDK JSON envelope (ChannelIn logs).
+    /// Falls back to the raw string if not JSON or missing "text" field.
+    /// </summary>
+    private static string ExtractPlainText(string raw)
+    {
+        if (string.IsNullOrEmpty(raw) || raw[0] != '{') return raw;
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
+                return t.GetString() ?? raw;
+        }
+        catch (JsonException) { }
+        return raw;
     }
 }
