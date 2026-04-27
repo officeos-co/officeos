@@ -1,5 +1,4 @@
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { USE_MOCKS } from "@/lib/graphql/mock-mode";
 
 export interface AgentSession {
   id: string;
@@ -50,9 +49,6 @@ const END_SESSION_MUTATION = gql`
 `;
 
 export function useAgentSessions(agentId: string, limit = 20) {
-  if (USE_MOCKS) {
-    return { sessions: [] as AgentSession[], loading: false };
-  }
   const { data, loading } = useQuery(AGENT_SESSIONS_QUERY, {
     variables: { agentId, limit },
     skip: !agentId,

@@ -1,8 +1,6 @@
 "use client"
 
 import { gql, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockAgentLogs } from "../data/analytics-mock"
 import type { AgentLog } from "@/types/logs"
 
 export type GlobalLogFilters = {
@@ -68,23 +66,6 @@ function normaliseType(raw: string | null | undefined): AgentLog["type"] {
   return map[raw] ?? "system"
 }
 
-// Same mock aggregation that used to live inline in logs/page.tsx.
-const mockGlobal: GlobalLog[] = [
-  ...mockAgentLogs.map((l) => ({ ...l, agentName: "Research Assistant" })),
-  ...mockAgentLogs.slice(0, 5).map((l, i) => ({
-    ...l,
-    id: `log_code_${i}`,
-    time: l.time - 300000,
-    agentName: "Code Reviewer",
-  })),
-  ...mockAgentLogs.slice(0, 3).map((l, i) => ({
-    ...l,
-    id: `log_support_${i}`,
-    time: l.time - 600000,
-    agentName: "Customer Support Bot",
-  })),
-].sort((a, b) => b.time - a.time)
-
 export function useGlobalLogs(filters: GlobalLogFilters = {}): {
   logs: GlobalLog[]
   loading: boolean
@@ -92,11 +73,9 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
 } {
   const { data, loading, error } = useQuery(GLOBAL_LOGS_QUERY, {
     variables: filters,
-    skip: USE_MOCKS,
-    pollInterval: USE_MOCKS ? 0 : 5000,
+    pollInterval: 5000,
     fetchPolicy: "network-only",
   })
-  if (USE_MOCKS) return { logs: mockGlobal, loading: false }
   const raw: Array<{
     id: string
     time: string | number

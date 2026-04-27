@@ -1,7 +1,6 @@
 "use client"
 
 import { gql, useMutation, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
 
 export type OrgMember = {
   id: string
@@ -19,17 +18,6 @@ export type OrganizationPayload = {
   name: string
   ownerUserId: string
   members: OrgMember[]
-}
-
-const MOCK_ORG: OrganizationPayload = {
-  id: "org_mock_1",
-  name: "Acme Corp",
-  ownerUserId: "usr_mock_1",
-  members: [
-    { id: "m1", organizationId: "org_mock_1", userId: "usr_mock_1", email: "harro@officeos.co", name: "Harro Krog", role: "Owner", status: "active", joinedAgo: "6 months ago" },
-    { id: "m2", organizationId: "org_mock_1", userId: null, email: "anna@officeos.co", name: "Anna Schmidt", role: "Admin", status: "active", joinedAgo: "3 months ago" },
-    { id: "m3", organizationId: "org_mock_1", userId: null, email: "max@officeos.co", name: "Max Weber", role: "Member", status: "active", joinedAgo: "1 month ago" },
-  ],
 }
 
 const ORG_QUERY = gql`
@@ -125,8 +113,7 @@ export function useOrganization(): {
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(ORG_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { organization: MOCK_ORG, loading: false }
+  const { data, loading, error } = useQuery(ORG_QUERY)
   const raw = data?.org as
     | { id: string; name: string; ownerUserId: string; members: MemberRaw[] }
     | null
@@ -145,25 +132,12 @@ export function useInviteMember() {
   const [fn, state] = useMutation(INVITE_MEMBER)
   return {
     inviteMember: async (input: { email: string; role?: "Admin" | "Member" }): Promise<OrgMember> => {
-      if (USE_MOCKS) {
-        return {
-          id: `m_${Date.now().toString(36)}`,
-          organizationId: MOCK_ORG.id,
-          userId: null,
-          email: input.email,
-          name: null,
-          role: input.role ?? "Member",
-          status: "invited",
-          joinedAgo: "just now",
-        }
-      }
-      const optimisticId = `m_optimistic_${Date.now().toString(36)}`
       const { data } = await fn({
         variables: { input: { email: input.email, role: input.role ?? "Member" } },
         optimisticResponse: {
           inviteMember: {
             __typename: "OrgMember",
-            id: optimisticId,
+            id: `m_optimistic_${Date.now().toString(36)}`,
             organizationId: "",
             userId: null,
             email: input.email,
@@ -199,7 +173,6 @@ export function useRemoveMember() {
   const [fn, state] = useMutation(REMOVE_MEMBER)
   return {
     removeMember: async (memberId: string): Promise<boolean> => {
-      if (USE_MOCKS) return true
       const { data } = await fn({
         variables: { memberId },
         optimisticResponse: { removeMember: true },
@@ -228,7 +201,6 @@ export function useRenameOrg() {
   const [fn, state] = useMutation(RENAME_ORG)
   return {
     renameOrg: async (name: string): Promise<{ id: string; name: string }> => {
-      if (USE_MOCKS) return { id: MOCK_ORG.id, name }
       const { data } = await fn({
         variables: { input: { name } },
         optimisticResponse: {

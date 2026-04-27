@@ -1,7 +1,6 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { USE_MOCKS } from "@/lib/graphql/mock-mode";
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -68,14 +67,14 @@ const DELETE_CRON_JOB = gql`
 export function useCronJobs(agentId: string) {
   const { data, loading, error, refetch } = useQuery<{ agentCronJobs: CronJob[] }>(
     CRON_JOBS_QUERY,
-    { variables: { agentId }, skip: USE_MOCKS }
+    { variables: { agentId } }
   );
 
   const [createMutation, { loading: creating }] = useMutation(CREATE_CRON_JOB);
   const [setEnabledMutation] = useMutation(SET_CRON_JOB_ENABLED);
   const [deleteMutation] = useMutation(DELETE_CRON_JOB);
 
-  const jobs: CronJob[] = USE_MOCKS ? [] : (data?.agentCronJobs ?? []);
+  const jobs: CronJob[] = data?.agentCronJobs ?? [];
 
   async function createCronJob(name: string, expression: string, prompt: string) {
     const optimisticId = `cron_optimistic_${Date.now().toString(36)}`;

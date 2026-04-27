@@ -1,9 +1,6 @@
 "use client"
 
 import { gql, useMutation, useLazyQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
 export type GdprExport = {
   user: {
@@ -47,8 +44,6 @@ export type GdprExport = {
   }>
 }
 
-// ── GraphQL ──────────────────────────────────────────────────────────────────
-
 const EXPORT_MY_DATA = gql`
   query ExportMyData {
     exportMyData {
@@ -67,21 +62,7 @@ const PURGE_MY_DATA = gql`
   }
 `
 
-// ── Hooks ────────────────────────────────────────────────────────────────────
-
 export function useExportMyData() {
-  if (USE_MOCKS) {
-    return {
-      exportData: async () => {
-        console.debug("[mock] exportMyData")
-        return null
-      },
-      loading: false,
-      error: null,
-      data: null as GdprExport | null,
-    }
-  }
-
   const [execute, { loading, error, data }] = useLazyQuery<{
     exportMyData: GdprExport
   }>(EXPORT_MY_DATA, { fetchPolicy: "no-cache" })
@@ -108,17 +89,6 @@ export function useExportMyData() {
 }
 
 export function usePurgeMyData() {
-  if (USE_MOCKS) {
-    return {
-      purgeData: async () => {
-        console.debug("[mock] purgeMyData")
-        return true
-      },
-      loading: false,
-      error: null,
-    }
-  }
-
   const [execute, { loading, error }] = useMutation<{ purgeMyData: boolean }>(
     PURGE_MY_DATA
   )

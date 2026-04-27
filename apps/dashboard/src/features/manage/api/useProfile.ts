@@ -1,7 +1,6 @@
 "use client"
 
 import { gql, useMutation, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
 
 export type NotificationPrefs = {
   taskCompletions: boolean
@@ -24,17 +23,6 @@ const DEFAULT_PREFS: NotificationPrefs = {
   taskCompletions: false,
   email: false,
   channelMessages: false,
-}
-
-export const MOCK_PROFILE: ProfilePayload = {
-  id: "usr_mock_1",
-  email: "harro@officeos.co",
-  name: "Harro Krog",
-  avatarUrl: null,
-  displayName: "Harro",
-  timezone: "Europe/Amsterdam",
-  preferences: null,
-  notificationPrefs: DEFAULT_PREFS,
 }
 
 export const ME_QUERY = gql`
@@ -110,8 +98,7 @@ export function useProfile(): {
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(ME_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { profile: MOCK_PROFILE, loading: false }
+  const { data, loading, error } = useQuery(ME_QUERY)
   const raw = data?.me as MeRaw | null | undefined
   if (!raw) return { profile: null, loading, error: error ?? undefined }
   return { profile: toProfile(raw), loading, error: error ?? undefined }
@@ -134,16 +121,6 @@ export function useUpdateProfile() {
         preferences: input.preferences ?? null,
         notificationPrefsJson:
           input.notificationPrefs ? JSON.stringify(input.notificationPrefs) : null,
-      }
-      if (USE_MOCKS) {
-        return {
-          ...MOCK_PROFILE,
-          name: payload.name ?? MOCK_PROFILE.name,
-          displayName: payload.displayName ?? MOCK_PROFILE.displayName,
-          timezone: payload.timezone ?? MOCK_PROFILE.timezone,
-          preferences: payload.preferences ?? MOCK_PROFILE.preferences,
-          notificationPrefs: input.notificationPrefs ?? MOCK_PROFILE.notificationPrefs,
-        }
       }
       const { data } = await fn({
         variables: { input: payload },

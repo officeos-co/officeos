@@ -2,8 +2,7 @@
 
 import { useQuery, useMutation, gql } from "@apollo/client"
 import { apolloClient } from "@/lib/graphql/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { ME_QUERY, MOCK_PROFILE } from "@/features/manage"
+import { ME_QUERY } from "@/features/manage"
 
 export type AuthUser = {
   id: string
@@ -24,33 +23,17 @@ export function useAuth(): {
   authenticated: boolean
   logout: () => Promise<void>
 } {
-  const { data, loading, error } = useQuery(ME_QUERY, { skip: USE_MOCKS })
+  const { data, loading, error } = useQuery(ME_QUERY)
   const [logoutMutation] = useMutation(LOGOUT_MUTATION)
 
   const logout = async () => {
-    if (!USE_MOCKS) {
-      try {
-        await logoutMutation()
-      } catch {
-        // ignore — session may already be expired
-      }
-      await apolloClient.clearStore()
+    try {
+      await logoutMutation()
+    } catch {
+      // ignore — session may already be expired
     }
+    await apolloClient.clearStore()
     window.location.href = "/login"
-  }
-
-  if (USE_MOCKS) {
-    return {
-      user: {
-        id: MOCK_PROFILE.id,
-        name: MOCK_PROFILE.name,
-        email: MOCK_PROFILE.email,
-        avatarUrl: MOCK_PROFILE.avatarUrl,
-      },
-      loading: false,
-      authenticated: true,
-      logout,
-    }
   }
 
   const raw = data?.me as AuthUser | null | undefined

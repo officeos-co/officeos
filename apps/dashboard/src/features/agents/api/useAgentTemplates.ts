@@ -1,8 +1,14 @@
 "use client"
 
 import { gql, useMutation, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockTemplates, type Template } from "../data/agent-templates"
+
+export type Template = {
+  name: string
+  description: string
+  integrations: string[]
+  channels: string[]
+  prompt: string
+}
 
 const TEMPLATES_QUERY = gql`
   query AgentTemplates {
@@ -32,8 +38,7 @@ export function useAgentTemplates(): {
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(TEMPLATES_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { templates: mockTemplates, loading: false }
+  const { data, loading, error } = useQuery(TEMPLATES_QUERY)
   const raw: Array<{
     id: string
     name: string
@@ -61,11 +66,6 @@ export function useCreateAgentFromTemplate() {
       provider: string,
       model?: string,
     ) => {
-      if (USE_MOCKS) {
-        // eslint-disable-next-line no-console
-        console.info("[useCreateAgentFromTemplate mock]", { templateId, name, provider, model })
-        return { id: `agt_mock_${Date.now().toString(36)}`, name }
-      }
       const { data } = await fn({
         variables: { templateId, name, provider, model },
       })

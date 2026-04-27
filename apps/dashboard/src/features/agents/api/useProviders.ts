@@ -1,7 +1,6 @@
 "use client"
 
 import { gql, useMutation, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
 
 export type Provider = {
   id: string
@@ -10,12 +9,6 @@ export type Provider = {
   hasKey: boolean
   models: string[]
 }
-
-const mockProviders: Provider[] = [
-  { id: "anthropic", name: "anthropic", displayName: "Anthropic", hasKey: true, models: [] },
-  { id: "openai", name: "openai", displayName: "OpenAI", hasKey: true, models: [] },
-  { id: "google", name: "google", displayName: "Google", hasKey: false, models: [] },
-]
 
 const PROVIDERS_QUERY = gql`
   query Providers {
@@ -54,8 +47,7 @@ export function useProviders(): {
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(PROVIDERS_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { providers: mockProviders, loading: false }
+  const { data, loading, error } = useQuery(PROVIDERS_QUERY)
   const providers: Provider[] = (data?.providers ?? []).map(
     (p: {
       id: string
@@ -77,7 +69,6 @@ export function useSetProviderKey() {
   const [fn, state] = useMutation(SET_PROVIDER_KEY)
   return {
     setProviderKey: async (providerId: string, apiKey: string) => {
-      if (USE_MOCKS) return true
       const { data } = await fn({
         variables: { providerName: providerId, apiKey },
         optimisticResponse: {
@@ -99,7 +90,6 @@ export function useClearProviderKey() {
   const [fn, state] = useMutation(CLEAR_PROVIDER_KEY)
   return {
     clearProviderKey: async (providerId: string) => {
-      if (USE_MOCKS) return true
       const { data } = await fn({
         variables: { providerName: providerId },
         optimisticResponse: {

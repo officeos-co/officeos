@@ -3,7 +3,12 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { FileNode } from "@/features/agents/data/agent-mock";
+export type FileNode = {
+  name: string;
+  type: "file" | "folder";
+  children?: FileNode[];
+  content?: string;
+};
 import { useAgent } from "@/features/agents";
 import { ChevronRightIcon, FileTextIcon, FolderIcon } from "lucide-react";
 

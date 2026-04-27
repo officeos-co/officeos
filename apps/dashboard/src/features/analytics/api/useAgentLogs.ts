@@ -1,8 +1,6 @@
 "use client"
 
 import { gql, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockAgentLogs } from "../data/analytics-mock"
 import type { AgentLog } from "@/types/logs"
 
 const AGENT_LOGS_QUERY = gql`
@@ -22,12 +20,9 @@ const AGENT_LOGS_QUERY = gql`
   }
 `
 
-/** HotChocolate defaults to PascalCase enum names. The page logic uses the
- *  existing snake_case AgentLog.type union, so we normalise on the hook edge. */
 function normaliseType(raw: string | null | undefined): AgentLog["type"] {
   if (!raw) return "system"
   const v = raw.toString()
-  // Accept either already-snake_case or PascalCase.
   if (v.includes("_")) return v as AgentLog["type"]
   const map: Record<string, AgentLog["type"]> = {
     ToolCall: "tool_call",
@@ -82,12 +77,11 @@ export function useAgentLogs(
 ): { logs: AgentLog[]; loading: boolean; error?: Error } {
   const { data, loading, error } = useQuery(AGENT_LOGS_QUERY, {
     variables: { agentId, limit },
-    skip: USE_MOCKS || !agentId,
-    pollInterval: USE_MOCKS ? 0 : 5000,
+    skip: !agentId,
+    pollInterval: 5000,
     fetchPolicy: "network-only",
   })
 
-  if (USE_MOCKS) return { logs: mockAgentLogs, loading: false }
   const raw: Array<Parameters<typeof toAgentLog>[0]> = data?.agentLogs ?? []
   const logs: AgentLog[] = raw.map(toAgentLog)
   return { logs, loading, error: error ?? undefined }

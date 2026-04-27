@@ -1,10 +1,6 @@
 "use client"
 
 import { useMutation, gql } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-
-// One typed mutation per use case. Matches backend `Entities/PostHog/` —
-// the GraphQL schema is the source of truth for which events exist.
 
 const TRACK_PAGE_VIEW = gql`
   mutation TrackPageView($input: TrackPageViewInput!) {
@@ -55,11 +51,6 @@ export function useAnalytics() {
   const [trackAgentCreatedMutation] = useMutation(TRACK_AGENT_CREATED)
 
   const run = async (label: string, fire: () => Promise<unknown>) => {
-    if (USE_MOCKS) {
-      // eslint-disable-next-line no-console
-      console.debug("[posthog:mock]", label)
-      return
-    }
     try {
       await fire()
     } catch {

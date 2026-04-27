@@ -1,15 +1,36 @@
 "use client"
 
 import { gql, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import {
-  mockDailyUsage,
-  mockDailyCost,
-  mockLogs,
-  type DailyUsage,
-  type DailyCost,
-  type LogEntry,
-} from "../data/analytics-mock"
+
+/* ── Types ──────────────────────────────────────────────── */
+
+export type DailyUsage = {
+  date: string
+  inputTokens: number
+  outputTokens: number
+  requests: number
+  rateLimited: number
+  webSearches: number
+}
+
+export type DailyCost = {
+  date: string
+  tokenCost: number
+  webSearchCost: number
+  codeExecCost: number
+  runtimeCost: number
+}
+
+export type LogEntry = {
+  id: string
+  time: number
+  model: string
+  inputTokens: number
+  outputTokens: number
+  type: string
+  serviceTier: string
+  request: string
+}
 
 /* ── Token usage (usage page) ────────────────────────────── */
 
@@ -30,8 +51,7 @@ export function useUsage(): {
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(TOKEN_USAGE_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { dailyUsage: mockDailyUsage, loading: false }
+  const { data, loading, error } = useQuery(TOKEN_USAGE_QUERY)
   const raw = data?.tokenUsage as {
     creditsUsedThisMonth: number
     creditBudgetPerMonth: number
@@ -39,7 +59,6 @@ export function useUsage(): {
     periodStart: string
     periodEnd: string
   } | null
-  // Backend returns a summary, not daily breakdown — map to a single-entry array for the chart
   const dailyUsage: DailyUsage[] = raw
     ? [{
         date: raw.periodStart ?? "",
@@ -69,9 +88,7 @@ export function useCost(): {
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(COST_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { dailyCost: mockDailyCost, loading: false }
-  // Backend returns model cost weights (model + weight), not daily breakdown
+  const { data, loading, error } = useQuery(COST_QUERY)
   const raw: Array<{ model: string; weight: number }> = data?.modelCostWeights ?? []
   const dailyCost: DailyCost[] = raw.map((d) => ({
     date: d.model,
@@ -89,6 +106,5 @@ export function useUsageLogs(): {
   logs: LogEntry[]
   loading: boolean
 } {
-  if (USE_MOCKS) return { logs: mockLogs, loading: false }
   return { logs: [], loading: false }
 }

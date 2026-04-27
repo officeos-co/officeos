@@ -142,7 +142,7 @@ Colors match the website (`apps/website/`):
 ## Key rules
 
 - **Bulletproof React feature architecture.** Domain logic lives in `src/features/{agents,analytics,manage}/`. Route pages are thin wrappers that import from features. No cross-feature imports.
-- **Most data is still mock.** `features/*/data/*.ts` files contain hardcoded mock data. When wiring to the backend, replace these with hooks in the feature's `api/` folder. Note: `integrations.ts` and `channels.ts` in `features/agents/data/` now export **types only** — all mock data has been replaced by real GraphQL hooks (`useIntegrations`, `useChannels`).
+- **All data comes from the backend.** Mock data files have been removed. Every hook queries GraphQL directly — there is no mock toggle. `integrations.ts` and `channels.ts` in `features/agents/data/` export **types only**.
 - **Import from feature barrels.** Pages and shared components import hooks/components from `@/features/<name>`, not from individual files. Only truly shared hooks (`useAuth`, `use-mobile`) live in top-level `src/hooks/`.
 - **shadcn/ui for all primitives.** Button, Input, Dialog, Select, Switch, Tabs, etc. — never build custom.
 - **`"use client"` on interactive pages.** Any page with useState, useEffect, or event handlers.
@@ -169,33 +169,6 @@ The dashboard talks to the backend exclusively over GraphQL at
 same path). Apollo is configured in `src/lib/graphql/client.ts` and provided to
 the tree via `src/app/providers.tsx` (wrapped inside `layout.tsx`). Session auth
 rides on cookies via `credentials: "include"`.
-
-### Mock toggle
-
-`NEXT_PUBLIC_USE_MOCKS=1` → hooks return `features/*/data/*.ts` fixtures; no network calls.
-Unset / any other value → hooks call GraphQL via `apolloClient`.
-
-The toggle is checked at the **hook layer**, not the client layer — so Apollo is
-always mounted (it can still run auth/session side-effects) while individual
-hooks short-circuit to mocks.
-
-**`useIntegrations` and `useChannels` do not use the mock toggle.** They query
-GraphQL directly at all times — the mock fixtures for integrations and channels
-have been removed. Every other hook follows the standard shape:
-
-```ts
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-
-export function useFoo() {
-  if (USE_MOCKS) {
-    return { data: mockFoo, loading: false, error: null }
-  }
-  return useGeneratedFooQuery(...)
-}
-```
-
-The return shape must be identical in both branches so page/component code does
-not care which mode it's in.
 
 ### Hooks
 
@@ -231,9 +204,7 @@ via `GRAPHQL_SCHEMA_URL`). `.graphql` operation documents live in
 - **Do not import hooks from individual feature files.** Import from the feature
   barrel (`@/features/agents`, not `@/features/agents/api/useAgents`). Data/type
   imports from `@/features/*/data/` are fine when pages need types or constants.
-- **AuthGuard is wired.** `AuthGuard` wraps `(dashboard)/layout.tsx`. Unauthenticated users redirect to `/login`. In mock mode, `useAuth` returns authenticated automatically.
-- **Do not move the mock check into the Apollo link.** Apollo must behave
-  normally for auth/session; mocking is a hook-layer concern.
+- **AuthGuard is wired.** `AuthGuard` wraps `(dashboard)/layout.tsx`. Unauthenticated users redirect to `/login`.
 
 ### Analytics
 
@@ -270,5 +241,4 @@ See `.env.local.example`:
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXT_PUBLIC_USE_MOCKS=1
 ```

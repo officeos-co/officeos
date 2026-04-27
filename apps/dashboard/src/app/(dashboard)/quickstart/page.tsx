@@ -25,7 +25,7 @@ import {
   IntegrationCard, ChannelCard,
 } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
-import { type Template } from "@/features/agents/data/agent-templates"
+import { type Template } from "@/features/agents"
 import {
   SearchIcon,
   RocketIcon,

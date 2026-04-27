@@ -1,10 +1,8 @@
 "use client"
 
 import { gql, useMutation, useQuery } from "@apollo/client"
-import { USE_MOCKS } from "@/lib/graphql/mock-mode"
-import { mockBilling, type BillingPayload as LegacyBillingShape } from "../data/billing-mock"
 
-/* ── Unified billing (billing page) ──────────────────────── */
+/* ── Types ──────────────────────────────────────────────── */
 
 export type BillingInvoice = {
   id: string
@@ -16,13 +14,6 @@ export type BillingInvoice = {
   pdfUrl: string | null
 }
 
-/**
- * Billing view-model consumed by `/billing`. Backend returns plan, current
- * usage, extra-usage on/off (replaces old auto-reload), invoices synced
- * from Stripe. Preserves `.extraUsage.balance` / `.extraUsage.autoReload`
- * aliases so any remaining UI that reads the legacy shape keeps working —
- * but the canonical field is `.extraUsageEnabled`.
- */
 export type BillingPayload = {
   plan: string
   planDescription: string
@@ -42,6 +33,8 @@ export type BillingPayload = {
   /** @deprecated use `extraUsageEnabled`. Kept so the legacy card render keeps compiling. */
   extraUsage: { balance: number; autoReload: boolean }
 }
+
+/* ── Queries / mutations ─────────────────────────────────── */
 
 const BILLING_QUERY = gql`
   query Billing {
@@ -78,40 +71,13 @@ const SET_EXTRA_USAGE_ENABLED = gql`
   }
 `
 
+/* ── Helpers ─────────────────────────────────────────────── */
+
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return ""
   const t = Date.parse(iso)
   if (Number.isNaN(t)) return iso ?? ""
   return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-}
-
-function legacyToUnified(legacy: LegacyBillingShape): BillingPayload {
-  return {
-    plan: legacy.plan,
-    planDescription: legacy.planDescription,
-    status: legacy.status,
-    billingCycle: "monthly",
-    renewsAt: legacy.renewsAt,
-    canceledAt: legacy.canceledAt,
-    periodStart: "",
-    periodEnd: "",
-    creditBudgetPerMonth: 10_000_000,
-    creditsUsedThisMonth: 0,
-    creditsRemaining: 10_000_000,
-    overBudget: false,
-    extraUsageEnabled: legacy.extraUsage.autoReload,
-    payment: legacy.payment,
-    invoices: legacy.invoices.map((inv, i) => ({
-      id: `inv_mock_${i}`,
-      date: inv.date,
-      total: inv.total,
-      currency: "EUR",
-      status: inv.status,
-      hostedUrl: null,
-      pdfUrl: null,
-    })),
-    extraUsage: legacy.extraUsage,
-  }
 }
 
 type BillingRaw = {
@@ -139,13 +105,14 @@ type BillingRaw = {
   }>
 }
 
+/* ── Hooks ───────────────────────────────────────────────── */
+
 export function useBilling(): {
   billing: BillingPayload | null
   loading: boolean
   error?: Error
 } {
-  const { data, loading, error } = useQuery(BILLING_QUERY, { skip: USE_MOCKS })
-  if (USE_MOCKS) return { billing: legacyToUnified(mockBilling), loading: false }
+  const { data, loading, error } = useQuery(BILLING_QUERY)
   const raw = data?.billing as BillingRaw | null | undefined
   if (!raw) return { billing: null, loading, error: error ?? undefined }
   const billing: BillingPayload = {
@@ -184,7 +151,6 @@ export function useSetExtraUsageEnabled() {
   const [fn, state] = useMutation(SET_EXTRA_USAGE_ENABLED)
   return {
     setExtraUsageEnabled: async (enabled: boolean): Promise<boolean> => {
-      if (USE_MOCKS) return enabled
       const { data } = await fn({
         variables: { enabled },
         optimisticResponse: { setExtraUsageEnabled: true },
@@ -203,4 +169,3 @@ export function useSetExtraUsageEnabled() {
     ...state,
   }
 }
-

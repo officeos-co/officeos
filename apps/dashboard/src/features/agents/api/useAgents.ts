@@ -1,9 +1,6 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { USE_MOCKS } from "@/lib/graphql/mock-mode";
-import { mockAgentsList, type AgentListRow } from "../data/agents-list-mock";
-import { mockAgent, type AgentDetail } from "../data/agent-mock";
 
 /* ── Queries / mutations ─────────────────────────────────── */
 
@@ -102,6 +99,26 @@ function humanAgo(iso: string | number | null | undefined): string {
 
 /* ── Types ──────────────────────────────────────────────── */
 
+export type AgentListRow = {
+  id: string;
+  name: string;
+  model: string;
+  status: string;
+  created: string;
+  updated: string;
+};
+
+export type AgentDetail = {
+  id: string;
+  name: string;
+  model: string;
+  status: string;
+  prompt: string;
+  integrations: string[];
+  channels: string[];
+  createdAt: number;
+};
+
 export type AgentMemory = {
   id: string;
   key: string;
@@ -147,8 +164,7 @@ export function useAgents(): {
   error?: Error;
   refetch: () => void;
 } {
-  const { data, loading, error, refetch } = useQuery(AGENTS_QUERY, { skip: USE_MOCKS });
-  if (USE_MOCKS) return { agents: mockAgentsList, loading: false, refetch: () => {} };
+  const { data, loading, error, refetch } = useQuery(AGENTS_QUERY);
   const raw: Array<{
     id: string;
     name: string;
@@ -174,9 +190,8 @@ export function useAgent(id: string): {
 } {
   const { data, loading, error } = useQuery(AGENT_QUERY, {
     variables: { id },
-    skip: USE_MOCKS || !id,
+    skip: !id,
   });
-  if (USE_MOCKS) return { agent: { ...mockAgent, memories: [], installedSkills: [], channelBindings: [], personalityFiles: [], activeSession: null }, loading: false };
   const a = data?.agent;
   if (!a) return { agent: null, loading, error: error ?? undefined };
   const agent: AgentFull = {
@@ -197,22 +212,13 @@ export function useAgent(id: string): {
   return { agent, loading, error: error ?? undefined };
 }
 
-/**
- * Input shape that maps onto backend `CreateAgentInput`. The dashboard thinks
- * in terms of `systemPrompt` + `toolNames` + `channelSlugs`; we translate to
- * `prompt` / `toolNames` / `channelSlugs` at the boundary. `provider` is
- * derived from the model prefix (claude- → anthropic, gpt- → openai, etc.).
- */
 export type CreateAgentHookInput = {
   name: string;
   model: string;
   systemPrompt: string;
   toolNames: string[];
-  /** Per-tool allow/deny overrides. `tool` is a "skill:tool" key. */
   toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>;
   channelSlugs: string[];
-  /** If set, the backend sends this as the first message after creation,
-   *  triggering the agent's first turn. */
   bootstrapMessage?: string;
 };
 
@@ -227,8 +233,6 @@ export function useCreateAgent() {
   const [fn, state] = useMutation(CREATE_AGENT);
   return {
     createAgent: async (input: CreateAgentHookInput) => {
-      if (USE_MOCKS)
-        return { id: `agt_mock_${Date.now().toString(36)}`, name: input.name };
       const { data } = await fn({
         variables: {
           input: {
@@ -282,7 +286,6 @@ export function useUpdateAgent() {
         prompt: string;
       }>,
     ) => {
-      if (USE_MOCKS) return { id, name: input.name ?? mockAgent.name };
       const { data } = await fn({
         variables: { id, input },
         optimisticResponse: {
@@ -303,7 +306,6 @@ export function useDeleteAgent() {
   const [fn, state] = useMutation(DELETE_AGENT);
   return {
     deleteAgent: async (id: string) => {
-      if (USE_MOCKS) return true;
       const { data } = await fn({
         variables: { id },
         optimisticResponse: { deleteAgent: true },
