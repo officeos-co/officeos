@@ -1,4 +1,4 @@
-name: Deploy Website Prod
+name: Deploy Website
 
 on:
   push:
@@ -7,11 +7,14 @@ on:
     paths:
       - "apps/website/**"
       - "changelog/**"
-      - "k8s/website.yaml"
+      - "k8s/staging/website.yaml"
+      - "k8s/prod/website.yaml"
       - ".github/workflows/deploy-website-prod.yml"
+    tags:
+      - "v*"
 
 concurrency:
-  group: deploy-website-prod
+  group: deploy-website-${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -27,12 +30,25 @@ jobs:
           username: harkro123
           password: ${{ secrets.DOCKER_PAT }}
 
-      - uses: docker/build-push-action@v6
+      - name: Build and push (staging)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/website/Dockerfile
           push: true
           tags: harkro123/eaos-website:latest
+          cache-from: type=gha,scope=website
+          cache-to: type=gha,scope=website,mode=max
+
+      - name: Build and push (prod)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/website/Dockerfile
+          push: true
+          tags: harkro123/eaos-website:${{ github.ref_name }}
           cache-from: type=gha,scope=website
           cache-to: type=gha,scope=website,mode=max
 
@@ -42,12 +58,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apply manifest and restart website
+      - name: Configure kubectl
         run: |
           kubectl config set-cluster nova --server=https://REDACTED_KUBE_SERVER_IP:6443 --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
-          kubectl apply -f k8s/website.yaml
-          kubectl rollout restart deployment/eaos-website-prod
+
+      - name: Deploy staging
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          kubectl apply -f k8s/staging/website.yaml
+          kubectl rollout restart deployment/eaos-website-staging
+          kubectl rollout status deployment/eaos-website-staging --timeout=180s
+
+      - name: Deploy prod
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/website.yaml
+          kubectl apply -f k8s/prod/website.yaml
           kubectl rollout status deployment/eaos-website-prod --timeout=180s

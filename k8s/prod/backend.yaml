@@ -1,0 +1,148 @@
+# ─────────────────────────────────────────────────────────────────────
+# Enterprise Agent OS — production backend stack
+#
+# Deployed on version tag push (v*). Image tags replaced by CI.
+# ─────────────────────────────────────────────────────────────────────
+
+# ==============================================================
+# Backend DataProtection keys PVC — prod
+# ==============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-backend-prod-data
+  namespace: default
+  labels:
+    app: eaos
+    env: prod
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# ==============================================================
+# Backend — production
+# ==============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-backend-prod
+  namespace: default
+  labels:
+    app: eaos-backend-prod
+    env: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-backend-prod
+  template:
+    metadata:
+      labels:
+        app: eaos-backend-prod
+        env: prod
+    spec:
+      serviceAccountName: dashboard-backend
+      initContainers:
+        - name: fix-data-perms
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 1654:1654 /data"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          securityContext:
+            runAsUser: 0
+      containers:
+        - name: backend
+          image: harkro123/eaos-backend:IMAGE_TAG
+          imagePullPolicy: Always
+          env:
+            - name: ENVIRONMENT
+              value: Production
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "1000Mi"
+              cpu: "1000m"
+            limits:
+              memory: "2000Mi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+        # ── Channel gateway sidecar ───────────────────────────────
+        - name: channel-gateway
+          image: harkro123/eaos-channel-gateway:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3100
+              name: ch-gateway
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3100"
+            - name: BACKEND_URL
+              value: "http://localhost:8000"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3100
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3100
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-backend-prod-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-backend-prod
+  namespace: default
+  labels:
+    app: eaos-backend-prod
+    env: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-backend-prod
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000

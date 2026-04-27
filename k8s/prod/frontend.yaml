@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────────────
+# Enterprise Agent OS — production frontend (Next.js dashboard)
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-frontend-prod
+  namespace: default
+  labels:
+    app: eaos-frontend-prod
+    env: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-frontend-prod
+  template:
+    metadata:
+      labels:
+        app: eaos-frontend-prod
+        env: prod
+    spec:
+      containers:
+        - name: frontend
+          image: harkro123/eaos-frontend:IMAGE_TAG
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          resources:
+            requests:
+              memory: "1000Mi"
+              cpu: "100m"
+            limits:
+              memory: "2000Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-frontend-prod
+  namespace: default
+  labels:
+    app: eaos-frontend-prod
+    env: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-frontend-prod
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

@@ -39,5 +39,5 @@ jobs:
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
-          kubectl rollout restart deployment/eaos-backend-prod
-          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
+          kubectl rollout restart deployment/eaos-backend-staging
+          kubectl rollout status deployment/eaos-backend-staging --timeout=180s

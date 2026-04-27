@@ -77,14 +77,21 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
 });
 
 
-builder.Services.AddSingleton<IKubernetes>(_ =>
+if (kubernetesConfig.Enabled)
 {
-    var config = KubernetesClientConfiguration.IsInCluster()
-        ? KubernetesClientConfiguration.InClusterConfig()
-        : KubernetesClientConfiguration.BuildDefaultConfig();
-    return new Kubernetes(config);
-});
-builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
+    builder.Services.AddSingleton<IKubernetes>(_ =>
+    {
+        var config = KubernetesClientConfiguration.IsInCluster()
+            ? KubernetesClientConfiguration.InClusterConfig()
+            : KubernetesClientConfiguration.BuildDefaultConfig();
+        return new Kubernetes(config);
+    });
+    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
+}
+else
+{
+    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
+}
 
 
 // Billing

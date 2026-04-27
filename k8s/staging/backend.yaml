@@ -1,19 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────
-# Enterprise Agent OS — backend stack
+# Enterprise Agent OS — staging backend stack
 #
-# Everything the backend needs to run: RBAC, the backend PVC,
-# and the backend Deployment + Service. Postgres is external (REDACTED_DB_HOST_IP).
-#
-# Frontend lives in ./frontend.yaml. Credentials are hardcoded inline
-# to match the self-contained pattern used in docker-compose.yml —
-# rotate by editing here and re-applying.
+# Deployed on every push to main. Uses :latest image tags.
+# Shared infra (RBAC, Redis, Skill Runtime) included here.
 # ─────────────────────────────────────────────────────────────────────
 
 # ==============================================================
-# RBAC — backend needs this SA to spawn per-agent zeroclaw pods
-# and clean up PVCs on agent deletion. Without the SA the backend
-# Deployment's ReplicaSet can't admit any Pod (it references
-# `serviceAccountName: dashboard-backend`).
+# RBAC — shared across staging and prod
 # ==============================================================
 apiVersion: v1
 kind: ServiceAccount
@@ -60,25 +53,16 @@ roleRef:
 
 ---
 # ==============================================================
-# Postgres — hosted externally on REDACTED_DB_HOST_IP
-# Databases: eaos_prod (production), eaos_staging (staging)
-# User: contentmachine — connection strings in appsettings.json
-# ==============================================================
-# ==============================================================
-# Backend DataProtection keys PVC
-#
-# v2 backend (dotnet) persists DataProtection keys under /data.
-# Without this volume keys would vanish on every pod restart,
-# invalidating every encrypted provider API key. The database
-# is external Postgres on REDACTED_DB_HOST_IP.
+# Backend DataProtection keys PVC — staging
 # ==============================================================
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: eaos-backend-data
+  name: eaos-backend-staging-data
   namespace: default
   labels:
     app: eaos
+    env: staging
 spec:
   accessModes: ["ReadWriteOnce"]
   resources:
@@ -87,24 +71,26 @@ spec:
 
 ---
 # ==============================================================
-# Backend (v2 dotnet / legacy FastAPI image)
+# Backend — staging
 # ==============================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eaos-backend-prod
+  name: eaos-backend-staging
   namespace: default
   labels:
-    app: eaos-backend-prod
+    app: eaos-backend-staging
+    env: staging
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: eaos-backend-prod
+      app: eaos-backend-staging
   template:
     metadata:
       labels:
-        app: eaos-backend-prod
+        app: eaos-backend-staging
+        env: staging
     spec:
       serviceAccountName: dashboard-backend
       initContainers:
@@ -122,7 +108,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: ENVIRONMENT
-              value: production
+              value: Staging
           ports:
             - containerPort: 8000
               name: http
@@ -188,20 +174,21 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: eaos-backend-data
+            claimName: eaos-backend-staging-data
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: eaos-backend-prod
+  name: eaos-backend-staging
   namespace: default
   labels:
-    app: eaos-backend-prod
+    app: eaos-backend-staging
+    env: staging
 spec:
   type: ClusterIP
   selector:
-    app: eaos-backend-prod
+    app: eaos-backend-staging
   ports:
     - name: http
       protocol: TCP
@@ -210,7 +197,7 @@ spec:
 
 ---
 # ==============================================================
-# Redis — in-cluster cache for session lookups and query results
+# Redis — shared between staging and prod (different DB numbers)
 # ==============================================================
 apiVersion: apps/v1
 kind: Deployment
@@ -274,11 +261,7 @@ spec:
 
 ---
 # ==============================================================
-# Skill Runtime (Node.js — executes SDK-defined skills)
-#
-# Bundles first-party skills (notion, github, google) and exposes
-# an HTTP API for manifest discovery and skill execution.
-# The backend dispatches skill calls here via SkillRuntimeClient.
+# Skill Runtime — shared (single instance serves both envs)
 # ==============================================================
 apiVersion: apps/v1
 kind: Deployment
@@ -318,13 +301,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 3002
+              port: 3001
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health
-              port: 3002
+              port: 3001
             initialDelaySeconds: 5
             periodSeconds: 10
 

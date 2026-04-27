@@ -1,24 +1,24 @@
 # ─────────────────────────────────────────────────────────────────────
-# Enterprise Agent OS — website (Next.js landing page)
-#
-# Public-facing marketing site. Separate from the dashboard.
+# Enterprise Agent OS — staging website (Next.js landing page)
 # ─────────────────────────────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eaos-website-prod
+  name: eaos-website-staging
   namespace: default
   labels:
-    app: eaos-website-prod
+    app: eaos-website-staging
+    env: staging
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: eaos-website-prod
+      app: eaos-website-staging
   template:
     metadata:
       labels:
-        app: eaos-website-prod
+        app: eaos-website-staging
+        env: staging
     spec:
       containers:
         - name: website
@@ -56,14 +56,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: eaos-website-prod
+  name: eaos-website-staging
   namespace: default
   labels:
-    app: eaos-website-prod
+    app: eaos-website-staging
+    env: staging
 spec:
   type: ClusterIP
   selector:
-    app: eaos-website-prod
+    app: eaos-website-staging
   ports:
     - name: http
       protocol: TCP

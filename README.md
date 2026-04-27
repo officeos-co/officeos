@@ -31,3 +31,23 @@ Generally maybe we should consider going into microservices. And whats bugging m
 Generally the complexity id say is really big. Although its handled pretty well. Its definitley an enterprise level software.
 
 https://github.com/42wim/matterbridge
+
+# Kubernetes Ingress Endpoints
+
+## Production
+
+| Domain                  | Service                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| `officeos.co`           | `http://eaos-website-prod.default.svc.cluster.local:3000`   |
+| `dashboard.officeos.co` | `http://eaos-frontend-prod.default.svc.cluster.local:3000`  |
+| `api.officeos.co`       | `http://eaos-backend-prod.default.svc.cluster.local:8000`   |
+| `docs.officeos.co`      | `http://eaos-docs-prod.default.svc.cluster.local:3000`      |
+| `changelog.officeos.co` | `http://eaos-changelog-prod.default.svc.cluster.local:3000` |
+
+## Staging
+
+| Domain                          | Service                                                       |
+| ------------------------------- | ------------------------------------------------------------- |
+| `staging.officeos.co`           | `http://eaos-website-staging.default.svc.cluster.local:3000`  |
+| `staging-dashboard.officeos.co` | `http://eaos-frontend-staging.default.svc.cluster.local:3000` |
+| `.staging-apiofficeos.co`       | `http://eaos-backend-staging.default.svc.cluster.local:8000`  |

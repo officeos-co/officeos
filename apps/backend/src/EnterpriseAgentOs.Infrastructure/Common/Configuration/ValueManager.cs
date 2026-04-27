@@ -37,15 +37,21 @@ public static class ValueManager
         {
             if (_environmentName == null)
             {
-                var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-                _environmentName = (env == "Production" || string.IsNullOrEmpty(env)) ? "Production" : "Staging";
+                var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                       ?? Environment.GetEnvironmentVariable("ENVIRONMENT");
+                _environmentName = env switch
+                {
+                    "Production" => "Production",
+                    "Staging" => "Staging",
+                    _ => "Development"
+                };
             }
             return _environmentName;
         }
     }
 
     /// <summary>
-    /// Returns the active environment name ("Production" or "Staging").
+    /// Returns the active environment name ("Production", "Staging", or "Development").
     /// Used in Program.cs to bind nested config sections.
     /// </summary>
     public static string GetEnvironmentName() => EnvironmentName;

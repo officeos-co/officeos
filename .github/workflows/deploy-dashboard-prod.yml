@@ -1,16 +1,19 @@
-name: Deploy Dashboard Prod
+name: Deploy Dashboard
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'apps/dashboard/**'
-      - 'k8s/frontend.yaml'
-      - '.github/workflows/deploy-dashboard-prod.yml'
+      - "apps/dashboard/**"
+      - "k8s/staging/frontend.yaml"
+      - "k8s/prod/frontend.yaml"
+      - ".github/workflows/deploy-dashboard-prod.yml"
+    tags:
+      - "v*"
 
 concurrency:
-  group: deploy-dashboard-prod
+  group: deploy-dashboard-${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'staging' }}
   cancel-in-progress: true
 
 jobs:
@@ -26,12 +29,28 @@ jobs:
           username: harkro123
           password: ${{ secrets.DOCKER_PAT }}
 
-      - uses: docker/build-push-action@v6
+      - name: Build and push (staging)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/dashboard/Dockerfile
           push: true
           tags: harkro123/eaos-frontend:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://staging-api.officeos.co
+          no-cache: true
+
+      - name: Build and push (prod)
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/dashboard/Dockerfile
+          push: true
+          tags: harkro123/eaos-frontend:${{ github.ref_name }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.officeos.co
           no-cache: true
 
   deploy:
@@ -40,12 +59,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apply manifest and restart dashboard
+      - name: Configure kubectl
         run: |
           kubectl config set-cluster nova --server=https://REDACTED_KUBE_SERVER_IP:6443 --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
-          kubectl apply -f k8s/frontend.yaml
-          kubectl rollout restart deployment/eaos-frontend-prod
+
+      - name: Deploy staging
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          kubectl apply -f k8s/staging/frontend.yaml
+          kubectl rollout restart deployment/eaos-frontend-staging
+          kubectl rollout status deployment/eaos-frontend-staging --timeout=180s
+
+      - name: Deploy prod
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/frontend.yaml
+          kubectl apply -f k8s/prod/frontend.yaml
           kubectl rollout status deployment/eaos-frontend-prod --timeout=180s
