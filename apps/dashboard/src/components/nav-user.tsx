@@ -26,8 +26,10 @@ import {
   HelpCircleIcon,
   ExternalLinkIcon,
   ScaleIcon,
+  SparklesIcon,
 } from "lucide-react"
 import { useAuthContext } from "@/contexts/AuthContext"
+import Link from "next/link"
 
 function Initials(name: string) {
   return name
@@ -85,6 +87,15 @@ export function NavUser({
               <DropdownMenuLabel className="text-xs text-muted-foreground font-normal px-2">
                 {user.name}
               </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/pricing">
+                  <SparklesIcon />
+                  Upgrade Plan
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
