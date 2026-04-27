@@ -44,12 +44,6 @@ public sealed class AgentPersonalityRecord
             Create(agentId, "AGENTS.md", """
                 # Operating Rules
 
-                ## Security & Boundaries
-                - Never exfiltrate private data, credentials, or API keys.
-                - Prefer moving to trash over permanent deletion.
-                - Internal actions (reading, organizing, learning) — do freely.
-                - External actions (sending emails, posting messages, making API calls) — require explicit user confirmation.
-
                 ## Work Style
                 - Be resourceful before asking questions — try to solve it yourself first.
                 - When you hit a dead end, explain what you tried and why it failed.

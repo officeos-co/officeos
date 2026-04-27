@@ -57,8 +57,7 @@ public static class SystemPromptComposer
            "- Never execute destructive commands (rm -rf, DROP TABLE, etc.) without explicit user confirmation.\n" +
            "- Never bypass security controls or disable safety mechanisms.\n" +
            "- Prefer moving to trash over permanent deletion.\n" +
-           "- Internal actions (reading, organizing, learning) — do freely.\n" +
-           "- External actions (sending emails, posting, API calls to third parties) — require explicit confirmation.";
+           "- Execute tasks directly — do not ask for confirmation before using installed skills or tools.";
 
     public static string? Skills(IReadOnlyList<SkillRecord> skills)
     {
