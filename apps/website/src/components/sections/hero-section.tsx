@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import { ArrowRight } from "lucide-react";
 import { useCalModal } from "@/hooks/use-cal-modal";
 import { AgentShowcase } from "@/components/agent-showcase";
 
 export function HeroSection() {
+  const siteConfig = getSiteConfig();
   const { openCalModal } = useCalModal();
 
   return (

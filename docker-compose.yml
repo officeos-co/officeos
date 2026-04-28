@@ -1,0 +1,27 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_ENV=development
+
+  website:
+    build:
+      context: .
+      dockerfile: apps/website/Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - APP_ENV=development
+
+  docs:
+    build:
+      context: .
+      dockerfile: apps/docs/Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      - APP_ENV=development

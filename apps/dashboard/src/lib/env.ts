@@ -5,13 +5,13 @@
  * All URLs and config are derived from it. No other env vars needed.
  */
 
-type Environment = "development" | "staging" | "production"
+type Environment = "development" | "staging" | "production";
 
 interface EnvConfig {
-  env: Environment
-  apiUrl: string
-  dashboardUrl: string
-  websiteUrl: string
+  env: Environment;
+  apiUrl: string;
+  dashboardUrl: string;
+  websiteUrl: string;
 }
 
 const configs: Record<Environment, EnvConfig> = {
@@ -33,15 +33,17 @@ const configs: Record<Environment, EnvConfig> = {
     dashboardUrl: "https://dashboard.officeos.co",
     websiteUrl: "https://officeos.co",
   },
-}
+};
 
 function resolveEnv(): Environment {
-  const env = process.env.APP_ENV
+  const env = process.env.APP_ENV;
   if (env === "staging" || env === "production" || env === "development") {
-    return env
+    return env;
   }
   // Fall back to NODE_ENV mapping
-  return process.env.NODE_ENV === "production" ? "production" : "development"
+  return process.env.NODE_ENV === "production" ? "production" : "development";
 }
 
-export const envConfig = configs[resolveEnv()]
+export function getEnvConfig(): EnvConfig {
+  return configs[resolveEnv()];
+}

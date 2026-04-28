@@ -8,7 +8,7 @@ import { QuoteSection } from "@/components/sections/quote-section";
 import { HeroSection } from "@/components/sections/hero-section";
 import { Navbar } from "@/components/sections/navbar";
 import { TrustSection } from "@/components/sections/trust-section";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import { CalModal } from "@/components/cal-modal";
 
 const organizationJsonLd = {
@@ -16,7 +16,7 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: "OfficeOS",
   legalName: "OfficeOS",
-  url: siteConfig.url,
+  url: getSiteConfig().url,
   description:
     "AI agent platform that deploys autonomous agents across your company with enterprise knowledge, custom skills, and full infrastructure control.",
   foundingDate: "2025",
@@ -32,7 +32,7 @@ const webSiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "OfficeOS",
-  url: siteConfig.url,
+  url: getSiteConfig().url,
 };
 
 const softwareJsonLd = {
@@ -43,7 +43,7 @@ const softwareJsonLd = {
   operatingSystem: "Kubernetes",
   description:
     "Deploy autonomous AI agents across your company. Enterprise knowledge graph, custom skills SDK, self-hosted Kubernetes runtime, and full credential isolation.",
-  url: siteConfig.url,
+  url: getSiteConfig().url,
   offers: {
     "@type": "Offer",
     price: "0",

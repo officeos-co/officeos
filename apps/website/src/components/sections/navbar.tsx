@@ -1,6 +1,6 @@
 "use client";
 
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import {
   ChevronDown,
   Menu,
@@ -163,6 +163,7 @@ function NavDropdown({ links }: { links: typeof productLinks }) {
 }
 
 export function Navbar() {
+  const siteConfig = getSiteConfig();
   const pathname = usePathname();
   const { scrollY } = useScroll();
   const [hasScrolled, setHasScrolled] = useState(false);

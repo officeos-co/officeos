@@ -4,7 +4,7 @@ import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import Link from "next/link";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 const footerLinks = [
@@ -17,7 +17,7 @@ const footerLinks = [
       { id: 4, title: "Integrations", url: "/product/integrations" },
       { id: 5, title: "Security", url: "/product/security" },
       { id: 6, title: "Pricing", url: "/pricing" },
-      { id: 16, title: "Docs", url: siteConfig.docsUrl },
+      { id: 16, title: "Docs", url: getSiteConfig().docsUrl },
     ],
   },
   {

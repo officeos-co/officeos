@@ -32,6 +32,23 @@ Generally the complexity id say is really big. Although its handled pretty well.
 
 https://github.com/42wim/matterbridge
 
+# Local Development
+
+| Service   | Port  | Command                          |
+| --------- | ----- | -------------------------------- |
+| Dashboard | 3000  | `cd apps/dashboard && bun dev`   |
+| Website   | 3001  | `cd apps/website && bun dev`     |
+| Docs      | 3002  | `cd apps/docs && bun dev`        |
+| Backend   | 5000  | `cd apps/backend && dotnet run`  |
+
+Or run the frontends via Docker Compose:
+
+```bash
+docker compose up
+```
+
+This maps dashboard → :3000, website → :3001, docs → :3002 with `APP_ENV=development`.
+
 # Kubernetes Ingress Endpoints
 
 ## Production

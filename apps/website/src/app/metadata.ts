@@ -1,8 +1,8 @@
 import { Metadata } from "next";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
+  metadataBase: new URL(getSiteConfig().url),
   title: "OfficeOS — AI Agent Platform for Enterprise Teams",
   description:
     "Deploy autonomous AI agents across your company. Enterprise knowledge graph, custom skills SDK, self-hosted Kubernetes runtime, and full credential isolation. Not an office suite — an intelligence layer for AI agents.",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: siteConfig.url,
+    url: getSiteConfig().url,
     title: "OfficeOS — AI Agent Platform for Enterprise Teams",
     description:
       "Deploy autonomous AI agents across your company. Enterprise knowledge graph, custom skills, self-hosted runtime, and full credential isolation.",

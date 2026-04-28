@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import { Navbar } from "@/components/sections/navbar";
 import { FooterSection } from "@/components/sections/footer-section";
 
@@ -98,6 +98,7 @@ const network = [
 ];
 
 export default function Sponsors() {
+  const siteConfig = getSiteConfig();
   return (
     <div className="relative mx-auto max-w-7xl border-x">
       <div className="absolute top-0 left-6 z-10 block h-full w-px border-border border-l" />

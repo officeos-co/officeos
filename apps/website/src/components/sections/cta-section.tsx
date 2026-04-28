@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Marquee } from "@/components/ui/marquee";
@@ -271,6 +271,7 @@ function ReviewCard({
 }
 
 export function CTASection() {
+  const siteConfig = getSiteConfig();
   return (
     <section
       id="cta"

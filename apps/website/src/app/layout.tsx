@@ -4,22 +4,24 @@ import "./globals.css";
 
 export { metadata } from "./metadata";
 
+export const dynamic = "force-dynamic";
+
 export const viewport: Viewport = {
-	themeColor: "white",
+  themeColor: "white",
 };
 
 export default function RootLayout({
-	children,
+  children,
 }: Readonly<{
-	children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-	return (
-		<html lang="en" className="light">
-			<body
-				className={`${GeistMono.className} bg-background font-sans antialiased`}
-			>
-				{children}
-			</body>
-		</html>
-	);
+  return (
+    <html lang="en" className="light">
+      <body
+        className={`${GeistMono.className} bg-background font-sans antialiased`}
+      >
+        {children}
+      </body>
+    </html>
+  );
 }

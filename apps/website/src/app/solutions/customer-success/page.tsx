@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import {
   MessageCircle,
   Brain,
@@ -17,6 +17,7 @@ export const metadata = {
 };
 
 export default function CustomerSuccess() {
+  const siteConfig = getSiteConfig();
   return (
     <div className="min-h-screen bg-background text-primary font-sans">
       <Navbar />

@@ -5,13 +5,13 @@
  * All URLs are derived from it.
  */
 
-type Environment = "development" | "staging" | "production"
+type Environment = "development" | "staging" | "production";
 
 interface EnvConfig {
-  env: Environment
-  websiteUrl: string
-  dashboardUrl: string
-  docsUrl: string
+  env: Environment;
+  websiteUrl: string;
+  dashboardUrl: string;
+  docsUrl: string;
 }
 
 const configs: Record<Environment, EnvConfig> = {
@@ -33,14 +33,16 @@ const configs: Record<Environment, EnvConfig> = {
     dashboardUrl: "https://dashboard.officeos.co",
     docsUrl: "https://docs.officeos.co",
   },
-}
+};
 
 function resolveEnv(): Environment {
-  const env = process.env.APP_ENV
+  const env = process.env.APP_ENV;
   if (env === "staging" || env === "production" || env === "development") {
-    return env
+    return env;
   }
-  return process.env.NODE_ENV === "production" ? "production" : "development"
+  return process.env.NODE_ENV === "production" ? "production" : "development";
 }
 
-export const envConfig = configs[resolveEnv()]
+export function getEnvConfig(): EnvConfig {
+  return configs[resolveEnv()];
+}

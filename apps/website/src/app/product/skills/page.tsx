@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { siteConfig } from "@/lib/site";
+import { getSiteConfig } from "@/lib/site";
 import { Navbar } from "@/components/sections/navbar";
 import { Code, Box, Layers, Lock, Upload, Sparkles } from "lucide-react";
 
@@ -10,6 +10,7 @@ export const metadata = {
 };
 
 export default function SkillsPage() {
+  const siteConfig = getSiteConfig();
   return (
     <div className="min-h-screen bg-background text-primary font-sans">
       <Navbar />
