@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { gql, useQuery } from "@apollo/client"
-import type { AgentLog } from "@/types/logs"
+import { gql, useQuery } from "@apollo/client";
+import type { AgentLog } from "@/types/logs";
 
 export type GlobalLogFilters = {
-  search?: string
-  agentName?: string
-  type?: string
-  skip?: number
-  limit?: number
-}
+  search?: string;
+  agentName?: string;
+  type?: string;
+  skip?: number;
+  limit?: number;
+};
 
-export type GlobalLog = AgentLog & { agentName: string }
+export type GlobalLog = AgentLog & { agentName: string };
 
 const GLOBAL_LOGS_QUERY = gql`
   query GlobalLogs(
@@ -46,11 +46,11 @@ const GLOBAL_LOGS_QUERY = gql`
       total
     }
   }
-`
+`;
 
 function normaliseType(raw: string | null | undefined): AgentLog["type"] {
-  if (!raw) return "system"
-  if (raw.includes("_")) return raw as AgentLog["type"]
+  if (!raw) return "system";
+  if (raw.includes("_")) return raw as AgentLog["type"];
   const map: Record<string, AgentLog["type"]> = {
     ToolCall: "tool_call",
     ToolResult: "tool_result",
@@ -62,33 +62,33 @@ function normaliseType(raw: string | null | undefined): AgentLog["type"] {
     AgentStartup: "agent_startup",
     AgentShutdown: "agent_shutdown",
     Error: "error",
-  }
-  return map[raw] ?? "system"
+  };
+  return map[raw] ?? "system";
 }
 
 export function useGlobalLogs(filters: GlobalLogFilters = {}): {
-  logs: GlobalLog[]
-  loading: boolean
-  error?: Error
+  logs: GlobalLog[];
+  loading: boolean;
+  error?: Error;
 } {
   const { data, loading, error } = useQuery(GLOBAL_LOGS_QUERY, {
     variables: filters,
     pollInterval: 5000,
     fetchPolicy: "network-only",
-  })
+  });
   const raw: Array<{
-    id: string
-    time: string | number
-    type: string
-    tool?: string | null
-    integration?: string | null
-    channel?: string | null
-    content: string
-    durationMs?: number | null
-    inputTokens?: number | null
-    outputTokens?: number | null
-    agentName: string
-  }> = data?.globalLogs?.items ?? []
+    id: string;
+    time: string | number;
+    type: string;
+    tool?: string | null;
+    integration?: string | null;
+    channel?: string | null;
+    content: string;
+    durationMs?: number | null;
+    inputTokens?: number | null;
+    outputTokens?: number | null;
+    agentName: string;
+  }> = data?.globalLogs?.items ?? [];
   const logs: GlobalLog[] = raw.map((r) => ({
     id: r.id,
     time:
@@ -104,6 +104,6 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
         ? { input: r.inputTokens ?? 0, output: r.outputTokens ?? 0 }
         : undefined,
     agentName: r.agentName,
-  }))
-  return { logs, loading, error: error ?? undefined }
+  }));
+  return { logs, loading, error: error ?? undefined };
 }

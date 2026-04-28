@@ -1,33 +1,38 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Separator } from "@/components/ui/separator"
-import { DownloadIcon } from "lucide-react"
-import { useUsage } from "@/features/analytics"
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { DownloadIcon } from "lucide-react";
+import { useUsage } from "@/features/analytics";
 
 function formatCredits(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
-  return n.toLocaleString()
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString();
 }
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return ""
-  const t = Date.parse(iso)
-  if (Number.isNaN(t)) return iso ?? ""
-  return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  if (!iso) return "";
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso ?? "";
+  return new Date(t).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function UsagePage() {
-  const { usage, loading, error } = useUsage()
+  const { usage, loading, error } = useUsage();
 
   useEffect(() => {
-    if (error) toast.error("Failed to load usage", { description: error.message })
-  }, [error])
+    if (error)
+      toast.error("Failed to load usage", { description: error.message });
+  }, [error]);
 
   if (loading && !usage) {
     return (
@@ -46,7 +51,7 @@ export default function UsagePage() {
           <Skeleton className="h-48 w-full rounded-xl" />
         </div>
       </>
-    )
+    );
   }
 
   if (!usage) {
@@ -54,15 +59,21 @@ export default function UsagePage() {
       <>
         <PageHeader group="Analytics" page="Usage" />
         <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-muted-foreground">Unable to load usage information.</p>
+          <p className="text-sm text-muted-foreground">
+            Unable to load usage information.
+          </p>
         </div>
       </>
-    )
+    );
   }
 
-  const pct = usage.creditBudgetPerMonth > 0
-    ? Math.min(100, (usage.creditsUsedThisMonth / usage.creditBudgetPerMonth) * 100)
-    : 0
+  const pct =
+    usage.creditBudgetPerMonth > 0
+      ? Math.min(
+          100,
+          (usage.creditsUsedThisMonth / usage.creditBudgetPerMonth) * 100,
+        )
+      : 0;
 
   return (
     <>
@@ -81,15 +92,23 @@ export default function UsagePage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-border p-4">
             <div className="text-sm text-muted-foreground">Credits used</div>
-            <div className="text-2xl font-semibold mt-1">{formatCredits(usage.creditsUsedThisMonth)}</div>
+            <div className="text-2xl font-semibold mt-1">
+              {formatCredits(usage.creditsUsedThisMonth)}
+            </div>
           </div>
           <div className="rounded-xl border border-border p-4">
             <div className="text-sm text-muted-foreground">Monthly budget</div>
-            <div className="text-2xl font-semibold mt-1">{formatCredits(usage.creditBudgetPerMonth)}</div>
+            <div className="text-2xl font-semibold mt-1">
+              {formatCredits(usage.creditBudgetPerMonth)}
+            </div>
           </div>
           <div className="rounded-xl border border-border p-4">
-            <div className="text-sm text-muted-foreground">Credits remaining</div>
-            <div className="text-2xl font-semibold mt-1">{formatCredits(usage.creditsRemaining)}</div>
+            <div className="text-sm text-muted-foreground">
+              Credits remaining
+            </div>
+            <div className="text-2xl font-semibold mt-1">
+              {formatCredits(usage.creditsRemaining)}
+            </div>
           </div>
         </div>
 
@@ -97,7 +116,9 @@ export default function UsagePage() {
         <div className="rounded-xl border border-border p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium">Credit usage this period</div>
-            <span className="text-sm text-muted-foreground">{pct.toFixed(1)}%</span>
+            <span className="text-sm text-muted-foreground">
+              {pct.toFixed(1)}%
+            </span>
           </div>
           <div className="h-3 rounded-full bg-muted overflow-hidden">
             <div
@@ -107,7 +128,8 @@ export default function UsagePage() {
           </div>
           <div className="flex items-center justify-between mt-2">
             <span className="text-xs text-muted-foreground">
-              {formatCredits(usage.creditsUsedThisMonth)} / {formatCredits(usage.creditBudgetPerMonth)} credits
+              {formatCredits(usage.creditsUsedThisMonth)} /{" "}
+              {formatCredits(usage.creditBudgetPerMonth)} credits
             </span>
             {usage.overBudget && (
               <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
@@ -129,7 +151,9 @@ export default function UsagePage() {
             </div>
             <div>
               <span className="text-muted-foreground">Cycle</span>
-              <p className="font-medium capitalize mt-0.5">{usage.billingCycle}</p>
+              <p className="font-medium capitalize mt-0.5">
+                {usage.billingCycle}
+              </p>
             </div>
             <div>
               <span className="text-muted-foreground">Period start</span>
@@ -143,5 +167,5 @@ export default function UsagePage() {
         </div>
       </div>
     </>
-  )
+  );
 }
