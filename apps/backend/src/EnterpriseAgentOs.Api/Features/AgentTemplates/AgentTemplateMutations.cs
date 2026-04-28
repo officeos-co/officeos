@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Api.Features.AgentTemplates;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentTemplateMutations
 {
+    [GraphQLDescription("Creates a new agent pre-configured from a template (prompt, skills, channels).")]
     public async Task<AgentDto> CreateAgentFromTemplate(
         Guid templateId,
         string name,

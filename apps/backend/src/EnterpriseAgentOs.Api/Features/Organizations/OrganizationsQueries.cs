@@ -5,6 +5,7 @@ public class OrganizationsQueries
 {
     private static readonly TimeSpan OrgCacheTtl = TimeSpan.FromMinutes(5);
 
+    [GraphQLDescription("Returns the authenticated user's organization (auto-created on first call) with member list. Cached for 5 minutes.")]
     public async Task<OrganizationPayload> Org(
         IResolverContext context,
         [Service] IOrganizationRepository orgs,

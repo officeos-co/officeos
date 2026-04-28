@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Api.Features.AgentLogs;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentLogsQueries
 {
+    [GraphQLDescription("Returns paginated log entries for a specific agent. Supports cursor-based pagination via the before timestamp.")]
     public async Task<IReadOnlyList<AgentLogDto>> GetAgentLogs(
         Guid agentId,
         DateTime? before,
@@ -18,6 +19,7 @@ public class AgentLogsQueries
         return rows.OrderBy(r => r.Time).Select(r => AgentLogMapper.ToDto(r)).ToList();
     }
 
+    [GraphQLDescription("Returns paginated log entries across all agents. Supports filtering by search text, agent name, and log type.")]
     public async Task<GlobalLogsPage> GetGlobalLogs(
         GlobalLogFiltersInput? filters,
         IResolverContext context,
@@ -28,6 +30,7 @@ public class AgentLogsQueries
         return await logs.ListGlobalAsync(filters ?? new GlobalLogFiltersInput(), ct);
     }
 
+    [GraphQLDescription("Returns paginated skill execution audit trail for an agent including tool calls, durations, and results.")]
     public async Task<AuditLogPage> GetAuditLog(
         Guid agentId,
         int skip,

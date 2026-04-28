@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Api.Features.Providers;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class ProviderMutations
 {
+    [GraphQLDescription("Sets the API key for an LLM provider. Currently only OpenAI keys are user-configurable.")]
     public async Task<ProviderDto> SetProviderKey(
         string providerName,
         string apiKey,
@@ -31,6 +32,7 @@ public class ProviderMutations
         return dto;
     }
 
+    [GraphQLDescription("Removes the API key for an LLM provider, reverting to the platform default.")]
     public async Task<ProviderDto> ClearProviderKey(
         string providerName,
         IResolverContext context,

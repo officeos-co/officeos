@@ -7,6 +7,7 @@ public class SkillQueries
     private const string SkillListCacheKey = "skills:dashboard:list";
 
     [GraphQLName("skills")]
+    [GraphQLDescription("Lists all skills in the catalog with install status, credential status, tools, and metadata.")]
     public async Task<IReadOnlyList<SkillDashboardDto>> GetSkillList(
         IResolverContext context,
         [Service] ISkillCatalogRepository catalog,
@@ -44,6 +45,7 @@ public class SkillQueries
     }
 
     [GraphQLName("skill")]
+    [GraphQLDescription("Returns a single skill by its unique name slug, or null if not found.")]
     public async Task<SkillDashboardDto?> GetSkillByName(
         string name,
         IResolverContext context,
@@ -75,6 +77,7 @@ public class SkillQueries
     }
 
     [GraphQLName("skillComments")]
+    [GraphQLDescription("Returns all user comments on a skill, ordered by creation date.")]
     public async Task<IReadOnlyList<SkillCommentDto>> GetSkillComments(
         Guid skillId,
         IResolverContext context,
@@ -86,6 +89,7 @@ public class SkillQueries
         return rows.Select(SkillDashboardMapper.ToDto).ToList();
     }
 
+    [GraphQLDescription("Returns skills installed on an agent with their per-tool permission overrides.")]
     public async Task<IReadOnlyList<AgentSkillGqlDto>> GetAgentSkills(
         Guid agentId,
         IResolverContext context,
@@ -109,6 +113,7 @@ public class SkillQueries
     }
 
     [GraphQLName("oauthConnectionStatus")]
+    [GraphQLDescription("Checks whether an OAuth provider is connected and whether any required scopes are missing.")]
     public async Task<OAuthConnectionStatusDto> GetOAuthConnectionStatus(
         string provider,
         string[]? requiredScopes,

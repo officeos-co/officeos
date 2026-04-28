@@ -5,6 +5,7 @@ namespace EnterpriseAgentOs.Api.Features.PostHog;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class PostHogMutations
 {
+    [GraphQLDescription("Fires a PostHog $pageview event with the given path.")]
     public Task<bool> TrackPageView(
         TrackPageViewInput input,
         IResolverContext context,
@@ -12,6 +13,7 @@ public class PostHogMutations
         CancellationToken ct)
         => Capture(context, posthog, "$pageview", new() { ["path"] = input.Path }, ct);
 
+    [GraphQLDescription("Fires a PostHog nav_clicked event with the navigation destination.")]
     public Task<bool> TrackNavClicked(
         TrackNavClickedInput input,
         IResolverContext context,
@@ -19,6 +21,7 @@ public class PostHogMutations
         CancellationToken ct)
         => Capture(context, posthog, "nav_clicked", new() { ["destination"] = input.Destination }, ct);
 
+    [GraphQLDescription("Fires a PostHog skill_installed event with the skill name.")]
     public Task<bool> TrackSkillInstalled(
         TrackSkillInstalledInput input,
         IResolverContext context,
@@ -26,6 +29,7 @@ public class PostHogMutations
         CancellationToken ct)
         => Capture(context, posthog, "skill_installed", new() { ["skill_name"] = input.SkillName }, ct);
 
+    [GraphQLDescription("Fires a PostHog skill_configured event with the skill name.")]
     public Task<bool> TrackSkillConfigured(
         TrackSkillConfiguredInput input,
         IResolverContext context,
@@ -33,6 +37,7 @@ public class PostHogMutations
         CancellationToken ct)
         => Capture(context, posthog, "skill_configured", new() { ["skill_name"] = input.SkillName }, ct);
 
+    [GraphQLDescription("Fires a PostHog channel_connected event with the channel slug.")]
     public Task<bool> TrackChannelConnected(
         TrackChannelConnectedInput input,
         IResolverContext context,
@@ -40,6 +45,7 @@ public class PostHogMutations
         CancellationToken ct)
         => Capture(context, posthog, "channel_connected", new() { ["channel_slug"] = input.ChannelSlug }, ct);
 
+    [GraphQLDescription("Fires a PostHog agent_created event with agent name, provider, template, and skill counts.")]
     public Task<bool> TrackAgentCreated(
         TrackAgentCreatedInput input,
         IResolverContext context,
@@ -55,6 +61,7 @@ public class PostHogMutations
             ["deny_skills"] = input.DenySkills,
         }, ct);
 
+    [GraphQLDescription("Calls PostHog identify with the authenticated user's email and name.")]
     public async Task<bool> IdentifyUser(
         IResolverContext context,
         [Service] IPostHogService posthog,

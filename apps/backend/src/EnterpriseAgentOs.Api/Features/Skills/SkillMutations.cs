@@ -9,6 +9,7 @@ public class SkillMutations
         cache.Remove($"skills:dashboard:list:{user.Id}");
     }
 
+    [GraphQLDescription("Installs a skill from the catalog by name. Makes it available for assignment to agents.")]
     public async Task<bool> InstallSkill(
         string name,
         IResolverContext context,
@@ -30,6 +31,7 @@ public class SkillMutations
         return true;
     }
 
+    [GraphQLDescription("Uninstalls a skill by name. Removes it from all agents.")]
     public async Task<bool> UninstallSkill(
         string name,
         IResolverContext context,
@@ -51,6 +53,7 @@ public class SkillMutations
         return true;
     }
 
+    [GraphQLDescription("Sets credential key-value pairs for a skill. Credentials are encrypted at rest.")]
     public async Task<bool> SetSkillCredentials(
         string name,
         IReadOnlyList<SkillCredentialEntry> credentials,
@@ -74,6 +77,7 @@ public class SkillMutations
         return true;
     }
 
+    [GraphQLDescription("Sets where a skill executes: cloud (managed) or runner (self-hosted).")]
     public async Task<bool> SetSkillRunTarget(
         string name,
         string runTarget,
@@ -94,6 +98,7 @@ public class SkillMutations
         return true;
     }
 
+    [GraphQLDescription("Adds a like from the authenticated user to a skill.")]
     public async Task<SkillDashboardDto> LikeSkill(
         Guid skillId,
         IResolverContext context,
@@ -108,6 +113,7 @@ public class SkillMutations
         return SkillDashboardMapper.ToDto(skill);
     }
 
+    [GraphQLDescription("Removes the authenticated user's like from a skill.")]
     public async Task<SkillDashboardDto> UnlikeSkill(
         Guid skillId,
         IResolverContext context,
@@ -122,6 +128,7 @@ public class SkillMutations
         return SkillDashboardMapper.ToDto(skill);
     }
 
+    [GraphQLDescription("Posts a comment on a skill. Body must not be empty.")]
     public async Task<SkillCommentDto> CommentOnSkill(
         Guid skillId,
         string body,
@@ -142,6 +149,7 @@ public class SkillMutations
         return SkillDashboardMapper.ToDto(record);
     }
 
+    [GraphQLDescription("Deletes a skill comment. Only the comment author can delete.")]
     public async Task<bool> DeleteSkillComment(
         Guid commentId,
         IResolverContext context,
@@ -168,6 +176,7 @@ public class SkillMutations
 
     // ── Agent-skill bindings ─────────────────────────────────────────────────
 
+    [GraphQLDescription("Assigns an installed skill to an agent so it can use the skill's tools.")]
     public async Task<bool> AssignSkillToAgent(
         Guid agentId,
         string skillName,
@@ -180,6 +189,7 @@ public class SkillMutations
         return true;
     }
 
+    [GraphQLDescription("Removes a skill assignment from an agent.")]
     public async Task<bool> UnassignSkillFromAgent(
         Guid agentId,
         string skillName,
@@ -191,6 +201,7 @@ public class SkillMutations
         return await agentSkills.RemoveAsync(agentId, skillName, ct);
     }
 
+    [GraphQLDescription("Sets an allow/deny permission override for a specific tool on a specific skill for an agent.")]
     public async Task<AgentToolPermissionRecord> SetAgentToolPermission(
         Guid agentId,
         string skillName,

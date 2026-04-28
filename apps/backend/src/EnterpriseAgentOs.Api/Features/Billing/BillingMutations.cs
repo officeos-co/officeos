@@ -11,6 +11,7 @@ public class BillingMutations
         cache.Remove($"billing:sub:{userId}");
     }
 
+    [GraphQLDescription("Initiates a Stripe Checkout session for the given plan (free or pro) and billing cycle (monthly or yearly). Returns the checkout URL.")]
     public async Task<SubscribeResultDto> SubscribeUser(
         string plan,
         string billingCycle,
@@ -43,6 +44,7 @@ public class BillingMutations
         return new SubscribeResultDto(checkoutUrl);
     }
 
+    [GraphQLDescription("Cancels the user's subscription by disabling overage. Returns the updated subscription state.")]
     public async Task<UserSubscriptionDto> CancelUserSubscription(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
@@ -71,6 +73,7 @@ public class BillingMutations
     /// previous "auto-reload" card in the billing UI with a single boolean
     /// toggle — when on, usage above the credit budget is billed metered.
     /// </summary>
+    [GraphQLDescription("Turns extra-usage (Stripe metered overage) on or off. When enabled, usage above the credit budget is billed metered.")]
     public async Task<bool> SetExtraUsageEnabled(
         bool enabled,
         IResolverContext context,
@@ -85,6 +88,7 @@ public class BillingMutations
         return sub.OverageEnabled;
     }
 
+    [GraphQLDescription("Deprecated: use setExtraUsageEnabled. Toggles overage and returns full subscription state.")]
     [Obsolete("Use setExtraUsageEnabled. Kept for backwards compatibility.")]
     public async Task<UserSubscriptionDto> ToggleOverage(
         bool enabled,

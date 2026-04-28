@@ -9,6 +9,7 @@ public class OrganizationsMutations
         cache.Remove($"org:dashboard:{user.Id}");
     }
 
+    [GraphQLDescription("Invites a user to the organization by email. Only the org owner can invite.")]
     public async Task<OrgMemberRecord> InviteMember(
         InviteMemberInput input,
         IResolverContext context,
@@ -32,6 +33,7 @@ public class OrganizationsMutations
         }
     }
 
+    [GraphQLDescription("Removes a member from the organization. Only the org owner can remove.")]
     public async Task<bool> RemoveMember(
         Guid memberId,
         IResolverContext context,
@@ -55,6 +57,7 @@ public class OrganizationsMutations
         }
     }
 
+    [GraphQLDescription("Renames the organization. Only the org owner can rename.")]
     public async Task<OrganizationPayload> RenameOrg(
         RenameOrgInput input,
         IResolverContext context,

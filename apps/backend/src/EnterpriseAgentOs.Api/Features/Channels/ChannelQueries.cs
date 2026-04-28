@@ -7,6 +7,7 @@ public class ChannelQueries
     private const string ChannelListCacheKey = "channels:list";
     private static string ChannelCacheKey(Guid id) => $"channels:{id}";
 
+    [GraphQLDescription("Lists all channel connections (Slack, Telegram, Discord, etc.) configured by the user.")]
     public async Task<IReadOnlyList<ChannelConnectionGqlDto>> GetChannelConnections(
         IResolverContext context,
         [Service] IChannelRepository repo,
@@ -27,6 +28,7 @@ public class ChannelQueries
         return result;
     }
 
+    [GraphQLDescription("Returns a single channel connection by ID.")]
     public async Task<ChannelConnectionGqlDto?> GetChannelConnection(
         Guid id,
         IResolverContext context,
@@ -50,6 +52,7 @@ public class ChannelQueries
         return dto;
     }
 
+    [GraphQLDescription("Returns all supported channel types with display names, descriptions, logos, and onboarding step definitions.")]
     public IReadOnlyList<ChannelTypeDefinition> GetChannelTypes(
         IResolverContext context)
     {
@@ -57,6 +60,7 @@ public class ChannelQueries
         return ChannelTypes.All;
     }
 
+    [GraphQLDescription("Lists all channel bindings for a specific agent showing which channels the agent listens on.")]
     public async Task<IReadOnlyList<AgentChannelBindingGqlDto>> GetAgentChannelBindings(
         Guid agentId,
         IResolverContext context,

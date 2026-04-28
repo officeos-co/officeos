@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Api.Features.AgentLogs;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentLogsMutations
 {
+    [GraphQLDescription("Sends a user message to an agent. Creates a MessageIn log entry and triggers the agent turn pipeline.")]
     public async Task<AgentLogDto> SendAgentMessage(
         Guid agentId,
         string content,
@@ -23,6 +24,7 @@ public class AgentLogsMutations
         return AgentLogMapper.ToDto(saved);
     }
 
+    [GraphQLDescription("Appends an arbitrary log entry to an agent's timeline. Used by the dashboard for system events.")]
     public async Task<AgentLogDto> AppendAgentLog(
         AppendAgentLogInput input,
         IResolverContext context,

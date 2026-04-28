@@ -9,6 +9,7 @@ public class AgentSchemaMutations
     /// <summary>
     /// Forwards a log entry from the agent pod to the backend timeline.
     /// </summary>
+    [GraphQLDescription("Forwards a log entry from the agent pod to the backend timeline. Called by the agent runtime, not the dashboard.")]
     public async Task<AgentLogDto> ForwardLog(
         ForwardLogInput input,
         IResolverContext context,

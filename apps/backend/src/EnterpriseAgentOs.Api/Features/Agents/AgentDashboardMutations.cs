@@ -6,6 +6,7 @@ public class AgentDashboardMutations
     private const string AgentListQueryCacheKey = "agents:dashboard:list";
     private static string AgentQueryCacheKey(Guid id) => $"agents:dashboard:{id}";
 
+    [GraphQLDescription("Creates a new agent with the given config. Optionally assigns skills, tool permissions, and channels.")]
     public async Task<AgentDto> CreateAgent(
         CreateAgentInput input,
         IResolverContext context,
@@ -53,6 +54,7 @@ public class AgentDashboardMutations
         return dto;
     }
 
+    [GraphQLDescription("Patches mutable fields on an existing agent (name, provider, model, prompt). Null fields are left unchanged.")]
     public async Task<AgentDto> UpdateAgent(
         Guid id,
         UpdateAgentInput input,
@@ -79,6 +81,7 @@ public class AgentDashboardMutations
         return dto;
     }
 
+    [GraphQLDescription("Soft-deletes an agent and removes its Kubernetes pod.")]
     public async Task<bool> DeleteAgent(
         Guid id,
         IResolverContext context,

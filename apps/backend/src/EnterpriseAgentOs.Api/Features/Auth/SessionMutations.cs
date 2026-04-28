@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Api.Features.Auth;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class SessionMutations
 {
+    [GraphQLDescription("Creates a new conversation session for an agent. Ends any active session first and appends a bootstrap system message with personality files.")]
     public async Task<AgentSessionRecord> CreateSession(
         Guid agentId,
         IResolverContext context,
@@ -44,6 +45,7 @@ public class SessionMutations
         return session;
     }
 
+    [GraphQLDescription("Ends the active session for an agent. Returns the ended session or null if none was active.")]
     public async Task<AgentSessionRecord?> EndSession(
         Guid agentId,
         IResolverContext context,

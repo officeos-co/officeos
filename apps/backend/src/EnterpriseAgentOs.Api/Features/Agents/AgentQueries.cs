@@ -7,6 +7,7 @@ public class AgentQueries
     private const string ListCacheKey = "agents:dashboard:list";
     private static string DetailCacheKey(Guid id) => $"agents:dashboard:{id}";
 
+    [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
     public async Task<IReadOnlyList<AgentDto>> GetAgents(
         IResolverContext context,
         [Service] IAgentService agents,
@@ -23,6 +24,7 @@ public class AgentQueries
         return result;
     }
 
+    [GraphQLDescription("Returns a single agent by ID including its full aggregate: personality files, installed skills, memories, channel bindings, and cron jobs.")]
     public async Task<AgentRecord?> GetAgent(
         Guid id,
         IResolverContext context,

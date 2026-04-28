@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Api.Features.Providers;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class ProviderQueries
 {
+    [GraphQLDescription("Lists all configured LLM providers with name, display name, and whether an API key is set.")]
     public async Task<IReadOnlyList<ProviderDto>> GetProviders(
         IResolverContext context,
         [Service] IProviderService providers,
@@ -12,6 +13,7 @@ public class ProviderQueries
         return await providers.ListAsync(ct);
     }
 
+    [GraphQLDescription("Returns available model IDs for a specific provider name.")]
     public IReadOnlyList<string> GetProviderModels(
         string providerName,
         IResolverContext context)
@@ -20,6 +22,7 @@ public class ProviderQueries
         return KnownModels.For(providerName);
     }
 
+    [GraphQLDescription("Returns all supported models across all providers with display names and default indicator.")]
     public IReadOnlyList<ModelInfoDto> GetSupportedModels(
         IResolverContext context)
     {

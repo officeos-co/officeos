@@ -13,6 +13,7 @@ public class AuthMutations
     /// Updates editable profile fields on the authenticated user.
     /// Any null field is left unchanged.
     /// </summary>
+    [GraphQLDescription("Updates editable profile fields on the authenticated user. Null fields are left unchanged.")]
     public async Task<UserPayload> UpdateProfile(
         UpdateProfileInput input,
         IResolverContext context,
@@ -41,6 +42,7 @@ public class AuthMutations
             user.Preferences);
     }
 
+    [GraphQLDescription("Clears the current dashboard session cookie. Returns true if a session was deleted.")]
     public async Task<bool> Logout(
         IResolverContext context,
         [Service] ISessionRepository sessions,
@@ -63,6 +65,7 @@ public class AuthMutations
     /// Permanently deletes all data owned by the authenticated user.
     /// Invalidates the current session.
     /// </summary>
+    [GraphQLDescription("Permanently deletes all data owned by the authenticated user (GDPR right-to-erasure). Invalidates the current session.")]
     public async Task<bool> PurgeMyData(
         IResolverContext context,
         [Service] IGdprService gdpr,
