@@ -36,6 +36,8 @@ internal sealed class AgentRepository : IAgentRepository
             ? await _eaosDbContext.Skills.AsNoTracking()
                 .Where(s => skillNames.Contains(s.Name)).ToListAsync(ct)
             : [];
+        var channelBindings = await _eaosDbContext.AgentChannelBindings.AsNoTracking()
+            .Where(b => b.AgentId == id).ToListAsync(ct);
         var session = await _eaosDbContext.AgentSessions.AsNoTracking()
             .Where(s => s.AgentId == id && s.Status == "active")
             .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
@@ -45,6 +47,7 @@ internal sealed class AgentRepository : IAgentRepository
             memories: memories.Select(ToAgentMemoryRecord).ToList(),
             installedSkills: skills.Select(ToAgentSkillRecord).ToList(),
             skillDetails: skillDetailEntities.Select(AgentSkillRepository.ToSkillRecord).ToList(),
+            channelBindings: channelBindings.Select(ToAgentChannelBindingRecord).ToList(),
             activeSession: session is null ? null : ToAgentSessionRecord(session));
     }
 
@@ -117,6 +120,12 @@ internal sealed class AgentRepository : IAgentRepository
     {
         Id = e.Id, AgentId = e.AgentId, Status = e.Status, MessageCount = e.MessageCount,
         LastActivityAt = e.LastActivityAt, CreatedAt = e.CreatedAt, EndedAt = e.EndedAt,
+    };
+
+    private static AgentChannelBindingRecord ToAgentChannelBindingRecord(AgentChannelBindingEntity e) => new()
+    {
+        Id = e.Id, AgentId = e.AgentId, ChannelConnectionId = e.ChannelConnectionId,
+        Enabled = e.Enabled, Config = e.Config,
     };
 
     // ── Mapping: agent ──────────────────────────────────────────────

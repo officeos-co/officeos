@@ -221,7 +221,7 @@ export function useBindChannelToAgent() {
         variables: { agentId, channelConnectionId: connectionId },
         optimisticResponse: {
           bindChannelToAgent: {
-            __typename: "ChannelBinding",
+            __typename: "AgentChannelBindingGqlDto",
             id: `bind_optimistic_${Date.now().toString(36)}`,
             agentId,
             channelConnectionId: connectionId,

@@ -12,6 +12,7 @@ public class ChannelMutations
             cache.Remove($"channels:{connectionId.Value}");
     }
 
+    [GraphQLDescription("Creates a new channel connection (e.g. Slack bot, Telegram bot). ConfigJson contains the encrypted credentials payload.")]
     public async Task<ChannelConnectionGqlDto> CreateChannelConnection(
         CreateChannelConnectionInput input,
         IResolverContext context,
@@ -37,6 +38,7 @@ public class ChannelMutations
         }
     }
 
+    [GraphQLDescription("Updates display name and/or enabled status of an existing channel connection.")]
     public async Task<ChannelConnectionGqlDto> UpdateChannelConnection(
         Guid id,
         UpdateChannelConnectionInput input,
@@ -62,6 +64,7 @@ public class ChannelMutations
         }
     }
 
+    [GraphQLDescription("Permanently deletes a channel connection and all its agent bindings.")]
     public async Task<bool> DeleteChannelConnection(
         Guid id,
         IResolverContext context,
@@ -76,12 +79,14 @@ public class ChannelMutations
         return result;
     }
 
+    [GraphQLDescription("Binds a channel connection to an agent so it receives messages from that channel. Optional config specifies platform/thread IDs.")]
     public async Task<AgentChannelBindingGqlDto> BindChannelToAgent(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput? config,
         IResolverContext context,
         [Service] IChannelService channelService,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
@@ -90,6 +95,7 @@ public class ChannelMutations
         {
             var configJson = config is null ? null : ChannelGraphQLMapper.SerializeConfig(config);
             var created = await channelService.BindAgentAsync(agentId, channelConnectionId, configJson, ct);
+            cache.Remove($"agents:dashboard:{agentId}");
             return ChannelGraphQLMapper.ToDto(created);
         }
         catch (InvalidOperationException ex)
@@ -110,17 +116,22 @@ public class ChannelMutations
         }
     }
 
+    [GraphQLDescription("Removes a channel binding from an agent.")]
     public async Task<bool> UnbindChannelFromAgent(
         Guid agentId,
         Guid channelConnectionId,
         IResolverContext context,
         [Service] IChannelService channelService,
+        [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return await channelService.UnbindAgentAsync(agentId, channelConnectionId, ct);
+        var result = await channelService.UnbindAgentAsync(agentId, channelConnectionId, ct);
+        cache.Remove($"agents:dashboard:{agentId}");
+        return result;
     }
 
+    [GraphQLDescription("Updates the routing config (platformId, threadId) on an existing agent-channel binding.")]
     public async Task<AgentChannelBindingGqlDto> UpdateChannelBindingConfig(
         Guid agentId,
         Guid channelConnectionId,
