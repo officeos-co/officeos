@@ -13,6 +13,7 @@ internal sealed class AgentTurnService
     private readonly SkillRuntimeClient _skillRuntimeClient;
     private readonly ISkillService _skillService;
     private readonly IAgentLogRepository _agentLogRepository;
+    private readonly IBillingGuard _billingGuard;
     private readonly ILogger<AgentTurnService> _logger;
 
     private const int MaxIterations = 25;
@@ -29,6 +30,7 @@ internal sealed class AgentTurnService
         SkillRuntimeClient skillRuntime,
         ISkillService skillService,
         IAgentLogRepository agentLogRepository,
+        IBillingGuard billingGuard,
         ILogger<AgentTurnService> logger)
     {
         _agentRepository = agents;
@@ -39,6 +41,7 @@ internal sealed class AgentTurnService
         _skillRuntimeClient = skillRuntime;
         _skillService = skillService;
         _agentLogRepository = agentLogRepository;
+        _billingGuard = billingGuard;
         _logger = logger;
     }
 
@@ -142,6 +145,19 @@ internal sealed class AgentTurnService
 
         for (var i = 0; i < MaxIterations; i++)
         {
+            // Pre-flight billing check — block if quota exceeded and overage not enabled
+            try
+            {
+                await _billingGuard.ThrowIfQuotaExceededAsync(agentId, ct);
+            }
+            catch (QuotaExceededException ex)
+            {
+                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, ex.Message), ct);
+                var quotaMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
+                await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, quotaMs, i, totalToolCalls), ct);
+                return;
+            }
+
             var systemPrompt = SystemPromptComposer.Compose(agent);
 
             history.PruneToolResults(maxResultChars: 500, keepRecentTurns: KeepRecent);
@@ -195,9 +211,11 @@ internal sealed class AgentTurnService
                 return;
             }
 
-            var (assistantContent, toolCalls) = await ParseSseResponseAsync(llmResult.Value, ct);
+            var sseResult = await ParseSseResponseAsync(llmResult.Value, ct);
+            var (assistantContent, toolCalls) = (sseResult.Content, sseResult.ToolCalls);
             var llmDuration = (int)Stopwatch.GetElapsedTime(llmStart).TotalMilliseconds;
-            await _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, llmDuration), ct);
+            var resolvedModel = agent.Model ?? "auto";
+            await _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, resolvedModel, llmDuration, sseResult.InputTokens, sseResult.OutputTokens), ct);
 
             if (!string.IsNullOrEmpty(assistantContent))
                 await _publisher.Publish(new MessageOutEvent(agentId, correlationId, assistantContent), ct);
@@ -267,12 +285,15 @@ internal sealed class AgentTurnService
     }
 
     private record ParsedToolCall(string Id, string Name, string Arguments);
+    private record SseResult(string? Content, List<ParsedToolCall> ToolCalls, int? InputTokens, int? OutputTokens);
 
-    private static async Task<(string? Content, List<ParsedToolCall> ToolCalls)> ParseSseResponseAsync(
+    private static async Task<SseResult> ParseSseResponseAsync(
         HttpResponseMessage response, CancellationToken ct)
     {
         var content = new StringBuilder();
         var toolCalls = new Dictionary<int, (string Id, string Name, StringBuilder Args)>();
+        int? inputTokens = null;
+        int? outputTokens = null;
 
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
@@ -286,8 +307,19 @@ internal sealed class AgentTurnService
             try
             {
                 using var doc = JsonDocument.Parse(data);
-                var choices = doc.RootElement.GetProperty("choices");
-                if (choices.GetArrayLength() == 0) continue;
+                var root = doc.RootElement;
+
+                // Extract usage from the final chunk (OpenAI-compatible: usage.prompt_tokens / completion_tokens)
+                if (root.TryGetProperty("usage", out var usage))
+                {
+                    if (usage.TryGetProperty("prompt_tokens", out var pt))
+                        inputTokens = pt.GetInt32();
+                    if (usage.TryGetProperty("completion_tokens", out var cpt))
+                        outputTokens = cpt.GetInt32();
+                }
+
+                if (!root.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+                    continue;
                 var delta = choices[0].GetProperty("delta");
 
                 if (delta.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String)
@@ -314,8 +346,11 @@ internal sealed class AgentTurnService
             catch (JsonException) { }
         }
 
-        return (content.Length > 0 ? content.ToString() : null,
-            toolCalls.Values.Select(tc => new ParsedToolCall(tc.Id, tc.Name, tc.Args.ToString())).ToList());
+        return new SseResult(
+            content.Length > 0 ? content.ToString() : null,
+            toolCalls.Values.Select(tc => new ParsedToolCall(tc.Id, tc.Name, tc.Args.ToString())).ToList(),
+            inputTokens,
+            outputTokens);
     }
 
     /// <summary>
