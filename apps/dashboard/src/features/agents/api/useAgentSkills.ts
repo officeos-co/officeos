@@ -48,17 +48,62 @@ const SET_TOOL_PERMISSION = gql`
   }
 `;
 
+const AGENT_SKILLS_FRAGMENT = gql`
+  fragment AgentInstalledSkills on Agent {
+    installedSkills {
+      skillName
+    }
+  }
+`;
+
 export function useAssignSkillToAgent() {
   const [fn] = useMutation(ASSIGN_SKILL);
   return async (agentId: string, skillName: string) => {
-    await fn({ variables: { agentId, skillName } });
+    await fn({
+      variables: { agentId, skillName },
+      update(cache) {
+        const id = cache.identify({ __typename: "Agent", id: agentId });
+        if (!id) return;
+        const existing = cache.readFragment<{
+          installedSkills: Array<{ skillName: string }>;
+        }>({ id, fragment: AGENT_SKILLS_FRAGMENT });
+        const skills = existing?.installedSkills ?? [];
+        if (skills.some((s) => s.skillName === skillName)) return;
+        cache.writeFragment({
+          id,
+          fragment: AGENT_SKILLS_FRAGMENT,
+          data: {
+            installedSkills: [...skills, { __typename: "AgentSkillBinding", skillName }],
+          },
+        });
+      },
+    });
   };
 }
 
 export function useUnassignSkillFromAgent() {
   const [fn] = useMutation(UNASSIGN_SKILL);
   return async (agentId: string, skillName: string) => {
-    await fn({ variables: { agentId, skillName } });
+    await fn({
+      variables: { agentId, skillName },
+      update(cache) {
+        const id = cache.identify({ __typename: "Agent", id: agentId });
+        if (!id) return;
+        const existing = cache.readFragment<{
+          installedSkills: Array<{ skillName: string }>;
+        }>({ id, fragment: AGENT_SKILLS_FRAGMENT });
+        if (!existing) return;
+        cache.writeFragment({
+          id,
+          fragment: AGENT_SKILLS_FRAGMENT,
+          data: {
+            installedSkills: existing.installedSkills.filter(
+              (s) => s.skillName !== skillName,
+            ),
+          },
+        });
+      },
+    });
   };
 }
 

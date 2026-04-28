@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +11,10 @@ import {
   type ToolPermission,
 } from "@/components/permission-cards";
 import { builtInTools } from "@/features/agents/data/integrations";
-import type { Channel, ChannelPermissions } from "@/features/agents/data/channels";
+import type {
+  Channel,
+  ChannelPermissions,
+} from "@/features/agents/data/channels";
 import {
   useIntegrations,
   useInstallSkill,
@@ -31,7 +35,11 @@ import { IntegrationCard } from "./integration-card";
 import { ChannelCard } from "./channel-card";
 import { CredentialDialog } from "./credential-dialog";
 import { ChannelOnboardingDialog } from "./channel-onboarding-dialog";
-import { TerminalIcon, AlertTriangleIcon, ExternalLinkIcon } from "lucide-react";
+import {
+  TerminalIcon,
+  AlertTriangleIcon,
+  ExternalLinkIcon,
+} from "lucide-react";
 
 export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { integrations } = useIntegrations();
@@ -47,32 +55,39 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const unassignSkill = useUnassignSkillFromAgent();
   const installSkill = useInstallSkill();
   const setSkillCredentials = useSetSkillCredentials();
-  const initializedRef = useRef(false);
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
     new Set(),
   );
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
   );
+  // Track the last backend snapshot we synced from, so we re-sync when it changes
+  const lastSyncedSkillsRef = useRef<string>("");
+  const lastSyncedChannelsRef = useRef<string>("");
   const [installingSlug, setInstallingSlug] = useState<string | null>(null);
   const [configureSlug, setConfigureSlug] = useState<string | null>(null);
   const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null);
 
-  // Sync from backend bindings once loaded
+  // Sync from backend bindings whenever they change
   useEffect(() => {
-    if (!bindingsLoading && !initializedRef.current) {
-      initializedRef.current = true;
-      if (skillSlugs.length > 0) setSelectedIntegrations(new Set(skillSlugs));
-      if (channelSlugs.length > 0) {
-        const slugSet = new Set(channelSlugs);
-        setSelectedChannels(slugSet);
-        const cp: Record<string, ChannelPermissions> = {};
-        for (const slug of channelSlugs) {
-          const ch = channels.find((c) => c.slug === slug);
-          if (ch) cp[slug] = { ...ch.defaultPermissions };
-        }
-        setChannelPerms(cp);
+    if (bindingsLoading) return;
+    const skillsKey = [...skillSlugs].sort().join(",");
+    const channelsKey = [...channelSlugs].sort().join(",");
+
+    if (skillsKey !== lastSyncedSkillsRef.current) {
+      lastSyncedSkillsRef.current = skillsKey;
+      setSelectedIntegrations(new Set(skillSlugs));
+    }
+
+    if (channelsKey !== lastSyncedChannelsRef.current) {
+      lastSyncedChannelsRef.current = channelsKey;
+      setSelectedChannels(new Set(channelSlugs));
+      const cp: Record<string, ChannelPermissions> = {};
+      for (const slug of channelSlugs) {
+        const ch = channels.find((c) => c.slug === slug);
+        if (ch) cp[slug] = { ...ch.defaultPermissions };
       }
+      setChannelPerms(cp);
     }
   }, [bindingsLoading, skillSlugs, channelSlugs, channels]);
 
@@ -103,8 +118,9 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       } else {
         await assignSkill(agentId, slug);
       }
-    } catch (e) {
-      console.error("Failed to toggle skill", e);
+    } catch (e: any) {
+      const msg = e?.graphQLErrors?.[0]?.message ?? "Failed to toggle skill";
+      toast.error(msg);
       // Revert on failure
       setSelectedIntegrations((prev) => {
         const next = new Set(prev);
@@ -124,7 +140,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     if (!wasSelected && alreadyBound) {
       // Just update local state, no mutation needed
       setSelectedChannels((prev) => new Set(prev).add(slug));
-      if (ch) setChannelPerms((cp) => ({ ...cp, [slug]: { ...ch.defaultPermissions } }));
+      if (ch)
+        setChannelPerms((cp) => ({
+          ...cp,
+          [slug]: { ...ch.defaultPermissions },
+        }));
       return;
     }
     if (wasSelected && !alreadyBound) {
@@ -134,7 +154,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         next.delete(slug);
         return next;
       });
-      setChannelPerms((cp) => { const n = { ...cp }; delete n[slug]; return n; });
+      setChannelPerms((cp) => {
+        const n = { ...cp };
+        delete n[slug];
+        return n;
+      });
       return;
     }
 
@@ -169,8 +193,10 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         if (ch.connectionId) {
           try {
             await bindChannelToAgent(ch.connectionId, agentId);
-          } catch (e) {
-            console.error("Failed to bind channel", e);
+          } catch (e: any) {
+            const msg =
+              e?.graphQLErrors?.[0]?.message ?? "Failed to bind channel";
+            toast.error(msg);
             setSelectedChannels((prev) => {
               const next = new Set(prev);
               next.delete(slug);
@@ -183,7 +209,9 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   }
 
   const sortedIntegrations = sortIntegrations(integrations);
-  const sortedChannels = [...channels].sort((a, b) => (a.added === b.added ? 0 : a.added ? -1 : 1));
+  const sortedChannels = [...channels].sort((a, b) =>
+    a.added === b.added ? 0 : a.added ? -1 : 1,
+  );
   const activeIntegrations = integrations.filter((i) =>
     selectedIntegrations.has(i.slug),
   );
@@ -197,9 +225,16 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
           <div className="flex items-center justify-between">
             <div>
               <Label>Integrations</Label>
-              <p className="text-xs text-muted-foreground">API-based tools the agent can call.</p>
+              <p className="text-xs text-muted-foreground">
+                API-based tools the agent can call.
+              </p>
             </div>
-            <Link href="/integrations" className="text-xs text-muted-foreground hover:text-foreground">Manage integrations →</Link>
+            <Link
+              href="/integrations"
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Manage integrations →
+            </Link>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {sortedIntegrations.map((i) => (
@@ -210,8 +245,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                 installing={installingSlug === i.slug}
                 onInstall={async () => {
                   setInstallingSlug(i.slug);
-                  try { await installSkill(i.slug); }
-                  finally { setInstallingSlug(null); }
+                  try {
+                    await installSkill(i.slug);
+                  } finally {
+                    setInstallingSlug(null);
+                  }
                 }}
                 onConfigure={() => setConfigureSlug(i.slug)}
                 onToggle={() => toggleIntegration(i.slug)}
@@ -225,9 +263,17 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
           <div className="flex items-center justify-between">
             <div>
               <Label>Channels</Label>
-              <p className="text-xs text-muted-foreground">Messaging platforms that connect to the agent's session via WebSocket.</p>
+              <p className="text-xs text-muted-foreground">
+                Messaging platforms that connect to the agent's session via
+                WebSocket.
+              </p>
             </div>
-            <Link href="/channels" className="text-xs text-muted-foreground hover:text-foreground">Manage channels →</Link>
+            <Link
+              href="/channels"
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Manage channels →
+            </Link>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {sortedChannels.map((c) => (
@@ -246,7 +292,9 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
 
         {/* Unconfigured integrations warning */}
         {(() => {
-          const unconfigured = activeIntegrations.filter((i) => i.credentialFields.length > 0 && !i.configured);
+          const unconfigured = activeIntegrations.filter(
+            (i) => i.credentialFields.length > 0 && !i.configured,
+          );
           if (unconfigured.length === 0) return null;
           return (
             <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
@@ -259,13 +307,20 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                       : `${unconfigured.length} integrations require credentials before they can be used.`}
                   </p>
                   <p className="text-xs text-amber-700 mt-1">
-                    The agent will not be able to use unconfigured integrations. Set up credentials on the integration page.
+                    The agent will not be able to use unconfigured integrations.
+                    Set up credentials on the integration page.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {unconfigured.map((i) => (
-                      <Link key={i.slug} href={`/integrations/${i.slug}`}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors">
-                        <div className="size-3.5 shrink-0 [&>svg]:size-3.5" dangerouslySetInnerHTML={{ __html: i.logo }} />
+                      <Link
+                        key={i.slug}
+                        href={`/integrations/${i.slug}`}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors"
+                      >
+                        <div
+                          className="size-3.5 shrink-0 [&>svg]:size-3.5"
+                          dangerouslySetInnerHTML={{ __html: i.logo }}
+                        />
                         {i.name}
                         <ExternalLinkIcon className="size-3" />
                       </Link>
@@ -281,7 +336,9 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         <div className="space-y-3 pointer-events-none opacity-50">
           <Label className="flex items-center gap-2">
             Tool permissions
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Coming soon</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              Coming soon
+            </span>
           </Label>
           <ToolPermissionCard
             title="Built-in tools"
@@ -320,7 +377,9 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
           <div className="space-y-3 pointer-events-none opacity-50">
             <Label className="flex items-center gap-2">
               Channel permissions
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Coming soon</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Coming soon
+              </span>
             </Label>
             {activeChannels.map((c) => (
               <ChannelPermissionCard
@@ -337,30 +396,35 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       </div>
 
       {/* Credential dialog for inline configure */}
-      {configureSlug && (() => {
-        const i = integrations.find((x) => x.slug === configureSlug);
-        if (!i) return null;
-        return (
-          <CredentialDialog
-            open
-            onOpenChange={(open) => { if (!open) setConfigureSlug(null); }}
-            name={i.name}
-            slug={i.slug}
-            logo={i.logo}
-            credentials={i.credentialFields}
-            onSave={(values) => {
-              setSkillCredentials(i.slug, values);
-              setConfigureSlug(null);
-            }}
-          />
-        );
-      })()}
+      {configureSlug &&
+        (() => {
+          const i = integrations.find((x) => x.slug === configureSlug);
+          if (!i) return null;
+          return (
+            <CredentialDialog
+              open
+              onOpenChange={(open) => {
+                if (!open) setConfigureSlug(null);
+              }}
+              name={i.name}
+              slug={i.slug}
+              logo={i.logo}
+              credentials={i.credentialFields}
+              onSave={(values) => {
+                setSkillCredentials(i.slug, values);
+                setConfigureSlug(null);
+              }}
+            />
+          );
+        })()}
 
       {/* Channel onboarding dialog for inline connect */}
       {onboardChannel && (
         <ChannelOnboardingDialog
           open
-          onOpenChange={(open) => { if (!open) setOnboardChannel(null); }}
+          onOpenChange={(open) => {
+            if (!open) setOnboardChannel(null);
+          }}
           channel={onboardChannel}
           onComplete={() => setOnboardChannel(null)}
         />

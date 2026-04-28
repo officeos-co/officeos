@@ -206,6 +206,12 @@ internal sealed class ChannelService : IChannelService
         if (connection is null)
             throw new InvalidOperationException("Channel connection not found.");
 
+        // Return existing binding if already bound (idempotent)
+        var existing = await _repo.ListBindingsAsync(agentId, ct);
+        var match = existing.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
+        if (match is not null)
+            return match;
+
         var record = new AgentChannelBindingRecord
         {
             AgentId = agentId,

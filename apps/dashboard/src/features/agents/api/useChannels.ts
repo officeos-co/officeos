@@ -204,6 +204,15 @@ export function useDeleteChannelConnection() {
   }
 }
 
+const AGENT_FRAGMENT = gql`
+  fragment AgentChannelBindings on Agent {
+    channelBindings {
+      id
+      channelConnectionId
+    }
+  }
+`
+
 export function useBindChannelToAgent() {
   const [fn, state] = useMutation(BIND_CHANNEL)
   return {
@@ -217,6 +226,22 @@ export function useBindChannelToAgent() {
             agentId,
             channelConnectionId: connectionId,
           },
+        },
+        update(cache, { data: mutData }) {
+          if (!mutData?.bindChannelToAgent) return
+          const binding = mutData.bindChannelToAgent
+          const id = cache.identify({ __typename: "Agent", id: agentId })
+          if (!id) return
+          const existing = cache.readFragment<{
+            channelBindings: Array<{ id: string; channelConnectionId: string }>
+          }>({ id, fragment: AGENT_FRAGMENT })
+          const bindings = existing?.channelBindings ?? []
+          if (bindings.some((b) => b.channelConnectionId === connectionId)) return
+          cache.writeFragment({
+            id,
+            fragment: AGENT_FRAGMENT,
+            data: { channelBindings: [...bindings, binding] },
+          })
         },
       })
       return Boolean(data?.bindChannelToAgent)
@@ -238,6 +263,23 @@ export function useUnbindChannelFromAgent() {
       const { data } = await fn({
         variables: { agentId, channelConnectionId: connectionId },
         optimisticResponse: { unbindChannelFromAgent: true },
+        update(cache) {
+          const id = cache.identify({ __typename: "Agent", id: agentId })
+          if (!id) return
+          const existing = cache.readFragment<{
+            channelBindings: Array<{ id: string; channelConnectionId: string }>
+          }>({ id, fragment: AGENT_FRAGMENT })
+          if (!existing) return
+          cache.writeFragment({
+            id,
+            fragment: AGENT_FRAGMENT,
+            data: {
+              channelBindings: existing.channelBindings.filter(
+                (b) => b.channelConnectionId !== connectionId,
+              ),
+            },
+          })
+        },
       })
       return Boolean(data?.unbindChannelFromAgent)
     },
