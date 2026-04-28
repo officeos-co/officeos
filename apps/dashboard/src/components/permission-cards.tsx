@@ -113,7 +113,11 @@ export function ChannelPermissionCard({
     <div className="rounded-xl border border-border">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="flex size-8 items-center justify-center rounded-lg bg-muted shrink-0">
-          <Image src={channel.logo} alt={channel.name} width={18} height={18} />
+          {channel.logo.startsWith("<") ? (
+            <span className="size-[18px]" dangerouslySetInnerHTML={{ __html: channel.logo }} />
+          ) : (
+            <Image src={channel.logo} alt={channel.name} width={18} height={18} />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{channel.name}</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentLogs } from "@/features/analytics/api/useAgentLogs";
 import {
@@ -43,11 +43,31 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
   const { logs, loading } = useAgentLogs(agentId);
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const selectedLog = logs.find((l) => l.id === selectedLogId) ?? null;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottom = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    isNearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (isNearBottom.current && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [logs.length]);
 
   return (
     <div className="flex flex-1 pt-4 gap-3 min-h-0">
       {/* Log list — left side */}
-      <div className="flex-1 overflow-auto border rounded-lg">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-auto border rounded-lg">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left sticky top-0 bg-background">

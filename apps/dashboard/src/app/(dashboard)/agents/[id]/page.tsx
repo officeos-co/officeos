@@ -201,6 +201,7 @@ export default function AgentDetailPage({
               <Button
                 variant="outline"
                 size="sm"
+                nativeButton={false}
                 render={<Link href="/agents" />}
               >
                 All agents
@@ -235,8 +236,8 @@ export default function AgentDetailPage({
         </div>
       </div>
 
-      {/* Sticky chat bar */}
-      <div className="sticky bottom-0 z-10 border-t border-border bg-background/80 backdrop-blur-sm p-3 mt-auto">
+      {/* Sticky chat bar — only on logs tab */}
+      {tab === "logs" && <div className="sticky bottom-0 z-10 border-t border-border bg-background/80 backdrop-blur-sm p-3 mt-auto">
         {activeSession && (
           <div className="flex items-center justify-center gap-2 mb-1.5 text-[10px] text-muted-foreground">
             <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
@@ -257,7 +258,7 @@ export default function AgentDetailPage({
             <SendIcon className="size-4" />
           </Button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
