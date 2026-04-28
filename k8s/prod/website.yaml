@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: website
-          image: harkro123/eaos-website:IMAGE_TAG
+          image: harkro123/eaos-website:latest
           imagePullPolicy: Always
           env:
             - name: APP_ENV

@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: harkro123/eaos-frontend:IMAGE_TAG
+          image: harkro123/eaos-frontend:latest
           imagePullPolicy: Always
           env:
             - name: APP_ENV

@@ -56,7 +56,7 @@ spec:
             runAsUser: 0
       containers:
         - name: backend
-          image: harkro123/eaos-backend:IMAGE_TAG
+          image: harkro123/eaos-backend:latest
           imagePullPolicy: Always
           env:
             - name: ENVIRONMENT
@@ -93,7 +93,7 @@ spec:
             failureThreshold: 3
         # ── Channel gateway sidecar ───────────────────────────────
         - name: channel-gateway
-          image: harkro123/eaos-channel-gateway:IMAGE_TAG
+          image: harkro123/eaos-channel-gateway:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3100
