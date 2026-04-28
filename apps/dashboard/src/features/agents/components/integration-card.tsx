@@ -37,9 +37,11 @@ export function IntegrationCard({
 
   if (variant === "marketplace") {
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.() } }}
         className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
       >
         <div className="flex items-start gap-3">
@@ -75,7 +77,7 @@ export function IntegrationCard({
             {i.likes}
           </span>
         </div>
-      </button>
+      </div>
     )
   }
 
