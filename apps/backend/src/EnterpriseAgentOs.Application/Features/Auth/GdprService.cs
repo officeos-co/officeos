@@ -38,7 +38,7 @@ internal sealed class GdprService : IGdprService
         var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         var agents = agentRecords
-            .Select(a => new GdprAgentDto(a.Id, a.Name, a.Provider, a.Model, a.Status, a.CreatedAt))
+            .Select(a => new GdprAgentDto(a.Id, a.Name, a.Provider, a.Model, a.Status.ToStorageString(), a.CreatedAt))
             .ToList();
 
         var conversationTypes = new List<AgentLogType>
@@ -72,7 +72,7 @@ internal sealed class GdprService : IGdprService
                 l.Tool ?? string.Empty,
                 l.Content,
                 null,
-                (long)(l.DurationMs ?? 0),
+                (long)(l.Usage.DurationMs ?? 0),
                 l.Time))
             .ToList();
 

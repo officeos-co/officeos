@@ -43,7 +43,7 @@ internal static class ChannelGraphQLMapper
 
     public static ChannelConnectionGqlDto ToDto(ChannelConnectionRecord r) => new(
         r.Id,
-        r.ChannelType,
+        r.ChannelType.ToStorageString(),
         r.DisplayName,
         r.Enabled,
         r.CreatedAt);

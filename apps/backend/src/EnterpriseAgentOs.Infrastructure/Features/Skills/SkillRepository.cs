@@ -90,7 +90,7 @@ internal sealed class SkillRepository : ISkillRepository
         Enabled = e.Enabled,
         EncryptedCredentials = e.EncryptedCredentials,
         ConfiguredAt = e.ConfiguredAt,
-        RunTarget = e.RunTarget,
+        RunTarget = e.RunTarget?.ToRunTarget(),
     };
 
     private static SkillCredentialEntity ToSkillCredentialEntity(SkillCredentialRecord r) => new()
@@ -100,6 +100,6 @@ internal sealed class SkillRepository : ISkillRepository
         Enabled = r.Enabled,
         EncryptedCredentials = r.EncryptedCredentials,
         ConfiguredAt = r.ConfiguredAt,
-        RunTarget = r.RunTarget,
+        RunTarget = r.RunTarget?.ToStorageString(),
     };
 }

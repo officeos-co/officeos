@@ -39,7 +39,7 @@ internal sealed class AgentRepository : IAgentRepository
         var channelBindings = await _eaosDbContext.AgentChannelBindings.AsNoTracking()
             .Where(b => b.AgentId == id).ToListAsync(ct);
         var session = await _eaosDbContext.AgentSessions.AsNoTracking()
-            .Where(s => s.AgentId == id && s.Status == "active")
+            .Where(s => s.AgentId == id && s.Status == SessionStatus.Active.ToStorageString())
             .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
 
         return ToAgentRecord(entity,
@@ -65,10 +65,11 @@ internal sealed class AgentRepository : IAgentRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateStatusAsync(Guid id, string status, CancellationToken ct = default)
+    public async Task UpdateStatusAsync(Guid id, AgentStatus status, CancellationToken ct = default)
     {
+        var statusStr = status.ToStorageString();
         await _eaosDbContext.Agents.Where(a => a.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, status), ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, statusStr), ct);
     }
 
     public async Task<bool> SoftDeleteAsync(Guid id, CancellationToken ct = default)
@@ -118,7 +119,7 @@ internal sealed class AgentRepository : IAgentRepository
 
     private static AgentSessionRecord ToAgentSessionRecord(AgentSessionEntity e) => new()
     {
-        Id = e.Id, AgentId = e.AgentId, Status = e.Status, MessageCount = e.MessageCount,
+        Id = e.Id, AgentId = e.AgentId, Status = e.Status.ToSessionStatus(), MessageCount = e.MessageCount,
         LastActivityAt = e.LastActivityAt, CreatedAt = e.CreatedAt, EndedAt = e.EndedAt,
     };
 
@@ -144,7 +145,7 @@ internal sealed class AgentRepository : IAgentRepository
         Name = e.Name,
         Provider = e.Provider,
         Model = e.Model,
-        Status = e.Status,
+        Status = e.Status.ToAgentStatus(),
         PodName = e.PodName,
         ServiceUrl = e.ServiceUrl,
         Prompt = e.Prompt,
@@ -167,7 +168,7 @@ internal sealed class AgentRepository : IAgentRepository
         Name = r.Name,
         Provider = r.Provider,
         Model = r.Model,
-        Status = r.Status,
+        Status = r.Status.ToStorageString(),
         PodName = r.PodName,
         ServiceUrl = r.ServiceUrl,
         Prompt = r.Prompt,
@@ -182,7 +183,7 @@ internal sealed class AgentRepository : IAgentRepository
         e.Name = r.Name;
         e.Provider = r.Provider;
         e.Model = r.Model;
-        e.Status = r.Status;
+        e.Status = r.Status.ToStorageString();
         e.PodName = r.PodName;
         e.ServiceUrl = r.ServiceUrl;
         e.Prompt = r.Prompt;

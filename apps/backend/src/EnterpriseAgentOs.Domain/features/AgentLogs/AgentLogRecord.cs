@@ -66,10 +66,7 @@ public sealed class AgentLogRecord
     /// </summary>
     public string Content { get; init; } = string.Empty;
 
-    public int? DurationMs { get; init; }
-
-    public int? InputTokens { get; init; }
-    public int? OutputTokens { get; init; }
+    public TokenUsage Usage { get; init; } = TokenUsage.Empty;
 
     /// <summary>
     /// Ties related entries together (e.g. a tool_call + its tool_result, or all entries

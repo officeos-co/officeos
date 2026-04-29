@@ -5,8 +5,7 @@ public sealed class OrgSubscription
     public Guid Id { get; init; } = Guid.NewGuid();
     public string OrganizationId { get; init; } = string.Empty;
 
-    /// <summary>"free", "team", or "enterprise"</summary>
-    public string Plan { get; set; } = "free";
+    public SubscriptionPlan Plan { get; set; } = SubscriptionPlan.Free;
 
     public string? StripeCustomerId { get; set; }
     public string? StripeSubscriptionId { get; set; }
@@ -19,13 +18,9 @@ public sealed class OrgSubscription
 
     /// <summary>500_000 for Free, 25_000_000 for Team, custom for Enterprise. Normalized credits (not raw tokens).</summary>
     public long CreditBudgetPerMonth { get; set; } = 500_000;
-
     public long CreditsUsedThisMonth { get; set; } = 0;
-    public DateTime PeriodStart { get; set; }
-    public DateTime PeriodEnd { get; set; }
+    public BillingPeriod Period { get; set; }
     public bool IsActive { get; set; } = true;
-
-    /// <summary>When true, usage above CreditBudgetPerMonth is billed via Stripe metered overage.</summary>
     public bool OverageEnabled { get; set; } = false;
 
     // ── Domain logic ─────────────────────────────────────────────────────────
@@ -41,8 +36,7 @@ public sealed class OrgSubscription
             Plan = limits.Plan,
             ConcurrentAgentLimit = limits.ConcurrentAgents,
             CreditBudgetPerMonth = limits.CreditsPerMonth,
-            PeriodStart = now,
-            PeriodEnd = now.AddMonths(1),
+            Period = new BillingPeriod(now, now.AddMonths(1)),
             IsActive = true,
         };
     }

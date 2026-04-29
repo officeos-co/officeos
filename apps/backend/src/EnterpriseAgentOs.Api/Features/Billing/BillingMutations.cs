@@ -21,7 +21,9 @@ public class BillingMutations
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
-        if (plan != "free" && plan != "pro")
+        SubscriptionPlan planEnum;
+        try { planEnum = plan.ToSubscriptionPlan(); }
+        catch (ArgumentOutOfRangeException)
         {
             throw new GraphQLException(
                 ErrorBuilder.New()
@@ -29,7 +31,17 @@ public class BillingMutations
                     .SetCode("BAD_INPUT")
                     .Build());
         }
-        if (billingCycle != "monthly" && billingCycle != "yearly")
+        if (planEnum != SubscriptionPlan.Free && planEnum != SubscriptionPlan.Pro)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage("plan must be 'free' or 'pro'")
+                    .SetCode("BAD_INPUT")
+                    .Build());
+        }
+        BillingCycle cycleEnum;
+        try { cycleEnum = billingCycle.ToBillingCycle(); }
+        catch (ArgumentOutOfRangeException)
         {
             throw new GraphQLException(
                 ErrorBuilder.New()
@@ -62,10 +74,10 @@ public class BillingMutations
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         InvalidateBillingCache(cache, user.Id);
         return new UserSubscriptionDto(
-            sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
+            sub.Id, sub.UserId, sub.Plan.ToStorageString(), sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,
-            sub.OverageEnabled, sub.PeriodStart, sub.PeriodEnd, sub.IsActive);
+            sub.OverageEnabled, sub.Period.Start, sub.Period.End, sub.IsActive);
     }
 
     /// <summary>
@@ -103,9 +115,9 @@ public class BillingMutations
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         InvalidateBillingCache(cache, user.Id);
         return new UserSubscriptionDto(
-            sub.Id, sub.UserId, sub.Plan, sub.BillingCycle,
+            sub.Id, sub.UserId, sub.Plan.ToStorageString(), sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,
-            sub.OverageEnabled, sub.PeriodStart, sub.PeriodEnd, sub.IsActive);
+            sub.OverageEnabled, sub.Period.Start, sub.Period.End, sub.IsActive);
     }
 }

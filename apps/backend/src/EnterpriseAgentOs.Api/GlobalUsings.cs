@@ -1,4 +1,5 @@
 global using Amazon.S3.Model;
+global using EnterpriseAgentOs.Domain.Common.ValueObjects;
 global using Amazon.S3;
 global using HotChocolate.AspNetCore;
 global using HotChocolate.Language;

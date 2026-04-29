@@ -7,11 +7,8 @@ public sealed class UserSubscription
     /// <summary>FK → UserRecord.Id</summary>
     public Guid UserId { get; init; }
 
-    /// <summary>"free" or "pro"</summary>
-    public string Plan { get; set; } = "free";
-
-    /// <summary>"monthly" or "yearly"</summary>
-    public string BillingCycle { get; set; } = "monthly";
+    public SubscriptionPlan Plan { get; set; } = SubscriptionPlan.Free;
+    public BillingCycle BillingCycle { get; set; } = BillingCycle.Monthly;
 
     public string? StripeCustomerId { get; set; }
     public string? StripeSubscriptionId { get; set; }
@@ -24,13 +21,9 @@ public sealed class UserSubscription
 
     /// <summary>500_000 for Free, 10_000_000 for Pro. Normalized credits (not raw tokens).</summary>
     public long CreditBudgetPerMonth { get; set; } = 500_000L;
-
     public long CreditsUsedThisMonth { get; set; } = 0;
-    public DateTime PeriodStart { get; set; }
-    public DateTime PeriodEnd { get; set; }
+    public BillingPeriod Period { get; set; }
     public bool IsActive { get; set; } = true;
-
-    /// <summary>When true, usage above CreditBudgetPerMonth is billed via Stripe metered overage.</summary>
     public bool OverageEnabled { get; set; } = false;
 
     // ── Domain logic ─────────────────────────────────────────────────────────
@@ -44,11 +37,10 @@ public sealed class UserSubscription
         {
             UserId = userId,
             Plan = limits.Plan,
-            BillingCycle = "monthly",
+            BillingCycle = BillingCycle.Monthly,
             ConcurrentAgentLimit = limits.ConcurrentAgents,
             CreditBudgetPerMonth = limits.CreditsPerMonth,
-            PeriodStart = now,
-            PeriodEnd = now.AddMonths(1),
+            Period = new BillingPeriod(now, now.AddMonths(1)),
             IsActive = true,
         };
     }

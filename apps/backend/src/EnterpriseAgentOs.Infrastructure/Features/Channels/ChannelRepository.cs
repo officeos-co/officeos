@@ -145,7 +145,7 @@ internal sealed class ChannelRepository : IChannelRepository
     private static ChannelConnectionRecord ToChannelConnectionRecord(ChannelConnectionEntity e) => new()
     {
         Id = e.Id,
-        ChannelType = e.ChannelType,
+        ChannelType = e.ChannelType.ToChannelType(),
         DisplayName = e.DisplayName,
         Enabled = e.Enabled,
         CreatedAt = e.CreatedAt,
@@ -156,7 +156,7 @@ internal sealed class ChannelRepository : IChannelRepository
     private static ChannelConnectionEntity ToChannelConnectionEntity(ChannelConnectionRecord r) => new()
     {
         Id = r.Id,
-        ChannelType = r.ChannelType,
+        ChannelType = r.ChannelType.ToStorageString(),
         DisplayName = r.DisplayName,
         Enabled = r.Enabled,
         CreatedAt = r.CreatedAt,
@@ -166,7 +166,7 @@ internal sealed class ChannelRepository : IChannelRepository
 
     private static void MapToChannelConnectionEntity(ChannelConnectionRecord r, ChannelConnectionEntity e)
     {
-        e.ChannelType = r.ChannelType;
+        e.ChannelType = r.ChannelType.ToStorageString();
         e.DisplayName = r.DisplayName;
         e.Enabled = r.Enabled;
         e.CreatedById = r.CreatedById;

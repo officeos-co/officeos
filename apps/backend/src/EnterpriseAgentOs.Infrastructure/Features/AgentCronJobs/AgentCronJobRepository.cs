@@ -38,7 +38,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         // Compute initial NextRunAt
         try
         {
-            var cron = CronExpression.Parse(expression);
+            var cron = Cronos.CronExpression.Parse(expression);
             var next = cron.GetNextOccurrence(DateTime.UtcNow, inclusive: false);
             if (next.HasValue) record.SetNextRun(next.Value);
         }
@@ -79,7 +79,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         Id = e.Id,
         AgentId = e.AgentId,
         Name = e.Name,
-        Expression = e.Expression,
+        Expression = new Domain.Common.ValueObjects.CronExpression(e.Expression),
         Prompt = e.Prompt,
         Enabled = e.Enabled,
         LastRunAt = e.LastRunAt,
@@ -92,7 +92,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         Id = r.Id,
         AgentId = r.AgentId,
         Name = r.Name,
-        Expression = r.Expression,
+        Expression = (string)r.Expression,
         Prompt = r.Prompt,
         Enabled = r.Enabled,
         LastRunAt = r.LastRunAt,
@@ -103,7 +103,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
     private static void MapToAgentCronJobEntity(AgentCronJobRecord r, AgentCronJobEntity e)
     {
         e.Name = r.Name;
-        e.Expression = r.Expression;
+        e.Expression = (string)r.Expression;
         e.Prompt = r.Prompt;
         e.Enabled = r.Enabled;
         e.LastRunAt = r.LastRunAt;

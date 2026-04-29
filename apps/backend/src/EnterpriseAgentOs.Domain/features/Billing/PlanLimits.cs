@@ -7,29 +7,28 @@ namespace EnterpriseAgentOs.Domain.Features.Billing;
 public static class PlanLimits
 {
     // ── Individual plans ─────────────────────────────────────────────────────
-    public static readonly PlanLimit IndividualFree = new("free",  1,    500_000L);
-    public static readonly PlanLimit IndividualPro  = new("pro",   3, 10_000_000L);
+    public static readonly PlanLimit IndividualFree = new(SubscriptionPlan.Free,  1,    500_000L);
+    public static readonly PlanLimit IndividualPro  = new(SubscriptionPlan.Pro,   3, 10_000_000L);
 
     // ── Org plans ─────────────────────────────────────────────────────────────
-    public static readonly PlanLimit OrgFree  = new("free",  1,    500_000L);
-    public static readonly PlanLimit OrgTeam  = new("team", 10, 25_000_000L);
-    // Enterprise limits are custom — stored on OrgSubscription directly.
+    public static readonly PlanLimit OrgFree  = new(SubscriptionPlan.Free,  1,    500_000L);
+    public static readonly PlanLimit OrgTeam  = new(SubscriptionPlan.Team, 10, 25_000_000L);
 
-    public static PlanLimit ForIndividualPlan(string plan) => plan switch
+    public static PlanLimit ForIndividualPlan(SubscriptionPlan plan) => plan switch
     {
-        "pro" => IndividualPro,
-        _     => IndividualFree,   // default to free
+        SubscriptionPlan.Pro => IndividualPro,
+        _                    => IndividualFree,
     };
 
-    public static PlanLimit ForOrgPlan(string plan) => plan switch
+    public static PlanLimit ForOrgPlan(SubscriptionPlan plan) => plan switch
     {
-        "team"       => OrgTeam,
-        "enterprise" => throw new ArgumentException("Enterprise limits are stored on OrgSubscription", nameof(plan)),
-        _            => OrgFree,
+        SubscriptionPlan.Team       => OrgTeam,
+        SubscriptionPlan.Enterprise => throw new ArgumentException("Enterprise limits are stored on OrgSubscription", nameof(plan)),
+        _                           => OrgFree,
     };
 }
 
-public sealed record PlanLimit(string Plan, int ConcurrentAgents, long CreditsPerMonth)
+public sealed record PlanLimit(SubscriptionPlan Plan, int ConcurrentAgents, long CreditsPerMonth)
 {
     /// <summary>Human-readable plan description derived from the actual limits.</summary>
     public string Description

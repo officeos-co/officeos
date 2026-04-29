@@ -68,7 +68,7 @@ internal sealed class AgentTemplateService : IAgentTemplateService
             foreach (var slug in dto.Channels)
             {
                 var match = connections.FirstOrDefault(c =>
-                    string.Equals(c.ChannelType, slug, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(c.ChannelType.ToStorageString(), slug, StringComparison.OrdinalIgnoreCase));
                 if (match is null) continue;
                 try
                 {

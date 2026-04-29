@@ -98,7 +98,7 @@ internal sealed class AgentService : IAgentService
         {
             Name = request.Name.Trim(),
             Provider = request.Provider.Trim().ToLowerInvariant(),
-            Status = "pending",
+            Status = AgentStatus.Pending,
             OwnerId = ownerId,
             Prompt = string.IsNullOrWhiteSpace(request.Prompt) ? null : request.Prompt,
         };
@@ -205,8 +205,8 @@ internal sealed class AgentService : IAgentService
         {
             foreach (var tp in init.ToolPermissions)
             {
-                var (skill, tool) = AgentToolPermissionRecord.ParseToolKey(tp.Tool);
-                await _agentSkillRepository.UpsertToolPermissionAsync(agentId, skill, tool, tp.Mode, ct);
+                var toolKey = AgentToolPermissionRecord.ParseToolKey(tp.Tool);
+                await _agentSkillRepository.UpsertToolPermissionAsync(agentId, toolKey.SkillName, toolKey.ToolName, tp.Mode, ct);
             }
         }
 
@@ -217,7 +217,7 @@ internal sealed class AgentService : IAgentService
             foreach (var slug in init.ChannelSlugs)
             {
                 var match = connections.FirstOrDefault(c =>
-                    string.Equals(c.ChannelType, slug, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(c.ChannelType.ToStorageString(), slug, StringComparison.OrdinalIgnoreCase));
                 if (match is null) continue;
                 try
                 {
@@ -247,10 +247,11 @@ internal sealed class AgentService : IAgentService
         try
         {
             var live = await _agentDeployer.GetStatusAsync(record.PodName, ct);
-            if (live != record.Status)
+            var liveStatus = live.ToAgentStatus();
+            if (liveStatus != record.Status)
             {
-                await _agentRepository.UpdateStatusAsync(record.Id, live, ct);
-                record.Status = live;
+                await _agentRepository.UpdateStatusAsync(record.Id, liveStatus, ct);
+                record.Status = liveStatus;
             }
         }
         catch (Exception ex)
@@ -260,6 +261,6 @@ internal sealed class AgentService : IAgentService
     }
 
     private static AgentDto ToDto(AgentRecord record) =>
-        new(record.Id, record.Name, record.Provider, record.Model, record.Prompt, record.Status,
+        new(record.Id, record.Name, record.Provider, record.Model, record.Prompt, record.Status.ToStorageString(),
             record.PodName, record.ServiceUrl, record.CreatedAt);
 }

@@ -11,7 +11,7 @@ public sealed class AgentRecord
 
     public string? Model { get; set; }
 
-    public string Status { get; set; } = "pending";
+    public AgentStatus Status { get; set; } = AgentStatus.Pending;
 
     public string? PodName { get; set; }
 
@@ -59,13 +59,13 @@ public sealed class AgentRecord
     {
         PodName = podName;
         ServiceUrl = serviceUrl;
-        Status = "running";
+        Status = AgentStatus.Running;
     }
 
     /// <summary>Marks the agent as failed to deploy.</summary>
     public void MarkFailed()
     {
-        Status = "failed";
+        Status = AgentStatus.Failed;
     }
 
     /// <summary>Validates and sets the model, defaulting to "auto" if null/empty.</summary>

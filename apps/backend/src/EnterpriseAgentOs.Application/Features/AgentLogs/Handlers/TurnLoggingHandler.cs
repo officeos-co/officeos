@@ -32,7 +32,7 @@ internal sealed class TurnLoggingHandler :
         {
             AgentId = e.AgentId, Type = AgentLogType.System,
             Content = $"Turn complete: {e.Iterations} iterations, {e.ToolCallCount} tool calls",
-            DurationMs = e.DurationMs, CorrelationId = e.CorrelationId, Time = e.OccurredAt,
+            Usage = new TokenUsage(null, null, e.DurationMs), CorrelationId = e.CorrelationId, Time = e.OccurredAt,
         }, ct);
     }
 
@@ -41,7 +41,7 @@ internal sealed class TurnLoggingHandler :
         await _logService.AppendAsync(new AgentLogRecord
         {
             AgentId = e.AgentId, Type = AgentLogType.System, Content = "Pod connected",
-            DurationMs = e.DurationMs, CorrelationId = e.CorrelationId, Time = e.OccurredAt,
+            Usage = new TokenUsage(null, null, e.DurationMs), CorrelationId = e.CorrelationId, Time = e.OccurredAt,
         }, ct);
     }
 
@@ -51,7 +51,7 @@ internal sealed class TurnLoggingHandler :
         {
             AgentId = e.AgentId, Type = AgentLogType.System,
             Content = $"LLM call complete ({e.InputTokens ?? 0} in, {e.OutputTokens ?? 0} out)",
-            DurationMs = e.DurationMs, InputTokens = e.InputTokens, OutputTokens = e.OutputTokens,
+            Usage = new TokenUsage(e.InputTokens, e.OutputTokens, e.DurationMs),
             CorrelationId = e.CorrelationId, Time = e.OccurredAt,
         }, ct);
     }
@@ -72,7 +72,7 @@ internal sealed class TurnLoggingHandler :
         await _logService.AppendAsync(new AgentLogRecord
         {
             AgentId = e.AgentId, Type = AgentLogType.ToolResult, Tool = e.ToolName,
-            Content = content, DurationMs = e.DurationMs,
+            Content = content, Usage = new TokenUsage(null, null, e.DurationMs),
             CorrelationId = e.CorrelationId, Time = e.OccurredAt,
         }, ct);
     }

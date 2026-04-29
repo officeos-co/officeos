@@ -9,8 +9,7 @@ public sealed class ChannelConnectionRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
-    [Required, MaxLength(32)]
-    public string ChannelType { get; init; } = string.Empty;
+    public ChannelType ChannelType { get; init; }
 
     [Required, MaxLength(200)]
     public string DisplayName { get; set; } = string.Empty;
@@ -32,14 +31,15 @@ public sealed class ChannelConnectionRecord
     // ── Domain logic ─────────────────────────────────────────────────
 
     /// <summary>Factory: validates channel type and creates a new connection.</summary>
-    public static ChannelConnectionRecord Create(string channelType, string displayName, Guid createdById)
+    public static ChannelConnectionRecord Create(ChannelType channelType, string displayName, Guid createdById)
     {
-        var definition = ChannelTypes.GetByType(channelType)
+        // Validate that the type has a known definition
+        _ = ChannelTypes.GetByType(channelType.ToStorageString())
             ?? throw new InvalidOperationException($"Unknown channel type: {channelType}");
 
         return new ChannelConnectionRecord
         {
-            ChannelType = definition.Type,
+            ChannelType = channelType,
             DisplayName = displayName,
             CreatedById = createdById,
         };

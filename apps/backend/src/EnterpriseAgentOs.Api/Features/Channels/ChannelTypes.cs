@@ -34,7 +34,7 @@ public sealed record ChannelBindingConfigInput(
     string? PlatformId,
     string? ThreadId);
 
-// ── Mapping helpers (shared between queries + mutations) ──────────────────
+// ── Mapping helpers (shared bcetween queries + mutations) ──────────────────
 
 internal static class ChannelGraphQLMapper
 {
@@ -45,7 +45,7 @@ internal static class ChannelGraphQLMapper
 
     public static ChannelConnectionGqlDto ToDto(ChannelConnectionRecord r) => new(
         r.Id,
-        r.ChannelType,
+        r.ChannelType.ToStorageString(),
         r.DisplayName,
         r.Enabled,
         r.CreatedAt);

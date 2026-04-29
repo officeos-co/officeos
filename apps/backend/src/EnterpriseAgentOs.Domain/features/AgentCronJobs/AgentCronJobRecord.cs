@@ -5,7 +5,7 @@ public sealed class AgentCronJobRecord
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
     public string Name { get; set; } = string.Empty;
-    public string Expression { get; set; } = string.Empty;
+    public CronExpression Expression { get; set; }
     public string Prompt { get; set; } = string.Empty;
     public bool Enabled { get; set; }
     public DateTime? LastRunAt { get; set; }
@@ -18,7 +18,7 @@ public sealed class AgentCronJobRecord
         {
             AgentId = agentId,
             Name = name,
-            Expression = expression,
+            Expression = new CronExpression(expression),
             Prompt = prompt,
             Enabled = true,
         };

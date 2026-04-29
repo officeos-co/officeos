@@ -6,8 +6,7 @@ public sealed class AgentPersonalityRecord
     /// Known personality file names in prompt composition order.
     /// Matches OpenClaw's bootstrap file architecture.
     /// </summary>
-    public static readonly string[] OrderedFileNames =
-        ["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md", "USER.md", "MEMORY.md", "BOOTSTRAP.md"];
+    public static IReadOnlyList<string> OrderedFileNames => PersonalityFileName.KnownFileNames;
 
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
@@ -105,9 +104,9 @@ public sealed class AgentPersonalityRecord
     {
         get
         {
-            var idx = Array.FindIndex(OrderedFileNames,
+            var idx = OrderedFileNames.ToList().FindIndex(
                 n => string.Equals(n, FileName, StringComparison.OrdinalIgnoreCase));
-            return idx >= 0 ? idx : OrderedFileNames.Length + 1;
+            return idx >= 0 ? idx : OrderedFileNames.Count + 1;
         }
     }
 

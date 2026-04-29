@@ -12,8 +12,7 @@ public sealed class DeviceCodeRecord
 
     public Guid? UserId { get; set; }
 
-    [Required, MaxLength(16)]
-    public string Status { get; set; } = "pending";
+    public DeviceCodeStatus Status { get; set; } = DeviceCodeStatus.Pending;
 
     [MaxLength(200)]
     public string? RunnerName { get; set; }

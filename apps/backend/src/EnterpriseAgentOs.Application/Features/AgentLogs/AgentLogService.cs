@@ -106,7 +106,7 @@ internal sealed class AgentLogService : IAgentLogService
             Tool = action,
             Integration = skillName,
             Content = resultSummary ?? string.Empty,
-            DurationMs = (int)Math.Min(durationMs, int.MaxValue),
+            Usage = new TokenUsage(null, null, (int)Math.Min(durationMs, int.MaxValue)),
             CorrelationId = correlationId,
         };
 

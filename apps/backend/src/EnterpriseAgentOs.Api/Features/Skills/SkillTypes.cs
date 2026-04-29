@@ -116,7 +116,7 @@ internal static class SkillDashboardMapper
 {
     public static SkillDashboardDto ToDto(SkillRecord r) =>
         new(r.Id, r.Name, r.Title, r.Description, r.Doc,
-            r.Status, r.Version, r.RequiresApproval, r.CreatedAt, r.UpdatedAt,
+            r.Status.ToStorageString(), r.Version, r.RequiresApproval, r.CreatedAt, r.UpdatedAt,
             r.Logo, r.License, r.Repository,
             r.Categories ?? Array.Empty<string>(), r.Keywords ?? Array.Empty<string>(),
             r.Readme, r.Changelog,

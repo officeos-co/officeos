@@ -10,7 +10,7 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
     public async Task<AgentSessionRecord?> GetActiveAsync(Guid agentId, CancellationToken ct = default)
     {
         var entity = await _eaosDbContext.AgentSessions
-            .Where(s => s.AgentId == agentId && s.Status == "active")
+            .Where(s => s.AgentId == agentId && s.Status == SessionStatus.Active.ToStorageString())
             .OrderByDescending(s => s.CreatedAt)
             .FirstOrDefaultAsync(ct);
         if (entity is null) return null;
@@ -64,7 +64,7 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
     {
         Id = e.Id,
         AgentId = e.AgentId,
-        Status = e.Status,
+        Status = e.Status.ToSessionStatus(),
         MessageCount = e.MessageCount,
         LastActivityAt = e.LastActivityAt,
         CreatedAt = e.CreatedAt,
@@ -76,7 +76,7 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
     {
         Id = r.Id,
         AgentId = r.AgentId,
-        Status = r.Status,
+        Status = r.Status.ToStorageString(),
         MessageCount = r.MessageCount,
         LastActivityAt = r.LastActivityAt,
         CreatedAt = r.CreatedAt,
@@ -85,7 +85,7 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
 
     private static void MapToAgentSessionEntity(AgentSessionRecord r, AgentSessionEntity e)
     {
-        e.Status = r.Status;
+        e.Status = r.Status.ToStorageString();
         e.MessageCount = r.MessageCount;
         e.LastActivityAt = r.LastActivityAt;
         e.EndedAt = r.EndedAt;

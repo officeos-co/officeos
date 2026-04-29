@@ -120,9 +120,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         Integration = e.Integration,
         Channel = e.Channel,
         Content = e.Content,
-        DurationMs = e.DurationMs,
-        InputTokens = e.InputTokens,
-        OutputTokens = e.OutputTokens,
+        Usage = new TokenUsage(e.InputTokens, e.OutputTokens, e.DurationMs),
         CorrelationId = e.CorrelationId,
         Agent = null,
     };
@@ -137,9 +135,9 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         Integration = r.Integration,
         Channel = r.Channel,
         Content = r.Content,
-        DurationMs = r.DurationMs,
-        InputTokens = r.InputTokens,
-        OutputTokens = r.OutputTokens,
+        DurationMs = r.Usage.DurationMs,
+        InputTokens = r.Usage.InputTokens,
+        OutputTokens = r.Usage.OutputTokens,
         CorrelationId = r.CorrelationId,
     };
 }

@@ -43,11 +43,13 @@ internal sealed class OrgBillingService : IOrgBillingService
     public async Task<string> CreateSubscriptionAsync(string customerId, string plan, string billingCycle = "monthly", CancellationToken ct = default)
     {
         //TODO: This is domain logic
-        var priceId = (plan, billingCycle) switch
+        var parsedPlan = plan.ToSubscriptionPlan();
+        var parsedCycle = billingCycle.ToBillingCycle();
+        var priceId = (parsedPlan, parsedCycle) switch
         {
-            ("team", "yearly") => _stripeConfig.TeamYearlyPriceId,
-            ("team", _)        => _stripeConfig.TeamMonthlyPriceId,
-            _                  => _stripeConfig.FreePriceId,
+            (SubscriptionPlan.Team, BillingCycle.Yearly) => _stripeConfig.TeamYearlyPriceId,
+            (SubscriptionPlan.Team, _)                   => _stripeConfig.TeamMonthlyPriceId,
+            _                                            => _stripeConfig.FreePriceId,
         };
         var sub = await new SubscriptionService().CreateAsync(
             new SubscriptionCreateOptions

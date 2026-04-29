@@ -10,9 +10,7 @@ public sealed class AgentSessionRecord
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
 
-    /// <summary>"active" | "ended"</summary>
-    [Required, MaxLength(16)]
-    public string Status { get; set; } = "active";
+    public SessionStatus Status { get; set; } = SessionStatus.Active;
 
     public int MessageCount { get; set; }
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
@@ -23,7 +21,7 @@ public sealed class AgentSessionRecord
 
     // ── Computed properties ────────────────────────────────────────────
 
-    public bool IsActive => Status == "active";
+    public bool IsActive => Status == SessionStatus.Active;
 
     /// <summary>Whether this session has exceeded the idle timeout.</summary>
     public bool IsExpired(TimeSpan idleTimeout)
@@ -42,7 +40,7 @@ public sealed class AgentSessionRecord
     public void End()
     {
         if (!IsActive) return;
-        Status = "ended";
+        Status = SessionStatus.Ended;
         EndedAt = DateTime.UtcNow;
     }
 

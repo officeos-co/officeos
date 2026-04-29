@@ -18,7 +18,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
     public async Task<IReadOnlyList<SkillRecord>> ListActiveAsync(CancellationToken ct = default)
     {
         var entities = await _eaosDbContext.Skills.AsNoTracking()
-            .Where(s => s.Status == "active")
+            .Where(s => s.Status == SkillStatus.Active.ToStorageString())
             .OrderBy(s => s.Name)
             .ToListAsync(ct);
         return entities.Select(ToSkillRecord).ToList();
@@ -68,7 +68,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
             existing.ContributorsJson = record.ContributorsJson;
             existing.BundleS3Key = record.BundleS3Key;
             existing.Version = record.Version;
-            existing.Status = record.Status;
+            existing.Status = record.Status.ToStorageString();
             existing.BuildError = record.BuildError;
             existing.IsSystem = record.IsSystem;
             existing.UpdatedAt = DateTime.UtcNow;
@@ -254,7 +254,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
         Title = e.Title,
         Description = e.Description,
         Doc = e.Doc,
-        Source = e.Source,
+        Source = e.Source.ToSkillSource(),
         Logo = e.Logo,
         License = e.License,
         Repository = e.Repository,
@@ -271,7 +271,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
         ContributorsJson = e.ContributorsJson,
         BundleS3Key = e.BundleS3Key,
         Version = e.Version,
-        Status = e.Status,
+        Status = e.Status.ToSkillStatus(),
         BuildError = e.BuildError,
         GitHubRepoUrl = e.GitHubRepoUrl,
         GitHubBranch = e.GitHubBranch,
@@ -288,7 +288,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
         Title = r.Title,
         Description = r.Description,
         Doc = r.Doc,
-        Source = r.Source,
+        Source = r.Source.ToStorageString(),
         Logo = r.Logo,
         License = r.License,
         Repository = r.Repository,
@@ -305,7 +305,7 @@ internal sealed class SkillCatalogRepository : ISkillCatalogRepository
         ContributorsJson = r.ContributorsJson,
         BundleS3Key = r.BundleS3Key,
         Version = r.Version,
-        Status = r.Status,
+        Status = r.Status.ToStorageString(),
         BuildError = r.BuildError,
         GitHubRepoUrl = r.GitHubRepoUrl,
         GitHubBranch = r.GitHubBranch,

@@ -29,6 +29,7 @@ global using EnterpriseAgentOs.Domain.Features.Providers;
 global using EnterpriseAgentOs.Domain.Features.PostHog;
 global using EnterpriseAgentOs.Domain.Features.Skills;
 global using EnterpriseAgentOs.Domain.Common.Primitives;
+global using EnterpriseAgentOs.Domain.Common.ValueObjects;
 global using EnterpriseAgentOs.Domain.Events;
 global using EnterpriseAgentOs.Infrastructure.Features.Agents;
 global using EnterpriseAgentOs.Infrastructure.Features.AgentLogs;

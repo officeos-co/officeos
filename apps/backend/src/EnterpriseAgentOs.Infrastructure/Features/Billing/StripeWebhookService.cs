@@ -54,7 +54,8 @@ internal sealed class StripeWebhookService : IStripeWebhookService
         session.Metadata.TryGetValue("plan", out var plan);
         session.Metadata.TryGetValue("billingCycle", out var billingCycle);
 
-        var limits = PlanLimits.ForIndividualPlan(plan ?? "free");
+        var planEnum = (plan ?? "free").ToSubscriptionPlan();
+        var limits = PlanLimits.ForIndividualPlan(planEnum);
 
         var sub = await _eaosDbContext.UserSubscriptions.FirstOrDefaultAsync(s => s.UserId == userId, ct);
         if (sub is null)
@@ -65,8 +66,8 @@ internal sealed class StripeWebhookService : IStripeWebhookService
 
         sub.StripeCustomerId = session.CustomerId;
         sub.StripeSubscriptionId = session.SubscriptionId;
-        sub.Plan = limits.Plan;
-        sub.BillingCycle = billingCycle ?? "monthly";
+        sub.Plan = limits.Plan.ToStorageString();
+        sub.BillingCycle = (billingCycle ?? "monthly").ToBillingCycle().ToStorageString();
         sub.ConcurrentAgentLimit = limits.ConcurrentAgents;
         sub.CreditBudgetPerMonth = limits.CreditsPerMonth;
         sub.IsActive = true;
@@ -85,8 +86,8 @@ internal sealed class StripeWebhookService : IStripeWebhookService
         if (sub is null) return;
 
         var planName = stripeSub.Metadata?.TryGetValue("plan", out var metaPlan) == true ? metaPlan : sub.Plan;
-        var limits = PlanLimits.ForIndividualPlan(planName);
-        sub.Plan = limits.Plan;
+        var limits = PlanLimits.ForIndividualPlan(planName.ToSubscriptionPlan());
+        sub.Plan = limits.Plan.ToStorageString();
         sub.ConcurrentAgentLimit = limits.ConcurrentAgents;
         sub.CreditBudgetPerMonth = limits.CreditsPerMonth;
         sub.IsActive = stripeSub.Status == "active";
@@ -103,7 +104,7 @@ internal sealed class StripeWebhookService : IStripeWebhookService
         if (sub is null) return;
 
         var free = PlanLimits.IndividualFree;
-        sub.Plan = free.Plan;
+        sub.Plan = free.Plan.ToStorageString();
         sub.ConcurrentAgentLimit = free.ConcurrentAgents;
         sub.CreditBudgetPerMonth = free.CreditsPerMonth;
         sub.StripeOverageItemId = null;

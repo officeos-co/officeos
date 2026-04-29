@@ -58,7 +58,7 @@ internal sealed class CronJobSchedulerService : BackgroundService
         {
             try
             {
-                var cron = CronExpression.Parse(job.Expression);
+                var cron = Cronos.CronExpression.Parse(job.Expression);
 
                 // If NextRunAt is not set, compute it now and skip this tick
                 if (job.NextRunAt is null)

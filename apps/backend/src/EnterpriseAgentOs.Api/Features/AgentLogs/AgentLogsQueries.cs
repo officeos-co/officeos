@@ -54,11 +54,11 @@ public class AgentLogsQueries
         var dtos = items.Select(r =>
         {
             string? resultSummary = null;
-            long durationMs = r.DurationMs ?? 0;
+            long durationMs = r.Usage.DurationMs ?? 0;
             if (r.CorrelationId is not null && results.TryGetValue(r.CorrelationId, out var paired))
             {
                 resultSummary = paired.Content;
-                durationMs = paired.DurationMs ?? durationMs;
+                durationMs = paired.Usage.DurationMs ?? durationMs;
             }
             return new AuditEntry(
                 r.Id,

@@ -52,5 +52,5 @@ public static class AgentLogMapper
     public static AgentLogDto ToDto(this AgentLogRecord r, string? agentName = null) => new(
         r.Id, r.AgentId, agentName, r.Time, r.Type,
         r.Tool, r.Integration, r.Channel, r.Content,
-        r.DurationMs, r.InputTokens, r.OutputTokens, r.CorrelationId);
+        r.Usage.DurationMs, r.Usage.InputTokens, r.Usage.OutputTokens, r.CorrelationId);
 }

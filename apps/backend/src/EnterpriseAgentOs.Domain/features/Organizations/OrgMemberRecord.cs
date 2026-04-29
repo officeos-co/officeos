@@ -10,11 +10,7 @@ public sealed class OrgMemberRecord
     public Guid? UserId { get; set; }
     [Required, MaxLength(256)]
     public string Email { get; init; } = string.Empty;
-    /// <summary>"Owner" | "Admin" | "Member"</summary>
-    [Required, MaxLength(16)]
-    public string Role { get; set; } = "Member";
-    /// <summary>"active" | "invited"</summary>
-    [Required, MaxLength(16)]
-    public string Status { get; set; } = "invited";
+    public OrgRole Role { get; set; } = OrgRole.Member;
+    public MemberStatus Status { get; set; } = MemberStatus.Invited;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

@@ -1,0 +1,2 @@
+- continue refactor domain structure session
+- implement factory methodes

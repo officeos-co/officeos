@@ -100,9 +100,9 @@ internal sealed class SkillService : ISkillService
                 Title = liveManifest.Title,
                 Description = liveManifest.Description,
                 Doc = liveManifest.Doc ?? string.Empty,
-                Source = "builtin",
+                Source = SkillSource.Builtin,
                 IsSystem = systemSkills.Contains(n),
-                Status = "active",
+                Status = SkillStatus.Active,
             };
             record.ApplyManifest(liveManifest);
             await _skillCatalogRepository.UpsertAsync(record, ct);
@@ -320,8 +320,8 @@ internal sealed class SkillService : ISkillService
         {
             row = await _skillRepository.UpsertAsync(n, enabled: false, encryptedCredentials: null, ct);
         }
-        row.RunTarget = runTarget == "runner" ? "runner" : null;
-        await _skillRepository.SetRunTargetAsync(n, row.RunTarget, ct);
+        row.RunTarget = runTarget == "runner" ? RunTarget.Runner : null;
+        await _skillRepository.SetRunTargetAsync(n, row.RunTarget?.ToStorageString(), ct);
         row = await _skillRepository.GetByNameAsync(n, ct);
         return ToDto(skill, row);
     }
@@ -329,7 +329,7 @@ internal sealed class SkillService : ISkillService
     public async Task<string> GetRunTargetAsync(string name, CancellationToken ct = default)
     {
         var row = await _skillRepository.GetByNameAsync(name.Trim().ToLowerInvariant(), ct);
-        return row?.RunTarget ?? "cloud";
+        return (row?.RunTarget ?? RunTarget.Cloud).ToStorageString();
     }
 
     private static SkillDto ToDto(SkillRecord skill, SkillCredentialRecord? row)
@@ -353,7 +353,7 @@ internal sealed class SkillService : ISkillService
             Description: skill.Description,
             Installed: isSystem || row?.Enabled == true,
             Configured: isSystem || !string.IsNullOrEmpty(row?.EncryptedCredentials),
-            RunTarget: row?.RunTarget ?? "cloud",
+            RunTarget: (row?.RunTarget ?? RunTarget.Cloud).ToStorageString(),
             IsSystem: isSystem,
             CredentialFields: ToCredentialFields(credFields),
             LlmTools: tools);

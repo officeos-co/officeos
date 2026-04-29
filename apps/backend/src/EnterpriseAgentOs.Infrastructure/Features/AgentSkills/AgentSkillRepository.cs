@@ -125,14 +125,14 @@ internal sealed class AgentSkillRepository : IAgentSkillRepository
     internal static SkillRecord ToSkillRecord(SkillEntity e) => new()
     {
         Id = e.Id, Name = e.Name, Title = e.Title, Description = e.Description,
-        Doc = e.Doc, Source = e.Source, Logo = e.Logo, License = e.License,
+        Doc = e.Doc, Source = e.Source.ToSkillSource(), Logo = e.Logo, License = e.License,
         Repository = e.Repository, RequiresApproval = e.RequiresApproval,
         Readme = e.Readme, Changelog = e.Changelog, Category = e.Category,
         AuthorName = e.AuthorName, AuthorUrl = e.AuthorUrl,
         Categories = e.Categories, Keywords = e.Keywords,
         ActionsJson = e.ActionsJson, CredentialFieldsJson = e.CredentialFieldsJson,
         ContributorsJson = e.ContributorsJson, BundleS3Key = e.BundleS3Key,
-        Version = e.Version, Status = e.Status, BuildError = e.BuildError,
+        Version = e.Version, Status = e.Status.ToSkillStatus(), BuildError = e.BuildError,
         GitHubRepoUrl = e.GitHubRepoUrl, GitHubBranch = e.GitHubBranch,
         IsSystem = e.IsSystem, OwnerId = e.OwnerId,
         CreatedAt = e.CreatedAt, UpdatedAt = e.UpdatedAt,

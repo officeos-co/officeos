@@ -44,7 +44,7 @@ internal sealed class CreditRecordingService : ICreditRecordingService
             && sub.CreditsUsedThisMonth > sub.CreditBudgetPerMonth)
         {
             var overageCredits = sub.CreditsUsedThisMonth - sub.CreditBudgetPerMonth;
-            var eventName = sub.Plan == "pro" ? "pro_credits_used" : "free_credits_used";
+            var eventName = sub.Plan == SubscriptionPlan.Pro ? "pro_credits_used" : "free_credits_used";
             await FireMeterEventAsync(eventName, sub.StripeCustomerId, overageCredits, ct);
         }
     }

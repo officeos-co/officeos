@@ -31,8 +31,8 @@ internal sealed class OrganizationRepository : IOrganizationRepository
             OrganizationId = orgEntity.Id,
             UserId = ownerUserId,
             Email = ownerEmail,
-            Role = "Owner",
-            Status = "active",
+            Role = OrgRole.Owner.ToStorageString(),
+            Status = MemberStatus.Active.ToStorageString(),
             CreatedAt = DateTime.UtcNow,
         });
         await _eaosDbContext.SaveChangesAsync(ct);
@@ -120,8 +120,8 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         OrganizationId = e.OrganizationId,
         UserId = e.UserId,
         Email = e.Email,
-        Role = e.Role,
-        Status = e.Status,
+        Role = e.Role.ToOrgRole(),
+        Status = e.Status.ToMemberStatus(),
         CreatedAt = e.CreatedAt,
     };
 
@@ -131,8 +131,8 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         OrganizationId = r.OrganizationId,
         UserId = r.UserId,
         Email = r.Email,
-        Role = r.Role,
-        Status = r.Status,
+        Role = r.Role.ToStorageString(),
+        Status = r.Status.ToStorageString(),
         CreatedAt = r.CreatedAt,
     };
 }

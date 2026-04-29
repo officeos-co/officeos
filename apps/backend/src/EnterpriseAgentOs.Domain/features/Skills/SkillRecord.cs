@@ -20,9 +20,7 @@ public sealed class SkillRecord
 
     public string? Doc { get; set; }
 
-    /// <summary>"builtin" | "upload" | "github"</summary>
-    [Required, MaxLength(16)]
-    public string Source { get; set; } = "builtin";
+    public SkillSource Source { get; set; } = SkillSource.Builtin;
 
     public string? Logo { get; set; }
 
@@ -65,9 +63,7 @@ public sealed class SkillRecord
     [MaxLength(32)]
     public string Version { get; set; } = "1.0.0";
 
-    /// <summary>"active" | "disabled" | "building" | "failed"</summary>
-    [Required, MaxLength(16)]
-    public string Status { get; set; } = "active";
+    public SkillStatus Status { get; set; } = SkillStatus.Active;
 
     public string? BuildError { get; set; }
 
@@ -90,7 +86,7 @@ public sealed class SkillRecord
 
     // ── Computed properties ────────────────────────────────────────
 
-    public bool IsActive => Status == "active";
+    public bool IsActive => Status == SkillStatus.Active;
 
     public bool HasDoc => !string.IsNullOrWhiteSpace(Doc);
 

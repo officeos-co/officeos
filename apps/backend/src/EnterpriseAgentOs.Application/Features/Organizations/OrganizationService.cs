@@ -20,11 +20,11 @@ internal sealed class OrganizationService : IOrganizationService
         if (string.IsNullOrWhiteSpace(memberEmail) || !memberEmail.Contains('@'))
             throw new InvalidOperationException("Valid email required.");
 
-        var validRole = role ?? "Member";
-        if (validRole != "Admin" && validRole != "Member")
+        var validRole = role ?? OrgRole.Member.ToStorageString();
+        if (validRole != OrgRole.Admin.ToStorageString() && validRole != OrgRole.Member.ToStorageString())
             throw new InvalidOperationException("Role must be 'Admin' or 'Member'.");
 
-        return await _organizationRepository.AddMemberAsync(org.Id, memberEmail.Trim().ToLowerInvariant(), validRole, "invited", null, ct);
+        return await _organizationRepository.AddMemberAsync(org.Id, memberEmail.Trim().ToLowerInvariant(), validRole, MemberStatus.Invited.ToStorageString(), null, ct);
     }
 
     public async Task<bool> RemoveMemberAsync(
@@ -39,7 +39,7 @@ internal sealed class OrganizationService : IOrganizationService
         var target = members.FirstOrDefault(m => m.Id == memberId);
         if (target is null) return false;
 
-        if (target.Role == "Owner")
+        if (target.Role == OrgRole.Owner)
             throw new InvalidOperationException("Cannot remove the owner.");
 
         return await _organizationRepository.RemoveMemberAsync(memberId, ct);

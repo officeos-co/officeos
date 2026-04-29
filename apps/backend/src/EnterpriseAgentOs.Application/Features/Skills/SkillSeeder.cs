@@ -57,15 +57,15 @@ public static class SkillSeeder
                     Title = manifest.Title,
                     Description = manifest.Description,
                     Doc = manifest.Doc,
-                    Source = "builtin",
+                    Source = SkillSource.Builtin,
                     IsSystem = systemSkills.Contains(name),
-                    Status = "active",
+                    Status = SkillStatus.Active,
                 };
                 record.ApplyManifest(manifest);
                 await catalog.UpsertAsync(record);
                 seeded++;
             }
-            else if (existing.Source == "builtin")
+            else if (existing.Source == SkillSource.Builtin)
             {
                 existing.Title = manifest.Title;
                 existing.Description = manifest.Description;

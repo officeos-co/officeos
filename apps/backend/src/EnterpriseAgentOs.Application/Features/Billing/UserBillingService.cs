@@ -37,11 +37,13 @@ internal sealed class UserBillingService : IUserBillingService
     {
         var customerId = await GetOrCreateCustomerAsync(userId, email, ct);
 
-        var priceId = (plan, billingCycle) switch
+        var parsedPlan = plan.ToSubscriptionPlan();
+        var parsedCycle = billingCycle.ToBillingCycle();
+        var priceId = (parsedPlan, parsedCycle) switch
         {
-            ("pro", "yearly")  => _stripeConfig.ProYearlyPriceId,
-            ("pro", "monthly") => _stripeConfig.ProMonthlyPriceId,
-            _                  => _stripeConfig.FreePriceId,
+            (SubscriptionPlan.Pro, BillingCycle.Yearly)  => _stripeConfig.ProYearlyPriceId,
+            (SubscriptionPlan.Pro, BillingCycle.Monthly)  => _stripeConfig.ProMonthlyPriceId,
+            _                                            => _stripeConfig.FreePriceId,
         };
 
         var options = new SessionCreateOptions
@@ -90,7 +92,7 @@ internal sealed class UserBillingService : IUserBillingService
             if (sub.OverageEnabled) return;
 
             var customerId = await GetOrCreateCustomerAsync(userId, email, ct);
-            var priceId = sub.Plan == "pro" ? _stripeConfig.ProOveragePriceId : _stripeConfig.FreeOveragePriceId;
+            var priceId = sub.Plan == SubscriptionPlan.Pro ? _stripeConfig.ProOveragePriceId : _stripeConfig.FreeOveragePriceId;
 
             if (sub.StripeSubscriptionId is not null)
             {

@@ -32,7 +32,7 @@ internal sealed class ChannelService : IChannelService
         string channelType, string displayName, string? configJson,
         Guid createdById, CancellationToken ct = default)
     {
-        var record = ChannelConnectionRecord.Create(channelType, displayName, createdById);
+        var record = ChannelConnectionRecord.Create(channelType.ToChannelType(), displayName, createdById);
 
         if (!string.IsNullOrWhiteSpace(configJson))
             record.EncryptedCreds = _protector.Protect(configJson);
@@ -74,7 +74,7 @@ internal sealed class ChannelService : IChannelService
         if (bindings.Count == 0)
         {
             var connection = await _repo.GetConnectionAsync(connectionId, ct);
-            var channelType = connection?.ChannelType ?? "unknown";
+            var channelType = connection?.ChannelType.ToStorageString() ?? "unknown";
 
             await _publisher.Publish(new ChannelMessageRoutedEvent(
                 null, AgentLogType.ChannelIn, channelType,
@@ -83,7 +83,7 @@ internal sealed class ChannelService : IChannelService
 
         foreach (var binding in bindings)
         {
-            var channelType = binding.ChannelConnection?.ChannelType ?? "unknown";
+            var channelType = binding.ChannelConnection?.ChannelType.ToStorageString() ?? "unknown";
             var correlationId = Guid.NewGuid().ToString("N");
 
             // Always log the inbound message, even if the binding is disabled
@@ -143,7 +143,7 @@ internal sealed class ChannelService : IChannelService
             if (!binding.Enabled || binding.ChannelConnection is null)
                 continue;
 
-            var channelType = binding.ChannelConnection.ChannelType;
+            var channelType = binding.ChannelConnection.ChannelType.ToStorageString();
             var correlationId = Guid.NewGuid().ToString("N");
 
             ChannelBindingConfig? config = null;
@@ -191,7 +191,7 @@ internal sealed class ChannelService : IChannelService
         try
         {
             // Test message — no specific platformId, sidecar adapter handles default delivery
-            await _gateway.SendAsync(connection.ChannelType, "default", null,
+            await _gateway.SendAsync(connection.ChannelType.ToStorageString(), "default", null,
                 ChannelMessage.Text(message), ct);
         }
         catch (Exception ex)

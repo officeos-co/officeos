@@ -23,16 +23,16 @@ public class BillingQueries
         var result = new UserSubscriptionDto(
             sub.Id,
             sub.UserId,
-            sub.Plan,
-            sub.BillingCycle,
+            sub.Plan.ToStorageString(),
+            sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit,
             sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth,
             remaining,
             overBudget,
             sub.OverageEnabled,
-            sub.PeriodStart,
-            sub.PeriodEnd,
+            sub.Period.Start,
+            sub.Period.End,
             sub.IsActive);
 
         cache.Set(cacheKey, result,
@@ -53,15 +53,15 @@ public class BillingQueries
         return new OrgSubscriptionDto(
             sub.Id,
             sub.OrganizationId,
-            sub.Plan,
+            sub.Plan.ToStorageString(),
             sub.ConcurrentAgentLimit,
             sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth,
             remaining,
             overBudget,
             sub.OverageEnabled,
-            sub.PeriodStart,
-            sub.PeriodEnd,
+            sub.Period.Start,
+            sub.Period.End,
             sub.IsActive);
     }
 
@@ -106,12 +106,12 @@ public class BillingQueries
         var invoices = await userBilling.ListInvoicesAsync(user.Id, ct);
         var planDescription = PlanLimits.ForIndividualPlan(sub.Plan).Description;
         var result = new BillingPayload(
-            sub.Plan,
+            sub.Plan.ToStorageString(),
             planDescription,
             sub.IsActive ? "active" : "canceled",
-            sub.BillingCycle,
-            sub.PeriodStart,
-            sub.PeriodEnd,
+            sub.BillingCycle.ToStorageString(),
+            sub.Period.Start,
+            sub.Period.End,
             sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth,
             remaining,
@@ -140,16 +140,16 @@ public class BillingQueries
         return new UserSubscriptionDto(
             sub.Id,
             sub.UserId,
-            sub.Plan,
-            sub.BillingCycle,
+            sub.Plan.ToStorageString(),
+            sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit,
             sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth,
             remaining,
             overBudget,
             sub.OverageEnabled,
-            sub.PeriodStart,
-            sub.PeriodEnd,
+            sub.Period.Start,
+            sub.Period.End,
             sub.IsActive);
     }
 }
