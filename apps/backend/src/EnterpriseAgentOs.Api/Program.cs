@@ -93,27 +93,6 @@ builder.Services.AddSingleton(skillRuntimeConfig);
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
 builder.Services.AddSingleton(googleOAuthConfig);
 
-var skillStorageConfig = RequireSection<SkillStorageConfig>("Minio");
-builder.Services.AddSingleton(skillStorageConfig);
-if (!string.IsNullOrWhiteSpace(skillStorageConfig.Endpoint))
-{
-    builder.Services.AddSingleton<IAmazonS3>(_ =>
-    {
-        var config = new AmazonS3Config
-        {
-            ServiceURL = skillStorageConfig.Endpoint,
-            ForcePathStyle = true,
-        };
-        return new AmazonS3Client(
-            skillStorageConfig.AccessKey,
-            skillStorageConfig.SecretKey,
-            config);
-    });
-}
-else if (!isDevelopment)
-{
-    throw new InvalidOperationException("Minio:Endpoint is required in non-development environments.");
-}
 
 if (kubernetesConfig.Enabled)
 {

@@ -130,8 +130,7 @@ spec:
               value: "http://eaos-skill-runtime.default.svc.cluster.local:3001"
             - name: CHANNEL_SERVICE_URL
               value: "http://localhost:3100"
-            - name: MINIO__BUCKET
-              value: "skills"
+
             - name: POSTHOG__HOST
               value: "https://eu.i.posthog.com"
           ports:
