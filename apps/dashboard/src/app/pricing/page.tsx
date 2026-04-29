@@ -225,14 +225,9 @@ export default function PricingPage() {
                       Current plan
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      disabled={subscribing}
-                      onClick={() => handleSubscribe(plan.key)}
-                      className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                      {subscribing ? "Redirecting…" : `Upgrade to ${plan.name}`}
-                    </button>
+                    <div className="w-full rounded-xl border border-dashed border-border text-muted-foreground py-3 font-medium text-sm text-center cursor-default">
+                      Coming soon
+                    </div>
                   )}
 
                   <div className="border-t border-border pt-4 flex-1">

@@ -61,8 +61,12 @@ export default function BillingPage() {
     return (
       <>
         <PageHeader group="Manage" page="Billing" />
-        <div className="flex items-center justify-center py-20">
-          <p className="text-sm text-muted-foreground">Unable to load billing information.</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <SparklesIcon className="size-8 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Billing is coming soon</h2>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            You&apos;re on the free plan. Paid plans with higher limits, team features, and priority support are launching soon.
+          </p>
         </div>
       </>
     )

@@ -92,9 +92,9 @@ export function NavUser({
             {!isDevelopment() && (
               <>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => window.location.href = "/pricing"}>
+                  <DropdownMenuItem disabled>
                     <SparklesIcon />
-                    Upgrade Plan
+                    Upgrade Plan — Coming Soon
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
