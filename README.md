@@ -1,75 +1,72 @@
 <p align="center">
-  <img src="apps/website/public/logo.svg" height="80" alt="OfficeOS" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/website/public/logo-white.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="apps/website/public/logo.svg" />
+    <img src="apps/website/public/logo.svg" height="80" alt="OfficeOS" />
+  </picture>
 </p>
 
-<h3 align="center">Deploy autonomous AI agents across your company</h3>
+<h1 align="center">The AI workforce for your company</h1>
 
 <p align="center">
-  Enterprise knowledge, custom skills, full infrastructure control.
-  <br />
-  Self-host in minutes or use <a href="https://dashboard.officeos.co">OfficeOS Cloud</a>.
+Employees that work 24/7, know everything about your company, and never need onboarding.
+<br/><br/>
+<a href="https://officeos.co">Website</a> · <a href="https://docs.officeos.co">Docs</a> · <a href="https://dashboard.officeos.co">Cloud</a> · <a href="https://docs.officeos.co/quickstart">Getting Started</a> · <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a>
 </p>
 
-<p align="center">
-  <a href="https://officeos.co">Website</a> &middot;
-  <a href="https://docs.officeos.co">Docs</a> &middot;
-  <a href="https://dashboard.officeos.co">Dashboard</a> &middot;
-  <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a>
-</p>
+<br/>
 
----
+OfficeOS deploys autonomous AI agents across your company. Each agent has persistent memory, enterprise knowledge, custom skills, and responds in the channels your team already uses — Slack, Teams, WhatsApp, Telegram, Discord, email.
+
+The dashboard is the control plane. The product is the agent.
+
+Self-host the full stack with `docker compose up` or use [OfficeOS Cloud](https://dashboard.officeos.co).
+
+<br/>
 
 ## Highlights
 
-- **Managed agents** — deploy, monitor, and control AI agents from a single dashboard
-- **Multi-channel** — connect agents to Slack, Discord, Teams, Telegram, WhatsApp
-- **Custom skills** — extend agents with TypeScript skills (email, calendar, browser, APIs)
-- **BYOK** — bring your own LLM keys (Anthropic, OpenAI, Google, xAI) or use platform keys
-- **Self-hosted** — run the full stack with Docker Compose, no Kubernetes required
-- **12-Factor config** — secrets via environment variables, zero hardcoded credentials
+- **Agents, not chatbots** — persistent agents with memory, knowledge graphs, and their own container runtime
+- **Multi-channel** — agents respond in Slack, Discord, Teams, Telegram, WhatsApp, email
+- **Custom skills in TypeScript** — email, calendar, browser automation, CRM sync, contract review — attach to any agent
+- **Works with your stack** — Notion, GitHub, Salesforce, Google Workspace, Jira, HubSpot, and dozens more
+- **Automated schedules** — cron-based agent tasks: competitor scans, CRM syncs, weekly reports, briefings
+- **Self-hosted** — runs on your infrastructure, data never leaves your network. Or use our cloud
+- **BYOK** — bring your own LLM keys (Anthropic, OpenAI, Google, xAI) or use platform-managed keys
 
----
+<br/>
 
 ## Recognized by
 
 <p align="center">
-  <img src="apps/website/public/logos/microsoft.png" height="30" alt="Microsoft" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="apps/website/public/logos/dtu-skylab.png" height="30" alt="DTU Skylab" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="apps/website/public/logos/siteimprove.png" height="30" alt="Siteimprove" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="apps/website/public/logos/techbbq.png" height="30" alt="TechBBQ" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="apps/website/public/logos/elsass-fonden.png" height="30" alt="Elsass Fonden" />
+  <img src="apps/website/public/logos/microsoft.png" height="28" alt="Microsoft" />&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="apps/website/public/logos/dtu-skylab.png" height="28" alt="DTU Skylab" />&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="apps/website/public/logos/siteimprove.png" height="28" alt="Siteimprove" />&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="apps/website/public/logos/techbbq.png" height="28" alt="TechBBQ" />&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="apps/website/public/logos/elsass-fonden.png" height="28" alt="Elsass Fonden" />
 </p>
 
----
+<br/>
 
-## Quick Start (Self-Hosted)
+## Quick Start
 
 ```bash
 git clone https://github.com/HarKro753/EnterpriseAgentOs.git
 cd EnterpriseAgentOs
 
 cp apps/backend/.env.example .env
-# Edit .env — add at least one LLM provider key
+# Add at least one LLM provider key
 
 docker compose up
 ```
 
-Open [localhost:3000](http://localhost:3000) and sign in with Google.
+Open [localhost:3000](http://localhost:3000) and sign in with Google. That's it.
 
-> **That's it.** Postgres, Redis, backend, dashboard, skill runtime, and channel gateway all start automatically. Agents run as Docker containers — no Kubernetes needed.
+Postgres, Redis, backend, dashboard, skill runtime, and channel gateway all start automatically. Agents run as Docker containers — no Kubernetes needed.
 
----
+<br/>
 
 ## Architecture
-
-| Service           | Port | Stack                                                       |
-| ----------------- | ---- | ----------------------------------------------------------- |
-| **Dashboard**     | 3000 | Next.js 16, React 19, Apollo GraphQL                        |
-| **Backend**       | 8000 | .NET 9, HotChocolate GraphQL, EF Core                       |
-| **Skill Runtime** | 3001 | Node.js, esbuild, TypeScript skills                         |
-| **Channels**      | 3100 | Node.js gateway (Slack, Discord, Teams, Telegram, WhatsApp) |
-| **Postgres**      | 5432 | Primary database                                            |
-| **Redis**         | 6379 | Distributed cache                                           |
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌───────────────┐
@@ -83,27 +80,33 @@ Open [localhost:3000](http://localhost:3000) and sign in with Google.
                     └──────────────┘
 ```
 
----
+| Service       | Port | Stack                                       |
+| ------------- | ---- | ------------------------------------------- |
+| Dashboard     | 3000 | Next.js 16, React 19, Apollo GraphQL        |
+| Backend       | 8000 | .NET 9, HotChocolate GraphQL, EF Core       |
+| Skill Runtime | 3001 | Node.js, esbuild, bundled TypeScript skills |
+| Channels      | 3100 | Node.js gateway for messaging platforms     |
+| Postgres      | 5432 | Primary database                            |
+| Redis         | 6379 | Distributed cache                           |
 
-## Environment Management
+<br/>
 
-Secrets are injected via environment variables — never committed to the repo. See [docs/environment-management.md](docs/environment-management.md) for the full guide covering Doppler, Kubernetes secrets, and self-hosted configuration.
+## Configuration
 
-### What self-hosters need to configure
+Self-hosters only need a few environment variables. Everything else has sensible defaults.
 
 ```bash
-# Required
 CONNECTION_STRING=Host=localhost;Port=5432;Database=eaos;Username=eaos;Password=eaos
 REDIS=localhost:6379
 FRONTEND_ORIGIN=http://localhost:3000
-
-# At least one LLM key
 PLATFORMKEYS__ANTHROPICAPIKEY=sk-ant-...
 ```
 
-Google OAuth works out of the box for `localhost:3000`. Stripe, PostHog, and Minio are disabled in development — no config needed.
+Google OAuth works out of the box on `localhost:3000`. Stripe, PostHog, and object storage are disabled in development.
 
----
+Full guide: [docs/environment-management.md](docs/environment-management.md)
+
+<br/>
 
 ## Development
 
@@ -114,53 +117,22 @@ Google OAuth works out of the box for `localhost:3000`. Stripe, PostHog, and Min
 | Website   | `cd apps/website && bun dev`                                        |
 | Docs      | `cd apps/docs && bun dev`                                           |
 
-Or run everything with Docker:
+Or run everything: `docker compose up`
 
-```bash
-docker compose up
-```
+<br/>
 
----
+## Cloud
 
-## OfficeOS Cloud
+Don't want to self-host? [dashboard.officeos.co](https://dashboard.officeos.co) — managed agents with billing, analytics, team management, and platform LLM keys.
 
-Don't want to self-host? Use the managed platform at **[dashboard.officeos.co](https://dashboard.officeos.co)** — includes billing, usage analytics, team management, and platform LLM keys.
+<br/>
 
----
+## Docs
 
-## Documentation
+- [Getting Started](https://docs.officeos.co/quickstart)
+- [Environment Management](docs/environment-management.md)
+- [Agent Lifecycle](docs/agent-lifecycle.md)
+- [Skills](docs/skills.md)
+- [Runners](docs/runners.md)
 
-- [Environment Management](docs/environment-management.md) — secrets, Doppler, K8s operator
-- [Agent Lifecycle](docs/agent-lifecycle.md) — how agents are created, deployed, and managed
-- [Skills](docs/skills.md) — writing custom TypeScript skills
-- [Runners](docs/runners.md) — agent execution infrastructure
-
----
-
-## Contributing
-
-Contributions are welcome. Open an issue first to discuss what you'd like to change.
-
-```bash
-# Clone and install
-git clone https://github.com/HarKro753/EnterpriseAgentOs.git
-cd EnterpriseAgentOs
-
-# Backend
-cd apps/backend && dotnet build EnterpriseAgentOs.sln
-
-# Dashboard
-cd apps/dashboard && bun install && bun dev
-```
-
----
-
-## License
-
-MIT
-
----
-
-<p align="center">
-  Built by <a href="https://github.com/HarKro753">Harro Krog</a>
-</p>
+<br/>
