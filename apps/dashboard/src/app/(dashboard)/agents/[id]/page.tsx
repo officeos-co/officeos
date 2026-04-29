@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StatusBadge } from "@/features/agents/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { AgentIntegrationsTab } from "@/features/agents/components/agent-integrations-tab";
 import { AgentLogsTab } from "@/features/agents/components/agent-logs-tab";
 import { AgentMemoryTab } from "@/features/agents/components/agent-memory-tab";

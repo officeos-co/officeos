@@ -5,7 +5,6 @@ import type { AgentLog } from "@/types/logs"
 import { PageHeader } from "@/components/page-header"
 import { LogTable } from "@/components/log-table"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -13,13 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { SearchInput } from "@/components/ui/search-input"
+import { DataPagination } from "@/components/ui/data-pagination"
 import { useGlobalLogs } from "@/features/analytics"
-import {
-  SearchIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  DownloadIcon,
-} from "lucide-react"
+import { DownloadIcon } from "lucide-react"
 
 const ALL_TYPES = ["All", "tool_call", "tool_result", "channel_in", "channel_out", "message_in", "message_out", "system"] as const
 const PAGE_SIZES = [10, 25, 50] as const
@@ -116,7 +112,6 @@ export default function LogsPage() {
     })
   }, [search, typeFilter, agentFilter, allLogs])
 
-  const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   return (
@@ -136,15 +131,11 @@ export default function LogsPage() {
         <div className="flex flex-col gap-4 flex-1 min-w-0">
           {/* Toolbar */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative flex-1 max-w-sm">
-              <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search logs..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-                className="pl-8"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search logs..."
+              value={search}
+              onChange={(v) => { setSearch(v); setPage(0) }}
+            />
             <Select value={agentFilter} onValueChange={(v) => { if (v) { setAgentFilter(v); setPage(0) } }}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Agent" />
@@ -171,29 +162,14 @@ export default function LogsPage() {
             onSelectLog={(log) => setSelectedLog(selectedLog?.id === log.id ? null : log)}
           />
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>Rows per page</span>
-              <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
-                <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">
-                {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}` : "0 results"}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
-                <ChevronLeftIcon className="size-4" />
-              </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-                <ChevronRightIcon className="size-4" />
-              </Button>
-            </div>
-          </div>
+          <DataPagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            pageSizes={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(0) }}
+          />
         </div>
 
         {/* Right — always-visible detail panel */}

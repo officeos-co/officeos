@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,31 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PlusIcon, FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useAgents, useDeleteAgent } from "@/features/agents";
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const;
-
-const statusStyles: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
-  running: { bg: "bg-emerald-100", text: "text-emerald-700", label: "RUNNING" },
-  pending: { bg: "bg-amber-100", text: "text-amber-700", label: "PENDING" },
-  stopped: { bg: "bg-zinc-100", text: "text-zinc-500", label: "STOPPED" },
-  failed: { bg: "bg-red-100", text: "text-red-700", label: "FAILED" },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const style = statusStyles[status] ?? statusStyles.stopped;
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${style.bg} ${style.text}`}
-    >
-      {style.label}
-    </span>
-  );
-}
 
 export default function AgentsPage() {
   const router = useRouter();
@@ -68,15 +49,11 @@ export default function AgentsPage() {
       <PageHeader group="Managed Agents" page="Agents" />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search agents..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search agents..."
+            value={search}
+            onChange={setSearch}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="outline" size="sm" />}
@@ -168,11 +145,8 @@ export default function AgentsPage() {
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-8 text-center text-muted-foreground"
-                >
-                  No agents found.
+                <TableCell colSpan={7} className="p-0">
+                  <EmptyState message="No agents found." />
                 </TableCell>
               </TableRow>
             )}

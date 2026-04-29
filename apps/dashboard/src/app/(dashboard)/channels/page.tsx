@@ -5,18 +5,13 @@ import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { ChannelOnboardingDialog } from "@/features/agents"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { EmptyState } from "@/components/ui/empty-state"
 import { type Channel } from "@/features/agents/data/channels"
 import { useChannels, useCreateChannelConnection, useBindChannelToAgent } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
-import { PlusIcon, RadioIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { PlusIcon, RadioIcon } from "lucide-react"
 import { useFilterParams } from "@/hooks/useFilterParams"
 
 const PAGE_SIZES = [25, 50, 100] as const
@@ -53,7 +48,6 @@ export default function ChannelsPage() {
     })
   }, [channels, view])
 
-  const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   const connectedCount = channels.filter((c) => c.added).length
@@ -122,33 +116,18 @@ export default function ChannelsPage() {
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="py-8 text-center text-sm text-muted-foreground">No channels found.</div>
+          <EmptyState message="No channels found." />
         )}
 
-        {/* Pagination */}
         {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>Rows per page</span>
-              <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
-                <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">
-                {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}` : "0 results"}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
-                <ChevronLeftIcon className="size-4" />
-              </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-                <ChevronRightIcon className="size-4" />
-              </Button>
-            </div>
-          </div>
+          <DataPagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            pageSizes={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(0) }}
+          />
         )}
       </div>
 

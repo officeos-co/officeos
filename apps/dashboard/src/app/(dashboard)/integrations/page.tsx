@@ -3,19 +3,13 @@
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { SearchInput } from "@/components/ui/search-input"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { EmptyState } from "@/components/ui/empty-state"
 import { useIntegrations, useInstallSkill, sortIntegrations, CredentialDialog, IntegrationCard } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFilterParams } from "@/hooks/useFilterParams"
 
@@ -66,7 +60,6 @@ export default function IntegrationsPage() {
     return sortIntegrations(list)
   }, [integrations, search, view, selectedCategory])
 
-  const totalPages = Math.ceil(filtered.length / pageSize)
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
   const installedCount = integrations.filter((i) => i.installed).length
@@ -76,10 +69,11 @@ export default function IntegrationsPage() {
       <PageHeader group="Managed Agents" page="Integrations" />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input placeholder="Search integrations..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} className="pl-8" />
-          </div>
+          <SearchInput
+            placeholder="Search integrations..."
+            value={search}
+            onChange={(v) => { setSearch(v); setPage(0) }}
+          />
           <div className="flex items-center rounded-lg border border-border">
             {([["all", "All"], ["installed", `Installed (${installedCount})`], ["explore", "Explore"]] as const).map(([key, label]) => (
               <button key={key} type="button" onClick={() => { setView(key); setPage(0) }}
@@ -157,33 +151,18 @@ export default function IntegrationsPage() {
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="py-8 text-center text-sm text-muted-foreground">No integrations found.</div>
+          <EmptyState message="No integrations found." />
         )}
 
-        {/* Pagination */}
         {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>Rows per page</span>
-              <Select value={String(pageSize)} onValueChange={(v) => { if (v) { setPageSize(Number(v)); setPage(0) } }}>
-                <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">
-                {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} of ${filtered.length}` : "0 results"}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(page - 1)}>
-                <ChevronLeftIcon className="size-4" />
-              </Button>
-              <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
-                <ChevronRightIcon className="size-4" />
-              </Button>
-            </div>
-          </div>
+          <DataPagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            pageSizes={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(0) }}
+          />
         )}
       </div>
 
