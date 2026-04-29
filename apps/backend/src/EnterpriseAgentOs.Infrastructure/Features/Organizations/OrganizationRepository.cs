@@ -55,23 +55,13 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         return entities.Select(ToOrgMemberRecord).ToList();
     }
 
-    public async Task<OrgMemberRecord> AddMemberAsync(
-        Guid organizationId, string email, string role, string status, Guid? userId, CancellationToken ct = default)
+    public async Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default)
     {
         var existing = await _eaosDbContext.OrgMembers
-            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.Email == email, ct);
+            .FirstOrDefaultAsync(m => m.OrganizationId == member.OrganizationId && m.Email == member.Email, ct);
         if (existing is not null) return ToOrgMemberRecord(existing);
 
-        var entity = new OrgMemberEntity
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = organizationId,
-            Email = email,
-            Role = role,
-            Status = status,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow,
-        };
+        var entity = ToOrgMemberEntity(member);
         _eaosDbContext.OrgMembers.Add(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
         return ToOrgMemberRecord(entity);

@@ -35,11 +35,8 @@ public class AgentSchemaMutations
 
         var record = new AgentLogRecord
         {
-            AgentId = agentId,
-            Time = DateTime.UtcNow,
-            Type = logType,
-            Content = input.Content,
-            CorrelationId = input.CorrelationId,
+            AgentId = agentId, Time = DateTime.UtcNow, Type = logType,
+            Content = input.Content, CorrelationId = input.CorrelationId,
         };
 
         var saved = await logs.AppendAsync(record, ct);

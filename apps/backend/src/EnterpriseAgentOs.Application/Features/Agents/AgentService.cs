@@ -94,16 +94,7 @@ internal sealed class AgentService : IAgentService
                 $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
         }
 
-        var record = new AgentRecord
-        {
-            Name = request.Name.Trim(),
-            Provider = request.Provider.Trim().ToLowerInvariant(),
-            Status = AgentStatus.Pending,
-            OwnerId = ownerId,
-            Prompt = string.IsNullOrWhiteSpace(request.Prompt) ? null : request.Prompt,
-        };
-
-        record.ValidateAndSetModel(request.Model);
+        var record = AgentRecord.Create(request.Name, request.Provider, request.Model, ownerId, request.Prompt);
 
         await _agentRepository.AddAsync(record, ct);
 

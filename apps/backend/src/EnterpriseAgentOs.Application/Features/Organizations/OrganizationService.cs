@@ -20,11 +20,12 @@ internal sealed class OrganizationService : IOrganizationService
         if (string.IsNullOrWhiteSpace(memberEmail) || !memberEmail.Contains('@'))
             throw new InvalidOperationException("Valid email required.");
 
-        var validRole = role ?? OrgRole.Member.ToStorageString();
-        if (validRole != OrgRole.Admin.ToStorageString() && validRole != OrgRole.Member.ToStorageString())
+        var parsedRole = (role ?? "Member").ToOrgRole();
+        if (parsedRole != OrgRole.Admin && parsedRole != OrgRole.Member)
             throw new InvalidOperationException("Role must be 'Admin' or 'Member'.");
 
-        return await _organizationRepository.AddMemberAsync(org.Id, memberEmail.Trim().ToLowerInvariant(), validRole, MemberStatus.Invited.ToStorageString(), null, ct);
+        var member = OrgMemberRecord.Invite(org.Id, memberEmail, parsedRole);
+        return await _organizationRepository.AddMemberAsync(member, ct);
     }
 
     public async Task<bool> RemoveMemberAsync(

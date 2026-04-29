@@ -74,4 +74,55 @@ public sealed class AgentLogRecord
     /// </summary>
     [MaxLength(128)]
     public string? CorrelationId { get; init; }
+
+    // ── Factory methods ─────────────────────────────────────────────────────
+
+    public static AgentLogRecord System(Guid agentId, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.System, Content = content,
+        CorrelationId = correlationId, Time = time ?? DateTime.UtcNow, Usage = usage ?? TokenUsage.Empty,
+    };
+
+    public static AgentLogRecord MessageIn(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.MessageIn, Content = content,
+        CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
+    };
+
+    public static AgentLogRecord MessageOut(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.MessageOut, Content = content,
+        CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
+    };
+
+    public static AgentLogRecord ToolCallEntry(Guid agentId, string toolName, string argsJson, string? correlationId = null, DateTime? time = null, string? integration = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.ToolCall, Tool = toolName, Integration = integration,
+        Content = argsJson, CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
+    };
+
+    public static AgentLogRecord ToolResultEntry(Guid agentId, string toolName, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null, string? integration = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.ToolResult, Tool = toolName, Integration = integration,
+        Content = content, CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
+        Usage = usage ?? TokenUsage.Empty,
+    };
+
+    public static AgentLogRecord Error(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.Error, Content = content,
+        CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
+    };
+
+    public static AgentLogRecord ChannelIn(Guid? agentId, string channel, string content, string? correlationId = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.ChannelIn, Channel = channel,
+        Content = content, CorrelationId = correlationId,
+    };
+
+    public static AgentLogRecord ChannelOut(Guid agentId, string channel, string content, string? correlationId = null) => new()
+    {
+        AgentId = agentId, Type = AgentLogType.ChannelOut, Channel = channel,
+        Content = content, CorrelationId = correlationId,
+    };
 }

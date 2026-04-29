@@ -51,17 +51,7 @@ public static class SkillSeeder
 
             if (existing is null)
             {
-                var record = new SkillRecord
-                {
-                    Name = name,
-                    Title = manifest.Title,
-                    Description = manifest.Description,
-                    Doc = manifest.Doc,
-                    Source = SkillSource.Builtin,
-                    IsSystem = systemSkills.Contains(name),
-                    Status = SkillStatus.Active,
-                };
-                record.ApplyManifest(manifest);
+                var record = SkillRecord.CreateBuiltin(name, manifest, systemSkills.Contains(name));
                 await catalog.UpsertAsync(record);
                 seeded++;
             }

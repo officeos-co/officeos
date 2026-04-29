@@ -94,17 +94,7 @@ internal sealed class SkillService : ISkillService
         if (liveManifest is not null)
         {
             var systemSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "browser" };
-            var record = new SkillRecord
-            {
-                Name = n,
-                Title = liveManifest.Title,
-                Description = liveManifest.Description,
-                Doc = liveManifest.Doc ?? string.Empty,
-                Source = SkillSource.Builtin,
-                IsSystem = systemSkills.Contains(n),
-                Status = SkillStatus.Active,
-            };
-            record.ApplyManifest(liveManifest);
+            var record = SkillRecord.CreateBuiltin(n, liveManifest, systemSkills.Contains(n));
             await _skillCatalogRepository.UpsertAsync(record, ct);
         }
 

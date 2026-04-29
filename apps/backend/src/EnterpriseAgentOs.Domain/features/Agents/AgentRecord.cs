@@ -68,6 +68,27 @@ public sealed class AgentRecord
         Status = AgentStatus.Failed;
     }
 
+    // ── Factory ──────────────────────────────────────────────────────────────
+
+    public static AgentRecord Create(string name, string provider, string? model, Guid? ownerId, string? prompt = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Agent name is required.", nameof(name));
+        if (string.IsNullOrWhiteSpace(provider))
+            throw new ArgumentException("Provider is required.", nameof(provider));
+
+        var record = new AgentRecord
+        {
+            Name = name.Trim(),
+            Provider = provider.Trim().ToLowerInvariant(),
+            Status = AgentStatus.Pending,
+            OwnerId = ownerId,
+            Prompt = string.IsNullOrWhiteSpace(prompt) ? null : prompt,
+        };
+        record.ValidateAndSetModel(model);
+        return record;
+    }
+
     /// <summary>Validates and sets the model, defaulting to "auto" if null/empty.</summary>
     public void ValidateAndSetModel(string? model)
     {

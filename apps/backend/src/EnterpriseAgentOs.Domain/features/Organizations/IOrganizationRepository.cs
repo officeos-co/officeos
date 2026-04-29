@@ -16,13 +16,7 @@ public interface IOrganizationRepository
         Guid organizationId,
         CancellationToken ct = default);
 
-    Task<OrgMemberRecord> AddMemberAsync(
-        Guid organizationId,
-        string email,
-        string role,
-        string status,
-        Guid? userId,
-        CancellationToken ct = default);
+    Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default);
 
     Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default);
 

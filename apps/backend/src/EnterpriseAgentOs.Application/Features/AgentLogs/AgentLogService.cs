@@ -51,14 +51,7 @@ internal sealed class AgentLogService : IAgentLogService
 
         var correlationId = Guid.NewGuid().ToString("N");
 
-        var record = await AppendAsync(new AgentLogRecord
-        {
-            AgentId = agentId,
-            Type = AgentLogType.MessageIn,
-            Content = content,
-            CorrelationId = correlationId,
-            Time = DateTime.UtcNow,
-        });
+        var record = await AppendAsync(AgentLogRecord.MessageIn(agentId, content, correlationId));
 
         if (string.IsNullOrEmpty(agent.PodName))
         {
@@ -87,28 +80,11 @@ internal sealed class AgentLogService : IAgentLogService
         var correlationId = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
 
-        var toolCall = new AgentLogRecord
-        {
-            AgentId = agentId,
-            Time = now,
-            Type = AgentLogType.ToolCall,
-            Tool = action,
-            Integration = skillName,
-            Content = redacted,
-            CorrelationId = correlationId,
-        };
+        var toolCall = AgentLogRecord.ToolCallEntry(agentId, action, redacted, correlationId, now, skillName);
 
-        var toolResult = new AgentLogRecord
-        {
-            AgentId = agentId,
-            Time = now.AddMilliseconds(1),
-            Type = AgentLogType.ToolResult,
-            Tool = action,
-            Integration = skillName,
-            Content = resultSummary ?? string.Empty,
-            Usage = new TokenUsage(null, null, (int)Math.Min(durationMs, int.MaxValue)),
-            CorrelationId = correlationId,
-        };
+        var toolResult = AgentLogRecord.ToolResultEntry(agentId, action, resultSummary ?? string.Empty,
+            correlationId, now.AddMilliseconds(1),
+            new TokenUsage(null, null, (int)Math.Min(durationMs, int.MaxValue)), skillName);
 
         await _agentLogRepository.AppendPairAsync(toolCall, toolResult, ct);
     }

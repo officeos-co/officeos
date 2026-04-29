@@ -34,13 +34,7 @@ public class SessionMutations
         // Bootstrap from the agent's personality files (already on the aggregate)
         var bootstrapMsg = session.FormatBootstrapMessage(agent.PersonalityFiles, isFirstSession: isFirst);
 
-        await logs.AppendAsync(new AgentLogRecord
-        {
-            AgentId = agentId,
-            Time = DateTime.UtcNow,
-            Type = AgentLogType.System,
-            Content = bootstrapMsg,
-        }, ct);
+        await logs.AppendAsync(AgentLogRecord.System(agentId, bootstrapMsg), ct);
 
         return session;
     }

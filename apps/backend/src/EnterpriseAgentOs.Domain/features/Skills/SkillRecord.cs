@@ -90,6 +90,24 @@ public sealed class SkillRecord
 
     public bool HasDoc => !string.IsNullOrWhiteSpace(Doc);
 
+    // ── Factory ──────────────────────────────────────────────────────────────
+
+    public static SkillRecord CreateBuiltin(string name, RuntimeManifest manifest, bool isSystem = false)
+    {
+        var record = new SkillRecord
+        {
+            Name = name.Trim().ToLowerInvariant(),
+            Title = manifest.Title,
+            Description = manifest.Description,
+            Doc = manifest.Doc ?? string.Empty,
+            Source = SkillSource.Builtin,
+            IsSystem = isSystem,
+            Status = SkillStatus.Active,
+        };
+        record.ApplyManifest(manifest);
+        return record;
+    }
+
     // ── Domain methods ─────────────────────────────────────────────
 
     /// <summary>Deserializes the ActionsJson column into typed action manifests.</summary>
