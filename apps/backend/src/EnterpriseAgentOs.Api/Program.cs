@@ -48,6 +48,10 @@ var kubernetesConfig = new KubernetesConfig();
 envSection.GetSection("Kubernetes").Bind(kubernetesConfig);
 builder.Services.AddSingleton(kubernetesConfig);
 
+var dockerConfig = new DockerConfig();
+envSection.GetSection("Docker").Bind(dockerConfig);
+builder.Services.AddSingleton(dockerConfig);
+
 var skillGatewayConfig = new SkillGatewayConfig { RefreshSeconds = 30 };
 envSection.GetSection("SkillGateway").Bind(skillGatewayConfig);
 builder.Services.AddSingleton(skillGatewayConfig);
@@ -88,9 +92,14 @@ if (kubernetesConfig.Enabled)
     });
     builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
 }
+else if (dockerConfig.Enabled)
+{
+    builder.Services.AddScoped<IAgentDeployer, DockerAgentDeployer>();
+}
 else
 {
-    builder.Services.AddScoped<IAgentDeployer, NullAgentDeployer>();
+    throw new InvalidOperationException(
+        "No agent deployer configured. Enable either Kubernetes or Docker in appsettings.");
 }
 
 
