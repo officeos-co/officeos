@@ -71,7 +71,7 @@ jobs:
 
       - name: Apply manifest and restart skill-runtime
         run: |
-          kubectl config set-cluster nova --server=https://REDACTED_KUBE_SERVER_IP:6443 --insecure-skip-tls-verify=true
+          kubectl config set-cluster nova --server=${{ secrets.KUBE_SERVER }} --insecure-skip-tls-verify=true
           kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
