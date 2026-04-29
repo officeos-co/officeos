@@ -12,7 +12,7 @@ public class ProviderMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        if (!ValueManager.IsDevelopment())
+        if (!context.Service<IWebHostEnvironment>().IsDevelopment())
             throw new GraphQLException(
                 ErrorBuilder.New()
                     .SetMessage("Provider keys can only be configured in self-hosted (Development) mode.")
@@ -38,7 +38,7 @@ public class ProviderMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        if (!ValueManager.IsDevelopment())
+        if (!context.Service<IWebHostEnvironment>().IsDevelopment())
             throw new GraphQLException(
                 ErrorBuilder.New()
                     .SetMessage("Provider keys can only be configured in self-hosted (Development) mode.")

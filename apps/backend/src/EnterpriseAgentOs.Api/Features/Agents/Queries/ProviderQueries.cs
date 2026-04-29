@@ -32,7 +32,7 @@ public class ProviderQueries
         _ = DashboardAuthContextExtensions.GetUser(context);
 
         // Production/Staging: platform has keys for all providers
-        if (!ValueManager.IsDevelopment())
+        if (!context.Service<IWebHostEnvironment>().IsDevelopment())
         {
             return KnownModels.SupportedModels
                 .Select(m => new ModelInfoDto(m, KnownModels.GetDisplayName(m), m == KnownModels.DefaultModel))

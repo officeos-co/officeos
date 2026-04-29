@@ -4,8 +4,8 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: eaos_dev
-      POSTGRES_USER: contentmachine
+      POSTGRES_DB: eaos
+      POSTGRES_USER: eaos
       POSTGRES_PASSWORD: eaos
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -21,8 +21,10 @@ services:
       dockerfile: apps/backend/Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - APP_ENV=Development
+      - ASPNETCORE_ENVIRONMENT=Development
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -37,6 +39,25 @@ services:
       - "3000:3000"
     environment:
       - APP_ENV=development
+    depends_on:
+      - backend
+
+  channels:
+    build:
+      context: apps/channels
+    ports:
+      - "3100:3100"
+    depends_on:
+      - backend
+
+  skill-runtime:
+    build:
+      context: .
+      dockerfile: packages/skill-runtime/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
 

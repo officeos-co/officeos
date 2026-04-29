@@ -1,0 +1,27 @@
+apiVersion: secrets.doppler.com/v1alpha1
+kind: DopplerSecret
+metadata:
+  name: eaos-doppler-prod
+  namespace: default
+spec:
+  tokenSecret:
+    name: doppler-token-prod
+  managedSecret:
+    name: eaos-backend-prod-secrets
+    namespace: default
+    type: Opaque
+  resyncSeconds: 60
+---
+apiVersion: secrets.doppler.com/v1alpha1
+kind: DopplerSecret
+metadata:
+  name: eaos-doppler-staging
+  namespace: default
+spec:
+  tokenSecret:
+    name: doppler-token-staging
+  managedSecret:
+    name: eaos-backend-staging-secrets
+    namespace: default
+    type: Opaque
+  resyncSeconds: 60

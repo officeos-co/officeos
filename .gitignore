@@ -22,8 +22,8 @@ node_modules/
 *.db-journal
 
 # ── Environment & secrets ────────────────────────────────────
-# NOTE: apps/backend/.env and apps/dashboard/.env ARE committed on purpose —
-# services are self-contained and bake their config into the image.
+# Backend .env contains secrets — never commit. Use .env.example as template.
+apps/backend/.env
 .env.local
 .env.*.local
 .secret_key

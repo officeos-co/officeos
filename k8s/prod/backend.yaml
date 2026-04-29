@@ -58,8 +58,11 @@ spec:
         - name: backend
           image: harkro123/eaos-backend:latest
           imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: eaos-backend-prod-secrets
           env:
-            - name: ENVIRONMENT
+            - name: ASPNETCORE_ENVIRONMENT
               value: Production
           ports:
             - containerPort: 8000

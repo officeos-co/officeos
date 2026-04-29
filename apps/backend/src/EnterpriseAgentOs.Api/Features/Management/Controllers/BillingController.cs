@@ -30,7 +30,7 @@ public sealed class BillingController : ControllerBase
     [Consumes("application/json")]
     public async Task<IActionResult> Webhook(CancellationToken ct)
     {
-        if (!_stripeConfig.Enabled)
+        if (string.IsNullOrWhiteSpace(_stripeConfig.SecretKey))
             return StatusCode(503, new { error = "Billing not configured" });
 
         if (!Request.Headers.TryGetValue("Stripe-Signature", out var signature) || string.IsNullOrEmpty(signature))

@@ -12,5 +12,4 @@ public sealed class StripeConfig
     public string ProOveragePriceId  { get; set; } = string.Empty; // metered price for Pro overage ($3/1M credits)
     public string ProMonthlyPriceId { get; init; } = string.Empty; // Stripe price ID for Individual Pro monthly ($20/mo)
     public string ProYearlyPriceId  { get; init; } = string.Empty; // Stripe price ID for Individual Pro yearly ($16/mo)
-    public bool Enabled { get; set; } = false;
 }

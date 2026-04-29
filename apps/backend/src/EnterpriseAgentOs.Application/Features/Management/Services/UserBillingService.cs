@@ -139,7 +139,7 @@ internal sealed class UserBillingService : IUserBillingService
         Guid userId, CancellationToken ct = default)
     {
         var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
-        if (sub?.StripeCustomerId is null || !_stripeConfig.Enabled)
+        if (sub?.StripeCustomerId is null)
         {
             return Array.Empty<InvoicePayload>();
         }
@@ -168,8 +168,7 @@ internal sealed class UserBillingService : IUserBillingService
     {
         var result = new Dictionary<string, (long MonthlyAmountCents, long YearlyAmountCents, string Currency)>();
 
-        if (!_stripeConfig.Enabled)
-            return result;
+        if (string.IsNullOrWhiteSpace(_stripeConfig.SecretKey)) return result;
 
         var priceService = new PriceService();
         var priceIds = new Dictionary<string, (string Monthly, string Yearly)>

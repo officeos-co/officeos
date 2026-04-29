@@ -13,18 +13,48 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
+// ── Config helper: reads PascalCase (appsettings) or UPPER_SNAKE (Doppler env vars) ──
+string Require(string pascalKey, string? envKey = null)
+{
+    var value = builder.Configuration[pascalKey];
+    if (string.IsNullOrWhiteSpace(value) && envKey is not null)
+        value = builder.Configuration[envKey];
+    if (string.IsNullOrWhiteSpace(value))
+        throw new InvalidOperationException(
+            $"Required config '{pascalKey}' is missing. Set it in appsettings.json or as env var '{envKey ?? pascalKey}'.");
+    return value;
+}
+
+T RequireSection<T>(string sectionName) where T : new()
+{
+    var config = new T();
+    builder.Configuration.GetSection(sectionName).Bind(config);
+    return config;
+}
+
+void RequireNotEmpty(string value, string name)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        throw new InvalidOperationException($"Required config '{name}' is missing or empty.");
+}
+
+var isDevelopment = builder.Environment.IsDevelopment();
+
+// ── Core services ────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
+
+var redis = Require("Redis", "REDIS");
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = ValueManager.GetValue<string>("Redis");
+    options.Configuration = redis;
     options.InstanceName = "eaos:";
 });
 
 // Data Protection
-var dpKeyPath = ValueManager.GetValue<string>("DataProtectionKeyPath");
+var dpKeyPath = Require("DataProtectionKeyPath", "DATA_PROTECTION_KEY_PATH");
 var dpKeyDir = System.IO.Path.IsPathRooted(dpKeyPath)
     ? dpKeyPath
     : System.IO.Path.Combine(Directory.GetCurrentDirectory(), dpKeyPath);
@@ -35,37 +65,40 @@ builder.Services
     .SetApplicationName("EnterpriseAgentOs.Api");
 
 // DI — each layer registers its own services
-builder.Services.AddInfrastructure(ValueManager.GetValue<string>("ConnectionString"));
+var connectionString = Require("ConnectionString", "CONNECTION_STRING");
+builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddApplication();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     typeof(EnterpriseAgentOs.Application.ApplicationServiceRegistration).Assembly,
     typeof(Program).Assembly));
 
-// Infrastructure configs — bind from nested appsettings sections
-var envSection = ValueManager.GetConfiguration().GetSection(ValueManager.GetEnvironmentName());
-
-var kubernetesConfig = new KubernetesConfig();
-envSection.GetSection("Kubernetes").Bind(kubernetesConfig);
+// ── Infrastructure configs ───────────────────────────────────────────
+var kubernetesConfig = RequireSection<KubernetesConfig>("Kubernetes");
 builder.Services.AddSingleton(kubernetesConfig);
 
+// Docker is dev-only — uses hardcoded defaults from appsettings.json, never from env vars
 var dockerConfig = new DockerConfig();
-envSection.GetSection("Docker").Bind(dockerConfig);
+if (isDevelopment)
+    builder.Configuration.GetSection("Docker").Bind(dockerConfig);
 builder.Services.AddSingleton(dockerConfig);
 
-var skillGatewayConfig = new SkillGatewayConfig { RefreshSeconds = 30 };
-envSection.GetSection("SkillGateway").Bind(skillGatewayConfig);
+var skillGatewayConfig = RequireSection<SkillGatewayConfig>("SkillGateway");
+if (skillGatewayConfig.RefreshSeconds == 0) skillGatewayConfig.RefreshSeconds = 30;
 builder.Services.AddSingleton(skillGatewayConfig);
 
-var skillRuntimeConfig = new SkillRuntimeConfig();
-envSection.GetSection("SkillRuntime").Bind(skillRuntimeConfig);
+var skillRuntimeConfig = RequireSection<SkillRuntimeConfig>("SkillRuntime");
+RequireNotEmpty(skillRuntimeConfig.Url, "SkillRuntime:Url");
 builder.Services.AddSingleton(skillRuntimeConfig);
 
-var googleOAuthConfig = new GoogleOAuthConfig();
-envSection.GetSection("GoogleOAuth").Bind(googleOAuthConfig);
+var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
+RequireNotEmpty(googleOAuthConfig.ClientId, "GoogleOAuth:ClientId");
+RequireNotEmpty(googleOAuthConfig.ClientSecret, "GoogleOAuth:ClientSecret");
 builder.Services.AddSingleton(googleOAuthConfig);
 
-var skillStorageConfig = new SkillStorageConfig();
-envSection.GetSection("Minio").Bind(skillStorageConfig);
+var skillStorageConfig = RequireSection<SkillStorageConfig>("Minio");
+RequireNotEmpty(skillStorageConfig.Endpoint, "Minio:Endpoint");
+RequireNotEmpty(skillStorageConfig.AccessKey, "Minio:AccessKey");
+RequireNotEmpty(skillStorageConfig.SecretKey, "Minio:SecretKey");
 builder.Services.AddSingleton(skillStorageConfig);
 builder.Services.AddSingleton<IAmazonS3>(_ =>
 {
@@ -80,7 +113,6 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
         config);
 });
 
-
 if (kubernetesConfig.Enabled)
 {
     builder.Services.AddSingleton<IKubernetes>(_ =>
@@ -92,36 +124,38 @@ if (kubernetesConfig.Enabled)
     });
     builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
 }
-else if (dockerConfig.Enabled)
+else if (isDevelopment && dockerConfig.Enabled)
 {
     builder.Services.AddScoped<IAgentDeployer, DockerAgentDeployer>();
 }
 else
 {
     throw new InvalidOperationException(
-        "No agent deployer configured. Enable either Kubernetes or Docker in appsettings.");
+        "No agent deployer configured. Enable Kubernetes (production) or Docker (development) in config.");
 }
 
-
 // Billing
-var stripeConfig = new StripeConfig();
-envSection.GetSection("Stripe").Bind(stripeConfig);
+var stripeConfig = RequireSection<StripeConfig>("Stripe");
+if (!isDevelopment)
+{
+    RequireNotEmpty(stripeConfig.SecretKey, "Stripe:SecretKey");
+    RequireNotEmpty(stripeConfig.WebhookSecret, "Stripe:WebhookSecret");
+}
 builder.Services.AddSingleton(stripeConfig);
 
-var frontendConfig = new FrontendConfig(ValueManager.GetValue<string>("FrontendOrigin"));
+var frontendOrigin = Require("FrontendOrigin", "FRONTEND_ORIGIN");
+var frontendConfig = new FrontendConfig(frontendOrigin);
 builder.Services.AddSingleton(frontendConfig);
 
 // LLM
-builder.Services.AddSingleton(envSection.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
+builder.Services.AddSingleton(builder.Configuration.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
 
 // Session auth — configurable skip prefixes
-var sessionAuthConfig = new SessionAuthConfig();
-envSection.GetSection("SessionAuth").Bind(sessionAuthConfig);
+var sessionAuthConfig = RequireSection<SessionAuthConfig>("SessionAuth");
 builder.Services.AddSingleton(sessionAuthConfig);
 
-// PostHog — server owns the API key; dashboard calls use-case-specific track* mutations
-var postHogConfig = new PostHogConfig();
-envSection.GetSection("PostHog").Bind(postHogConfig);
+// PostHog
+var postHogConfig = RequireSection<PostHogConfig>("PostHog");
 builder.Services.AddSingleton(postHogConfig);
 
 // GraphQL — two named schemas share one HotChocolate host:
@@ -156,7 +190,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins(ValueManager.GetValue<string>("FrontendOrigin"))
+            .WithOrigins(frontendOrigin)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

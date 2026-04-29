@@ -28,10 +28,10 @@ Clean Architecture with four layers, all under `src/`:
 
 ## Key Patterns
 
-- **ValueManager** (`Infrastructure/Common/Configuration/ValueManager.cs`) — static config accessor. `appsettings.json` has environment-keyed sections (`Production`, `Staging`, `Development`). `ValueManager.GetValue<T>("Key")` reads from the active environment section. All infra config classes (in `Properties/` or inline) are bound in `Program.cs` only — downstream code receives typed config via DI.
+- **12-Factor Config** — `appsettings.json` contains only non-secret defaults. Secrets are injected via environment variables at runtime (`.env` locally, K8s Secrets in prod). `.env.example` documents all variables. Config classes in `Infrastructure/Common/Configuration/` are bound in `Program.cs` via `builder.Configuration.GetSection("X").Bind(config)` — downstream code receives typed config via DI.
 - **MediatR** for command/query dispatch — handlers live in `Application/Features/*/Handlers/`.
 - **Feature-sliced** — each feature (Agents, Skills, Channels, Billing, Auth, etc.) has its own folder in each layer.
-- **Tests** use xUnit + `WebApplicationFactory<Program>` with Testcontainers (Postgres) and WireMock. `CustomWebApplicationFactory` overrides ValueManager config for test isolation.
+- **Tests** use xUnit + `WebApplicationFactory<Program>` with Testcontainers (Postgres) and WireMock. Tests override config via `.UseSetting()` or environment variables.
 - Credentials are encrypted at rest via `*Protector` classes (DataProtection).
 
 ## Infrastructure
@@ -39,6 +39,6 @@ Clean Architecture with four layers, all under `src/`:
 - .NET 9, C# top-level statements in Program.cs
 - PostgreSQL (EF Core, code-first migrations in `Infrastructure/Common/Migrations/`)
 - Redis (distributed cache)
-- Kubernetes agent pod deployment (`IAgentDeployer` → `KubernetesAgentDeployer` or `NullAgentDeployer` when K8s disabled)
+- Kubernetes agent pod deployment (`IAgentDeployer` → `KubernetesAgentDeployer` or `DockerAgentDeployer`)
 - Container image: `harkro123/eaos-backend`, port 8000
 - Serilog for structured logging

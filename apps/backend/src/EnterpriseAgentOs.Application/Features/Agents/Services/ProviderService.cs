@@ -6,14 +6,16 @@ internal sealed class ProviderService : IProviderService
     private readonly IProviderRepository _providerRepository;
     private readonly ProviderKeyProtector _providerKeyProtector;
     private readonly PlatformKeysConfig _platformKeysConfig;
+    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<ProviderService> _logger;
 
     public ProviderService(IProviderRepository repository, ProviderKeyProtector protector,
-        PlatformKeysConfig platformKeys, ILogger<ProviderService> logger)
+        PlatformKeysConfig platformKeys, IHostEnvironment hostEnvironment, ILogger<ProviderService> logger)
     {
         _providerRepository = repository;
         _providerKeyProtector = protector;
         _platformKeysConfig = platformKeys;
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -28,7 +30,7 @@ internal sealed class ProviderService : IProviderService
     {
         // In Development (self-hosted), only user-configured keys count.
         // In Production/Staging, platform keys also count.
-        var configured = ValueManager.IsDevelopment()
+        var configured = _hostEnvironment.IsDevelopment()
             ? record.Configured
             : record.Configured || HasPlatformKey(record.Name);
         return new(record.Id, record.Name, record.DisplayName, configured, record.ConfiguredAt);
