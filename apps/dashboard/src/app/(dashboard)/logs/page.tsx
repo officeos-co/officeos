@@ -164,14 +164,12 @@ export default function LogsPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-auto border rounded-lg">
-            <LogTable
-              logs={paged}
-              showAgent
-              selectedLogId={selectedLog?.id}
-              onSelectLog={(log) => setSelectedLog(selectedLog?.id === log.id ? null : log)}
-            />
-          </div>
+          <LogTable
+            logs={paged}
+            showAgent
+            selectedLogId={selectedLog?.id}
+            onSelectLog={(log) => setSelectedLog(selectedLog?.id === log.id ? null : log)}
+          />
 
           {/* Pagination */}
           <div className="flex items-center justify-between text-sm">

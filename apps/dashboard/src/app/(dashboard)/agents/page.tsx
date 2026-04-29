@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { PlusIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useAgents, useDeleteAgent } from "@/features/agents";
 
@@ -103,47 +104,45 @@ export default function AgentsPage() {
           </DropdownMenu>
         </div>
 
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th className="px-4 py-3 text-xs font-normal">ID</th>
-              <th className="px-4 py-3 text-xs font-normal">Name</th>
-              <th className="px-4 py-3 text-xs font-normal">Model</th>
-              <th className="px-4 py-3 text-xs font-normal text-center">
-                Status
-              </th>
-              <th className="px-4 py-3 text-xs font-normal">Created</th>
-              <th className="px-4 py-3 text-xs font-normal">Last updated</th>
-              <th className="px-4 py-3 text-xs font-normal w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Model</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Last updated</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading && agents.length === 0 && Array.from({ length: 3 }).map((_, i) => (
-              <tr key={i} className="border-b">
-                <td className="px-4 py-3"><Skeleton className="h-4 w-8" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
-                <td className="px-4 py-3 text-center"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
-                <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
-                <td className="px-4 py-3"><Skeleton className="size-6 rounded" /></td>
-              </tr>
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-6 w-16 rounded-full mx-auto" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="size-6 rounded" /></TableCell>
+              </TableRow>
             ))}
             {filtered.map((agent) => (
-              <tr
+              <TableRow
                 key={agent.id}
                 onClick={() => router.push(`/agents/${agent.id}`)}
-                className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                className="cursor-pointer"
               >
-                <td className="px-4 py-3">{agent.id}</td>
-                <td className="px-4 py-3">{agent.name}</td>
-                <td className="px-4 py-3">{agent.model}</td>
-                <td className="px-4 py-3 text-center">
+                <TableCell>{agent.id}</TableCell>
+                <TableCell>{agent.name}</TableCell>
+                <TableCell>{agent.model}</TableCell>
+                <TableCell className="text-center">
                   <StatusBadge status={agent.status} />
-                </td>
-                <td className="px-4 py-3">{agent.created}</td>
-                <td className="px-4 py-3">{agent.updated}</td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell>{agent.created}</TableCell>
+                <TableCell>{agent.updated}</TableCell>
+                <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={<Button variant="ghost" size="icon" className="size-8" />}
@@ -164,21 +163,21 @@ export default function AgentsPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {!loading && filtered.length === 0 && (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   colSpan={7}
-                  className="px-4 py-8 text-center text-muted-foreground"
+                  className="py-8 text-center text-muted-foreground"
                 >
                   No agents found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </>
   );

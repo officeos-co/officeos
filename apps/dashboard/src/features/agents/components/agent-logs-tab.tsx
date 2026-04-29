@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useAgentLogs } from "@/features/analytics/api/useAgentLogs";
 import {
   ArrowDownLeftIcon,
@@ -17,23 +18,23 @@ function LogSkeletonRows() {
   return (
     <>
       {Array.from({ length: 6 }).map((_, i) => (
-        <tr key={i} className="border-b last:border-0">
-          <td className="px-3 py-2.5">
+        <TableRow key={i}>
+          <TableCell>
             <Skeleton className="size-6 rounded" />
-          </td>
-          <td className="px-3 py-2.5">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-5 w-16 rounded" />
-          </td>
-          <td className="px-3 py-2.5">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-5 w-20 rounded" />
-          </td>
-          <td className="px-3 py-2.5">
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-48 rounded" />
-          </td>
-          <td className="px-3 py-2.5 text-right">
+          </TableCell>
+          <TableCell className="text-right">
             <Skeleton className="h-4 w-16 rounded ml-auto" />
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       ))}
     </>
   );
@@ -67,29 +68,29 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
   return (
     <div className="flex flex-1 pt-4 gap-3 min-h-0">
       {/* Log list — left side */}
-      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-auto border rounded-lg">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left sticky top-0 bg-background">
-              <th className="px-3 py-3 font-medium w-[32px]" />
-              <th className="px-3 py-3 font-medium">Type</th>
-              <th className="px-3 py-3 font-medium">Source</th>
-              <th className="px-3 py-3 font-medium">Content</th>
-              <th className="px-3 py-3 font-medium text-right">Time</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="sticky top-0 bg-background">
+              <TableHead className="w-[32px]" />
+              <TableHead>Type</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Content</TableHead>
+              <TableHead className="text-right">Time</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {logs.map((log) => (
-              <tr
+              <TableRow
                 key={log.id}
                 onClick={() =>
                   setSelectedLogId(selectedLogId === log.id ? null : log.id)
                 }
-                className={`border-b last:border-0 cursor-pointer transition-colors ${
-                  selectedLogId === log.id ? "bg-muted" : "hover:bg-muted/50"
+                className={`cursor-pointer ${
+                  selectedLogId === log.id ? "bg-muted" : ""
                 }`}
               >
-                <td className="px-3 py-2.5">
+                <TableCell>
                   <div className="flex size-6 items-center justify-center">
                     {log.type === "message_in" && (
                       <ArrowDownLeftIcon className="size-4 text-blue-500" />
@@ -122,13 +123,13 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
                       <InfoIcon className="size-4 text-muted-foreground" />
                     )}
                   </div>
-                </td>
-                <td className="px-3 py-2.5">
+                </TableCell>
+                <TableCell>
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
                     {log.type.replace(/_/g, " ")}
                   </span>
-                </td>
-                <td className="px-3 py-2.5">
+                </TableCell>
+                <TableCell>
                   {log.tool || log.channel ? (
                     <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
                       {log.tool ?? log.channel}
@@ -136,32 +137,32 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
-                </td>
-                <td className="px-3 py-2.5 text-xs max-w-[300px] truncate text-muted-foreground">
+                </TableCell>
+                <TableCell className="text-xs max-w-[300px] truncate text-muted-foreground">
                   {log.content}
-                </td>
-                <td className="px-3 py-2.5 text-right text-xs text-muted-foreground whitespace-nowrap">
+                </TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">
                   {new Date(log.time).toLocaleTimeString(undefined, {
                     hour: "2-digit",
                     minute: "2-digit",
                     second: "2-digit",
                   })}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {logs.length === 0 && loading && <LogSkeletonRows />}
             {logs.length === 0 && !loading && (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   colSpan={5}
-                  className="px-3 py-8 text-center text-muted-foreground"
+                  className="py-8 text-center text-muted-foreground"
                 >
                   No logs yet.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Detail panel — right side, always visible */}

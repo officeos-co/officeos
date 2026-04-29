@@ -1,6 +1,7 @@
 "use client"
 
 import type { AgentLog } from "@/types/logs"
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import {
   TerminalIcon,
   ArrowDownLeftIcon,
@@ -59,41 +60,45 @@ export function LogTable({
   onSelectLog?: (log: AgentLog & { agentName?: string }) => void
 }) {
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b text-left">
-          <th className="px-3 py-3 font-medium w-[32px]">Icon</th>
-          <th className="px-3 py-3 font-medium">Type</th>
-          {showAgent && <th className="px-3 py-3 font-medium">Agent</th>}
-          <th className="px-3 py-3 font-medium">Source</th>
-          <th className="px-3 py-3 font-medium">Content</th>
-          <th className="px-3 py-3 font-medium text-right">Duration</th>
-          <th className="px-3 py-3 font-medium text-right">Time</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[32px]">Icon</TableHead>
+          <TableHead>Type</TableHead>
+          {showAgent && <TableHead>Agent</TableHead>}
+          <TableHead>Source</TableHead>
+          <TableHead>Content</TableHead>
+          <TableHead className="text-right">Duration</TableHead>
+          <TableHead className="text-right">Time</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {logs.map((log) => (
-          <tr key={log.id} onClick={() => onSelectLog?.(log)} className={`border-b last:border-0 transition-colors ${onSelectLog ? "cursor-pointer" : ""} ${selectedLogId === log.id ? "bg-muted" : "hover:bg-muted/50"}`}>
-            <td className="px-3 py-2.5">
+          <TableRow
+            key={log.id}
+            onClick={() => onSelectLog?.(log)}
+            className={`${onSelectLog ? "cursor-pointer" : ""} ${selectedLogId === log.id ? "bg-muted" : ""}`}
+          >
+            <TableCell>
               <div className="flex size-6 items-center justify-center">{logIcon(log)}</div>
-            </td>
-            <td className="px-3 py-2.5">
+            </TableCell>
+            <TableCell>
               <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{typeLabel(log)}</span>
-            </td>
+            </TableCell>
             {showAgent && (
-              <td className="px-3 py-2.5 text-xs">{log.agentName ?? "—"}</td>
+              <TableCell className="text-xs">{log.agentName ?? "—"}</TableCell>
             )}
-            <td className="px-3 py-2.5">
+            <TableCell>
               {(log.tool || log.channel) ? (
                 <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{log.tool ?? log.channel}</code>
               ) : (
                 <span className="text-xs text-muted-foreground">—</span>
               )}
-            </td>
-            <td className="px-3 py-2.5 text-xs max-w-[400px] truncate text-muted-foreground">
+            </TableCell>
+            <TableCell className="text-xs max-w-[400px] truncate text-muted-foreground">
               {log.content}
-            </td>
-            <td className="px-3 py-2.5 text-right">
+            </TableCell>
+            <TableCell className="text-right">
               {log.durationMs ? (
                 <span className="flex items-center justify-end gap-0.5 text-xs text-muted-foreground">
                   <ClockIcon className="size-3" />
@@ -102,20 +107,20 @@ export function LogTable({
               ) : (
                 <span className="text-xs text-muted-foreground">—</span>
               )}
-            </td>
-            <td className="px-3 py-2.5 text-right text-xs text-muted-foreground whitespace-nowrap">
+            </TableCell>
+            <TableCell className="text-right text-xs text-muted-foreground">
               {formatTime(log.time)}
-            </td>
-          </tr>
+            </TableCell>
+          </TableRow>
         ))}
         {logs.length === 0 && (
-          <tr>
-            <td colSpan={showAgent ? 7 : 6} className="px-3 py-8 text-center text-muted-foreground">
+          <TableRow>
+            <TableCell colSpan={showAgent ? 7 : 6} className="py-8 text-center text-muted-foreground">
               No logs yet.
-            </td>
-          </tr>
+            </TableCell>
+          </TableRow>
         )}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   )
 }
