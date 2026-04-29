@@ -48,6 +48,12 @@ public sealed record SubscribeResultDto(
 /// old "extra usage auto-reload" knob with a simple `extraUsageEnabled`
 /// on/off toggle (backed by Stripe metered overage item).
 /// </summary>
+public sealed record PlanPriceDto(
+    string Plan,
+    long MonthlyAmountCents,
+    long YearlyAmountCents,
+    string Currency);
+
 public sealed record BillingPayload(
     string Plan,
     string PlanDescription,

@@ -126,6 +126,29 @@ public class BillingQueries
         return result;
     }
 
+    [GraphQLDescription("Returns the price of each plan tier (monthly and yearly) as configured in Stripe.")]
+    public async Task<IReadOnlyList<PlanPriceDto>> GetPlanPrices(
+        IResolverContext context,
+        [Service] IUserBillingService userBilling,
+        [Service] IMemoryCache cache,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        const string cacheKey = "billing:plan-prices";
+
+        if (cache.TryGetValue(cacheKey, out IReadOnlyList<PlanPriceDto>? cached) && cached is not null)
+            return cached;
+
+        var prices = await userBilling.GetPlanPricesAsync(ct);
+        var result = prices
+            .Select(kv => new PlanPriceDto(kv.Key, kv.Value.MonthlyAmountCents, kv.Value.YearlyAmountCents, kv.Value.Currency))
+            .ToList();
+
+        cache.Set(cacheKey, (IReadOnlyList<PlanPriceDto>)result,
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) });
+        return result;
+    }
+
     [GraphQLDescription("Returns credit and token usage for the current billing period. Optional range param for historical periods.")]
     public async Task<UserSubscriptionDto> GetTokenUsage(
         string? range,

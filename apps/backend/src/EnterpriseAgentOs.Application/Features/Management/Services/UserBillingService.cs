@@ -164,6 +164,53 @@ internal sealed class UserBillingService : IUserBillingService
         }
     }
 
+    public async Task<IReadOnlyDictionary<string, (long MonthlyAmountCents, long YearlyAmountCents, string Currency)>> GetPlanPricesAsync(CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, (long MonthlyAmountCents, long YearlyAmountCents, string Currency)>();
+
+        if (!_stripeConfig.Enabled)
+            return result;
+
+        var priceService = new PriceService();
+        var priceIds = new Dictionary<string, (string Monthly, string Yearly)>
+        {
+            ["pro"] = (_stripeConfig.ProMonthlyPriceId, _stripeConfig.ProYearlyPriceId),
+            ["team"] = (_stripeConfig.TeamMonthlyPriceId, _stripeConfig.TeamYearlyPriceId),
+        };
+
+        foreach (var (plan, ids) in priceIds)
+        {
+            try
+            {
+                long monthly = 0, yearly = 0;
+                var currency = "eur";
+
+                if (!string.IsNullOrEmpty(ids.Monthly))
+                {
+                    var p = await priceService.GetAsync(ids.Monthly, cancellationToken: ct);
+                    monthly = p.UnitAmount ?? 0;
+                    currency = p.Currency ?? "eur";
+                }
+                if (!string.IsNullOrEmpty(ids.Yearly))
+                {
+                    var p = await priceService.GetAsync(ids.Yearly, cancellationToken: ct);
+                    yearly = p.UnitAmount ?? 0;
+                }
+
+                result[plan] = (monthly, yearly, currency.ToUpperInvariant());
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch Stripe price for plan {Plan}", plan);
+            }
+        }
+
+        // Free is always 0
+        result["free"] = (0, 0, "EUR");
+
+        return result;
+    }
+
     private async Task<string> GetOrCreateCustomerAsync(Guid userId, string email, CancellationToken ct)
     {
         var existing = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);

@@ -2,6 +2,8 @@
 
 import { gql, useMutation, useQuery } from "@apollo/client"
 
+/* ── Types ──────────────────────────────────────────────── */
+
 export type PlanLimit = {
   plan: string
   concurrentAgents: number
@@ -15,6 +17,15 @@ export type PlanLimitsPayload = {
   orgTeam: PlanLimit
 }
 
+export type PlanPrice = {
+  plan: string
+  monthlyAmountCents: number
+  yearlyAmountCents: number
+  currency: string
+}
+
+/* ── Queries / mutations ─────────────────────────────────── */
+
 const PLAN_LIMITS_QUERY = gql`
   query PlanLimits {
     planLimits {
@@ -22,6 +33,17 @@ const PLAN_LIMITS_QUERY = gql`
       individualPro { plan concurrentAgents creditsPerMonth }
       orgFree { plan concurrentAgents creditsPerMonth }
       orgTeam { plan concurrentAgents creditsPerMonth }
+    }
+  }
+`
+
+const PLAN_PRICES_QUERY = gql`
+  query PlanPrices {
+    planPrices {
+      plan
+      monthlyAmountCents
+      yearlyAmountCents
+      currency
     }
   }
 `
@@ -34,6 +56,8 @@ const SUBSCRIBE_MUTATION = gql`
   }
 `
 
+/* ── Hooks ───────────────────────────────────────────────── */
+
 export function usePlanLimits(): {
   planLimits: PlanLimitsPayload | null
   loading: boolean
@@ -43,6 +67,22 @@ export function usePlanLimits(): {
   const raw = data?.planLimits as PlanLimitsPayload | null | undefined
   if (!raw) return { planLimits: null, loading, error: error ?? undefined }
   return { planLimits: raw, loading, error: error ?? undefined }
+}
+
+export function usePlanPrices(): {
+  prices: Record<string, { monthly: number; yearly: number }> | null
+  loading: boolean
+  error?: Error
+} {
+  const { data, loading, error } = useQuery(PLAN_PRICES_QUERY)
+  const raw = data?.planPrices as PlanPrice[] | null | undefined
+  if (!raw) return { prices: null, loading, error: error ?? undefined }
+
+  const prices: Record<string, { monthly: number; yearly: number }> = {}
+  for (const p of raw) {
+    prices[p.plan] = { monthly: p.monthlyAmountCents, yearly: p.yearlyAmountCents }
+  }
+  return { prices, loading, error: error ?? undefined }
 }
 
 export function useSubscribe(): {

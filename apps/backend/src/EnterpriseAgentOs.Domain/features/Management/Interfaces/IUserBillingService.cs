@@ -10,4 +10,5 @@ public interface IUserBillingService
     Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
         Guid userId,
         CancellationToken ct = default);
+    Task<IReadOnlyDictionary<string, (long MonthlyAmountCents, long YearlyAmountCents, string Currency)>> GetPlanPricesAsync(CancellationToken ct = default);
 }

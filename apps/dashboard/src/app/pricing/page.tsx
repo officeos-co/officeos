@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Check, ArrowLeft, Leaf, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useBilling, usePlanLimits, useSubscribe } from "@/features/manage"
+import { useBilling, usePlanLimits, usePlanPrices, useSubscribe } from "@/features/manage"
 
 type Tab = "individual" | "team"
 type Billing = "monthly" | "yearly"
@@ -25,40 +25,33 @@ function formatPrice(cents: number) {
   }).format(cents / 100)
 }
 
-const INDIVIDUAL_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  free: { monthly: 0, yearly: 0 },
-  pro: { monthly: 4900, yearly: 47000 },
-}
-
-const TEAM_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  team: { monthly: 19900, yearly: 191000 },
-}
-
 export default function PricingPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>("individual")
   const [billing, setBilling] = useState<Billing>("monthly")
   const { billing: currentBilling, loading: billingLoading, error: billingError } = useBilling()
   const { planLimits, loading: limitsLoading, error: limitsError } = usePlanLimits()
+  const { prices, loading: pricesLoading, error: pricesError } = usePlanPrices()
   const { subscribe, loading: subscribing } = useSubscribe()
 
-  const loading = billingLoading || limitsLoading
+  const loading = billingLoading || limitsLoading || pricesLoading
 
   useEffect(() => {
     if (billingError) toast.error("Failed to load billing", { description: billingError.message })
     if (limitsError) toast.error("Failed to load plan limits", { description: limitsError.message })
-  }, [billingError, limitsError])
+    if (pricesError) toast.error("Failed to load plan prices", { description: pricesError.message })
+  }, [billingError, limitsError, pricesError])
 
   const currentPlan = currentBilling?.plan
 
-  const individualPlans = planLimits
+  const individualPlans = planLimits && prices
     ? [
         {
           key: "free",
           name: "Free",
           icon: Leaf,
           description: "Get started with one agent",
-          price: INDIVIDUAL_PRICES.free,
+          price: prices.free ?? { monthly: 0, yearly: 0 },
           features: [
             `${planLimits.individualFree.concurrentAgents} concurrent agent`,
             `${formatCredits(planLimits.individualFree.creditsPerMonth)} credits / month included`,
@@ -74,7 +67,7 @@ export default function PricingPage() {
           name: "Pro",
           icon: Sparkles,
           description: "Run up to 3 agents",
-          price: INDIVIDUAL_PRICES.pro,
+          price: prices.pro ?? { monthly: 0, yearly: 0 },
           prefix: "Everything in Free and:",
           features: [
             `${planLimits.individualPro.concurrentAgents} concurrent agents`,
@@ -89,14 +82,14 @@ export default function PricingPage() {
       ]
     : []
 
-  const teamPlans = planLimits
+  const teamPlans = planLimits && prices
     ? [
         {
           key: "team",
           name: "Team",
           icon: Leaf,
           description: "Scale to 10 agents",
-          price: TEAM_PRICES.team,
+          price: prices.team ?? { monthly: 0, yearly: 0 },
           prefix: "Everything in Pro and:",
           features: [
             `${planLimits.orgTeam.concurrentAgents} concurrent agents`,
