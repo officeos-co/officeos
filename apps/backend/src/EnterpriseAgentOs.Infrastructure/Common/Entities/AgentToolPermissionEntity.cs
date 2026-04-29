@@ -1,4 +1,4 @@
-using EnterpriseAgentOs.Domain.Features.AgentSkills;
+using EnterpriseAgentOs.Domain.Features.Agents;
 
 namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 
