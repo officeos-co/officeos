@@ -57,6 +57,11 @@ public static class ValueManager
     public static string GetEnvironmentName() => EnvironmentName;
 
     /// <summary>
+    /// Returns true when running in Development (self-hosted) mode.
+    /// </summary>
+    public static bool IsDevelopment() => EnvironmentName == "Development";
+
+    /// <summary>
     /// Exposes the underlying IConfiguration instance.
     /// Use only in Program.cs to bind nested config sections (e.g. Stripe).
     /// </summary>

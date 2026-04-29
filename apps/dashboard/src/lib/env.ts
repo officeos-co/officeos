@@ -47,3 +47,7 @@ function resolveEnv(): Environment {
 export function getEnvConfig(): EnvConfig {
   return configs[resolveEnv()];
 }
+
+export function isDevelopment(): boolean {
+  return getEnvConfig().env === "development";
+}

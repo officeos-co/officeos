@@ -26,7 +26,11 @@ internal sealed class ProviderService : IProviderService
 
     private ProviderDto ToDtoWithPlatform(ProviderRecord record)
     {
-        var configured = record.Configured || HasPlatformKey(record.Name);
+        // In Development (self-hosted), only user-configured keys count.
+        // In Production/Staging, platform keys also count.
+        var configured = ValueManager.IsDevelopment()
+            ? record.Configured
+            : record.Configured || HasPlatformKey(record.Name);
         return new(record.Id, record.Name, record.DisplayName, configured, record.ConfiguredAt);
     }
 

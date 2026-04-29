@@ -92,10 +92,12 @@ export default function ChannelsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {paged.map((channel) => (
-              <button
+              <div
                 key={channel.slug}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => router.push(`/channels/${channel.slug}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/channels/${channel.slug}`) } }}
                 className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
               >
                 <div className="flex items-start gap-3">
@@ -114,7 +116,7 @@ export default function ChannelsPage() {
                   )}
                 </div>
                 <p className="text-sm line-clamp-2 text-muted-foreground">{channel.description}</p>
-              </button>
+              </div>
             ))}
           </div>
         )}

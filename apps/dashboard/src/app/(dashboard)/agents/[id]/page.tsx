@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import { isDevelopment } from "@/lib/env";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
@@ -173,23 +174,29 @@ export default function AgentDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Select
-                value={model}
-                onValueChange={(v) => {
-                  if (v) setModel(v);
-                }}
-              >
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.displayName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {models.length === 0 && isDevelopment() ? (
+                <Link href="/providers" className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground transition-colors">
+                  Add provider
+                </Link>
+              ) : (
+                <Select
+                  value={model}
+                  onValueChange={(v) => {
+                    if (v) setModel(v);
+                  }}
+                >
+                  <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 variant="outline"
                 size="sm"

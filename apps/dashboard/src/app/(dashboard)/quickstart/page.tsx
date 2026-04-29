@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { isDevelopment } from "@/lib/env"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
@@ -35,6 +36,7 @@ import {
   TerminalIcon,
   AlertTriangleIcon,
   ExternalLinkIcon,
+  PlusIcon,
 } from "lucide-react"
 
 /* ── Permission types ────────────────────────────────────── */
@@ -305,14 +307,21 @@ export default function QuickstartPage() {
               </div>
               <div className="space-y-2">
                 <Label>Model</Label>
-                <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {models.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {models.length === 0 && isDevelopment() ? (
+                  <Link href="/providers" className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-foreground transition-colors">
+                    <PlusIcon className="size-4" />
+                    Add provider
+                  </Link>
+                ) : (
+                  <Select value={model} onValueChange={(v) => { if (v) setModel(v) }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {models.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.displayName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 

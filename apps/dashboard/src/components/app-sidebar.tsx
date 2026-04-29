@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useBilling } from "@/features/manage";
+import { isDevelopment } from "@/lib/env";
 
 const data = {
   navMain: [
@@ -56,6 +57,7 @@ const data = {
         { title: "Profile", url: "/profile" },
         { title: "Team", url: "/team" },
         { title: "Billing", url: "/billing" },
+        ...(isDevelopment() ? [{ title: "Providers", url: "/providers" }] : []),
       ],
     },
   ],

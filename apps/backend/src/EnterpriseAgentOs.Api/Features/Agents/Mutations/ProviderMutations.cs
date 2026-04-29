@@ -3,8 +3,8 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class ProviderMutations
 {
-    [GraphQLDescription("Sets the API key for an LLM provider. Currently only OpenAI keys are user-configurable.")]
-    public async Task<ProviderDto> SetProviderKey(
+    [GraphQLDescription("Sets the API key for an LLM provider. Only available in self-hosted (Development) mode.")]
+    public async Task<ProviderGqlDto> SetProviderKey(
         string providerName,
         string apiKey,
         IResolverContext context,
@@ -12,14 +12,12 @@ public class ProviderMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        if (!string.Equals(providerName, "openai", StringComparison.OrdinalIgnoreCase))
-        {
+        if (!ValueManager.IsDevelopment())
             throw new GraphQLException(
                 ErrorBuilder.New()
-                    .SetMessage($"Only OpenAI keys are user-configurable. '{providerName}' is served via the platform key.")
-                    .SetCode("VALIDATION")
+                    .SetMessage("Provider keys can only be configured in self-hosted (Development) mode.")
+                    .SetCode("FORBIDDEN")
                     .Build());
-        }
         var dto = await providers.ConfigureAsync(providerName, apiKey, ct);
         if (dto is null)
         {
@@ -29,17 +27,24 @@ public class ProviderMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return dto;
+        return ProviderGraphQLMapper.ToDto(dto);
     }
 
-    [GraphQLDescription("Removes the API key for an LLM provider, reverting to the platform default.")]
-    public async Task<ProviderDto> ClearProviderKey(
+    [GraphQLDescription("Removes the API key for an LLM provider. Only available in self-hosted (Development) mode.")]
+    public async Task<ProviderGqlDto> ClearProviderKey(
         string providerName,
         IResolverContext context,
         [Service] IProviderService providers,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
+        if (!ValueManager.IsDevelopment())
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage("Provider keys can only be configured in self-hosted (Development) mode.")
+                    .SetCode("FORBIDDEN")
+                    .Build());
+
         await providers.ClearAsync(providerName, ct);
         var all = await providers.ListAsync(ct);
         var row = all.FirstOrDefault(p =>
@@ -52,6 +57,6 @@ public class ProviderMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        return row;
+        return ProviderGraphQLMapper.ToDto(row);
     }
 }

@@ -18,6 +18,9 @@ public static class KnownModels
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
         {
             ["openai"] = new[] { "gpt-4o", "gpt-4o-mini" },
+            ["anthropic"] = new[] { "claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-6" },
+            ["google"] = new[] { "gemini-2.5-pro", "gemini-2.5-flash" },
+            ["xai"] = new[] { "grok-4" },
         };
 
     public static IReadOnlyList<string> For(string provider) =>

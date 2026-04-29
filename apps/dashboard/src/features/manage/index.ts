@@ -3,4 +3,5 @@ export * from "./api/useOrganization";
 export * from "./api/useBilling";
 export * from "./api/usePricing";
 export * from "./api/useGdpr";
+export * from "./api/useProviders";
 export * from "./components/login-form";
