@@ -8,7 +8,7 @@ export type CronJob = {
   id: string;
   agentId: string;
   name: string;
-  expression: string;
+  expression: { value: string };
   prompt: string;
   enabled: boolean;
   lastRunAt: string | null;
@@ -24,7 +24,7 @@ const CRON_JOBS_QUERY = gql`
       id
       agentId
       name
-      expression
+      expression { value }
       prompt
       enabled
       lastRunAt
@@ -40,7 +40,7 @@ const CREATE_CRON_JOB = gql`
       id
       agentId
       name
-      expression
+      expression { value }
       prompt
       enabled
       lastRunAt
@@ -86,7 +86,7 @@ export function useCronJobs(agentId: string) {
           id: optimisticId,
           agentId,
           name,
-          expression,
+          expression: { __typename: "CronExpression", value: expression },
           prompt,
           enabled: true,
           lastRunAt: null,

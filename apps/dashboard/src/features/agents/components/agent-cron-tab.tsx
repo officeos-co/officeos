@@ -210,7 +210,7 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  {isHeartbeat(job.expression) && (
+                  {isHeartbeat(job.expression.value) && (
                     <HeartPulseIcon className="size-3.5 text-rose-500" />
                   )}
                   <span
@@ -220,7 +220,7 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  {describeExpression(job.expression)}
+                  {describeExpression(job.expression.value)}
                 </div>
               </div>
               <div className="flex items-center gap-4 shrink-0 text-xs text-muted-foreground">
