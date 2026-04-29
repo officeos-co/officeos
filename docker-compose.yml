@@ -47,6 +47,9 @@ services:
       context: apps/channels
     ports:
       - "3100:3100"
+    environment:
+      - PORT=3100
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
 

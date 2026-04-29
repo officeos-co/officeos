@@ -20,6 +20,7 @@ import {
   ActivityIcon,
   SettingsIcon,
   BookOpenIcon,
+  CloudIcon,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useBilling } from "@/features/manage";
@@ -46,7 +47,7 @@ const data = {
       items: [
         { title: "Logs", url: "/logs" },
         { title: "Usage", url: "/usage" },
-        { title: "Cost", url: "/cost" },
+        ...(!isDevelopment() ? [{ title: "Cost", url: "/cost" }] : []),
       ],
     },
     {
@@ -56,7 +57,7 @@ const data = {
       items: [
         { title: "Profile", url: "/profile" },
         { title: "Team", url: "/team" },
-        { title: "Billing", url: "/billing" },
+        ...(!isDevelopment() ? [{ title: "Billing", url: "/billing" }] : []),
         ...(isDevelopment() ? [{ title: "Providers", url: "/providers" }] : []),
       ],
     },
@@ -92,12 +93,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <span>Documentation</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isDevelopment() && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Try OfficeOS Cloud"
+                render={
+                  <a
+                    href="https://dashboard.officeos.co"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+              >
+                <CloudIcon />
+                <span>Try OfficeOS Cloud</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
-        {!authLoading && !billingLoading && user && billing && (
+        {!authLoading && !billingLoading && user && (
           <NavUser
             user={{
               name: user.name ?? user.email,
-              plan: billing.plan,
+              plan: billing?.plan ?? "self-hosted",
               avatar: user.avatarUrl ?? "",
             }}
           />

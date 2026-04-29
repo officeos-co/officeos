@@ -10,13 +10,13 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 public sealed class SkillController : ControllerBase
 {
     private readonly ISkillCatalogRepository _skillCatalogRepository;
-    private readonly IAmazonS3 _amazonS3;
+    private readonly IAmazonS3? _amazonS3;
     private readonly SkillStorageConfig _skillStorageConfig;
 
     public SkillController(
         ISkillCatalogRepository catalog,
-        IAmazonS3 s3,
-        SkillStorageConfig storage)
+        SkillStorageConfig storage,
+        IAmazonS3? s3 = null)
     {
         _skillCatalogRepository = catalog;
         _amazonS3 = s3;
@@ -28,6 +28,9 @@ public sealed class SkillController : ControllerBase
     [HttpGet("{name}/bundle")]
     public async Task<IActionResult> GetBundle(string name, CancellationToken ct)
     {
+        if (_amazonS3 is null)
+            return StatusCode(503, new { error = "Object storage not configured" });
+
         var skill = await _skillCatalogRepository.GetByNameAsync(name, ct);
         if (skill is null || string.IsNullOrEmpty(skill.BundleS3Key))
             return NotFound(new { error = "No bundle available for this skill" });

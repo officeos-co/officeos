@@ -12,12 +12,14 @@ internal sealed class PostHogService : IPostHogService
 {
     private readonly HttpClient _http;
     private readonly PostHogConfig _postHogConfig;
+    private readonly bool _enabled;
     private readonly ILogger<PostHogService> _logger;
 
-    public PostHogService(HttpClient http, PostHogConfig config, ILogger<PostHogService> logger)
+    public PostHogService(HttpClient http, PostHogConfig config, IHostEnvironment env, ILogger<PostHogService> logger)
     {
         _http = http;
         _postHogConfig = config;
+        _enabled = !env.IsDevelopment() && !string.IsNullOrWhiteSpace(config.ApiKey);
         _logger = logger;
     }
 
@@ -59,7 +61,7 @@ internal sealed class PostHogService : IPostHogService
 
     private async Task PostAsync(string path, object payload, CancellationToken ct)
     {
-        if (!_postHogConfig.Enabled || string.IsNullOrWhiteSpace(_postHogConfig.ApiKey))
+        if (!_enabled)
         {
             return;
         }

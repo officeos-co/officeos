@@ -6,5 +6,5 @@ public sealed class SkillRuntimeConfig
     /// Base URL of the skill-runtime service,
     /// e.g. <c>http://eaos-skill-runtime:3001</c> in-cluster.
     /// </summary>
-    public string Url { get; set; } = "http://localhost:3001";
+    public string Url { get; set; } = string.Empty;
 }

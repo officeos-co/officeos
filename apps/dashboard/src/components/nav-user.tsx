@@ -29,6 +29,7 @@ import {
   SparklesIcon,
 } from "lucide-react"
 import { useAuthContext } from "@/contexts/AuthContext"
+import { isDevelopment } from "@/lib/env"
 
 function Initials(name: string) {
   return name
@@ -88,13 +89,17 @@ export function NavUser({
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => window.location.href = "/pricing"}>
-                <SparklesIcon />
-                Upgrade Plan
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            {!isDevelopment() && (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => window.location.href = "/pricing"}>
+                    <SparklesIcon />
+                    Upgrade Plan
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => window.open("https://www.officeos.co/support", "_blank")}>
                 <HelpCircleIcon />

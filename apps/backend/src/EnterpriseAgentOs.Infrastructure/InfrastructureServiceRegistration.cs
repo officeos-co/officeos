@@ -50,8 +50,9 @@ public static class InfrastructureServiceRegistration
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient("channel-sidecar", client =>
         {
-            client.BaseAddress = new Uri(
-                Environment.GetEnvironmentVariable("CHANNEL_SERVICE_URL") ?? "http://localhost:3100");
+            var channelUrl = Environment.GetEnvironmentVariable("CHANNEL_SERVICE_URL")
+                ?? throw new InvalidOperationException("Missing required env var: CHANNEL_SERVICE_URL");
+            client.BaseAddress = new Uri(channelUrl);
         });
 
         return services;

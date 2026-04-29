@@ -91,27 +91,29 @@ RequireNotEmpty(skillRuntimeConfig.Url, "SkillRuntime:Url");
 builder.Services.AddSingleton(skillRuntimeConfig);
 
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
-RequireNotEmpty(googleOAuthConfig.ClientId, "GoogleOAuth:ClientId");
-RequireNotEmpty(googleOAuthConfig.ClientSecret, "GoogleOAuth:ClientSecret");
 builder.Services.AddSingleton(googleOAuthConfig);
 
 var skillStorageConfig = RequireSection<SkillStorageConfig>("Minio");
-RequireNotEmpty(skillStorageConfig.Endpoint, "Minio:Endpoint");
-RequireNotEmpty(skillStorageConfig.AccessKey, "Minio:AccessKey");
-RequireNotEmpty(skillStorageConfig.SecretKey, "Minio:SecretKey");
 builder.Services.AddSingleton(skillStorageConfig);
-builder.Services.AddSingleton<IAmazonS3>(_ =>
+if (!string.IsNullOrWhiteSpace(skillStorageConfig.Endpoint))
 {
-    var config = new AmazonS3Config
+    builder.Services.AddSingleton<IAmazonS3>(_ =>
     {
-        ServiceURL = skillStorageConfig.Endpoint,
-        ForcePathStyle = true,
-    };
-    return new AmazonS3Client(
-        skillStorageConfig.AccessKey,
-        skillStorageConfig.SecretKey,
-        config);
-});
+        var config = new AmazonS3Config
+        {
+            ServiceURL = skillStorageConfig.Endpoint,
+            ForcePathStyle = true,
+        };
+        return new AmazonS3Client(
+            skillStorageConfig.AccessKey,
+            skillStorageConfig.SecretKey,
+            config);
+    });
+}
+else if (!isDevelopment)
+{
+    throw new InvalidOperationException("Minio:Endpoint is required in non-development environments.");
+}
 
 if (kubernetesConfig.Enabled)
 {

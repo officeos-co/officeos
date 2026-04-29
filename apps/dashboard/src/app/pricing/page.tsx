@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Check, ArrowLeft, Leaf, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { isDevelopment } from "@/lib/env"
 import { useBilling, usePlanLimits, usePlanPrices, useSubscribe } from "@/features/manage"
 
 type Tab = "individual" | "team"
@@ -35,6 +36,13 @@ export default function PricingPage() {
   const { subscribe, loading: subscribing } = useSubscribe()
 
   const loading = billingLoading || limitsLoading || pricesLoading
+
+  useEffect(() => {
+    if (isDevelopment()) {
+      window.location.href = "https://officeos.co/pricing"
+      return
+    }
+  }, [])
 
   useEffect(() => {
     if (billingError) toast.error("Failed to load billing", { description: billingError.message })

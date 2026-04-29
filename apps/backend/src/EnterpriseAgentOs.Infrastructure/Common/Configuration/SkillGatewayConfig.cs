@@ -12,5 +12,5 @@ public sealed class SkillGatewayConfig
     /// <summary>
     /// How often zeroclaw polls <c>/api/agents/me/capabilities</c>.
     /// </summary>
-    public int RefreshSeconds { get; set; } = 30;
+    public int RefreshSeconds { get; set; }
 }

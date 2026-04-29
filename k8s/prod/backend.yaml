@@ -64,6 +64,28 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
+            - name: REDIS
+              value: "eaos-redis:6379,defaultDatabase=0"
+            - name: FRONTEND_ORIGIN
+              value: "https://dashboard.officeos.co"
+            - name: DATA_PROTECTION_KEY_PATH
+              value: "/data/dp-keys"
+            - name: KUBERNETES__ENABLED
+              value: "true"
+            - name: KUBERNETES__NAMESPACE
+              value: "default"
+            - name: KUBERNETES__IMAGE
+              value: "harkro123/eaos-pod-executor:latest"
+            - name: SKILLGATEWAY__URL
+              value: "http://eaos-backend-prod:8000"
+            - name: SKILLRUNTIME__URL
+              value: "http://eaos-skill-runtime.default.svc.cluster.local:3001"
+            - name: CHANNEL_SERVICE_URL
+              value: "http://localhost:3100"
+            - name: MINIO__BUCKET
+              value: "skills"
+            - name: POSTHOG__HOST
+              value: "https://eu.i.posthog.com"
           ports:
             - containerPort: 8000
               name: http
