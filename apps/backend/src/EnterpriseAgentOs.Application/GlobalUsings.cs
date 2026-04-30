@@ -16,6 +16,7 @@ global using EnterpriseAgentOs.Domain.Common;
 global using EnterpriseAgentOs.Domain.Common.Primitives;
 global using EnterpriseAgentOs.Domain.Common.ValueObjects;
 global using EnterpriseAgentOs.Domain.Common.Services;
+global using EnterpriseAgentOs.Domain.Features.Mcp;
 global using EnterpriseAgentOs.Domain.Events;
 // Note: EaosDbContext / Infrastructure.Persistence intentionally NOT imported.
 // All data access goes through Domain repository interfaces.
@@ -31,3 +32,4 @@ global using System.Net.Http.Json;
 global using EnterpriseAgentOs.Application.Features.Agents;
 global using EnterpriseAgentOs.Application.Features.Analytics;
 global using EnterpriseAgentOs.Application.Features.Management;
+global using EnterpriseAgentOs.Application.Features.Mcp;

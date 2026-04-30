@@ -15,6 +15,9 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentRepository, AgentRepository>();
 
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
+        services.AddScoped<IMcpServerRepository, McpServerRepository>();
+        services.AddScoped<IAgentMcpServerRepository, AgentMcpServerRepository>();
+        services.AddScoped<IMcpCredentialRepository, McpCredentialRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
@@ -33,7 +36,11 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IBillingGuard, BillingGuard>();
+        // Adapters — MCP
+        services.AddSingleton<IMcpClientManager, McpClientManager>();
+
         // Protectors
+        services.AddSingleton<CredentialProtector>();
         services.AddSingleton<ChannelCredentialProtector>();
 
         // HTTP clients

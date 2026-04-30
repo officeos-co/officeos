@@ -10,6 +10,8 @@ internal sealed class AgentTurnService
     private readonly LlmProviderDispatcher _llmProviderDispatcher;
     private readonly IProviderService _providerService;
     private readonly IAgentMemoryRepository _agentMemoryRepository;
+    private readonly IMcpClientManager _mcpClientManager;
+    private readonly IMcpServerService _mcpServerService;
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly IBillingGuard _billingGuard;
     private readonly ILogger<AgentTurnService> _logger;
@@ -25,6 +27,8 @@ internal sealed class AgentTurnService
         LlmProviderDispatcher llm,
         IProviderService providers,
         IAgentMemoryRepository memoryRepo,
+        IMcpClientManager mcpClientManager,
+        IMcpServerService mcpServerService,
         IAgentLogRepository agentLogRepository,
         IBillingGuard billingGuard,
         ILogger<AgentTurnService> logger)
@@ -34,6 +38,8 @@ internal sealed class AgentTurnService
         _llmProviderDispatcher = llm;
         _providerService = providers;
         _agentMemoryRepository = memoryRepo;
+        _mcpClientManager = mcpClientManager;
+        _mcpServerService = mcpServerService;
         _agentLogRepository = agentLogRepository;
         _billingGuard = billingGuard;
         _logger = logger;
@@ -101,7 +107,12 @@ internal sealed class AgentTurnService
         }
         await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds), ct);
 
-        var registry = ToolRegistry.Create(pod, _agentMemoryRepository, agentId);
+        var mcpServers = await _mcpServerService.ListForAgentAsync(agentId, ct);
+        await using var registry = await ToolRegistry.CreateAsync(
+            pod, _agentMemoryRepository, agentId,
+            _mcpClientManager, mcpServers,
+            serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
+            ct);
 
         var history = new ConversationHistory();
         var loopDetector = new LoopDetector();

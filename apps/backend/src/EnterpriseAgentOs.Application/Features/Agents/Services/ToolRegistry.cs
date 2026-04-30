@@ -5,11 +5,22 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 /// <summary>
 /// Registry of all agent tools. Creates tool instances per-turn with the appropriate dependencies.
 /// </summary>
-internal sealed class ToolRegistry
+internal sealed class ToolRegistry : IAsyncDisposable
 {
     private readonly List<IAgentTool> _tools;
+    private readonly List<IAsyncDisposable> _mcpConnections;
 
-    public ToolRegistry(List<IAgentTool> tools) => _tools = tools;
+    public ToolRegistry(List<IAgentTool> tools, List<IAsyncDisposable>? mcpConnections = null)
+    {
+        _tools = tools;
+        _mcpConnections = mcpConnections ?? [];
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var conn in _mcpConnections)
+            await conn.DisposeAsync();
+    }
 
     public IReadOnlyList<IAgentTool> Tools => _tools;
 
@@ -39,12 +50,16 @@ internal sealed class ToolRegistry
     /// Build a tool registry for a specific agent turn.
     /// Pod tools need the PodConnection, memory tools need the repo + agentId, etc.
     /// </summary>
-    public static ToolRegistry Create(
+    public static async Task<ToolRegistry> CreateAsync(
         PodConnection pod,
         IAgentMemoryRepository memoryRepo,
-        Guid agentId)
+        Guid agentId,
+        IMcpClientManager mcpClientManager,
+        IReadOnlyList<McpServerRecord> mcpServers,
+        Func<string, Task<Dictionary<string, string>>> credentialLoader,
+        CancellationToken ct)
     {
-        return new ToolRegistry(new List<IAgentTool>
+        var tools = new List<IAgentTool>
         {
             // Bash tools (execute via pod PTY)
             new ShellTool(pod),
@@ -60,6 +75,18 @@ internal sealed class ToolRegistry
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
-        });
+        };
+
+        var mcpConnections = new List<IAsyncDisposable>();
+        foreach (var server in mcpServers)
+        {
+            var creds = await credentialLoader(server.Name);
+            var result = await mcpClientManager.ConnectAsync(server, creds, ct);
+            foreach (var discovered in result.Tools)
+                tools.Add(new McpTool(discovered));
+            mcpConnections.Add(result);
+        }
+
+        return new ToolRegistry(tools, mcpConnections);
     }
 }

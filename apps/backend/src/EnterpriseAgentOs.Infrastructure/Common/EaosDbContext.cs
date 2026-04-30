@@ -32,6 +32,10 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentCronJobEntity> AgentCronJobs => Set<AgentCronJobEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
 
+    public DbSet<McpServerEntity> McpServers => Set<McpServerEntity>();
+    public DbSet<AgentMcpServerEntity> AgentMcpServers => Set<AgentMcpServerEntity>();
+    public DbSet<McpCredentialEntity> McpCredentials => Set<McpCredentialEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AgentEntity>(e =>
@@ -236,6 +240,37 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(s => s.Agent).WithMany()
                 .HasForeignKey(s => s.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<McpServerEntity>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.Name).IsUnique();
+            e.Property(s => s.Name).IsRequired().HasMaxLength(64);
+            e.Property(s => s.Title).IsRequired().HasMaxLength(128);
+            e.Property(s => s.TransportType).IsRequired().HasMaxLength(32);
+            e.Property(s => s.Command).HasMaxLength(256);
+            e.Property(s => s.Args).HasMaxLength(2048);
+            e.Property(s => s.Url).HasMaxLength(512);
+            e.Property(s => s.Logo).HasColumnType("text");
+            e.Property(s => s.Category).HasMaxLength(64);
+            e.Property(s => s.CredentialFieldsJson).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<AgentMcpServerEntity>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.AgentId, a.McpServerName }).IsUnique();
+            e.HasIndex(a => a.AgentId);
+            e.Property(a => a.McpServerName).IsRequired().HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<McpCredentialEntity>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.McpServerName).IsUnique();
+            e.Property(c => c.McpServerName).IsRequired().HasMaxLength(64);
+            e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
         });
     }
 }
