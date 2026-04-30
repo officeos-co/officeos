@@ -134,6 +134,56 @@ const dropdownVariants = {
   },
 };
 
+function formatStars(count: number): string {
+  if (count >= 1000) {
+    const k = count / 1000;
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+  }
+  return count.toString();
+}
+
+function GitHubStars({ compact }: { compact: boolean }) {
+  const [stars, setStars] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("https://api.github.com/repos/officeos-co/officeos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.stargazers_count === "number") {
+          setStars(data.stargazers_count);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <a
+      href="https://github.com/officeos-co/officeos"
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "flex h-8 items-center gap-2 rounded-full px-2 text-sm text-muted-foreground transition-all  hover:text-primary",
+        compact
+          ? "border-transparent px-2"
+          : "border border-border hover:bg-muted",
+      )}
+    >
+      <Image
+        src="/github.svg"
+        alt="GitHub"
+        width={18}
+        height={18}
+        className="h-[18px] w-[18px]"
+      />
+      {stars !== null && (
+        <>
+          <span className="text-xs font-medium">{formatStars(stars)}</span>
+        </>
+      )}
+    </a>
+  );
+}
+
 type DropdownKey = "product" | "solutions" | null;
 
 function NavDropdown({ links }: { links: typeof productLinks }) {
@@ -217,7 +267,7 @@ export function Navbar() {
               : "px-7 shadow-none",
           )}
         >
-          <div className="flex h-[56px] items-center justify-between p-4">
+          <div className="flex h-[56px] items-center p-4">
             <Link
               href="/"
               onClick={(e) => {
@@ -238,8 +288,8 @@ export function Navbar() {
               <p className="font-semibold text-lg text-primary">OfficeOS</p>
             </Link>
 
-            {/* Desktop nav */}
-            <div className="hidden items-center gap-1 md:flex">
+            {/* Desktop nav — centered */}
+            <div className="hidden flex-1 items-center justify-center gap-1 md:flex">
               {/* Product dropdown */}
               <div
                 className="relative"
@@ -284,8 +334,14 @@ export function Navbar() {
                 </AnimatePresence>
               </div>
 
+            </div>
+
+            {/* Desktop actions — right */}
+            <div className="hidden items-center gap-2 md:flex">
+              <GitHubStars compact={hasScrolled} />
+
               <Link
-                className="btn-glow ml-2 flex h-8 w-fit items-center justify-center rounded-full bg-secondary px-4 font-normal text-sm text-white tracking-wide"
+                className="btn-glow flex h-8 w-fit items-center justify-center rounded-full bg-secondary px-4 font-normal text-sm text-white tracking-wide"
                 href={siteConfig.dashboardUrl}
               >
                 Start Free

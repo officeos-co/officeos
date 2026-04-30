@@ -52,7 +52,8 @@ const footerLinks = [
 ];
 
 const socialLinks = {
-  github: "https://github.com/officeos",
+  github: "https://github.com/officeos-co/officeos",
+  linkedin: "https://www.linkedin.com/in/harro-krog-b948ab31a/",
 };
 
 export function FooterSection() {
@@ -83,6 +84,14 @@ export function FooterSection() {
               className="hover:text-primary transition-colors"
             >
               GitHub
+            </a>
+            <a
+              href={socialLinks.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              LinkedIn
             </a>
           </div>
         </div>
