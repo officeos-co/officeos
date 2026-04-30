@@ -55,7 +55,7 @@ spec:
             - name: RUNNER_SCOPE
               value: "repo"
             - name: REPO_URL
-              value: "https://github.com/HarKro753/EnterpriseAgentOs"
+              value: "https://github.com/officeos-co/officeos"
             - name: LABELS
               value: "self-hosted,linux,x64"
             - name: RUNNER_NAME_PREFIX
@@ -67,7 +67,10 @@ spec:
             - name: EPHEMERAL
               value: "false"
             - name: ACCESS_TOKEN
-              value: "REDACTED_GITHUB_TOKEN"
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-prod-secrets
+                  key: GITHUB_RUNNER_TOKEN
             - name: DISABLE_TAILSCALED
               value: "true"
             - name: DOCKER_HOST
