@@ -31,15 +31,6 @@ public class ProviderQueries
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
-        // Production/Staging: platform has keys for all providers
-        if (!context.Service<IWebHostEnvironment>().IsDevelopment())
-        {
-            return ProviderRegistry.SupportedModels
-                .Select(m => new ModelInfoDto(m, ProviderRegistry.GetDisplayName(m), m == ProviderRegistry.DefaultModel))
-                .ToList();
-        }
-
-        // Development (self-hosted): only models from user-configured providers
         var configured = await providers.ListAsync(ct);
         var configuredNames = configured
             .Where(p => p.Configured)

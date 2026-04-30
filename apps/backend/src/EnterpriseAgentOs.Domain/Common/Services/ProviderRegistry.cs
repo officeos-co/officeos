@@ -12,7 +12,7 @@ public static class ProviderRegistry
             DisplayName: "Anthropic",
             ApiFormat: ApiFormat.Anthropic,
             BaseUrl: "https://api.anthropic.com/v1",
-            PlatformKeyConfigName: nameof(AnthropicKey),
+            PlatformKeyConfigName: AnthropicKey,
             Models: new[]
             {
                 new ModelDefinition("claude-haiku-4-5", "Claude Haiku 4.5", CostWeight: 5, SmartRoutingTier.Simple),
@@ -25,7 +25,7 @@ public static class ProviderRegistry
             DisplayName: "OpenAI",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://api.openai.com/v1",
-            PlatformKeyConfigName: nameof(OpenAiKey),
+            PlatformKeyConfigName: OpenAiKey,
             Models: new[]
             {
                 new ModelDefinition("gpt-4o-mini", "GPT-4o Mini", CostWeight: 1, SmartRoutingTier.Simple),
@@ -37,7 +37,7 @@ public static class ProviderRegistry
             DisplayName: "Google Gemini",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-            PlatformKeyConfigName: nameof(GeminiKey),
+            PlatformKeyConfigName: GeminiKey,
             Models: new[]
             {
                 new ModelDefinition("gemini-2.5-flash", "Gemini 2.5 Flash", CostWeight: 1, SmartRoutingTier.Simple),
@@ -49,7 +49,7 @@ public static class ProviderRegistry
             DisplayName: "xAI Grok",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://api.x.ai/v1",
-            PlatformKeyConfigName: nameof(XaiKey),
+            PlatformKeyConfigName: XaiKey,
             Models: new[]
             {
                 new ModelDefinition("grok-4", "Grok 4", CostWeight: 20, SmartRoutingTier.Standard),

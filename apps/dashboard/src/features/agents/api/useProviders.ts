@@ -1,6 +1,6 @@
 "use client"
 
-import { gql, useMutation, useQuery } from "@apollo/client"
+import { gql, useQuery } from "@apollo/client"
 
 export type Provider = {
   id: string
@@ -18,26 +18,6 @@ const PROVIDERS_QUERY = gql`
       displayName
       configured
       configuredAt
-    }
-  }
-`
-
-const SET_PROVIDER_KEY = gql`
-  mutation SetProviderKey($providerName: String!, $apiKey: String!) {
-    setProviderKey(providerName: $providerName, apiKey: $apiKey) {
-      id
-      name
-      configured
-    }
-  }
-`
-
-const CLEAR_PROVIDER_KEY = gql`
-  mutation ClearProviderKey($providerName: String!) {
-    clearProviderKey(providerName: $providerName) {
-      id
-      name
-      configured
     }
   }
 `
@@ -63,46 +43,4 @@ export function useProviders(): {
     }),
   )
   return { providers, loading, error: error ?? undefined }
-}
-
-export function useSetProviderKey() {
-  const [fn, state] = useMutation(SET_PROVIDER_KEY)
-  return {
-    setProviderKey: async (providerId: string, apiKey: string) => {
-      const { data } = await fn({
-        variables: { providerName: providerId, apiKey },
-        optimisticResponse: {
-          setProviderKey: {
-            __typename: "Provider",
-            id: providerId,
-            name: providerId,
-            configured: true,
-          },
-        },
-      })
-      return Boolean(data?.setProviderKey)
-    },
-    ...state,
-  }
-}
-
-export function useClearProviderKey() {
-  const [fn, state] = useMutation(CLEAR_PROVIDER_KEY)
-  return {
-    clearProviderKey: async (providerId: string) => {
-      const { data } = await fn({
-        variables: { providerName: providerId },
-        optimisticResponse: {
-          clearProviderKey: {
-            __typename: "Provider",
-            id: providerId,
-            name: providerId,
-            configured: false,
-          },
-        },
-      })
-      return Boolean(data?.clearProviderKey)
-    },
-    ...state,
-  }
 }

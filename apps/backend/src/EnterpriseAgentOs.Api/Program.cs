@@ -138,7 +138,8 @@ var frontendConfig = new FrontendConfig(frontendOrigin);
 builder.Services.AddSingleton(frontendConfig);
 
 // LLM
-builder.Services.AddSingleton(builder.Configuration.GetSection("PlatformKeys").Get<PlatformKeysConfig>() ?? new PlatformKeysConfig());
+var platformKeysConfig = RequireSection<PlatformKeysConfig>("PlatformKeys");
+builder.Services.AddSingleton(platformKeysConfig);
 
 // Session auth — configurable skip prefixes
 var sessionAuthConfig = RequireSection<SessionAuthConfig>("SessionAuth");
@@ -193,12 +194,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
-    var providerRepo = scope.ServiceProvider.GetRequiredService<IProviderRepository>();
-    await ProviderSeeder.SeedAsync(providerRepo);
     await SkillSeeder.SeedAsync(scope.ServiceProvider);
     await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
-    var providerService = scope.ServiceProvider.GetRequiredService<IProviderService>();
-    await providerService.SyncPlatformKeysAsync();
 }
 
 if (app.Environment.IsDevelopment())

@@ -16,25 +16,3 @@ query Providers {
     models
   }
 }
-
-mutation SetProviderKey($providerName: String!, $apiKey: String!) {
-  setProviderKey(providerName: $providerName, apiKey: $apiKey) {
-    id
-    name
-    displayName
-    configured
-    configuredAt
-    models
-  }
-}
-
-mutation ClearProviderKey($providerName: String!) {
-  clearProviderKey(providerName: $providerName) {
-    id
-    name
-    displayName
-    configured
-    configuredAt
-    models
-  }
-}

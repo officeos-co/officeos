@@ -6,6 +6,3 @@ public sealed record ProviderDto(
     string DisplayName,
     bool Configured,
     DateTime? ConfiguredAt);
-
-public sealed record ConfigureProviderRequest(
-    [Required, MinLength(1)] string ApiKey);

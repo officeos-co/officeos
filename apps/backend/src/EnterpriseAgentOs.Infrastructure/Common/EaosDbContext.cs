@@ -9,7 +9,7 @@ public sealed class EaosDbContext : DbContext
     }
 
     public DbSet<AgentEntity> Agents => Set<AgentEntity>();
-    public DbSet<ProviderEntity> Providers => Set<ProviderEntity>();
+
     public DbSet<SkillCredentialEntity> SkillCredentials => Set<SkillCredentialEntity>();
     public DbSet<OAuthTokenEntity> OAuthTokens => Set<OAuthTokenEntity>();
     public DbSet<OAuthGrantedScopeEntity> OAuthGrantedScopes => Set<OAuthGrantedScopeEntity>();
@@ -49,15 +49,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.ServiceUrl).HasMaxLength(256);
             e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
             e.Property(a => a.Prompt).HasColumnType("text");
-        });
-
-        modelBuilder.Entity<ProviderEntity>(e =>
-        {
-            e.HasKey(p => p.Id);
-            e.HasIndex(p => p.Name).IsUnique();
-            e.Property(p => p.Name).IsRequired().HasMaxLength(64);
-            e.Property(p => p.DisplayName).IsRequired().HasMaxLength(128);
-            e.Property(p => p.EncryptedApiKey).HasMaxLength(4096);
         });
 
         modelBuilder.Entity<SkillCredentialEntity>(e =>

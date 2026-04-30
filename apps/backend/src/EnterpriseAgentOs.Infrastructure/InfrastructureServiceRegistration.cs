@@ -13,7 +13,7 @@ public static class InfrastructureServiceRegistration
 
         // Repositories
         services.AddScoped<IAgentRepository, AgentRepository>();
-        services.AddScoped<IProviderRepository, ProviderRepository>();
+
         services.AddScoped<ISkillRepository, SkillRepository>();
         services.AddScoped<ISkillCatalogRepository, SkillCatalogRepository>();
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
@@ -39,7 +39,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<ISkillOAuthService, SkillOAuthService>();
 
         // Protectors
-        services.AddSingleton<ProviderKeyProtector>();
+
         services.AddSingleton<SkillCredentialProtector>();
         services.AddSingleton<ChannelCredentialProtector>();
 

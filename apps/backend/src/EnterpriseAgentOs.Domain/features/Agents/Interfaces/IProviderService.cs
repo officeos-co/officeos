@@ -3,18 +3,9 @@ namespace EnterpriseAgentOs.Domain.Features.Agents;
 public interface IProviderService
 {
     Task<IReadOnlyList<ProviderDto>> ListAsync(CancellationToken ct = default);
-    Task<ProviderDto?> ConfigureAsync(string name, string apiKey, CancellationToken ct = default);
-    Task<bool> ClearAsync(string name, CancellationToken ct = default);
-    Task<string?> GetDecryptedKeyAsync(string name, CancellationToken ct = default);
 
     /// <summary>
-    /// Returns the decrypted API key for LLM dispatch. Returns null if no key is configured.
+    /// Returns the API key for LLM dispatch from environment/config. Returns null if no key is configured.
     /// </summary>
     Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default);
-
-    /// <summary>
-    /// Syncs platform keys from environment/config into the database so they
-    /// appear as dashboard-connected providers.
-    /// </summary>
-    Task SyncPlatformKeysAsync(CancellationToken ct = default);
 }
