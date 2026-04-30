@@ -8,7 +8,6 @@ public static class ApplicationServiceRegistration
     {
         services.AddScoped<IAgentService, AgentService>();
         services.AddScoped<IProviderService, ProviderService>();
-        services.AddScoped<ISkillService, SkillService>();
         services.AddScoped<IUserBillingService, UserBillingService>();
         services.AddScoped<IOrgBillingService, OrgBillingService>();
         services.AddScoped<ICreditRecordingService, CreditRecordingService>();

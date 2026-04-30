@@ -29,13 +29,6 @@ internal sealed class AgentRepository : IAgentRepository
             .Where(p => p.AgentId == id).ToListAsync(ct);
         var memories = await _eaosDbContext.AgentMemories.AsNoTracking()
             .Where(m => m.AgentId == id).ToListAsync(ct);
-        var skills = await _eaosDbContext.AgentSkills.AsNoTracking()
-            .Where(s => s.AgentId == id).ToListAsync(ct);
-        var skillNames = skills.Select(s => s.SkillName).ToList();
-        var skillDetailEntities = skillNames.Count > 0
-            ? await _eaosDbContext.Skills.AsNoTracking()
-                .Where(s => skillNames.Contains(s.Name)).ToListAsync(ct)
-            : [];
         var channelBindings = await _eaosDbContext.AgentChannelBindings.AsNoTracking()
             .Where(b => b.AgentId == id).ToListAsync(ct);
         var session = await _eaosDbContext.AgentSessions.AsNoTracking()
@@ -45,8 +38,6 @@ internal sealed class AgentRepository : IAgentRepository
         return ToAgentRecord(entity,
             personalityFiles: personalityFiles.Select(ToAgentPersonalityRecord).ToList(),
             memories: memories.Select(ToAgentMemoryRecord).ToList(),
-            installedSkills: skills.Select(ToAgentSkillRecord).ToList(),
-            skillDetails: skillDetailEntities.Select(AgentSkillRepository.ToSkillRecord).ToList(),
             channelBindings: channelBindings.Select(ToAgentChannelBindingRecord).ToList(),
             activeSession: session is null ? null : ToAgentSessionRecord(session));
     }
@@ -112,11 +103,6 @@ internal sealed class AgentRepository : IAgentRepository
         CreatedAt = e.CreatedAt, UpdatedAt = e.UpdatedAt,
     };
 
-    private static AgentSkillRecord ToAgentSkillRecord(AgentSkillEntity e) => new()
-    {
-        Id = e.Id, AgentId = e.AgentId, SkillName = e.SkillName, EnabledAt = e.EnabledAt,
-    };
-
     private static AgentSessionRecord ToAgentSessionRecord(AgentSessionEntity e) => new()
     {
         Id = e.Id, AgentId = e.AgentId, Status = e.Status.ToSessionStatus(), MessageCount = e.MessageCount,
@@ -135,8 +121,6 @@ internal sealed class AgentRepository : IAgentRepository
         AgentEntity e,
         IReadOnlyList<AgentPersonalityRecord>? personalityFiles = null,
         IReadOnlyList<AgentMemoryRecord>? memories = null,
-        IReadOnlyList<AgentSkillRecord>? installedSkills = null,
-        IReadOnlyList<SkillRecord>? skillDetails = null,
         IReadOnlyList<AgentCronJobRecord>? cronJobs = null,
         IReadOnlyList<AgentChannelBindingRecord>? channelBindings = null,
         AgentSessionRecord? activeSession = null) => new()
@@ -155,8 +139,6 @@ internal sealed class AgentRepository : IAgentRepository
         EncryptedBackendToken = e.EncryptedBackendToken,
         PersonalityFiles = personalityFiles ?? [],
         Memories = memories ?? [],
-        InstalledSkills = installedSkills ?? [],
-        SkillDetails = skillDetails ?? [],
         CronJobs = cronJobs ?? [],
         ChannelBindings = channelBindings ?? [],
         ActiveSession = activeSession,

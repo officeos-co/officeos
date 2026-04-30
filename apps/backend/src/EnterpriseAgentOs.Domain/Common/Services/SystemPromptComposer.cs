@@ -5,7 +5,7 @@ namespace EnterpriseAgentOs.Domain.Common.Services;
 /// Pure domain service that composes the system prompt from domain models.
 /// No I/O, no dependencies — takes loaded data, returns a string.
 /// Section order follows OpenClaw convention:
-/// 1. Tooling  2. Safety  3. Skills  4. Workspace
+/// 1. Tooling  2. Safety  3. Workspace
 /// 5. Project Context (personality files)  6. Memory  7. DateTime  8. Runtime
 /// </summary>
 public static class SystemPromptComposer
@@ -19,12 +19,11 @@ public static class SystemPromptComposer
     /// personality files, memories, and skill details directly.
     /// </summary>
     public static string Compose(AgentRecord agent) =>
-        Compose(agent.Name, agent.Prompt, agent.SkillDetails, agent.PersonalityFiles, agent.Memories);
+        Compose(agent.Name, agent.Prompt, agent.PersonalityFiles, agent.Memories);
 
     public static string Compose(
         string agentName,
         string? userPrompt,
-        IReadOnlyList<SkillRecord> skills,
         IReadOnlyList<AgentPersonalityRecord> personalityFiles,
         IReadOnlyList<AgentMemoryRecord> memories)
     {
@@ -33,7 +32,6 @@ public static class SystemPromptComposer
             {
                 Tooling(),
                 Safety(),
-                Skills(skills),
                 Workspace(agentName),
                 ProjectContext(personalityFiles, userPrompt),
                 Memory(memories),
@@ -47,9 +45,7 @@ public static class SystemPromptComposer
     public static string Tooling()
         => "## Tooling\n\n" +
            "NEVER fabricate tool results. If a tool fails, report the actual error. " +
-           "Do not invent file contents, command outputs, or API responses.\n" +
-           "Use `skill_exec <skill> <action>` to run skill actions. " +
-           "Use `skill_read <skill>` to read full documentation for a skill.";
+           "Do not invent file contents, command outputs, or API responses.";
 
     public static string Safety()
         => "## Safety\n\n" +
@@ -58,25 +54,6 @@ public static class SystemPromptComposer
            "- Never bypass security controls or disable safety mechanisms.\n" +
            "- Prefer moving to trash over permanent deletion.\n" +
            "- Execute tasks directly — do not ask for confirmation before using installed skills or tools.";
-
-    public static string? Skills(IReadOnlyList<SkillRecord> skills)
-    {
-        if (skills.Count == 0) return null;
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("## Installed Skills");
-        sb.AppendLine();
-
-        foreach (var skill in skills)
-        {
-            sb.AppendLine($"### {skill.Name}");
-            sb.AppendLine();
-            sb.AppendLine(skill.FormatPromptSection());
-            sb.AppendLine();
-        }
-
-        return sb.ToString().TrimEnd();
-    }
 
     public static string Workspace(string agentName)
         => $"## Workspace\n\nAgent: {agentName}\nWorking directory: /home";

@@ -42,10 +42,7 @@ internal sealed class ToolRegistry
     public static ToolRegistry Create(
         PodConnection pod,
         IAgentMemoryRepository memoryRepo,
-        Guid agentId,
-        SkillRuntimeClient skillRuntime,
-        ISkillService skillService,
-        IReadOnlyList<SkillRecord> skillDetails)
+        Guid agentId)
     {
         return new ToolRegistry(new List<IAgentTool>
         {
@@ -63,9 +60,6 @@ internal sealed class ToolRegistry
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
-            // Skill tools (direct to skill-runtime, no HTTP loopback)
-            new SkillExecTool(skillRuntime, skillService, skillDetails),
-            new SkillReadTool(skillDetails),
         });
     }
 }

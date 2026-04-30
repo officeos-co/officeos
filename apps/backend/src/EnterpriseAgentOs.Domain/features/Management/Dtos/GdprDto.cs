@@ -35,18 +35,8 @@ public record GdprAuditEntryDto(
     long DurationMs,
     DateTime Timestamp);
 
-/// <summary>
-/// Skill credential entry — never includes plaintext credential values.
-/// </summary>
-public record GdprSkillCredentialDto(
-    Guid Id,
-    string SkillName,
-    bool Enabled,
-    DateTime? ConfiguredAt);
-
 public record GdprExportDto(
     GdprUserDto User,
     List<GdprAgentDto> Agents,
     List<GdprConversationDto> Conversations,
-    List<GdprAuditEntryDto> AuditEntries,
-    List<GdprSkillCredentialDto> SkillCredentials);
+    List<GdprAuditEntryDto> AuditEntries);

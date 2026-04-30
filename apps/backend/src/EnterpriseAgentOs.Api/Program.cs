@@ -89,14 +89,6 @@ if (isDevelopment)
     builder.Configuration.GetSection("Docker").Bind(dockerConfig);
 builder.Services.AddSingleton(dockerConfig);
 
-var skillGatewayConfig = RequireSection<SkillGatewayConfig>("SkillGateway");
-if (skillGatewayConfig.RefreshSeconds == 0) skillGatewayConfig.RefreshSeconds = 30;
-builder.Services.AddSingleton(skillGatewayConfig);
-
-var skillRuntimeConfig = RequireSection<SkillRuntimeConfig>("SkillRuntime");
-RequireNotEmpty(skillRuntimeConfig.Url, "SkillRuntime:Url");
-builder.Services.AddSingleton(skillRuntimeConfig);
-
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
 builder.Services.AddSingleton(googleOAuthConfig);
 
@@ -149,20 +141,8 @@ builder.Services.AddSingleton(sessionAuthConfig);
 var postHogConfig = RequireSection<PostHogConfig>("PostHog");
 builder.Services.AddSingleton(postHogConfig);
 
-// GraphQL — two named schemas share one HotChocolate host:
-//   "agent"     /api/graphql           → agent-pod skill gateway, dynamic per-skill fields
-//   "dashboard" /api/graphql-dashboard → dashboard operator API, static per-domain fields
+// GraphQL — dashboard operator API
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<SkillTypeModule>();
-
-builder.Services
-    .AddGraphQLServer("agent")
-    .AddQueryType<Query>()
-    .AddMutationType<AgentSchemaMutations>()
-    .AddTypeModule<SkillTypeModule>()
-    .AddHttpRequestInterceptor<AgentAuthInterceptor>()
-    .DisableIntrospection(false)
-    .SetIntrospectionAllowedDepth(20, 20);
 
 var dashboardGql = builder.Services
     .AddGraphQLServer("dashboard")
@@ -194,7 +174,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
-    await SkillSeeder.SeedAsync(scope.ServiceProvider);
     await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
@@ -236,7 +215,6 @@ app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapPost("/api/channels/inbound", ChannelInboundEndpoint.Handle);
 app.MapGet("/api/channels/active", ChannelActiveEndpoint.Handle);
 
-app.MapGraphQL("/api/graphql", schemaName: "agent");
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
     .RequireCors(FrontendCorsPolicy);
 app.MapControllers();

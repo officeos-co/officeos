@@ -10,8 +10,6 @@ internal sealed class AgentTurnService
     private readonly LlmProviderDispatcher _llmProviderDispatcher;
     private readonly IProviderService _providerService;
     private readonly IAgentMemoryRepository _agentMemoryRepository;
-    private readonly SkillRuntimeClient _skillRuntimeClient;
-    private readonly ISkillService _skillService;
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly IBillingGuard _billingGuard;
     private readonly ILogger<AgentTurnService> _logger;
@@ -27,8 +25,6 @@ internal sealed class AgentTurnService
         LlmProviderDispatcher llm,
         IProviderService providers,
         IAgentMemoryRepository memoryRepo,
-        SkillRuntimeClient skillRuntime,
-        ISkillService skillService,
         IAgentLogRepository agentLogRepository,
         IBillingGuard billingGuard,
         ILogger<AgentTurnService> logger)
@@ -38,8 +34,6 @@ internal sealed class AgentTurnService
         _llmProviderDispatcher = llm;
         _providerService = providers;
         _agentMemoryRepository = memoryRepo;
-        _skillRuntimeClient = skillRuntime;
-        _skillService = skillService;
         _agentLogRepository = agentLogRepository;
         _billingGuard = billingGuard;
         _logger = logger;
@@ -107,8 +101,7 @@ internal sealed class AgentTurnService
         }
         await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds), ct);
 
-        var registry = ToolRegistry.Create(
-            pod, _agentMemoryRepository, agentId, _skillRuntimeClient, _skillService, agent.SkillDetails);
+        var registry = ToolRegistry.Create(pod, _agentMemoryRepository, agentId);
 
         var history = new ConversationHistory();
         var loopDetector = new LoopDetector();

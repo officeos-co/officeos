@@ -14,10 +14,7 @@ public static class InfrastructureServiceRegistration
         // Repositories
         services.AddScoped<IAgentRepository, AgentRepository>();
 
-        services.AddScoped<ISkillRepository, SkillRepository>();
-        services.AddScoped<ISkillCatalogRepository, SkillCatalogRepository>();
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
-        services.AddScoped<IAgentSkillRepository, AgentSkillRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
@@ -36,15 +33,10 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IBillingGuard, BillingGuard>();
-        services.AddScoped<ISkillOAuthService, SkillOAuthService>();
-
         // Protectors
-
-        services.AddSingleton<SkillCredentialProtector>();
         services.AddSingleton<ChannelCredentialProtector>();
 
         // HTTP clients
-        services.AddHttpClient<SkillRuntimeClient>();
         services.AddHttpClient<IPostHogService, PostHogService>();
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");

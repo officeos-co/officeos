@@ -6,7 +6,6 @@ internal sealed class AgentTemplateService : IAgentTemplateService
 {
     private readonly IAgentTemplateRepository _agentTemplateRepository;
     private readonly IAgentService _agentService;
-    private readonly IAgentSkillRepository _agentSkillRepository;
     private readonly IChannelRepository _channelRepository;
     private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentTemplateService> _logger;
@@ -14,14 +13,12 @@ internal sealed class AgentTemplateService : IAgentTemplateService
     public AgentTemplateService(
         IAgentTemplateRepository repo,
         IAgentService agents,
-        IAgentSkillRepository agentSkills,
         IChannelRepository channels,
         IPostHogService analytics,
         ILogger<AgentTemplateService> logger)
     {
         _agentTemplateRepository = repo;
         _agentService = agents;
-        _agentSkillRepository = agentSkills;
         _channelRepository = channels;
         _postHogService = analytics;
         _logger = logger;
@@ -56,11 +53,6 @@ internal sealed class AgentTemplateService : IAgentTemplateService
             new CreateAgentRequest(name, provider, model, template.Prompt),
             ownerId: ownerId,
             ct);
-
-        if (dto.Integrations.Count > 0)
-        {
-            await _agentSkillRepository.AssignAsync(agent.Id, dto.Integrations, ct);
-        }
 
         if (dto.Channels.Count > 0)
         {

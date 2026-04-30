@@ -9,20 +9,17 @@ internal sealed class KubernetesAgentDeployer : IAgentDeployer
     private readonly IKubernetes _kubernetes;
     private readonly ILogger<KubernetesAgentDeployer> _logger;
     private readonly KubernetesConfig _kubernetesConfig;
-    private readonly SkillGatewayConfig _skillGatewayConfig;
     private readonly string _namespace;
     private readonly string _image;
 
     public KubernetesAgentDeployer(
         IKubernetes k8s,
         KubernetesConfig config,
-        SkillGatewayConfig skillGateway,
         ILogger<KubernetesAgentDeployer> logger)
     {
         _kubernetes = k8s;
         _logger = logger;
         _kubernetesConfig = config;
-        _skillGatewayConfig = skillGateway;
         _namespace = config.Namespace;
         _image = config.Image;
     }

@@ -41,12 +41,10 @@ public sealed class AgentRecord
     // ── Aggregate children (populated by rich-load repository methods) ───────
 
     public IReadOnlyList<AgentPersonalityRecord> PersonalityFiles { get; init; } = [];
-    public IReadOnlyList<AgentSkillRecord> InstalledSkills { get; init; } = [];
     public IReadOnlyList<AgentMemoryRecord> Memories { get; init; } = [];
     public IReadOnlyList<AgentCronJobRecord> CronJobs { get; init; } = [];
     public IReadOnlyList<AgentRateLimitRecord> RateLimits { get; init; } = [];
     public IReadOnlyList<AgentChannelBindingRecord> ChannelBindings { get; init; } = [];
-    public IReadOnlyList<SkillRecord> SkillDetails { get; init; } = [];
     public AgentSessionRecord? ActiveSession { get; init; }
 
     // ── Domain logic ─────────────────────────────────────────────────────────

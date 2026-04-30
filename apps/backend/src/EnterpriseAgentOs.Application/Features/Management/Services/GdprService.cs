@@ -6,20 +6,17 @@ internal sealed class GdprService : IGdprService
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly ISessionRepository _sessionRepository;
-    private readonly ISkillRepository _skillRepository;
 
     public GdprService(
         IUserRepository users,
         IAgentRepository agents,
         IAgentLogRepository agentLogs,
-        ISessionRepository sessions,
-        ISkillRepository skills)
+        ISessionRepository sessions)
     {
         _userRepository = users;
         _agentRepository = agents;
         _agentLogRepository = agentLogs;
         _sessionRepository = sessions;
-        _skillRepository = skills;
     }
 
     public async Task<GdprExportDto> ExportAsync(Guid userId, CancellationToken ct = default)
@@ -76,11 +73,7 @@ internal sealed class GdprService : IGdprService
                 l.Time))
             .ToList();
 
-        var skillCredentials = (await _skillRepository.ListAsync(ct))
-            .Select(s => new GdprSkillCredentialDto(s.Id, s.SkillName, s.Enabled, s.ConfiguredAt))
-            .ToList();
-
-        return new GdprExportDto(userDto, agents, conversations, auditEntries, skillCredentials);
+        return new GdprExportDto(userDto, agents, conversations, auditEntries);
     }
 
     public async Task PurgeAsync(Guid userId, CancellationToken ct = default)

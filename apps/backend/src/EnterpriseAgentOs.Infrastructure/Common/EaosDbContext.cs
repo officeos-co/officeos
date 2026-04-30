@@ -10,23 +10,18 @@ public sealed class EaosDbContext : DbContext
 
     public DbSet<AgentEntity> Agents => Set<AgentEntity>();
 
-    public DbSet<SkillCredentialEntity> SkillCredentials => Set<SkillCredentialEntity>();
     public DbSet<OAuthTokenEntity> OAuthTokens => Set<OAuthTokenEntity>();
     public DbSet<OAuthGrantedScopeEntity> OAuthGrantedScopes => Set<OAuthGrantedScopeEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
     public DbSet<DeviceCodeEntity> DeviceCodes => Set<DeviceCodeEntity>();
     public DbSet<BrowserSessionEntity> BrowserSessions => Set<BrowserSessionEntity>();
-    public DbSet<SkillEntity> Skills => Set<SkillEntity>();
-    public DbSet<AgentSkillEntity> AgentSkills => Set<AgentSkillEntity>();
     public DbSet<UserSubscriptionEntity> UserSubscriptions { get; set; } = null!;
     public DbSet<OrgSubscriptionEntity> OrgSubscriptions { get; set; } = null!;
     public DbSet<ChannelConnectionEntity> ChannelConnections => Set<ChannelConnectionEntity>();
     public DbSet<AgentChannelBindingEntity> AgentChannelBindings => Set<AgentChannelBindingEntity>();
     public DbSet<SystemEventEntity> SystemEvents => Set<SystemEventEntity>();
     public DbSet<AgentRateLimitEntity> AgentRateLimits => Set<AgentRateLimitEntity>();
-    public DbSet<SkillLikeEntity> SkillLikes => Set<SkillLikeEntity>();
-    public DbSet<SkillCommentEntity> SkillComments => Set<SkillCommentEntity>();
     public DbSet<AgentLogEntity> AgentLogs => Set<AgentLogEntity>();
     public DbSet<AgentToolPermissionEntity> AgentToolPermissions => Set<AgentToolPermissionEntity>();
     public DbSet<AgentTemplateEntity> AgentTemplates => Set<AgentTemplateEntity>();
@@ -49,14 +44,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.ServiceUrl).HasMaxLength(256);
             e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
             e.Property(a => a.Prompt).HasColumnType("text");
-        });
-
-        modelBuilder.Entity<SkillCredentialEntity>(e =>
-        {
-            e.HasKey(s => s.Id);
-            e.HasIndex(s => s.SkillName).IsUnique();
-            e.Property(s => s.SkillName).IsRequired().HasMaxLength(64);
-            e.Property(s => s.EncryptedCredentials).HasMaxLength(16384);
         });
 
         modelBuilder.Entity<OAuthTokenEntity>(e =>
@@ -104,41 +91,6 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(b => b.Id);
             e.HasIndex(b => b.AgentId).IsUnique();
             e.Property(b => b.CookiesJson).HasColumnType("text");
-        });
-
-        modelBuilder.Entity<AgentSkillEntity>(e =>
-        {
-            e.HasKey(a => a.Id);
-            e.HasIndex(a => new { a.AgentId, a.SkillName }).IsUnique();
-            e.HasIndex(a => a.AgentId);
-            e.Property(a => a.SkillName).IsRequired().HasMaxLength(64);
-        });
-
-        modelBuilder.Entity<SkillEntity>(e =>
-        {
-            e.HasKey(s => s.Id);
-            e.HasIndex(s => s.Name).IsUnique();
-            e.Property(s => s.Name).IsRequired().HasMaxLength(64);
-            e.Property(s => s.Title).IsRequired().HasMaxLength(128);
-            e.Property(s => s.Logo).HasColumnType("text");
-            e.Property(s => s.Doc).HasColumnType("text");
-            e.Property(s => s.Readme).HasColumnType("text");
-            e.Property(s => s.Changelog).HasColumnType("text");
-            e.Property(s => s.License).HasMaxLength(64);
-            e.Property(s => s.Repository).HasMaxLength(512);
-            e.Property(s => s.Category).HasMaxLength(64);
-            e.Property(s => s.AuthorName).HasMaxLength(128);
-            e.Property(s => s.AuthorUrl).HasMaxLength(512);
-            e.Property(s => s.ActionsJson).HasColumnType("jsonb");
-            e.Property(s => s.CredentialFieldsJson).HasColumnType("jsonb");
-            e.Property(s => s.ContributorsJson).HasColumnType("jsonb");
-            e.Property(s => s.BundleS3Key).HasMaxLength(512);
-            e.Property(s => s.Version).HasMaxLength(32);
-            e.Property(s => s.Status).IsRequired().HasMaxLength(16);
-            e.Property(s => s.BuildError).HasColumnType("text");
-            e.Property(s => s.GitHubRepoUrl).HasMaxLength(512);
-            e.Property(s => s.GitHubBranch).HasMaxLength(128);
-            e.HasOne(s => s.Owner).WithMany().HasForeignKey(s => s.OwnerId);
         });
 
         modelBuilder.Entity<UserSubscriptionEntity>(e =>
@@ -197,25 +149,6 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(r => new { r.AgentId, r.BucketKey, r.WindowStart }).IsUnique();
             e.HasIndex(r => r.AgentId);
             e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
-        });
-
-        modelBuilder.Entity<SkillLikeEntity>(e =>
-        {
-            e.HasKey(l => l.Id);
-            e.HasIndex(l => new { l.UserId, l.SkillId }).IsUnique();
-            e.HasIndex(l => l.SkillId);
-            e.HasOne(l => l.Skill).WithMany().HasForeignKey(l => l.SkillId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<SkillCommentEntity>(e =>
-        {
-            e.HasKey(c => c.Id);
-            e.HasIndex(c => c.SkillId);
-            e.HasIndex(c => new { c.SkillId, c.CreatedAt });
-            e.Property(c => c.Body).HasColumnType("text");
-            e.HasOne(c => c.Skill).WithMany().HasForeignKey(c => c.SkillId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentLogEntity>(e =>

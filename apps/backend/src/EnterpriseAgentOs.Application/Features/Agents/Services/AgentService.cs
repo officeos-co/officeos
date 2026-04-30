@@ -11,7 +11,6 @@ internal sealed class AgentService : IAgentService
     private readonly IMemoryCache _memoryCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
-    private readonly IAgentSkillRepository _agentSkillRepository;
     private readonly IChannelRepository _channelRepository;
     private readonly IAgentLogService _agentLogService;
 
@@ -27,7 +26,6 @@ internal sealed class AgentService : IAgentService
         IMemoryCache cache,
         IAgentPersonalityRepository personalityRepo,
         IPublisher publisher,
-        IAgentSkillRepository agentSkillRepository,
         IChannelRepository channelRepository,
         IAgentLogService agentLogService)
     {
@@ -38,7 +36,6 @@ internal sealed class AgentService : IAgentService
         _memoryCache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
-        _agentSkillRepository = agentSkillRepository;
         _channelRepository = channelRepository;
         _agentLogService = agentLogService;
     }
@@ -185,22 +182,6 @@ internal sealed class AgentService : IAgentService
 
     public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
     {
-        // Installed skills
-        if (init.ToolNames is { Count: > 0 })
-        {
-            await _agentSkillRepository.AssignAsync(agentId, init.ToolNames, ct);
-        }
-
-        // Per-tool allow/deny overrides
-        if (init.ToolPermissions is { Count: > 0 })
-        {
-            foreach (var tp in init.ToolPermissions)
-            {
-                var toolKey = AgentToolPermissionRecord.ParseToolKey(tp.Tool);
-                await _agentSkillRepository.UpsertToolPermissionAsync(agentId, toolKey.SkillName, toolKey.ToolName, tp.Mode, ct);
-            }
-        }
-
         // Channel bindings
         if (init.ChannelSlugs is { Count: > 0 })
         {

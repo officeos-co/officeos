@@ -53,16 +53,5 @@ services:
     depends_on:
       - backend
 
-  skill-runtime:
-    build:
-      context: .
-      dockerfile: packages/skill-runtime/Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      - BACKEND_URL=http://backend:8000
-    depends_on:
-      - backend
-
 volumes:
   pgdata:
