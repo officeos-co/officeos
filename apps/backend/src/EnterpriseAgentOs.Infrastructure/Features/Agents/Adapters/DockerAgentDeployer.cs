@@ -1,9 +1,3 @@
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
-
 namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
 
 internal sealed class DockerAgentDeployer : IAgentDeployer
@@ -41,6 +35,8 @@ internal sealed class DockerAgentDeployer : IAgentDeployer
     public async Task<AgentDeployment> DeployAsync(Guid agentId, CancellationToken ct = default)
     {
         var name = ContainerName(agentId);
+        _logger.LogInformation("Deploying agent {AgentId} as container {Container} using image {Image} on network {Network}",
+            agentId, name, _config.Image, _config.Network);
 
         var createBody = new
         {
@@ -67,22 +63,40 @@ internal sealed class DockerAgentDeployer : IAgentDeployer
         var json = JsonSerializer.Serialize(createBody);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var createResp = await _docker.PostAsync(
-            $"/containers/create?name={name}", content, ct);
-
-        if (!createResp.IsSuccessStatusCode)
+        try
         {
-            var err = await createResp.Content.ReadAsStringAsync(ct);
-            throw new InvalidOperationException($"Docker create failed: {err}");
+            var createResp = await _docker.PostAsync(
+                $"/containers/create?name={name}", content, ct);
+
+            if (!createResp.IsSuccessStatusCode)
+            {
+                var err = await createResp.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Docker create failed for agent {AgentId}: {StatusCode} {Error}",
+                    agentId, createResp.StatusCode, err);
+                throw new InvalidOperationException(
+                    $"Docker create failed ({createResp.StatusCode}): {err}");
+            }
+
+            _logger.LogDebug("Container {Container} created, starting...", name);
+
+            var startResp = await _docker.PostAsync(
+                $"/containers/{name}/start", null, ct);
+
+            if (!startResp.IsSuccessStatusCode && startResp.StatusCode != System.Net.HttpStatusCode.NotModified)
+            {
+                var err = await startResp.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Docker start failed for agent {AgentId}: {StatusCode} {Error}",
+                    agentId, startResp.StatusCode, err);
+                throw new InvalidOperationException(
+                    $"Docker start failed ({startResp.StatusCode}): {err}");
+            }
         }
-
-        var startResp = await _docker.PostAsync(
-            $"/containers/{name}/start", null, ct);
-
-        if (!startResp.IsSuccessStatusCode && startResp.StatusCode != System.Net.HttpStatusCode.NotModified)
+        catch (HttpRequestException ex)
         {
-            var err = await startResp.Content.ReadAsStringAsync(ct);
-            throw new InvalidOperationException($"Docker start failed: {err}");
+            _logger.LogError(ex, "Cannot connect to Docker daemon at {SocketPath} for agent {AgentId}",
+                _config.SocketPath, agentId);
+            throw new InvalidOperationException(
+                $"Cannot connect to Docker daemon at '{_config.SocketPath}'. Is Docker running?", ex);
         }
 
         _logger.LogInformation("Deployed agent {AgentId} as container {Container}", agentId, name);
