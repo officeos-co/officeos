@@ -10,27 +10,47 @@ const faqItems = [
   {
     question: "What is OfficeOS?",
     answer:
-      "OfficeOS is an AI agent platform — not an office suite or Microsoft Office replacement. It lets you deploy autonomous AI agents that work across your company: researching leads, handling support, monitoring competitors, reviewing contracts, and more. Each agent gets dedicated skills, permissions, and access to your organization's knowledge graph.",
+      "OfficeOS is an AI agent platform that deploys autonomous agents across your company. Each agent has persistent memory, a knowledge graph, custom skills, and responds in the channels your team already uses — Slack, Teams, WhatsApp, Telegram, Discord, and email. Think of it as hiring AI employees that work 24/7 and never need onboarding.",
+  },
+  {
+    question: "Why not just use OpenClaw / open-source agent frameworks?",
+    answer:
+      "Open-source agent frameworks are great for prototyping a single agent, but they don't scale to production. They lack multi-tenant credential management, persistent memory across conversations, scheduled automation, multi-channel routing, and centralized observability. OfficeOS gives you the full infrastructure layer — from skill sandboxing to knowledge graphs to team-wide billing — so you're not rebuilding it yourself every time you deploy a new agent.",
+  },
+  {
+    question: "Why not use managed AI agents (ChatGPT, Gemini, etc.)?",
+    answer:
+      "Managed agents like ChatGPT or Gemini are chatbots with MCP server access — not deeply integrated agents. They can't run scheduled tasks, persist memory across sessions, execute custom code on your infrastructure, or respond autonomously in your team's Slack channels. OfficeOS agents are actual autonomous workers with their own container runtime, cron schedules, and full access to your internal systems — not a chat window with plugins.",
   },
   {
     question: "How do skills work?",
     answer:
-      "Skills are TypeScript modules executed in sandboxed V8 isolates. You define them with the Skill SDK using Zod schemas, and they run on your infrastructure with access to internal APIs and services.",
+      "Skills are TypeScript modules executed in sandboxed runtimes. You define them with the Skill SDK using Zod schemas, and they run on your infrastructure with access to internal APIs, databases, and third-party services. Skills can be attached to any agent and shared across your organization.",
   },
   {
-    question: "Can I run agents on my own infrastructure?",
+    question: "Can I self-host OfficeOS?",
     answer:
-      "Yes. OfficeOS is Kubernetes-native and designed for self-hosted deployment. Agent pods run on your cluster with full access to your network.",
+      "Yes. Run the full stack with docker compose up — Postgres, Redis, backend, dashboard, skill runtime, and channel gateway all start automatically. For production, OfficeOS is Kubernetes-native. Your data never leaves your network.",
   },
   {
-    question: "How are credentials managed?",
+    question: "What channels do agents support?",
     answer:
-      "All credentials are centrally encrypted and managed in the backend. Agent pods never see raw API keys — the backend injects them per-request through a secure proxy.",
+      "Slack, Microsoft Teams, Discord, Telegram, WhatsApp, and email. Agents respond in the channels your team already uses — no new tools to adopt.",
   },
   {
     question: "What LLM providers are supported?",
     answer:
-      "OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, OpenRouter, and Ollama. You can configure providers per-agent and switch at any time.",
+      "Anthropic, OpenAI, Google, xAI, Groq, DeepSeek, OpenRouter, and Ollama. Bring your own API keys or use platform-managed keys on OfficeOS Cloud. You can configure providers per-agent and switch at any time.",
+  },
+  {
+    question: "How are credentials managed?",
+    answer:
+      "All credentials are centrally encrypted in the backend. Agent containers never see raw API keys — the backend injects them per-request through a secure proxy. OAuth integrations (Google, GitHub, etc.) are handled through the dashboard with scoped permissions.",
+  },
+  {
+    question: "Why should we trust you with our data?",
+    answer:
+      "OfficeOS is fully open-source and self-hostable — you can audit every line of code and run the entire stack on your own infrastructure. Your data never touches our servers unless you choose OfficeOS Cloud. Credentials are encrypted at rest, agents run in isolated containers, and all integrations use scoped OAuth permissions. OfficeOS Cloud is hosted in Europe. We don't train on your data, we don't sell your data, and we never will.",
   },
 ];
 
