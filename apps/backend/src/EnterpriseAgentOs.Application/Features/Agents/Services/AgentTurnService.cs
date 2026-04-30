@@ -47,6 +47,26 @@ internal sealed class AgentTurnService
 
     public async Task RunTurnAsync(Guid agentId, string userMessage, string correlationId, CancellationToken ct)
     {
+        try
+        {
+            await RunTurnCoreAsync(agentId, userMessage, correlationId, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error in turn for agent {AgentId} correlation {CorrelationId}", agentId, correlationId);
+            try
+            {
+                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Internal error: {ex.Message}"), ct);
+            }
+            catch (Exception pubEx)
+            {
+                _logger.LogError(pubEx, "Failed to publish error event for agent {AgentId}", agentId);
+            }
+        }
+    }
+
+    private async Task RunTurnCoreAsync(Guid agentId, string userMessage, string correlationId, CancellationToken ct)
+    {
         var turnStart = Stopwatch.GetTimestamp();
 
         var agent = await _agentRepository.GetAsync(agentId, ct);
