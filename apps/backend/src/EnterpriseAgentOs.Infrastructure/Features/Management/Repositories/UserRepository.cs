@@ -35,6 +35,35 @@ internal sealed class UserRepository : IUserRepository
         return ToUserRecord(entity);
     }
 
+    public async Task<UserRecord> UpsertByGitHubSubjectAsync(
+        string gitHubSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
+    {
+        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GitHubSubjectId == gitHubSubjectId, ct);
+        if (entity is null)
+        {
+            entity = new UserEntity
+            {
+                Id = Guid.NewGuid(),
+                GitHubSubjectId = gitHubSubjectId,
+                Email = email,
+                Name = name,
+                AvatarUrl = avatarUrl,
+                CreatedAt = DateTime.UtcNow,
+                LastLoginAt = DateTime.UtcNow,
+            };
+            _eaosDbContext.Users.Add(entity);
+        }
+        else
+        {
+            entity.Email = email;
+            entity.Name = name;
+            entity.AvatarUrl = avatarUrl;
+            entity.LastLoginAt = DateTime.UtcNow;
+        }
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return ToUserRecord(entity);
+    }
+
     public async Task<UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var entity = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
@@ -75,6 +104,7 @@ internal sealed class UserRepository : IUserRepository
         Name = e.Name,
         AvatarUrl = e.AvatarUrl,
         GoogleSubjectId = e.GoogleSubjectId,
+        GitHubSubjectId = e.GitHubSubjectId,
         CreatedAt = e.CreatedAt,
         LastLoginAt = e.LastLoginAt,
         DisplayName = e.DisplayName,
@@ -90,6 +120,7 @@ internal sealed class UserRepository : IUserRepository
         Name = r.Name,
         AvatarUrl = r.AvatarUrl,
         GoogleSubjectId = r.GoogleSubjectId,
+        GitHubSubjectId = r.GitHubSubjectId,
         CreatedAt = r.CreatedAt,
         LastLoginAt = r.LastLoginAt,
         DisplayName = r.DisplayName,

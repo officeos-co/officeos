@@ -1,3 +1,9 @@
+// Load .env before anything else so env vars are visible to configuration
+dotenv.net.DotEnv.Fluent()
+    .WithProbeForEnv(probeLevelsToSearch: 6)
+    .WithoutExceptions()
+    .Load();
+
 const string FrontendCorsPolicy = "dashboard";
 
 Log.Logger = new LoggerConfiguration()
@@ -12,6 +18,7 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
+
 
 // ── Config helper: reads PascalCase (appsettings) or UPPER_SNAKE (Doppler env vars) ──
 string Require(string pascalKey, string? envKey = null)
@@ -93,9 +100,16 @@ builder.Services.AddSingleton(skillRuntimeConfig);
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
 builder.Services.AddSingleton(googleOAuthConfig);
 
+var gitHubOAuthConfig = RequireSection<GitHubOAuthConfig>("GitHubOAuth");
+builder.Services.AddSingleton(gitHubOAuthConfig);
 
-if (kubernetesConfig.Enabled)
+
+if (builder.Environment.IsProduction())
 {
+    if (string.IsNullOrEmpty(kubernetesConfig.Namespace) || string.IsNullOrEmpty(kubernetesConfig.Image))
+        throw new InvalidOperationException(
+            "Kubernetes:Namespace and Kubernetes:Image must be configured in production.");
+
     builder.Services.AddSingleton<IKubernetes>(_ =>
     {
         var config = KubernetesClientConfiguration.IsInCluster()
@@ -105,14 +119,9 @@ if (kubernetesConfig.Enabled)
     });
     builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
 }
-else if (isDevelopment && dockerConfig.Enabled)
-{
-    builder.Services.AddScoped<IAgentDeployer, DockerAgentDeployer>();
-}
 else
 {
-    throw new InvalidOperationException(
-        "No agent deployer configured. Enable Kubernetes (production) or Docker (development) in config.");
+    builder.Services.AddScoped<IAgentDeployer, DockerAgentDeployer>();
 }
 
 // Billing

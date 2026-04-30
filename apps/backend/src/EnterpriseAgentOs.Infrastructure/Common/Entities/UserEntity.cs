@@ -6,7 +6,8 @@ public sealed class UserEntity
     public string Email { get; set; } = string.Empty;
     public string? Name { get; set; }
     public string? AvatarUrl { get; set; }
-    public string GoogleSubjectId { get; set; } = string.Empty;
+    public string? GoogleSubjectId { get; set; }
+    public string? GitHubSubjectId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime LastLoginAt { get; set; }
     public string? DisplayName { get; set; }

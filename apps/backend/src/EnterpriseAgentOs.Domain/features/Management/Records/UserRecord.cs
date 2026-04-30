@@ -9,8 +9,10 @@ public sealed class UserRecord
     public string? Name { get; set; }
     [MaxLength(1024)]
     public string? AvatarUrl { get; set; }
-    [Required, MaxLength(256)]
-    public string GoogleSubjectId { get; init; } = string.Empty;
+    [MaxLength(256)]
+    public string? GoogleSubjectId { get; init; }
+    [MaxLength(256)]
+    public string? GitHubSubjectId { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
 
