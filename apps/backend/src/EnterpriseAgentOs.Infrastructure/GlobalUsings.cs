@@ -17,6 +17,7 @@ global using EnterpriseAgentOs.Domain.Features.Agents;
 global using EnterpriseAgentOs.Domain.Features.Analytics;
 global using EnterpriseAgentOs.Domain.Features.Management;
 global using EnterpriseAgentOs.Domain.Common;
+global using EnterpriseAgentOs.Domain.Common.Services;
 global using EnterpriseAgentOs.Domain.Common.Primitives;
 global using EnterpriseAgentOs.Domain.Common.ValueObjects;
 global using EnterpriseAgentOs.Domain.Events;

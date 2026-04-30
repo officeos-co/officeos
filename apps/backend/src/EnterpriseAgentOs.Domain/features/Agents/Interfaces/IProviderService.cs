@@ -11,4 +11,10 @@ public interface IProviderService
     /// Returns the decrypted API key for LLM dispatch. Returns null if no key is configured.
     /// </summary>
     Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default);
+
+    /// <summary>
+    /// Syncs platform keys from environment/config into the database so they
+    /// appear as dashboard-connected providers.
+    /// </summary>
+    Task SyncPlatformKeysAsync(CancellationToken ct = default);
 }

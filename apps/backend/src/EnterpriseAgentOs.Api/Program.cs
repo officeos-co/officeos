@@ -197,6 +197,8 @@ using (var scope = app.Services.CreateScope())
     await ProviderSeeder.SeedAsync(providerRepo);
     await SkillSeeder.SeedAsync(scope.ServiceProvider);
     await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
+    var providerService = scope.ServiceProvider.GetRequiredService<IProviderService>();
+    await providerService.SyncPlatformKeysAsync();
 }
 
 if (app.Environment.IsDevelopment())

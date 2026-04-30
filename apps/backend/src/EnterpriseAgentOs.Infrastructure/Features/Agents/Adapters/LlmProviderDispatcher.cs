@@ -8,17 +8,6 @@ namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
 /// </summary>
 public sealed class LlmProviderDispatcher
 {
-    private static readonly Dictionary<string, string> OpenAiCompatBaseUrls =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["openai"] = "https://api.openai.com/v1",
-            ["groq"] = "https://api.groq.com/openai/v1",
-            ["deepseek"] = "https://api.deepseek.com/v1",
-            ["xai"] = "https://api.x.ai/v1",
-            ["openrouter"] = "https://openrouter.ai/api/v1",
-            ["google"] = "https://generativelanguage.googleapis.com/v1beta/openai",
-        };
-
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<LlmProviderDispatcher> _logger;
 
@@ -31,8 +20,7 @@ public sealed class LlmProviderDispatcher
     }
 
     public bool IsSupported(string provider) =>
-        OpenAiCompatBaseUrls.ContainsKey(provider)
-        || provider.Equals("anthropic", StringComparison.OrdinalIgnoreCase);
+        ProviderRegistry.Get(provider) is not null;
 
     /// <summary>
     /// Dispatch a chat-completions request to the upstream provider.
@@ -48,19 +36,16 @@ public sealed class LlmProviderDispatcher
     {
         _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, model);
 
+        var definition = ProviderRegistry.Get(provider);
+        if (definition is null)
+            return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
+
         try
         {
-            if (provider.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
-            {
+            if (definition.ApiFormat == ApiFormat.Anthropic)
                 return await DispatchAnthropicAsync(apiKey, model, requestBody, ct);
-            }
 
-            if (!OpenAiCompatBaseUrls.TryGetValue(provider, out var baseUrl))
-            {
-                return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
-            }
-
-            return await DispatchOpenAiCompatAsync(baseUrl, apiKey, model, requestBody, ct);
+            return await DispatchOpenAiCompatAsync(definition.BaseUrl, apiKey, model, requestBody, ct);
         }
         catch (TaskCanceledException ex)
         {
@@ -83,7 +68,6 @@ public sealed class LlmProviderDispatcher
         JsonElement requestBody,
         CancellationToken ct)
     {
-        // Clone the request, replace model
         var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(requestBody.GetRawText())
             ?? new Dictionary<string, JsonElement>();
         dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
@@ -132,7 +116,6 @@ public sealed class LlmProviderDispatcher
                 $"Anthropic returned {(int)upstream.StatusCode}: {errorBody}");
         }
 
-        // Wrap Anthropic SSE stream into OpenAI-compatible SSE stream
         var translatedStream = AnthropicTranslator.TranslateStream(
             await upstream.Content.ReadAsStreamAsync(ct));
         var response = new HttpResponseMessage(upstream.StatusCode);

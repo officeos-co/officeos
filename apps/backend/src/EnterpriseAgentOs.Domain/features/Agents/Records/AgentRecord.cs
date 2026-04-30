@@ -94,14 +94,14 @@ public sealed class AgentRecord
     {
         if (string.IsNullOrWhiteSpace(model))
         {
-            Model = KnownModels.DefaultModel;
+            Model = ProviderRegistry.DefaultModel;
             return;
         }
 
         var trimmed = model.Trim();
-        if (!KnownModels.IsValid(trimmed))
+        if (!ProviderRegistry.IsValidModel(trimmed))
         {
-            var allowed = string.Join(", ", KnownModels.SupportedModels);
+            var allowed = string.Join(", ", ProviderRegistry.SupportedModels);
             throw new InvalidOperationException(
                 $"Model '{trimmed}' is not a known model. Allowed: {allowed}");
         }

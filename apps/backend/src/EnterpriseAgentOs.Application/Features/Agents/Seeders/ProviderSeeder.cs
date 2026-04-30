@@ -8,15 +8,7 @@ public static class ProviderSeeder
         if (existing.Count > 0)
             return;
 
-        var seed = new[]
-        {
-            new ProviderRecord { Name = "openai", DisplayName = "OpenAI" },
-            new ProviderRecord { Name = "anthropic", DisplayName = "Anthropic" },
-            new ProviderRecord { Name = "google", DisplayName = "Google Gemini" },
-            new ProviderRecord { Name = "xai", DisplayName = "xAI Grok" },
-        };
-
-        foreach (var record in seed)
-            await repo.SaveAsync(record);
+        foreach (var def in ProviderRegistry.SeedableProviders)
+            await repo.SaveAsync(new ProviderRecord { Name = def.Slug, DisplayName = def.DisplayName });
     }
 }

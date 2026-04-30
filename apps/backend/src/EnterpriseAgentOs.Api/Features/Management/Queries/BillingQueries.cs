@@ -80,7 +80,7 @@ public class BillingQueries
     public IReadOnlyList<ModelCostWeightDto> GetModelCostWeights(IResolverContext context)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return ModelCostWeights.GetWeights()
+        return ProviderRegistry.GetCostWeights()
             .Select(kv => new ModelCostWeightDto(kv.Key, kv.Value))
             .ToList();
     }

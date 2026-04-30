@@ -1,6 +1,5 @@
 namespace EnterpriseAgentOs.Application.Features.Agents;
 
-//todo shouldnt that be like a service in the domain?
 internal sealed class ProviderService : IProviderService
 {
     private readonly IProviderRepository _providerRepository;
@@ -28,21 +27,18 @@ internal sealed class ProviderService : IProviderService
 
     private ProviderDto ToDtoWithPlatform(ProviderRecord record)
     {
-        // In Development (self-hosted), only user-configured keys count.
-        // In Production/Staging, platform keys also count.
+        // In Development (self-hosted), platform keys are synced to DB at startup,
+        // so record.Configured is the source of truth.
+        // In Production (SaaS), platform keys are operator-level fallbacks — show as configured
+        // without persisting to user rows.
         var configured = _hostEnvironment.IsDevelopment()
             ? record.Configured
             : record.Configured || HasPlatformKey(record.Name);
         return new(record.Id, record.Name, record.DisplayName, configured, record.ConfiguredAt);
     }
 
-    private bool HasPlatformKey(string name) => name.ToLowerInvariant() switch
-    {
-        "anthropic" => !string.IsNullOrWhiteSpace(_platformKeysConfig.AnthropicApiKey),
-        "google" => !string.IsNullOrWhiteSpace(_platformKeysConfig.GeminiApiKey),
-        "xai" => !string.IsNullOrWhiteSpace(_platformKeysConfig.XaiApiKey),
-        _ => false,
-    };
+    private bool HasPlatformKey(string name) =>
+        _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName) is not null;
 
     public async Task<ProviderDto?> ConfigureAsync(string name, string apiKey, CancellationToken ct = default)
     {
@@ -79,25 +75,33 @@ internal sealed class ProviderService : IProviderService
 
     public async Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
     {
-        // Check user-configured key in DB first
         var record = await _providerRepository.GetByNameAsync(name, ct);
         if (record?.EncryptedApiKey is not null)
             return _providerKeyProtector.Unprotect(record.EncryptedApiKey);
 
-        // Fall back to platform keys from config
-        return GetPlatformKey(name);
+        return _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName);
     }
 
-    private string? GetPlatformKey(string name) => name.ToLowerInvariant() switch
+    public async Task SyncPlatformKeysAsync(CancellationToken ct = default)
     {
-        "anthropic" => NullIfEmpty(_platformKeysConfig.AnthropicApiKey),
-        "google" => NullIfEmpty(_platformKeysConfig.GeminiApiKey),
-        "xai" => NullIfEmpty(_platformKeysConfig.XaiApiKey),
-        "openai" => NullIfEmpty(_platformKeysConfig.OpenAiApiKey),
-        _ => null,
-    };
+        if (!_hostEnvironment.IsDevelopment())
+            return;
 
-    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+        foreach (var provider in ProviderRegistry.SeedableProviders)
+        {
+            var key = _platformKeysConfig.GetKey(provider.PlatformKeyConfigName);
+            if (key is null) continue;
+
+            var record = await _providerRepository.GetByNameAsync(provider.Slug, ct);
+            if (record is null) continue;
+            if (record.EncryptedApiKey is not null) continue;
+
+            record.EncryptedApiKey = _providerKeyProtector.Protect(key);
+            record.ConfiguredAt = DateTime.UtcNow;
+            await _providerRepository.SaveAsync(record, ct);
+            _logger.LogInformation("Synced platform key for provider {ProviderName} from environment", provider.Slug);
+        }
+    }
 
     private static ProviderDto ToDto(ProviderRecord record) =>
         new(record.Id, record.Name, record.DisplayName, record.Configured, record.ConfiguredAt);

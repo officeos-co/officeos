@@ -25,7 +25,7 @@ internal sealed class CreditRecordingService : ICreditRecordingService
         var agent = await _agentRepository.GetAsync(agentId, ct);
         if (agent?.OwnerId is null) return;
 
-        var credits = ModelCostWeights.ToCredits(model, rawTokens);
+        var credits = ProviderRegistry.ToCredits(model, rawTokens);
         var sub = await _userSubscriptionRepository.GetByUserIdAsync(agent.OwnerId.Value, ct);
         if (sub is null) return;
 

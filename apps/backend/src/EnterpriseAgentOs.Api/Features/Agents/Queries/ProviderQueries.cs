@@ -20,7 +20,7 @@ public class ProviderQueries
         IResolverContext context)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return KnownModels.For(providerName);
+        return ProviderRegistry.GetModelIds(providerName);
     }
 
     [GraphQLDescription("Returns available models with display names and default indicator. In self-hosted mode, only configured providers' models are returned.")]
@@ -34,8 +34,8 @@ public class ProviderQueries
         // Production/Staging: platform has keys for all providers
         if (!context.Service<IWebHostEnvironment>().IsDevelopment())
         {
-            return KnownModels.SupportedModels
-                .Select(m => new ModelInfoDto(m, KnownModels.GetDisplayName(m), m == KnownModels.DefaultModel))
+            return ProviderRegistry.SupportedModels
+                .Select(m => new ModelInfoDto(m, ProviderRegistry.GetDisplayName(m), m == ProviderRegistry.DefaultModel))
                 .ToList();
         }
 
@@ -47,7 +47,7 @@ public class ProviderQueries
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var models = configuredNames
-            .SelectMany(name => KnownModels.For(name))
+            .SelectMany(name => ProviderRegistry.GetModelIds(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -55,7 +55,7 @@ public class ProviderQueries
             models.Insert(0, "auto");
 
         return models
-            .Select(m => new ModelInfoDto(m, KnownModels.GetDisplayName(m), m == KnownModels.DefaultModel))
+            .Select(m => new ModelInfoDto(m, ProviderRegistry.GetDisplayName(m), m == ProviderRegistry.DefaultModel))
             .ToList();
     }
 }

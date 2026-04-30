@@ -12,5 +12,5 @@ internal static class ProviderGraphQLMapper
 {
     public static ProviderGqlDto ToDto(ProviderDto p) =>
         new(p.Id, p.Name, p.DisplayName, p.Configured, p.ConfiguredAt,
-            KnownModels.For(p.Name));
+            ProviderRegistry.GetModelIds(p.Name));
 }
