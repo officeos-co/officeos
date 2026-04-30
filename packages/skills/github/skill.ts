@@ -1,5 +1,10 @@
-import { defineSkill } from "@harro/skill-sdk";
-import manifest from "./skill.json" with { type: "json" };
+import { defineSkill, type SkillDefinition } from "@harro/skill-sdk";
+import _manifest from "./skill.json" with { type: "json" };
+
+const manifest = _manifest as unknown as Omit<
+  SkillDefinition,
+  "doc" | "actions"
+>;
 import doc from "./SKILL.md";
 import { repos } from "./cli/repos.ts";
 import { issues } from "./cli/issues.ts";
@@ -14,5 +19,15 @@ import { orgs } from "./cli/orgs.ts";
 export default defineSkill({
   ...manifest,
   doc,
-  actions: { ...repos, ...issues, ...pulls, ...reviews, ...releases, ...workflows, ...gists, ...search, ...orgs },
+  actions: {
+    ...repos,
+    ...issues,
+    ...pulls,
+    ...reviews,
+    ...releases,
+    ...workflows,
+    ...gists,
+    ...search,
+    ...orgs,
+  },
 });

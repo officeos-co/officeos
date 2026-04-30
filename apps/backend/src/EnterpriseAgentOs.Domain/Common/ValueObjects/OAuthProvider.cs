@@ -4,6 +4,7 @@ public enum OAuthProvider
 {
     Google,
     Microsoft,
+    GitHub,
 }
 
 public static class OAuthProviderExtensions
@@ -12,6 +13,7 @@ public static class OAuthProviderExtensions
     {
         OAuthProvider.Google => "google",
         OAuthProvider.Microsoft => "microsoft",
+        OAuthProvider.GitHub => "github",
         _ => throw new ArgumentOutOfRangeException(nameof(provider)),
     };
 
@@ -19,6 +21,7 @@ public static class OAuthProviderExtensions
     {
         "google" => OAuthProvider.Google,
         "microsoft" => OAuthProvider.Microsoft,
+        "github" => OAuthProvider.GitHub,
         _ => throw new ArgumentOutOfRangeException(nameof(value), $"Unknown OAuth provider: {value}"),
     };
 }

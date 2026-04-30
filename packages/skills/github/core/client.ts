@@ -21,7 +21,7 @@ export function ghJsonHeaders(token: string) {
 export async function ghFetch(ctx: Ctx, url: string, init?: RequestInit) {
   const res = await ctx.fetch(url, {
     ...init,
-    headers: { ...ghHeaders(ctx.credentials.token), ...init?.headers },
+    headers: { ...ghHeaders(ctx.credentials.access_token), ...init?.headers },
   });
   if (!res.ok) {
     const body = await res.text();
@@ -33,7 +33,7 @@ export async function ghFetch(ctx: Ctx, url: string, init?: RequestInit) {
 export async function ghPost(ctx: Ctx, url: string, body: unknown, method = "POST") {
   const res = await ctx.fetch(url, {
     method,
-    headers: ghJsonHeaders(ctx.credentials.token),
+    headers: ghJsonHeaders(ctx.credentials.access_token),
     body: JSON.stringify(body),
   });
   if (!res.ok) {

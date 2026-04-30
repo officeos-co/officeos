@@ -5,11 +5,13 @@ namespace EnterpriseAgentOs.Api.Features.Management;
 public sealed class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly ISkillOAuthService _skillOAuthService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, ISkillOAuthService skillOAuthService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _skillOAuthService = skillOAuthService;
         _logger = logger;
     }
 
@@ -42,6 +44,11 @@ public sealed class AuthController : ControllerBase
         [FromQuery] string state,
         CancellationToken ct)
     {
+        // Skill OAuth flow — delegate to skill OAuth service
+        var skillState = Request.Cookies["skill-oauth-state"];
+        if (!string.IsNullOrEmpty(skillState) && skillState == state)
+            return await HandleSkillOAuthCallback("google", code, state, ct);
+
         try
         {
             var savedState = Request.Cookies["oauth-state"];
@@ -99,6 +106,11 @@ public sealed class AuthController : ControllerBase
         [FromQuery] string state,
         CancellationToken ct)
     {
+        // Skill OAuth flow — delegate to skill OAuth service
+        var skillState = Request.Cookies["skill-oauth-state"];
+        if (!string.IsNullOrEmpty(skillState) && skillState == state)
+            return await HandleSkillOAuthCallback("github", code, state, ct);
+
         try
         {
             var savedState = Request.Cookies["oauth-state"];
@@ -125,6 +137,24 @@ public sealed class AuthController : ControllerBase
         {
             return RedirectWithError($"Sign-in failed: {ex.Message}");
         }
+    }
+
+    private async Task<IActionResult> HandleSkillOAuthCallback(string provider, string code, string state, CancellationToken ct)
+    {
+        Response.Cookies.Delete("skill-oauth-state");
+
+        try
+        {
+            await _skillOAuthService.ExchangeCallbackAsync(provider, code, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
+        var returnUrl = Request.Cookies["skill-oauth-return"];
+        Response.Cookies.Delete("skill-oauth-return");
+        return Redirect(returnUrl ?? "/integrations");
     }
 
     private bool IsLocalhost => Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);

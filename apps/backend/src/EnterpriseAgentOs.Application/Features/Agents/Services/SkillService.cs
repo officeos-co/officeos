@@ -202,8 +202,12 @@ internal sealed class SkillService : ISkillService
         if (tokenRecord is null || string.IsNullOrEmpty(tokenRecord.EncryptedAccessToken))
             return null;
 
+        // If token has no expiry (e.g. GitHub), skip refresh
+        if (!tokenRecord.ExpiresAtUtc.HasValue)
+            return _skillCredentialProtector.Unprotect(tokenRecord.EncryptedAccessToken);
+
         // If token is expired (or within 5 min of expiry), refresh it
-        if (tokenRecord.ExpiresAtUtc.HasValue && tokenRecord.ExpiresAtUtc.Value < DateTime.UtcNow.AddMinutes(5))
+        if (tokenRecord.ExpiresAtUtc.Value < DateTime.UtcNow.AddMinutes(5))
         {
             if (string.IsNullOrEmpty(tokenRecord.EncryptedRefreshToken))
             {
@@ -212,7 +216,7 @@ internal sealed class SkillService : ISkillService
             }
 
             var refreshToken = _skillCredentialProtector.Unprotect(tokenRecord.EncryptedRefreshToken);
-            var newToken = await RefreshGoogleTokenAsync(refreshToken, ct);
+            var newToken = await RefreshTokenAsync(provider, refreshToken, ct);
             if (newToken is null) return null;
 
             tokenRecord.EncryptedAccessToken = _skillCredentialProtector.Protect(newToken.AccessToken!);
@@ -226,21 +230,27 @@ internal sealed class SkillService : ISkillService
         return _skillCredentialProtector.Unprotect(tokenRecord.EncryptedAccessToken);
     }
 
-    private async Task<OAuthTokenRefreshResult?> RefreshGoogleTokenAsync(string refreshToken, CancellationToken ct)
+    private async Task<OAuthTokenRefreshResult?> RefreshTokenAsync(string provider, string refreshToken, CancellationToken ct)
     {
+        var (tokenUrl, clientId, clientSecret) = provider switch
+        {
+            "google" => ("https://oauth2.googleapis.com/token", _googleOAuthConfig.ClientId, _googleOAuthConfig.ClientSecret),
+            _ => throw new InvalidOperationException($"Token refresh not supported for provider: {provider}"),
+        };
+
         var http = _httpFactory.CreateClient();
-        var res = await http.PostAsync("https://oauth2.googleapis.com/token",
+        var res = await http.PostAsync(tokenUrl,
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["refresh_token"] = refreshToken,
-                ["client_id"] = _googleOAuthConfig.ClientId,
-                ["client_secret"] = _googleOAuthConfig.ClientSecret,
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
                 ["grant_type"] = "refresh_token",
             }), ct);
 
         if (!res.IsSuccessStatusCode)
         {
-            _logger.LogError("Google token refresh failed: {Status}", res.StatusCode);
+            _logger.LogError("{Provider} token refresh failed: {Status}", provider, res.StatusCode);
             return null;
         }
 

@@ -21,11 +21,17 @@
     }
   ],
   "credentials": {
-    "token": {
-      "label": "Personal Access Token",
-      "kind": "password",
-      "placeholder": "github_pat_… or ghp_…",
-      "help": "Fine-grained PAT or classic PAT with `actions`, `secrets`, and `variables` read/write scopes. Create at https://github.com/settings/tokens."
+    "access_token": {
+      "label": "GitHub Account",
+      "kind": "oauth2",
+      "help": "Connect your GitHub account to manage Actions workflows, secrets, and variables.",
+      "oauth2": {
+        "provider": "github",
+        "scopes": [
+          "repo",
+          "workflow"
+        ]
+      }
     }
   }
 }

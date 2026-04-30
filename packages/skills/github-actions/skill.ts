@@ -1,11 +1,19 @@
-import { defineSkill, z } from "@harro/skill-sdk";
+import { defineSkill, z, type SkillDefinition } from "@harro/skill-sdk";
 
-import manifest from "./skill.json" with { type: "json" };
+import _manifest from "./skill.json" with { type: "json" };
 import doc from "./SKILL.md";
+
+const manifest = _manifest as unknown as Omit<
+  SkillDefinition,
+  "doc" | "actions"
+>;
 
 const GH_API = "https://api.github.com";
 
-type Ctx = { fetch: typeof globalThis.fetch; credentials: Record<string, string> };
+type Ctx = {
+  fetch: typeof globalThis.fetch;
+  credentials: Record<string, string>;
+};
 
 function ghHeaders(token: string) {
   return {
@@ -16,10 +24,14 @@ function ghHeaders(token: string) {
   };
 }
 
-async function ghFetch(ctx: Ctx, path: string, params?: Record<string, string>) {
+async function ghFetch(
+  ctx: Ctx,
+  path: string,
+  params?: Record<string, string>,
+) {
   const qs = params ? "?" + new URLSearchParams(params).toString() : "";
   const res = await ctx.fetch(`${GH_API}${path}${qs}`, {
-    headers: ghHeaders(ctx.credentials.token),
+    headers: ghHeaders(ctx.credentials.access_token),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -32,7 +44,10 @@ async function ghFetch(ctx: Ctx, path: string, params?: Record<string, string>) 
 async function ghPost(ctx: Ctx, path: string, body: unknown, method = "POST") {
   const res = await ctx.fetch(`${GH_API}${path}`, {
     method,
-    headers: { ...ghHeaders(ctx.credentials.token), "Content-Type": "application/json" },
+    headers: {
+      ...ghHeaders(ctx.credentials.access_token),
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -46,7 +61,7 @@ async function ghPost(ctx: Ctx, path: string, body: unknown, method = "POST") {
 async function ghDelete(ctx: Ctx, path: string) {
   const res = await ctx.fetch(`${GH_API}${path}`, {
     method: "DELETE",
-    headers: ghHeaders(ctx.credentials.token),
+    headers: ghHeaders(ctx.credentials.access_token),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -88,7 +103,10 @@ export default defineSkill({
         }),
       ),
       execute: async (params, ctx) => {
-        const data = await ghFetch(ctx, `${repoBase(params.owner, params.repo)}/actions/workflows`);
+        const data = await ghFetch(
+          ctx,
+          `${repoBase(params.owner, params.repo)}/actions/workflows`,
+        );
         return (data.workflows ?? []).map((w: any) => ({
           id: w.id,
           name: w.name,
@@ -100,7 +118,8 @@ export default defineSkill({
     },
 
     list_runs: {
-      description: "List workflow runs for a repository, optionally filtered by workflow.",
+      description:
+        "List workflow runs for a repository, optionally filtered by workflow.",
       params: z.object({
         ...ownerRepo,
         workflow_id: z
@@ -108,11 +127,28 @@ export default defineSkill({
           .optional()
           .describe("Workflow filename (e.g. deploy.yml) or numeric ID"),
         status: z
-          .enum(["queued", "in_progress", "completed", "waiting", "action_required", "neutral", "success", "failure", "skipped", "cancelled", "timed_out"])
+          .enum([
+            "queued",
+            "in_progress",
+            "completed",
+            "waiting",
+            "action_required",
+            "neutral",
+            "success",
+            "failure",
+            "skipped",
+            "cancelled",
+            "timed_out",
+          ])
           .optional()
           .describe("Filter by run status"),
         branch: z.string().optional().describe("Filter by branch name"),
-        per_page: z.number().min(1).max(100).default(20).describe("Results per page"),
+        per_page: z
+          .number()
+          .min(1)
+          .max(100)
+          .default(20)
+          .describe("Results per page"),
       }),
       returns: z.array(
         z.object({
@@ -224,9 +260,14 @@ export default defineSkill({
       description: "Manually trigger a workflow via workflow_dispatch event.",
       params: z.object({
         ...ownerRepo,
-        workflow_id: z.string().describe("Workflow filename (e.g. deploy.yml) or numeric ID"),
+        workflow_id: z
+          .string()
+          .describe("Workflow filename (e.g. deploy.yml) or numeric ID"),
         ref: z.string().describe("Branch, tag, or SHA to run on"),
-        inputs: z.string().optional().describe("JSON-encoded object of workflow input values"),
+        inputs: z
+          .string()
+          .optional()
+          .describe("JSON-encoded object of workflow input values"),
       }),
       returns: z.object({ success: z.boolean() }),
       execute: async (params, ctx) => {
@@ -292,7 +333,10 @@ export default defineSkill({
       execute: async (params, ctx) => {
         const res = await ctx.fetch(
           `${GH_API}${repoBase(params.owner, params.repo)}/actions/jobs/${params.job_id}/logs`,
-          { headers: ghHeaders(ctx.credentials.token), redirect: "manual" },
+          {
+            headers: ghHeaders(ctx.credentials.access_token),
+            redirect: "manual",
+          },
         );
         const location = res.headers.get("location") ?? "";
         return { log_url: location };
@@ -336,10 +380,15 @@ export default defineSkill({
     // ── Secrets ──────────────────────────────────────────────────────────
 
     list_secrets: {
-      description: "List repository Actions secrets (names only, values are never returned by GitHub).",
+      description:
+        "List repository Actions secrets (names only, values are never returned by GitHub).",
       params: z.object({ ...ownerRepo }),
       returns: z.array(
-        z.object({ name: z.string(), created_at: z.string(), updated_at: z.string() }),
+        z.object({
+          name: z.string(),
+          created_at: z.string(),
+          updated_at: z.string(),
+        }),
       ),
       execute: async (params, ctx) => {
         const data = await ghFetch(
@@ -359,8 +408,12 @@ export default defineSkill({
         "Create or update a repository Actions secret. The value is encrypted with the repo public key.",
       params: z.object({
         ...ownerRepo,
-        secret_name: z.string().describe("Secret name (uppercase alphanumeric + underscore)"),
-        secret_value: z.string().describe("Plaintext secret value to encrypt and store"),
+        secret_name: z
+          .string()
+          .describe("Secret name (uppercase alphanumeric + underscore)"),
+        secret_value: z
+          .string()
+          .describe("Plaintext secret value to encrypt and store"),
       }),
       returns: z.object({ success: z.boolean() }),
       execute: async (params, ctx) => {
@@ -405,7 +458,12 @@ export default defineSkill({
       description: "List repository Actions variables.",
       params: z.object({ ...ownerRepo }),
       returns: z.array(
-        z.object({ name: z.string(), value: z.string(), created_at: z.string(), updated_at: z.string() }),
+        z.object({
+          name: z.string(),
+          value: z.string(),
+          created_at: z.string(),
+          updated_at: z.string(),
+        }),
       ),
       execute: async (params, ctx) => {
         const data = await ghFetch(
@@ -432,11 +490,17 @@ export default defineSkill({
       execute: async (params, ctx) => {
         const base = `${repoBase(params.owner, params.repo)}/actions/variables`;
         // Try PATCH first (update), fall back to POST (create)
-        const patchRes = await ctx.fetch(`${GH_API}${base}/${enc(params.name)}`, {
-          method: "PATCH",
-          headers: { ...ghHeaders(ctx.credentials.token), "Content-Type": "application/json" },
-          body: JSON.stringify({ name: params.name, value: params.value }),
-        });
+        const patchRes = await ctx.fetch(
+          `${GH_API}${base}/${enc(params.name)}`,
+          {
+            method: "PATCH",
+            headers: {
+              ...ghHeaders(ctx.credentials.access_token),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name: params.name, value: params.value }),
+          },
+        );
         if (patchRes.ok || patchRes.status === 204) return { success: true };
         // Variable doesn't exist yet — create it
         await ghPost(ctx, base, { name: params.name, value: params.value });

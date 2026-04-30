@@ -22,11 +22,19 @@
     }
   ],
   "credentials": {
-    "token": {
-      "label": "Personal Access Token",
-      "kind": "password",
-      "placeholder": "github_pat_… or ghp_…",
-      "help": "Fine-grained PAT recommended. Needs appropriate scopes for the actions you want to use. Create one at https://github.com/settings/tokens."
+    "access_token": {
+      "label": "GitHub Account",
+      "kind": "oauth2",
+      "help": "Connect your GitHub account to manage repositories, issues, PRs, and more.",
+      "oauth2": {
+        "provider": "github",
+        "scopes": [
+          "repo",
+          "workflow",
+          "gist",
+          "read:org"
+        ]
+      }
     }
   }
 }

@@ -50,29 +50,6 @@ public sealed class SkillOAuthController : ControllerBase
         }
     }
 
-    [HttpGet("{provider}/callback")]
-    public async Task<IActionResult> Callback(string provider, [FromQuery] string code, [FromQuery] string state, CancellationToken ct)
-    {
-        var storedState = Request.Cookies["skill-oauth-state"];
-        if (string.IsNullOrEmpty(storedState) || storedState != state)
-            return BadRequest("Invalid OAuth state.");
-
-        Response.Cookies.Delete("skill-oauth-state");
-
-        try
-        {
-            await _oauthService.ExchangeCallbackAsync(provider, code, ct);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-
-        var returnUrl = Request.Cookies["skill-oauth-return"];
-        Response.Cookies.Delete("skill-oauth-return");
-        return Redirect(returnUrl ?? "/integrations");
-    }
-
     [HttpGet("{provider}/status")]
     public async Task<IActionResult> Status(string provider, CancellationToken ct)
     {
