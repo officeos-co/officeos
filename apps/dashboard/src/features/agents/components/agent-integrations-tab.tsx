@@ -17,7 +17,6 @@ import type {
 } from "@/features/agents/data/channels";
 import {
   useIntegrations,
-  useInstallSkill,
   useSetSkillCredentials,
   sortIntegrations,
 } from "@/features/agents/api/useIntegrations";
@@ -53,7 +52,6 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { unbindChannelFromAgent } = useUnbindChannelFromAgent();
   const assignSkill = useAssignSkillToAgent();
   const unassignSkill = useUnassignSkillFromAgent();
-  const installSkill = useInstallSkill();
   const setSkillCredentials = useSetSkillCredentials();
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
     new Set(),
@@ -61,10 +59,8 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
   );
-  // Track the last backend snapshot we synced from, so we re-sync when it changes
   const lastSyncedSkillsRef = useRef<string>("");
   const lastSyncedChannelsRef = useRef<string>("");
-  const [installingSlug, setInstallingSlug] = useState<string | null>(null);
   const [configureSlug, setConfigureSlug] = useState<string | null>(null);
   const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null);
 
@@ -104,7 +100,6 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   async function toggleIntegration(slug: string) {
     const wasSelected = selectedIntegrations.has(slug);
 
-    // Optimistic UI
     setSelectedIntegrations((prev) => {
       const next = new Set(prev);
       if (wasSelected) next.delete(slug);
@@ -119,9 +114,8 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         await assignSkill(agentId, slug);
       }
     } catch (e: any) {
-      const msg = e?.graphQLErrors?.[0]?.message ?? "Failed to toggle skill";
+      const msg = e?.graphQLErrors?.[0]?.message ?? "Failed to toggle MCP server";
       toast.error(msg);
-      // Revert on failure
       setSelectedIntegrations((prev) => {
         const next = new Set(prev);
         if (wasSelected) next.add(slug);
@@ -135,10 +129,8 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     const wasSelected = selectedChannels.has(slug);
     const ch = channels.find((c) => c.slug === slug);
 
-    // Guard: skip mutation if state already matches backend
     const alreadyBound = channelSlugs.includes(slug);
     if (!wasSelected && alreadyBound) {
-      // Just update local state, no mutation needed
       setSelectedChannels((prev) => new Set(prev).add(slug));
       if (ch)
         setChannelPerms((cp) => ({
@@ -148,7 +140,6 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       return;
     }
     if (wasSelected && !alreadyBound) {
-      // Just update local state, no mutation needed
       setSelectedChannels((prev) => {
         const next = new Set(prev);
         next.delete(slug);
@@ -162,7 +153,6 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       return;
     }
 
-    // Optimistically update UI
     setSelectedChannels((prev) => {
       const next = new Set(prev);
       if (wasSelected) next.delete(slug);
@@ -213,7 +203,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     a.added === b.added ? 0 : a.added ? -1 : 1,
   );
   const activeIntegrations = integrations.filter((i) =>
-    selectedIntegrations.has(i.slug),
+    selectedIntegrations.has(i.name),
   );
   const activeChannels = channels.filter((c) => selectedChannels.has(c.slug));
 
@@ -224,35 +214,26 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Integrations</Label>
+              <Label>MCP Servers</Label>
               <p className="text-xs text-muted-foreground">
-                API-based tools the agent can call.
+                MCP servers the agent can use.
               </p>
             </div>
             <Link
               href="/integrations"
               className="text-xs text-muted-foreground hover:text-foreground"
             >
-              Manage integrations →
+              Manage servers →
             </Link>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {sortedIntegrations.map((i) => (
               <IntegrationCard
-                key={i.slug}
+                key={i.name}
                 integration={i}
-                selected={selectedIntegrations.has(i.slug)}
-                installing={installingSlug === i.slug}
-                onInstall={async () => {
-                  setInstallingSlug(i.slug);
-                  try {
-                    await installSkill(i.slug);
-                  } finally {
-                    setInstallingSlug(null);
-                  }
-                }}
-                onConfigure={() => setConfigureSlug(i.slug)}
-                onToggle={() => toggleIntegration(i.slug)}
+                selected={selectedIntegrations.has(i.name)}
+                onConfigure={() => setConfigureSlug(i.name)}
+                onToggle={() => toggleIntegration(i.name)}
               />
             ))}
           </div>
@@ -303,25 +284,25 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-amber-800">
                     {unconfigured.length === 1
-                      ? `${unconfigured[0].name} requires credentials before it can be used.`
-                      : `${unconfigured.length} integrations require credentials before they can be used.`}
+                      ? `${unconfigured[0].title} requires credentials before it can be used.`
+                      : `${unconfigured.length} MCP servers require credentials before they can be used.`}
                   </p>
                   <p className="text-xs text-amber-700 mt-1">
-                    The agent will not be able to use unconfigured integrations.
-                    Set up credentials on the integration page.
+                    The agent will not be able to use unconfigured servers.
+                    Set up credentials on the server page.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {unconfigured.map((i) => (
                       <Link
-                        key={i.slug}
-                        href={`/integrations/${i.slug}`}
+                        key={i.name}
+                        href={`/integrations/${i.name}`}
                         className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors"
                       >
                         <div
                           className="size-3.5 shrink-0 [&>svg]:size-3.5"
                           dangerouslySetInnerHTML={{ __html: i.logo }}
                         />
-                        {i.name}
+                        {i.title}
                         <ExternalLinkIcon className="size-3" />
                       </Link>
                     ))}
@@ -353,21 +334,21 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
           />
           {activeIntegrations.map((i) => (
             <ToolPermissionCard
-              key={i.slug}
-              title={i.name}
-              subtitle={i.sourceCodeUrl.replace("https://github.com/", "")}
+              key={i.name}
+              title={i.title}
+              subtitle={i.name}
               icon={
                 <div
                   className="size-4 [&>svg]:size-4"
                   dangerouslySetInnerHTML={{ __html: i.logo }}
                 />
               }
-              tools={i.tools}
+              tools={[]}
               permissions={toolPermissions}
               onToggle={() => {}}
-              groupPerm={groupPermissions[i.slug] ?? "allow"}
+              groupPerm={groupPermissions[i.name] ?? "allow"}
               onGroupPerm={() => {}}
-              prefix={i.slug}
+              prefix={i.name}
             />
           ))}
         </div>
@@ -398,7 +379,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       {/* Credential dialog for inline configure */}
       {configureSlug &&
         (() => {
-          const i = integrations.find((x) => x.slug === configureSlug);
+          const i = integrations.find((x) => x.name === configureSlug);
           if (!i) return null;
           return (
             <CredentialDialog
@@ -406,12 +387,12 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
               onOpenChange={(open) => {
                 if (!open) setConfigureSlug(null);
               }}
-              name={i.name}
-              slug={i.slug}
+              name={i.title}
+              slug={i.name}
               logo={i.logo}
               credentials={i.credentialFields}
               onSave={(values) => {
-                setSkillCredentials(i.slug, values);
+                setSkillCredentials(i.name, values);
                 setConfigureSlug(null);
               }}
             />

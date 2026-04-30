@@ -2,6 +2,7 @@
 
 import { gql, useQuery } from "@apollo/client";
 import { useAgent } from "./useAgents";
+import { AGENT_MCP_SERVERS_QUERY } from "./useIntegrations";
 
 const CHANNEL_CONNECTIONS_QUERY = gql`
   query ChannelConnectionsForBindings {
@@ -17,12 +18,20 @@ export function useAgentBindings(agentId: string): {
   channelSlugs: string[];
   loading: boolean;
 } {
+  const { data: mcpData, loading: mcpLoading } = useQuery(
+    AGENT_MCP_SERVERS_QUERY,
+    { variables: { agentId }, skip: !agentId },
+  );
+
   const { agent, loading: agentLoading } = useAgent(agentId);
+
   const { data: connectionsData, loading: connectionsLoading } = useQuery(
     CHANNEL_CONNECTIONS_QUERY,
   );
 
-  const skillSlugs = (agent?.installedSkills ?? []).map((s) => s.skillName);
+  const skillSlugs = (mcpData?.agentMcpServers ?? []).map(
+    (s: { name: string }) => s.name,
+  );
 
   const connections: Array<{ id: string; channelType: string }> =
     connectionsData?.channelConnections ?? [];
@@ -30,14 +39,16 @@ export function useAgentBindings(agentId: string): {
   const channelSlugs = [
     ...new Set(
       (agent?.channelBindings ?? [])
-        .map((b) => connMap.get(b.channelConnectionId))
-        .filter((s): s is string => !!s),
+        .map((b: { channelConnectionId: string }) =>
+          connMap.get(b.channelConnectionId),
+        )
+        .filter((s: string | undefined): s is string => !!s),
     ),
   ];
 
   return {
     skillSlugs,
     channelSlugs,
-    loading: agentLoading || connectionsLoading,
+    loading: mcpLoading || agentLoading || connectionsLoading,
   };
 }

@@ -1,104 +1,75 @@
-query Skills {
-  skills {
+query McpServers {
+  mcpServers {
     id
     name
     title
     description
+    transportType
+    command
+    args
+    url
     logo
-    sourceCodeUrl
-    doc
-    status
-    installed
-    likes
-    likedByMe
-    commentsCount
-    version
-    license
-    repository
-    categories
-    keywords
-    readme
-    changelog
-    author {
-      name
-      url
-    }
-    contributors {
-      name
-      url
-    }
+    category
+    credentialFieldsJson
+    isBuiltin
     createdAt
-    updatedAt
-    configured
-    credentialFields {
-      key
-      label
-      kind
-      required
-      placeholder
-      help
-    }
-    tools {
-      name
-      description
-    }
   }
 }
 
-query SkillComments($skillId: UUID!) {
-  skillComments(skillId: $skillId) {
+query McpServer($name: String!) {
+  mcpServer(name: $name) {
     id
-    body
+    name
+    title
+    description
+    transportType
+    command
+    args
+    url
+    logo
+    category
+    credentialFieldsJson
+    isBuiltin
     createdAt
-    author {
-      id
-      name
-      avatarUrl
-    }
   }
 }
 
-mutation InstallSkill($name: String!) {
-  installSkill(name: $name)
-}
-
-mutation UninstallSkill($name: String!) {
-  uninstallSkill(name: $name)
-}
-
-mutation LikeSkill($skillId: UUID!) {
-  likeSkill(skillId: $skillId) {
+query AgentMcpServers($agentId: UUID!) {
+  agentMcpServers(agentId: $agentId) {
     id
-    likes
-    likedByMe
+    name
+    title
+    description
+    transportType
+    logo
+    category
+    credentialFieldsJson
+    isBuiltin
   }
 }
 
-mutation UnlikeSkill($skillId: UUID!) {
-  unlikeSkill(skillId: $skillId) {
+mutation RegisterMcpServer($input: RegisterMcpServerInput!) {
+  registerMcpServer(input: $input) {
     id
-    likes
-    likedByMe
+    name
+    title
+    description
+    transportType
   }
 }
 
-mutation CommentOnSkill($skillId: UUID!, $body: String!) {
-  commentOnSkill(skillId: $skillId, body: $body) {
-    id
-    body
-    createdAt
-    author {
-      id
-      name
-      avatarUrl
-    }
-  }
+mutation DeleteMcpServer($name: String!) {
+  deleteMcpServer(name: $name)
 }
 
-mutation DeleteSkillComment($commentId: UUID!) {
-  deleteSkillComment(commentId: $commentId)
+mutation AssignMcpServerToAgent($agentId: UUID!, $serverName: String!) {
+  assignMcpServerToAgent(agentId: $agentId, serverName: $serverName)
 }
 
-mutation SetSkillCredentials($name: String!, $credentials: [SkillCredentialEntryInput!]!) {
-  setSkillCredentials(name: $name, credentials: $credentials)
+mutation UnassignMcpServerFromAgent($agentId: UUID!, $serverName: String!) {
+  unassignMcpServerFromAgent(agentId: $agentId, serverName: $serverName)
+}
+
+mutation SaveMcpCredential($serverName: String!, $fields: [CredentialFieldInput!]!) {
+  saveMcpCredential(serverName: $serverName, fields: $fields)
 }

@@ -3,29 +3,25 @@
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
-import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { EmptyState } from "@/components/ui/empty-state"
-import { useIntegrations, useInstallSkill, sortIntegrations, CredentialDialog, IntegrationCard } from "@/features/agents"
-import { useAnalytics } from "@/features/analytics"
+import { useIntegrations, useSetSkillCredentials, sortIntegrations, CredentialDialog, IntegrationCard } from "@/features/agents"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { useFilterParams } from "@/hooks/useFilterParams"
 
 const PAGE_SIZES = [25, 50, 100] as const
 
-type View = "all" | "installed" | "explore"
+type View = "all" | "configured"
 
 const FILTER_DEFAULTS = { q: null, view: "all", size: "50", page: "0", category: null } as const
 
 export default function IntegrationsPage() {
   const router = useRouter()
   const { integrations, loading } = useIntegrations()
-  const installSkill = useInstallSkill()
-  const { trackSkillInstalled } = useAnalytics()
+  const setCredentials = useSetSkillCredentials()
   const [configSlug, setConfigSlug] = useState<string | null>(null)
-  const [installingSlug, setInstallingSlug] = useState<string | null>(null)
 
   const { get, set: setParams } = useFilterParams(FILTER_DEFAULTS, "/integrations")
 
@@ -41,20 +37,19 @@ export default function IntegrationsPage() {
   const setPage = (v: number) => setParams({ page: String(v) })
   const setSelectedCategory = (v: string | null) => setParams({ category: v, page: null })
 
-  const configIntegration = configSlug ? integrations.find((i) => i.slug === configSlug) : null
+  const configIntegration = configSlug ? integrations.find((i) => i.name === configSlug) : null
 
   const allCategories = useMemo(() => {
     const cats = new Set<string>()
-    integrations.forEach((i) => i.categories.forEach((c) => cats.add(c)))
+    integrations.forEach((i) => { if (i.category) cats.add(i.category) })
     return Array.from(cats).sort()
   }, [integrations])
 
   const filtered = useMemo(() => {
     const list = integrations.filter((i) => {
-      if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
-      if (view === "installed" && !i.installed) return false
-      if (view === "explore" && i.installed) return false
-      if (selectedCategory && !i.categories.includes(selectedCategory)) return false
+      if (search && !i.title.toLowerCase().includes(search.toLowerCase())) return false
+      if (view === "configured" && !i.configured) return false
+      if (selectedCategory && i.category !== selectedCategory) return false
       return true
     })
     return sortIntegrations(list)
@@ -62,22 +57,22 @@ export default function IntegrationsPage() {
 
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize)
 
-  const installedCount = integrations.filter((i) => i.installed).length
+  const configuredCount = integrations.filter((i) => i.configured).length
 
   return (
     <>
-      <PageHeader group="Managed Agents" page="Integrations" />
+      <PageHeader group="Managed Agents" page="MCP Servers" />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div className="flex items-center gap-2">
           <SearchInput
-            placeholder="Search integrations..."
+            placeholder="Search MCP servers..."
             value={search}
             onChange={(v) => { setSearch(v); setPage(0) }}
           />
           <div className="flex items-center rounded-lg border border-border">
-            {([["all", "All"], ["installed", `Installed (${installedCount})`], ["explore", "Explore"]] as const).map(([key, label]) => (
-              <button key={key} type="button" onClick={() => { setView(key); setPage(0) }}
-                className={`px-3 py-1.5 text-xs font-medium transition-colors ${view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"} ${key === "all" ? "rounded-l-md" : ""} ${key === "explore" ? "rounded-r-md" : ""}`}>
+            {([["all", "All"], ["configured", `Configured (${configuredCount})`]] as const).map(([key, label]) => (
+              <button key={key} type="button" onClick={() => { setView(key as View); setPage(0) }}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${view === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"} ${key === "all" ? "rounded-l-md" : ""} ${key === "configured" ? "rounded-r-md" : ""}`}>
                 {label}
               </button>
             ))}
@@ -123,35 +118,25 @@ export default function IntegrationsPage() {
                 </div>
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-3 w-16" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {paged.map((integration) => (
+            {paged.map((server) => (
               <IntegrationCard
-                key={integration.slug}
-                integration={integration}
+                key={server.name}
+                integration={server}
                 variant="marketplace"
-                installing={installingSlug === integration.slug}
-                onInstall={async () => {
-                  setInstallingSlug(integration.slug)
-                  try { await installSkill(integration.slug); trackSkillInstalled(integration.slug) }
-                  finally { setInstallingSlug(null) }
-                }}
-                onConfigure={() => setConfigSlug(integration.slug)}
-                onClick={() => router.push(`/integrations/${integration.slug}`)}
+                onConfigure={() => setConfigSlug(server.name)}
+                onClick={() => router.push(`/integrations/${server.name}`)}
               />
             ))}
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
-          <EmptyState message="No integrations found." />
+          <EmptyState message="No MCP servers found." />
         )}
 
         {!loading && filtered.length > 0 && (
@@ -170,11 +155,14 @@ export default function IntegrationsPage() {
         <CredentialDialog
           open={!!configSlug}
           onOpenChange={(open) => { if (!open) setConfigSlug(null) }}
-          name={configIntegration.name}
-          slug={configIntegration.slug}
+          name={configIntegration.title}
+          slug={configIntegration.name}
           logo={configIntegration.logo}
           credentials={configIntegration.credentialFields}
-          onSave={() => {}}
+          onSave={async (values) => {
+            await setCredentials(configIntegration.name, values)
+            setConfigSlug(null)
+          }}
         />
       )}
     </>

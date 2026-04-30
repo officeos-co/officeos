@@ -3,58 +3,28 @@ export type Tool = {
   description: string
 }
 
-export type OAuth2Config = {
-  provider: string
-  scopes: string[]
-}
-
 export type CredentialField = {
-  key: string
-  label: string
-  kind: string
-  required: boolean
-  placeholder: string | null
-  help: string | null
-  oauth2: OAuth2Config | null
-}
-
-export type SkillAuthor = {
-  name: string;
-  url?: string | null;
-};
-
-export type SkillContributor = {
-  name: string;
-  url?: string | null;
-};
-
-export type Integration = {
-  id: string
   name: string
-  slug: string
-  logo: string
-  description: string
-  likes: number
-  likedByMe: boolean
-  commentsCount: number
-  tools: Tool[]
-  installed: boolean
-  configured: boolean
-  credentialFields: CredentialField[]
-  doc: string
-  sourceCodeUrl: string
-  version: string
-  license: string | null
-  repository: string | null
-  categories: string[]
-  keywords: string[]
-  readme: string | null
-  changelog: string | null
-  author: SkillAuthor | null
-  contributors: SkillContributor[]
-  createdAt: string | null
-  updatedAt: string | null
+  label: string
+  type: string    // "password" | "text"
+  required: boolean
 }
+
+export type McpServer = {
+  id: string
+  name: string        // slug
+  title: string
+  description: string
+  transportType: string
+  logo: string
+  category: string
+  credentialFields: CredentialField[]
+  configured: boolean  // derived: has credentials saved
+  isBuiltin: boolean
+}
+
+/** @deprecated Use McpServer instead */
+export type Integration = McpServer
 
 export const builtInTools: Tool[] = [
   { name: "bash", description: "Execute bash commands" },

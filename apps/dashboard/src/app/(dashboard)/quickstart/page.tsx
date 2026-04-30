@@ -20,7 +20,7 @@ import {
 import { builtInTools, type Tool } from "@/features/agents/data/integrations"
 import { type Channel, type ChannelPermissions } from "@/features/agents/data/channels"
 import {
-  useIntegrations, useInstallSkill, useSetSkillCredentials, sortIntegrations,
+  useIntegrations, useSetSkillCredentials, sortIntegrations,
   useChannels, useAgentTemplates, useCreateAgent, useModels,
   CredentialDialog, ChannelOnboardingDialog,
   IntegrationCard, ChannelCard,
@@ -177,7 +177,6 @@ export default function QuickstartPage() {
   const { createAgent } = useCreateAgent()
   const { models, defaultModelId } = useModels()
   const { trackAgentCreated } = useAnalytics()
-  const installSkill = useInstallSkill()
   const setSkillCredentials = useSetSkillCredentials()
   const [configureSlug, setConfigureSlug] = useState<string | null>(null)
   const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null)
@@ -230,10 +229,9 @@ export default function QuickstartPage() {
   }
 
   const filteredTemplates = templates.filter((t) => !search || t.name.toLowerCase().includes(search.toLowerCase()))
-  const [installingSlug, setInstallingSlug] = useState<string | null>(null)
   const sortedIntegrations = sortIntegrations(integrations)
   const sortedChannels = [...channels].sort((a, b) => (a.added === b.added ? 0 : a.added ? -1 : 1))
-  const activeIntegrations = integrations.filter((i) => selectedIntegrations.has(i.slug))
+  const activeIntegrations = integrations.filter((i) => selectedIntegrations.has(i.name))
   const activeChannels = channels.filter((c) => selectedChannels.has(c.slug))
 
   return (
@@ -345,17 +343,11 @@ export default function QuickstartPage() {
               <div className="grid grid-cols-3 gap-2">
                 {sortedIntegrations.map((i) => (
                   <IntegrationCard
-                    key={i.slug}
+                    key={i.name}
                     integration={i}
-                    selected={selectedIntegrations.has(i.slug)}
-                    installing={installingSlug === i.slug}
-                    onInstall={async () => {
-                      setInstallingSlug(i.slug)
-                      try { await installSkill(i.slug) }
-                      finally { setInstallingSlug(null) }
-                    }}
-                    onConfigure={() => setConfigureSlug(i.slug)}
-                    onToggle={() => toggleIntegration(i.slug)}
+                    selected={selectedIntegrations.has(i.name)}
+                    onConfigure={() => setConfigureSlug(i.name)}
+                    onToggle={() => toggleIntegration(i.name)}
                   />
                 ))}
               </div>
@@ -396,18 +388,18 @@ export default function QuickstartPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-amber-800">
                         {unconfigured.length === 1
-                          ? `${unconfigured[0].name} requires credentials before it can be used.`
-                          : `${unconfigured.length} integrations require credentials before they can be used.`}
+                          ? `${unconfigured[0].title} requires credentials before it can be used.`
+                          : `${unconfigured.length} MCP servers require credentials before they can be used.`}
                       </p>
                       <p className="text-xs text-amber-700 mt-1">
                         The agent will not be able to use unconfigured integrations. Set up credentials on the integration page.
                       </p>
                       <div className="flex flex-wrap gap-2 mt-3">
                         {unconfigured.map((i) => (
-                          <Link key={i.slug} href={`/integrations/${i.slug}`}
+                          <Link key={i.name} href={`/integrations/${i.name}`}
                             className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors">
                             <div className="size-3.5 shrink-0 [&>svg]:size-3.5" dangerouslySetInnerHTML={{ __html: i.logo }} />
-                            {i.name}
+                            {i.title}
                             <ExternalLinkIcon className="size-3" />
                           </Link>
                         ))}
@@ -432,13 +424,13 @@ export default function QuickstartPage() {
               />
               {activeIntegrations.map((i) => (
                 <ToolPermissionSection
-                  key={i.slug} title={i.name} subtitle={i.sourceCodeUrl.replace("https://github.com/", "")}
+                  key={i.name} title={i.title} subtitle={i.name}
                   icon={<div className="size-4 [&>svg]:size-4" dangerouslySetInnerHTML={{ __html: i.logo }} />}
-                  tools={i.tools} permissions={toolPermissions}
+                  tools={[]} permissions={toolPermissions}
                   onToggle={(k, p) => setToolPermissions((prev) => ({ ...prev, [k]: p }))}
-                  groupPerm={groupPermissions[i.slug] ?? "allow"}
-                  onGroupPerm={(p) => setGroupPermissions((prev) => ({ ...prev, [i.slug]: p }))}
-                  prefix={i.slug}
+                  groupPerm={groupPermissions[i.name] ?? "allow"}
+                  onGroupPerm={(p) => setGroupPermissions((prev) => ({ ...prev, [i.name]: p }))}
+                  prefix={i.name}
                 />
               ))}
             </div>
@@ -482,8 +474,8 @@ export default function QuickstartPage() {
                     {(t.integrations.length > 0 || t.channels.length > 0) && (
                       <div className="flex items-center gap-1 mt-0.5">
                         {t.integrations.map((slug) => {
-                          const i = integrations.find((x) => x.slug === slug)
-                          return i ? <div key={slug} className="size-[14px] shrink-0 [&>svg]:size-[14px]" dangerouslySetInnerHTML={{ __html: i.logo }} /> : null
+                          const s = integrations.find((x) => x.name === slug)
+                          return s ? <div key={slug} className="size-[14px] shrink-0 [&>svg]:size-[14px]" dangerouslySetInnerHTML={{ __html: s.logo }} /> : null
                         })}
                         {t.channels.length > 0 && t.integrations.length > 0 && <span className="text-[10px] text-muted-foreground mx-0.5">·</span>}
                         {t.channels.map((slug) => {
@@ -502,18 +494,18 @@ export default function QuickstartPage() {
 
       {/* Credential dialog for inline configure */}
       {configureSlug && (() => {
-        const i = integrations.find((x) => x.slug === configureSlug)
+        const i = integrations.find((x) => x.name === configureSlug)
         if (!i) return null
         return (
           <CredentialDialog
             open
             onOpenChange={(open) => { if (!open) setConfigureSlug(null) }}
-            name={i.name}
-            slug={i.slug}
+            name={i.title}
+            slug={i.name}
             logo={i.logo}
             credentials={i.credentialFields}
             onSave={(values) => {
-              setSkillCredentials(i.slug, values)
+              setSkillCredentials(i.name, values)
               setConfigureSlug(null)
             }}
           />

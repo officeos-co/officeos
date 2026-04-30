@@ -31,9 +31,6 @@ const AGENT_QUERY = gql`
         content
         updatedAt
       }
-      installedSkills {
-        skillName
-      }
       channelBindings {
         id
         channelConnectionId
@@ -126,10 +123,6 @@ export type AgentMemory = {
   updatedAt: string;
 };
 
-export type AgentSkillBinding = {
-  skillName: string;
-};
-
 export type AgentChannelBinding = {
   id: string;
   channelConnectionId: string;
@@ -143,7 +136,6 @@ export type AgentPersonalityFile = {
 
 export type AgentFull = AgentDetail & {
   memories: AgentMemory[];
-  installedSkills: AgentSkillBinding[];
   channelBindings: AgentChannelBinding[];
   personalityFiles: AgentPersonalityFile[];
   activeSession: {
@@ -200,11 +192,10 @@ export function useAgent(id: string): {
     model: a.model,
     status: (a.status ?? "stopped").toLowerCase(),
     prompt: a.prompt ?? "",
-    integrations: (a.installedSkills ?? []).map((s: AgentSkillBinding) => s.skillName),
+    integrations: [],
     channels: [],
     createdAt: a.createdAt ? Date.parse(a.createdAt) : Date.now(),
     memories: a.memories ?? [],
-    installedSkills: a.installedSkills ?? [],
     channelBindings: a.channelBindings ?? [],
     personalityFiles: a.personalityFiles ?? [],
     activeSession: a.activeSession ?? null,

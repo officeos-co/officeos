@@ -12,16 +12,6 @@ const TRACK_NAV_CLICKED = gql`
     trackNavClicked(input: $input)
   }
 `;
-const TRACK_SKILL_INSTALLED = gql`
-  mutation TrackSkillInstalled($input: TrackSkillInstalledInput!) {
-    trackSkillInstalled(input: $input)
-  }
-`;
-const TRACK_SKILL_CONFIGURED = gql`
-  mutation TrackSkillConfigured($input: TrackSkillConfiguredInput!) {
-    trackSkillConfigured(input: $input)
-  }
-`;
 const TRACK_CHANNEL_CONNECTED = gql`
   mutation TrackChannelConnected($input: TrackChannelConnectedInput!) {
     trackChannelConnected(input: $input)
@@ -45,8 +35,6 @@ type AgentCreatedInput = {
 export function useAnalytics() {
   const [trackPageViewMutation] = useMutation(TRACK_PAGE_VIEW);
   const [trackNavClickedMutation] = useMutation(TRACK_NAV_CLICKED);
-  const [trackSkillInstalledMutation] = useMutation(TRACK_SKILL_INSTALLED);
-  const [trackSkillConfiguredMutation] = useMutation(TRACK_SKILL_CONFIGURED);
   const [trackChannelConnectedMutation] = useMutation(TRACK_CHANNEL_CONNECTED);
   const [trackAgentCreatedMutation] = useMutation(TRACK_AGENT_CREATED);
 
@@ -66,14 +54,6 @@ export function useAnalytics() {
     trackNavClicked: (destination: string) =>
       run("nav_clicked", () =>
         trackNavClickedMutation({ variables: { input: { destination } } }),
-      ),
-    trackSkillInstalled: (skillName: string) =>
-      run("skill_installed", () =>
-        trackSkillInstalledMutation({ variables: { input: { skillName } } }),
-      ),
-    trackSkillConfigured: (skillName: string) =>
-      run("skill_configured", () =>
-        trackSkillConfiguredMutation({ variables: { input: { skillName } } }),
       ),
     trackChannelConnected: (channelSlug: string) =>
       run("channel_connected", () =>

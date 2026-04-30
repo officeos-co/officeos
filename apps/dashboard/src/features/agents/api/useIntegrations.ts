@@ -1,565 +1,188 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import type { Integration } from "../data/integrations";
+import type { McpServer, CredentialField } from "../data/integrations";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 
-const SKILLS_LIST_QUERY = gql`
-  query Skills {
-    skills {
+const MCP_SERVERS_QUERY = gql`
+  query McpServers {
+    mcpServers {
       id
       name
       title
       description
+      transportType
+      command
+      args
+      url
       logo
-      sourceCodeUrl
-      status
-      installed
-      likes
-      likedByMe
-      commentsCount
-      version
-      license
-      repository
-      requiresApproval
-      categories
-      keywords
-      author {
-        name
-        url
-      }
-      contributors {
-        name
-        url
-      }
-      configured
-      credentialFields {
-        key
-        label
-        kind
-        required
-        placeholder
-        help
-        oauth2 {
-          provider
-          scopes
-        }
-      }
-      tools {
-        name
-        description
-      }
+      category
+      credentialFieldsJson
+      isBuiltin
       createdAt
-      updatedAt
     }
   }
 `;
 
-const SKILL_DETAIL_QUERY = gql`
-  query Skill($name: String!) {
-    skill(name: $name) {
+const MCP_SERVER_QUERY = gql`
+  query McpServer($name: String!) {
+    mcpServer(name: $name) {
       id
       name
       title
       description
+      transportType
+      command
+      args
+      url
       logo
-      sourceCodeUrl
-      doc
-      status
-      installed
-      likes
-      likedByMe
-      commentsCount
-      version
-      license
-      repository
-      requiresApproval
-      categories
-      keywords
-      readme
-      changelog
-      author {
-        name
-        url
-      }
-      contributors {
-        name
-        url
-      }
-      configured
-      credentialFields {
-        key
-        label
-        kind
-        required
-        placeholder
-        help
-        oauth2 {
-          provider
-          scopes
-        }
-      }
-      tools {
-        name
-        description
-      }
+      category
+      credentialFieldsJson
+      isBuiltin
       createdAt
-      updatedAt
     }
   }
 `;
 
-const SKILL_COMMENTS_QUERY = gql`
-  query SkillComments($skillId: UUID!) {
-    skillComments(skillId: $skillId) {
+export const AGENT_MCP_SERVERS_QUERY = gql`
+  query AgentMcpServers($agentId: UUID!) {
+    agentMcpServers(agentId: $agentId) {
       id
-      body
-      createdAt
-      author {
-        id
-        name
-        avatarUrl
-      }
+      name
+      title
+      description
+      transportType
+      logo
+      category
+      credentialFieldsJson
+      isBuiltin
     }
   }
 `;
 
-const INSTALL_SKILL = gql`
-  mutation InstallSkill($name: String!) {
-    installSkill(name: $name)
+const SAVE_MCP_CREDENTIAL = gql`
+  mutation SaveMcpCredential($serverName: String!, $fields: [CredentialFieldInput!]!) {
+    saveMcpCredential(serverName: $serverName, fields: $fields)
   }
 `;
 
-const UNINSTALL_SKILL = gql`
-  mutation UninstallSkill($name: String!) {
-    uninstallSkill(name: $name)
-  }
-`;
-
-const SET_SKILL_CREDENTIALS = gql`
-  mutation SetSkillCredentials(
-    $name: String!
-    $credentials: [SkillCredentialEntryInput!]!
-  ) {
-    setSkillCredentials(name: $name, credentials: $credentials)
-  }
-`;
-
-const LIKE_SKILL = gql`
-  mutation LikeSkill($skillId: UUID!) {
-    likeSkill(skillId: $skillId) {
-      id
-      likes
-      likedByMe
-    }
-  }
-`;
-
-const UNLIKE_SKILL = gql`
-  mutation UnlikeSkill($skillId: UUID!) {
-    unlikeSkill(skillId: $skillId) {
-      id
-      likes
-      likedByMe
-    }
-  }
-`;
-
-const COMMENT_ON_SKILL = gql`
-  mutation CommentOnSkill($skillId: UUID!, $body: String!) {
-    commentOnSkill(skillId: $skillId, body: $body) {
-      id
-      body
-      createdAt
-      author {
-        id
-        name
-        avatarUrl
-      }
-    }
-  }
-`;
-
-const DELETE_SKILL_COMMENT = gql`
-  mutation DeleteSkillComment($commentId: UUID!) {
-    deleteSkillComment(commentId: $commentId)
-  }
-`;
-
-type RawSkill = {
+type RawMcpServer = {
   id: string;
   name: string;
   title: string | null;
   description: string | null;
+  transportType: string | null;
+  command: string | null;
+  args: string[] | null;
+  url: string | null;
   logo: string | null;
-  doc: string | null;
-  sourceCodeUrl: string | null;
-  installed: boolean;
-  configured: boolean;
-  credentialFields: Array<{
-    key: string;
-    label: string;
-    kind: string;
-    required: boolean;
-    placeholder: string | null;
-    help: string | null;
-    oauth2: { provider: string; scopes: string[] } | null;
-  }> | null;
-  likes: number;
-  likedByMe: boolean;
-  commentsCount: number;
-  version: string | null;
-  license: string | null;
-  repository: string | null;
-  categories: string[] | null;
-  keywords: string[] | null;
-  readme: string | null;
-  changelog: string | null;
-  author: { name: string; url?: string | null } | null;
-  contributors: Array<{ name: string; url?: string | null }> | null;
+  category: string | null;
+  credentialFieldsJson: string | null;
+  isBuiltin: boolean;
   createdAt: string | null;
-  updatedAt: string | null;
-  tools: Array<{ name: string; description: string }> | null;
 };
 
-function mapSkill(s: RawSkill): Integration {
+function parseCredentialFields(json: string | null): CredentialField[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((f: Record<string, unknown>) => ({
+      name: String(f.name ?? ""),
+      label: String(f.label ?? f.name ?? ""),
+      type: String(f.type ?? "text"),
+      required: Boolean(f.required),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function mapMcpServer(s: RawMcpServer): McpServer {
+  const credentialFields = parseCredentialFields(s.credentialFieldsJson);
   return {
     id: s.id,
-    name: s.title ?? s.name,
-    slug: s.name,
-    logo: sanitizeSvg(s.logo ?? ""),
+    name: s.name,
+    title: s.title ?? s.name,
     description: s.description ?? "",
-    likes: s.likes,
-    likedByMe: s.likedByMe,
-    commentsCount: s.commentsCount,
-    tools: (s.tools ?? []).map((t) => ({
-      name: t.name,
-      description: t.description,
-    })),
-    installed: s.installed,
-    configured: s.configured,
-    credentialFields: (s.credentialFields ?? []).map((f) => ({
-      key: f.key,
-      label: f.label,
-      kind: f.kind,
-      required: f.required,
-      placeholder: f.placeholder ?? null,
-      help: f.help ?? null,
-      oauth2: f.oauth2 ?? null,
-    })),
-    doc: s.doc ?? "",
-    sourceCodeUrl: s.sourceCodeUrl ?? "",
-    version: s.version ?? "1.0.0",
-    license: s.license ?? null,
-    repository: s.repository ?? null,
-    categories: s.categories ?? [],
-    keywords: s.keywords ?? [],
-    readme: s.readme ?? null,
-    changelog: s.changelog ?? null,
-    author: s.author ?? null,
-    contributors: s.contributors ?? [],
-    createdAt: s.createdAt ?? null,
-    updatedAt: s.updatedAt ?? null,
+    transportType: s.transportType ?? "stdio",
+    logo: sanitizeSvg(s.logo ?? ""),
+    category: s.category ?? "",
+    credentialFields,
+    configured: credentialFields.length === 0,
+    isBuiltin: s.isBuiltin,
   };
 }
 
-export function useIntegrations(): {
-  integrations: Integration[];
+export function useMcpServers(): {
+  servers: McpServer[];
   loading: boolean;
   error?: Error;
 } {
-  const { data, loading, error } = useQuery(SKILLS_LIST_QUERY, {
+  const { data, loading, error } = useQuery(MCP_SERVERS_QUERY, {
     fetchPolicy: "cache-and-network",
   });
-  const raw: RawSkill[] = data?.skills ?? [];
-  const integrations = raw.map(mapSkill);
-  return { integrations, loading, error: error ?? undefined };
+  const raw: RawMcpServer[] = data?.mcpServers ?? [];
+  const servers = raw.map(mapMcpServer);
+  return { servers, loading, error: error ?? undefined };
 }
 
-export function useIntegration(slug: string): {
-  integration: Integration | null;
+export function useMcpServer(name: string): {
+  server: McpServer | null;
   loading: boolean;
   error?: Error;
   refetch: () => void;
 } {
-  const { data, loading, error, refetch } = useQuery(SKILL_DETAIL_QUERY, {
-    variables: { name: slug },
-    skip: !slug,
+  const { data, loading, error, refetch } = useQuery(MCP_SERVER_QUERY, {
+    variables: { name },
+    skip: !name,
   });
-  const raw: RawSkill | null = data?.skill ?? null;
-  const integration = raw ? mapSkill(raw) : null;
-  return { integration, loading, error: error ?? undefined, refetch };
+  const raw: RawMcpServer | null = data?.mcpServer ?? null;
+  const server = raw ? mapMcpServer(raw) : null;
+  return { server, loading, error: error ?? undefined, refetch };
 }
 
-export type SkillComment = {
-  id: string;
-  body: string;
-  createdAt: string;
-  author: { id: string; name: string | null; avatarUrl: string | null };
-};
-
-export function useSkillComments(skillId: string): {
-  comments: SkillComment[];
-  loading: boolean;
-  error?: Error;
-  refetch: () => void;
-} {
-  const { data, loading, error, refetch } = useQuery(SKILL_COMMENTS_QUERY, {
-    variables: { skillId },
-    skip: !skillId,
-  });
-  const raw: Array<{
-    id: string;
-    body: string;
-    createdAt: string;
-    author?: {
-      id: string;
-      name: string | null;
-      avatarUrl: string | null;
-    } | null;
-  }> = data?.skillComments ?? [];
-
-  const comments: SkillComment[] = raw.map((c) => ({
-    id: c.id,
-    body: c.body,
-    createdAt: c.createdAt,
-    author: {
-      id: c.author?.id ?? "",
-      name: c.author?.name ?? "Unknown",
-      avatarUrl: c.author?.avatarUrl ?? null,
-    },
-  }));
-
-  return { comments, loading, error: error ?? undefined, refetch };
-}
-
-/** Apollo defaults to `id` as the cache key. Skills are looked up by `name`
- *  (the slug), so we need to find the matching cache ID from the list query. */
-function findSkillCacheId(
-  cache: import("@apollo/client").ApolloCache<unknown>,
-  name: string,
-): string | undefined {
-  const data = cache.readQuery<{ skills: Array<{ id: string; name: string }> }>(
-    { query: SKILLS_LIST_QUERY },
-  );
-  const skill = data?.skills?.find((s) => s.name === name);
-  if (skill) return cache.identify({ __typename: "Skill", id: skill.id });
-
-  // Also check the single-skill detail query
-  const detail = cache.readQuery<{ skill: { id: string; name: string } | null }>(
-    { query: SKILL_DETAIL_QUERY, variables: { name } },
-  );
-  if (detail?.skill) return cache.identify({ __typename: "Skill", id: detail.skill.id });
-
-  return undefined;
-}
-
-export function useInstallSkill() {
-  const [fn, { loading }] = useMutation(INSTALL_SKILL);
-  const install = async (name: string) => {
-    await fn({
-      variables: { name },
-      optimisticResponse: { installSkill: true },
-      update(cache) {
-        const cacheId = findSkillCacheId(cache, name);
-        if (cacheId) {
-          cache.modify({ id: cacheId, fields: { installed: () => true } });
-        }
-      },
-    });
-  };
-  return Object.assign(install, { loading });
-}
-
-export function useUninstallSkill() {
-  const [fn, { loading }] = useMutation(UNINSTALL_SKILL);
-  const uninstall = async (name: string) => {
-    await fn({
-      variables: { name },
-      optimisticResponse: { uninstallSkill: true },
-      update(cache) {
-        const cacheId = findSkillCacheId(cache, name);
-        if (cacheId) {
-          cache.modify({ id: cacheId, fields: { installed: () => false } });
-        }
-      },
-    });
-  };
-  return Object.assign(uninstall, { loading });
-}
-
-export function useSetSkillCredentials() {
-  const [fn] = useMutation(SET_SKILL_CREDENTIALS);
-  return async (name: string, credentials: Record<string, string>) => {
-    const entries = Object.entries(credentials).map(([key, value]) => ({
+export function useSaveMcpCredential() {
+  const [fn] = useMutation(SAVE_MCP_CREDENTIAL);
+  return async (serverName: string, credentials: Record<string, string>) => {
+    const fields = Object.entries(credentials).map(([key, value]) => ({
       key,
       value,
     }));
     await fn({
-      variables: { name, credentials: entries },
-      optimisticResponse: { setSkillCredentials: true },
-      update(cache) {
-        const cacheId = findSkillCacheId(cache, name);
-        if (cacheId) {
-          cache.modify({ id: cacheId, fields: { configured: () => true } });
-        }
-      },
+      variables: { serverName, fields },
     });
   };
 }
 
-export function useLikeSkill() {
-  const [likeFn] = useMutation(LIKE_SKILL);
-  const [unlikeFn] = useMutation(UNLIKE_SKILL);
-  return async (skillId: string, liked: boolean): Promise<void> => {
-    if (liked) {
-      await likeFn({
-        variables: { skillId },
-        optimisticResponse: {
-          likeSkill: {
-            __typename: "Skill",
-            id: skillId,
-            likes: -1, // Will be corrected by server response
-            likedByMe: true,
-          },
-        },
-        update(cache) {
-          cache.modify({
-            id: cache.identify({ __typename: "Skill", id: skillId }),
-            fields: {
-              likedByMe: () => true,
-              likes: (prev: number) => prev + 1,
-            },
-          });
-        },
-      });
-    } else {
-      await unlikeFn({
-        variables: { skillId },
-        optimisticResponse: {
-          unlikeSkill: {
-            __typename: "Skill",
-            id: skillId,
-            likes: -1,
-            likedByMe: false,
-          },
-        },
-        update(cache) {
-          cache.modify({
-            id: cache.identify({ __typename: "Skill", id: skillId }),
-            fields: {
-              likedByMe: () => false,
-              likes: (prev: number) => Math.max(0, prev - 1),
-            },
-          });
-        },
-      });
-    }
-  };
-}
-
-export function useCommentOnSkill() {
-  const [fn, state] = useMutation(COMMENT_ON_SKILL);
-  return {
-    commentOnSkill: async (skillId: string, body: string) => {
-      const optimisticId = `comment_optimistic_${Date.now().toString(36)}`;
-      const { data } = await fn({
-        variables: { skillId, body },
-        optimisticResponse: {
-          commentOnSkill: {
-            __typename: "SkillComment",
-            id: optimisticId,
-            body,
-            createdAt: new Date().toISOString(),
-            author: {
-              __typename: "User",
-              id: "me",
-              name: "You",
-              avatarUrl: null,
-            },
-          },
-        },
-        update(cache, { data: result }) {
-          if (!result?.commentOnSkill) return;
-          const existing = cache.readQuery<{ skillComments: unknown[] }>({
-            query: SKILL_COMMENTS_QUERY,
-            variables: { skillId },
-          });
-          if (existing) {
-            cache.writeQuery({
-              query: SKILL_COMMENTS_QUERY,
-              variables: { skillId },
-              data: { skillComments: [...existing.skillComments, result.commentOnSkill] },
-            });
-          }
-          cache.modify({
-            id: cache.identify({ __typename: "Skill", id: skillId }),
-            fields: { commentsCount: (prev: number) => prev + 1 },
-          });
-        },
-      });
-      return data?.commentOnSkill as SkillComment;
-    },
-    ...state,
-  };
-}
-
-export function useDeleteSkillComment() {
-  const [fn] = useMutation(DELETE_SKILL_COMMENT);
-  return async (commentId: string, skillId?: string) => {
-    await fn({
-      variables: { commentId },
-      optimisticResponse: { deleteSkillComment: true },
-      update(cache) {
-        cache.evict({ id: cache.identify({ __typename: "SkillComment", id: commentId }) });
-        if (skillId) {
-          cache.modify({
-            id: cache.identify({ __typename: "Skill", id: skillId }),
-            fields: { commentsCount: (prev: number) => Math.max(0, prev - 1) },
-          });
-        }
-        cache.gc();
-      },
-    });
-  };
-}
-
-const OAUTH_STATUS_QUERY = gql`
-  query OAuthConnectionStatus($provider: String!, $requiredScopes: [String!]) {
-    oauthConnectionStatus(provider: $provider, requiredScopes: $requiredScopes) {
-      connected
-      email
-      scopes
-      needsReauth
-      missingScopes
-    }
-  }
-`;
-
-/** Consistent sort: installed+configured first, then installed, then alphabetical. */
-export function sortIntegrations(list: Integration[]): Integration[] {
+/** Sort MCP servers: configured first, then alphabetical by title. */
+export function sortMcpServers(list: McpServer[]): McpServer[] {
   return [...list].sort((a, b) => {
-    const scoreA = (a.installed ? 2 : 0) + (a.configured ? 1 : 0);
-    const scoreB = (b.installed ? 2 : 0) + (b.configured ? 1 : 0);
+    const scoreA = a.configured ? 1 : 0;
+    const scoreB = b.configured ? 1 : 0;
     if (scoreB !== scoreA) return scoreB - scoreA;
-    return a.name.localeCompare(b.name);
+    return a.title.localeCompare(b.title);
   });
 }
 
-export function useOAuthStatus(provider: string | null, requiredScopes?: string[]) {
-  const { data, loading, refetch } = useQuery(OAUTH_STATUS_QUERY, {
-    variables: { provider: provider ?? "", requiredScopes: requiredScopes ?? [] },
-    skip: !provider,
-    fetchPolicy: "network-only",
-  });
-  const status = data?.oauthConnectionStatus as
-    | { connected: boolean; email: string | null; scopes: string | null; needsReauth: boolean; missingScopes: string[] }
-    | undefined;
-  return {
-    connected: status?.connected ?? false,
-    email: status?.email ?? null,
-    needsReauth: status?.needsReauth ?? false,
-    loading,
-    refetch,
-  };
+// Backward-compatible aliases
+/** @deprecated Use useMcpServers instead */
+export function useIntegrations() {
+  const { servers, loading, error } = useMcpServers();
+  return { integrations: servers, loading, error };
+}
+
+/** @deprecated Use useMcpServer instead */
+export function useIntegration(slug: string) {
+  const { server, loading, error, refetch } = useMcpServer(slug);
+  return { integration: server, loading, error, refetch };
+}
+
+/** @deprecated Use sortMcpServers instead */
+export const sortIntegrations = sortMcpServers;
+
+/** @deprecated Use useSaveMcpCredential instead */
+export function useSetSkillCredentials() {
+  const save = useSaveMcpCredential();
+  return save;
 }

@@ -14,5 +14,3 @@ export * from "./components/integration-card";
 export * from "./components/channel-card";
 export * from "./components/integration-detail-tab";
 export * from "./components/integration-readme-tab";
-export * from "./components/integration-changelog-tab";
-export * from "./components/integration-comments-tab";
