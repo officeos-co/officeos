@@ -21,14 +21,18 @@ internal sealed class ToolExecutionContext
 {
     private readonly HashSet<string> _readFiles = new(StringComparer.Ordinal);
 
-    public ToolExecutionContext(Guid agentId, PodConnection podConnection)
+    public ToolExecutionContext(Guid agentId, string sandboxId, string serviceUrl, IAgentSandbox sandbox)
     {
         AgentId = agentId;
-        PodConnection = podConnection;
+        SandboxId = sandboxId;
+        ServiceUrl = serviceUrl;
+        Sandbox = sandbox;
     }
 
     public Guid AgentId { get; }
-    public PodConnection PodConnection { get; }
+    public string SandboxId { get; }
+    public string ServiceUrl { get; }
+    public IAgentSandbox Sandbox { get; }
 
     public void MarkFileRead(string path) => _readFiles.Add(NormalizePath(path));
     public bool WasFileRead(string path) => _readFiles.Contains(NormalizePath(path));

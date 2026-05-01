@@ -133,13 +133,15 @@ internal sealed class ToolRegistryFactory
     }
 
     public async Task<ToolRegistry> CreateAsync(
-        PodConnection pod,
+        IAgentSandbox sandbox,
+        string sandboxId,
+        string serviceUrl,
         Guid agentId,
         IReadOnlyList<McpServerRecord> mcpServers,
             Func<string, Task<Dictionary<string, string>>> credentialLoader,
             CancellationToken ct)
     {
-        var context = new ToolExecutionContext(agentId, pod);
+        var context = new ToolExecutionContext(agentId, sandboxId, serviceUrl, sandbox);
         var tools = new List<IAgentTool>
         {
             // Bash tools (execute via pod PTY)

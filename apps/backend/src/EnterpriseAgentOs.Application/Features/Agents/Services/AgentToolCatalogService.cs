@@ -39,7 +39,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default)
     {
         var effectiveAgentId = agentId ?? Guid.Empty;
-        var context = new ToolExecutionContext(effectiveAgentId, new PodConnection());
+        var context = new ToolExecutionContext(effectiveAgentId, string.Empty, string.Empty, SchemaOnlyAgentSandbox.Instance);
         var tools = new List<IAgentTool>
         {
             new ShellTool(context),
@@ -102,6 +102,40 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         }
 
         return entries.OrderBy(e => e.Group).ThenBy(e => e.RuntimeName).ToList();
+    }
+
+    private sealed class SchemaOnlyAgentSandbox : IAgentSandbox
+    {
+        public static readonly SchemaOnlyAgentSandbox Instance = new();
+
+        private SchemaOnlyAgentSandbox()
+        {
+        }
+
+        public Task<AgentSandboxDeployment> CreateAsync(
+            Guid agentId,
+            AgentTemplateRecord? template,
+            IReadOnlyDictionary<string, string> environment,
+            IReadOnlyDictionary<string, string> metadata,
+            CancellationToken ct = default)
+            => throw new NotSupportedException("Tool catalog sandbox cannot create runtimes.");
+
+        public Task<AgentResult<AgentSandboxCommandResult>> ExecuteAsync(
+            string sandboxId,
+            string serviceUrl,
+            string command,
+            TimeSpan timeout,
+            CancellationToken ct = default)
+            => throw new NotSupportedException("Tool catalog sandbox cannot execute commands.");
+
+        public Task<AgentResult<string>> ReadFileAsync(string sandboxId, string serviceUrl, string path, CancellationToken ct = default)
+            => throw new NotSupportedException("Tool catalog sandbox cannot read files.");
+
+        public Task<AgentResult<bool>> WriteFileAsync(string sandboxId, string serviceUrl, string path, string content, CancellationToken ct = default)
+            => throw new NotSupportedException("Tool catalog sandbox cannot write files.");
+
+        public Task<bool> TerminateAsync(string sandboxId, CancellationToken ct = default)
+            => throw new NotSupportedException("Tool catalog sandbox cannot terminate runtimes.");
     }
 
     private static AgentToolCatalogEntry ToEntry(IAgentTool tool)

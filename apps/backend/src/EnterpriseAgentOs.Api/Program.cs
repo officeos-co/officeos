@@ -79,42 +79,28 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     typeof(EnterpriseAgentOs.Application.ApplicationServiceRegistration).Assembly,
     typeof(Program).Assembly));
 
-// ── Infrastructure configs ───────────────────────────────────────────
-var kubernetesConfig = RequireSection<KubernetesConfig>("Kubernetes");
-builder.Services.AddSingleton(kubernetesConfig);
-
-// Docker is dev-only — uses hardcoded defaults from appsettings.json, never from env vars
-var dockerConfig = new DockerConfig();
-if (isDevelopment)
-    builder.Configuration.GetSection("Docker").Bind(dockerConfig);
-builder.Services.AddSingleton(dockerConfig);
-
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
 builder.Services.AddSingleton(googleOAuthConfig);
 
 var gitHubOAuthConfig = RequireSection<GitHubOAuthConfig>("GitHubOAuth");
 builder.Services.AddSingleton(gitHubOAuthConfig);
 
-
-if (builder.Environment.IsProduction())
+var daytonaConfig = new DaytonaConfig
 {
-    if (string.IsNullOrEmpty(kubernetesConfig.Namespace) || string.IsNullOrEmpty(kubernetesConfig.Image))
-        throw new InvalidOperationException(
-            "Kubernetes:Namespace and Kubernetes:Image must be configured in production.");
+    ApiUrl = Environment.GetEnvironmentVariable("DAYTONA_API_URL") ?? builder.Configuration["DAYTONA_API_URL"] ?? "",
+    ApiKey = Environment.GetEnvironmentVariable("DAYTONA_API_KEY") ?? builder.Configuration["DAYTONA_API_KEY"] ?? "",
+    Target = Environment.GetEnvironmentVariable("DAYTONA_TARGET") ?? builder.Configuration["DAYTONA_TARGET"],
+    Snapshot = Environment.GetEnvironmentVariable("DAYTONA_SNAPSHOT") ?? builder.Configuration["DAYTONA_SNAPSHOT"],
+    Workdir = Environment.GetEnvironmentVariable("DAYTONA_WORKDIR") ?? builder.Configuration["DAYTONA_WORKDIR"] ?? "/workspace",
+    TimeoutSeconds = int.TryParse(Environment.GetEnvironmentVariable("DAYTONA_TIMEOUT_SECONDS") ?? builder.Configuration["DAYTONA_TIMEOUT_SECONDS"], out var timeoutSeconds)
+        ? timeoutSeconds
+        : 60,
+};
+builder.Services.AddSingleton(daytonaConfig);
+builder.Services.AddHttpClient<DaytonaSandboxProvider>();
+builder.Services.AddScoped<IAgentSandbox>(sp => sp.GetRequiredService<DaytonaSandboxProvider>());
+builder.Services.AddScoped<IAgentDeployer, DaytonaAgentDeployer>();
 
-    builder.Services.AddSingleton<IKubernetes>(_ =>
-    {
-        var config = KubernetesClientConfiguration.IsInCluster()
-            ? KubernetesClientConfiguration.InClusterConfig()
-            : KubernetesClientConfiguration.BuildDefaultConfig();
-        return new Kubernetes(config);
-    });
-    builder.Services.AddScoped<IAgentDeployer, KubernetesAgentDeployer>();
-}
-else
-{
-    builder.Services.AddScoped<IAgentDeployer, DockerAgentDeployer>();
-}
 
 // Billing
 var stripeConfig = RequireSection<StripeConfig>("Stripe");

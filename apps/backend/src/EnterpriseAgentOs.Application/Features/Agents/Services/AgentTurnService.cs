@@ -11,6 +11,7 @@ internal sealed class AgentTurnService
     private readonly IProviderService _providerService;
     private readonly IMcpServerService _mcpServerService;
     private readonly ToolRegistryFactory _toolRegistryFactory;
+    private readonly IAgentSandbox _sandbox;
     private readonly ConversationCompactionService _compactionService;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly IBillingGuard _billingGuard;
@@ -27,6 +28,7 @@ internal sealed class AgentTurnService
         IProviderService providers,
         IMcpServerService mcpServerService,
         ToolRegistryFactory toolRegistryFactory,
+        IAgentSandbox sandbox,
         ConversationCompactionService compactionService,
         IAgentRunRepository agentRunRepository,
         IBillingGuard billingGuard,
@@ -38,6 +40,7 @@ internal sealed class AgentTurnService
         _providerService = providers;
         _mcpServerService = mcpServerService;
         _toolRegistryFactory = toolRegistryFactory;
+        _sandbox = sandbox;
         _compactionService = compactionService;
         _agentRunRepository = agentRunRepository;
         _billingGuard = billingGuard;
@@ -104,33 +107,13 @@ internal sealed class AgentTurnService
 
         await _publisher.Publish(new TurnStartedEvent(agentId, correlationId, userMessage), ct);
 
-        using var pod = new PodConnection();
-        var podStart = Stopwatch.GetTimestamp();
-        const int maxRetries = 12;
-        const int retryDelayMs = 5_000;
-        AgentResult<bool> podResult = default;
-        for (var attempt = 1; attempt <= maxRetries; attempt++)
-        {
-            podResult = await pod.ConnectAsync(agent.PodName, "default", agentId, ct);
-            if (podResult.IsSuccess) break;
-
-            if (attempt == maxRetries)
-            {
-                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, podResult.Error.Message), ct);
-                await FinishRunAsync("failed", error: podResult.Error.Message);
-                return;
-            }
-
-            _logger.LogInformation(
-                "Pod not ready for agent {AgentId}, retry {Attempt}/{Max} in {Delay}ms",
-                agentId, attempt, maxRetries, retryDelayMs);
-            await Task.Delay(retryDelayMs, ct);
-        }
-        await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds), ct);
+        var sandboxId = agent.PodName;
+        var sandboxStart = Stopwatch.GetTimestamp();
+        await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(sandboxStart).TotalMilliseconds), ct);
 
         var mcpServers = await _mcpServerService.ListForAgentAsync(agentId, ct);
         await using var registry = await _toolRegistryFactory.CreateAsync(
-            pod, agentId, mcpServers,
+            _sandbox, sandboxId, agent.ServiceUrl ?? string.Empty, agentId, mcpServers,
             serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
             ct);
 

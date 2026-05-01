@@ -124,6 +124,19 @@ spec:
               value: "default"
             - name: KUBERNETES__IMAGE
               value: "harkro123/eaos-pod-executor:latest"
+            - name: DAYTONA_API_URL
+              value: "http://daytona-api.daytona-system.svc.cluster.local:3000/api"
+            - name: DAYTONA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-staging-secrets
+                  key: DAYTONA_API_KEY
+            - name: DAYTONA_TARGET
+              value: "us"
+            - name: DAYTONA_WORKDIR
+              value: "/workspace"
+            - name: DAYTONA_TIMEOUT_SECONDS
+              value: "60"
             - name: CHANNEL_SERVICE_URL
               value: "http://localhost:3100"
             - name: BROWSER_SERVICE_URL
