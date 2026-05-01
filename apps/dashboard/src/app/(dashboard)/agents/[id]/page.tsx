@@ -58,8 +58,8 @@ function humanAgo(ts: number | string | null | undefined): string {
 function AgentSkeleton() {
   return (
     <>
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto w-full">
+      <div className="sticky top-0 z-10 bg-background">
+        <div className="mx-auto w-full border-b border-border">
           <div className="flex items-start justify-between py-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2.5">
@@ -78,7 +78,7 @@ function AgentSkeleton() {
           </div>
         </div>
       </div>
-      <div className="flex flex-1 flex-col max-w-6xl mx-auto w-full pt-6 space-y-4">
+      <div className="flex flex-1 flex-col mx-auto w-full pt-6 space-y-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-32 w-full rounded-xl" />
         <Skeleton className="h-10 w-full" />
@@ -141,10 +141,16 @@ export default function AgentDetailPage({
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div
+      className={
+        tab === "logs"
+          ? "flex h-screen flex-col overflow-hidden"
+          : "flex min-h-screen flex-col"
+      }
+    >
       {/* Sticky agent header + tabs */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto w-full">
+      <div className="sticky top-0 z-10 bg-background">
+        <div className="mx-auto w-full border-b border-border">
           <div className="flex items-start justify-between py-4">
             <div>
               <div className="flex items-center gap-2.5">
@@ -222,39 +228,60 @@ export default function AgentDetailPage({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col max-w-6xl mx-auto w-full pb-20">
-        <div className="flex-1 flex flex-col">
+      <div
+        className={
+          tab === "logs"
+            ? "flex min-h-0 flex-1 flex-col mx-auto w-full overflow-hidden"
+            : "flex flex-1 flex-col mx-auto w-full"
+        }
+      >
+        <div
+          className={
+            tab === "logs"
+              ? "flex min-h-0 flex-1 flex-col"
+              : "flex flex-1 flex-col"
+          }
+        >
           {tab === "integrations" && <AgentIntegrationsTab agentId={id} />}
-          {tab === "logs" && <AgentLogsTab agentId={id} />}
+          {tab === "logs" && (
+            <AgentLogsTab
+              agentId={id}
+              composer={
+                <>
+                  {activeSession && (
+                    <div className="mb-1.5 flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+                      <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+                      Session · {activeSession.messageCount} messages
+                    </div>
+                  )}
+                  <div className="flex w-full items-center gap-2">
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Send a message to the agent..."
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && message.trim()) submit();
+                      }}
+                    />
+                    <Button
+                      size="icon"
+                      disabled={!message.trim()}
+                      onClick={submit}
+                    >
+                      <SendIcon className="size-4" />
+                    </Button>
+                  </div>
+                </>
+              }
+            />
+          )}
           {tab === "browser" && <AgentBrowserTab agentId={id} />}
           {tab === "memory" && <AgentMemoryTab agentId={id} />}
           {tab === "cron" && <AgentCronTab agentId={id} />}
         </div>
       </div>
 
-      {/* Sticky chat bar — only on logs tab */}
-      {tab === "logs" && <div className="sticky bottom-0 z-10 border-t border-border bg-background/80 backdrop-blur-sm p-3 mt-auto">
-        {activeSession && (
-          <div className="flex items-center justify-center gap-2 mb-1.5 text-[10px] text-muted-foreground">
-            <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
-            Session · {activeSession.messageCount} messages
-          </div>
-        )}
-        <div className="flex w-full items-center gap-2 max-w-6xl mx-auto">
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Send a message to the agent..."
-            className="flex-1"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && message.trim()) submit();
-            }}
-          />
-          <Button size="icon" disabled={!message.trim()} onClick={submit}>
-            <SendIcon className="size-4" />
-          </Button>
-        </div>
-      </div>}
     </div>
   );
 }

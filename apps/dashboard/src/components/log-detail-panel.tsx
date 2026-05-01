@@ -1,7 +1,9 @@
 "use client";
 
 import type { AgentLog } from "@/types/logs";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { XIcon } from "lucide-react";
 
 type LogWithAgent = AgentLog & { agentName?: string };
 
@@ -9,17 +11,13 @@ function typeLabel(type: AgentLog["type"]) {
   return type.replace(/_/g, " ");
 }
 
-function sourceLabel(log: LogWithAgent) {
-  return (
-    log.tool ?? log.channel ?? log.integration ?? log.agentName ?? "system"
-  );
-}
-
 export function LogDetailPanel({
   log,
+  onClose,
   className,
 }: {
   log: LogWithAgent | null;
+  onClose?: () => void;
   className?: string;
 }) {
   return (
@@ -29,41 +27,30 @@ export function LogDetailPanel({
         className,
       )}
     >
-      <div className="flex min-h-14 shrink-0 items-center justify-between border-b border-border px-4 py-2">
-        <div>
-          <h3 className="text-sm font-semibold">Log detail</h3>
-          {log && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {sourceLabel(log)} · {new Date(log.time).toLocaleTimeString()}
-            </p>
-          )}
-        </div>
-      </div>
-
       {log ? (
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <div className="border-b border-border px-4 py-4">
-            <div className="mb-3 flex items-center gap-2">
-              <span
-                className={cn(
-                  "rounded px-2 py-1 text-xs font-medium capitalize",
-                  log.type === "error"
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-muted text-foreground",
-                )}
-              >
-                {typeLabel(log.type)}
-              </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {log.id.slice(0, 12)}
-              </span>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-base font-semibold leading-6">
+                  {typeLabel(log.type)}
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {new Date(log.time).toLocaleString()}
+                </p>
+              </div>
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0"
+                  onClick={onClose}
+                >
+                  <XIcon className="size-4" />
+                  <span className="sr-only">Close log detail</span>
+                </Button>
+              )}
             </div>
-            <h4 className="text-base font-semibold leading-6">
-              {typeLabel(log.type)}
-            </h4>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {new Date(log.time).toLocaleString()}
-            </p>
           </div>
 
           <div className="space-y-4 px-4 py-4 text-sm">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentBrowser } from "@/features/agents/api/useAgentBrowser";
@@ -30,6 +32,12 @@ export function AgentBrowserTab({ agentId }: { agentId: string }) {
 
   const hasSession = Boolean(browser?.runtimeSessionId);
   const canView = Boolean(viewUrl);
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Browser error", { description: error.message });
+    }
+  }, [error]);
 
   return (
     <div className="flex flex-col gap-4 pt-4 min-h-0">
@@ -67,12 +75,6 @@ export function AgentBrowserTab({ agentId }: { agentId: string }) {
           </Button>
         </div>
       </div>
-
-      {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {error.message}
-        </div>
-      )}
 
       <div className="min-h-[520px] overflow-hidden rounded-lg border border-border bg-card">
         {loading && !canView ? (
