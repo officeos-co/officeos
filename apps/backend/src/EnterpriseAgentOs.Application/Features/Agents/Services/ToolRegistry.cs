@@ -46,18 +46,34 @@ internal sealed class ToolRegistry : IAsyncDisposable
         return await tool.ExecuteAsync(args, ct);
     }
 
-    /// <summary>
-    /// Build a tool registry for a specific agent turn.
-    /// Pod tools need the PodConnection, memory tools need the repo + agentId, etc.
-    /// </summary>
-    public static async Task<ToolRegistry> CreateAsync(
-        PodConnection pod,
+}
+
+/// <summary>
+/// Builds a per-turn tool registry and owns tool construction dependencies.
+/// </summary>
+internal sealed class ToolRegistryFactory
+{
+    private readonly IAgentMemoryRepository _memoryRepo;
+    private readonly IMcpClientManager _mcpClientManager;
+    private readonly IBrowserService _browserService;
+    private readonly IBrowserRuntimeClient _browserRuntime;
+
+    public ToolRegistryFactory(
         IAgentMemoryRepository memoryRepo,
-        Guid agentId,
         IMcpClientManager mcpClientManager,
-        IReadOnlyList<McpServerRecord> mcpServers,
         IBrowserService browserService,
-        IBrowserRuntimeClient browserRuntime,
+        IBrowserRuntimeClient browserRuntime)
+    {
+        _memoryRepo = memoryRepo;
+        _mcpClientManager = mcpClientManager;
+        _browserService = browserService;
+        _browserRuntime = browserRuntime;
+    }
+
+    public async Task<ToolRegistry> CreateAsync(
+        PodConnection pod,
+        Guid agentId,
+        IReadOnlyList<McpServerRecord> mcpServers,
         Func<string, Task<Dictionary<string, string>>> credentialLoader,
         CancellationToken ct)
     {
@@ -71,9 +87,9 @@ internal sealed class ToolRegistry : IAsyncDisposable
             new ContentSearchTool(pod),
             new GlobSearchTool(pod),
             // Memory tools (Postgres)
-            new MemoryStoreTool(memoryRepo, agentId),
-            new MemoryRecallTool(memoryRepo, agentId),
-            new MemoryForgetTool(memoryRepo, agentId),
+            new MemoryStoreTool(_memoryRepo, agentId),
+            new MemoryRecallTool(_memoryRepo, agentId),
+            new MemoryForgetTool(_memoryRepo, agentId),
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
@@ -81,11 +97,11 @@ internal sealed class ToolRegistry : IAsyncDisposable
 
         try
         {
-            if (await browserRuntime.IsAvailableAsync(ct))
+            if (await _browserRuntime.IsAvailableAsync(ct))
             {
-                var browserTools = await browserRuntime.ListToolsAsync(ct);
+                var browserTools = await _browserRuntime.ListToolsAsync(ct);
                 foreach (var discovered in browserTools.Where(BrowserMcpTool.ShouldExpose))
-                    tools.Add(new BrowserMcpTool(discovered, browserService, browserRuntime, agentId));
+                    tools.Add(new BrowserMcpTool(discovered, _browserService, _browserRuntime, agentId));
             }
         }
         catch
@@ -98,7 +114,7 @@ internal sealed class ToolRegistry : IAsyncDisposable
         foreach (var server in mcpServers)
         {
             var creds = await credentialLoader(server.Name);
-            var result = await mcpClientManager.ConnectAsync(server, creds, ct);
+            var result = await _mcpClientManager.ConnectAsync(server, creds, ct);
             foreach (var discovered in result.Tools)
                 tools.Add(new McpTool(discovered));
             mcpConnections.Add(result);

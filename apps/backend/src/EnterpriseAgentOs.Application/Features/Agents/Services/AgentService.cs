@@ -11,7 +11,7 @@ internal sealed class AgentService : IAgentService
     private readonly IMemoryCache _memoryCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
-    private readonly IChannelRepository _channelRepository;
+    private readonly AgentChannelBinder _channelBinder;
     private readonly IAgentLogService _agentLogService;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
@@ -26,7 +26,7 @@ internal sealed class AgentService : IAgentService
         IMemoryCache cache,
         IAgentPersonalityRepository personalityRepo,
         IPublisher publisher,
-        IChannelRepository channelRepository,
+        AgentChannelBinder channelBinder,
         IAgentLogService agentLogService)
     {
         _agentRepository = repository;
@@ -36,7 +36,7 @@ internal sealed class AgentService : IAgentService
         _memoryCache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
-        _channelRepository = channelRepository;
+        _channelBinder = channelBinder;
         _agentLogService = agentLogService;
     }
 
@@ -182,29 +182,7 @@ internal sealed class AgentService : IAgentService
 
     public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
     {
-        // Channel bindings
-        if (init.ChannelSlugs is { Count: > 0 })
-        {
-            var connections = await _channelRepository.ListConnectionsAsync(ct);
-            foreach (var slug in init.ChannelSlugs)
-            {
-                var match = connections.FirstOrDefault(c =>
-                    string.Equals(c.ChannelType.ToStorageString(), slug, StringComparison.OrdinalIgnoreCase));
-                if (match is null) continue;
-                try
-                {
-                    await _channelRepository.CreateBindingAsync(new AgentChannelBindingRecord
-                    {
-                        AgentId = agentId,
-                        ChannelConnectionId = match.Id,
-                    }, ct);
-                }
-                catch (DbUpdateException)
-                {
-                    // already bound — skip
-                }
-            }
-        }
+        await _channelBinder.BindBySlugsAsync(agentId, init.ChannelSlugs, ct);
 
         // Bootstrap message
         if (!string.IsNullOrWhiteSpace(init.BootstrapMessage))

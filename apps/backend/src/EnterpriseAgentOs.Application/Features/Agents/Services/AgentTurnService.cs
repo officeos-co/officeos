@@ -9,11 +9,8 @@ internal sealed class AgentTurnService
     private readonly IPublisher _publisher;
     private readonly LlmProviderDispatcher _llmProviderDispatcher;
     private readonly IProviderService _providerService;
-    private readonly IAgentMemoryRepository _agentMemoryRepository;
-    private readonly IMcpClientManager _mcpClientManager;
     private readonly IMcpServerService _mcpServerService;
-    private readonly IBrowserService _browserService;
-    private readonly IBrowserRuntimeClient _browserRuntime;
+    private readonly ToolRegistryFactory _toolRegistryFactory;
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly IBillingGuard _billingGuard;
     private readonly ILogger<AgentTurnService> _logger;
@@ -28,11 +25,8 @@ internal sealed class AgentTurnService
         IPublisher publisher,
         LlmProviderDispatcher llm,
         IProviderService providers,
-        IAgentMemoryRepository memoryRepo,
-        IMcpClientManager mcpClientManager,
         IMcpServerService mcpServerService,
-        IBrowserService browserService,
-        IBrowserRuntimeClient browserRuntime,
+        ToolRegistryFactory toolRegistryFactory,
         IAgentLogRepository agentLogRepository,
         IBillingGuard billingGuard,
         ILogger<AgentTurnService> logger)
@@ -41,11 +35,8 @@ internal sealed class AgentTurnService
         _publisher = publisher;
         _llmProviderDispatcher = llm;
         _providerService = providers;
-        _agentMemoryRepository = memoryRepo;
-        _mcpClientManager = mcpClientManager;
         _mcpServerService = mcpServerService;
-        _browserService = browserService;
-        _browserRuntime = browserRuntime;
+        _toolRegistryFactory = toolRegistryFactory;
         _agentLogRepository = agentLogRepository;
         _billingGuard = billingGuard;
         _logger = logger;
@@ -114,10 +105,8 @@ internal sealed class AgentTurnService
         await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(podStart).TotalMilliseconds), ct);
 
         var mcpServers = await _mcpServerService.ListForAgentAsync(agentId, ct);
-        await using var registry = await ToolRegistry.CreateAsync(
-            pod, _agentMemoryRepository, agentId,
-            _mcpClientManager, mcpServers,
-            _browserService, _browserRuntime,
+        await using var registry = await _toolRegistryFactory.CreateAsync(
+            pod, agentId, mcpServers,
             serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
             ct);
 

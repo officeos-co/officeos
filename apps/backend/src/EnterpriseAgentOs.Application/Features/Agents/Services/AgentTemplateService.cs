@@ -1,25 +1,23 @@
-using Microsoft.EntityFrameworkCore;
-
 namespace EnterpriseAgentOs.Application.Features.Agents;
 
 internal sealed class AgentTemplateService : IAgentTemplateService
 {
     private readonly IAgentTemplateRepository _agentTemplateRepository;
     private readonly IAgentService _agentService;
-    private readonly IChannelRepository _channelRepository;
+    private readonly AgentChannelBinder _channelBinder;
     private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
         IAgentTemplateRepository repo,
         IAgentService agents,
-        IChannelRepository channels,
+        AgentChannelBinder channelBinder,
         IPostHogService analytics,
         ILogger<AgentTemplateService> logger)
     {
         _agentTemplateRepository = repo;
         _agentService = agents;
-        _channelRepository = channels;
+        _channelBinder = channelBinder;
         _postHogService = analytics;
         _logger = logger;
     }
@@ -54,28 +52,7 @@ internal sealed class AgentTemplateService : IAgentTemplateService
             ownerId: ownerId,
             ct);
 
-        if (dto.Channels.Count > 0)
-        {
-            var connections = await _channelRepository.ListConnectionsAsync(ct);
-            foreach (var slug in dto.Channels)
-            {
-                var match = connections.FirstOrDefault(c =>
-                    string.Equals(c.ChannelType.ToStorageString(), slug, StringComparison.OrdinalIgnoreCase));
-                if (match is null) continue;
-                try
-                {
-                    await _channelRepository.CreateBindingAsync(new AgentChannelBindingRecord
-                    {
-                        AgentId = agent.Id,
-                        ChannelConnectionId = match.Id,
-                    }, ct);
-                }
-                catch (DbUpdateException)
-                {
-                    // already bound — skip
-                }
-            }
-        }
+        await _channelBinder.BindBySlugsAsync(agent.Id, dto.Channels, ct);
 
         _logger.LogInformation("Created agent {AgentId} from template {Template}", agent.Id, template.Name);
 
