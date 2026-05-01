@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/channels/**'
-      - '.github/workflows/build-channel-gateway.yml'
+      - "packages/channels/**"
+      - ".github/workflows/build-channel-gateway.yml"
 
 concurrency:
   group: build-channel-gateway
@@ -26,8 +26,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: apps/channels
-          file: apps/channels/Dockerfile
+          context: packages/channels
+          file: packages/channels/Dockerfile
           push: true
           tags: harkro123/eaos-channel-gateway:latest
           cache-from: type=gha

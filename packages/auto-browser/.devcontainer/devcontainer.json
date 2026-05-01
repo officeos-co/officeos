@@ -1,0 +1,49 @@
+{
+  "name": "Auto Browser Dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true",
+      "moby": "true"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "if [ -n \"${CODESPACE_NAME:-}\" ]; then docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up --build -d; else docker compose up --build -d; fi && echo '\\nauto-browser is running.'",
+  "forwardPorts": [8000, 6080],
+  "portsAttributes": {
+    "8000": {
+      "label": "Operator Dashboard",
+      "onAutoForward": "openBrowser",
+      "protocol": "http"
+    },
+    "6080": {
+      "label": "noVNC Browser Takeover",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    }
+  },
+  "remoteEnv": {
+    "DOCKER_BUILDKIT": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  }
+}

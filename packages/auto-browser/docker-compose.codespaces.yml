@@ -1,0 +1,10 @@
+# Use in Codespaces: docker compose -f docker-compose.yml -f docker-compose.codespaces.yml up
+services:
+  browser-node:
+    ports:
+      - "0.0.0.0:${NOVNC_PORT:-6080}:6080"
+      - "0.0.0.0:${VNC_PORT:-5900}:5900"
+
+  controller:
+    ports:
+      - "0.0.0.0:${API_PORT:-8000}:8000"

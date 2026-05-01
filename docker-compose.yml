@@ -47,7 +47,7 @@ services:
 
   channels:
     build:
-      context: apps/channels
+      context: packages/channels
     ports:
       - "3100:3100"
     environment:
@@ -58,7 +58,7 @@ services:
 
   browser-node:
     build:
-      context: services/auto-browser/browser-node
+      context: packages/auto-browser/browser-node
     shm_size: 2gb
     environment:
       BROWSER_WIDTH: 1280
@@ -74,7 +74,8 @@ services:
     ports:
       - "127.0.0.1:6080:6080"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:6080/ >/dev/null || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -fsS http://127.0.0.1:6080/ >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -82,7 +83,7 @@ services:
 
   browser:
     build:
-      context: services/auto-browser/controller
+      context: packages/auto-browser/controller
     depends_on:
       browser-node:
         condition: service_healthy

@@ -1,0 +1,45 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" rx="28" fill="#08111F"/>
+  <rect x="32" y="32" width="1136" height="566" rx="24" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+  <rect x="72" y="84" width="1056" height="84" rx="18" fill="#111C33"/>
+  <circle cx="111" cy="126" r="9" fill="#F87171"/>
+  <circle cx="140" cy="126" r="9" fill="#FBBF24"/>
+  <circle cx="169" cy="126" r="9" fill="#34D399"/>
+  <text x="215" y="136" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700">Auto Browser</text>
+  <text x="452" y="136" fill="#60A5FA" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">MCP-native browser agent</text>
+
+  <rect x="72" y="204" width="292" height="314" rx="24" fill="#111C33" stroke="#1E293B" stroke-width="2"/>
+  <text x="103" y="251" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">MCP client</text>
+  <text x="103" y="291" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="22">Claude Desktop</text>
+  <text x="103" y="323" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="22">Cursor</text>
+  <text x="103" y="355" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="22">Custom agent</text>
+  <rect x="103" y="389" width="230" height="84" rx="18" fill="#0B1220" stroke="#23304A" stroke-width="2"/>
+  <text x="126" y="425" fill="#60A5FA" font-family="monospace" font-size="20">POST /mcp</text>
+  <text x="126" y="454" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="18">JSON-RPC tools</text>
+
+  <rect x="454" y="204" width="292" height="314" rx="24" fill="#111C33" stroke="#3B82F6" stroke-width="2"/>
+  <text x="484" y="251" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Controller</text>
+  <text x="484" y="291" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="22">FastAPI + Playwright</text>
+  <text x="484" y="338" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20">• observations + screenshots</text>
+  <text x="484" y="372" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20">• reusable auth profiles</text>
+  <text x="484" y="406" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20">• approval + audit rails</text>
+  <text x="484" y="440" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20">• noVNC human takeover</text>
+  <rect x="484" y="466" width="228" height="30" rx="15" fill="#0B1220"/>
+  <text x="503" y="487" fill="#34D399" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">authorized workflows only</text>
+
+  <rect x="836" y="204" width="292" height="314" rx="24" fill="#111C33" stroke="#1E293B" stroke-width="2"/>
+  <text x="866" y="251" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Browser node</text>
+  <text x="866" y="291" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="22">Chromium + noVNC</text>
+  <rect x="866" y="330" width="232" height="140" rx="18" fill="#0B1220" stroke="#23304A" stroke-width="2"/>
+  <rect x="886" y="350" width="192" height="14" rx="7" fill="#334155"/>
+  <rect x="886" y="382" width="154" height="14" rx="7" fill="#1D4ED8"/>
+  <rect x="886" y="414" width="184" height="14" rx="7" fill="#475569"/>
+  <text x="866" y="492" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="20">visual takeover + downloads</text>
+
+  <path d="M364 361C395 361 416 361 446 361" stroke="#60A5FA" stroke-width="6" stroke-linecap="round"/>
+  <path d="M746 361C776 361 797 361 828 361" stroke="#60A5FA" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="404" cy="361" r="10" fill="#60A5FA"/>
+  <circle cx="787" cy="361" r="10" fill="#60A5FA"/>
+
+  <text x="72" y="564" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="24">Local-first • Free • Open source • REST + MCP</text>
+</svg>

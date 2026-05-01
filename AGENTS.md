@@ -10,7 +10,7 @@ Open-source, self-hosted, model-agnostic agent infrastructure. The obvious choic
 - **Agentic loop** (`apps/backend/.../AgentTurnService.cs`) — the core reasoning loop, runs in the backend, max 25 iterations per turn
 - **Tools** (`apps/backend/.../Tools/`) — built-in tools (shell, file_read, file_write, file_edit, content_search, glob_search, memory, http)
 - **MCP integration** (in progress) — agents connect to MCP servers for external tool access. Replaces the old skill system.
-- **Channels** (`apps/channels`) — TypeScript sidecar for Telegram, WhatsApp, Slack, Teams
+- **Channels** (`packages/channels`) — TypeScript sidecar for Telegram, WhatsApp, Slack, Teams
 - **Dashboard** (`apps/dashboard`) — Next.js operator UI
 
 The backend uses strict structured logging — agent interactions are a sequence of typed log entries (message_in, tool_call, tool_result, message_out), not chat messages.

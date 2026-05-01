@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Domain.Features.Agents;
 /// <summary>
 /// Lightweight metadata record for a channel connection. The backend stores only
 /// identity + display info. All platform credentials, config, and connection state
-/// live in the channel microservice (apps/channels).
+/// live in the channel microservice (packages/channels).
 /// </summary>
 public sealed class ChannelConnectionRecord
 {

@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "services/auto-browser/**"
+      - "packages/auto-browser/**"
       - "k8s/staging/browser.yaml"
       - "k8s/prod/browser.yaml"
       - ".github/workflows/deploy-browser.yml"
@@ -32,7 +32,7 @@ jobs:
       - name: Build and push controller image
         uses: docker/build-push-action@v6
         with:
-          context: services/auto-browser/controller
+          context: packages/auto-browser/controller
           push: true
           tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('harkro123/eaos-auto-browser-controller:{0}', github.ref_name) || 'harkro123/eaos-auto-browser-controller:latest' }}
           cache-from: type=gha,scope=auto-browser-controller
@@ -41,7 +41,7 @@ jobs:
       - name: Build and push browser-node image
         uses: docker/build-push-action@v6
         with:
-          context: services/auto-browser/browser-node
+          context: packages/auto-browser/browser-node
           push: true
           tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('harkro123/eaos-auto-browser-node:{0}', github.ref_name) || 'harkro123/eaos-auto-browser-node:latest' }}
           cache-from: type=gha,scope=auto-browser-node

@@ -1,0 +1,37 @@
+services:
+  test-bastion:
+    build:
+      context: ./smoke/bastion
+    environment:
+      BASTION_USER: tunnel
+      BASTION_AUTHORIZED_KEYS_PATH: /ssh-material/smoke_authorized_keys
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 2222 >/dev/null 2>&1 || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 2s
+    volumes:
+      - ./data/ssh:/ssh-material:ro
+
+  reverse-ssh:
+    depends_on:
+      browser-node:
+        condition: service_healthy
+      controller:
+        condition: service_started
+      test-bastion:
+        condition: service_healthy
+    environment:
+      REVERSE_SSH_HOST: test-bastion
+      REVERSE_SSH_PORT: 2222
+      REVERSE_SSH_USER: tunnel
+      REVERSE_SSH_KEY_PATH: /ssh/smoke_id_ed25519
+      REVERSE_SSH_KNOWN_HOSTS_PATH: /ssh/smoke_known_hosts
+      REVERSE_SSH_REMOTE_BIND_ADDRESS: 127.0.0.1
+      REVERSE_SSH_REMOTE_API_PORT: 18000
+      REVERSE_SSH_REMOTE_NOVNC_PORT: 16080
+      REVERSE_SSH_INFO_INTERVAL_SECONDS: 5
+      REVERSE_SSH_STALE_AFTER_SECONDS: 20
+      REVERSE_SSH_PUBLIC_API_URL: http://test-bastion:18000
+      REVERSE_SSH_PUBLIC_TAKEOVER_URL: http://test-bastion:16080/vnc.html?autoconnect=true&resize=scale
