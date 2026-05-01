@@ -47,7 +47,7 @@ internal sealed class McpClientManager : IMcpClientManager
                 "Connected to MCP server {Server} ({Transport}), discovered {Count} tools",
                 server.Name, server.TransportType, tools.Count);
 
-            return new McpConnectionResult { Tools = tools, Connection = client };
+            return new McpConnectionResult { Tools = tools, NativeClient = client, Connection = client };
         }
         catch (Exception ex)
         {

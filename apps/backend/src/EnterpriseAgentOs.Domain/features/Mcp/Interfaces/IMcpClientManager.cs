@@ -15,6 +15,7 @@ public interface IMcpClientManager
 public sealed class McpConnectionResult : IAsyncDisposable
 {
     public IReadOnlyList<McpDiscoveredTool> Tools { get; init; } = [];
+    public object? NativeClient { get; init; }
     public IAsyncDisposable? Connection { get; init; }
 
     public async ValueTask DisposeAsync()

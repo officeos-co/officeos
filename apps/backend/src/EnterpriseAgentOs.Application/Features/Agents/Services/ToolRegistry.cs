@@ -9,10 +9,12 @@ internal sealed class ToolRegistry : IAsyncDisposable
 {
     private readonly List<IAgentTool> _tools;
     private readonly List<IAsyncDisposable> _mcpConnections;
+    private readonly ToolExecutionContext _context;
 
-    public ToolRegistry(List<IAgentTool> tools, List<IAsyncDisposable>? mcpConnections = null)
+    public ToolRegistry(List<IAgentTool> tools, ToolExecutionContext context, List<IAsyncDisposable>? mcpConnections = null)
     {
         _tools = tools;
+        _context = context;
         _mcpConnections = mcpConnections ?? [];
     }
 
@@ -43,8 +45,23 @@ internal sealed class ToolRegistry : IAsyncDisposable
         if (tool is null)
             return new AgentError(AgentErrorCategory.ToolExecution, $"Unknown tool: {toolName}");
 
-        return await tool.ExecuteAsync(args, ct);
+        var validation = await tool.ValidateAsync(args, ct);
+        if (!validation.IsValid)
+            return new AgentError(AgentErrorCategory.ToolExecution, validation.Message ?? $"Invalid input for tool: {toolName}");
+
+        var result = await tool.ExecuteAsync(args, ct);
+        if (result.IsFailure) return result;
+
+        var value = result.Value;
+        var output = Truncate(value.Output, tool.MaxResultChars);
+        var error = value.Error is null ? null : Truncate(value.Error, tool.MaxResultChars);
+        return new ToolResult(value.Success, output, error);
     }
+
+    private static string Truncate(string value, int maxChars)
+        => maxChars > 0 && value.Length > maxChars
+            ? value[..maxChars] + "\n[truncated]"
+            : value;
 
 }
 
@@ -54,17 +71,23 @@ internal sealed class ToolRegistry : IAsyncDisposable
 internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryRepository _memoryRepo;
+    private readonly IAgentCronJobRepository _cronJobRepository;
+    private readonly AgentTaskStore _taskStore;
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IBrowserService _browserService;
     private readonly IBrowserRuntimeClient _browserRuntime;
 
     public ToolRegistryFactory(
         IAgentMemoryRepository memoryRepo,
+        IAgentCronJobRepository cronJobRepository,
+        AgentTaskStore taskStore,
         IMcpClientManager mcpClientManager,
         IBrowserService browserService,
         IBrowserRuntimeClient browserRuntime)
     {
         _memoryRepo = memoryRepo;
+        _cronJobRepository = cronJobRepository;
+        _taskStore = taskStore;
         _mcpClientManager = mcpClientManager;
         _browserService = browserService;
         _browserRuntime = browserRuntime;
@@ -74,22 +97,32 @@ internal sealed class ToolRegistryFactory
         PodConnection pod,
         Guid agentId,
         IReadOnlyList<McpServerRecord> mcpServers,
-        Func<string, Task<Dictionary<string, string>>> credentialLoader,
-        CancellationToken ct)
+            Func<string, Task<Dictionary<string, string>>> credentialLoader,
+            CancellationToken ct)
     {
+        var context = new ToolExecutionContext(agentId, pod);
         var tools = new List<IAgentTool>
         {
             // Bash tools (execute via pod PTY)
-            new ShellTool(pod),
-            new FileReadTool(pod),
-            new FileWriteTool(pod),
-            new FileEditTool(pod),
-            new ContentSearchTool(pod),
-            new GlobSearchTool(pod),
+            new ShellTool(context),
+            new FileReadTool(context),
+            new FileWriteTool(context),
+            new FileEditTool(context),
+            new ContentSearchTool(context),
+            new GlobSearchTool(context),
             // Memory tools (Postgres)
             new MemoryStoreTool(_memoryRepo, agentId),
             new MemoryRecallTool(_memoryRepo, agentId),
             new MemoryForgetTool(_memoryRepo, agentId),
+            // Session/task orchestration
+            new AskUserQuestionTool(),
+            new TaskCreateTool(_taskStore, agentId),
+            new TaskListTool(_taskStore, agentId),
+            new TaskGetTool(_taskStore, agentId),
+            new TaskUpdateTool(_taskStore, agentId),
+            new CronCreateTool(_cronJobRepository, agentId),
+            new CronListTool(_cronJobRepository, agentId),
+            new CronDeleteTool(_cronJobRepository, agentId),
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
@@ -117,9 +150,13 @@ internal sealed class ToolRegistryFactory
             var result = await _mcpClientManager.ConnectAsync(server, creds, ct);
             foreach (var discovered in result.Tools)
                 tools.Add(new McpTool(discovered));
+            tools.Add(new ListMcpResourcesTool(server.Name, result.NativeClient));
+            tools.Add(new ReadMcpResourceTool(server.Name, result.NativeClient));
             mcpConnections.Add(result);
         }
 
-        return new ToolRegistry(tools, mcpConnections);
+        tools.Add(new ToolSearchTool(tools));
+
+        return new ToolRegistry(tools, context, mcpConnections);
     }
 }

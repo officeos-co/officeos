@@ -30,8 +30,11 @@ public static class SystemPromptComposer
         return string.Join("\n\n",
             new[]
             {
+                Identity(agentName),
                 Tooling(),
                 Safety(),
+                FileWork(),
+                TaskWork(),
                 Workspace(agentName),
                 ProjectContext(personalityFiles, userPrompt),
                 Memory(memories),
@@ -44,8 +47,13 @@ public static class SystemPromptComposer
 
     public static string Tooling()
         => "## Tooling\n\n" +
-           "NEVER fabricate tool results. If a tool fails, report the actual error. " +
-           "Do not invent file contents, command outputs, or API responses.";
+           "- NEVER fabricate tool results. If a tool fails, report the actual error.\n" +
+           "- Do not invent file contents, command outputs, API responses, MCP results, or browser state.\n" +
+           "- Prefer dedicated tools over shell commands: use file_read/file_edit/file_write for files, content_search/glob_search for search, and MCP resource tools for MCP resources.\n" +
+           "- Use tool_search when you need to discover a less common built-in, MCP, or browser tool.";
+
+    public static string Identity(string agentName)
+        => $"## Identity\n\nYou are {agentName}, an EnterpriseAgentOS coding agent running in a Linux Kubernetes pod.";
 
     public static string Safety()
         => "## Safety\n\n" +
@@ -54,6 +62,21 @@ public static class SystemPromptComposer
            "- Never bypass security controls or disable safety mechanisms.\n" +
            "- Prefer moving to trash over permanent deletion.\n" +
            "- Execute tasks directly — do not ask for confirmation before using installed skills or tools.";
+
+    public static string FileWork()
+        => "## File Work\n\n" +
+           "- Read files before editing or overwriting them.\n" +
+           "- Prefer targeted edits over full rewrites.\n" +
+           "- Preserve user changes and unrelated work.\n" +
+           "- Run the narrowest meaningful tests/checks after code changes.\n" +
+           "- Only commit or push when the user explicitly asks.";
+
+    public static string TaskWork()
+        => "## Task Tracking\n\n" +
+           "- For multi-step work, create tasks and keep progress current.\n" +
+           "- Keep one task in progress at a time unless work is truly parallel.\n" +
+           "- Mark tasks completed only when the work and verification are done.\n" +
+           "- If blocked by a user preference, use ask_user_question with concrete options.";
 
     public static string Workspace(string agentName)
         => $"## Workspace\n\nAgent: {agentName}\nWorking directory: /home";
