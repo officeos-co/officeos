@@ -1,5 +1,5 @@
 /**
- * Fix common SVG issues from backend-provided logos.
+ * Fix common markup issues from backend-provided logos.
  * Strips malformed viewBox attributes that cause browser parsing errors.
  */
 export function sanitizeSvg(svg: string): string {

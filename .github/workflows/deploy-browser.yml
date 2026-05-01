@@ -1,0 +1,76 @@
+name: Deploy Browser Service
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/auto-browser/**"
+      - "k8s/staging/browser.yaml"
+      - "k8s/prod/browser.yaml"
+      - ".github/workflows/deploy-browser.yml"
+    tags:
+      - "v*"
+
+concurrency:
+  group: deploy-browser-${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: harkro123
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Build and push controller image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/auto-browser/controller
+          push: true
+          tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('harkro123/eaos-auto-browser-controller:{0}', github.ref_name) || 'harkro123/eaos-auto-browser-controller:latest' }}
+          cache-from: type=gha,scope=auto-browser-controller
+          cache-to: type=gha,scope=auto-browser-controller,mode=max
+
+      - name: Build and push browser-node image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/auto-browser/browser-node
+          push: true
+          tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('harkro123/eaos-auto-browser-node:{0}', github.ref_name) || 'harkro123/eaos-auto-browser-node:latest' }}
+          cache-from: type=gha,scope=auto-browser-node
+          cache-to: type=gha,scope=auto-browser-node,mode=max
+
+  deploy:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        run: |
+          kubectl config set-cluster nova --server=${{ secrets.KUBE_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
+
+      - name: Deploy staging
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          kubectl apply -f k8s/staging/browser.yaml
+          kubectl rollout restart deployment/eaos-browser-staging
+          kubectl rollout status deployment/eaos-browser-staging --timeout=240s
+
+      - name: Deploy prod
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/browser.yaml
+          kubectl apply -f k8s/prod/browser.yaml
+          kubectl rollout status deployment/eaos-browser-prod --timeout=240s

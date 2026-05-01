@@ -137,6 +137,29 @@ builder.Services.AddSingleton(platformKeysConfig);
 var sessionAuthConfig = RequireSection<SessionAuthConfig>("SessionAuth");
 builder.Services.AddSingleton(sessionAuthConfig);
 
+var browserRuntimeConfig = new BrowserRuntimeConfig
+{
+    BaseUrl = builder.Configuration["BrowserRuntime:BaseUrl"]
+        ?? builder.Configuration["BROWSER_SERVICE_URL"]
+        ?? "http://browser:8000",
+    PublicViewBaseUrl = builder.Configuration["BrowserRuntime:PublicViewBaseUrl"]
+        ?? builder.Configuration["BROWSER_PUBLIC_VIEW_BASE_URL"],
+    BearerToken = builder.Configuration["BrowserRuntime:BearerToken"]
+        ?? builder.Configuration["BROWSER_SERVICE_TOKEN"],
+    TimeoutSeconds = int.TryParse(
+        builder.Configuration["BrowserRuntime:TimeoutSeconds"]
+        ?? builder.Configuration["BROWSER_TIMEOUT_SECONDS"],
+        out var browserTimeout)
+        ? browserTimeout
+        : 30,
+    Enabled = !string.Equals(
+        builder.Configuration["BrowserRuntime:Enabled"]
+        ?? builder.Configuration["BROWSER_ENABLED"],
+        "false",
+        StringComparison.OrdinalIgnoreCase),
+};
+builder.Services.AddSingleton(browserRuntimeConfig);
+
 // PostHog
 var postHogConfig = RequireSection<PostHogConfig>("PostHog");
 builder.Services.AddSingleton(postHogConfig);

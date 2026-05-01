@@ -20,6 +20,7 @@ import { AgentIntegrationsTab } from "@/features/agents/components/agent-integra
 import { AgentLogsTab } from "@/features/agents/components/agent-logs-tab";
 import { AgentMemoryTab } from "@/features/agents/components/agent-memory-tab";
 import { AgentCronTab } from "@/features/agents/components/agent-cron-tab";
+import { AgentBrowserTab } from "@/features/agents/components/agent-browser-tab";
 import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
@@ -31,6 +32,7 @@ import { SendIcon, PlusIcon } from "lucide-react";
 const TABS = [
   { key: "integrations", label: "Integrations" },
   { key: "logs", label: "Logs" },
+  { key: "browser", label: "Browser" },
   { key: "memory", label: "Memory" },
   { key: "cron", label: "Cron" },
 ] as const;
@@ -238,6 +240,7 @@ export default function AgentDetailPage({
         <div className="flex-1 flex flex-col">
           {tab === "integrations" && <AgentIntegrationsTab agentId={id} />}
           {tab === "logs" && <AgentLogsTab agentId={id} />}
+          {tab === "browser" && <AgentBrowserTab agentId={id} />}
           {tab === "memory" && <AgentMemoryTab agentId={id} />}
           {tab === "cron" && <AgentCronTab agentId={id} />}
         </div>

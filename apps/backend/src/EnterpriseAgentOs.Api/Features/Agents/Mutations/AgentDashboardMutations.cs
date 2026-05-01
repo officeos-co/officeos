@@ -86,10 +86,12 @@ public class AgentDashboardMutations
         Guid id,
         IResolverContext context,
         [Service] IAgentService agents,
+        [Service] IBrowserService browser,
         [Service] IMemoryCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
+        await browser.StopAsync(id, ct);
         var result = await agents.DeleteAsync(id, ct);
         cache.Remove(AgentListQueryCacheKey);
         cache.Remove(AgentQueryCacheKey(id));

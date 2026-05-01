@@ -30,3 +30,11 @@ Clean architecture with domain separation under `apps/dashboard/src/features` (a
 - Full cloud coding capabilities
 - MCP-native tool ecosystem with marketplace
 - Model-agnostic — works with any LLM provider
+
+<claude-mem-context>
+# Memory Context
+
+# [EnterpriseAgentOs] recent context, 2026-05-01 1:01pm GMT+2
+
+No previous sessions found.
+</claude-mem-context>

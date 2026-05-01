@@ -1,0 +1,174 @@
+# ─────────────────────────────────────────────────────────────────────
+# Enterprise Agent OS — production internal browser service
+# ─────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-browser-prod-data
+  namespace: default
+  labels:
+    app: eaos-browser-prod
+    env: prod
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-browser-prod
+  namespace: default
+  labels:
+    app: eaos-browser-prod
+    env: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-browser-prod
+  template:
+    metadata:
+      labels:
+        app: eaos-browser-prod
+        env: prod
+    spec:
+      containers:
+        - name: browser-node
+          image: harkro123/eaos-auto-browser-node:IMAGE_TAG
+          imagePullPolicy: Always
+          env:
+            - name: BROWSER_WIDTH
+              value: "1280"
+            - name: BROWSER_HEIGHT
+              value: "800"
+            - name: BROWSER_URL
+              value: "about:blank"
+            - name: BROWSER_WS_ENDPOINT_FILE
+              value: "/data/browser-profile/browser-ws-endpoint.txt"
+            - name: PLAYWRIGHT_SERVER_HOST
+              value: "0.0.0.0"
+            - name: PLAYWRIGHT_SERVER_PORT
+              value: "9223"
+            - name: PLAYWRIGHT_SERVER_ADVERTISED_HOST
+              value: "127.0.0.1"
+          ports:
+            - containerPort: 6080
+              name: novnc
+              protocol: TCP
+            - containerPort: 5900
+              name: vnc
+              protocol: TCP
+            - containerPort: 9223
+              name: playwright
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "1500Mi"
+              cpu: "1000m"
+            limits:
+              memory: "3000Mi"
+              cpu: "2500m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 6080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+        - name: controller
+          image: harkro123/eaos-auto-browser-controller:IMAGE_TAG
+          imagePullPolicy: Always
+          env:
+            - name: BROWSER_WS_ENDPOINT_FILE
+              value: "/data/browser-profile/browser-ws-endpoint.txt"
+            - name: TAKEOVER_URL
+              value: "https://browser.officeos.co/vnc.html?autoconnect=true&resize=scale"
+            - name: ARTIFACT_ROOT
+              value: "/data/artifacts"
+            - name: UPLOAD_ROOT
+              value: "/data/uploads"
+            - name: AUTH_ROOT
+              value: "/data/auth"
+            - name: APPROVAL_ROOT
+              value: "/data/approvals"
+            - name: AUDIT_ROOT
+              value: "/data/audit"
+            - name: SESSION_STORE_ROOT
+              value: "/data/sessions"
+            - name: MEMORY_ROOT
+              value: "/data/memory"
+            - name: MCP_TOOL_PROFILE
+              value: "curated"
+            - name: MAX_SESSIONS
+              value: "100"
+            - name: ALLOWED_HOSTS
+              value: "example.com,localhost,127.0.0.1,::1"
+            - name: REQUIRE_OPERATOR_ID
+              value: "false"
+            - name: REQUIRE_AUTH_STATE_ENCRYPTION
+              value: "false"
+            - name: REQUEST_RATE_LIMIT_ENABLED
+              value: "true"
+            - name: METRICS_ENABLED
+              value: "true"
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1500Mi"
+              cpu: "1500m"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-browser-prod-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-browser-prod
+  namespace: default
+  labels:
+    app: eaos-browser-prod
+    env: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-browser-prod
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+    - name: novnc
+      protocol: TCP
+      port: 6080
+      targetPort: 6080

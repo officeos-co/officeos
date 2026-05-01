@@ -56,6 +56,8 @@ internal sealed class ToolRegistry : IAsyncDisposable
         Guid agentId,
         IMcpClientManager mcpClientManager,
         IReadOnlyList<McpServerRecord> mcpServers,
+        IBrowserService browserService,
+        IBrowserRuntimeClient browserRuntime,
         Func<string, Task<Dictionary<string, string>>> credentialLoader,
         CancellationToken ct)
     {
@@ -76,6 +78,21 @@ internal sealed class ToolRegistry : IAsyncDisposable
             new HttpRequestTool(),
             new WebFetchTool(),
         };
+
+        try
+        {
+            if (await browserRuntime.IsAvailableAsync(ct))
+            {
+                var browserTools = await browserRuntime.ListToolsAsync(ct);
+                foreach (var discovered in browserTools.Where(BrowserMcpTool.ShouldExpose))
+                    tools.Add(new BrowserMcpTool(discovered, browserService, browserRuntime, agentId));
+            }
+        }
+        catch
+        {
+            // Browser is an internal optional runtime. If it is down, omit the
+            // tools for this turn instead of failing the whole agent loop.
+        }
 
         var mcpConnections = new List<IAsyncDisposable>();
         foreach (var server in mcpServers)

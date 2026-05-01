@@ -12,6 +12,8 @@ internal sealed class AgentTurnService
     private readonly IAgentMemoryRepository _agentMemoryRepository;
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IMcpServerService _mcpServerService;
+    private readonly IBrowserService _browserService;
+    private readonly IBrowserRuntimeClient _browserRuntime;
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly IBillingGuard _billingGuard;
     private readonly ILogger<AgentTurnService> _logger;
@@ -29,6 +31,8 @@ internal sealed class AgentTurnService
         IAgentMemoryRepository memoryRepo,
         IMcpClientManager mcpClientManager,
         IMcpServerService mcpServerService,
+        IBrowserService browserService,
+        IBrowserRuntimeClient browserRuntime,
         IAgentLogRepository agentLogRepository,
         IBillingGuard billingGuard,
         ILogger<AgentTurnService> logger)
@@ -40,6 +44,8 @@ internal sealed class AgentTurnService
         _agentMemoryRepository = memoryRepo;
         _mcpClientManager = mcpClientManager;
         _mcpServerService = mcpServerService;
+        _browserService = browserService;
+        _browserRuntime = browserRuntime;
         _agentLogRepository = agentLogRepository;
         _billingGuard = billingGuard;
         _logger = logger;
@@ -111,6 +117,7 @@ internal sealed class AgentTurnService
         await using var registry = await ToolRegistry.CreateAsync(
             pod, _agentMemoryRepository, agentId,
             _mcpClientManager, mcpServers,
+            _browserService, _browserRuntime,
             serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
             ct);
 

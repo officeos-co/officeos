@@ -126,6 +126,10 @@ spec:
               value: "harkro123/eaos-pod-executor:latest"
             - name: CHANNEL_SERVICE_URL
               value: "http://localhost:3100"
+            - name: BROWSER_SERVICE_URL
+              value: "http://eaos-browser-staging:8000"
+            - name: BROWSER_PUBLIC_VIEW_BASE_URL
+              value: "https://staging-browser.officeos.co"
 
             - name: POSTHOG__HOST
               value: "https://eu.i.posthog.com"

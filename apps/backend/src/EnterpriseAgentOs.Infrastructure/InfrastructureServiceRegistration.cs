@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using EnterpriseAgentOs.Infrastructure.Features.Agents.Adapters;
 
 namespace EnterpriseAgentOs.Infrastructure;
 
@@ -47,6 +48,7 @@ public static class InfrastructureServiceRegistration
         services.AddHttpClient<IPostHogService, PostHogService>();
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
+        services.AddHttpClient<IBrowserRuntimeClient, AutoBrowserRuntimeClient>();
         services.AddHttpClient("channel-sidecar", client =>
         {
             var channelUrl = Environment.GetEnvironmentVariable("CHANNEL_SERVICE_URL")

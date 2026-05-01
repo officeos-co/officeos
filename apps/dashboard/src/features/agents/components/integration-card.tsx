@@ -37,7 +37,7 @@ export function IntegrationCard({
         className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
       >
         <div className="flex items-start gap-3">
-          <div className="size-8 shrink-0 [&>svg]:size-8" dangerouslySetInnerHTML={{ __html: i.logo }} />
+          <div className="size-8 shrink-0 [&>svg]:size-8 [&>img]:size-8 [&>img]:object-contain" dangerouslySetInnerHTML={{ __html: i.logo }} />
           <div className="min-w-0 flex-1">
             <span className="font-medium text-sm">{i.title}</span>
             {i.subtitle && (
@@ -74,7 +74,7 @@ export function IntegrationCard({
     <div
       className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${selected ? "border-primary bg-primary/5" : "border-border"}`}
     >
-      <div className="size-[18px] shrink-0 [&>svg]:size-[18px]" dangerouslySetInnerHTML={{ __html: i.logo }} />
+      <div className="size-[18px] shrink-0 [&>svg]:size-[18px] [&>img]:size-[18px] [&>img]:object-contain" dangerouslySetInnerHTML={{ __html: i.logo }} />
       <span className="flex-1 truncate">{i.title}</span>
       <IntegrationAction
         integration={i}

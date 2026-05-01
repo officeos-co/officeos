@@ -16,6 +16,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IAgentTemplateService, AgentTemplateService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<IChannelService, ChannelService>();
+        services.AddScoped<IBrowserService, BrowserService>();
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
