@@ -54,11 +54,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Configure kubectl
+        env:
+          KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
+          KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
-          kubectl config set-cluster nova --server=${{ secrets.KUBE_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-credentials ci --token="${{ secrets.KUBE_TOKEN }}"
-          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
-          kubectl config use-context nova
+          .github/scripts/configure-kubectl.sh
 
       - name: Deploy staging
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
