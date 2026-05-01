@@ -31,6 +31,7 @@ apps/backend/.env
 *.key
 *.pem
 credentials.json
+apps/backend-java/.env
 
 # Dashboard-specific backend dirs
 apps/dashboard/backend/~/

@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: backend-java
+  datasource:
+    url: jdbc:h2:mem:eaos;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+  graphql:
+    graphiql:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/eaos}
+    username: ${DB_USER:eaos}
+    password: ${DB_PASSWORD:eaos}
+    driver-class-name: org.postgresql.Driver
