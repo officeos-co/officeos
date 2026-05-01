@@ -197,8 +197,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
-    await EnterpriseAgentOs.Application.Features.Mcp.McpServerSeeder.SeedAsync(scope.ServiceProvider);
-    await AgentTemplateSeeder.SeedAsync(scope.ServiceProvider);
 }
 
 if (app.Environment.IsDevelopment())

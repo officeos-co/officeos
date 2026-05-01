@@ -104,7 +104,7 @@ public static class ProviderRegistry
         rawTokens * GetCostWeight(model);
 
     public static IReadOnlyDictionary<string, int> GetCostWeights() =>
-        SeedableProviders
+        DashboardProviders
             .SelectMany(p => p.Models)
             .ToDictionary(m => m.Id, m => m.CostWeight, StringComparer.OrdinalIgnoreCase);
 
@@ -119,8 +119,8 @@ public static class ProviderRegistry
     public static string? GetSmartRouteModel(string providerSlug, SmartRoutingTier tier) =>
         SmartRouteMap.GetValueOrDefault((providerSlug, tier));
 
-    /// <summary>Providers that have models and should be seeded in the database.</summary>
-    public static IReadOnlyList<ProviderDefinition> SeedableProviders =>
+    /// <summary>Providers that expose selectable models in the dashboard.</summary>
+    public static IReadOnlyList<ProviderDefinition> DashboardProviders =>
         All.Where(p => p.Models.Count > 0).ToList();
 
     public const string DefaultModel = "auto";

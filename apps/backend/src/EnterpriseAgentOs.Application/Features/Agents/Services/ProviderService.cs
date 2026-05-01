@@ -14,7 +14,7 @@ internal sealed class ProviderService : IProviderService
 
     public Task<IReadOnlyList<ProviderDto>> ListAsync(CancellationToken ct = default)
     {
-        var list = ProviderRegistry.SeedableProviders
+        var list = ProviderRegistry.DashboardProviders
             .Select(def => new ProviderDto(
                 DeterministicGuid(def.Slug),
                 def.Slug,

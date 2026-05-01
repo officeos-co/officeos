@@ -2,36 +2,31 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 
 internal sealed class AgentTemplateService : IAgentTemplateService
 {
-    private readonly IAgentTemplateRepository _agentTemplateRepository;
     private readonly IAgentService _agentService;
     private readonly AgentChannelBinder _channelBinder;
     private readonly IPostHogService _postHogService;
     private readonly ILogger<AgentTemplateService> _logger;
 
     public AgentTemplateService(
-        IAgentTemplateRepository repo,
         IAgentService agents,
         AgentChannelBinder channelBinder,
         IPostHogService analytics,
         ILogger<AgentTemplateService> logger)
     {
-        _agentTemplateRepository = repo;
         _agentService = agents;
         _channelBinder = channelBinder;
         _postHogService = analytics;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<AgentTemplateDto>> ListAsync(CancellationToken ct = default)
-    {
-        var rows = await _agentTemplateRepository.ListAsync(ct);
-        return rows.Select(ToDto).ToList();
-    }
+    public Task<IReadOnlyList<AgentTemplateDto>> ListAsync(CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<AgentTemplateDto>>(
+            AgentTemplateRegistry.BuiltinTemplates.Select(ToDto).ToList());
 
-    public async Task<AgentTemplateDto?> GetAsync(Guid id, CancellationToken ct = default)
+    public Task<AgentTemplateDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
-        var row = await _agentTemplateRepository.GetAsync(id, ct);
-        return row is null ? null : ToDto(row);
+        var builtin = AgentTemplateRegistry.GetBuiltin(id);
+        return Task.FromResult(builtin is null ? null : ToDto(builtin));
     }
 
     public async Task<AgentDto> CreateAgentFromTemplateAsync(
@@ -42,7 +37,7 @@ internal sealed class AgentTemplateService : IAgentTemplateService
         Guid ownerId,
         CancellationToken ct = default)
     {
-        var template = await _agentTemplateRepository.GetAsync(templateId, ct)
+        var template = AgentTemplateRegistry.GetBuiltin(templateId)
             ?? throw new InvalidOperationException($"Template '{templateId}' not found.");
 
         var dto = ToDto(template);

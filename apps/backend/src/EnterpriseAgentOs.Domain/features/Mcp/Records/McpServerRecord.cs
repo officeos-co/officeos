@@ -1,8 +1,18 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace EnterpriseAgentOs.Domain.Features.Mcp;
 
 public sealed class McpServerRecord
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
+    private readonly Guid _id = Guid.NewGuid();
+
+    public Guid Id
+    {
+        get => IsBuiltin ? DeterministicGuid(Name) : _id;
+        init => _id = value;
+    }
+
     public string Name { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
@@ -21,4 +31,10 @@ public sealed class McpServerRecord
     public string? ToolsJson { get; init; }
     public bool IsBuiltin { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+
+    private static Guid DeterministicGuid(string name)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"mcp-server:{name}"));
+        return new Guid(hash.AsSpan(0, 16));
+    }
 }

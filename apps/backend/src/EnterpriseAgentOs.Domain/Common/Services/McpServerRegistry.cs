@@ -1,23 +1,13 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using EnterpriseAgentOs.Domain.Features.Mcp;
 
-namespace EnterpriseAgentOs.Application.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Common.Services;
 
-public static class McpServerSeeder
+public static class McpServerRegistry
 {
-    public static async Task SeedAsync(IServiceProvider services)
-    {
-        var repo = services.GetRequiredService<IMcpServerRepository>();
-        var logger = services.GetRequiredService<ILogger<McpServerService>>();
+    public static IReadOnlyList<McpServerRecord> BuiltinServers => GetBuiltinServers();
 
-        var servers = GetBuiltinServers();
-        foreach (var server in servers)
-        {
-            await repo.UpsertAsync(server);
-        }
-
-        logger.LogInformation("Seeded {Count} built-in MCP servers", servers.Count);
-    }
+    public static McpServerRecord? GetBuiltin(string name) =>
+        BuiltinServers.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
     private static List<McpServerRecord> GetBuiltinServers() =>
     [

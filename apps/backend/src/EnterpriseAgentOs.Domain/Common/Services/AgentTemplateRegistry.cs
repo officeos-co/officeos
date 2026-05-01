@@ -1,10 +1,9 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+using System.Security.Cryptography;
+using System.Text;
 
-/// <summary>
-/// Seeds the 10 built-in agent templates surfaced in the Quickstart wizard.
-/// Upserts by Name; built-in templates have IsBuiltin=true and OwnerId=null.
-/// </summary>
-public static class AgentTemplateSeeder
+namespace EnterpriseAgentOs.Domain.Common.Services;
+
+public static class AgentTemplateRegistry
 {
     private sealed record Seed(string Name, string Description, string[] Integrations, string[] Channels, string Prompt);
 
@@ -40,23 +39,25 @@ public static class AgentTemplateSeeder
             "Search for data sources, extract structured information, and present clear answers."),
     };
 
-    public static async Task SeedAsync(IServiceProvider services, CancellationToken ct = default)
-    {
-        var repo = services.GetRequiredService<IAgentTemplateRepository>();
-        var logger = services.GetRequiredService<ILogger<IAgentTemplateService>>();
-        foreach (var s in Builtins)
+    public static IReadOnlyList<AgentTemplateRecord> BuiltinTemplates =>
+        Builtins.Select(s => new AgentTemplateRecord
         {
-            await repo.UpsertAsync(new AgentTemplateRecord
-            {
-                Name = s.Name,
-                Description = s.Description,
-                Prompt = s.Prompt,
-                IntegrationsJson = JsonSerializer.Serialize(s.Integrations),
-                ChannelsJson = JsonSerializer.Serialize(s.Channels),
-                IsBuiltin = true,
-                OwnerId = null,
-            }, ct);
-        }
-        logger.LogInformation("Seeded {Count} built-in agent templates", Builtins.Length);
+            Id = DeterministicGuid(s.Name),
+            Name = s.Name,
+            Description = s.Description,
+            Prompt = s.Prompt,
+            IntegrationsJson = JsonSerializer.Serialize(s.Integrations),
+            ChannelsJson = JsonSerializer.Serialize(s.Channels),
+            IsBuiltin = true,
+            OwnerId = null,
+        }).ToList();
+
+    public static AgentTemplateRecord? GetBuiltin(Guid id) =>
+        BuiltinTemplates.FirstOrDefault(t => t.Id == id);
+
+    private static Guid DeterministicGuid(string name)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"agent-template:{name}"));
+        return new Guid(hash.AsSpan(0, 16));
     }
 }

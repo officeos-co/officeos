@@ -17,13 +17,11 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentToolPermissionRepository, AgentToolPermissionRepository>();
 
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
-        services.AddScoped<IMcpServerRepository, McpServerRepository>();
         services.AddScoped<IAgentMcpServerRepository, AgentMcpServerRepository>();
         services.AddScoped<IMcpCredentialRepository, McpCredentialRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
-        services.AddScoped<IAgentTemplateRepository, AgentTemplateRepository>();
         services.AddScoped<IAgentLogRepository, AgentLogRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
