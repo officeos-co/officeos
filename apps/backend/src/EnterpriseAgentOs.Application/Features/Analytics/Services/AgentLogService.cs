@@ -55,7 +55,9 @@ internal sealed class AgentLogService : IAgentLogService
 
         if (string.IsNullOrEmpty(agent.PodName))
         {
+            const string message = "Agent runtime is unavailable: no pod is assigned. The message was saved, but no agent turn could be started.";
             _logger.LogWarning("Agent {AgentId} has no pod, message queued only", agentId);
+            await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, message), ct);
             return record;
         }
 

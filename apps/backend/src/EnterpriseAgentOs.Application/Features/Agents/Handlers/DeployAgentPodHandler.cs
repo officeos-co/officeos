@@ -6,12 +6,18 @@ internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedE
 {
     private readonly IAgentDeployer _deployer;
     private readonly IAgentRepository _agentRepository;
+    private readonly IPublisher _publisher;
     private readonly ILogger<DeployAgentPodHandler> _logger;
 
-    public DeployAgentPodHandler(IAgentDeployer deployer, IAgentRepository agentRepository, ILogger<DeployAgentPodHandler> logger)
+    public DeployAgentPodHandler(
+        IAgentDeployer deployer,
+        IAgentRepository agentRepository,
+        IPublisher publisher,
+        ILogger<DeployAgentPodHandler> logger)
     {
         _deployer = deployer;
         _agentRepository = agentRepository;
+        _publisher = publisher;
         _logger = logger;
     }
 
@@ -32,6 +38,10 @@ internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedE
             _logger.LogError(ex, "Failed to deploy agent {AgentId}", notification.AgentId);
             record.MarkFailed();
             await _agentRepository.UpdateAsync(record, ct);
+            await _publisher.Publish(new AgentErrorOccurredEvent(
+                notification.AgentId,
+                Guid.NewGuid().ToString("N"),
+                $"Failed to deploy agent runtime: {ex.Message}"), ct);
         }
     }
 }
