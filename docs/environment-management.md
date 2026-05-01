@@ -4,10 +4,10 @@
 
 EnterpriseAgentOs follows the 12-Factor App pattern. Code never contains secrets — values are injected at runtime via environment variables.
 
-| Layer | Dev (self-hosted) | Staging / Production |
-|-------|-------------------|----------------------|
-| Secrets | `.env` file or `doppler run` | Doppler K8s Operator |
-| Infra config | `appsettings.json` defaults | K8s manifest `env:` |
+| Layer          | Dev (self-hosted)                    | Staging / Production                |
+| -------------- | ------------------------------------ | ----------------------------------- |
+| Secrets        | `.env` file or `doppler run`         | Doppler K8s Operator                |
+| Infra config   | `appsettings.json` defaults          | K8s manifest `env:`                 |
 | Feature gating | `ASPNETCORE_ENVIRONMENT=Development` | `ASPNETCORE_ENVIRONMENT=Production` |
 
 ## Doppler Setup
@@ -37,6 +37,7 @@ STRIPE__WEBHOOKSECRET
 STRIPE__*PRICEID           # All Stripe price IDs
 PLATFORMKEYS__*APIKEY      # LLM provider keys
 POSTHOG__APIKEY            # Analytics
+DOCKER_INSECURE_REGISTRY   # Private Docker registry host for CI DinD
 ```
 
 ### What goes in K8s manifests (infra config)
@@ -94,6 +95,7 @@ eaos-backend-staging-secrets
 ```
 
 Install:
+
 ```bash
 helm repo add doppler https://helm.doppler.com
 helm install doppler-secrets-operator doppler/doppler-kubernetes-operator \
@@ -101,6 +103,7 @@ helm install doppler-secrets-operator doppler/doppler-kubernetes-operator \
 ```
 
 Create service tokens:
+
 ```bash
 doppler configs tokens create --config prd --name k8s-operator --plain
 # → dp.st.prd.xxxx
@@ -109,6 +112,12 @@ kubectl create secret generic doppler-token-prod \
   --from-literal=serviceToken=dp.st.prd.xxxx
 
 kubectl apply -f k8s/doppler.yaml
+```
+
+Add or update a production secret:
+
+```bash
+doppler secrets set DOCKER_INSECURE_REGISTRY --project officeos --config prd
 ```
 
 ## Environment Detection
@@ -156,21 +165,21 @@ Set via `APP_ENV` env var (`development`, `staging`, `production`).
 
 ### Disabled in Development (self-hosted)
 
-| Feature | Backend | Frontend |
-|---------|---------|----------|
-| Stripe billing | Guards on `string.IsNullOrWhiteSpace(SecretKey)` | Billing/Cost pages hidden, pricing redirects to officeos.co |
-| PostHog analytics | `!env.IsDevelopment() && !string.IsNullOrWhiteSpace(ApiKey)` | `AnalyticsPageview` no-ops |
-| Provider BYOK mutations | Enabled (gated to dev only) | Providers page shown |
-| Upgrade Plan menu item | N/A | Hidden |
+| Feature                 | Backend                                                      | Frontend                                                    |
+| ----------------------- | ------------------------------------------------------------ | ----------------------------------------------------------- |
+| Stripe billing          | Guards on `string.IsNullOrWhiteSpace(SecretKey)`             | Billing/Cost pages hidden, pricing redirects to officeos.co |
+| PostHog analytics       | `!env.IsDevelopment() && !string.IsNullOrWhiteSpace(ApiKey)` | `AnalyticsPageview` no-ops                                  |
+| Provider BYOK mutations | Enabled (gated to dev only)                                  | Providers page shown                                        |
+| Upgrade Plan menu item  | N/A                                                          | Hidden                                                      |
 
 ### Enabled only in Development
 
-| Feature | Details |
-|---------|---------|
-| Docker agent deployer | `appsettings.json` defaults, not in Doppler |
-| Swagger UI | `app.Environment.IsDevelopment()` check in Program.cs |
-| Provider key CRUD | GraphQL mutations gated behind `IsDevelopment()` |
-| "Try OfficeOS Cloud" link | Sidebar link to dashboard.officeos.co |
+| Feature                   | Details                                               |
+| ------------------------- | ----------------------------------------------------- |
+| Docker agent deployer     | `appsettings.json` defaults, not in Doppler           |
+| Swagger UI                | `app.Environment.IsDevelopment()` check in Program.cs |
+| Provider key CRUD         | GraphQL mutations gated behind `IsDevelopment()`      |
+| "Try OfficeOS Cloud" link | Sidebar link to dashboard.officeos.co                 |
 
 ## Config Classes
 
@@ -185,6 +194,7 @@ public string Url { get; set; } = "http://localhost:3001";
 ```
 
 Validation happens in `Program.cs` at startup:
+
 ```csharp
 // Top-level keys (support both PascalCase and UPPER_SNAKE from Doppler)
 var redis = Require("Redis", "REDIS");

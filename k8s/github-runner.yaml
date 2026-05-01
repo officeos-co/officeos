@@ -48,7 +48,7 @@ spec:
 
       containers:
         - name: github-runner
-          image: myoung34/github-runner:2.333.0-ubuntu-noble
+          image: myoung34/github-runner:2.334.0-ubuntu-noble
           securityContext:
             privileged: true
           env:
@@ -62,6 +62,8 @@ spec:
               value: "k8s-runner"
             - name: RUNNER_WORKDIR
               value: "/tmp/runner/work"
+            - name: DISABLE_AUTO_UPDATE
+              value: "true"
             - name: ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -93,8 +95,14 @@ spec:
           env:
             - name: DOCKER_TLS_CERTDIR
               value: ""
+            - name: DOCKER_INSECURE_REGISTRY
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-prod-secrets
+                  key: DOCKER_INSECURE_REGISTRY
           args:
-            - "--insecure-registry=REDACTED_DOCKER_REGISTRY_IP"
+            - "--tls=false"
+            - "--insecure-registry=$(DOCKER_INSECURE_REGISTRY)"
           volumeMounts:
             - name: dind-storage
               mountPath: /var/lib/docker
