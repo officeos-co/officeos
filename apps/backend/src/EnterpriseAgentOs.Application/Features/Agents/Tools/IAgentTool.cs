@@ -48,10 +48,59 @@ public interface IAgentTool
     string Name { get; }
     ToolSchema Schema { get; }
     AgentToolKind Kind => AgentToolKind.Execute;
+    string RuntimeName => Name;
+    string PermissionScope => ToolPermissionPolicy.ScopeFor(this);
+    bool ShouldDefer => ToolPermissionPolicy.ShouldDefer(this);
+    bool AlwaysLoad => !ShouldDefer;
+    string SearchHint => Schema.Description;
     bool IsReadOnly => false;
     bool IsConcurrencySafe => false;
     int MaxResultChars => 100_000;
     Task<ToolValidationResult> ValidateAsync(JsonElement args, CancellationToken ct = default)
         => Task.FromResult(ToolValidationResult.Valid);
     Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default);
+}
+
+internal static class ToolPermissionPolicy
+{
+    private static readonly HashSet<string> CoreToolNames = new(StringComparer.Ordinal)
+    {
+        "tool_search",
+        "shell",
+        "file_read",
+        "file_write",
+        "file_edit",
+        "content_search",
+        "glob_search",
+        "memory_store",
+        "memory_recall",
+        "memory_forget",
+        "ask_user_question",
+        "task_create",
+        "task_list",
+        "task_get",
+        "task_update",
+        "http_request",
+        "web_fetch",
+    };
+
+    public static string ScopeFor(IAgentTool tool)
+    {
+        if (tool.Name.StartsWith("browser__", StringComparison.Ordinal))
+            return $"browser:{tool.Name}";
+
+        if (tool.Name.Contains("__", StringComparison.Ordinal))
+        {
+            var parts = tool.Name.Split("__", 2, StringSplitOptions.TrimEntries);
+            return parts.Length == 2 ? $"{parts[0]}:{parts[1]}" : tool.Name;
+        }
+
+        return $"builtin:{tool.Name}";
+    }
+
+    public static bool ShouldDefer(IAgentTool tool)
+        => tool.Kind is AgentToolKind.Mcp
+           || tool.Name.StartsWith("browser__", StringComparison.Ordinal)
+           || tool.Name.StartsWith("cron_", StringComparison.Ordinal)
+           || !CoreToolNames.Contains(tool.Name);
 }

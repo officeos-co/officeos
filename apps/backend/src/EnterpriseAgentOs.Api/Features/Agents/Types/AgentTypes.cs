@@ -70,7 +70,6 @@ public sealed record AgentBootstrapToolPermission(
     string Tool,
     string Mode);
 
-[GraphQLName("ToolPermission")]
 public sealed record ToolPermissionPayload(
     string SkillName,
     string ToolName,
@@ -78,6 +77,15 @@ public sealed record ToolPermissionPayload(
 
 public sealed record SetAgentToolPermissionInput(
     Guid AgentId,
+    string Skill,
+    string Tool,
+    ToolPermission Mode);
+
+public sealed record SetAgentToolPermissionsInput(
+    Guid AgentId,
+    IReadOnlyList<SetAgentToolPermissionEntryInput> Entries);
+
+public sealed record SetAgentToolPermissionEntryInput(
     string Skill,
     string Tool,
     ToolPermission Mode);

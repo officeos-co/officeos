@@ -10,7 +10,6 @@ import {
   ChannelPermissionCard,
   type ToolPermission,
 } from "@/components/permission-cards";
-import { builtInTools } from "@/features/agents/data/integrations";
 import type {
   Channel,
   ChannelPermissions,
@@ -27,6 +26,11 @@ import {
 } from "@/features/agents/api/useChannels";
 import { useAgentBindings } from "@/features/agents/api/useAgentBindings";
 import {
+  useAgentToolCatalog,
+  useAgentToolPermissions,
+  useSetAgentToolPermissions,
+} from "@/features/agents/api/useAgents";
+import {
   useAssignSkillToAgent,
   useUnassignSkillFromAgent,
 } from "@/features/agents/api/useAgentSkills";
@@ -40,6 +44,19 @@ import {
   ExternalLinkIcon,
 } from "lucide-react";
 
+function graphQLErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "graphQLErrors" in error &&
+    Array.isArray(error.graphQLErrors)
+  ) {
+    const first = error.graphQLErrors[0] as { message?: unknown } | undefined;
+    if (typeof first?.message === "string") return first.message;
+  }
+  return fallback;
+}
+
 export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { integrations } = useIntegrations();
   const { channels } = useChannels();
@@ -50,6 +67,10 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   } = useAgentBindings(agentId);
   const { bindChannelToAgent } = useBindChannelToAgent();
   const { unbindChannelFromAgent } = useUnbindChannelFromAgent();
+  const { tools: toolCatalog } = useAgentToolCatalog(agentId);
+  const { permissions: savedToolPermissions } =
+    useAgentToolPermissions(agentId);
+  const { setAgentToolPermissions } = useSetAgentToolPermissions();
   const assignSkill = useAssignSkillToAgent();
   const unassignSkill = useUnassignSkillFromAgent();
   const setSkillCredentials = useSetSkillCredentials();
@@ -59,10 +80,20 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
   );
+  const [toolPermissions, setToolPermissions] = useState<
+    Record<string, ToolPermission>
+  >({});
+  const [groupPermissions, setGroupPermissions] = useState<
+    Record<string, ToolPermission>
+  >({});
+  const [channelPerms, setChannelPerms] = useState<
+    Record<string, ChannelPermissions>
+  >({});
   const lastSyncedSkillsRef = useRef<string>("");
   const lastSyncedChannelsRef = useRef<string>("");
   const [configureSlug, setConfigureSlug] = useState<string | null>(null);
   const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null);
+  const lastSyncedPermissionsRef = useRef<string>("");
 
   // Sync from backend bindings whenever they change
   useEffect(() => {
@@ -72,6 +103,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
 
     if (skillsKey !== lastSyncedSkillsRef.current) {
       lastSyncedSkillsRef.current = skillsKey;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedIntegrations(new Set(skillSlugs));
     }
 
@@ -87,15 +119,74 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     }
   }, [bindingsLoading, skillSlugs, channelSlugs, channels]);
 
-  const [toolPermissions, setToolPermissions] = useState<
-    Record<string, ToolPermission>
-  >({});
-  const [groupPermissions, setGroupPermissions] = useState<
-    Record<string, ToolPermission>
-  >({});
-  const [channelPerms, setChannelPerms] = useState<
-    Record<string, ChannelPermissions>
-  >({});
+  useEffect(() => {
+    const key = savedToolPermissions
+      .map((p) => `${p.skillName}:${p.toolName}:${p.mode}`)
+      .sort()
+      .join("|");
+    if (key === lastSyncedPermissionsRef.current) return;
+    lastSyncedPermissionsRef.current = key;
+
+    const nextTools: Record<string, ToolPermission> = {};
+    const nextGroups: Record<string, ToolPermission> = {};
+    for (const permission of savedToolPermissions) {
+      const mode = permission.mode === "DENY" ? "deny" : "allow";
+      if (permission.toolName) {
+        nextTools[`${permission.skillName}:${permission.toolName}`] = mode;
+      } else {
+        nextGroups[permission.skillName] = mode;
+      }
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setToolPermissions(nextTools);
+    setGroupPermissions(nextGroups);
+  }, [savedToolPermissions]);
+
+  async function persistToolPermissions(
+    nextTools: Record<string, ToolPermission>,
+    nextGroups: Record<string, ToolPermission>,
+  ) {
+    const entries: Array<{
+      skill: string;
+      tool: string;
+      mode: "ALLOW" | "DENY";
+    }> = [];
+
+    for (const [key, permission] of Object.entries(nextTools)) {
+      const [skill, ...toolParts] = key.split(":");
+      entries.push({
+        skill,
+        tool: toolParts.join(":"),
+        mode: permission === "deny" ? "DENY" : "ALLOW",
+      });
+    }
+
+    for (const [skill, permission] of Object.entries(nextGroups)) {
+      entries.push({
+        skill,
+        tool: "",
+        mode: permission === "deny" ? "DENY" : "ALLOW",
+      });
+    }
+
+    try {
+      await setAgentToolPermissions(agentId, entries);
+    } catch (error) {
+      toast.error(graphQLErrorMessage(error, "Failed to save tool permissions"));
+    }
+  }
+
+  function updateToolPermission(key: string, permission: ToolPermission) {
+    const next = { ...toolPermissions, [key]: permission };
+    setToolPermissions(next);
+    void persistToolPermissions(next, groupPermissions);
+  }
+
+  function updateGroupPermission(skill: string, permission: ToolPermission) {
+    const next = { ...groupPermissions, [skill]: permission };
+    setGroupPermissions(next);
+    void persistToolPermissions(toolPermissions, next);
+  }
 
   async function toggleIntegration(slug: string) {
     const wasSelected = selectedIntegrations.has(slug);
@@ -113,8 +204,8 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       } else {
         await assignSkill(agentId, slug);
       }
-    } catch (e: any) {
-      const msg = e?.graphQLErrors?.[0]?.message ?? "Failed to toggle MCP server";
+    } catch (e: unknown) {
+      const msg = graphQLErrorMessage(e, "Failed to toggle MCP server");
       toast.error(msg);
       setSelectedIntegrations((prev) => {
         const next = new Set(prev);
@@ -183,9 +274,8 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         if (ch.connectionId) {
           try {
             await bindChannelToAgent(ch.connectionId, agentId);
-          } catch (e: any) {
-            const msg =
-              e?.graphQLErrors?.[0]?.message ?? "Failed to bind channel";
+          } catch (e: unknown) {
+            const msg = graphQLErrorMessage(e, "Failed to bind channel");
             toast.error(msg);
             setSelectedChannels((prev) => {
               const next = new Set(prev);
@@ -206,6 +296,12 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
     selectedIntegrations.has(i.name),
   );
   const activeChannels = channels.filter((c) => selectedChannels.has(c.slug));
+  const backendBuiltInTools = toolCatalog
+    .filter((tool) => tool.group === "builtin")
+    .map((tool) => ({
+      name: tool.permissionTool || tool.runtimeName,
+      description: tool.description,
+    }));
 
   return (
     <>
@@ -245,7 +341,7 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
             <div>
               <Label>Channels</Label>
               <p className="text-xs text-muted-foreground">
-                Messaging platforms that connect to the agent's session via
+                Messaging platforms that connect to the agent&apos;s session via
                 WebSocket.
               </p>
             </div>
@@ -313,23 +409,18 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
           );
         })()}
 
-        {/* Tool permissions — coming soon */}
-        <div className="space-y-3 pointer-events-none opacity-50">
-          <Label className="flex items-center gap-2">
-            Tool permissions
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Coming soon
-            </span>
-          </Label>
+        {/* Tool permissions */}
+        <div className="space-y-3">
+          <Label>Tool permissions</Label>
           <ToolPermissionCard
             title="Built-in tools"
             subtitle="agent_toolset"
             icon={<TerminalIcon className="size-4" />}
-            tools={builtInTools}
+            tools={backendBuiltInTools}
             permissions={toolPermissions}
-            onToggle={() => {}}
+            onToggle={updateToolPermission}
             groupPerm={groupPermissions["builtin"] ?? "allow"}
-            onGroupPerm={() => {}}
+            onGroupPerm={(permission) => updateGroupPermission("builtin", permission)}
             prefix="builtin"
           />
           {activeIntegrations.map((i) => (
@@ -343,11 +434,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                   dangerouslySetInnerHTML={{ __html: i.logo }}
                 />
               }
-              tools={[]}
+              tools={i.tools}
               permissions={toolPermissions}
-              onToggle={() => {}}
+              onToggle={updateToolPermission}
               groupPerm={groupPermissions[i.name] ?? "allow"}
-              onGroupPerm={() => {}}
+              onGroupPerm={(permission) => updateGroupPermission(i.name, permission)}
               prefix={i.name}
             />
           ))}

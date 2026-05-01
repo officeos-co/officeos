@@ -31,6 +31,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
     public DbSet<AgentCronJobEntity> AgentCronJobs => Set<AgentCronJobEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
+    public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
+    public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
 
     public DbSet<McpServerEntity> McpServers => Set<McpServerEntity>();
     public DbSet<AgentMcpServerEntity> AgentMcpServers => Set<AgentMcpServerEntity>();
@@ -239,6 +241,34 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.Status).IsRequired().HasMaxLength(16);
             e.HasOne(s => s.Agent).WithMany()
                 .HasForeignKey(s => s.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentSessionContextEntity>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.AgentId).IsUnique();
+            e.Property(c => c.Summary).HasColumnType("text");
+            e.HasOne(c => c.Agent).WithMany()
+                .HasForeignKey(c => c.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentRunEntity>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.AgentId);
+            e.HasIndex(r => r.ParentRunId);
+            e.HasIndex(r => r.Status);
+            e.Property(r => r.Kind).IsRequired().HasMaxLength(16);
+            e.Property(r => r.Status).IsRequired().HasMaxLength(32);
+            e.Property(r => r.Name).IsRequired().HasMaxLength(128);
+            e.Property(r => r.Description).HasColumnType("text");
+            e.Property(r => r.Prompt).HasColumnType("text");
+            e.Property(r => r.Result).HasColumnType("text");
+            e.Property(r => r.Error).HasColumnType("text");
+            e.HasOne(r => r.Agent).WithMany()
+                .HasForeignKey(r => r.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

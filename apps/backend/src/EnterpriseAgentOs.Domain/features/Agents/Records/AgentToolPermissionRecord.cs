@@ -3,8 +3,8 @@ namespace EnterpriseAgentOs.Domain.Features.Agents;
 /// <summary>
 /// Allow/deny decision for a single (skill, tool) pair on a given agent.
 /// Set from the Quickstart wizard and the per-agent skills tab.
-/// Absence of a row means the tool is disabled — only explicit <see cref="Allow"/> grants access.
-/// Enforced in the skill execution path before dispatch.
+/// Absence of a row means the default runtime policy applies. For assigned
+/// built-in, browser, and MCP tools that default is allow; explicit deny wins.
 /// </summary>
 public enum ToolPermission
 {

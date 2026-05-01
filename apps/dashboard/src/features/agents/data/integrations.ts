@@ -31,14 +31,3 @@ export type McpServer = {
 
 /** @deprecated Use McpServer instead */
 export type Integration = McpServer
-
-export const builtInTools: Tool[] = [
-  { name: "bash", description: "Execute bash commands" },
-  { name: "read", description: "Read files" },
-  { name: "write", description: "Write files" },
-  { name: "edit", description: "String replacement in files" },
-  { name: "glob", description: "File pattern matching" },
-  { name: "grep", description: "Text search with regex" },
-  { name: "web_fetch", description: "Fetch URL content" },
-  { name: "web_search", description: "Search the web" },
-]

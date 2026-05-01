@@ -263,3 +263,61 @@ internal sealed class CronDeleteTool : IAgentTool
         return new ToolResult(deleted, deleted ? $"Deleted cron job {id}." : "", deleted ? null : "Cron job not found.");
     }
 }
+
+internal sealed class AgentSpawnTool : IAgentTool
+{
+    private readonly IAgentRunRepository _runs;
+    private readonly Guid _agentId;
+
+    public AgentSpawnTool(IAgentRunRepository runs, Guid agentId)
+    {
+        _runs = runs;
+        _agentId = agentId;
+    }
+
+    public string Name => "agent_spawn";
+    public AgentToolKind Kind => AgentToolKind.Planning;
+    public ToolSchema Schema => new("agent_spawn",
+        "Create a child agent run for independent subagent or fork work. Background mode records the run and returns its ID.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                name = new { type = "string" },
+                description = new { type = "string" },
+                prompt = new { type = "string" },
+                mode = new { type = "string", @enum = new[] { "subagent", "fork" } },
+                run_in_background = new { type = "boolean" },
+                read_only = new { type = "boolean" }
+            },
+            required = new[] { "name", "prompt", "mode" }
+        });
+
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
+    {
+        var mode = args.TryGetProperty("mode", out var modeProp) ? modeProp.GetString() : "subagent";
+        if (mode is not ("subagent" or "fork"))
+            return new ToolResult(false, "", "mode must be subagent or fork.");
+
+        var run = await _runs.CreateAsync(new AgentRunRecord
+        {
+            AgentId = _agentId,
+            ParentRunId = AgentRunContext.RunId,
+            Kind = mode,
+            Status = "queued",
+            Name = args.TryGetProperty("name", out var name) ? name.GetString() ?? mode : mode,
+            Description = args.TryGetProperty("description", out var desc) ? desc.GetString() : null,
+            Prompt = args.GetProperty("prompt").GetString() ?? "",
+        }, ct);
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            run_id = run.Id,
+            status = run.Status,
+            mode = run.Kind,
+            note = "Run record created. Execution worker dispatch will pick this up when backend subagent scheduling is enabled."
+        }, new JsonSerializerOptions { WriteIndented = true });
+        return new ToolResult(true, payload);
+    }
+}

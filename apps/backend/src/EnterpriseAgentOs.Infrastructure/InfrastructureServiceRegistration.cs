@@ -14,6 +14,7 @@ public static class InfrastructureServiceRegistration
 
         // Repositories
         services.AddScoped<IAgentRepository, AgentRepository>();
+        services.AddScoped<IAgentToolPermissionRepository, AgentToolPermissionRepository>();
 
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
         services.AddScoped<IMcpServerRepository, McpServerRepository>();
@@ -31,6 +32,8 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentPersonalityRepository, AgentPersonalityRepository>();
         services.AddScoped<IAgentCronJobRepository, AgentCronJobRepository>();
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
+        services.AddScoped<IAgentSessionContextRepository, AgentSessionContextRepository>();
+        services.AddScoped<IAgentRunRepository, AgentRunRepository>();
 
         // Adapters
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();

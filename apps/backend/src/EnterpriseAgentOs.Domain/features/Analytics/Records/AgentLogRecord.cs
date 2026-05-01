@@ -75,6 +75,9 @@ public sealed class AgentLogRecord
     [MaxLength(128)]
     public string? CorrelationId { get; init; }
 
+    public Guid? RunId { get; init; }
+    public Guid? ParentRunId { get; init; }
+
     // ── Factory methods ─────────────────────────────────────────────────────
 
     public static AgentLogRecord System(Guid agentId, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null) => new()

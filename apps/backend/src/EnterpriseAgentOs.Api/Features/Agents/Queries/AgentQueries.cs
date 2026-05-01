@@ -44,4 +44,39 @@ public class AgentQueries
 
         return result;
     }
+
+    [GraphQLDescription("Returns explicit allow/deny tool permission overrides for an agent.")]
+    public async Task<IReadOnlyList<ToolPermissionPayload>> GetAgentToolPermissions(
+        Guid agentId,
+        IResolverContext context,
+        [Service] IAgentToolPermissionRepository permissions,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        var rows = await permissions.ListForAgentAsync(agentId, ct);
+        return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
+    }
+
+    [GraphQLDescription("Returns the backend-owned tool catalog for dashboard permission UIs.")]
+    public async Task<IReadOnlyList<AgentToolCatalogEntry>> GetAgentToolCatalog(
+        Guid? agentId,
+        IResolverContext context,
+        [Service] IAgentToolCatalogService catalog,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return await catalog.ListAsync(agentId, ct);
+    }
+
+    [GraphQLDescription("Lists persisted runs for an agent, optionally filtered by parent run.")]
+    public async Task<IReadOnlyList<AgentRunRecord>> GetAgentRuns(
+        Guid agentId,
+        Guid? parentRunId,
+        IResolverContext context,
+        [Service] IAgentRunRepository runs,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return await runs.ListForAgentAsync(agentId, parentRunId, ct);
+    }
 }

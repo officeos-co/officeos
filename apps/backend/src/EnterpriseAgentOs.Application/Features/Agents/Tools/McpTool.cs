@@ -11,6 +11,7 @@ internal sealed partial class McpTool : IAgentTool
 
     public string Name { get; }
     public ToolSchema Schema { get; }
+    public string PermissionScope { get; }
 
     public McpTool(McpDiscoveredTool discovered)
     {
@@ -22,6 +23,7 @@ internal sealed partial class McpTool : IAgentTool
         var slug = SlugRegex().Replace(discovered.ServerName, "_");
         var toolSlug = SlugRegex().Replace(discovered.Name, "_");
         Name = $"{slug}__{toolSlug}";
+        PermissionScope = $"{discovered.ServerName}:{discovered.Name}";
 
         var parameters = !string.IsNullOrEmpty(discovered.JsonSchema)
             ? JsonSerializer.Deserialize<JsonElement>(discovered.JsonSchema)

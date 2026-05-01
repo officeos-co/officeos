@@ -97,4 +97,36 @@ public class AgentDashboardMutations
         cache.Remove(AgentQueryCacheKey(id));
         return result;
     }
+
+    [GraphQLDescription("Sets one explicit tool permission override for an agent.")]
+    public async Task<ToolPermissionPayload> SetAgentToolPermission(
+        SetAgentToolPermissionInput input,
+        IResolverContext context,
+        [Service] IAgentToolPermissionRepository permissions,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        await permissions.UpsertAsync(input.AgentId, input.Skill, input.Tool, input.Mode, ct);
+        return new ToolPermissionPayload(input.Skill, input.Tool, input.Mode);
+    }
+
+    [GraphQLDescription("Replaces explicit tool permission overrides for an agent.")]
+    public async Task<IReadOnlyList<ToolPermissionPayload>> SetAgentToolPermissions(
+        SetAgentToolPermissionsInput input,
+        IResolverContext context,
+        [Service] IAgentToolPermissionRepository permissions,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        var rows = input.Entries.Select(e => new AgentToolPermissionRecord
+        {
+            AgentId = input.AgentId,
+            SkillName = e.Skill,
+            ToolName = e.Tool,
+            Permission = e.Mode,
+        }).ToList();
+
+        await permissions.SetManyAsync(input.AgentId, rows, ct);
+        return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
+    }
 }

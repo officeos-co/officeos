@@ -14,6 +14,23 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         return entities.Select(ToAgentLogRecord).ToList();
     }
 
+    public async Task<List<AgentLogRecord>> ListAfterAsync(Guid agentId, Guid? afterLogId, int limit, CancellationToken ct = default)
+    {
+        var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => l.AgentId == agentId);
+        if (afterLogId.HasValue)
+        {
+            var boundary = await _eaosDbContext.AgentLogs.AsNoTracking()
+                .Where(l => l.Id == afterLogId.Value)
+                .Select(l => (DateTime?)l.Time)
+                .FirstOrDefaultAsync(ct);
+            if (boundary.HasValue)
+                q = q.Where(l => l.Time > boundary.Value);
+        }
+
+        var entities = await q.OrderBy(l => l.Time).Take(limit).ToListAsync(ct);
+        return entities.Select(ToAgentLogRecord).ToList();
+    }
+
     public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
         string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
     {
@@ -122,6 +139,8 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         Content = e.Content,
         Usage = new TokenUsage(e.InputTokens, e.OutputTokens, e.DurationMs),
         CorrelationId = e.CorrelationId,
+        RunId = e.RunId,
+        ParentRunId = e.ParentRunId,
         Agent = null,
     };
 
@@ -139,5 +158,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         InputTokens = r.Usage.InputTokens,
         OutputTokens = r.Usage.OutputTokens,
         CorrelationId = r.CorrelationId,
+        RunId = r.RunId,
+        ParentRunId = r.ParentRunId,
     };
 }

@@ -13,6 +13,8 @@ internal sealed class AgentService : IAgentService
     private readonly IPublisher _publisher;
     private readonly AgentChannelBinder _channelBinder;
     private readonly IAgentLogService _agentLogService;
+    private readonly IMcpServerService _mcpServerService;
+    private readonly IAgentToolPermissionRepository _toolPermissionRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     private const string AgentListCacheKey = "agents:list";
@@ -27,7 +29,9 @@ internal sealed class AgentService : IAgentService
         IAgentPersonalityRepository personalityRepo,
         IPublisher publisher,
         AgentChannelBinder channelBinder,
-        IAgentLogService agentLogService)
+        IAgentLogService agentLogService,
+        IMcpServerService mcpServerService,
+        IAgentToolPermissionRepository toolPermissionRepository)
     {
         _agentRepository = repository;
         _agentDeployer = deployer;
@@ -38,6 +42,8 @@ internal sealed class AgentService : IAgentService
         _publisher = publisher;
         _channelBinder = channelBinder;
         _agentLogService = agentLogService;
+        _mcpServerService = mcpServerService;
+        _toolPermissionRepository = toolPermissionRepository;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
@@ -183,6 +189,28 @@ internal sealed class AgentService : IAgentService
     public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
     {
         await _channelBinder.BindBySlugsAsync(agentId, init.ChannelSlugs, ct);
+
+        if (init.ToolNames is { Count: > 0 })
+        {
+            var servers = await _mcpServerService.ListAsync(ct);
+            var names = servers.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var toolName in init.ToolNames)
+            {
+                var parsed = ToolKey.Parse(toolName);
+                var serverName = names.Contains(toolName) ? toolName : parsed.SkillName;
+                if (names.Contains(serverName))
+                    await _mcpServerService.AssignToAgentAsync(agentId, serverName, ct);
+            }
+        }
+
+        if (init.ToolPermissions is { Count: > 0 })
+        {
+            foreach (var permission in init.ToolPermissions)
+            {
+                var key = AgentToolPermissionResolver.NormalizeDashboardKey(permission.Tool);
+                await _toolPermissionRepository.UpsertAsync(agentId, key.SkillName, key.ToolName, permission.Mode, ct);
+            }
+        }
 
         // Bootstrap message
         if (!string.IsNullOrWhiteSpace(init.BootstrapMessage))

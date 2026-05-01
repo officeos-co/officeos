@@ -6,6 +6,7 @@ internal sealed class ToolSearchTool : IAgentTool
 {
     private readonly IReadOnlyList<IAgentTool> _tools;
     public ToolSearchTool(IReadOnlyList<IAgentTool> tools) => _tools = tools;
+    public IReadOnlyList<string> LastMatchedToolNames { get; private set; } = [];
 
     public string Name => "tool_search";
     public AgentToolKind Kind => AgentToolKind.Read;
@@ -45,10 +46,18 @@ internal sealed class ToolSearchTool : IAgentTool
                 || t.Schema.Description.Contains(term, StringComparison.OrdinalIgnoreCase)));
         }
 
-        var payload = matches
+        var matched = matches
             .Where(t => t.Name != Name)
             .Take(max)
-            .Select(t => new { name = t.Name, description = t.Schema.Description, parameters = t.Schema.Parameters });
+            .ToList();
+        LastMatchedToolNames = matched.Select(t => t.Name).ToList();
+
+        var payload = matched.Select(t => new
+        {
+            name = t.Name,
+            description = t.Schema.Description,
+            parameters = t.Schema.Parameters
+        });
 
         return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true })));
     }

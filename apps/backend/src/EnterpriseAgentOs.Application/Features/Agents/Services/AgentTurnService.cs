@@ -11,14 +11,14 @@ internal sealed class AgentTurnService
     private readonly IProviderService _providerService;
     private readonly IMcpServerService _mcpServerService;
     private readonly ToolRegistryFactory _toolRegistryFactory;
-    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly ConversationCompactionService _compactionService;
+    private readonly IAgentRunRepository _agentRunRepository;
     private readonly IBillingGuard _billingGuard;
     private readonly ILogger<AgentTurnService> _logger;
 
     private const int MaxIterations = 25;
     private const int MaxTokens = 8192;
     private const int KeepRecent = 4;
-    private const int HistoryLoadLimit = 50;
 
     public AgentTurnService(
         IAgentRepository agents,
@@ -27,7 +27,8 @@ internal sealed class AgentTurnService
         IProviderService providers,
         IMcpServerService mcpServerService,
         ToolRegistryFactory toolRegistryFactory,
-        IAgentLogRepository agentLogRepository,
+        ConversationCompactionService compactionService,
+        IAgentRunRepository agentRunRepository,
         IBillingGuard billingGuard,
         ILogger<AgentTurnService> logger)
     {
@@ -37,7 +38,8 @@ internal sealed class AgentTurnService
         _providerService = providers;
         _mcpServerService = mcpServerService;
         _toolRegistryFactory = toolRegistryFactory;
-        _agentLogRepository = agentLogRepository;
+        _compactionService = compactionService;
+        _agentRunRepository = agentRunRepository;
         _billingGuard = billingGuard;
         _logger = logger;
     }
@@ -79,6 +81,27 @@ internal sealed class AgentTurnService
             return;
         }
 
+        var run = await _agentRunRepository.CreateAsync(new AgentRunRecord
+        {
+            AgentId = agentId,
+            ParentCorrelationId = correlationId,
+            Kind = "turn",
+            Status = "running",
+            Name = "Agent turn",
+            Prompt = userMessage,
+        }, ct);
+        using var runScope = AgentRunContext.Begin(run.Id, run.ParentRunId);
+
+        async Task FinishRunAsync(string status, string? result = null, string? error = null)
+        {
+            run.Status = status;
+            run.Result = result;
+            run.Error = error;
+            run.CompletedAt = DateTime.UtcNow;
+            run.UpdatedAt = DateTime.UtcNow;
+            await _agentRunRepository.UpdateAsync(run, ct);
+        }
+
         await _publisher.Publish(new TurnStartedEvent(agentId, correlationId, userMessage), ct);
 
         using var pod = new PodConnection();
@@ -94,6 +117,7 @@ internal sealed class AgentTurnService
             if (attempt == maxRetries)
             {
                 await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, podResult.Error.Message), ct);
+                await FinishRunAsync("failed", error: podResult.Error.Message);
                 return;
             }
 
@@ -117,8 +141,17 @@ internal sealed class AgentTurnService
         // Seed history from recent logs — includes messages, tool calls, and tool results.
         // Deduplication: ChannelOut is skipped when MessageOut exists for the same correlationId.
         // ChannelIn raw JSON → plain text extraction.
-        var recentLogs = await _agentLogRepository.ListAsync(agentId, before: null, limit: HistoryLoadLimit, ct);
-        var ordered = recentLogs.OrderBy(l => l.Time).ToList();
+        var contextWindow = await _compactionService.LoadAsync(agentId, correlationId, ct);
+        var ordered = contextWindow.Logs.OrderBy(l => l.Time).ToList();
+
+        if (!string.IsNullOrWhiteSpace(contextWindow.Summary))
+        {
+            history.Push(new ChatMessage
+            {
+                Role = "user",
+                Content = $"<persisted-conversation-summary>\n{contextWindow.Summary}\n</persisted-conversation-summary>"
+            });
+        }
 
         var outCorrelations = new HashSet<string>(
             ordered.Where(l => l.Type == AgentLogType.MessageOut && l.CorrelationId is not null)
@@ -175,6 +208,7 @@ internal sealed class AgentTurnService
                 await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, ex.Message), ct);
                 var quotaMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
                 await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, quotaMs, i, totalToolCalls), ct);
+                await FinishRunAsync("failed", error: ex.Message);
                 return;
             }
 
@@ -183,7 +217,15 @@ internal sealed class AgentTurnService
             history.PruneToolResults(maxResultChars: 500, keepRecentTurns: KeepRecent);
             history.Prune(MaxTokens, KeepRecent);
 
-            var messages = new List<object> { new { role = "system", content = systemPrompt } };
+            var deferredTools = registry.GetDeferredToolsMessage();
+            var messages = new List<object>
+            {
+                new
+                {
+                    role = "system",
+                    content = $"{systemPrompt}\n\n{deferredTools}\nUse tool_search to reveal deferred tool schemas before calling deferred tools."
+                }
+            };
 
             foreach (var msg in history.Messages)
             {
@@ -220,6 +262,7 @@ internal sealed class AgentTurnService
             if (apiKey is null)
             {
                 await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Provider '{provider}' has no API key configured."), ct);
+                await FinishRunAsync("failed", error: $"Provider '{provider}' has no API key configured.");
                 return;
             }
 
@@ -228,6 +271,7 @@ internal sealed class AgentTurnService
             if (llmResult.IsFailure)
             {
                 await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, llmResult.Error.Message), ct);
+                await FinishRunAsync("failed", error: llmResult.Error.Message);
                 return;
             }
 
@@ -252,6 +296,7 @@ internal sealed class AgentTurnService
             {
                 var totalMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
                 await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, totalMs, i + 1, totalToolCalls), ct);
+                await FinishRunAsync("completed", result: assistantContent);
                 return;
             }
 
@@ -268,6 +313,11 @@ internal sealed class AgentTurnService
                 var toolStart = Stopwatch.GetTimestamp();
                 var toolDispatchResult = await registry.DispatchAsync(tc.Name, args, ct);
                 var toolDurationMs = (int)Stopwatch.GetElapsedTime(toolStart).TotalMilliseconds;
+                if (toolDispatchResult.IsSuccess
+                    && registry.Tools.FirstOrDefault(t => t.Name == tc.Name) is ToolSearchTool searchTool)
+                {
+                    registry.RevealTools(searchTool.LastMatchedToolNames);
+                }
 
                 if (toolDispatchResult.IsFailure)
                 {
@@ -286,6 +336,7 @@ internal sealed class AgentTurnService
                         await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, breakResult.Message), ct);
                         var breakMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
                         await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, breakMs, i + 1, totalToolCalls), ct);
+                        await FinishRunAsync("failed", error: breakResult.Message);
                         return;
                     case LoopDetectionResult.BlockResult blockResult:
                         output = $"BLOCKED: {blockResult.Message}";
@@ -302,6 +353,7 @@ internal sealed class AgentTurnService
         await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Hit max iterations ({MaxIterations})"), ct);
         var maxMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
         await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, maxMs, MaxIterations, totalToolCalls), ct);
+        await FinishRunAsync("failed", error: $"Hit max iterations ({MaxIterations})");
     }
 
     private record ParsedToolCall(string Id, string Name, string Arguments);

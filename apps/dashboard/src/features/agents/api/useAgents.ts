@@ -76,6 +76,39 @@ const DELETE_AGENT = gql`
   }
 `;
 
+const AGENT_TOOL_PERMISSIONS = gql`
+  query AgentToolPermissions($agentId: UUID!) {
+    agentToolPermissions(agentId: $agentId) {
+      skillName
+      toolName
+      mode
+    }
+  }
+`;
+
+const SET_AGENT_TOOL_PERMISSIONS = gql`
+  mutation SetAgentToolPermissions($input: SetAgentToolPermissionsInput!) {
+    setAgentToolPermissions(input: $input) {
+      skillName
+      toolName
+      mode
+    }
+  }
+`;
+
+const AGENT_TOOL_CATALOG = gql`
+  query AgentToolCatalog($agentId: UUID) {
+    agentToolCatalog(agentId: $agentId) {
+      group
+      runtimeName
+      permissionSkill
+      permissionTool
+      description
+      deferred
+    }
+  }
+`;
+
 /* ── Helpers ─────────────────────────────────────────────── */
 
 function humanAgo(iso: string | number | null | undefined): string {
@@ -194,7 +227,7 @@ export function useAgent(id: string): {
     prompt: a.prompt ?? "",
     integrations: [],
     channels: [],
-    createdAt: a.createdAt ? Date.parse(a.createdAt) : Date.now(),
+    createdAt: a.createdAt ? Date.parse(a.createdAt) : 0,
     memories: a.memories ?? [],
     channelBindings: a.channelBindings ?? [],
     personalityFiles: a.personalityFiles ?? [],
@@ -315,5 +348,69 @@ export function useDeleteAgent() {
       return Boolean(data?.deleteAgent);
     },
     ...state,
+  };
+}
+
+export type AgentToolPermission = {
+  skillName: string;
+  toolName: string;
+  mode: "ALLOW" | "DENY";
+};
+
+export function useAgentToolPermissions(agentId: string): {
+  permissions: AgentToolPermission[];
+  loading: boolean;
+  error?: Error;
+} {
+  const { data, loading, error } = useQuery(AGENT_TOOL_PERMISSIONS, {
+    variables: { agentId },
+    skip: !agentId,
+  });
+  return {
+    permissions: data?.agentToolPermissions ?? [],
+    loading,
+    error: error ?? undefined,
+  };
+}
+
+export function useSetAgentToolPermissions() {
+  const [fn, state] = useMutation(SET_AGENT_TOOL_PERMISSIONS);
+  return {
+    setAgentToolPermissions: async (
+      agentId: string,
+      entries: Array<{ skill: string; tool: string; mode: "ALLOW" | "DENY" }>,
+    ) => {
+      const { data } = await fn({
+        variables: { input: { agentId, entries } },
+        refetchQueries: [{ query: AGENT_TOOL_PERMISSIONS, variables: { agentId } }],
+      });
+      return data?.setAgentToolPermissions as AgentToolPermission[];
+    },
+    ...state,
+  };
+}
+
+export type AgentToolCatalogEntry = {
+  group: string;
+  runtimeName: string;
+  permissionSkill: string;
+  permissionTool: string;
+  description: string;
+  deferred: boolean;
+};
+
+export function useAgentToolCatalog(agentId?: string): {
+  tools: AgentToolCatalogEntry[];
+  loading: boolean;
+  error?: Error;
+} {
+  const { data, loading, error } = useQuery(AGENT_TOOL_CATALOG, {
+    variables: { agentId: agentId ?? null },
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    tools: data?.agentToolCatalog ?? [],
+    loading,
+    error: error ?? undefined,
   };
 }

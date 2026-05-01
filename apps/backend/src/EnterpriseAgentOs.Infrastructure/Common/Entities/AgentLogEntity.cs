@@ -16,5 +16,7 @@ public sealed class AgentLogEntity
     public int? InputTokens { get; set; }
     public int? OutputTokens { get; set; }
     public string? CorrelationId { get; set; }
+    public Guid? RunId { get; set; }
+    public Guid? ParentRunId { get; set; }
     public AgentEntity? Agent { get; set; }
 }

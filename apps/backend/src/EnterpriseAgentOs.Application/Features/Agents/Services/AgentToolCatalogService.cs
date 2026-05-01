@@ -1,0 +1,157 @@
+namespace EnterpriseAgentOs.Application.Features.Agents;
+
+public interface IAgentToolCatalogService
+{
+    Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default);
+}
+
+internal sealed class AgentToolCatalogService : IAgentToolCatalogService
+{
+    private readonly IAgentMemoryRepository _memoryRepo;
+    private readonly IAgentCronJobRepository _cronJobRepository;
+    private readonly IAgentRunRepository _agentRunRepository;
+    private readonly AgentTaskStore _taskStore;
+    private readonly IBrowserService _browserService;
+    private readonly IBrowserRuntimeClient _browserRuntime;
+    private readonly IMcpServerService _mcpServerService;
+    private readonly IAgentToolPermissionRepository _permissionRepository;
+
+    public AgentToolCatalogService(
+        IAgentMemoryRepository memoryRepo,
+        IAgentCronJobRepository cronJobRepository,
+        IAgentRunRepository agentRunRepository,
+        AgentTaskStore taskStore,
+        IBrowserService browserService,
+        IBrowserRuntimeClient browserRuntime,
+        IMcpServerService mcpServerService,
+        IAgentToolPermissionRepository permissionRepository)
+    {
+        _memoryRepo = memoryRepo;
+        _cronJobRepository = cronJobRepository;
+        _agentRunRepository = agentRunRepository;
+        _taskStore = taskStore;
+        _browserService = browserService;
+        _browserRuntime = browserRuntime;
+        _mcpServerService = mcpServerService;
+        _permissionRepository = permissionRepository;
+    }
+
+    public async Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default)
+    {
+        var effectiveAgentId = agentId ?? Guid.Empty;
+        var context = new ToolExecutionContext(effectiveAgentId, new PodConnection());
+        var tools = new List<IAgentTool>
+        {
+            new ShellTool(context),
+            new FileReadTool(context),
+            new FileWriteTool(context),
+            new FileEditTool(context),
+            new ContentSearchTool(context),
+            new GlobSearchTool(context),
+            new MemoryStoreTool(_memoryRepo, effectiveAgentId),
+            new MemoryRecallTool(_memoryRepo, effectiveAgentId),
+            new MemoryForgetTool(_memoryRepo, effectiveAgentId),
+            new AskUserQuestionTool(),
+            new TaskCreateTool(_taskStore, effectiveAgentId),
+            new TaskListTool(_taskStore, effectiveAgentId),
+            new TaskGetTool(_taskStore, effectiveAgentId),
+            new TaskUpdateTool(_taskStore, effectiveAgentId),
+            new CronCreateTool(_cronJobRepository, effectiveAgentId),
+            new CronListTool(_cronJobRepository, effectiveAgentId),
+            new CronDeleteTool(_cronJobRepository, effectiveAgentId),
+            new AgentSpawnTool(_agentRunRepository, effectiveAgentId),
+            new HttpRequestTool(),
+            new WebFetchTool(),
+        };
+
+        if (agentId.HasValue)
+        {
+            try
+            {
+                if (await _browserRuntime.IsAvailableAsync(ct))
+                {
+                    var browserTools = await _browserRuntime.ListToolsAsync(ct);
+                    foreach (var discovered in browserTools.Where(BrowserMcpTool.ShouldExpose))
+                        tools.Add(new BrowserMcpTool(discovered, _browserService, _browserRuntime, effectiveAgentId));
+                }
+            }
+            catch
+            {
+                // Browser runtime availability should not block dashboard catalog rendering.
+            }
+        }
+
+        if (agentId.HasValue)
+        {
+            var resolver = new AgentToolPermissionResolver(await _permissionRepository.ListForAgentAsync(effectiveAgentId, ct));
+            tools = tools.Where(resolver.IsAllowed).ToList();
+        }
+
+        var entries = tools.Select(ToEntry).ToList();
+
+        if (agentId.HasValue)
+        {
+            var mcpServers = await _mcpServerService.ListForAgentAsync(effectiveAgentId, ct);
+            foreach (var server in mcpServers)
+            {
+                foreach (var tool in ParseMcpTools(server))
+                    entries.Add(tool);
+            }
+        }
+
+        return entries.OrderBy(e => e.Group).ThenBy(e => e.RuntimeName).ToList();
+    }
+
+    private static AgentToolCatalogEntry ToEntry(IAgentTool tool)
+    {
+        var key = ToolKey.Parse(tool.PermissionScope);
+        var group = key.SkillName == "browser" ? "browser" : "builtin";
+        return new AgentToolCatalogEntry(
+            group,
+            tool.Name,
+            key.SkillName,
+            key.ToolName,
+            tool.Schema.Description,
+            tool.ShouldDefer);
+    }
+
+    private static IEnumerable<AgentToolCatalogEntry> ParseMcpTools(McpServerRecord server)
+    {
+        if (string.IsNullOrWhiteSpace(server.ToolsJson))
+            yield break;
+
+        JsonElement parsed;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<JsonElement>(server.ToolsJson);
+        }
+        catch
+        {
+            yield break;
+        }
+
+        if (parsed.ValueKind != JsonValueKind.Array)
+            yield break;
+
+        foreach (var item in parsed.EnumerateArray())
+        {
+            var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+            if (string.IsNullOrWhiteSpace(name))
+                continue;
+
+            var description = item.TryGetProperty("description", out var descProp)
+                ? descProp.GetString() ?? name
+                : name;
+            yield return new AgentToolCatalogEntry(
+                server.Name,
+                $"{Slug(server.Name)}__{Slug(name)}",
+                server.Name,
+                name,
+                $"[{server.Name}] {description}",
+                true);
+        }
+    }
+
+    private static string Slug(string value)
+        => new(value.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray());
+}

@@ -8,6 +8,7 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 internal sealed class ToolRegistry : IAsyncDisposable
 {
     private readonly List<IAgentTool> _tools;
+    private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
     private readonly List<IAsyncDisposable> _mcpConnections;
     private readonly ToolExecutionContext _context;
 
@@ -26,8 +27,40 @@ internal sealed class ToolRegistry : IAsyncDisposable
 
     public IReadOnlyList<IAgentTool> Tools => _tools;
 
-    /// <summary>Get all tool schemas for the LLM tools array.</summary>
-    public object[] GetSchemas() => _tools.Select(t => new
+    /// <summary>Get loaded tool schemas for the LLM tools array.</summary>
+    public object[] GetSchemas() => _tools
+        .Where(t => t.AlwaysLoad || _revealed.Contains(t.Name))
+        .Select(ToSchema)
+        .ToArray();
+
+    public string GetDeferredToolsMessage()
+    {
+        var groups = _tools
+            .Where(t => t.ShouldDefer && !_revealed.Contains(t.Name))
+            .GroupBy(t => t.Kind == AgentToolKind.Mcp
+                ? ToolKey.Parse(t.PermissionScope).SkillName
+                : t.Name.StartsWith("browser__", StringComparison.Ordinal) ? "browser" : "builtin")
+            .OrderBy(g => g.Key);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("<available-deferred-tools>");
+        foreach (var group in groups)
+        {
+            sb.AppendLine($"group: {group.Key}");
+            foreach (var tool in group.OrderBy(t => t.Name))
+                sb.AppendLine($"- {tool.Name}: {tool.SearchHint}");
+        }
+        sb.Append("</available-deferred-tools>");
+        return sb.ToString();
+    }
+
+    public void RevealTools(IEnumerable<string> toolNames)
+    {
+        foreach (var name in toolNames)
+            _revealed.Add(name);
+    }
+
+    private static object ToSchema(IAgentTool t) => new
     {
         type = "function",
         function = new
@@ -36,14 +69,14 @@ internal sealed class ToolRegistry : IAsyncDisposable
             description = t.Schema.Description,
             parameters = t.Schema.Parameters,
         }
-    }).ToArray();
+    };
 
     /// <summary>Dispatch a tool call by name.</summary>
     public async Task<AgentResult<ToolResult>> DispatchAsync(string toolName, JsonElement args, CancellationToken ct)
     {
         var tool = _tools.FirstOrDefault(t => t.Name == toolName);
         if (tool is null)
-            return new AgentError(AgentErrorCategory.ToolExecution, $"Unknown tool: {toolName}");
+            return new AgentError(AgentErrorCategory.ToolExecution, $"Unknown or denied tool: {toolName}");
 
         var validation = await tool.ValidateAsync(args, ct);
         if (!validation.IsValid)
@@ -72,25 +105,31 @@ internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryRepository _memoryRepo;
     private readonly IAgentCronJobRepository _cronJobRepository;
+    private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IBrowserService _browserService;
     private readonly IBrowserRuntimeClient _browserRuntime;
+    private readonly IAgentToolPermissionRepository _permissionRepository;
 
     public ToolRegistryFactory(
         IAgentMemoryRepository memoryRepo,
         IAgentCronJobRepository cronJobRepository,
+        IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IMcpClientManager mcpClientManager,
         IBrowserService browserService,
-        IBrowserRuntimeClient browserRuntime)
+        IBrowserRuntimeClient browserRuntime,
+        IAgentToolPermissionRepository permissionRepository)
     {
         _memoryRepo = memoryRepo;
         _cronJobRepository = cronJobRepository;
+        _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
         _mcpClientManager = mcpClientManager;
         _browserService = browserService;
         _browserRuntime = browserRuntime;
+        _permissionRepository = permissionRepository;
     }
 
     public async Task<ToolRegistry> CreateAsync(
@@ -123,6 +162,7 @@ internal sealed class ToolRegistryFactory
             new CronCreateTool(_cronJobRepository, agentId),
             new CronListTool(_cronJobRepository, agentId),
             new CronDeleteTool(_cronJobRepository, agentId),
+            new AgentSpawnTool(_agentRunRepository, agentId),
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
@@ -155,6 +195,9 @@ internal sealed class ToolRegistryFactory
             mcpConnections.Add(result);
         }
 
+        var permissions = await _permissionRepository.ListForAgentAsync(agentId, ct);
+        var resolver = new AgentToolPermissionResolver(permissions);
+        tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
 
         return new ToolRegistry(tools, context, mcpConnections);

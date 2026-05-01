@@ -17,11 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { builtInTools, type Tool } from "@/features/agents/data/integrations"
+import { type Tool } from "@/features/agents/data/integrations"
 import { type Channel, type ChannelPermissions } from "@/features/agents/data/channels"
 import {
   useIntegrations, useSetSkillCredentials, sortIntegrations,
   useChannels, useAgentTemplates, useCreateAgent, useModels,
+  useAgentToolCatalog,
   CredentialDialog, ChannelOnboardingDialog,
   IntegrationCard, ChannelCard,
 } from "@/features/agents"
@@ -30,7 +31,6 @@ import { type Template } from "@/features/agents"
 import {
   SearchIcon,
   RocketIcon,
-  CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   TerminalIcon,
@@ -176,6 +176,7 @@ export default function QuickstartPage() {
   const { templates } = useAgentTemplates()
   const { createAgent } = useCreateAgent()
   const { models, defaultModelId } = useModels()
+  const { tools: toolCatalog } = useAgentToolCatalog()
   const { trackAgentCreated } = useAnalytics()
   const setSkillCredentials = useSetSkillCredentials()
   const [configureSlug, setConfigureSlug] = useState<string | null>(null)
@@ -233,6 +234,9 @@ export default function QuickstartPage() {
   const sortedChannels = [...channels].sort((a, b) => (a.added === b.added ? 0 : a.added ? -1 : 1))
   const activeIntegrations = integrations.filter((i) => selectedIntegrations.has(i.name))
   const activeChannels = channels.filter((c) => selectedChannels.has(c.slug))
+  const backendBuiltInTools = toolCatalog
+    .filter((tool) => tool.group === "builtin")
+    .map((tool) => ({ name: tool.permissionTool || tool.runtimeName, description: tool.description }))
 
   return (
     <>
@@ -358,7 +362,7 @@ export default function QuickstartPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Channels</Label>
-                  <p className="text-xs text-muted-foreground">Messaging platforms that connect to the agent's session via WebSocket.</p>
+                  <p className="text-xs text-muted-foreground">Messaging platforms that connect to the agent&apos;s session via WebSocket.</p>
                 </div>
                 <Link href="/channels" className="text-xs text-muted-foreground hover:text-foreground">Manage channels →</Link>
               </div>
@@ -416,7 +420,7 @@ export default function QuickstartPage() {
               <ToolPermissionSection
                 title="Built-in tools" subtitle="agent_toolset"
                 icon={<TerminalIcon className="size-4" />}
-                tools={builtInTools} permissions={toolPermissions}
+                tools={backendBuiltInTools} permissions={toolPermissions}
                 onToggle={(k, p) => setToolPermissions((prev) => ({ ...prev, [k]: p }))}
                 groupPerm={groupPermissions["builtin"] ?? "allow"}
                 onGroupPerm={(p) => setGroupPermissions((prev) => ({ ...prev, builtin: p }))}
@@ -426,7 +430,7 @@ export default function QuickstartPage() {
                 <ToolPermissionSection
                   key={i.name} title={i.title} subtitle={i.name}
                   icon={<div className="size-4 [&>svg]:size-4" dangerouslySetInnerHTML={{ __html: i.logo }} />}
-                  tools={[]} permissions={toolPermissions}
+                  tools={i.tools} permissions={toolPermissions}
                   onToggle={(k, p) => setToolPermissions((prev) => ({ ...prev, [k]: p }))}
                   groupPerm={groupPermissions[i.name] ?? "allow"}
                   onGroupPerm={(p) => setGroupPermissions((prev) => ({ ...prev, [i.name]: p }))}
