@@ -4,12 +4,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AgentNamePolicy {
-    public String normalize(String name) {
-        return name == null ? "" : name.trim();
+    public boolean isValid(String name) {
+        return name != null && !name.isBlank() && name.trim().length() <= 120;
     }
 
-    public boolean isValid(String name) {
-        var normalized = normalize(name);
-        return !normalized.isBlank() && normalized.length() <= 120;
+    public String normalize(String name) {
+        return name.trim();
     }
 }
