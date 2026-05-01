@@ -13,7 +13,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "@/components/ui/sidebar";
 import {
   BotIcon,
@@ -69,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { billing, loading: billingLoading } = useBilling();
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar {...props}>
       <SidebarHeader>
         <TeamSwitcher />
       </SidebarHeader>
@@ -121,7 +120,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           />
         )}
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }

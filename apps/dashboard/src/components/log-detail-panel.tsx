@@ -29,7 +29,7 @@ export function LogDetailPanel({
         className,
       )}
     >
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+      <div className="flex min-h-14 shrink-0 items-center justify-between border-b border-border px-4 py-2">
         <div>
           <h3 className="text-sm font-semibold">Log detail</h3>
           {log && (

@@ -245,8 +245,8 @@ export default function QuickstartPage() {
   return (
     <>
       <PageHeader
-        group="Managed Agents"
         page="Quickstart"
+        subtitle="Launch an agent with tools, channels, and starter instructions."
         action={
           <Button size="sm" disabled={!agentName.trim() || launching} onClick={async () => {
             if (launching) return
@@ -303,7 +303,7 @@ export default function QuickstartPage() {
       />
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Agent configuration */}
-        <div className="flex-1 overflow-y-auto p-4 pt-0">
+        <div className="flex-1 overflow-y-auto pb-4">
           <div className="space-y-6">
             {/* Name + Model */}
             <div className="grid grid-cols-[1fr_200px] gap-4">

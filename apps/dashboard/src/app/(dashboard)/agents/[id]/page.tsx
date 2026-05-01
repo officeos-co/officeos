@@ -4,7 +4,6 @@ import { use, useState, useEffect } from "react";
 import { isDevelopment } from "@/lib/env";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,7 +59,7 @@ function AgentSkeleton() {
   return (
     <>
       <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto w-full px-4">
+        <div className="max-w-6xl mx-auto w-full">
           <div className="flex items-start justify-between py-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2.5">
@@ -79,7 +78,7 @@ function AgentSkeleton() {
           </div>
         </div>
       </div>
-      <div className="flex flex-1 flex-col px-4 max-w-6xl mx-auto w-full pt-6 space-y-4">
+      <div className="flex flex-1 flex-col max-w-6xl mx-auto w-full pt-6 space-y-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-32 w-full rounded-xl" />
         <Skeleton className="h-10 w-full" />
@@ -101,29 +100,23 @@ export default function AgentDetailPage({
   const initialStatus = searchParams.get("status");
   const { agent, loading: agentLoading } = useAgent(id);
   const { models } = useModels();
-  const [agentStatus, setAgentStatus] = useState(
-    initialStatus === "booting" ? "booting" : "",
+  const [agentStatusOverride, setAgentStatusOverride] = useState<string | null>(
+    initialStatus === "booting" ? "booting" : null,
   );
-  const [model, setModel] = useState("");
+  const [modelOverride, setModelOverride] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const { sendAgentMessage } = useSendAgentMessage();
   const createSession = useCreateSession();
   const activeSession = agent?.activeSession ?? null;
   const tab = (searchParams.get("tab") as TabKey) ?? "integrations";
-
-  // Sync state from loaded agent
-  useEffect(() => {
-    if (agent) {
-      if (!agentStatus || agentStatus === "") setAgentStatus(agent.status);
-      if (!model) setModel(agent.model);
-    }
-  }, [agent, agentStatus, model]);
+  const agentStatus = agentStatusOverride ?? agent?.status ?? "";
+  const model = modelOverride ?? agent?.model ?? "";
 
   // Simulate boot → running transition
   useEffect(() => {
     if (agentStatus === "booting") {
       const t = setTimeout(() => {
-        setAgentStatus("running");
+        setAgentStatusOverride("running");
         router.replace(`/agents/${id}?tab=integrations`);
       }, 5000);
       return () => clearTimeout(t);
@@ -131,12 +124,7 @@ export default function AgentDetailPage({
   }, [agentStatus, id, router]);
 
   if (agentStatus === "booting" || (agentLoading && !agent)) {
-    return (
-      <>
-        <PageHeader group="Agents" page="Loading..." />
-        <AgentSkeleton />
-      </>
-    );
+    return <AgentSkeleton />;
   }
 
   const displayName = agent?.name ?? "Unnamed Agent";
@@ -154,11 +142,9 @@ export default function AgentDetailPage({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <PageHeader group="Agents" page={displayName} />
-
       {/* Sticky agent header + tabs */}
       <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto w-full px-4">
+        <div className="max-w-6xl mx-auto w-full">
           <div className="flex items-start justify-between py-4">
             <div>
               <div className="flex items-center gap-2.5">
@@ -184,7 +170,7 @@ export default function AgentDetailPage({
                 <Select
                   value={model}
                   onValueChange={(v) => {
-                    if (v) setModel(v);
+                    if (v) setModelOverride(v);
                   }}
                 >
                   <SelectTrigger className="w-[180px] h-8 text-xs">
@@ -236,7 +222,7 @@ export default function AgentDetailPage({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-4 max-w-6xl mx-auto w-full pb-20">
+      <div className="flex min-h-0 flex-1 flex-col max-w-6xl mx-auto w-full pb-20">
         <div className="flex-1 flex flex-col">
           {tab === "integrations" && <AgentIntegrationsTab agentId={id} />}
           {tab === "logs" && <AgentLogsTab agentId={id} />}
@@ -254,7 +240,7 @@ export default function AgentDetailPage({
             Session · {activeSession.messageCount} messages
           </div>
         )}
-        <div className="flex items-center gap-2 max-w-3xl mx-auto">
+        <div className="flex w-full items-center gap-2 max-w-6xl mx-auto">
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}

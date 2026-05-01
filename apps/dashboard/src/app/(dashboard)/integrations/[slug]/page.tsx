@@ -34,7 +34,7 @@ export default function IntegrationDetailPage({
       return (
         <>
           <PageHeader group="MCP Servers" page="Loading..." />
-          <div className="flex flex-1 flex-col p-4 pt-0">
+          <div className="flex flex-1 flex-col pb-4">
             <div className="flex items-start gap-4 mb-4">
               <Skeleton className="size-12 rounded-xl shrink-0" />
               <div className="flex-1 space-y-2">
@@ -85,7 +85,7 @@ export default function IntegrationDetailPage({
         }
       />
 
-      <div className="flex flex-1 flex-col p-4 pt-0">
+      <div className="flex flex-1 flex-col pb-4">
         {/* Light header — logo, title, subtitle */}
         <div className="flex items-start gap-4 mb-6">
           <div

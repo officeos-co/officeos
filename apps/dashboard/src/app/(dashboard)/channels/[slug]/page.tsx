@@ -27,8 +27,12 @@ export default function ChannelDetailPage({
     if (loading) {
       return (
         <>
-          <PageHeader group="Channels" page="Loading..." />
-          <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-4xl mx-auto w-full">
+          <PageHeader
+            group="Channels"
+            page="Loading..."
+            contentClassName="max-w-4xl"
+          />
+          <div className="flex flex-1 flex-col gap-6 pb-4 max-w-4xl mx-auto w-full">
             <div className="flex items-start gap-4">
               <Skeleton className="size-12 rounded-xl shrink-0" />
               <div className="flex-1 space-y-2">
@@ -47,8 +51,12 @@ export default function ChannelDetailPage({
 
   return (
     <>
-      <PageHeader group="Channels" page={channel.name} />
-      <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-4xl mx-auto w-full">
+      <PageHeader
+        group="Channels"
+        page={channel.name}
+        contentClassName="max-w-4xl"
+      />
+      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-4xl mx-auto w-full">
         {/* Header */}
         <div className="flex items-start gap-4">
           <div className="size-12 shrink-0 rounded-xl [&>svg]:size-12" dangerouslySetInnerHTML={{ __html: channel.logo }} />

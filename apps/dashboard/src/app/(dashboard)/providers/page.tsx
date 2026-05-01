@@ -4,7 +4,7 @@ import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { useProviders, type Provider } from "@/features/manage";
+import { useProviders } from "@/features/manage";
 
 /** Logo map — provider name (lowercase) → public asset path */
 const LOGOS: Record<string, string> = {
@@ -37,8 +37,12 @@ export default function ProvidersPage() {
   if (loading) {
     return (
       <>
-        <PageHeader group="Manage" page="Providers" />
-        <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+        <PageHeader
+          page="Providers"
+          subtitle="Review model providers available to this deployment."
+          contentClassName="max-w-3xl"
+        />
+        <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
           <Skeleton className="h-4 w-40 mb-3" />
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-lg" />
@@ -50,8 +54,12 @@ export default function ProvidersPage() {
 
   return (
     <>
-      <PageHeader group="Manage" page="Providers" />
-      <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+      <PageHeader
+        page="Providers"
+        subtitle="Review model providers available to this deployment."
+        contentClassName="max-w-3xl"
+      />
+      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
         {/* Configured providers */}
         {configured.length > 0 && (
           <section>

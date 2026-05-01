@@ -32,9 +32,9 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
   }, [logs.length]);
 
   return (
-    <div className="grid h-[calc(100vh-18rem)] min-h-[420px] grid-cols-[minmax(0,1fr)_360px] pt-4">
+    <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_360px] pt-4">
       <section className="flex min-h-0 min-w-0 flex-col overflow-hidden border border-border bg-background">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+        <div className="flex min-h-14 shrink-0 items-center justify-between border-b border-border px-4 py-2">
           <div>
             <h2 className="text-sm font-semibold">Logs</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -50,6 +50,7 @@ export function AgentLogsTab({ agentId }: { agentId: string }) {
           <LogTable
             logs={logs}
             selectedLogId={selectedLogId}
+            showSelectionColumn={false}
             onSelectLog={(log) =>
               setSelectedLogId(selectedLogId === log.id ? null : log.id)
             }

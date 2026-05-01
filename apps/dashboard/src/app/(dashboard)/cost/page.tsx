@@ -29,8 +29,11 @@ export default function CostPage() {
   if (loading && !weights.length) {
     return (
       <>
-        <PageHeader group="Analytics" page="Cost" />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto w-full">
+        <PageHeader
+          page="Cost"
+          contentClassName="max-w-4xl"
+        />
+        <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
           <Skeleton className="h-48 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
@@ -48,8 +51,8 @@ export default function CostPage() {
   return (
     <>
       <PageHeader
-        group="Analytics"
         page="Cost"
+        contentClassName="max-w-4xl"
         action={
           <Button variant="outline" size="sm">
             <DownloadIcon />
@@ -57,7 +60,7 @@ export default function CostPage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 max-w-4xl mx-auto w-full">
+      <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
         {/* Credit summary */}
         {usage && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

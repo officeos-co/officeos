@@ -82,8 +82,12 @@ export default function ProfilePage() {
   if (loading && !profile) {
     return (
       <>
-        <PageHeader group="Manage" page="Profile" />
-        <div className="flex flex-1 flex-col gap-8 p-4 pt-0 max-w-3xl mx-auto w-full">
+        <PageHeader
+          page="Profile"
+          subtitle="Update account details and preferences."
+          contentClassName="max-w-3xl"
+        />
+        <div className="flex flex-1 flex-col gap-8 pb-4 max-w-3xl mx-auto w-full">
           <section>
             <Skeleton className="h-5 w-16 mb-4" />
             <div className="grid grid-cols-[1fr_1fr] gap-4">
@@ -121,7 +125,11 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <>
-        <PageHeader group="Manage" page="Profile" />
+        <PageHeader
+          page="Profile"
+          subtitle="Update account details and preferences."
+          contentClassName="max-w-3xl"
+        />
         <div className="flex items-center justify-center py-20">
           <p className="text-sm text-muted-foreground">Unable to load profile.</p>
         </div>
@@ -140,15 +148,16 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeader
-        group="Manage"
         page="Profile"
+        subtitle="Update account details and preferences."
+        contentClassName="max-w-3xl"
         action={
           <Button size="sm" onClick={handleSave} disabled={saving || loading}>
             {saving ? "Saving…" : "Save"}
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-8 p-4 pt-0 max-w-3xl mx-auto w-full">
+      <div className="flex flex-1 flex-col gap-8 pb-4 max-w-3xl mx-auto w-full">
         <section>
           <h2 className="text-base font-semibold mb-4">Profile</h2>
           <div className="space-y-4">

@@ -60,8 +60,12 @@ export default function TeamPage() {
   if (loading && !organization) {
     return (
       <>
-        <PageHeader group="Manage" page="Team" />
-        <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+        <PageHeader
+          page="Team"
+          subtitle="Manage organization members and access."
+          contentClassName="max-w-3xl"
+        />
+        <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
           <section>
             <Skeleton className="h-4 w-24 mb-3" />
             <Skeleton className="h-9 w-64 rounded-md" />
@@ -83,7 +87,11 @@ export default function TeamPage() {
   if (!organization) {
     return (
       <>
-        <PageHeader group="Manage" page="Team" />
+        <PageHeader
+          page="Team"
+          subtitle="Manage organization members and access."
+          contentClassName="max-w-3xl"
+        />
         <div className="flex items-center justify-center py-20">
           <p className="text-sm text-muted-foreground">
             Unable to load team information.
@@ -98,8 +106,9 @@ export default function TeamPage() {
   return (
     <>
       <PageHeader
-        group="Manage"
         page="Team"
+        subtitle="Manage organization members and access."
+        contentClassName="max-w-3xl"
         action={
           <Button size="sm" onClick={() => setInviteOpen(true)}>
             <PlusIcon className="size-3.5" />
@@ -107,7 +116,7 @@ export default function TeamPage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
         <section>
           <h3 className="text-sm font-semibold mb-3">Organization</h3>
           <div className="space-y-2 max-w-sm">

@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -6,57 +6,70 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+} from "@/components/ui/breadcrumb";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 const groupRoutes: Record<string, string> = {
   "Managed Agents": "/agents",
-  "Agents": "/agents",
-  "Analytics": "/logs",
-  "Manage": "/billing",
-  "Integrations": "/integrations",
-  "Channels": "/channels",
-}
+  Agents: "/agents",
+  Analytics: "/logs",
+  Manage: "/billing",
+  Integrations: "/integrations",
+  "MCP Servers": "/integrations",
+  Channels: "/channels",
+};
 
 export function PageHeader({
   group,
   page,
+  subtitle,
   action,
+  contentClassName,
 }: {
-  group?: string
-  page: string
-  action?: React.ReactNode
+  group?: string;
+  page: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  contentClassName?: string;
 }) {
-  const groupHref = group ? groupRoutes[group] ?? "#" : "#"
+  const groupHref = group ? (groupRoutes[group] ?? "#") : "#";
+  const showBreadcrumb = group && !subtitle;
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-      <div className="flex items-center gap-2 px-4 flex-1">
-        <SidebarTrigger className="-ml-1" />
-        <Separator
-          orientation="vertical"
-          className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-        />
-        <Breadcrumb>
-          <BreadcrumbList>
-            {group && (
-              <>
+    <header className="flex shrink-0 items-center gap-2 py-4">
+      <div
+        className={cn(
+          "mx-auto flex w-full flex-1 items-start justify-between gap-4",
+          contentClassName,
+        )}
+      >
+        <SidebarTrigger className="md:hidden" />
+        <div className="min-w-0">
+          {showBreadcrumb && (
+            <Breadcrumb className="mb-1">
+              <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink render={<Link href={groupHref} />}>
                     {group}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
-              </>
-            )}
-            <BreadcrumbItem>
-              <BreadcrumbPage>{page}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{page}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+          <h1 className="truncate text-xl font-semibold tracking-tight">
+            {page}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
         {action && <div className="ml-auto">{action}</div>}
       </div>
     </header>
-  )
+  );
 }

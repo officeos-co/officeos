@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { AgentLog } from "@/types/logs";
 import { PageHeader } from "@/components/page-header";
-import { LogDetailPanel } from "@/components/log-detail-panel";
 import { LogTable } from "@/components/log-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,9 +39,6 @@ export default function LogsPage() {
   const [agentFilter, setAgentFilter] = useState("All");
   const [pageSize, setPageSize] = useState<number>(25);
   const [page, setPage] = useState(0);
-  const [selectedLog, setSelectedLog] = useState<
-    (AgentLog & { agentName?: string }) | null
-  >(null);
 
   const filtered = useMemo(() => {
     return allLogs.filter((l) => {
@@ -64,8 +59,8 @@ export default function LogsPage() {
   return (
     <>
       <PageHeader
-        group="Analytics"
         page="Logs"
+        contentClassName="max-w-4xl"
         action={
           <Button variant="outline" size="sm">
             <DownloadIcon />
@@ -73,15 +68,9 @@ export default function LogsPage() {
           </Button>
         }
       />
-      <div className="grid h-[calc(100vh-6rem)] min-h-[520px] grid-cols-[minmax(0,1fr)_360px] p-4 pt-0">
-        <section className="flex min-h-0 min-w-0 flex-col overflow-hidden border border-border bg-background">
-          <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2">
-            <div>
-              <h2 className="text-sm font-semibold">Logs</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {filtered.length} events
-              </p>
-            </div>
+      <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
+        <section className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+          <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 py-2">
             <div className="flex items-center gap-2">
               <SearchInput
                 placeholder="Search logs..."
@@ -135,17 +124,10 @@ export default function LogsPage() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
-            <LogTable
-              logs={paged}
-              showAgent
-              selectedLogId={selectedLog?.id}
-              onSelectLog={(log) =>
-                setSelectedLog(selectedLog?.id === log.id ? null : log)
-              }
-            />
+            <LogTable logs={paged} showAgent />
           </div>
 
-          <div className="shrink-0 border-t border-border px-4 py-2">
+          <div className="shrink-0 py-2">
             <DataPagination
               page={page}
               pageSize={pageSize}
@@ -159,8 +141,6 @@ export default function LogsPage() {
             />
           </div>
         </section>
-
-        <LogDetailPanel log={selectedLog} />
       </div>
     </>
   );

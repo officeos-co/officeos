@@ -82,19 +82,23 @@ export function LogTable({
   showAgent = false,
   selectedLogId,
   onSelectLog,
+  showSelectionColumn,
   className,
 }: {
   logs: (AgentLog & { agentName?: string })[];
   showAgent?: boolean;
   selectedLogId?: string | null;
   onSelectLog?: (log: AgentLog & { agentName?: string }) => void;
+  showSelectionColumn?: boolean;
   className?: string;
 }) {
+  const shouldShowSelectionColumn = showSelectionColumn ?? Boolean(onSelectLog);
+
   return (
     <Table className={className}>
       <TableHeader>
         <TableRow className="sticky top-0 z-10 bg-background hover:bg-background">
-          <TableHead className="w-10 px-3" />
+          {shouldShowSelectionColumn && <TableHead className="w-10 px-3" />}
           <TableHead className="w-[32px]" />
           <TableHead>Type</TableHead>
           {showAgent && <TableHead>Agent</TableHead>}
@@ -112,11 +116,13 @@ export function LogTable({
             data-state={selectedLogId === log.id ? "selected" : undefined}
             className={cn(onSelectLog && "cursor-pointer")}
           >
-            <TableSelectionCell
-              checked={selectedLogId === log.id}
-              aria-label={`Select ${typeLabel(log)} log`}
-              onCheckedChange={() => onSelectLog?.(log)}
-            />
+            {shouldShowSelectionColumn && (
+              <TableSelectionCell
+                checked={selectedLogId === log.id}
+                aria-label={`Select ${typeLabel(log)} log`}
+                onCheckedChange={() => onSelectLog?.(log)}
+              />
+            )}
             <TableCell>
               <div className="flex size-6 items-center justify-center">
                 {logIcon(log)}
@@ -160,7 +166,7 @@ export function LogTable({
         {logs.length === 0 && (
           <TableRow>
             <TableCell
-              colSpan={showAgent ? 8 : 7}
+              colSpan={(showAgent ? 7 : 6) + (shouldShowSelectionColumn ? 1 : 0)}
               className="py-8 text-center text-muted-foreground"
             >
               No logs yet.

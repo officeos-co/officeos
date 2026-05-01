@@ -29,8 +29,12 @@ export default function BillingPage() {
   if (loading && !billing) {
     return (
       <>
-        <PageHeader group="Manage" page="Billing" />
-        <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+        <PageHeader
+          page="Billing"
+          subtitle="Manage plan, usage, and payment settings."
+          contentClassName="max-w-3xl"
+        />
+        <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
           <section>
             <div className="flex items-center gap-4">
               <Skeleton className="size-12 rounded-xl" />
@@ -60,7 +64,11 @@ export default function BillingPage() {
   if (!billing) {
     return (
       <>
-        <PageHeader group="Manage" page="Billing" />
+        <PageHeader
+          page="Billing"
+          subtitle="Manage plan, usage, and payment settings."
+          contentClassName="max-w-3xl"
+        />
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <SparklesIcon className="size-8 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Billing is coming soon</h2>
@@ -74,8 +82,12 @@ export default function BillingPage() {
 
   return (
     <>
-      <PageHeader group="Manage" page="Billing" />
-      <div className="flex flex-1 flex-col gap-6 p-4 pt-0 max-w-3xl mx-auto w-full">
+      <PageHeader
+        page="Billing"
+        subtitle="Manage plan, usage, and payment settings."
+        contentClassName="max-w-3xl"
+      />
+      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
         {/* Current plan */}
         <section>
           <div className="flex items-center justify-between">

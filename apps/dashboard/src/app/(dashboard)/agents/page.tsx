@@ -94,8 +94,11 @@ export default function AgentsPage() {
 
   return (
     <>
-      <PageHeader group="Managed Agents" page="Agents" />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <PageHeader
+        page="Agents"
+        subtitle="Create and manage autonomous agents."
+      />
+      <div className="flex flex-1 flex-col gap-4 pb-4">
         <div className="flex min-h-9 items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <SearchInput
