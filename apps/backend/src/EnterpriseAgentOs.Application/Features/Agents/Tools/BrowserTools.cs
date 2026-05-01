@@ -65,6 +65,55 @@ internal sealed class BrowserMcpTool : IAgentTool
            && descriptor.Name is not "browser.fork_session"
            && descriptor.Name is not "browser.share_session";
 
+    public static IReadOnlyList<BrowserToolDescriptor> DefaultCatalog()
+    {
+        var tools = new[]
+        {
+            ("browser.get_session", "Get one browser session summary."),
+            ("browser.observe", "Capture the current browser observation with screenshot, interactables, and perception summary."),
+            ("browser.screenshot", "Capture a lightweight screenshot for one session without the full observe payload."),
+            ("browser.get_console", "Read recent browser console messages for an active session."),
+            ("browser.get_page_errors", "Read recent uncaught page errors for an active session."),
+            ("browser.get_request_failures", "Read recent failed network requests for an active session."),
+            ("browser.stop_trace", "Finalize the current Playwright trace for an active session and return its artifact path."),
+            ("browser.list_auth_profiles", "List reusable saved auth profiles that can be loaded into a new session."),
+            ("browser.get_auth_profile", "Inspect one saved auth profile and its storage-state metadata."),
+            ("browser.list_downloads", "List files captured from browser downloads for one session."),
+            ("browser.list_tabs", "List currently open tabs/pages for one session."),
+            ("browser.activate_tab", "Switch the active session page to one tab index."),
+            ("browser.close_tab", "Close one tab index if more than one tab is open."),
+            ("browser.execute_action", "Execute one browser action using the shared internal action schema."),
+            ("browser.save_auth_state", "Save session storage state to the per-session auth-state root."),
+            ("browser.save_auth_profile", "Save the current session storage state into a reusable named auth profile."),
+            ("browser.request_human_takeover", "Ask for a human to take over the shared browser desktop."),
+            ("browser.get_network_log", "Return captured HTTP request/response entries for a session."),
+            ("browser.eval_js", "Execute a JavaScript expression in the current page context and return the result."),
+            ("browser.wait_for_selector", "Wait for a CSS selector to reach a specific state."),
+            ("browser.get_html", "Get the HTML source of the current page, optionally as plain text."),
+            ("browser.find_elements", "Find all elements matching a CSS selector and return text, href, value, bounding box, and visibility."),
+            ("browser.drag_drop", "Drag from one element or coordinate to another."),
+            ("browser.set_viewport", "Resize the browser viewport to the specified width and height."),
+            ("browser.get_cookies", "Get all cookies for the current session context."),
+            ("browser.set_cookies", "Set one or more cookies in the current session context."),
+            ("browser.get_local_storage", "Read localStorage or sessionStorage in the current page context."),
+            ("browser.set_local_storage", "Write localStorage or sessionStorage in the current page context."),
+            ("browser.export_script", "Export the current session's recorded actions as a runnable Playwright Python script."),
+            ("browser.cdp_attach", "Attach to an already-running Chrome instance via CDP URL."),
+            ("browser.find_by_vision", "Find an element from a natural language description and return click coordinates."),
+        };
+
+        return tools.Select(t => new BrowserToolDescriptor(t.Item1, t.Item2, DefaultSchema())).ToList();
+    }
+
+    private static JsonElement DefaultSchema() => JsonSerializer.SerializeToElement(new
+    {
+        type = "object",
+        properties = new
+        {
+            session_id = new { type = "string", description = "Browser session id. Managed by EAOS when called from an agent." }
+        }
+    });
+
     private static bool ShouldBindAgentSession(BrowserToolDescriptor descriptor)
     {
         if (descriptor.InputSchema.ValueKind != JsonValueKind.Object) return false;

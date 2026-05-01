@@ -40,6 +40,7 @@ import { CredentialDialog } from "./credential-dialog";
 import { ChannelOnboardingDialog } from "./channel-onboarding-dialog";
 import {
   TerminalIcon,
+  MonitorIcon,
   AlertTriangleIcon,
   ExternalLinkIcon,
 } from "lucide-react";
@@ -302,6 +303,12 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
       name: tool.permissionTool || tool.runtimeName,
       description: tool.description,
     }));
+  const backendBrowserTools = toolCatalog
+    .filter((tool) => tool.group === "browser")
+    .map((tool) => ({
+      name: tool.permissionTool || tool.runtimeName,
+      description: tool.description,
+    }));
 
   return (
     <>
@@ -423,6 +430,19 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
             onGroupPerm={(permission) => updateGroupPermission("builtin", permission)}
             prefix="builtin"
           />
+          {backendBrowserTools.length > 0 && (
+            <ToolPermissionCard
+              title="Browser tools"
+              subtitle="internal_browser"
+              icon={<MonitorIcon className="size-4" />}
+              tools={backendBrowserTools}
+              permissions={toolPermissions}
+              onToggle={updateToolPermission}
+              groupPerm={groupPermissions["browser"] ?? "allow"}
+              onGroupPerm={(permission) => updateGroupPermission("browser", permission)}
+              prefix="browser"
+            />
+          )}
           {activeIntegrations.map((i) => (
             <ToolPermissionCard
               key={i.name}

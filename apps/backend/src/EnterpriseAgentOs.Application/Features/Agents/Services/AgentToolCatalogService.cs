@@ -64,22 +64,24 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new WebFetchTool(),
         };
 
-        if (agentId.HasValue)
+        var browserCatalog = BrowserMcpTool.DefaultCatalog();
+        try
         {
-            try
+            if (await _browserRuntime.IsAvailableAsync(ct))
             {
-                if (await _browserRuntime.IsAvailableAsync(ct))
-                {
-                    var browserTools = await _browserRuntime.ListToolsAsync(ct);
-                    foreach (var discovered in browserTools.Where(BrowserMcpTool.ShouldExpose))
-                        tools.Add(new BrowserMcpTool(discovered, _browserService, _browserRuntime, effectiveAgentId));
-                }
-            }
-            catch
-            {
-                // Browser runtime availability should not block dashboard catalog rendering.
+                var runtimeTools = await _browserRuntime.ListToolsAsync(ct);
+                var exposed = runtimeTools.Where(BrowserMcpTool.ShouldExpose).ToList();
+                if (exposed.Count > 0)
+                    browserCatalog = exposed;
             }
         }
+        catch
+        {
+            // Browser runtime availability should not block dashboard catalog rendering.
+        }
+
+        foreach (var discovered in browserCatalog.Where(BrowserMcpTool.ShouldExpose))
+            tools.Add(new BrowserMcpTool(discovered, _browserService, _browserRuntime, effectiveAgentId));
 
         if (agentId.HasValue)
         {

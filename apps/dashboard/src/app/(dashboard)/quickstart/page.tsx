@@ -34,6 +34,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   TerminalIcon,
+  MonitorIcon,
   AlertTriangleIcon,
   ExternalLinkIcon,
   PlusIcon,
@@ -237,6 +238,9 @@ export default function QuickstartPage() {
   const backendBuiltInTools = toolCatalog
     .filter((tool) => tool.group === "builtin")
     .map((tool) => ({ name: tool.permissionTool || tool.runtimeName, description: tool.description }))
+  const backendBrowserTools = toolCatalog
+    .filter((tool) => tool.group === "browser")
+    .map((tool) => ({ name: tool.permissionTool || tool.runtimeName, description: tool.description }))
 
   return (
     <>
@@ -426,6 +430,17 @@ export default function QuickstartPage() {
                 onGroupPerm={(p) => setGroupPermissions((prev) => ({ ...prev, builtin: p }))}
                 prefix="builtin"
               />
+              {backendBrowserTools.length > 0 && (
+                <ToolPermissionSection
+                  title="Browser tools" subtitle="internal_browser"
+                  icon={<MonitorIcon className="size-4" />}
+                  tools={backendBrowserTools} permissions={toolPermissions}
+                  onToggle={(k, p) => setToolPermissions((prev) => ({ ...prev, [k]: p }))}
+                  groupPerm={groupPermissions["browser"] ?? "allow"}
+                  onGroupPerm={(p) => setGroupPermissions((prev) => ({ ...prev, browser: p }))}
+                  prefix="browser"
+                />
+              )}
               {activeIntegrations.map((i) => (
                 <ToolPermissionSection
                   key={i.name} title={i.title} subtitle={i.name}
