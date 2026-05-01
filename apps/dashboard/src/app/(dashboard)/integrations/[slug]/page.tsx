@@ -10,7 +10,6 @@ import {
   useIntegration,
   useSetSkillCredentials,
   CredentialDialog,
-  IntegrationDetailTab,
 } from "@/features/agents";
 import {
   KeyIcon,
@@ -41,12 +40,17 @@ export default function IntegrationDetailPage({
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-5 w-48" />
                 <Skeleton className="h-4 w-96" />
-                <Skeleton className="h-4 w-32" />
               </div>
             </div>
-            <div className="space-y-4 max-w-3xl">
-              <Skeleton className="h-32 w-full rounded-xl" />
-              <Skeleton className="h-48 w-full rounded-xl" />
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 max-w-6xl">
+              <div className="space-y-4">
+                <Skeleton className="h-32 w-full rounded-xl" />
+                <Skeleton className="h-48 w-full rounded-xl" />
+              </div>
+              <div className="hidden lg:block space-y-6">
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-32 w-full rounded-xl" />
+              </div>
             </div>
           </div>
         </>
@@ -68,180 +72,189 @@ export default function IntegrationDetailPage({
         group="MCP Servers"
         page={integration.title}
         action={
-          <div className="flex items-center gap-2">
-            {hasCredentialFields && (
-              <Button
-                size="sm"
-                variant={integration.configured ? "outline" : "default"}
-                onClick={() => setCredDialogOpen(true)}
-              >
-                <KeyIcon className="size-4" />
-                {integration.configured ? "Reconfigure" : "Configure"}
-              </Button>
-            )}
-          </div>
+          hasCredentialFields ? (
+            <Button
+              size="sm"
+              variant={integration.configured ? "outline" : "default"}
+              onClick={() => setCredDialogOpen(true)}
+            >
+              <KeyIcon className="size-4" />
+              {integration.configured ? "Reconfigure" : "Configure"}
+            </Button>
+          ) : undefined
         }
       />
 
       <div className="flex flex-1 flex-col p-4 pt-0">
-        {/* Header */}
+        {/* Light header — logo, title, subtitle */}
         <div className="flex items-start gap-4 mb-6">
           <div
             className="size-12 shrink-0 rounded-xl [&>svg]:size-12"
             dangerouslySetInnerHTML={{ __html: integration.logo }}
           />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold">{integration.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">{integration.title}</h1>
+              {hasCredentialFields && (
+                <div
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest",
+                    integration.configured
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-amber-100 text-amber-700",
+                  )}
+                >
+                  {integration.configured ? (
+                    <CheckCircle2Icon className="size-3" />
+                  ) : (
+                    <AlertCircleIcon className="size-3" />
+                  )}
+                  {integration.configured ? "Configured" : "Credentials required"}
+                </div>
+              )}
+            </div>
             {integration.subtitle && (
-              <p className="text-sm text-foreground/80 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 {integration.subtitle}
               </p>
             )}
-            <p className="text-sm text-muted-foreground mt-1">
-              {integration.description}
-            </p>
-            {hasCredentialFields && (
-              <div
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest mt-2",
-                  integration.configured
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-amber-100 text-amber-700",
-                )}
-              >
-                {integration.configured ? (
-                  <CheckCircle2Icon className="size-3" />
-                ) : (
-                  <AlertCircleIcon className="size-3" />
-                )}
-                {integration.configured ? "Configured" : "Credentials required"}
-              </div>
-            )}
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-              {integration.authorName && (
-                <span>
-                  By{" "}
-                  {integration.authorUrl ? (
-                    <a href={integration.authorUrl} target="_blank" rel="noreferrer" className="underline">{integration.authorName}</a>
-                  ) : integration.authorName}
-                </span>
-              )}
-              {integration.category && <span>{integration.category}</span>}
-              {integration.tools.length > 0 && <span>{integration.tools.length} tools</span>}
-            </div>
           </div>
         </div>
 
-        {/* Server details */}
-        <div className="max-w-3xl space-y-6">
-          <div className="rounded-xl border border-border bg-card">
-            <div className="px-4 py-3 border-b border-border">
-              <span className="text-sm font-medium">Server Details</span>
-            </div>
-            <dl className="divide-y divide-border">
-              <div className="flex justify-between px-4 py-3">
-                <dt className="text-sm text-muted-foreground">Name</dt>
-                <dd className="font-mono text-xs">{integration.name}</dd>
+        {/* Content: main + sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 max-w-6xl">
+          {/* Main content */}
+          <div className="space-y-6 min-w-0">
+            {/* Description */}
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {integration.description}
+            </p>
+
+            {/* Tools */}
+            {integration.tools.length > 0 && (
+              <div className="rounded-xl border border-border bg-card">
+                <div className="px-4 py-3 border-b border-border">
+                  <span className="text-sm font-medium">Tools</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {integration.tools.length}
+                  </span>
+                </div>
+                {integration.tools.map((tool, idx) => (
+                  <div
+                    key={tool.name}
+                    className={`flex items-center gap-4 px-4 py-3${
+                      idx < integration.tools.length - 1 ? " border-b border-border" : ""
+                    }`}
+                  >
+                    <code className="rounded bg-muted px-2 py-1 font-mono text-xs shrink-0">
+                      {tool.name}
+                    </code>
+                    <span className="text-sm text-muted-foreground">
+                      {tool.description}
+                    </span>
+                  </div>
+                ))}
               </div>
-              {integration.authorName && (
-                <div className="flex justify-between px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Author</dt>
-                  <dd className="text-sm">
-                    {integration.authorUrl ? (
-                      <a href={integration.authorUrl} target="_blank" rel="noreferrer" className="underline">{integration.authorName}</a>
-                    ) : integration.authorName}
-                  </dd>
-                </div>
-              )}
-              {integration.category && (
-                <div className="flex justify-between px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Category</dt>
-                  <dd className="text-sm">{integration.category}</dd>
-                </div>
-              )}
-              {integration.documentationUrl && (
-                <div className="flex justify-between px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Documentation</dt>
-                  <dd className="text-sm">
-                    <a href={integration.documentationUrl} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1">
-                      View docs <ExternalLinkIcon className="size-3" />
-                    </a>
-                  </dd>
-                </div>
-              )}
-              {integration.repositoryUrl && (
-                <div className="flex justify-between px-4 py-3">
-                  <dt className="text-sm text-muted-foreground">Repository</dt>
-                  <dd className="text-sm">
-                    <a href={integration.repositoryUrl} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1">
-                      GitHub <ExternalLinkIcon className="size-3" />
-                    </a>
-                  </dd>
-                </div>
-              )}
-              <div className="flex justify-between px-4 py-3">
-                <dt className="text-sm text-muted-foreground">Built-in</dt>
-                <dd className="text-sm">{integration.isBuiltin ? "Yes" : "No"}</dd>
-              </div>
-            </dl>
+            )}
           </div>
 
-          {/* Credential fields info */}
-          {hasCredentialFields && (
-            <div className="rounded-xl border border-border bg-card">
-              <div className="px-4 py-3 border-b border-border">
-                <span className="text-sm font-medium">Required Credentials</span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  {integration.credentialFields.length}
-                </span>
-              </div>
-              {integration.credentialFields.map((field, idx) => (
-                <div
-                  key={field.name}
-                  className={`flex items-center gap-4 px-4 py-3${
-                    idx < integration.credentialFields.length - 1 ? " border-b border-border" : ""
-                  }`}
-                >
-                  <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
-                    {field.name}
-                  </code>
-                  <span className="text-sm text-muted-foreground">
-                    {field.label}
-                  </span>
-                  {field.required && (
-                    <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+          {/* Sidebar */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-4 space-y-6 text-sm">
+              {/* Details */}
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  Details
+                </h4>
+                <dl className="space-y-2.5">
+                  {integration.authorName && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Author</dt>
+                      <dd>
+                        {integration.authorUrl ? (
+                          <a href={integration.authorUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                            {integration.authorName}
+                          </a>
+                        ) : integration.authorName}
+                      </dd>
+                    </div>
                   )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Tools */}
-          {integration.tools.length > 0 && (
-            <div className="rounded-xl border border-border bg-card">
-              <div className="px-4 py-3 border-b border-border">
-                <span className="text-sm font-medium">Tools</span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  {integration.tools.length}
-                </span>
+                  {integration.category && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Category</dt>
+                      <dd className="capitalize">{integration.category}</dd>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Identifier</dt>
+                    <dd className="font-mono text-xs">{integration.name}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Tools</dt>
+                    <dd>{integration.tools.length}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Built-in</dt>
+                    <dd>{integration.isBuiltin ? "Yes" : "No"}</dd>
+                  </div>
+                </dl>
               </div>
-              {integration.tools.map((tool, idx) => (
-                <div
-                  key={tool.name}
-                  className={`flex items-center gap-4 px-4 py-3${
-                    idx < integration.tools.length - 1 ? " border-b border-border" : ""
-                  }`}
-                >
-                  <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
-                    {tool.name}
-                  </code>
-                  <span className="text-sm text-muted-foreground">
-                    {tool.description}
-                  </span>
+
+              {/* Resources */}
+              {(integration.documentationUrl || integration.repositoryUrl) && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    Resources
+                  </h4>
+                  <div className="space-y-2">
+                    {integration.documentationUrl && (
+                      <a
+                        href={integration.documentationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ExternalLinkIcon className="size-3.5" />
+                        Documentation
+                      </a>
+                    )}
+                    {integration.repositoryUrl && (
+                      <a
+                        href={integration.repositoryUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ExternalLinkIcon className="size-3.5" />
+                        Source code
+                      </a>
+                    )}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {/* Credentials */}
+              {hasCredentialFields && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    Credentials
+                  </h4>
+                  <div className="space-y-2">
+                    {integration.credentialFields.map((field) => (
+                      <div key={field.name} className="flex items-center gap-2">
+                        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
+                          {field.name}
+                        </code>
+                        {field.required && (
+                          <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </aside>
         </div>
       </div>
 
