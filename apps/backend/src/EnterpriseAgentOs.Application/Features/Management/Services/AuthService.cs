@@ -9,6 +9,8 @@ internal sealed class AuthService : IAuthService
     private readonly GitHubOAuthConfig _gitHubOAuthConfig;
     private readonly IUserRepository _userRepository;
     private readonly ISessionRepository _sessionRepository;
+    private readonly IOAuthTokenRepository _oauthTokenRepository;
+    private readonly CredentialProtector _credentialProtector;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AuthService> _logger;
 
@@ -17,6 +19,8 @@ internal sealed class AuthService : IAuthService
         GitHubOAuthConfig gitHubOAuth,
         IUserRepository users,
         ISessionRepository sessions,
+        IOAuthTokenRepository oauthTokens,
+        CredentialProtector credentialProtector,
         IHttpClientFactory httpFactory,
         ILogger<AuthService> logger)
     {
@@ -24,6 +28,8 @@ internal sealed class AuthService : IAuthService
         _gitHubOAuthConfig = gitHubOAuth;
         _userRepository = users;
         _sessionRepository = sessions;
+        _oauthTokenRepository = oauthTokens;
+        _credentialProtector = credentialProtector;
         _httpClientFactory = httpFactory;
         _logger = logger;
     }
@@ -39,7 +45,10 @@ internal sealed class AuthService : IAuthService
             + $"?client_id={Uri.EscapeDataString(_googleOAuthConfig.ClientId)}"
             + $"&redirect_uri={Uri.EscapeDataString(_googleOAuthConfig.RedirectUri)}"
             + "&response_type=code"
-            + "&scope=openid%20email%20profile"
+            + $"&scope={Uri.EscapeDataString(string.Join(' ', GoogleScopes))}"
+            + "&access_type=offline"
+            + "&prompt=consent"
+            + "&include_granted_scopes=true"
             + $"&state={Uri.EscapeDataString(state)}";
 
         return new GoogleLoginResult(url, state);
@@ -73,6 +82,15 @@ internal sealed class AuthService : IAuthService
         if (!tokenJson.TryGetProperty("access_token", out var atProp))
             throw new InvalidOperationException("Google did not return an access token.");
         var accessToken = atProp.GetString()!;
+        var refreshToken = tokenJson.TryGetProperty("refresh_token", out var rtProp)
+            ? rtProp.GetString()
+            : null;
+        var expiresAt = tokenJson.TryGetProperty("expires_in", out var expProp)
+            ? DateTime.UtcNow.AddSeconds(expProp.GetInt32())
+            : (DateTime?)null;
+        var scopes = tokenJson.TryGetProperty("scope", out var scopeProp)
+            ? SplitScopes(scopeProp.GetString())
+            : GoogleScopes;
 
         // Fetch user info
         var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/oauth2/v3/userinfo");
@@ -91,6 +109,22 @@ internal sealed class AuthService : IAuthService
         // Upsert user
         var user = await _userRepository.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
         _logger.LogInformation("OAuth: user upserted {Email} ({UserId})", email, user.Id);
+
+        var existingGoogleToken = await _oauthTokenRepository.GetByProviderAsync("google", ct);
+        var googleToken = new OAuthTokenRecord
+        {
+            Id = existingGoogleToken?.Id ?? Guid.NewGuid(),
+            Provider = "google",
+            EncryptedAccessToken = ProtectToken(accessToken),
+            EncryptedRefreshToken = refreshToken is not null
+                ? ProtectToken(refreshToken)
+                : existingGoogleToken?.EncryptedRefreshToken,
+            ExpiresAtUtc = expiresAt,
+            Email = email,
+            CreatedAt = existingGoogleToken?.CreatedAt ?? DateTime.UtcNow,
+        };
+        googleToken.ReplaceScopes(scopes);
+        await _oauthTokenRepository.UpsertAsync(googleToken, ct);
 
         // Create session
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -111,7 +145,7 @@ internal sealed class AuthService : IAuthService
         var url = "https://github.com/login/oauth/authorize"
             + $"?client_id={Uri.EscapeDataString(_gitHubOAuthConfig.ClientId)}"
             + $"&redirect_uri={Uri.EscapeDataString(_gitHubOAuthConfig.RedirectUri)}"
-            + "&scope=user%3Aemail"
+            + $"&scope={Uri.EscapeDataString(string.Join(' ', GitHubScopes))}"
             + $"&state={Uri.EscapeDataString(state)}";
 
         return new GitHubLoginResult(url, state);
@@ -147,6 +181,9 @@ internal sealed class AuthService : IAuthService
         if (!tokenJson.TryGetProperty("access_token", out var atProp))
             throw new InvalidOperationException("GitHub did not return an access token.");
         var accessToken = atProp.GetString()!;
+        var scopes = tokenJson.TryGetProperty("scope", out var scopeProp)
+            ? SplitScopes(scopeProp.GetString())
+            : GitHubScopes;
 
         // Fetch user profile
         var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
@@ -194,6 +231,19 @@ internal sealed class AuthService : IAuthService
         var user = await _userRepository.UpsertByGitHubSubjectAsync(sub, email, name, avatar, ct);
         _logger.LogInformation("OAuth: GitHub user upserted {Email} ({UserId})", email, user.Id);
 
+        var existingGitHubToken = await _oauthTokenRepository.GetByProviderAsync("github", ct);
+        var gitHubToken = new OAuthTokenRecord
+        {
+            Id = existingGitHubToken?.Id ?? Guid.NewGuid(),
+            Provider = "github",
+            EncryptedAccessToken = ProtectToken(accessToken),
+            EncryptedRefreshToken = existingGitHubToken?.EncryptedRefreshToken,
+            Email = email,
+            CreatedAt = existingGitHubToken?.CreatedAt ?? DateTime.UtcNow,
+        };
+        gitHubToken.ReplaceScopes(scopes);
+        await _oauthTokenRepository.UpsertAsync(gitHubToken, ct);
+
         // Create session
         var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var tokenHash = SessionTokenHasher.Hash(sessionToken);
@@ -202,4 +252,29 @@ internal sealed class AuthService : IAuthService
 
         return new GitHubCallbackResult(sessionToken, email);
     }
+
+    private static readonly string[] GoogleScopes =
+    [
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/calendar",
+    ];
+
+    private static readonly string[] GitHubScopes =
+    [
+        "user:email",
+        "repo",
+        "read:org",
+    ];
+
+    private string ProtectToken(string token) =>
+        _credentialProtector.Protect(new Dictionary<string, string> { ["token"] = token });
+
+    private static IReadOnlyList<string> SplitScopes(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? []
+            : value.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

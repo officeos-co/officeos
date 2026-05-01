@@ -18,6 +18,9 @@ const MCP_SERVERS_QUERY = gql`
       logo
       category
       credentialFieldsJson
+      oauthProvider
+      oauthScopesJson
+      oauthConfigured
       subtitle
       authorName
       authorUrl
@@ -44,6 +47,9 @@ const MCP_SERVER_QUERY = gql`
       logo
       category
       credentialFieldsJson
+      oauthProvider
+      oauthScopesJson
+      oauthConfigured
       subtitle
       authorName
       authorUrl
@@ -67,6 +73,9 @@ export const AGENT_MCP_SERVERS_QUERY = gql`
       logo
       category
       credentialFieldsJson
+      oauthProvider
+      oauthScopesJson
+      oauthConfigured
       isBuiltin
     }
   }
@@ -90,6 +99,9 @@ type RawMcpServer = {
   logo: string | null;
   category: string | null;
   credentialFieldsJson: string | null;
+  oauthProvider: string | null;
+  oauthScopesJson: string | null;
+  oauthConfigured: boolean | null;
   subtitle: string | null;
   authorName: string | null;
   authorUrl: string | null;
@@ -130,8 +142,20 @@ function parseTools(json: string | null): Tool[] {
   }
 }
 
+function parseOAuthScopes(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 function mapMcpServer(s: RawMcpServer): McpServer {
   const credentialFields = parseCredentialFields(s.credentialFieldsJson);
+  const oauthProvider = s.oauthProvider ?? null;
+  const oauthConfigured = Boolean(s.oauthConfigured);
   return {
     id: s.id,
     name: s.name,
@@ -142,7 +166,10 @@ function mapMcpServer(s: RawMcpServer): McpServer {
     logo: sanitizeSvg(s.logo ?? ""),
     category: s.category ?? "",
     credentialFields,
-    configured: credentialFields.length === 0,
+    oauthProvider,
+    oauthScopes: parseOAuthScopes(s.oauthScopesJson),
+    oauthConfigured,
+    configured: oauthProvider ? oauthConfigured : credentialFields.length === 0,
     isBuiltin: s.isBuiltin,
     authorName: s.authorName ?? "",
     authorUrl: s.authorUrl ?? "",

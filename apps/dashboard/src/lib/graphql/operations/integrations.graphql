@@ -11,6 +11,9 @@ query McpServers {
     logo
     category
     credentialFieldsJson
+    oauthProvider
+    oauthScopesJson
+    oauthConfigured
     isBuiltin
     createdAt
   }
@@ -29,6 +32,9 @@ query McpServer($name: String!) {
     logo
     category
     credentialFieldsJson
+    oauthProvider
+    oauthScopesJson
+    oauthConfigured
     isBuiltin
     createdAt
   }
@@ -44,6 +50,9 @@ query AgentMcpServers($agentId: UUID!) {
     logo
     category
     credentialFieldsJson
+    oauthProvider
+    oauthScopesJson
+    oauthConfigured
     isBuiltin
   }
 }

@@ -23,6 +23,9 @@ public sealed class McpServerRecord
     public string? Logo { get; init; }
     public string? Category { get; init; }
     public string? CredentialFieldsJson { get; init; }
+    public string? OauthProvider { get; init; }
+    public string? OauthScopesJson { get; init; }
+    public bool OauthConfigured { get; init; }
     public string Subtitle { get; init; } = string.Empty;
     public string AuthorName { get; init; } = string.Empty;
     public string AuthorUrl { get; init; } = string.Empty;

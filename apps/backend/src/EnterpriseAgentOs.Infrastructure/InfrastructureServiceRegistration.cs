@@ -19,6 +19,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
         services.AddScoped<IAgentMcpServerRepository, AgentMcpServerRepository>();
         services.AddScoped<IMcpCredentialRepository, McpCredentialRepository>();
+        services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();

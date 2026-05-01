@@ -56,6 +56,15 @@ export default function IntegrationsPage() {
     ? integrations.find((i) => i.name === configSlug)
     : null;
 
+  function startSetup(serverName: string) {
+    const integration = integrations.find((i) => i.name === serverName);
+    if (integration?.oauthProvider) {
+      window.location.assign(`/api/auth/${integration.oauthProvider}?returnTo=${encodeURIComponent("/integrations")}`);
+      return;
+    }
+    setConfigSlug(serverName);
+  }
+
   const allCategories = useMemo(() => {
     const cats = new Set<string>();
     integrations.forEach((i) => {
@@ -153,7 +162,7 @@ export default function IntegrationsPage() {
                 key={server.name}
                 integration={server}
                 variant="marketplace"
-                onConfigure={() => setConfigSlug(server.name)}
+                onConfigure={() => startSetup(server.name)}
                 onClick={() => router.push(`/integrations/${server.name}`)}
               />
             ))}
@@ -179,7 +188,7 @@ export default function IntegrationsPage() {
         )}
       </div>
 
-      {configIntegration && (
+      {configIntegration && !configIntegration.oauthProvider && (
         <CredentialDialog
           open={!!configSlug}
           onOpenChange={(open) => {

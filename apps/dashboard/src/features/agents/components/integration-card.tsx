@@ -25,7 +25,9 @@ export function IntegrationCard({
   onClick,
 }: IntegrationCardProps) {
   const needsCreds = i.credentialFields.length > 0
-  const ready = !needsCreds || i.configured
+  const needsOAuth = Boolean(i.oauthProvider)
+  const needsSetup = needsCreds || needsOAuth
+  const ready = !needsSetup || i.configured
 
   if (variant === "marketplace") {
     return (
@@ -47,7 +49,7 @@ export function IntegrationCard({
           <IntegrationAction
             integration={i}
             ready={ready}
-            needsCreds={needsCreds}
+            needsSetup={needsSetup}
             selected={false}
             onConfigure={onConfigure}
           />
@@ -79,7 +81,7 @@ export function IntegrationCard({
       <IntegrationAction
         integration={i}
         ready={ready}
-        needsCreds={needsCreds}
+        needsSetup={needsSetup}
         selected={selected}
         onConfigure={onConfigure}
         onToggle={onToggle}
@@ -91,24 +93,24 @@ export function IntegrationCard({
 function IntegrationAction({
   integration: i,
   ready,
-  needsCreds,
+  needsSetup,
   selected,
   onConfigure,
   onToggle,
 }: {
   integration: McpServer
   ready: boolean
-  needsCreds: boolean
+  needsSetup: boolean
   selected: boolean
   onConfigure?: () => void
   onToggle?: () => void
 }) {
-  if (needsCreds && !i.configured) {
+  if (needsSetup && !i.configured) {
     return (
       <button type="button" onClick={(e) => { e.stopPropagation(); onConfigure?.() }}
         className="flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-200 transition-colors shrink-0">
         <SettingsIcon className="size-3" />
-        Configure
+        {i.oauthProvider ? "Connect" : "Configure"}
       </button>
     )
   }

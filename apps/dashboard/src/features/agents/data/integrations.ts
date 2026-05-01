@@ -20,6 +20,9 @@ export type McpServer = {
   logo: string
   category: string
   credentialFields: CredentialField[]
+  oauthProvider: string | null
+  oauthScopes: string[]
+  oauthConfigured: boolean
   configured: boolean  // derived: has credentials saved
   isBuiltin: boolean
   authorName: string

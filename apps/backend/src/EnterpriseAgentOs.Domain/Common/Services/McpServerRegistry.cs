@@ -29,7 +29,8 @@ public static class McpServerRegistry
             Command = "npx",
             Args = """["-y","@modelcontextprotocol/server-github"]""",
             Category = "developer",
-            CredentialFieldsJson = """[{"name":"GITHUB_PERSONAL_ACCESS_TOKEN","label":"Personal Access Token","type":"password","required":true}]""",
+            OauthProvider = "github",
+            OauthScopesJson = """["user:email","repo","read:org"]""",
             IsBuiltin = true,
         },
         new()
@@ -398,7 +399,8 @@ public static class McpServerRegistry
             Command = "npx",
             Args = """["-y","@anthropic-ai/gmail-mcp-server"]""",
             Category = "communication",
-            CredentialFieldsJson = """[{"name":"GOOGLE_CLIENT_ID","label":"OAuth Client ID","type":"text","required":true},{"name":"GOOGLE_CLIENT_SECRET","label":"OAuth Client Secret","type":"password","required":true},{"name":"GOOGLE_REFRESH_TOKEN","label":"Refresh Token","type":"password","required":true}]""",
+            OauthProvider = "google",
+            OauthScopesJson = """["https://www.googleapis.com/auth/gmail.modify"]""",
             IsBuiltin = true,
         },
         // new()
@@ -458,7 +460,8 @@ public static class McpServerRegistry
             Command = "npx",
             Args = """["-y","@modelcontextprotocol/server-gdrive"]""",
             Category = "productivity",
-            CredentialFieldsJson = """[{"name":"GOOGLE_CLIENT_ID","label":"OAuth Client ID","type":"text","required":true},{"name":"GOOGLE_CLIENT_SECRET","label":"OAuth Client Secret","type":"password","required":true},{"name":"GOOGLE_REFRESH_TOKEN","label":"Refresh Token","type":"password","required":true}]""",
+            OauthProvider = "google",
+            OauthScopesJson = """["https://www.googleapis.com/auth/drive"]""",
             IsBuiltin = true,
         },
         new()
@@ -477,7 +480,8 @@ public static class McpServerRegistry
             Command = "npx",
             Args = """["-y","@anthropic-ai/google-calendar-mcp-server"]""",
             Category = "productivity",
-            CredentialFieldsJson = """[{"name":"GOOGLE_CLIENT_ID","label":"OAuth Client ID","type":"text","required":true},{"name":"GOOGLE_CLIENT_SECRET","label":"OAuth Client Secret","type":"password","required":true},{"name":"GOOGLE_REFRESH_TOKEN","label":"Refresh Token","type":"password","required":true}]""",
+            OauthProvider = "google",
+            OauthScopesJson = """["https://www.googleapis.com/auth/calendar"]""",
             IsBuiltin = true,
         },
         new()

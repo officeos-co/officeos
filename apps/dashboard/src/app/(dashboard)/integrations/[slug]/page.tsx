@@ -65,6 +65,14 @@ export default function IntegrationDetailPage({
   }
 
   const hasCredentialFields = integration.credentialFields.length > 0;
+  const hasOAuth = Boolean(integration.oauthProvider);
+  const needsConnection = hasCredentialFields || hasOAuth;
+
+  function handleOAuthConnect() {
+    if (!integration?.oauthProvider) return;
+    const returnTo = `/integrations/${integration.name}`;
+    window.location.assign(`/api/auth/${integration.oauthProvider}?returnTo=${encodeURIComponent(returnTo)}`);
+  }
 
   return (
     <>
@@ -72,7 +80,18 @@ export default function IntegrationDetailPage({
         group="MCP Servers"
         page={integration.title}
         action={
-          hasCredentialFields ? (
+          hasOAuth ? (
+            <Button
+              size="sm"
+              variant={integration.oauthConfigured ? "outline" : "default"}
+              onClick={handleOAuthConnect}
+            >
+              <KeyIcon className="size-4" />
+              {integration.oauthConfigured
+                ? `Reconnect ${integration.oauthProvider}`
+                : `Connect ${integration.oauthProvider}`}
+            </Button>
+          ) : hasCredentialFields ? (
             <Button
               size="sm"
               variant={integration.configured ? "outline" : "default"}
@@ -95,7 +114,7 @@ export default function IntegrationDetailPage({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold">{integration.title}</h1>
-              {hasCredentialFields && (
+              {needsConnection && (
                 <div
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest",
@@ -186,6 +205,10 @@ export default function IntegrationDetailPage({
                     </div>
                   )}
                   <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Auth</dt>
+                    <dd className="capitalize">{integration.oauthProvider ?? "Credentials"}</dd>
+                  </div>
+                  <div className="flex justify-between">
                     <dt className="text-muted-foreground">Identifier</dt>
                     <dd className="font-mono text-xs">{integration.name}</dd>
                   </div>
@@ -229,6 +252,29 @@ export default function IntegrationDetailPage({
                         Source code
                       </a>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* OAuth */}
+              {hasOAuth && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    OAuth
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Provider</span>
+                      <span className="capitalize">{integration.oauthProvider}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status</span>
+                      <span>{integration.oauthConfigured ? "Connected" : "Not connected"}</span>
+                    </div>
+                    <Button size="sm" className="w-full" variant="outline" onClick={handleOAuthConnect}>
+                      <KeyIcon className="size-4" />
+                      {integration.oauthConfigured ? "Reconnect" : "Connect"}
+                    </Button>
                   </div>
                 </div>
               )}

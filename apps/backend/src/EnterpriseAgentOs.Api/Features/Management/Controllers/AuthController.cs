@@ -14,7 +14,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("google")]
-    public IActionResult GoogleLogin()
+    public IActionResult GoogleLogin([FromQuery] string? returnTo = null)
     {
         try
         {
@@ -27,6 +27,7 @@ public sealed class AuthController : ControllerBase
                 SameSite = SameSiteMode.Lax,
                 MaxAge = TimeSpan.FromMinutes(10),
             });
+            SetReturnToCookie(returnTo);
 
             return Redirect(result.RedirectUrl);
         }
@@ -46,6 +47,7 @@ public sealed class AuthController : ControllerBase
         {
             var savedState = Request.Cookies["oauth-state"];
             Response.Cookies.Delete("oauth-state");
+            var returnTo = GetAndClearReturnToCookie();
 
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
@@ -61,8 +63,8 @@ public sealed class AuthController : ControllerBase
                 Path = "/",
             });
 
-            _logger.LogInformation("OAuth: login complete for {Email}, redirecting to /", result.Email);
-            return Redirect("/");
+            _logger.LogInformation("OAuth: login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
+            return Redirect(returnTo);
         }
         catch (Exception ex)
         {
@@ -71,7 +73,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("github")]
-    public IActionResult GitHubLogin()
+    public IActionResult GitHubLogin([FromQuery] string? returnTo = null)
     {
         try
         {
@@ -84,6 +86,7 @@ public sealed class AuthController : ControllerBase
                 SameSite = SameSiteMode.Lax,
                 MaxAge = TimeSpan.FromMinutes(10),
             });
+            SetReturnToCookie(returnTo);
 
             return Redirect(result.RedirectUrl);
         }
@@ -103,6 +106,7 @@ public sealed class AuthController : ControllerBase
         {
             var savedState = Request.Cookies["oauth-state"];
             Response.Cookies.Delete("oauth-state");
+            var returnTo = GetAndClearReturnToCookie();
 
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
@@ -118,8 +122,8 @@ public sealed class AuthController : ControllerBase
                 Path = "/",
             });
 
-            _logger.LogInformation("OAuth: GitHub login complete for {Email}, redirecting to /", result.Email);
-            return Redirect("/");
+            _logger.LogInformation("OAuth: GitHub login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
+            return Redirect(returnTo);
         }
         catch (Exception ex)
         {
@@ -128,6 +132,33 @@ public sealed class AuthController : ControllerBase
     }
 
     private bool IsLocalhost => Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+
+    private void SetReturnToCookie(string? returnTo)
+    {
+        if (!IsSafeLocalPath(returnTo)) return;
+
+        Response.Cookies.Append("oauth-return-to", returnTo!, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !IsLocalhost,
+            SameSite = SameSiteMode.Lax,
+            MaxAge = TimeSpan.FromMinutes(10),
+            Path = "/",
+        });
+    }
+
+    private string GetAndClearReturnToCookie()
+    {
+        var returnTo = Request.Cookies["oauth-return-to"];
+        Response.Cookies.Delete("oauth-return-to");
+        return IsSafeLocalPath(returnTo) ? returnTo! : "/";
+    }
+
+    private static bool IsSafeLocalPath(string? value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.StartsWith("/", StringComparison.Ordinal)
+        && !value.StartsWith("//", StringComparison.Ordinal)
+        && !value.Contains("://", StringComparison.Ordinal);
 
     private IActionResult RedirectWithError(string message)
         => Redirect($"/login?error={Uri.EscapeDataString(message)}");
