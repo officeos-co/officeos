@@ -48,14 +48,14 @@ Two code paths based on provider:
 
 Straight passthrough — replace `model` in the JSON body, set `Authorization: Bearer <key>`, forward to the provider's base URL:
 
-| Provider | Base URL |
-|----------|---------|
-| openai | `https://api.openai.com/v1` |
-| groq | `https://api.groq.com/openai/v1` |
-| deepseek | `https://api.deepseek.com/v1` |
-| xai | `https://api.x.ai/v1` |
-| openrouter | `https://openrouter.ai/api/v1` |
-| ollama | `http://localhost:11434/v1` |
+| Provider   | Base URL                         |
+| ---------- | -------------------------------- |
+| openai     | `https://api.openai.com/v1`      |
+| groq       | `https://api.groq.com/openai/v1` |
+| deepseek   | `https://api.deepseek.com/v1`    |
+| xai        | `https://api.x.ai/v1`            |
+| openrouter | `https://openrouter.ai/api/v1`   |
+| ollama     | `http://localhost:11434/v1`      |
 
 ### Anthropic
 
@@ -77,6 +77,7 @@ The agent always speaks OpenAI format. The translation is invisible.
 ## What the agent sees
 
 The agent thinks it's talking to a custom OpenAI-compatible endpoint. It never knows:
+
 - Which provider is actually serving the request
 - What the real model name is
 - What the API key is
@@ -86,10 +87,10 @@ This means provider/model changes in the dashboard take effect on the next LLM c
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `apps/backend/Entities/LlmProxy/LlmProxyController.cs` | `POST /v1/chat/completions` — auth, lookup, dispatch, stream |
-| `apps/backend/Entities/LlmProxy/LlmProviderDispatcher.cs` | Routes to upstream by provider, swaps model + key |
-| `apps/backend/Entities/LlmProxy/AnthropicTranslator.cs` | OpenAI ↔ Anthropic format translation |
-| `packages/zeroclaw-core/src/agent/gateway_bootstrap.rs` | Sets `custom:{backend_url}/v1` as the provider |
-| `apps/backend/Entities/Providers/KnownModels.cs` | Valid provider→model mappings |
+| File                                                      | Purpose                                                      |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| `apps/backend/Entities/LlmProxy/LlmProxyController.cs`    | `POST /v1/chat/completions` — auth, lookup, dispatch, stream |
+| `apps/backend/Entities/LlmProxy/LlmProviderDispatcher.cs` | Routes to upstream by provider, swaps model + key            |
+| `apps/backend/Entities/LlmProxy/AnthropicTranslator.cs`   | OpenAI ↔ Anthropic format translation                        |
+| `packages/zeroclaw-core/src/agent/gateway_bootstrap.rs`   | Sets `custom:{backend_url}/v1` as the provider               |
+| `apps/backend/Entities/Providers/KnownModels.cs`          | Valid provider→model mappings                                |
