@@ -15,6 +15,12 @@ public sealed class McpMutations
             Name = input.Name,
             Title = input.Title,
             Description = input.Description,
+            Subtitle = input.Subtitle,
+            AuthorName = input.AuthorName,
+            AuthorUrl = input.AuthorUrl,
+            DocumentationUrl = input.DocumentationUrl,
+            RepositoryUrl = input.RepositoryUrl,
+            ToolsJson = input.ToolsJson,
             TransportType = Enum.TryParse<McpTransportType>(input.TransportType, true, out var t) ? t : McpTransportType.Stdio,
             Command = input.Command,
             Args = input.Args,
@@ -62,12 +68,18 @@ public sealed class McpMutations
 public record RegisterMcpServerInput(
     string Name,
     string Title,
-    string? Description,
+    string Description,
+    string Subtitle,
+    string AuthorName,
+    string AuthorUrl,
+    string DocumentationUrl,
+    string RepositoryUrl,
+    string? ToolsJson,
     string TransportType,
     string? Command,
     string? Args,
     string? Url,
-    string? Category,
+    string Category,
     string? CredentialFieldsJson);
 
 public record CredentialFieldInput(string Key, string Value);

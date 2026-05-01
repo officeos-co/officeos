@@ -13,6 +13,12 @@ public sealed class McpServerRecord
     public string? Logo { get; init; }
     public string? Category { get; init; }
     public string? CredentialFieldsJson { get; init; }
+    public string Subtitle { get; init; } = string.Empty;
+    public string AuthorName { get; init; } = string.Empty;
+    public string AuthorUrl { get; init; } = string.Empty;
+    public string DocumentationUrl { get; init; } = string.Empty;
+    public string RepositoryUrl { get; init; } = string.Empty;
+    public string? ToolsJson { get; init; }
     public bool IsBuiltin { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EnterpriseAgentOs.Infrastructure.Migrations
 {
     [DbContext(typeof(EaosDbContext))]
-    [Migration("20260430203452_InitialWithMcp")]
-    partial class InitialWithMcp
+    [Migration("20260501094750_InitialWithRichMcp")]
+    partial class InitialWithRichMcp
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -590,6 +590,16 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("AuthorUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<string>("Category")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -607,6 +617,11 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("DocumentationUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<bool>("IsBuiltin")
                         .HasColumnType("boolean");
 
@@ -618,10 +633,23 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("RepositoryUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Subtitle")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ToolsJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("TransportType")
                         .IsRequired()

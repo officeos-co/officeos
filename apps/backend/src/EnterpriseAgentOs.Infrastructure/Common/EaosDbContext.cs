@@ -255,6 +255,12 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.Logo).HasColumnType("text");
             e.Property(s => s.Category).HasMaxLength(64);
             e.Property(s => s.CredentialFieldsJson).HasColumnType("jsonb");
+            e.Property(s => s.Subtitle).HasMaxLength(256);
+            e.Property(s => s.AuthorName).HasMaxLength(128);
+            e.Property(s => s.AuthorUrl).HasMaxLength(512);
+            e.Property(s => s.DocumentationUrl).HasMaxLength(512);
+            e.Property(s => s.RepositoryUrl).HasMaxLength(512);
+            e.Property(s => s.ToolsJson).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<AgentMcpServerEntity>(e =>

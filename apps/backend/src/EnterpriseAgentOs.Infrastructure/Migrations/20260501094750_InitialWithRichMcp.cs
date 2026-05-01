@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EnterpriseAgentOs.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialWithMcp : Migration
+    public partial class InitialWithRichMcp : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -104,6 +104,12 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     Logo = table.Column<string>(type: "text", nullable: true),
                     Category = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     CredentialFieldsJson = table.Column<string>(type: "jsonb", nullable: true),
+                    Subtitle = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    AuthorName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    AuthorUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    DocumentationUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    RepositoryUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    ToolsJson = table.Column<string>(type: "jsonb", nullable: true),
                     IsBuiltin = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },

@@ -1,7 +1,7 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import type { McpServer, CredentialField } from "../data/integrations";
+import type { McpServer, CredentialField, Tool } from "../data/integrations";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 
 const MCP_SERVERS_QUERY = gql`
@@ -18,6 +18,12 @@ const MCP_SERVERS_QUERY = gql`
       logo
       category
       credentialFieldsJson
+      subtitle
+      authorName
+      authorUrl
+      documentationUrl
+      repositoryUrl
+      toolsJson
       isBuiltin
       createdAt
     }
@@ -38,6 +44,12 @@ const MCP_SERVER_QUERY = gql`
       logo
       category
       credentialFieldsJson
+      subtitle
+      authorName
+      authorUrl
+      documentationUrl
+      repositoryUrl
+      toolsJson
       isBuiltin
       createdAt
     }
@@ -78,6 +90,12 @@ type RawMcpServer = {
   logo: string | null;
   category: string | null;
   credentialFieldsJson: string | null;
+  subtitle: string | null;
+  authorName: string | null;
+  authorUrl: string | null;
+  documentationUrl: string | null;
+  repositoryUrl: string | null;
+  toolsJson: string | null;
   isBuiltin: boolean;
   createdAt: string | null;
 };
@@ -98,12 +116,27 @@ function parseCredentialFields(json: string | null): CredentialField[] {
   }
 }
 
+function parseTools(json: string | null): Tool[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((t: Record<string, unknown>) => ({
+      name: String(t.name ?? ""),
+      description: String(t.description ?? ""),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function mapMcpServer(s: RawMcpServer): McpServer {
   const credentialFields = parseCredentialFields(s.credentialFieldsJson);
   return {
     id: s.id,
     name: s.name,
     title: s.title ?? s.name,
+    subtitle: s.subtitle ?? "",
     description: s.description ?? "",
     transportType: s.transportType ?? "stdio",
     logo: sanitizeSvg(s.logo ?? ""),
@@ -111,6 +144,11 @@ function mapMcpServer(s: RawMcpServer): McpServer {
     credentialFields,
     configured: credentialFields.length === 0,
     isBuiltin: s.isBuiltin,
+    authorName: s.authorName ?? "",
+    authorUrl: s.authorUrl ?? "",
+    documentationUrl: s.documentationUrl ?? "",
+    repositoryUrl: s.repositoryUrl ?? "",
+    tools: parseTools(s.toolsJson),
   };
 }
 

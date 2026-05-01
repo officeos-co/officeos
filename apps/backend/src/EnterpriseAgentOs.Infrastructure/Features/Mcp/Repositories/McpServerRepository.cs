@@ -36,6 +36,12 @@ internal sealed class McpServerRepository : IMcpServerRepository
             existing.Logo = server.Logo;
             existing.Category = server.Category;
             existing.CredentialFieldsJson = server.CredentialFieldsJson;
+            existing.Subtitle = server.Subtitle;
+            existing.AuthorName = server.AuthorName;
+            existing.AuthorUrl = server.AuthorUrl;
+            existing.DocumentationUrl = server.DocumentationUrl;
+            existing.RepositoryUrl = server.RepositoryUrl;
+            existing.ToolsJson = server.ToolsJson;
             existing.IsBuiltin = server.IsBuiltin;
         }
         else
@@ -64,6 +70,12 @@ internal sealed class McpServerRepository : IMcpServerRepository
         Logo = e.Logo,
         Category = e.Category,
         CredentialFieldsJson = e.CredentialFieldsJson,
+        Subtitle = e.Subtitle,
+        AuthorName = e.AuthorName,
+        AuthorUrl = e.AuthorUrl,
+        DocumentationUrl = e.DocumentationUrl,
+        RepositoryUrl = e.RepositoryUrl,
+        ToolsJson = e.ToolsJson,
         IsBuiltin = e.IsBuiltin,
         CreatedAt = e.CreatedAt,
     };
@@ -81,6 +93,12 @@ internal sealed class McpServerRepository : IMcpServerRepository
         Logo = r.Logo,
         Category = r.Category,
         CredentialFieldsJson = r.CredentialFieldsJson,
+        Subtitle = r.Subtitle,
+        AuthorName = r.AuthorName,
+        AuthorUrl = r.AuthorUrl,
+        DocumentationUrl = r.DocumentationUrl,
+        RepositoryUrl = r.RepositoryUrl,
+        ToolsJson = r.ToolsJson,
         IsBuiltin = r.IsBuiltin,
         CreatedAt = r.CreatedAt,
     };

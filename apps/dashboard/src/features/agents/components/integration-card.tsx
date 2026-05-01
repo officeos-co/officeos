@@ -40,6 +40,9 @@ export function IntegrationCard({
           <div className="size-8 shrink-0 [&>svg]:size-8" dangerouslySetInnerHTML={{ __html: i.logo }} />
           <div className="min-w-0 flex-1">
             <span className="font-medium text-sm">{i.title}</span>
+            {i.subtitle && (
+              <p className="text-xs text-muted-foreground truncate">{i.subtitle}</p>
+            )}
           </div>
           <IntegrationAction
             integration={i}
@@ -50,13 +53,18 @@ export function IntegrationCard({
           />
         </div>
         <p className="text-sm line-clamp-2 text-muted-foreground">{i.description}</p>
-        {i.category && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {i.category && (
             <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
               {i.category}
             </span>
-          </div>
-        )}
+          )}
+          {i.tools.length > 0 && (
+            <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+              {i.tools.length} tools
+            </span>
+          )}
+        </div>
       </div>
     )
   }

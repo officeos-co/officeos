@@ -16,6 +16,7 @@ import {
   KeyIcon,
   CheckCircle2Icon,
   AlertCircleIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
 
 export default function IntegrationDetailPage({
@@ -91,7 +92,12 @@ export default function IntegrationDetailPage({
           />
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-semibold">{integration.title}</h1>
-            <p className="text-sm text-muted-foreground">
+            {integration.subtitle && (
+              <p className="text-sm text-foreground/80 mt-0.5">
+                {integration.subtitle}
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground mt-1">
               {integration.description}
             </p>
             {hasCredentialFields && (
@@ -112,8 +118,16 @@ export default function IntegrationDetailPage({
               </div>
             )}
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-              <span>Transport: {integration.transportType}</span>
+              {integration.authorName && (
+                <span>
+                  By{" "}
+                  {integration.authorUrl ? (
+                    <a href={integration.authorUrl} target="_blank" rel="noreferrer" className="underline">{integration.authorName}</a>
+                  ) : integration.authorName}
+                </span>
+              )}
               {integration.category && <span>{integration.category}</span>}
+              {integration.tools.length > 0 && <span>{integration.tools.length} tools</span>}
             </div>
           </div>
         </div>
@@ -129,14 +143,40 @@ export default function IntegrationDetailPage({
                 <dt className="text-sm text-muted-foreground">Name</dt>
                 <dd className="font-mono text-xs">{integration.name}</dd>
               </div>
-              <div className="flex justify-between px-4 py-3">
-                <dt className="text-sm text-muted-foreground">Transport</dt>
-                <dd className="font-mono text-xs">{integration.transportType}</dd>
-              </div>
+              {integration.authorName && (
+                <div className="flex justify-between px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">Author</dt>
+                  <dd className="text-sm">
+                    {integration.authorUrl ? (
+                      <a href={integration.authorUrl} target="_blank" rel="noreferrer" className="underline">{integration.authorName}</a>
+                    ) : integration.authorName}
+                  </dd>
+                </div>
+              )}
               {integration.category && (
                 <div className="flex justify-between px-4 py-3">
                   <dt className="text-sm text-muted-foreground">Category</dt>
                   <dd className="text-sm">{integration.category}</dd>
+                </div>
+              )}
+              {integration.documentationUrl && (
+                <div className="flex justify-between px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">Documentation</dt>
+                  <dd className="text-sm">
+                    <a href={integration.documentationUrl} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1">
+                      View docs <ExternalLinkIcon className="size-3" />
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {integration.repositoryUrl && (
+                <div className="flex justify-between px-4 py-3">
+                  <dt className="text-sm text-muted-foreground">Repository</dt>
+                  <dd className="text-sm">
+                    <a href={integration.repositoryUrl} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1">
+                      GitHub <ExternalLinkIcon className="size-3" />
+                    </a>
+                  </dd>
                 </div>
               )}
               <div className="flex justify-between px-4 py-3">
@@ -171,6 +211,33 @@ export default function IntegrationDetailPage({
                   {field.required && (
                     <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tools */}
+          {integration.tools.length > 0 && (
+            <div className="rounded-xl border border-border bg-card">
+              <div className="px-4 py-3 border-b border-border">
+                <span className="text-sm font-medium">Tools</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {integration.tools.length}
+                </span>
+              </div>
+              {integration.tools.map((tool, idx) => (
+                <div
+                  key={tool.name}
+                  className={`flex items-center gap-4 px-4 py-3${
+                    idx < integration.tools.length - 1 ? " border-b border-border" : ""
+                  }`}
+                >
+                  <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
+                    {tool.name}
+                  </code>
+                  <span className="text-sm text-muted-foreground">
+                    {tool.description}
+                  </span>
                 </div>
               ))}
             </div>

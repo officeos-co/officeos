@@ -14,6 +14,7 @@ export type McpServer = {
   id: string
   name: string        // slug
   title: string
+  subtitle: string
   description: string
   transportType: string
   logo: string
@@ -21,6 +22,11 @@ export type McpServer = {
   credentialFields: CredentialField[]
   configured: boolean  // derived: has credentials saved
   isBuiltin: boolean
+  authorName: string
+  authorUrl: string
+  documentationUrl: string
+  repositoryUrl: string
+  tools: Tool[]
 }
 
 /** @deprecated Use McpServer instead */
