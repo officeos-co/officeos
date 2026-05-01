@@ -2,10 +2,45 @@ package com.enterpriseagentos.backendjava.domain.common.primitives;
 
 import java.time.Instant;
 import java.util.UUID;
-import com.enterpriseagentos.backendjava.domain.features.analytics.AgentLogRecord;
-import com.enterpriseagentos.backendjava.domain.features.analytics.AgentLogType;
 
-public record AgentError(AgentErrorCategory category, String message, String detail) {
+import com.enterpriseagentos.backendjava.domain.features.analytics.enums.AgentLogType;
+import com.enterpriseagentos.backendjava.domain.features.analytics.models.AgentLogModel;
+
+public final class AgentError  {
+    private final AgentErrorCategory category;
+    private final String message;
+    private final String detail;
+
+    public AgentError(AgentErrorCategory category, String message, String detail) {
+        this.category = category;
+        this.message = message;
+        this.detail = detail;
+    }
+
+    public AgentErrorCategory getCategory() {
+        return category;
+}
+
+    public AgentErrorCategory category() {
+        return category;
+    }
+
+    public String getMessage() {
+        return message;
+}
+
+    public String message() {
+        return message;
+    }
+
+    public String getDetail() {
+        return detail;
+}
+
+    public String detail() {
+        return detail;
+    }
+
     public AgentLogType logType() {
         return switch (category) {
             case PodConnection -> AgentLogType.ErrorPodConnection;
@@ -23,12 +58,7 @@ public record AgentError(AgentErrorCategory category, String message, String det
         return detail == null ? prefix : prefix + "\n" + detail;
     }
 
-    public AgentLogRecord toLogRecord(UUID agentId) {
-        AgentLogRecord record = new AgentLogRecord();
-        record.agentId = agentId;
-        record.type = logType();
-        record.content = formattedContent();
-        record.time = Instant.now();
-        return record;
+    public AgentLogModel toLogModel(UUID agentId) {
+        return AgentLogModel.error(agentId, logType(), formattedContent(), Instant.now());
     }
 }

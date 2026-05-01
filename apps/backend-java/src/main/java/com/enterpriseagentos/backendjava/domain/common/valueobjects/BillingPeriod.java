@@ -1,18 +1,29 @@
 package com.enterpriseagentos.backendjava.domain.common.valueobjects;
 
-import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.YearMonth;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import com.enterpriseagentos.backendjava.domain.common.primitives.*;
-import com.enterpriseagentos.backendjava.domain.common.services.*;
-import com.enterpriseagentos.backendjava.domain.common.valueobjects.*;
-import com.enterpriseagentos.backendjava.domain.events.*;
-import com.enterpriseagentos.backendjava.domain.features.agents.*;
-import com.enterpriseagentos.backendjava.domain.features.analytics.*;
-import com.enterpriseagentos.backendjava.domain.features.management.*;
-import com.enterpriseagentos.backendjava.domain.features.mcp.*;
 
-public record BillingPeriod(Instant start, Instant end) {
+public final class BillingPeriod  {
+    private final Instant start;
+    private final Instant end;
+
+    public BillingPeriod(Instant start, Instant end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    public Instant getStart() {
+        return start;
+}
+
+    public Instant start() {
+        return start;
+    }
+
+    public Instant getEnd() {
+        return end;
+}
+
+    public Instant end() {
+        return end;
+    }
 }

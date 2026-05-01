@@ -1,18 +1,19 @@
 package com.enterpriseagentos.backendjava.domain.events;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.YearMonth;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import com.enterpriseagentos.backendjava.domain.common.primitives.*;
-import com.enterpriseagentos.backendjava.domain.common.services.*;
-import com.enterpriseagentos.backendjava.domain.common.valueobjects.*;
-import com.enterpriseagentos.backendjava.domain.events.*;
-import com.enterpriseagentos.backendjava.domain.features.agents.*;
-import com.enterpriseagentos.backendjava.domain.features.analytics.*;
-import com.enterpriseagentos.backendjava.domain.features.management.*;
-import com.enterpriseagentos.backendjava.domain.features.mcp.*;
+import java.util.UUID;
 
-public record ChannelCredsStoredEvent(UUID connectionId) implements DomainEvent {
+public final class ChannelCredsStoredEvent implements DomainEvent {
+    private final UUID connectionId;
+
+    public ChannelCredsStoredEvent(UUID connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    public UUID getConnectionId() {
+        return connectionId;
+}
+
+    public UUID connectionId() {
+        return connectionId;
+    }
 }

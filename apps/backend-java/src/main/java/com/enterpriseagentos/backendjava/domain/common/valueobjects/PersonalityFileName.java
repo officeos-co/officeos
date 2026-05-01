@@ -2,7 +2,29 @@ package com.enterpriseagentos.backendjava.domain.common.valueobjects;
 
 import java.util.List;
 
-public record PersonalityFileName(String value) implements Comparable<PersonalityFileName> {
+public final class PersonalityFileName implements Comparable<PersonalityFileName> {
+    private final String value;
+
+    public PersonalityFileName(String value) {
+        if (value == null || value.isBlank()) {
+        throw new IllegalArgumentException("Personality file name must not be empty.");
+        }
+        if (value.length() > 128) {
+        throw new IllegalArgumentException("Personality file name must not exceed 128 characters.");
+        }
+        value = value.trim();
+
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+}
+
+    public String value() {
+        return value;
+    }
+
     public static final List<String> KNOWN_FILE_NAMES = List.of(
         "AGENTS.md",
         "SOUL.md",
@@ -11,16 +33,6 @@ public record PersonalityFileName(String value) implements Comparable<Personalit
         "USER.md",
         "BOOTSTRAP.md"
     );
-
-    public PersonalityFileName {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Personality file name must not be empty.");
-        }
-        if (value.length() > 128) {
-            throw new IllegalArgumentException("Personality file name must not exceed 128 characters.");
-        }
-        value = value.trim();
-    }
 
     @Override
     public int compareTo(PersonalityFileName other) {

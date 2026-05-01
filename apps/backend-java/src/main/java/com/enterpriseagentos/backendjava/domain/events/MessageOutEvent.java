@@ -1,18 +1,39 @@
 package com.enterpriseagentos.backendjava.domain.events;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.YearMonth;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import com.enterpriseagentos.backendjava.domain.common.primitives.*;
-import com.enterpriseagentos.backendjava.domain.common.services.*;
-import com.enterpriseagentos.backendjava.domain.common.valueobjects.*;
-import com.enterpriseagentos.backendjava.domain.events.*;
-import com.enterpriseagentos.backendjava.domain.features.agents.*;
-import com.enterpriseagentos.backendjava.domain.features.analytics.*;
-import com.enterpriseagentos.backendjava.domain.features.management.*;
-import com.enterpriseagentos.backendjava.domain.features.mcp.*;
+import java.util.UUID;
 
-public record MessageOutEvent(UUID agentId, String correlationId, String content) implements DomainEvent {
+public final class MessageOutEvent implements DomainEvent {
+    private final UUID agentId;
+    private final String correlationId;
+    private final String content;
+
+    public MessageOutEvent(UUID agentId, String correlationId, String content) {
+        this.agentId = agentId;
+        this.correlationId = correlationId;
+        this.content = content;
+    }
+
+    public UUID getAgentId() {
+        return agentId;
+}
+
+    public UUID agentId() {
+        return agentId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+}
+
+    public String correlationId() {
+        return correlationId;
+    }
+
+    public String getContent() {
+        return content;
+}
+
+    public String content() {
+        return content;
+    }
 }

@@ -1,18 +1,39 @@
 package com.enterpriseagentos.backendjava.domain.events;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.YearMonth;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import com.enterpriseagentos.backendjava.domain.common.primitives.*;
-import com.enterpriseagentos.backendjava.domain.common.services.*;
-import com.enterpriseagentos.backendjava.domain.common.valueobjects.*;
-import com.enterpriseagentos.backendjava.domain.events.*;
-import com.enterpriseagentos.backendjava.domain.features.agents.*;
-import com.enterpriseagentos.backendjava.domain.features.analytics.*;
-import com.enterpriseagentos.backendjava.domain.features.management.*;
-import com.enterpriseagentos.backendjava.domain.features.mcp.*;
+import java.util.UUID;
 
-public record TurnStartedEvent(UUID agentId, String correlationId, String userMessage) implements DomainEvent {
+public final class TurnStartedEvent implements DomainEvent {
+    private final UUID agentId;
+    private final String correlationId;
+    private final String userMessage;
+
+    public TurnStartedEvent(UUID agentId, String correlationId, String userMessage) {
+        this.agentId = agentId;
+        this.correlationId = correlationId;
+        this.userMessage = userMessage;
+    }
+
+    public UUID getAgentId() {
+        return agentId;
+}
+
+    public UUID agentId() {
+        return agentId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+}
+
+    public String correlationId() {
+        return correlationId;
+    }
+
+    public String getUserMessage() {
+        return userMessage;
+}
+
+    public String userMessage() {
+        return userMessage;
+    }
 }

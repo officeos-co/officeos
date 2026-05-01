@@ -42,10 +42,32 @@ public final class Result<T> {
         return isSuccess() ? onSuccess.apply(value) : onFailure.apply(failure);
     }
 
-    public record Failure(String code, String message) {
-        public Failure {
+    public static final class Failure {
+        private final String code;
+        private final String message;
+
+        public Failure(String code, String message) {
             Objects.requireNonNull(code);
             Objects.requireNonNull(message);
+
+            this.code = code;
+            this.message = message;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public String code() {
+            return code;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String message() {
+            return message;
         }
     }
 }

@@ -1,11 +1,11 @@
 package com.enterpriseagentos.backendjava.domain.common.valueobjects;
 
-import com.enterpriseagentos.backendjava.domain.features.management.CreditBudgetResult;
+import com.enterpriseagentos.backendjava.domain.features.management.dtos.CreditBudgetResult;
 
 public class CreditBudget {
-    public long budgetPerMonth;
-    public long usedThisMonth;
-    public boolean overageEnabled;
+    private long budgetPerMonth;
+    private long usedThisMonth;
+    private boolean overageEnabled;
 
     public CreditBudget(long budgetPerMonth, long usedThisMonth, boolean overageEnabled) {
         this.budgetPerMonth = budgetPerMonth;
@@ -25,7 +25,19 @@ public class CreditBudget {
         return new CreditBudgetResult(remaining(), isOverBudget());
     }
 
-    public void record(long credits) {
+    public void addCredits(long credits) {
         usedThisMonth += credits;
+    }
+
+    public long getBudgetPerMonth() {
+        return budgetPerMonth;
+    }
+
+    public long getUsedThisMonth() {
+        return usedThisMonth;
+    }
+
+    public boolean getOverageEnabled() {
+        return overageEnabled;
     }
 }

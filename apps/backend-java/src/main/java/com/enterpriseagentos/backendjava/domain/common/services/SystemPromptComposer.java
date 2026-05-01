@@ -6,23 +6,24 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import com.enterpriseagentos.backendjava.domain.features.agents.AgentMemoryRecord;
-import com.enterpriseagentos.backendjava.domain.features.agents.AgentPersonalityRecord;
-import com.enterpriseagentos.backendjava.domain.features.agents.AgentRecord;
+
+import com.enterpriseagentos.backendjava.domain.features.agents.models.AgentMemoryModel;
+import com.enterpriseagentos.backendjava.domain.features.agents.models.AgentModel;
+import com.enterpriseagentos.backendjava.domain.features.agents.models.AgentPersonalityModel;
 
 public final class SystemPromptComposer {
     private SystemPromptComposer() {
     }
 
-    public static String compose(AgentRecord agent) {
-        return compose(agent.name, agent.prompt, safe(agent.personalityFiles), safe(agent.memories));
+    public static String compose(AgentModel agent) {
+        return compose(agent.getName(), agent.getPrompt(), safe(agent.getPersonalityFiles()), safe(agent.getMemories()));
     }
 
     public static String compose(
         String agentName,
         String userPrompt,
-        List<AgentPersonalityRecord> personalityFiles,
-        List<AgentMemoryRecord> memories
+        List<AgentPersonalityModel> personalityFiles,
+        List<AgentMemoryModel> memories
     ) {
         return Stream.of(
                 identity(agentName),
@@ -75,10 +76,10 @@ public final class SystemPromptComposer {
         return "## Workspace\n\nAgent: " + agentName + "\nWorking directory: /home";
     }
 
-    public static String projectContext(List<AgentPersonalityRecord> files, String userPrompt) {
+    public static String projectContext(List<AgentPersonalityModel> files, String userPrompt) {
         List<String> sections = safe(files).stream()
-            .sorted(Comparator.comparingInt(AgentPersonalityRecord::compositionOrder))
-            .map(AgentPersonalityRecord::formatPromptSection)
+            .sorted(Comparator.comparingInt(AgentPersonalityModel::compositionOrder))
+            .map(AgentPersonalityModel::formatPromptSection)
             .collect(Collectors.toList());
         if (userPrompt != null && !userPrompt.isBlank()) {
             sections.add("<file path=\"PROMPT.md\">\n" + userPrompt.trim() + "\n</file>");
@@ -86,13 +87,13 @@ public final class SystemPromptComposer {
         return sections.isEmpty() ? null : "## Project Context\n\n" + String.join("\n\n", sections);
     }
 
-    public static String memory(List<AgentMemoryRecord> memories) {
-        List<AgentMemoryRecord> safeMemories = safe(memories);
+    public static String memory(List<AgentMemoryModel> memories) {
+        List<AgentMemoryModel> safeMemories = safe(memories);
         if (safeMemories.isEmpty()) {
             return null;
         }
         return "## Memory\n\n" + safeMemories.stream()
-            .map(AgentMemoryRecord::formatPromptSection)
+            .map(AgentMemoryModel::formatPromptSection)
             .collect(Collectors.joining("\n\n"));
     }
 

@@ -7,10 +7,11 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import com.enterpriseagentos.backendjava.domain.features.agents.AgentTemplateRecord;
+
+import com.enterpriseagentos.backendjava.domain.features.agents.models.AgentTemplateModel;
 
 public final class AgentTemplateRegistry {
-    public static final List<AgentTemplateRecord> BUILTIN_TEMPLATES = List.of(
+    public static final List<AgentTemplateModel> BUILTIN_TEMPLATES = List.of(
         template("Blank agent", "A blank starting point.", "[]", "[]", ""),
         template("Deep researcher", "Multi-step web research with citations.", "[\"browser\"]", "[]",
             "You are a research assistant. Conduct thorough web research, synthesize findings, and present them with source citations."),
@@ -25,20 +26,19 @@ public final class AgentTemplateRegistry {
     private AgentTemplateRegistry() {
     }
 
-    public static Optional<AgentTemplateRecord> getBuiltin(UUID id) {
-        return BUILTIN_TEMPLATES.stream().filter(template -> template.id.equals(id)).findFirst();
+    public static Optional<AgentTemplateModel> getBuiltin(UUID id) {
+        return BUILTIN_TEMPLATES.stream().filter(template -> template.getId().equals(id)).findFirst();
     }
 
-    private static AgentTemplateRecord template(String name, String description, String integrationsJson, String channelsJson, String prompt) {
-        AgentTemplateRecord record = new AgentTemplateRecord();
-        record.id = deterministicGuid("agent-template:" + name);
-        record.name = name;
-        record.description = description;
-        record.integrationsJson = integrationsJson;
-        record.channelsJson = channelsJson;
-        record.prompt = prompt;
-        record.isBuiltin = true;
-        return record;
+    private static AgentTemplateModel template(String name, String description, String integrationsJson, String channelsJson, String prompt) {
+        return AgentTemplateModel.builtIn(
+            deterministicGuid("agent-template:" + name),
+            name,
+            description,
+            integrationsJson,
+            channelsJson,
+            prompt
+        );
     }
 
     private static UUID deterministicGuid(String value) {
