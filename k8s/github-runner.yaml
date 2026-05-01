@@ -62,10 +62,6 @@ spec:
               value: "k8s-runner"
             - name: RUNNER_WORKDIR
               value: "/tmp/runner/work"
-            - name: DISABLE_AUTO_UPDATE
-              value: "false"
-            - name: EPHEMERAL
-              value: "false"
             - name: ACCESS_TOKEN
               valueFrom:
                 secretKeyRef:
