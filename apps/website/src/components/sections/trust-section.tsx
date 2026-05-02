@@ -6,19 +6,19 @@ import { SectionHeader } from "@/components/section-header";
 
 const trustPoints = [
 	{
-		title: "Self-Hosted",
+		title: "Open Source From Day One",
 		description:
-			"Runs entirely on your infrastructure. Data never leaves your network — no third-party cloud dependency.",
+			"Audit the code, verify the security model, and adapt the platform to your own infrastructure.",
 	},
 	{
-		title: "Sandboxed Execution",
+		title: "Self-Hosted",
 		description:
-			"Every skill runs in an isolated V8 context. No shared memory, no cross-agent side effects.",
+			"Run OfficeOS in your own environment. Data stays inside your network unless you choose our cloud.",
 	},
 	{
 		title: "Credential Isolation",
 		description:
-			"API keys and secrets live in your backend. Agent pods have zero access to raw credentials.",
+			"API keys, OAuth tokens, and bot tokens live in your backend. Agents can use approved tools without seeing raw secrets.",
 	},
 	{
 		title: "Full Audit Trail",

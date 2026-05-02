@@ -59,7 +59,7 @@ const items = [
     content: <CredentialsAnimation />,
     title: "Central Credentials",
     description:
-      "API keys and secrets managed once, used everywhere. Your agents stay secure without any manual setup per tool.",
+      "API keys, OAuth tokens, and bot tokens managed once. Agents can use them when approved, but never see the raw secrets.",
     wide: false,
     className: "lg:col-span-1",
   },

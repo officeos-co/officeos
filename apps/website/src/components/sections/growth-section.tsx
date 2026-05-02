@@ -19,7 +19,7 @@ const items = [
 					<div className="text-center">
 						<p className="font-mono text-5xl font-bold text-primary">100x</p>
 						<p className="mt-2 text-sm text-muted-foreground">
-							less resources than VM-based agents
+							less operational overhead
 						</p>
 					</div>
 					<div className="text-center">
@@ -27,15 +27,15 @@ const items = [
 							&lt;5s
 						</p>
 						<p className="mt-2 text-sm text-muted-foreground">
-							cold start — 60x faster than VMs
+							to launch a new agent
 						</p>
 					</div>
 				</div>
 			</div>
 		),
-		title: "Rust-based Runtime",
+		title: "Lightweight Agent Operations",
 		description:
-			"Megabytes, not gigabytes. Run hundreds of agents where other systems manage five.",
+			"Launch, monitor, and coordinate hundreds of agents from one control plane.",
 	},
 	{
 		id: 2,
@@ -46,7 +46,7 @@ const items = [
 		),
 		title: "Deploy Anywhere",
 		description:
-			"Kubernetes-native. Self-hosted on your infrastructure or managed in our cloud.",
+			"Self-host on your infrastructure or use our managed cloud when your team wants less to operate.",
 	},
 ];
 
@@ -62,11 +62,11 @@ export function GrowthSection() {
 
 				<SectionHeader>
 					<h2 className="text-balance text-center font-medium text-3xl tracking-tighter md:text-4xl">
-						Micro Footprint, Massive Scale
+						Scale Agents Without Scaling Complexity
 					</h2>
 					<p className="text-balance text-center font-medium text-muted-foreground">
-						Production-ready architecture built on Rust and V8 isolates — not
-						VMs, not containers.
+						Production-ready orchestration for every team, workflow, and
+						integration in your company.
 					</p>
 				</SectionHeader>
 

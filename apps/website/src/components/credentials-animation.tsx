@@ -5,10 +5,10 @@ import { useRef } from "react";
 import { Lock } from "lucide-react";
 
 const credentials = [
-  { label: "OpenAI", key: "sk-proj-••••••••3xK" },
-  { label: "Anthropic", key: "sk-ant-••••••••9mR" },
-  { label: "Slack Bot", key: "xoxb-••••••••7jQ" },
-  { label: "Notion", key: "ntn_••••••••4wP" },
+  { label: "OpenAI API Key", key: "sk-proj-••••••••3xK" },
+  { label: "Anthropic API Key", key: "sk-ant-••••••••9mR" },
+  { label: "Google OAuth Token", key: "ya29.••••••••7jQ" },
+  { label: "Telegram Bot Token", key: "bot••••••••4wP" },
 ];
 
 export function CredentialsAnimation() {
