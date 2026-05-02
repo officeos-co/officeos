@@ -83,6 +83,7 @@ metadata:
     env: staging
 spec:
   replicas: 1
+  progressDeadlineSeconds: 900
   strategy:
     type: Recreate
   selector:
@@ -120,25 +121,10 @@ spec:
               value: "https://staging-dashboard.officeos.co"
             - name: DATA_PROTECTION_KEY_PATH
               value: "/data/dp-keys"
-            - name: KUBERNETES__ENABLED
-              value: "true"
             - name: KUBERNETES__NAMESPACE
               value: "default"
             - name: KUBERNETES__IMAGE
               value: "harkro123/eaos-pod-executor:latest"
-            - name: DAYTONA_API_URL
-              value: "http://daytona-api.daytona-system.svc.cluster.local:3000/api"
-            - name: DAYTONA_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: eaos-backend-staging-secrets
-                  key: DAYTONA_API_KEY
-            - name: DAYTONA_TARGET
-              value: "us"
-            - name: DAYTONA_WORKDIR
-              value: "/workspace"
-            - name: DAYTONA_TIMEOUT_SECONDS
-              value: "60"
             - name: CHANNEL_SERVICE_URL
               value: "http://localhost:3100"
             - name: BROWSER_SERVICE_URL
@@ -162,11 +148,17 @@ spec:
             limits:
               memory: "2000Mi"
               cpu: "2000m"
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
           livenessProbe:
             httpGet:
               path: /api/health
               port: 8000
-            initialDelaySeconds: 15
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
@@ -174,7 +166,6 @@ spec:
             httpGet:
               path: /api/health
               port: 8000
-            initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

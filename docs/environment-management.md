@@ -52,8 +52,6 @@ env:
     value: "https://dashboard.officeos.co"
   - name: DATA_PROTECTION_KEY_PATH
     value: "/data/dp-keys"
-  - name: KUBERNETES__ENABLED
-    value: "true"
   - name: KUBERNETES__NAMESPACE
     value: "default"
   - name: KUBERNETES__IMAGE
@@ -176,7 +174,7 @@ Set via `APP_ENV` env var (`development`, `staging`, `production`).
 
 | Feature                   | Details                                               |
 | ------------------------- | ----------------------------------------------------- |
-| Docker agent deployer     | `appsettings.json` defaults, not in Doppler           |
+| Docker agent sandbox      | `appsettings.json` defaults, not in Doppler           |
 | Swagger UI                | `app.Environment.IsDevelopment()` check in Program.cs |
 | Provider key CRUD         | GraphQL mutations gated behind `IsDevelopment()`      |
 | "Try OfficeOS Cloud" link | Sidebar link to dashboard.officeos.co                 |
@@ -222,3 +220,7 @@ docker compose up
 ```
 
 Docker config (image, network, socket path) comes from `appsettings.json` defaults — self-hosters don't need to set these.
+
+Agent runtime sandboxes use the first-party pod executor image. Development uses
+the Docker sandbox. Staging and production use the Kubernetes sandbox and must
+set `KUBERNETES__NAMESPACE` and `KUBERNETES__IMAGE`.

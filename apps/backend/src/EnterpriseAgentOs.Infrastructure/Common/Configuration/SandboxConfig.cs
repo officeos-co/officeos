@@ -1,15 +1,14 @@
 namespace EnterpriseAgentOs.Infrastructure.Common.Configuration;
 
-public sealed class DaytonaConfig
+public sealed class KubernetesConfig
 {
-    public string ApiUrl { get; init; } = string.Empty;
-    public string ApiKey { get; init; } = string.Empty;
-    public string? Target { get; init; }
-    public string? Snapshot { get; init; }
-    public string Workdir { get; init; } = "/workspace";
-    public int TimeoutSeconds { get; init; } = 60;
+    public string Namespace { get; init; } = string.Empty;
+    public string Image { get; init; } = string.Empty;
+}
 
-    public Uri ApiBaseUri => new(AppendSlash(ApiUrl));
-
-    private static string AppendSlash(string value) => value.EndsWith('/') ? value : value + "/";
+public sealed class DockerConfig
+{
+    public string Image { get; init; } = string.Empty;
+    public string Network { get; init; } = string.Empty;
+    public string SocketPath { get; init; } = string.Empty;
 }

@@ -1,7 +1,10 @@
 global using System.Text.Json;
+global using System.Text.Json.Serialization;
 global using System.Text;
+global using System.Net;
 global using System.Net.Http.Headers;
 global using System.Net.Http.Json;
+global using System.Net.WebSockets;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Configuration;

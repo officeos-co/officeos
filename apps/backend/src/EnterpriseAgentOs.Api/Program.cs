@@ -85,21 +85,39 @@ builder.Services.AddSingleton(googleOAuthConfig);
 var gitHubOAuthConfig = RequireSection<GitHubOAuthConfig>("GitHubOAuth");
 builder.Services.AddSingleton(gitHubOAuthConfig);
 
-var daytonaConfig = new DaytonaConfig
+var kubernetesConfig = RequireSection<KubernetesConfig>("Kubernetes");
+builder.Services.AddSingleton(kubernetesConfig);
+
+var dockerConfig = RequireSection<DockerConfig>("Docker");
+builder.Services.AddSingleton(dockerConfig);
+builder.Services.AddSingleton<PodExecutorClient>();
+
+if (!isDevelopment)
 {
-    ApiUrl = Environment.GetEnvironmentVariable("DAYTONA_API_URL") ?? builder.Configuration["DAYTONA_API_URL"] ?? "",
-    ApiKey = Environment.GetEnvironmentVariable("DAYTONA_API_KEY") ?? builder.Configuration["DAYTONA_API_KEY"] ?? "",
-    Target = Environment.GetEnvironmentVariable("DAYTONA_TARGET") ?? builder.Configuration["DAYTONA_TARGET"],
-    Snapshot = Environment.GetEnvironmentVariable("DAYTONA_SNAPSHOT") ?? builder.Configuration["DAYTONA_SNAPSHOT"],
-    Workdir = Environment.GetEnvironmentVariable("DAYTONA_WORKDIR") ?? builder.Configuration["DAYTONA_WORKDIR"] ?? "/workspace",
-    TimeoutSeconds = int.TryParse(Environment.GetEnvironmentVariable("DAYTONA_TIMEOUT_SECONDS") ?? builder.Configuration["DAYTONA_TIMEOUT_SECONDS"], out var timeoutSeconds)
-        ? timeoutSeconds
-        : 60,
-};
-builder.Services.AddSingleton(daytonaConfig);
-builder.Services.AddHttpClient<DaytonaSandboxProvider>();
-builder.Services.AddScoped<IAgentSandbox>(sp => sp.GetRequiredService<DaytonaSandboxProvider>());
-builder.Services.AddScoped<IAgentDeployer, DaytonaAgentDeployer>();
+    RequireNotEmpty(kubernetesConfig.Namespace, "Kubernetes:Namespace");
+    RequireNotEmpty(kubernetesConfig.Image, "Kubernetes:Image");
+
+    builder.Services.AddSingleton<IKubernetes>(_ =>
+    {
+        var config = KubernetesClientConfiguration.IsInCluster()
+            ? KubernetesClientConfiguration.InClusterConfig()
+            : KubernetesClientConfiguration.BuildDefaultConfig();
+        return new Kubernetes(config);
+    });
+    builder.Services.AddScoped<KubernetesAgentSandbox>();
+    builder.Services.AddScoped<IAgentSandbox>(sp => sp.GetRequiredService<KubernetesAgentSandbox>());
+    builder.Services.AddScoped<IAgentDeployer>(sp => sp.GetRequiredService<KubernetesAgentSandbox>());
+}
+else
+{
+    RequireNotEmpty(dockerConfig.Image, "Docker:Image");
+    RequireNotEmpty(dockerConfig.Network, "Docker:Network");
+    RequireNotEmpty(dockerConfig.SocketPath, "Docker:SocketPath");
+
+    builder.Services.AddScoped<DockerAgentSandbox>();
+    builder.Services.AddScoped<IAgentSandbox>(sp => sp.GetRequiredService<DockerAgentSandbox>());
+    builder.Services.AddScoped<IAgentDeployer>(sp => sp.GetRequiredService<DockerAgentSandbox>());
+}
 
 
 // Billing
