@@ -1,8 +1,30 @@
-// Load .env before anything else so env vars are visible to configuration
-dotenv.net.DotEnv.Fluent()
-    .WithProbeForEnv(probeLevelsToSearch: 6)
-    .WithoutExceptions()
-    .Load();
+string? FindRootEnvFile()
+{
+    var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (current is not null)
+    {
+        var envPath = System.IO.Path.Combine(current.FullName, ".env");
+        if (System.IO.File.Exists(System.IO.Path.Combine(current.FullName, "docker-compose.yml"))
+            || Directory.Exists(System.IO.Path.Combine(current.FullName, ".git")))
+            return envPath;
+
+        current = current.Parent;
+    }
+
+    return null;
+}
+
+// Load the repository-root .env before anything else so env vars are visible to configuration.
+var rootEnvFile = FindRootEnvFile();
+var dotEnv = dotenv.net.DotEnv.Fluent().WithoutExceptions();
+if (rootEnvFile is not null)
+{
+    dotEnv.WithEnvFiles(rootEnvFile).Load();
+}
+else
+{
+    throw new InvalidOperationException("Root .env file not found.");
+}
 
 const string FrontendCorsPolicy = "dashboard";
 

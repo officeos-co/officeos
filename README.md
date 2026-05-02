@@ -33,15 +33,15 @@ Self-host the full stack with Docker Compose or Kubernetes, or use [OfficeOS Clo
 
 ## Quick Start
 
-For local Docker Compose, `.env` is the source of truth for runtime config and
-secrets. Copy the backend template once, edit the values there, then run Compose
-from the repo root.
+For local Docker Compose, the root `.env` file is the source of truth for runtime
+config and secrets. Copy the root template once, edit the values there, then run
+Compose from the repo root.
 
 ```bash
 git clone https://github.com/HarKro753/EnterpriseAgentOs.git
 cd EnterpriseAgentOs
 
-cp apps/backend/.env.example .env
+cp .env.example .env
 # Edit .env: add at least one LLM provider key and keep the local MinIO values
 
 docker compose up

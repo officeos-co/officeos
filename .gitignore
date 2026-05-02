@@ -23,7 +23,8 @@ node_modules/
 *.db-journal
 
 # ── Environment & secrets ────────────────────────────────────
-# Backend .env contains secrets — never commit. Use .env.example as template.
+# Root .env contains secrets — never commit. Use .env.example as template.
+.env
 apps/backend/.env
 .env.local
 .env.*.local

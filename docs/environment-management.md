@@ -217,12 +217,13 @@ if (!isDevelopment)
 Self-hosters copy `.env.example` → `.env` and fill in their values. They never interact with Doppler.
 
 ```bash
-cp apps/backend/.env.example .env
+cp .env.example .env
 # Edit .env with your values
 docker compose up
 ```
 
-Docker config (image, network, socket path) comes from `appsettings.json` defaults — self-hosters don't need to set these.
+Docker config (image, network, socket path) is included in the root `.env.example`
+so Compose and local backend runs share the same source of truth.
 
 Agent runtime sandboxes use the first-party pod executor image. Development uses
 the Docker sandbox. Staging and production use the Kubernetes sandbox and must
