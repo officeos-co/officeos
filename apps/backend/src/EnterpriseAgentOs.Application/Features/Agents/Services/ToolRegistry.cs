@@ -8,15 +8,21 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 internal sealed class ToolRegistry : IAsyncDisposable
 {
     private readonly List<IAgentTool> _tools;
+    private readonly HashSet<string> _preloadedToolNames;
     private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
     private readonly List<IAsyncDisposable> _mcpConnections;
     private readonly ToolExecutionContext _context;
 
-    public ToolRegistry(List<IAgentTool> tools, ToolExecutionContext context, List<IAsyncDisposable>? mcpConnections = null)
+    public ToolRegistry(
+        List<IAgentTool> tools,
+        ToolExecutionContext context,
+        List<IAsyncDisposable>? mcpConnections = null,
+        IEnumerable<string>? preloadedToolNames = null)
     {
         _tools = tools;
         _context = context;
         _mcpConnections = mcpConnections ?? [];
+        _preloadedToolNames = (preloadedToolNames ?? []).ToHashSet(StringComparer.Ordinal);
     }
 
     public async ValueTask DisposeAsync()
@@ -29,14 +35,14 @@ internal sealed class ToolRegistry : IAsyncDisposable
 
     /// <summary>Get loaded tool schemas for the LLM tools array.</summary>
     public object[] GetSchemas() => _tools
-        .Where(t => t.AlwaysLoad || _revealed.Contains(t.Name))
+        .Where(t => t.AlwaysLoad || _preloadedToolNames.Contains(t.Name) || _revealed.Contains(t.Name))
         .Select(ToSchema)
         .ToArray();
 
     public string GetDeferredToolsMessage()
     {
         var groups = _tools
-            .Where(t => t.ShouldDefer && !_revealed.Contains(t.Name))
+            .Where(t => t.ShouldDefer && !_preloadedToolNames.Contains(t.Name) && !_revealed.Contains(t.Name))
             .GroupBy(t => t.Kind == AgentToolKind.Mcp
                 ? ToolKey.Parse(t.PermissionScope).SkillName
                 : t.Name.StartsWith("browser__", StringComparison.Ordinal) ? "browser" : "builtin")
@@ -108,8 +114,7 @@ internal sealed class ToolRegistryFactory
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
     private readonly IMcpClientManager _mcpClientManager;
-    private readonly IBrowserService _browserService;
-    private readonly IBrowserRuntimeClient _browserRuntime;
+    private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _permissionRepository;
 
     public ToolRegistryFactory(
@@ -118,8 +123,7 @@ internal sealed class ToolRegistryFactory
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IMcpClientManager mcpClientManager,
-        IBrowserService browserService,
-        IBrowserRuntimeClient browserRuntime,
+        IBrowserToolContextFactory browserToolContextFactory,
         IAgentToolPermissionRepository permissionRepository)
     {
         _memoryRepo = memoryRepo;
@@ -127,8 +131,7 @@ internal sealed class ToolRegistryFactory
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
         _mcpClientManager = mcpClientManager;
-        _browserService = browserService;
-        _browserRuntime = browserRuntime;
+        _browserToolContextFactory = browserToolContextFactory;
         _permissionRepository = permissionRepository;
     }
 
@@ -169,14 +172,17 @@ internal sealed class ToolRegistryFactory
             new HttpRequestTool(),
             new WebFetchTool(),
         };
+        var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
 
         try
         {
-            if (await _browserRuntime.IsAvailableAsync(ct))
+            var browserContext = await _browserToolContextFactory.CreateForTurnAsync(ct);
+            if (browserContext is not null)
             {
-                var browserTools = await _browserRuntime.ListToolsAsync(ct);
-                foreach (var discovered in browserTools.Where(BrowserMcpTool.ShouldExpose))
-                    tools.Add(new BrowserMcpTool(discovered, _browserService, _browserRuntime, agentId));
+                var browserTools = CreateBrowserTools(browserContext, agentId);
+                tools.AddRange(browserTools);
+                foreach (var tool in browserTools)
+                    preloadedToolNames.Add(tool.Name);
             }
         }
         catch
@@ -202,6 +208,44 @@ internal sealed class ToolRegistryFactory
         tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
 
-        return new ToolRegistry(tools, context, mcpConnections);
+        preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
+        return new ToolRegistry(tools, context, mcpConnections, preloadedToolNames);
     }
+
+    internal static IReadOnlyList<IAgentTool> CreateBrowserTools(BrowserToolContext browser, Guid agentId)
+        =>
+        [
+            new BrowserNavigateTool(browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetSessionTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserObserveTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserScreenshotTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetConsoleTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetPageErrorsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetRequestFailuresTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserStopTraceTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserListAuthProfilesTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetAuthProfileTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserListDownloadsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserListTabsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserActivateTabTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserCloseTabTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserExecuteActionTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserSaveAuthStateTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserSaveAuthProfileTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserRequestHumanTakeoverTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetNetworkLogTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserEvalJsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserWaitForSelectorTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetHtmlTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserFindElementsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserDragDropTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserSetViewportTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetCookiesTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserSetCookiesTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserGetLocalStorageTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserSetLocalStorageTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserExportScriptTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserCdpAttachTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+            new BrowserFindByVisionTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
+        ];
 }

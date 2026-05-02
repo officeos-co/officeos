@@ -11,8 +11,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
-    private readonly IBrowserService _browserService;
-    private readonly IBrowserRuntimeClient _browserRuntime;
+    private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IMcpServerService _mcpServerService;
     private readonly IAgentToolPermissionRepository _permissionRepository;
 
@@ -21,8 +20,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
-        IBrowserService browserService,
-        IBrowserRuntimeClient browserRuntime,
+        IBrowserToolContextFactory browserToolContextFactory,
         IMcpServerService mcpServerService,
         IAgentToolPermissionRepository permissionRepository)
     {
@@ -30,8 +28,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
-        _browserService = browserService;
-        _browserRuntime = browserRuntime;
+        _browserToolContextFactory = browserToolContextFactory;
         _mcpServerService = mcpServerService;
         _permissionRepository = permissionRepository;
     }
@@ -64,24 +61,8 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new WebFetchTool(),
         };
 
-        var browserCatalog = BrowserMcpTool.DefaultCatalog();
-        try
-        {
-            if (await _browserRuntime.IsAvailableAsync(ct))
-            {
-                var runtimeTools = await _browserRuntime.ListToolsAsync(ct);
-                var exposed = runtimeTools.Where(BrowserMcpTool.ShouldExpose).ToList();
-                if (exposed.Count > 0)
-                    browserCatalog = exposed;
-            }
-        }
-        catch
-        {
-            // Browser runtime availability should not block dashboard catalog rendering.
-        }
-
-        foreach (var discovered in browserCatalog.Where(BrowserMcpTool.ShouldExpose))
-            tools.Add(new BrowserMcpTool(discovered, _browserService, _browserRuntime, effectiveAgentId));
+        var browserContext = await _browserToolContextFactory.CreateCatalogAsync(ct);
+        tools.AddRange(ToolRegistryFactory.CreateBrowserTools(browserContext, effectiveAgentId));
 
         if (agentId.HasValue)
         {

@@ -1,0 +1,8 @@
+namespace EnterpriseAgentOs.Application.Features.Agents;
+
+internal sealed class BrowserSetViewportTool(IReadOnlyDictionary<string, BrowserToolDescriptor> descriptors, IBrowserService browser, IBrowserRuntimeClient runtime, Guid agentId)
+    : BrowserMcpTool(RuntimeName, Description, descriptors, browser, runtime, agentId)
+{
+    public const string RuntimeName = "browser.set_viewport";
+    private const string Description = "Resize the browser viewport to the specified width and height.";
+}
