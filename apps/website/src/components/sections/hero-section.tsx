@@ -18,12 +18,18 @@ export function HeroSection() {
         </div>
         <div className="relative z-10 mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center gap-10 pt-32">
           <div className="flex flex-col items-center justify-center gap-5">
-            <h1 className="text-balance text-center text-3xl font-medium tracking-tighter text-primary md:text-4xl lg:text-5xl xl:text-6xl">
-              The AI workforce for your company
+            <h1
+              className="text-balance text-center text-3xl font-medium tracking-
+  tighter text-primary md:text-4xl lg:text-5xl xl:text-6xl"
+            >
+              Run AI agents in production
             </h1>
-            <p className="text-balance text-center text-base font-medium leading-relaxed tracking-tight text-muted-foreground md:text-lg">
-              Employees that work 24/7, know everything about your company, and
-              never need onboarding.
+            <p
+              className="text-balance text-center text-base font-medium leading-
+  relaxed tracking-tight text-muted-foreground md:text-lg"
+            >
+              OfficeOS gives teams the infrastructure to deploy, monitor, and
+              control agents with tools, memory, credentials, and observability.
             </p>
           </div>
           <div className="flex flex-row items-center justify-center gap-2.5">
