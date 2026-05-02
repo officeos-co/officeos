@@ -26,6 +26,8 @@ metadata:
     env: prod
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: eaos-browser-prod

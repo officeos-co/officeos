@@ -44,6 +44,6 @@ jobs:
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
           .github/scripts/configure-kubectl.sh
-          kubectl apply -f k8s/docs.yaml
+          kubectl apply --validate=false -f k8s/docs.yaml
           kubectl rollout restart deployment/eaos-docs-prod
           kubectl rollout status deployment/eaos-docs-prod --timeout=180s

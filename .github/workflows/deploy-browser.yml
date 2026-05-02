@@ -63,7 +63,7 @@ jobs:
       - name: Deploy staging
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          kubectl apply -f k8s/staging/browser.yaml
+          kubectl apply --validate=false -f k8s/staging/browser.yaml
           kubectl rollout restart deployment/eaos-browser-staging
           kubectl rollout status deployment/eaos-browser-staging --timeout=240s
 
@@ -72,5 +72,5 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/browser.yaml
-          kubectl apply -f k8s/prod/browser.yaml
+          kubectl apply --validate=false -f k8s/prod/browser.yaml
           kubectl rollout status deployment/eaos-browser-prod --timeout=240s

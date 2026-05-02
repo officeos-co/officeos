@@ -11,6 +11,8 @@ metadata:
     env: prod
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: eaos-website-prod
@@ -22,7 +24,7 @@ spec:
     spec:
       containers:
         - name: website
-          image: harkro123/eaos-website:latest
+          image: harkro123/eaos-website:IMAGE_TAG
           imagePullPolicy: Always
           env:
             - name: APP_ENV

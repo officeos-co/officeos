@@ -11,6 +11,8 @@ metadata:
     env: prod
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: eaos-frontend-prod
@@ -22,7 +24,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: harkro123/eaos-frontend:latest
+          image: harkro123/eaos-frontend:IMAGE_TAG
           imagePullPolicy: Always
           env:
             - name: APP_ENV

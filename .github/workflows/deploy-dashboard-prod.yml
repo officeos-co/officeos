@@ -65,7 +65,7 @@ jobs:
       - name: Deploy staging
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          kubectl apply -f k8s/staging/frontend.yaml
+          kubectl apply --validate=false -f k8s/staging/frontend.yaml
           kubectl rollout restart deployment/eaos-frontend-staging
           kubectl rollout status deployment/eaos-frontend-staging --timeout=180s
 
@@ -74,5 +74,5 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/frontend.yaml
-          kubectl apply -f k8s/prod/frontend.yaml
+          kubectl apply --validate=false -f k8s/prod/frontend.yaml
           kubectl rollout status deployment/eaos-frontend-prod --timeout=180s

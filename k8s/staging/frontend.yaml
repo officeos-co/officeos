@@ -11,6 +11,8 @@ metadata:
     env: staging
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: eaos-frontend-staging
