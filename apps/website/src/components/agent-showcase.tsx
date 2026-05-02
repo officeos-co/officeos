@@ -144,6 +144,11 @@ function WorkingPhaseDetail({ phase, logVisible }: { phase: AgentPhase; logVisib
 
 /* ── Shared hook for agent cycling ───────────────────────── */
 
+const LOG_REVEAL_INTERVAL_MS = 320;
+const POST_LOG_HOLD_MS = 700;
+const MIN_PHASE_DURATION_MS = 1200;
+const MAX_PHASE_DURATION_MS = 3600;
+
 function useAgentCycle() {
   const [selected, setSelected] = useState(0);
   const [phaseIdx, setPhaseIdx] = useState(0);
@@ -169,33 +174,43 @@ function useAgentCycle() {
 
   useEffect(() => {
     clearTimers();
-    setLogVisible(0);
 
     const p = agents[selected].phases[phaseIdx];
     if (!p) return;
 
     const logEntries = p.log ?? [];
+    setLogVisible(logEntries.length > 0 ? 1 : 0);
+
     if (logEntries.length > 0) {
-      let i = 0;
+      let visible = 1;
       logTimerRef.current = setInterval(() => {
-        i++;
-        setLogVisible(i + 1);
-        if (i >= logEntries.length - 1 && logTimerRef.current) {
+        visible++;
+        setLogVisible(visible);
+        if (visible >= logEntries.length && logTimerRef.current) {
           clearInterval(logTimerRef.current);
         }
-      }, 500);
+      }, LOG_REVEAL_INTERVAL_MS);
     }
+
+    const animatedDuration =
+      logEntries.length > 0
+        ? logEntries.length * LOG_REVEAL_INTERVAL_MS + POST_LOG_HOLD_MS
+        : MIN_PHASE_DURATION_MS;
+    const phaseDuration = Math.min(
+      p.duration,
+      Math.max(MIN_PHASE_DURATION_MS, Math.min(animatedDuration, MAX_PHASE_DURATION_MS)),
+    );
 
     const hasNextPhase = phaseIdx < agents[selected].phases.length - 1;
     if (hasNextPhase) {
       phaseTimerRef.current = setTimeout(() => {
         setPhaseIdx((prev) => prev + 1);
-      }, p.duration);
+      }, phaseDuration);
     } else {
       cycleTimerRef.current = setTimeout(() => {
         setSelected((prev) => (prev + 1) % agents.length);
         setPhaseIdx(0);
-      }, p.duration);
+      }, phaseDuration);
     }
 
     return clearTimers;
