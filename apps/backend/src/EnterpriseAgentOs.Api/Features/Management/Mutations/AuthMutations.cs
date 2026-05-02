@@ -18,7 +18,7 @@ public class AuthMutations
         UpdateProfileInput input,
         IResolverContext context,
         [Service] IUserRepository users,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var caller = DashboardAuthContextExtensions.GetUser(context);
@@ -30,7 +30,7 @@ public class AuthMutations
             input.NotificationPrefsJson,
             input.Preferences,
             ct);
-        cache.Remove($"auth:me:{caller.Id}");
+        await cache.RemoveAsync($"auth:me:{caller.Id}", ct);
         return new UserPayload(
             user.Id,
             user.Email,
@@ -46,7 +46,7 @@ public class AuthMutations
     public async Task<bool> Logout(
         IResolverContext context,
         [Service] ISessionRepository sessions,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var http = context.Service<IHttpContextAccessor>().HttpContext;
@@ -56,7 +56,7 @@ public class AuthMutations
 
         var tokenHash = SessionAuthMiddleware.HashToken(cookie);
         await sessions.DeleteAsync(tokenHash, ct);
-        cache.Remove($"session:{tokenHash[..16]}");
+        await cache.RemoveAsync($"session:{tokenHash[..16]}", ct);
         http!.Response.Cookies.Delete("eaos-session");
         return true;
     }
@@ -69,7 +69,7 @@ public class AuthMutations
     public async Task<bool> PurgeMyData(
         IResolverContext context,
         [Service] IGdprService gdpr,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -81,7 +81,7 @@ public class AuthMutations
         if (!string.IsNullOrEmpty(cookie))
         {
             var tokenHash = SessionAuthMiddleware.HashToken(cookie);
-            cache.Remove($"session:{tokenHash[..16]}");
+            await cache.RemoveAsync($"session:{tokenHash[..16]}", ct);
         }
 
         return true;

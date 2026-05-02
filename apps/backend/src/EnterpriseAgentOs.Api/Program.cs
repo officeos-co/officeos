@@ -73,7 +73,6 @@ var isDevelopment = builder.Environment.IsDevelopment();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddMemoryCache();
 
 var redis = Require("Redis", "REDIS");
 builder.Services.AddStackExchangeRedisCache(options =>

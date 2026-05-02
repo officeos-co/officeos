@@ -8,7 +8,7 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentDeployer _agentDeployer;
     private readonly IProviderService _providerService;
     private readonly ILogger<AgentService> _logger;
-    private readonly IMemoryCache _memoryCache;
+    private readonly IDistributedCache _cache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
     private readonly AgentChannelBinder _channelBinder;
@@ -25,7 +25,7 @@ internal sealed class AgentService : IAgentService
         IAgentDeployer deployer,
         IProviderService providerService,
         ILogger<AgentService> logger,
-        IMemoryCache cache,
+        IDistributedCache cache,
         IAgentPersonalityRepository personalityRepo,
         IPublisher publisher,
         AgentChannelBinder channelBinder,
@@ -37,7 +37,7 @@ internal sealed class AgentService : IAgentService
         _agentDeployer = deployer;
         _providerService = providerService;
         _logger = logger;
-        _memoryCache = cache;
+        _cache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
         _channelBinder = channelBinder;
@@ -48,7 +48,8 @@ internal sealed class AgentService : IAgentService
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
     {
-        if (_memoryCache.TryGetValue(AgentListCacheKey, out IReadOnlyList<AgentDto>? cached) && cached is not null)
+        var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentDto>>(AgentListCacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var records = await _agentRepository.ListAsync(ct);
@@ -58,16 +59,15 @@ internal sealed class AgentService : IAgentService
             .Select(r => RefreshStatusAsync(r, ct)));
         var result = records.Select(ToDto).ToList();
 
-        _memoryCache.Set(AgentListCacheKey, (IReadOnlyList<AgentDto>)result,
-            new MemoryCacheEntryOptions
-            { AbsoluteExpirationRelativeToNow = AgentCacheTtl });
+        await _cache.SetJsonAsync(AgentListCacheKey, (IReadOnlyList<AgentDto>)result, AgentCacheTtl, ct);
         return result;
     }
 
     public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
     {
         var key = AgentCacheKey(id);
-        if (_memoryCache.TryGetValue(key, out AgentDto? cached) && cached is not null)
+        var cached = await _cache.GetJsonAsync<AgentDto>(key, ct);
+        if (cached is not null)
             return cached;
 
         var record = await _agentRepository.GetAsync(id, ct);
@@ -79,9 +79,7 @@ internal sealed class AgentService : IAgentService
         await RefreshStatusAsync(record, ct);
         var dto = ToDto(record);
 
-        _memoryCache.Set(key, dto,
-            new MemoryCacheEntryOptions
-            { AbsoluteExpirationRelativeToNow = AgentCacheTtl });
+        await _cache.SetJsonAsync(key, dto, AgentCacheTtl, ct);
         return dto;
     }
 

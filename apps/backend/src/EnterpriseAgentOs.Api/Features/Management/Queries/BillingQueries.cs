@@ -9,13 +9,14 @@ public class BillingQueries
     public async Task<UserSubscriptionDto> GetUserSubscription(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"billing:sub:{user.Id}";
 
-        if (cache.TryGetValue(cacheKey, out UserSubscriptionDto? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<UserSubscriptionDto>(cacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
@@ -35,8 +36,7 @@ public class BillingQueries
             sub.Period.End,
             sub.IsActive);
 
-        cache.Set(cacheKey, result,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = BillingCacheTtl });
+        await cache.SetJsonAsync(cacheKey, result, BillingCacheTtl, ct);
         return result;
     }
 
@@ -92,13 +92,14 @@ public class BillingQueries
     public async Task<BillingPayload> Billing(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"billing:dashboard:{user.Id}";
 
-        if (cache.TryGetValue(cacheKey, out BillingPayload? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<BillingPayload>(cacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
@@ -121,8 +122,7 @@ public class BillingQueries
             null,
             invoices);
 
-        cache.Set(cacheKey, result,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = BillingCacheTtl });
+        await cache.SetJsonAsync(cacheKey, result, BillingCacheTtl, ct);
         return result;
     }
 
@@ -130,13 +130,14 @@ public class BillingQueries
     public async Task<IReadOnlyList<PlanPriceDto>> GetPlanPrices(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
         const string cacheKey = "billing:plan-prices";
 
-        if (cache.TryGetValue(cacheKey, out IReadOnlyList<PlanPriceDto>? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<IReadOnlyList<PlanPriceDto>>(cacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var prices = await userBilling.GetPlanPricesAsync(ct);
@@ -144,8 +145,7 @@ public class BillingQueries
             .Select(kv => new PlanPriceDto(kv.Key, kv.Value.MonthlyAmountCents, kv.Value.YearlyAmountCents, kv.Value.Currency))
             .ToList();
 
-        cache.Set(cacheKey, (IReadOnlyList<PlanPriceDto>)result,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) });
+        await cache.SetJsonAsync(cacheKey, (IReadOnlyList<PlanPriceDto>)result, TimeSpan.FromMinutes(10), ct);
         return result;
     }
 

@@ -11,20 +11,19 @@ public class ChannelQueries
     public async Task<IReadOnlyList<ChannelConnectionGqlDto>> GetChannelConnections(
         IResolverContext context,
         [Service] IChannelRepository repo,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
-        if (cache.TryGetValue(ChannelListCacheKey, out IReadOnlyList<ChannelConnectionGqlDto>? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<IReadOnlyList<ChannelConnectionGqlDto>>(ChannelListCacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var rows = await repo.ListConnectionsAsync(ct);
         var result = rows.Select(ChannelGraphQLMapper.ToDto).ToList();
 
-        cache.Set(ChannelListCacheKey, (IReadOnlyList<ChannelConnectionGqlDto>)result,
-            new MemoryCacheEntryOptions
-            { AbsoluteExpirationRelativeToNow = ChannelCacheTtl });
+        await cache.SetJsonAsync(ChannelListCacheKey, (IReadOnlyList<ChannelConnectionGqlDto>)result, ChannelCacheTtl, ct);
         return result;
     }
 
@@ -33,22 +32,21 @@ public class ChannelQueries
         Guid id,
         IResolverContext context,
         [Service] IChannelRepository repo,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
         var key = ChannelCacheKey(id);
-        if (cache.TryGetValue(key, out ChannelConnectionGqlDto? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<ChannelConnectionGqlDto>(key, ct);
+        if (cached is not null)
             return cached;
 
         var row = await repo.GetConnectionAsync(id, ct);
         if (row is null) return null;
         var dto = ChannelGraphQLMapper.ToDto(row);
 
-        cache.Set(key, dto,
-            new MemoryCacheEntryOptions
-            { AbsoluteExpirationRelativeToNow = ChannelCacheTtl });
+        await cache.SetJsonAsync(key, dto, ChannelCacheTtl, ct);
         return dto;
     }
 

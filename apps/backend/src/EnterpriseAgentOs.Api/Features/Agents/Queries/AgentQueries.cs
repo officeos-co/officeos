@@ -11,16 +11,17 @@ public class AgentQueries
     public async Task<IReadOnlyList<AgentDto>> GetAgents(
         IResolverContext context,
         [Service] IAgentService agents,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
-        if (cache.TryGetValue(ListCacheKey, out IReadOnlyList<AgentDto>? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(ListCacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var result = await agents.ListAsync(ct);
-        cache.Set(ListCacheKey, result, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = CacheTtl });
+        await cache.SetJsonAsync(ListCacheKey, result, CacheTtl, ct);
         return result;
     }
 
@@ -29,18 +30,19 @@ public class AgentQueries
         Guid id,
         IResolverContext context,
         [Service] IAgentRepository agents,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
         var key = DetailCacheKey(id);
-        if (cache.TryGetValue(key, out AgentRecord? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<AgentRecord>(key, ct);
+        if (cached is not null)
             return cached;
 
         var result = await agents.GetAsync(id, ct);
         if (result is not null)
-            cache.Set(key, result, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = CacheTtl });
+            await cache.SetJsonAsync(key, result, CacheTtl, ct);
 
         return result;
     }

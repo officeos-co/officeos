@@ -10,13 +10,14 @@ public class AuthQueries
     public async Task<UserPayload> Me(
         IResolverContext context,
         [Service] IUserRepository users,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var ctxUser = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"auth:me:{ctxUser.Id}";
 
-        if (cache.TryGetValue(cacheKey, out UserPayload? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<UserPayload>(cacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var user = await users.GetByIdAsync(ctxUser.Id, ct) ?? ctxUser;
@@ -30,8 +31,7 @@ public class AuthQueries
             user.NotificationPrefsJson,
             user.Preferences);
 
-        cache.Set(cacheKey, result,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = MeCacheTtl });
+        await cache.SetJsonAsync(cacheKey, result, MeCacheTtl, ct);
         return result;
     }
 

@@ -3,10 +3,13 @@ namespace EnterpriseAgentOs.Api.Features.Management;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class OrganizationsMutations
 {
-    private static void InvalidateOrgCache(IMemoryCache cache, IResolverContext context)
+    private static async Task InvalidateOrgCacheAsync(
+        IDistributedCache cache,
+        IResolverContext context,
+        CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
-        cache.Remove($"org:dashboard:{user.Id}");
+        await cache.RemoveAsync($"org:dashboard:{user.Id}", ct);
     }
 
     [GraphQLDescription("Invites a user to the organization by email. Only the org owner can invite.")]
@@ -14,14 +17,14 @@ public class OrganizationsMutations
         InviteMemberInput input,
         IResolverContext context,
         [Service] IOrganizationService orgService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             var member = await orgService.InviteMemberAsync(user.Id, user.Email, user.Name, input.Email, input.Role, ct);
-            InvalidateOrgCache(cache, context);
+            await InvalidateOrgCacheAsync(cache, context, ct);
             return member;
         }
         catch (InvalidOperationException ex)
@@ -38,14 +41,14 @@ public class OrganizationsMutations
         Guid memberId,
         IResolverContext context,
         [Service] IOrganizationService orgService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             var result = await orgService.RemoveMemberAsync(user.Id, user.Email, user.Name, memberId, ct);
-            InvalidateOrgCache(cache, context);
+            await InvalidateOrgCacheAsync(cache, context, ct);
             return result;
         }
         catch (InvalidOperationException ex)
@@ -62,7 +65,7 @@ public class OrganizationsMutations
         RenameOrgInput input,
         IResolverContext context,
         [Service] IOrganizationService orgService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -71,7 +74,7 @@ public class OrganizationsMutations
             var renamed = await orgService.RenameAsync(user.Id, user.Email, user.Name, input.Name, ct);
             var members = await orgService.ListMembersAsync(user.Id, user.Email, user.Name, ct);
             var result = new OrganizationPayload(renamed.Id, renamed.Name, renamed.OwnerUserId, renamed.CreatedAt, members);
-            InvalidateOrgCache(cache, context);
+            await InvalidateOrgCacheAsync(cache, context, ct);
             return result;
         }
         catch (InvalidOperationException ex)

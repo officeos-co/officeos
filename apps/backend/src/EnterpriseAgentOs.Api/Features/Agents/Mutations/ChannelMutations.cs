@@ -5,11 +5,14 @@ public class ChannelMutations
 {
     private const string ChannelListCacheKey = "channels:list";
 
-    private static void InvalidateChannelCaches(IMemoryCache cache, Guid? connectionId = null)
+    private static async Task InvalidateChannelCachesAsync(
+        IDistributedCache cache,
+        Guid? connectionId,
+        CancellationToken ct)
     {
-        cache.Remove(ChannelListCacheKey);
+        await cache.RemoveAsync(ChannelListCacheKey, ct);
         if (connectionId.HasValue)
-            cache.Remove($"channels:{connectionId.Value}");
+            await cache.RemoveAsync($"channels:{connectionId.Value}", ct);
     }
 
     [GraphQLDescription("Creates a new channel connection (e.g. Slack bot, Telegram bot). ConfigJson contains the encrypted credentials payload.")]
@@ -17,7 +20,7 @@ public class ChannelMutations
         CreateChannelConnectionInput input,
         IResolverContext context,
         [Service] IChannelService channelService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -28,7 +31,7 @@ public class ChannelMutations
                 input.ChannelType, input.DisplayName, input.ConfigJson,
                 user.Id, ct);
 
-            InvalidateChannelCaches(cache);
+            await InvalidateChannelCachesAsync(cache, null, ct);
             return ChannelGraphQLMapper.ToDto(created);
         }
         catch (InvalidOperationException ex)
@@ -44,7 +47,7 @@ public class ChannelMutations
         UpdateChannelConnectionInput input,
         IResolverContext context,
         [Service] IChannelService channelService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
@@ -54,7 +57,7 @@ public class ChannelMutations
             var updated = await channelService.UpdateConnectionAsync(
                 id, input.DisplayName, input.Enabled, ct);
 
-            InvalidateChannelCaches(cache, id);
+            await InvalidateChannelCachesAsync(cache, id, ct);
             return ChannelGraphQLMapper.ToDto(updated);
         }
         catch (InvalidOperationException ex)
@@ -69,13 +72,13 @@ public class ChannelMutations
         Guid id,
         IResolverContext context,
         [Service] IChannelService channelService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
         var result = await channelService.DeleteConnectionAsync(id, ct);
-        InvalidateChannelCaches(cache, id);
+        await InvalidateChannelCachesAsync(cache, id, ct);
         return result;
     }
 
@@ -86,7 +89,7 @@ public class ChannelMutations
         ChannelBindingConfigInput? config,
         IResolverContext context,
         [Service] IChannelService channelService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
@@ -95,7 +98,7 @@ public class ChannelMutations
         {
             var configJson = config is null ? null : ChannelGraphQLMapper.SerializeConfig(config);
             var created = await channelService.BindAgentAsync(agentId, channelConnectionId, configJson, ct);
-            cache.Remove($"agents:dashboard:{agentId}");
+            await cache.RemoveAsync($"agents:dashboard:{agentId}", ct);
             return ChannelGraphQLMapper.ToDto(created);
         }
         catch (InvalidOperationException ex)
@@ -122,12 +125,12 @@ public class ChannelMutations
         Guid channelConnectionId,
         IResolverContext context,
         [Service] IChannelService channelService,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
         var result = await channelService.UnbindAgentAsync(agentId, channelConnectionId, ct);
-        cache.Remove($"agents:dashboard:{agentId}");
+        await cache.RemoveAsync($"agents:dashboard:{agentId}", ct);
         return result;
     }
 

@@ -39,9 +39,10 @@ public sealed class SessionAuthMiddleware
             var tokenHash = HashToken(decoded);
             var cacheKey = $"session:{tokenHash[..16]}";
 
-            var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
+            var cache = context.RequestServices.GetRequiredService<IDistributedCache>();
+            var cachedUser = await cache.GetJsonAsync<UserRecord>(cacheKey, context.RequestAborted);
 
-            if (!cache.TryGetValue(cacheKey, out UserRecord? cachedUser) || cachedUser is null)
+            if (cachedUser is null)
             {
                 var sessionRepo = context.RequestServices.GetRequiredService<ISessionRepository>();
                 var session = await sessionRepo.GetByTokenHashAsync(tokenHash);
@@ -71,10 +72,7 @@ public sealed class SessionAuthMiddleware
                 }
 
                 cachedUser = session.User;
-                cache.Set(cacheKey, cachedUser, new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = SessionCacheTtl,
-                });
+                await cache.SetJsonAsync(cacheKey, cachedUser, SessionCacheTtl, context.RequestAborted);
             }
 
             _logger.LogDebug("Authenticated {Email} on {Path}", cachedUser.Email, path);

@@ -9,33 +9,31 @@ internal sealed class InvalidateAgentCacheHandler :
     INotificationHandler<AgentDeletedEvent>,
     INotificationHandler<AgentUpdatedEvent>
 {
-    private readonly IMemoryCache _cache;
     private const string AgentListCacheKey = "agents:list";
     private static string AgentCacheKey(Guid id) => $"agents:{id}";
 
-    public InvalidateAgentCacheHandler(IMemoryCache cache) => _cache = cache;
+    private readonly IDistributedCache _cache;
 
-    public Task Handle(AgentCreatedEvent notification, CancellationToken ct)
+    public InvalidateAgentCacheHandler(IDistributedCache cache) => _cache = cache;
+
+    public async Task Handle(AgentCreatedEvent notification, CancellationToken ct)
     {
-        Invalidate(notification.AgentId);
-        return Task.CompletedTask;
+        await InvalidateAsync(notification.AgentId, ct);
     }
 
-    public Task Handle(AgentDeletedEvent notification, CancellationToken ct)
+    public async Task Handle(AgentDeletedEvent notification, CancellationToken ct)
     {
-        Invalidate(notification.AgentId);
-        return Task.CompletedTask;
+        await InvalidateAsync(notification.AgentId, ct);
     }
 
-    public Task Handle(AgentUpdatedEvent notification, CancellationToken ct)
+    public async Task Handle(AgentUpdatedEvent notification, CancellationToken ct)
     {
-        Invalidate(notification.AgentId);
-        return Task.CompletedTask;
+        await InvalidateAsync(notification.AgentId, ct);
     }
 
-    private void Invalidate(Guid agentId)
+    private async Task InvalidateAsync(Guid agentId, CancellationToken ct)
     {
-        _cache.Remove(AgentListCacheKey);
-        _cache.Remove(AgentCacheKey(agentId));
+        await _cache.RemoveAsync(AgentListCacheKey, ct);
+        await _cache.RemoveAsync(AgentCacheKey(agentId), ct);
     }
 }

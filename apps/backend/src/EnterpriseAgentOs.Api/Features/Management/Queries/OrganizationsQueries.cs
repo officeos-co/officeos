@@ -9,13 +9,14 @@ public class OrganizationsQueries
     public async Task<OrganizationPayload> Org(
         IResolverContext context,
         [Service] IOrganizationRepository orgs,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"org:dashboard:{user.Id}";
 
-        if (cache.TryGetValue(cacheKey, out OrganizationPayload? cached) && cached is not null)
+        var cached = await cache.GetJsonAsync<OrganizationPayload>(cacheKey, ct);
+        if (cached is not null)
             return cached;
 
         var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
@@ -23,8 +24,7 @@ public class OrganizationsQueries
         var result = new OrganizationPayload(
             org.Id, org.Name, org.OwnerUserId, org.CreatedAt, members);
 
-        cache.Set(cacheKey, result,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = OrgCacheTtl });
+        await cache.SetJsonAsync(cacheKey, result, OrgCacheTtl, ct);
         return result;
     }
 }

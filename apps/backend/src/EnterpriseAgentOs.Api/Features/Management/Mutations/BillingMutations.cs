@@ -5,10 +5,10 @@ namespace EnterpriseAgentOs.Api.Features.Management;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class BillingMutations
 {
-    private static void InvalidateBillingCache(IMemoryCache cache, Guid userId)
+    private static async Task InvalidateBillingCacheAsync(IDistributedCache cache, Guid userId, CancellationToken ct)
     {
-        cache.Remove($"billing:dashboard:{userId}");
-        cache.Remove($"billing:sub:{userId}");
+        await cache.RemoveAsync($"billing:dashboard:{userId}", ct);
+        await cache.RemoveAsync($"billing:sub:{userId}", ct);
     }
 
     [GraphQLDescription("Initiates a Stripe Checkout session for the given plan (free or pro) and billing cycle (monthly or yearly). Returns the checkout URL.")]
@@ -17,7 +17,7 @@ public class BillingMutations
         string billingCycle,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -52,7 +52,7 @@ public class BillingMutations
 
         var checkoutUrl = await userBilling.CreateCheckoutSessionAsync(
             user.Id, user.Email, plan, billingCycle, ct);
-        InvalidateBillingCache(cache, user.Id);
+        await InvalidateBillingCacheAsync(cache, user.Id, ct);
         return new SubscribeResultDto(checkoutUrl);
     }
 
@@ -60,7 +60,7 @@ public class BillingMutations
     public async Task<UserSubscriptionDto> CancelUserSubscription(
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -72,7 +72,7 @@ public class BillingMutations
         await userBilling.EnableOverageAsync(user.Id, user.Email, false, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        InvalidateBillingCache(cache, user.Id);
+        await InvalidateBillingCacheAsync(cache, user.Id, ct);
         return new UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan.ToStorageString(), sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
@@ -90,12 +90,12 @@ public class BillingMutations
         bool enabled,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
-        InvalidateBillingCache(cache, user.Id);
+        await InvalidateBillingCacheAsync(cache, user.Id, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         return sub.OverageEnabled;
     }
@@ -106,14 +106,14 @@ public class BillingMutations
         bool enabled,
         IResolverContext context,
         [Service] IUserBillingService userBilling,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
         await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
-        InvalidateBillingCache(cache, user.Id);
+        await InvalidateBillingCacheAsync(cache, user.Id, ct);
         return new UserSubscriptionDto(
             sub.Id, sub.UserId, sub.Plan.ToStorageString(), sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,

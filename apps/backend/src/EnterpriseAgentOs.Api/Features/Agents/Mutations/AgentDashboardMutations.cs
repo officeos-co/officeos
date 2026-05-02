@@ -11,7 +11,7 @@ public class AgentDashboardMutations
         CreateAgentInput input,
         IResolverContext context,
         [Service] IAgentService agents,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -50,7 +50,7 @@ public class AgentDashboardMutations
                 bootstrap),
             ct);
 
-        cache.Remove(AgentListQueryCacheKey);
+        await cache.RemoveAsync(AgentListQueryCacheKey, ct);
         return dto;
     }
 
@@ -60,7 +60,7 @@ public class AgentDashboardMutations
         UpdateAgentInput input,
         IResolverContext context,
         [Service] IAgentService agents,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
@@ -76,8 +76,8 @@ public class AgentDashboardMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        cache.Remove(AgentListQueryCacheKey);
-        cache.Remove(AgentQueryCacheKey(id));
+        await cache.RemoveAsync(AgentListQueryCacheKey, ct);
+        await cache.RemoveAsync(AgentQueryCacheKey(id), ct);
         return dto;
     }
 
@@ -87,14 +87,14 @@ public class AgentDashboardMutations
         IResolverContext context,
         [Service] IAgentService agents,
         [Service] IBrowserService browser,
-        [Service] IMemoryCache cache,
+        [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
         await browser.StopAsync(id, ct);
         var result = await agents.DeleteAsync(id, ct);
-        cache.Remove(AgentListQueryCacheKey);
-        cache.Remove(AgentQueryCacheKey(id));
+        await cache.RemoveAsync(AgentListQueryCacheKey, ct);
+        await cache.RemoveAsync(AgentQueryCacheKey(id), ct);
         return result;
     }
 
