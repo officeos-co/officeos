@@ -3,19 +3,16 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-ARG CODEX_CLI_VERSION=0.114.0
-ARG CLAUDE_CLI_VERSION=2.1.72
-ARG GEMINI_CLI_VERSION=0.32.1
-
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends autossh openssh-client nodejs npm tesseract-ocr tesseract-ocr-eng \
-    && npm install -g \
-        @openai/codex@${CODEX_CLI_VERSION} \
-        @anthropic-ai/claude-code@${CLAUDE_CLI_VERSION} \
-        @google/gemini-cli@${GEMINI_CLI_VERSION} \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    apt-get update -o Acquire::Retries=5; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        autossh \
+        openssh-client \
+        tesseract-ocr \
+        tesseract-ocr-eng; \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
