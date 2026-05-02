@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .action_errors import BrowserActionError
 from .approvals import ApprovalRequiredError
@@ -82,6 +83,8 @@ from .tool_inputs import (  # noqa: F401 — re-exported for backwards compat
     VisionFindInput,
     WaitForSelectorInput,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -762,14 +765,22 @@ class McpToolGateway:
                 structuredContent=detail,
                 isError=True,
             )
+        except PermissionError as exc:
+            return self._error_response(str(exc), code="permission_denied")
+        except ValidationError as exc:
+            return self._error_response(str(exc), code="invalid_arguments")
+        except ValueError as exc:
+            return self._error_response(str(exc), code="invalid_request")
         except Exception:
+            logger.exception("Unhandled error while executing MCP tool %s", payload.name)
             return self._error_response("Tool execution failed")
 
     @staticmethod
-    def _error_response(message: str) -> McpToolCallResponse:
+    def _error_response(message: str, *, code: str = "tool_execution_failed") -> McpToolCallResponse:
+        detail = {"error": message, "code": code}
         return McpToolCallResponse(
-            content=[McpToolCallContent(text=message)],
-            structuredContent={"error": message},
+            content=[McpToolCallContent(text=json.dumps(detail, ensure_ascii=False))],
+            structuredContent=detail,
             isError=True,
         )
 

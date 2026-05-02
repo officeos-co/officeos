@@ -151,7 +151,7 @@ class Settings(BaseSettings):
     )
     isolated_tunnel_local_host: str = Field("host.docker.internal", alias="ISOLATED_TUNNEL_LOCAL_HOST")
     isolated_tunnel_info_root: str = Field("/data/tunnels/sessions", alias="ISOLATED_TUNNEL_INFO_ROOT")
-    allowed_hosts: str = Field("example.com,localhost,127.0.0.1,::1", alias="ALLOWED_HOSTS")
+    allowed_hosts: str = Field("*", alias="ALLOWED_HOSTS")
     default_viewport_width: int = Field(1280, alias="DEFAULT_VIEWPORT_WIDTH")
     default_viewport_height: int = Field(800, alias="DEFAULT_VIEWPORT_HEIGHT")
     connect_retries: int = Field(60, alias="CONNECT_RETRIES")

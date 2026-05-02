@@ -83,7 +83,7 @@ services:
       MEMORY_ROOT: /data/memory
       MCP_TOOL_PROFILE: curated
       MAX_SESSIONS: "50"
-      ALLOWED_HOSTS: example.com,localhost,127.0.0.1,::1
+      ALLOWED_HOSTS: "*"
       REQUIRE_OPERATOR_ID: "false"
       REQUIRE_AUTH_STATE_ENCRYPTION: "false"
       REQUEST_RATE_LIMIT_ENABLED: "true"
