@@ -70,7 +70,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
             throw new InvalidOperationException($"Docker start failed ({startResponse.StatusCode}): {error}");
         }
 
-        var serviceUrl = ServiceUrl(sandboxId);
+        var serviceUrl = await ResolveServiceUrlAsync(sandboxId, ct);
         if (!await _executor.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
             throw new InvalidOperationException($"Pod executor {sandboxId} did not become available.");
 
@@ -109,7 +109,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
     {
         try
         {
-            await _workspaceStore.CheckpointAsync(podName, ServiceUrl(podName), ct);
+            await _workspaceStore.CheckpointAsync(podName, await ResolveServiceUrlAsync(podName, ct), ct);
             await _docker.PostAsync($"/containers/{podName}/stop", null, ct);
             await _docker.DeleteAsync($"/containers/{podName}?force=true&v=true", ct);
             return true;
@@ -169,6 +169,8 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
 
     internal static string ServiceUrl(string sandboxId) => $"http://{sandboxId}:{PodExecutorPort}";
 
+    internal static string HostServiceUrl(string host, string hostPort) => $"http://{host}:{hostPort}";
+
     internal static object BuildCreateContainerBody(Guid agentId, DockerConfig config)
     {
         var sandboxId = SandboxName(agentId);
@@ -183,11 +185,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
                 $"HOME={WorkspacePath}",
                 $"WORKSPACE={WorkspacePath}",
             },
-            HostConfig = new
-            {
-                NetworkMode = config.Network,
-                RestartPolicy = new { Name = "unless-stopped" },
-            },
+            HostConfig = BuildHostConfig(config),
             ExposedPorts = new Dictionary<string, object>
             {
                 [$"{PodExecutorPort}/tcp"] = new { },
@@ -199,6 +197,76 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
                 ["agent-id"] = agentId.ToString(),
             },
         };
+    }
+
+    private static Dictionary<string, object> BuildHostConfig(DockerConfig config)
+    {
+        var hostConfig = new Dictionary<string, object>
+        {
+            ["NetworkMode"] = config.Network,
+            ["RestartPolicy"] = new { Name = "unless-stopped" },
+        };
+
+        if (config.PublishHostPort)
+        {
+            hostConfig["PortBindings"] = new Dictionary<string, object[]>
+            {
+                [$"{PodExecutorPort}/tcp"] =
+                [
+                    new
+                    {
+                        HostIp = string.IsNullOrWhiteSpace(config.Host) ? "127.0.0.1" : config.Host,
+                        HostPort = string.Empty,
+                    },
+                ],
+            };
+        }
+
+        return hostConfig;
+    }
+
+    private async Task<string> ResolveServiceUrlAsync(string sandboxId, CancellationToken ct)
+    {
+        if (!_config.PublishHostPort)
+            return ServiceUrl(sandboxId);
+
+        var hostPort = await GetPublishedPortAsync(sandboxId, ct);
+        return string.IsNullOrWhiteSpace(hostPort)
+            ? ServiceUrl(sandboxId)
+            : HostServiceUrl(_config.Host, hostPort);
+    }
+
+    private async Task<string?> GetPublishedPortAsync(string sandboxId, CancellationToken ct)
+    {
+        try
+        {
+            var response = await _docker.GetAsync($"/containers/{sandboxId}/json", ct);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var doc = await response.Content.ReadFromJsonAsync<JsonDocument>(ct);
+            var ports = doc?.RootElement
+                .GetProperty("NetworkSettings")
+                .GetProperty("Ports");
+            if (ports is null)
+                return null;
+
+            var portKey = $"{PodExecutorPort}/tcp";
+            if (!ports.Value.TryGetProperty(portKey, out var bindings)
+                || bindings.ValueKind != JsonValueKind.Array
+                || bindings.GetArrayLength() == 0)
+                return null;
+
+            var first = bindings[0];
+            return first.TryGetProperty("HostPort", out var hostPort)
+                   && hostPort.ValueKind == JsonValueKind.String
+                ? hostPort.GetString()
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static HttpClient CreateDockerClient(string socketPath)

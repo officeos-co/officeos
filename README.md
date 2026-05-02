@@ -33,18 +33,19 @@ Self-host the full stack with Docker Compose or Kubernetes, or use [OfficeOS Clo
 
 ## Quick Start
 
-For local Docker Compose, the root `.env` file is the source of truth for runtime
-config and secrets. Copy the root template once, edit the values there, then run
-Compose from the repo root.
+For local development, the root `.env` file is the source of truth for runtime
+config and secrets. Copy the template once, edit the provider keys, then start
+the development infrastructure from the repo root.
 
 ```bash
 git clone https://github.com/HarKro753/EnterpriseAgentOs.git
 cd EnterpriseAgentOs
 
 cp .env.example .env
-# Edit .env: add at least one LLM provider key and keep the local MinIO values
+# Edit .env: add at least one LLM provider key
 
-docker compose up
+docker build -t harkro123/eaos-pod-executor:latest packages/pod-executor
+docker compose -f docker-compose.infra.yml up -d
 ```
 
 ## Kubernetes
@@ -57,16 +58,19 @@ kubectl apply -f k8s/prod/
 
 ## Development
 
+Run infrastructure in Docker and run product code on the host for fast rebuilds.
+The backend creates one pod-executor container per agent and binds it to a random
+localhost port, so local `dotnet run` can call agent runtimes directly.
+
 ```bash
-# Dashboard
-cd apps/dashboard && bun dev
+# Infra: Postgres, Redis, MinIO, channels, browser controller, browser node
+docker compose -f docker-compose.infra.yml up -d
+# Rebuild this when packages/pod-executor changes
+docker build -t harkro123/eaos-pod-executor:latest packages/pod-executor
 
 # Backend
 cd apps/backend && dotnet run --project src/EnterpriseAgentOs.Api
 
-# Website
-cd apps/website && bun dev
-
-# Docs
-cd apps/docs && bun dev
+# Dashboard
+cd apps/dashboard && bun dev
 ```
