@@ -9,33 +9,12 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 
 const footerLinks = [
   {
-    title: "Product",
+    title: "Explore",
     links: [
-      { id: 1, title: "Platform", url: "/product/platform" },
-      { id: 2, title: "Knowledge Graph", url: "/product/knowledge-graph" },
-      { id: 3, title: "Skills & SDK", url: "/product/skills" },
-      { id: 4, title: "Integrations", url: "/product/integrations" },
-      { id: 5, title: "Security", url: "/product/security" },
       { id: 6, title: "Pricing", url: "/pricing" },
+      { id: 13, title: "Changelog", url: "/changelog" },
+      { id: 18, title: "Support", url: "/support" },
       { id: 16, title: "Docs", url: getSiteConfig().docsUrl },
-    ],
-  },
-  {
-    title: "Solutions",
-    links: [
-      {
-        id: 7,
-        title: "Sales Intelligence",
-        url: "/solutions/sales-intelligence",
-      },
-      { id: 8, title: "Customer Success", url: "/solutions/customer-success" },
-      {
-        id: 9,
-        title: "Competitive Intelligence",
-        url: "/solutions/competitive-intelligence",
-      },
-      { id: 10, title: "Contract Review", url: "/solutions/contract-review" },
-      { id: 11, title: "Content Strategy", url: "/solutions/content-strategy" },
     ],
   },
   {
@@ -43,8 +22,6 @@ const footerLinks = [
     links: [
       { id: 12, title: "About", url: "/about" },
       { id: 17, title: "Network", url: "/sponsors" },
-      { id: 13, title: "Changelog", url: "/changelog" },
-      { id: 18, title: "Support", url: "/support" },
       { id: 14, title: "Privacy", url: "/privacy" },
       { id: 15, title: "Terms", url: "/terms" },
     ],
@@ -95,8 +72,8 @@ export function FooterSection() {
             </a>
           </div>
         </div>
-        <div className="pt-5 md:w-1/2">
-          <div className="flex flex-col items-start justify-start gap-y-5 md:flex-row md:items-start md:justify-between lg:pl-10">
+        <div className="pt-5 md:ml-auto">
+          <div className="flex flex-col items-start justify-start gap-y-5 md:flex-row md:items-start md:justify-end md:gap-x-16 lg:gap-x-20">
             {footerLinks.map((column, columnIndex) => (
               <ul key={columnIndex} className="flex flex-col gap-y-2">
                 <li className="mb-2 font-semibold text-primary text-sm">

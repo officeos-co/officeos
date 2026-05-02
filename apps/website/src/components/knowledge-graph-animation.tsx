@@ -20,7 +20,7 @@ interface Edge {
 const nodes: Node[] = [
 	{ id: "a", x: 0, y: 0, z: 40, label: "Company", size: 14 },
 	{ id: "b", x: -120, y: -60, z: 20, label: "Contracts", size: 10 },
-	{ id: "c", x: 110, y: -70, z: -10, label: "Products", size: 10 },
+	{ id: "c", x: 110, y: -70, z: -10, label: "Catalog", size: 10 },
 	{ id: "d", x: -80, y: 80, z: -20, label: "People", size: 10 },
 	{ id: "e", x: 100, y: 70, z: 30, label: "Clients", size: 10 },
 	{ id: "f", x: -160, y: 10, z: -30, label: "Legal", size: 8 },

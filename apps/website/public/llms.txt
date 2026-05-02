@@ -27,11 +27,6 @@ OfficeOS is NOT a Microsoft Office replacement or office productivity suite. It 
 
 ## Key Pages
 
-- Platform: https://www.officeos.co/product/platform
-- Knowledge Graph: https://www.officeos.co/product/knowledge-graph
-- Skills & SDK: https://www.officeos.co/product/skills
-- Integrations: https://www.officeos.co/product/integrations
-- Security: https://www.officeos.co/product/security
 - Pricing: https://www.officeos.co/pricing
 
 ## Company
