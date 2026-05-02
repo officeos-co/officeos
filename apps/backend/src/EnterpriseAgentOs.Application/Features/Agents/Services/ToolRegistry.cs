@@ -116,6 +116,7 @@ internal sealed class ToolRegistryFactory
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _permissionRepository;
+    private readonly ILogger<ToolRegistryFactory> _logger;
 
     public ToolRegistryFactory(
         IAgentMemoryRepository memoryRepo,
@@ -124,7 +125,8 @@ internal sealed class ToolRegistryFactory
         AgentTaskStore taskStore,
         IMcpClientManager mcpClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
-        IAgentToolPermissionRepository permissionRepository)
+        IAgentToolPermissionRepository permissionRepository,
+        ILogger<ToolRegistryFactory> logger)
     {
         _memoryRepo = memoryRepo;
         _cronJobRepository = cronJobRepository;
@@ -133,6 +135,7 @@ internal sealed class ToolRegistryFactory
         _mcpClientManager = mcpClientManager;
         _browserToolContextFactory = browserToolContextFactory;
         _permissionRepository = permissionRepository;
+        _logger = logger;
     }
 
     public async Task<ToolRegistry> CreateAsync(
@@ -177,18 +180,20 @@ internal sealed class ToolRegistryFactory
         try
         {
             var browserContext = await _browserToolContextFactory.CreateForTurnAsync(ct);
-            if (browserContext is not null)
+            if (browserContext is null)
             {
-                var browserTools = CreateBrowserTools(browserContext, agentId);
-                tools.AddRange(browserTools);
-                foreach (var tool in browserTools)
-                    preloadedToolNames.Add(tool.Name);
+                _logger.LogDebug("Browser runtime unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
+            }
+            else
+            {
+                AddBrowserTools(browserContext, agentId, tools, preloadedToolNames);
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Browser is an internal optional runtime. If it is down, omit the
             // tools for this turn instead of failing the whole agent loop.
+            _logger.LogWarning(ex, "Browser tools unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
         }
 
         var mcpConnections = new List<IAsyncDisposable>();
@@ -210,6 +215,18 @@ internal sealed class ToolRegistryFactory
 
         preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
         return new ToolRegistry(tools, context, mcpConnections, preloadedToolNames);
+    }
+
+    private static void AddBrowserTools(
+        BrowserToolContext browserContext,
+        Guid agentId,
+        List<IAgentTool> tools,
+        HashSet<string> preloadedToolNames)
+    {
+        var browserTools = CreateBrowserTools(browserContext, agentId);
+        tools.AddRange(browserTools);
+        foreach (var tool in browserTools)
+            preloadedToolNames.Add(tool.Name);
     }
 
     internal static IReadOnlyList<IAgentTool> CreateBrowserTools(BrowserToolContext browser, Guid agentId)
