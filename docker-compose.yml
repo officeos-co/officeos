@@ -15,15 +15,33 @@ services:
     ports:
       - "6379:6379"
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${WORKSPACESTORAGE__ACCESSKEY:?Set WORKSPACESTORAGE__ACCESSKEY in .env}
+      MINIO_ROOT_PASSWORD: ${WORKSPACESTORAGE__SECRETKEY:?Set WORKSPACESTORAGE__SECRETKEY in .env}
+    volumes:
+      - minio_data:/data
+
   backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      WORKSPACESTORAGE__ENDPOINT: ${WORKSPACESTORAGE__ENDPOINT:?Set WORKSPACESTORAGE__ENDPOINT in .env}
+      WORKSPACESTORAGE__ACCESSKEY: ${WORKSPACESTORAGE__ACCESSKEY:?Set WORKSPACESTORAGE__ACCESSKEY in .env}
+      WORKSPACESTORAGE__SECRETKEY: ${WORKSPACESTORAGE__SECRETKEY:?Set WORKSPACESTORAGE__SECRETKEY in .env}
+      WORKSPACESTORAGE__BUCKET: ${WORKSPACESTORAGE__BUCKET:?Set WORKSPACESTORAGE__BUCKET in .env}
     depends_on:
       - postgres
       - redis
+      - minio
       - browser
 
   dashboard:
@@ -104,6 +122,7 @@ services:
 
 volumes:
   pgdata:
+  minio_data:
   browser_data:
   browser_profile:
   browser_downloads:

@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="Cronos" Version="0.12.0" />
     <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.414" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

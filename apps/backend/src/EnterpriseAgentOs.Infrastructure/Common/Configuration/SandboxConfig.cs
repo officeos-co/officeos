@@ -12,3 +12,11 @@ public sealed class DockerConfig
     public string Network { get; init; } = string.Empty;
     public string SocketPath { get; init; } = string.Empty;
 }
+
+public sealed class WorkspaceStorageConfig
+{
+    public string Endpoint { get; init; } = string.Empty;
+    public string AccessKey { get; init; } = string.Empty;
+    public string SecretKey { get; init; } = string.Empty;
+    public string Bucket { get; init; } = string.Empty;
+}

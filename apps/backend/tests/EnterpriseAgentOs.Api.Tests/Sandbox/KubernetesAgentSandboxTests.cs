@@ -22,16 +22,7 @@ public sealed class KubernetesAgentSandboxTests
         Assert.Contains(container.Env, env => env.Name == "AGENT_TOKEN" && env.Value == "eaos-agent-11111111");
         Assert.Contains(container.Env, env => env.Name == "WORKSPACE" && env.Value == "/workspace");
         Assert.Equal("/workspace", Assert.Single(container.VolumeMounts).MountPath);
-    }
-
-    [Fact]
-    public void BuildPersistentVolumeClaim_uses_per_agent_workspace_storage()
-    {
-        var pvc = KubernetesAgentSandbox.BuildPersistentVolumeClaim(AgentId);
-
-        Assert.Equal("eaos-agent-data-11111111", pvc.Metadata.Name);
-        Assert.Equal("ReadWriteOnce", Assert.Single(pvc.Spec.AccessModes));
-        Assert.True(pvc.Spec.Resources.Requests.ContainsKey("storage"));
+        Assert.NotNull(Assert.Single(pod.Spec.Volumes).EmptyDir);
     }
 
     [Fact]
@@ -44,13 +35,6 @@ public sealed class KubernetesAgentSandboxTests
         Assert.Equal("eaos-agent-runtime", service.Spec.Selector["app"]);
         Assert.Equal(AgentId.ToString(), service.Spec.Selector["agent-id"]);
         Assert.Equal(42617, Assert.Single(service.Spec.Ports).Port);
-    }
-
-    [Fact]
-    public void PersistentVolumeClaimName_supports_new_and_legacy_runtime_names()
-    {
-        Assert.Equal("eaos-agent-data-11111111", KubernetesAgentSandbox.PersistentVolumeClaimName("eaos-agent-11111111"));
-        Assert.Equal("zeroclaw-data-11111111", KubernetesAgentSandbox.PersistentVolumeClaimName("zeroclaw-11111111"));
     }
 
     [Fact]

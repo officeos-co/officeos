@@ -29,9 +29,8 @@ GOOGLEOAUTH__CLIENTID      # OAuth credentials
 GOOGLEOAUTH__CLIENTSECRET
 GOOGLEOAUTH__REDIRECTURI
 GOOGLEOAUTH__SKILLOAUTHREDIRECTURI
-MINIO__ENDPOINT            # Object storage credentials
-MINIO__ACCESSKEY
-MINIO__SECRETKEY
+WORKSPACESTORAGE__ACCESSKEY  # MinIO/S3 workspace credentials
+WORKSPACESTORAGE__SECRETKEY
 STRIPE__SECRETKEY          # Billing
 STRIPE__WEBHOOKSECRET
 STRIPE__*PRICEID           # All Stripe price IDs
@@ -56,6 +55,10 @@ env:
     value: "default"
   - name: KUBERNETES__IMAGE
     value: "harkro123/eaos-pod-executor:latest"
+  - name: WORKSPACESTORAGE__ENDPOINT
+    value: "http://eaos-minio-prod:9000"
+  - name: WORKSPACESTORAGE__BUCKET
+    value: "eaos-workspaces-prod"
   - name: SKILLGATEWAY__URL
     value: "http://eaos-backend-prod:8000"
   - name: SKILLRUNTIME__URL
@@ -223,4 +226,6 @@ Docker config (image, network, socket path) comes from `appsettings.json` defaul
 
 Agent runtime sandboxes use the first-party pod executor image. Development uses
 the Docker sandbox. Staging and production use the Kubernetes sandbox and must
-set `KUBERNETES__NAMESPACE` and `KUBERNETES__IMAGE`.
+set `KUBERNETES__NAMESPACE` and `KUBERNETES__IMAGE`. Workspaces are stored as
+compressed S3 objects in MinIO through `WORKSPACESTORAGE__*` config; runtime pods
+use disposable `emptyDir` storage and are not the durable source of truth.

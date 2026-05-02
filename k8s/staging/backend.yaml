@@ -30,7 +30,6 @@ rules:
       - pods
       - pods/log
       - services
-      - persistentvolumeclaims
       - configmaps
     verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
 
@@ -50,6 +49,109 @@ roleRef:
   kind: Role
   name: zeroclaw-manager
   apiGroup: rbac.authorization.k8s.io
+
+---
+# ==============================================================
+# MinIO workspace object storage — staging
+# ==============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-minio-staging-data
+  namespace: default
+  labels:
+    app: eaos-minio-staging
+    env: staging
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-minio-staging
+  namespace: default
+  labels:
+    app: eaos-minio-staging
+    env: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-minio-staging
+  template:
+    metadata:
+      labels:
+        app: eaos-minio-staging
+        env: staging
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: ["server", "/data"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-staging-secrets
+                  key: WORKSPACESTORAGE__ACCESSKEY
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-staging-secrets
+                  key: WORKSPACESTORAGE__SECRETKEY
+          ports:
+            - containerPort: 9000
+              name: s3
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1000Mi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-minio-staging-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-minio-staging
+  namespace: default
+  labels:
+    app: eaos-minio-staging
+    env: staging
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-minio-staging
+  ports:
+    - name: s3
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
 
 ---
 # ==============================================================
@@ -125,6 +227,20 @@ spec:
               value: "default"
             - name: KUBERNETES__IMAGE
               value: "harkro123/eaos-pod-executor:latest"
+            - name: WORKSPACESTORAGE__ENDPOINT
+              value: "http://eaos-minio-staging:9000"
+            - name: WORKSPACESTORAGE__BUCKET
+              value: "eaos-workspaces-staging"
+            - name: WORKSPACESTORAGE__ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-staging-secrets
+                  key: WORKSPACESTORAGE__ACCESSKEY
+            - name: WORKSPACESTORAGE__SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-staging-secrets
+                  key: WORKSPACESTORAGE__SECRETKEY
             - name: CHANNEL_SERVICE_URL
               value: "http://localhost:3100"
             - name: BROWSER_SERVICE_URL

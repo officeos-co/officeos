@@ -4,22 +4,24 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
 {
     internal const int PodExecutorPort = 42617;
     internal const string WorkspacePath = "/workspace";
-    private const string StorageSize = "1Gi";
 
     private readonly IKubernetes _kubernetes;
     private readonly KubernetesConfig _config;
     private readonly PodExecutorClient _executor;
+    private readonly IAgentWorkspaceStore _workspaceStore;
     private readonly ILogger<KubernetesAgentSandbox> _logger;
 
     public KubernetesAgentSandbox(
         IKubernetes kubernetes,
         KubernetesConfig config,
         PodExecutorClient executor,
+        IAgentWorkspaceStore workspaceStore,
         ILogger<KubernetesAgentSandbox> logger)
     {
         _kubernetes = kubernetes;
         _config = config;
         _executor = executor;
+        _workspaceStore = workspaceStore;
         _logger = logger;
     }
 
@@ -39,11 +41,6 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
         var sandboxId = SandboxName(agentId);
         var labels = Labels(agentId);
 
-        await _kubernetes.CoreV1.CreateNamespacedPersistentVolumeClaimAsync(
-            BuildPersistentVolumeClaim(agentId, labels),
-            _config.Namespace,
-            cancellationToken: ct);
-
         await _kubernetes.CoreV1.CreateNamespacedPodAsync(
             BuildPod(agentId, _config.Image, labels),
             _config.Namespace,
@@ -54,8 +51,14 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
             _config.Namespace,
             cancellationToken: ct);
 
+        var serviceUrl = ServiceUrl(sandboxId, _config.Namespace);
+        if (!await _executor.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
+            throw new InvalidOperationException($"Pod executor {sandboxId} did not become available.");
+
+        await _workspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
+
         _logger.LogInformation("Deployed agent {AgentId} as pod executor {SandboxId}", agentId, sandboxId);
-        return new AgentDeployment(sandboxId, ServiceUrl(sandboxId, _config.Namespace));
+        return new AgentDeployment(sandboxId, serviceUrl);
     }
 
     public Task<AgentResult<AgentSandboxCommandResult>> ExecuteAsync(
@@ -88,16 +91,13 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
     {
         try
         {
+            await _workspaceStore.CheckpointAsync(podName, ServiceUrl(podName, _config.Namespace), ct);
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPodAsync(
                 podName,
                 _config.Namespace,
                 cancellationToken: ct));
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedServiceAsync(
                 podName,
-                _config.Namespace,
-                cancellationToken: ct));
-            await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
-                PersistentVolumeClaimName(podName),
                 _config.Namespace,
                 cancellationToken: ct));
 
@@ -154,40 +154,8 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
 
     internal static string SandboxName(Guid id) => $"eaos-agent-{id.ToString("N")[..8]}";
 
-    internal static string PersistentVolumeClaimName(Guid id) => $"eaos-agent-data-{id.ToString("N")[..8]}";
-
-    internal static string PersistentVolumeClaimName(string sandboxId)
-        => sandboxId.StartsWith("eaos-agent-", StringComparison.Ordinal)
-            ? "eaos-agent-data-" + sandboxId["eaos-agent-".Length..]
-            : sandboxId.StartsWith("zeroclaw-", StringComparison.Ordinal)
-                ? "zeroclaw-data-" + sandboxId["zeroclaw-".Length..]
-                : sandboxId;
-
     internal static string ServiceUrl(string sandboxId, string namespaceName)
         => $"http://{sandboxId}.{namespaceName}.svc.cluster.local:{PodExecutorPort}";
-
-    internal static V1PersistentVolumeClaim BuildPersistentVolumeClaim(
-        Guid agentId,
-        IReadOnlyDictionary<string, string>? labels = null)
-        => new()
-        {
-            Metadata = new V1ObjectMeta
-            {
-                Name = PersistentVolumeClaimName(agentId),
-                Labels = ToDictionary(labels ?? Labels(agentId)),
-            },
-            Spec = new V1PersistentVolumeClaimSpec
-            {
-                AccessModes = ["ReadWriteOnce"],
-                Resources = new V1VolumeResourceRequirements
-                {
-                    Requests = new Dictionary<string, ResourceQuantity>
-                    {
-                        ["storage"] = new(StorageSize),
-                    },
-                },
-            },
-        };
 
     internal static V1Pod BuildPod(
         Guid agentId,
@@ -241,7 +209,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
                     new V1Volume
                     {
                         Name = "workspace",
-                        PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(PersistentVolumeClaimName(agentId)),
+                        EmptyDir = new V1EmptyDirVolumeSource(),
                     },
                 ],
             },

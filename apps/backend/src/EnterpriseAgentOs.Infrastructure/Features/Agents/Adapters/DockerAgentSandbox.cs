@@ -8,13 +8,15 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
     private readonly HttpClient _docker;
     private readonly DockerConfig _config;
     private readonly PodExecutorClient _executor;
+    private readonly IAgentWorkspaceStore _workspaceStore;
     private readonly ILogger<DockerAgentSandbox> _logger;
 
     public DockerAgentSandbox(
         DockerConfig config,
         PodExecutorClient executor,
+        IAgentWorkspaceStore workspaceStore,
         ILogger<DockerAgentSandbox> logger)
-        : this(CreateDockerClient(config.SocketPath), config, executor, logger)
+        : this(CreateDockerClient(config.SocketPath), config, executor, workspaceStore, logger)
     {
     }
 
@@ -22,11 +24,13 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
         HttpClient docker,
         DockerConfig config,
         PodExecutorClient executor,
+        IAgentWorkspaceStore workspaceStore,
         ILogger<DockerAgentSandbox> logger)
     {
         _docker = docker;
         _config = config;
         _executor = executor;
+        _workspaceStore = workspaceStore;
         _logger = logger;
     }
 
@@ -66,7 +70,13 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
             throw new InvalidOperationException($"Docker start failed ({startResponse.StatusCode}): {error}");
         }
 
-        return new AgentDeployment(sandboxId, ServiceUrl(sandboxId));
+        var serviceUrl = ServiceUrl(sandboxId);
+        if (!await _executor.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
+            throw new InvalidOperationException($"Pod executor {sandboxId} did not become available.");
+
+        await _workspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
+
+        return new AgentDeployment(sandboxId, serviceUrl);
     }
 
     public Task<AgentResult<AgentSandboxCommandResult>> ExecuteAsync(
@@ -99,6 +109,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
     {
         try
         {
+            await _workspaceStore.CheckpointAsync(podName, ServiceUrl(podName), ct);
             await _docker.PostAsync($"/containers/{podName}/stop", null, ct);
             await _docker.DeleteAsync($"/containers/{podName}?force=true&v=true", ct);
             return true;
@@ -175,7 +186,6 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
             HostConfig = new
             {
                 NetworkMode = config.Network,
-                Binds = new[] { $"eaos-agent-data-{agentId.ToString("N")[..8]}:{WorkspacePath}" },
                 RestartPolicy = new { Name = "unless-stopped" },
             },
             ExposedPorts = new Dictionary<string, object>

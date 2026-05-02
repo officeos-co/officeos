@@ -143,6 +143,102 @@ internal sealed class PodExecutorClient
         }
     }
 
+    internal async Task<AgentResult<Stream>> DownloadFileStreamAsync(
+        string sandboxId,
+        string serviceUrl,
+        string path,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                BuildEndpointUri(serviceUrl, $"files/download?path={Uri.EscapeDataString(path)}"));
+            AddBearer(request, sandboxId);
+
+            var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await ToAgentErrorAsync($"Failed to download file '{path}'", response, ct);
+                response.Dispose();
+                return error;
+            }
+
+            return await response.Content.ReadAsStreamAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(
+                AgentErrorCategory.ToolExecution,
+                $"Failed to download file '{path}': {ex.Message}",
+                ex.ToString());
+        }
+    }
+
+    internal async Task<AgentResult<bool>> UploadFileStreamAsync(
+        string sandboxId,
+        string serviceUrl,
+        string path,
+        Stream content,
+        string fileName,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            using var form = new MultipartFormDataContent();
+            var file = new StreamContent(content);
+            file.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            form.Add(file, "file", fileName);
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                BuildEndpointUri(serviceUrl, $"files/upload?path={Uri.EscapeDataString(path)}"))
+            {
+                Content = form,
+            };
+            AddBearer(request, sandboxId);
+
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+                return await ToAgentErrorAsync($"Failed to upload file '{path}'", response, ct);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(
+                AgentErrorCategory.ToolExecution,
+                $"Failed to upload file '{path}': {ex.Message}",
+                ex.ToString());
+        }
+    }
+
+    internal async Task<bool> WaitUntilAvailableAsync(
+        string serviceUrl,
+        TimeSpan timeout,
+        CancellationToken ct = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(timeout);
+
+        while (!cts.IsCancellationRequested)
+        {
+            try
+            {
+                using var response = await _http.GetAsync(BuildEndpointUri(serviceUrl, "health"), cts.Token);
+                if (response.IsSuccessStatusCode)
+                    return true;
+            }
+            catch when (!cts.IsCancellationRequested)
+            {
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
+        }
+
+        return false;
+    }
+
     internal static Uri BuildEndpointUri(string serviceUrl, string endpoint)
     {
         if (string.IsNullOrWhiteSpace(serviceUrl))

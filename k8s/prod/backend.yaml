@@ -5,6 +5,109 @@
 # ─────────────────────────────────────────────────────────────────────
 
 # ==============================================================
+# MinIO workspace object storage — prod
+# ==============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eaos-minio-prod-data
+  namespace: default
+  labels:
+    app: eaos-minio-prod
+    env: prod
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eaos-minio-prod
+  namespace: default
+  labels:
+    app: eaos-minio-prod
+    env: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eaos-minio-prod
+  template:
+    metadata:
+      labels:
+        app: eaos-minio-prod
+        env: prod
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args: ["server", "/data"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-prod-secrets
+                  key: WORKSPACESTORAGE__ACCESSKEY
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-prod-secrets
+                  key: WORKSPACESTORAGE__SECRETKEY
+          ports:
+            - containerPort: 9000
+              name: s3
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2000Mi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: eaos-minio-prod-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eaos-minio-prod
+  namespace: default
+  labels:
+    app: eaos-minio-prod
+    env: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: eaos-minio-prod
+  ports:
+    - name: s3
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
+
+---
+# ==============================================================
 # Backend DataProtection keys PVC — prod
 # ==============================================================
 apiVersion: v1
@@ -77,6 +180,20 @@ spec:
               value: "default"
             - name: KUBERNETES__IMAGE
               value: "harkro123/eaos-pod-executor:latest"
+            - name: WORKSPACESTORAGE__ENDPOINT
+              value: "http://eaos-minio-prod:9000"
+            - name: WORKSPACESTORAGE__BUCKET
+              value: "eaos-workspaces-prod"
+            - name: WORKSPACESTORAGE__ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-prod-secrets
+                  key: WORKSPACESTORAGE__ACCESSKEY
+            - name: WORKSPACESTORAGE__SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: eaos-backend-prod-secrets
+                  key: WORKSPACESTORAGE__SECRETKEY
             - name: CHANNEL_SERVICE_URL
               value: "http://localhost:3100"
             - name: BROWSER_SERVICE_URL

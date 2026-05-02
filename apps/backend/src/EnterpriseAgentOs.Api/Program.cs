@@ -90,7 +90,15 @@ builder.Services.AddSingleton(kubernetesConfig);
 
 var dockerConfig = RequireSection<DockerConfig>("Docker");
 builder.Services.AddSingleton(dockerConfig);
+
+var workspaceStorageConfig = RequireSection<WorkspaceStorageConfig>("WorkspaceStorage");
+RequireNotEmpty(workspaceStorageConfig.Endpoint, "WorkspaceStorage:Endpoint");
+RequireNotEmpty(workspaceStorageConfig.AccessKey, "WorkspaceStorage:AccessKey");
+RequireNotEmpty(workspaceStorageConfig.SecretKey, "WorkspaceStorage:SecretKey");
+RequireNotEmpty(workspaceStorageConfig.Bucket, "WorkspaceStorage:Bucket");
+builder.Services.AddSingleton(workspaceStorageConfig);
 builder.Services.AddSingleton<PodExecutorClient>();
+builder.Services.AddSingleton<IAgentWorkspaceStore, S3AgentWorkspaceStore>();
 
 if (!isDevelopment)
 {
