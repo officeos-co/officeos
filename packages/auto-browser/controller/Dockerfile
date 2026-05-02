@@ -18,10 +18,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt pytest
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
-COPY tests ./tests
 
 RUN mkdir -p /data/artifacts /data/uploads /data/auth /data/approvals /data/audit /data/db /data/jobs /data/sessions /data/browser-sessions /data/tunnels /data/cli-home
 
