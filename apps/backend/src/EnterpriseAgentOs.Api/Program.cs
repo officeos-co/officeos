@@ -14,18 +14,6 @@ string? FindRootEnvFile()
     return null;
 }
 
-// Load the repository-root .env before anything else so env vars are visible to configuration.
-var rootEnvFile = FindRootEnvFile();
-var dotEnv = dotenv.net.DotEnv.Fluent().WithoutExceptions();
-if (rootEnvFile is not null)
-{
-    dotEnv.WithEnvFiles(rootEnvFile).Load();
-}
-else
-{
-    throw new InvalidOperationException("Root .env file not found.");
-}
-
 const string FrontendCorsPolicy = "dashboard";
 
 Log.Logger = new LoggerConfiguration()
@@ -40,6 +28,19 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
+var isDevelopment = builder.Environment.IsDevelopment();
+
+// Only local development reads .env. Staging and Production get configuration
+// from Kubernetes secrets and environment variables.
+if (isDevelopment)
+{
+    var rootEnvFile = FindRootEnvFile();
+    if (rootEnvFile is null)
+        throw new InvalidOperationException("Root .env file not found.");
+
+    dotenv.net.DotEnv.Fluent().WithoutExceptions().WithEnvFiles(rootEnvFile).Load();
+    builder.Configuration.AddEnvironmentVariables();
+}
 
 
 // ── Config helper: reads PascalCase (appsettings) or UPPER_SNAKE (Doppler env vars) ──
@@ -66,8 +67,6 @@ void RequireNotEmpty(string value, string name)
     if (string.IsNullOrWhiteSpace(value))
         throw new InvalidOperationException($"Required config '{name}' is missing or empty.");
 }
-
-var isDevelopment = builder.Environment.IsDevelopment();
 
 // ── Core services ────────────────────────────────────────────────────
 builder.Services.AddControllers();
