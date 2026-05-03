@@ -68,6 +68,7 @@ public sealed class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Google OAuth callback failed");
             return RedirectWithError($"Sign-in failed: {ex.Message}");
         }
     }
@@ -127,6 +128,7 @@ public sealed class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "GitHub OAuth callback failed");
             return RedirectWithError($"Sign-in failed: {ex.Message}");
         }
     }

@@ -240,6 +240,16 @@ internal sealed class AgentTurnService
                 tools = registry.GetSchemas(), stream = true,
             });
 
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "LLM request payload for agent {AgentId} correlation {CorrelationId} iteration {Iteration}: {Payload}",
+                    agentId,
+                    correlationId,
+                    i + 1,
+                    requestBody.GetRawText());
+            }
+
             var provider = agent.Provider;
             var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
             if (apiKey is null)

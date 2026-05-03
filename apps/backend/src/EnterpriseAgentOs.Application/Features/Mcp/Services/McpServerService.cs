@@ -7,19 +7,22 @@ internal sealed class McpServerService : IMcpServerService
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly GoogleOAuthConfig _googleOAuthConfig;
+    private readonly ILogger<McpServerService> _logger;
 
     public McpServerService(
         IAgentMcpServerRepository agentServers,
         IMcpCredentialRepository credentials,
         IOAuthTokenRepository oauthTokens,
         CredentialProtector protector,
-        GoogleOAuthConfig googleOAuthConfig)
+        GoogleOAuthConfig googleOAuthConfig,
+        ILogger<McpServerService> logger)
     {
         _agentServerRepository = agentServers;
         _credentialRepository = credentials;
         _oauthTokenRepository = oauthTokens;
         _credentialProtector = protector;
         _googleOAuthConfig = googleOAuthConfig;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct)
@@ -42,6 +45,7 @@ internal sealed class McpServerService : IMcpServerService
     public async Task<IReadOnlyList<McpServerRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct)
     {
         var names = await _agentServerRepository.ListServerNamesForAgentAsync(agentId, ct);
+        _logger.LogDebug("MCP catalog for agent {AgentId}: assigned servers [{Servers}]", agentId, string.Join(", ", names));
         if (names.Count == 0) return [];
 
         var allowed = names.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -56,6 +60,7 @@ internal sealed class McpServerService : IMcpServerService
             ?? throw new InvalidOperationException($"MCP server '{serverName}' was not found.");
 
         await _agentServerRepository.AssignAsync(agentId, server.Name, ct);
+        _logger.LogInformation("Assigned MCP server {Server} to agent {AgentId}", server.Name, agentId);
     }
 
     public Task UnassignFromAgentAsync(Guid agentId, string serverName, CancellationToken ct)
@@ -144,12 +149,54 @@ internal sealed class McpServerService : IMcpServerService
             var token = await _oauthTokenRepository.GetByProviderAsync(provider!, ct);
             if (!string.IsNullOrWhiteSpace(token?.EncryptedAccessToken)
                 || !string.IsNullOrWhiteSpace(token?.EncryptedRefreshToken))
+            {
                 configured.Add(provider!);
+            }
+            else
+            {
+                _logger.LogDebug("MCP OAuth status for provider {Provider}: no stored token", provider);
+            }
+        }
+
+        foreach (var server in servers.Where(s => !string.IsNullOrWhiteSpace(s.OauthProvider)))
+        {
+            var token = await _oauthTokenRepository.GetByProviderAsync(server.OauthProvider!, ct);
+            if (token is null)
+                continue;
+
+            var scopes = ParseScopes(server.OauthScopesJson);
+            var missingScopes = token.MissingScopes(scopes);
+            if (missingScopes.Count > 0)
+            {
+                _logger.LogDebug(
+                    "MCP OAuth status for {Server}: provider {Provider} missing scopes [{MissingScopes}]",
+                    server.Name,
+                    server.OauthProvider,
+                    string.Join(", ", missingScopes));
+            }
         }
 
         return servers.Select(s => string.IsNullOrWhiteSpace(s.OauthProvider)
             ? s
             : CopyWithOauthConfigured(s, configured.Contains(s.OauthProvider))).ToList();
+    }
+
+    private static IReadOnlyList<string> ParseScopes(string? scopesJson)
+    {
+        if (string.IsNullOrWhiteSpace(scopesJson))
+            return [];
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<JsonElement>(scopesJson);
+            return parsed.ValueKind == JsonValueKind.Array
+                ? parsed.EnumerateArray().Select(s => s.GetString()).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).ToList()
+                : [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private static McpServerRecord CopyWithOauthConfigured(McpServerRecord server, bool configured) => new()

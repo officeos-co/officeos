@@ -201,6 +201,13 @@ internal sealed class ToolRegistryFactory
         {
             var creds = await credentialLoader(server.Name);
             var result = await _mcpClientManager.ConnectAsync(server, creds, ct);
+            if (result.Tools.Count == 0)
+            {
+                _logger.LogWarning(
+                    "Assigned MCP server {Server} discovered no callable tools for agent {AgentId}",
+                    server.Name,
+                    agentId);
+            }
             foreach (var discovered in result.Tools)
                 tools.Add(new McpTool(discovered));
             tools.Add(new ListMcpResourcesTool(server.Name, result.NativeClient));
