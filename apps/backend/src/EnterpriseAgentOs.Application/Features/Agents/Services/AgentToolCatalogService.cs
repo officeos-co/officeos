@@ -95,7 +95,6 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
         public Task<AgentSandboxDeployment> CreateAsync(
             Guid agentId,
-            AgentTemplateRecord? template,
             IReadOnlyDictionary<string, string> environment,
             IReadOnlyDictionary<string, string> metadata,
             CancellationToken ct = default)

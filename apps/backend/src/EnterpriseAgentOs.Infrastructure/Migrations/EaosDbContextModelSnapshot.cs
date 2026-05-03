@@ -468,51 +468,6 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.ToTable("AgentSessions");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentTemplateEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ChannelsJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("IntegrationsJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsBuiltin")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("OwnerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Prompt")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("AgentTemplates");
-                });
-
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentToolPermissionEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1239,15 +1194,6 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Agent");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentTemplateEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.UserEntity", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId");
-
-                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentToolPermissionEntity", b =>

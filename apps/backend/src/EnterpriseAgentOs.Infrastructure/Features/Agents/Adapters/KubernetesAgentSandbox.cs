@@ -27,7 +27,6 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
 
     public async Task<AgentSandboxDeployment> CreateAsync(
         Guid agentId,
-        AgentTemplateRecord? template,
         IReadOnlyDictionary<string, string> environment,
         IReadOnlyDictionary<string, string> metadata,
         CancellationToken ct = default)

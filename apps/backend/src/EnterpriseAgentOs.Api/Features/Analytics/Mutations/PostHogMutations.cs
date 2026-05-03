@@ -45,7 +45,7 @@ public class PostHogMutations
         CancellationToken ct)
         => Capture(context, posthog, "channel_connected", new() { ["channel_slug"] = input.ChannelSlug }, ct);
 
-    [GraphQLDescription("Fires a PostHog agent_created event with agent name, provider, template, and skill counts.")]
+    [GraphQLDescription("Fires a PostHog agent_created event with agent name, provider, and skill counts.")]
     public Task<bool> TrackAgentCreated(
         TrackAgentCreatedInput input,
         IResolverContext context,
@@ -55,7 +55,6 @@ public class PostHogMutations
         {
             ["agent_name"] = input.AgentName,
             ["provider"] = input.Provider,
-            ["template"] = input.Template,
             ["skill_count"] = input.SkillCount,
             ["allow_skills"] = input.AllowSkills,
             ["deny_skills"] = input.DenySkills,

@@ -13,7 +13,6 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IOrgBillingService, OrgBillingService>();
         services.AddScoped<ICreditRecordingService, CreditRecordingService>();
         services.AddScoped<IGdprService, GdprService>();
-        services.AddScoped<IAgentTemplateService, AgentTemplateService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IBrowserService, BrowserService>();

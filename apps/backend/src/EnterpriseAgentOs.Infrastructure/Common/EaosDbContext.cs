@@ -24,7 +24,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentRateLimitEntity> AgentRateLimits => Set<AgentRateLimitEntity>();
     public DbSet<AgentLogEntity> AgentLogs => Set<AgentLogEntity>();
     public DbSet<AgentToolPermissionEntity> AgentToolPermissions => Set<AgentToolPermissionEntity>();
-    public DbSet<AgentTemplateEntity> AgentTemplates => Set<AgentTemplateEntity>();
     public DbSet<OrganizationEntity> Organizations => Set<OrganizationEntity>();
     public DbSet<OrgMemberEntity> OrgMembers => Set<OrgMemberEntity>();
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
@@ -175,16 +174,6 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(p => p.AgentId);
             e.Property(p => p.Permission).HasConversion<string>().HasMaxLength(16);
             e.HasOne(p => p.Agent).WithMany().HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AgentTemplateEntity>(e =>
-        {
-            e.HasKey(t => t.Id);
-            e.HasIndex(t => t.Name).IsUnique();
-            e.Property(t => t.Prompt).HasColumnType("text");
-            e.Property(t => t.IntegrationsJson).HasColumnType("text");
-            e.Property(t => t.ChannelsJson).HasColumnType("text");
-            e.HasOne(t => t.Owner).WithMany().HasForeignKey(t => t.OwnerId);
         });
 
         modelBuilder.Entity<OrganizationEntity>(e =>

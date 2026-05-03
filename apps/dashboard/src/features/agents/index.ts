@@ -2,7 +2,6 @@ export * from "./api/useAgents";
 export * from "./api/useAgentBindings";
 export * from "./api/useIntegrations";
 export * from "./api/useChannels";
-export * from "./api/useAgentTemplates";
 export * from "./api/useSendAgentMessage";
 export * from "./api/useProviders";
 export * from "./api/useModels";

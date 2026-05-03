@@ -17,7 +17,6 @@ public record TrackChannelConnectedInput(string ChannelSlug);
 public record TrackAgentCreatedInput(
     string AgentName,
     string Provider,
-    string Template,
     int SkillCount,
     int AllowSkills,
     int DenySkills);

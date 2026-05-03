@@ -26,7 +26,6 @@ const TRACK_AGENT_CREATED = gql`
 type AgentCreatedInput = {
   agentName: string;
   provider: string;
-  template: string;
   skillCount: number;
   allowSkills: number;
   denySkills: number;

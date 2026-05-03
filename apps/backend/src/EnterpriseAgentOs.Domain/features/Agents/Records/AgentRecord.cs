@@ -18,8 +18,8 @@ public sealed class AgentRecord
     public string? ServiceUrl { get; set; }
 
     /// <summary>
-    /// Optional system prompt the agent boots with. Set at create time
-    /// (e.g. from a Quickstart template) and editable later via PatchAsync.
+    /// Optional system prompt the agent boots with. Set at create time and
+    /// editable later via PatchAsync.
     /// </summary>
     public string? Prompt { get; set; }
 

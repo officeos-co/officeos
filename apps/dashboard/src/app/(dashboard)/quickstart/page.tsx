@@ -28,7 +28,6 @@ import {
   useSetSkillCredentials,
   sortIntegrations,
   useChannels,
-  useAgentTemplates,
   useCreateAgent,
   useModels,
   useAgentToolCatalog,
@@ -38,10 +37,8 @@ import {
   ChannelCard,
 } from "@/features/agents";
 import { useAnalytics } from "@/features/analytics";
-import { type Template } from "@/features/agents";
 import { getModelTooltip } from "@/features/agents/model-tooltips";
 import {
-  SearchIcon,
   RocketIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -309,7 +306,6 @@ export default function QuickstartPage() {
   const router = useRouter();
   const { integrations } = useIntegrations();
   const { channels } = useChannels();
-  const { templates } = useAgentTemplates();
   const { createAgent } = useCreateAgent();
   const { models, defaultModelId } = useModels();
   const { tools: toolCatalog } = useAgentToolCatalog();
@@ -318,10 +314,6 @@ export default function QuickstartPage() {
   const [configureSlug, setConfigureSlug] = useState<string | null>(null);
   const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null);
   const [launching, setLaunching] = useState(false);
-  const [search, setSearch] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
-    null,
-  );
   const [agentName, setAgentName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState(defaultModelId);
@@ -340,23 +332,6 @@ export default function QuickstartPage() {
   const [channelPerms, setChannelPerms] = useState<
     Record<string, ChannelPermissions>
   >({});
-
-  function selectTemplate(t: Template) {
-    setSelectedTemplate(t);
-    setAgentName(t.name === "Blank agent" ? "" : t.name);
-    setPrompt(t.prompt);
-    setSelectedIntegrations(new Set(t.integrations));
-    setSelectedChannels(new Set(t.channels));
-    setToolPermissions({});
-    setGroupPermissions({});
-    // Set default channel permissions
-    const cp: Record<string, ChannelPermissions> = {};
-    for (const slug of t.channels) {
-      const ch = channels.find((c) => c.slug === slug);
-      if (ch) cp[slug] = { ...ch.defaultPermissions };
-    }
-    setChannelPerms(cp);
-  }
 
   function toggleIntegration(slug: string) {
     setSelectedIntegrations((prev) => {
@@ -390,9 +365,6 @@ export default function QuickstartPage() {
     });
   }
 
-  const filteredTemplates = templates.filter(
-    (t) => !search || t.name.toLowerCase().includes(search.toLowerCase()),
-  );
   const sortedIntegrations = sortIntegrations(integrations);
   const sortedChannels = [...channels].sort((a, b) =>
     a.added === b.added ? 0 : a.added ? -1 : 1,
@@ -419,6 +391,7 @@ export default function QuickstartPage() {
       <PageHeader
         page="Quickstart"
         subtitle="Launch an agent with tools, channels, and starter instructions."
+        contentClassName="max-w-6xl"
         action={
           <Button
             size="sm"
@@ -443,16 +416,8 @@ export default function QuickstartPage() {
                     tpList.push({ tool: prefix, mode: "DENY" });
                 }
 
-                // Merge user prompt into template prompt for the system prompt.
-                // The user's prompt field becomes additional context in the
-                // bootstrap message so the agent actually acts on it.
-                const templatePrompt = selectedTemplate?.prompt ?? "";
                 const userPrompt = prompt.trim();
-                const systemPrompt = templatePrompt || userPrompt;
-                const bootstrapMessage =
-                  userPrompt && templatePrompt
-                    ? `${templatePrompt}\n\n---\n\nAdditional instructions:\n${userPrompt}`
-                    : systemPrompt;
+                const systemPrompt = userPrompt;
 
                 const created = await createAgent({
                   name: agentName.trim(),
@@ -461,12 +426,11 @@ export default function QuickstartPage() {
                   toolNames: Array.from(selectedIntegrations),
                   toolPermissions: tpList,
                   channelSlugs: Array.from(selectedChannels),
-                  bootstrapMessage: bootstrapMessage || undefined,
+                  bootstrapMessage: systemPrompt || undefined,
                 });
                 trackAgentCreated({
                   agentName: agentName.trim(),
                   provider: model.split("-")[0] ?? "unknown",
-                  template: selectedTemplate?.name ?? "scratch",
                   skillCount: selectedIntegrations.size,
                   allowSkills: Object.values(toolPermissions).filter(
                     (p) => p === "allow",
@@ -490,7 +454,7 @@ export default function QuickstartPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Agent configuration */}
         <div className="flex-1 overflow-y-auto pb-4">
-          <div className="space-y-6">
+          <div className="mx-auto w-full max-w-6xl space-y-6">
             {/* Name + Model */}
             <div className="grid grid-cols-[1fr_200px] gap-4">
               <div className="space-y-2">
@@ -550,8 +514,8 @@ export default function QuickstartPage() {
               <Label htmlFor="prompt">
                 System prompt
                 <HelpTooltip>
-                  This becomes the agent&apos;s standing instruction. Template
-                  prompts and your extra instructions are merged before launch.
+                  This becomes the agent&apos;s standing instruction and is used
+                  to bootstrap the first run.
                 </HelpTooltip>
               </Label>
               <Textarea
@@ -774,69 +738,6 @@ export default function QuickstartPage() {
             )}
 
             <div className="h-8" />
-          </div>
-        </div>
-
-        {/* Right: Templates panel — sticky */}
-        <div className="hidden w-[420px] shrink-0 border-l border-border lg:block sticky top-0 self-start h-screen overflow-y-auto">
-          <div className="p-4 space-y-3">
-            <h3 className="text-sm font-medium">Templates</h3>
-            <div className="relative">
-              <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {filteredTemplates.map((t) => {
-                const isSelected = selectedTemplate?.name === t.name;
-                return (
-                  <button
-                    key={t.name}
-                    type="button"
-                    onClick={() => selectTemplate(t)}
-                    className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left text-sm transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
-                  >
-                    <span className="font-medium text-xs">{t.name}</span>
-                    <span className="text-[11px] text-muted-foreground line-clamp-2">
-                      {t.description}
-                    </span>
-                    {(t.integrations.length > 0 || t.channels.length > 0) && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {t.integrations.map((slug) => {
-                          const s = integrations.find((x) => x.name === slug);
-                          return s ? (
-                            <div
-                              key={slug}
-                              className="size-[14px] shrink-0 [&>svg]:size-[14px]"
-                              dangerouslySetInnerHTML={{ __html: s.logo }}
-                            />
-                          ) : null;
-                        })}
-                        {t.channels.length > 0 && t.integrations.length > 0 && (
-                          <span className="text-[10px] text-muted-foreground mx-0.5">
-                            ·
-                          </span>
-                        )}
-                        {t.channels.map((slug) => {
-                          const c = channels.find((x) => x.slug === slug);
-                          return c ? (
-                            <div
-                              key={slug}
-                              className="size-[14px] shrink-0 [&>svg]:size-[14px]"
-                              dangerouslySetInnerHTML={{ __html: c.logo }}
-                            />
-                          ) : null;
-                        })}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>

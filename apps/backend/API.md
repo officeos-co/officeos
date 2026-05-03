@@ -118,10 +118,6 @@ Lists conversation sessions for an agent, ordered by most recent. Default limit 
 
 Returns the currently active session for an agent, or null if no session is active.
 
-#### `agentTemplates` → `[AgentTemplateDto]`
-
-Lists all available agent templates (built-in and user-created) for the create-agent-from-template flow.
-
 #### `agents` → `[AgentDto]`
 
 Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.
@@ -220,7 +216,7 @@ Fires a PostHog channel_connected event with the channel slug.
 
 #### `trackAgentCreated(input: TrackAgentCreatedInput)` → `Boolean`
 
-Fires a PostHog agent_created event with agent name, provider, template, and skill counts.
+Fires a PostHog agent_created event with agent name, provider, and skill counts.
 
 #### `identifyUser` → `Boolean`
 
@@ -305,10 +301,6 @@ Creates a new conversation session for an agent. Ends any active session first a
 #### `endSession(agentId: UUID)` → `AgentSessionRecord`
 
 Ends the active session for an agent. Returns the ended session or null if none was active.
-
-#### `createAgentFromTemplate(templateId: UUID, name: String, provider: String, model: String)` → `AgentDto`
-
-Creates a new agent pre-configured from a template (prompt, skills, channels).
 
 #### `createAgent(input: CreateAgentInput)` → `AgentDto`
 
@@ -556,17 +548,6 @@ Appends an arbitrary log entry to an agent's timeline. Used by the dashboard for
 | `agentId` | `UUID` | |
 | `skillName` | `String` | |
 | `enabledAt` | `DateTime` | |
-
-**`AgentTemplateDto`**
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `UUID` | |
-| `name` | `String` | |
-| `description` | `String` | |
-| `prompt` | `String` | |
-| `integrations` | `[String]` | |
-| `channels` | `[String]` | |
-| `isBuiltin` | `Boolean` | |
 
 **`AgentToolPermissionRecord`**
 | Field | Type | Description |
@@ -1053,7 +1034,6 @@ Appends an arbitrary log entry to an agent's timeline. Used by the dashboard for
 |-------|------|---------|-------------|
 | `agentName` | `String` | | |
 | `provider` | `String` | | |
-| `template` | `String` | | |
 | `skillCount` | `Int` | | |
 | `allowSkills` | `Int` | | |
 | `denySkills` | `Int` | | |

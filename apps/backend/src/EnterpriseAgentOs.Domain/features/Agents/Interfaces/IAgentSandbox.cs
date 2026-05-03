@@ -2,7 +2,6 @@ namespace EnterpriseAgentOs.Domain.Features.Agents;
 
 public sealed record AgentSandboxCreateRequest(
     Guid AgentId,
-    AgentTemplateRecord? Template,
     IReadOnlyDictionary<string, string> Environment,
     IReadOnlyDictionary<string, string> Metadata);
 
@@ -14,7 +13,6 @@ public interface IAgentSandbox
 {
     Task<AgentSandboxDeployment> CreateAsync(
         Guid agentId,
-        AgentTemplateRecord? template,
         IReadOnlyDictionary<string, string> environment,
         IReadOnlyDictionary<string, string> metadata,
         CancellationToken ct = default);
