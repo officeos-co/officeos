@@ -122,6 +122,7 @@ internal sealed class McpServerService : IMcpServerService
             ["GOOGLE_CLIENT_ID"] = _googleOAuthConfig.ClientId,
             ["GOOGLE_CLIENT_SECRET"] = _googleOAuthConfig.ClientSecret,
             ["GOOGLE_REFRESH_TOKEN"] = refreshToken,
+            ["GOOGLE_TOKEN_SCOPE"] = string.Join(' ', token.GetScopeSet()),
         };
     }
 

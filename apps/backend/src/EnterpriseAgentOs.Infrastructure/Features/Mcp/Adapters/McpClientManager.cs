@@ -65,10 +65,37 @@ internal sealed class McpClientManager : IMcpClientManager
         return new StdioClientTransport(new StdioClientTransportOptions
         {
             Command = server.Command ?? throw new ArgumentException($"MCP server '{server.Name}' has no command"),
-            Arguments = args,
+            Arguments = ResolveStdioArguments(args),
             EnvironmentVariables = credentials,
             Name = server.Name,
         });
+    }
+
+    private static List<string> ResolveStdioArguments(List<string> args)
+        => args.Select(ResolveStdioArgument).ToList();
+
+    private static string ResolveStdioArgument(string arg)
+    {
+        const string scriptPrefix = "eaos://scripts/";
+        if (!arg.StartsWith(scriptPrefix, StringComparison.Ordinal))
+            return arg;
+
+        var fileName = arg[scriptPrefix.Length..];
+        var publishedPath = Path.Combine(AppContext.BaseDirectory, "scripts", fileName);
+        if (System.IO.File.Exists(publishedPath))
+            return publishedPath;
+
+        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (directory is not null)
+        {
+            var sourcePath = Path.Combine(directory.FullName, "apps", "backend", "scripts", fileName);
+            if (System.IO.File.Exists(sourcePath))
+                return sourcePath;
+
+            directory = directory.Parent;
+        }
+
+        return arg;
     }
 
     private HttpClientTransport CreateHttpTransport(McpServerRecord server, Dictionary<string, string> credentials)

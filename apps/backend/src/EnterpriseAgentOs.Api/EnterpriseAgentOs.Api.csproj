@@ -39,6 +39,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\scripts\google-docs-mcp-oauth-adapter.mjs" Link="scripts\google-docs-mcp-oauth-adapter.mjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="EnterpriseAgentOs.Api.Tests" />
   </ItemGroup>
 

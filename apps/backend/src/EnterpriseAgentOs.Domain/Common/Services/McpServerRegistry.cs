@@ -446,6 +446,26 @@ public static class McpServerRegistry
         },
         new()
         {
+            Name = "google-docs",
+            Title = "Google Docs",
+            Description = "Create, read, and edit Google Docs through the community google-docs-mcp-server package. EnterpriseAgentOs launches it as a normal self-contained MCP server and adapts the existing Google OAuth refresh token into the credentials.json and token.json files that the package expects.",
+            Subtitle = "Create and edit Google Docs",
+            AuthorName = "NoManNayeem",
+            AuthorUrl = "https://github.com/NoManNayeem",
+            DocumentationUrl = "https://github.com/NoManNayeem/google-docs-mcp-server",
+            RepositoryUrl = "https://github.com/NoManNayeem/google-docs-mcp-server",
+            Logo = """<svg fill="#4285F4" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Google Docs</title><path d="M14.727 0H4.91C3.83 0 2.946.884 2.946 1.964v20.072c0 1.08.884 1.964 1.964 1.964h14.181c1.08 0 1.964-.884 1.964-1.964V6.328L14.727 0zm-.981 7.309V1.473l5.836 5.836h-5.836zM7.309 11.291h9.382v1.473H7.309v-1.473zm0 3.273h9.382v1.473H7.309v-1.473zm0 3.273h6.545v1.473H7.309v-1.473z"/></svg>""",
+            ToolsJson = """[{"name":"check_auth_status","description":"Check Google Docs authentication status"},{"name":"create_document","description":"Create a new Google Doc"},{"name":"create_formatted_document","description":"Create a Google Doc with formatted content"},{"name":"read_document","description":"Read a Google Doc"},{"name":"search_documents","description":"Search Google Docs"},{"name":"append_text","description":"Append text to a Google Doc"},{"name":"insert_text","description":"Insert text at a position"},{"name":"delete_text","description":"Delete text from a document"},{"name":"replace_text","description":"Replace text in a document"},{"name":"format_text","description":"Apply text formatting"},{"name":"apply_heading","description":"Apply heading styles"},{"name":"set_alignment","description":"Set paragraph alignment"},{"name":"insert_table","description":"Insert a table"},{"name":"insert_page_break","description":"Insert a page break"},{"name":"find_and_replace","description":"Find and replace text"},{"name":"insert_image_from_url","description":"Insert an image from a URL"}]""",
+            TransportType = McpTransportType.Stdio,
+            Command = "node",
+            Args = """["eaos://scripts/google-docs-mcp-oauth-adapter.mjs"]""",
+            Category = "productivity",
+            OauthProvider = "google",
+            OauthScopesJson = """["https://www.googleapis.com/auth/documents","https://www.googleapis.com/auth/drive"]""",
+            IsBuiltin = true,
+        },
+        new()
+        {
             Name = "google-drive",
             Title = "Google Drive",
             Description = "Access, search, and manage files in Google Drive including Docs, Sheets, and Slides. Agents can search for files, read document content, create and update files, manage sharing permissions, and organize folder structures. Supports all Google Workspace file types.",
