@@ -10,6 +10,7 @@ import {
   TableCell,
   TableSelectionCell,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { cn } from "@/lib/utils";
 import {
@@ -106,6 +107,8 @@ export function LogTable({
   onSelectLog,
   showSelectionColumn,
   className,
+  loading = false,
+  skeletonRows = 10,
 }: {
   logs: (AgentLog & { agentName?: string })[];
   showAgent?: boolean;
@@ -113,8 +116,12 @@ export function LogTable({
   onSelectLog?: (log: AgentLog & { agentName?: string }) => void;
   showSelectionColumn?: boolean;
   className?: string;
+  loading?: boolean;
+  skeletonRows?: number;
 }) {
   const shouldShowSelectionColumn = showSelectionColumn ?? Boolean(onSelectLog);
+  const columnCount =
+    (showAgent ? 7 : 6) + (shouldShowSelectionColumn ? 1 : 0);
 
   return (
     <Table className={className}>
@@ -140,7 +147,49 @@ export function LogTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {logs.map((log) => (
+        {loading &&
+          Array.from({ length: skeletonRows }).map((_, index) => (
+            <TableRow key={`log-skeleton-${index}`} aria-hidden="true">
+              {shouldShowSelectionColumn && (
+                <TableCell className="w-10 px-3">
+                  <Skeleton className="size-4 rounded" />
+                </TableCell>
+              )}
+              <TableCell>
+                <Skeleton className="size-6 rounded-md" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-5 w-20" />
+              </TableCell>
+              {showAgent && (
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+              )}
+              <TableCell>
+                <Skeleton className="h-5 w-20" />
+              </TableCell>
+              <TableCell className="max-w-[400px]">
+                <Skeleton
+                  className={cn(
+                    "h-4",
+                    index % 3 === 0
+                      ? "w-full"
+                      : index % 3 === 1
+                        ? "w-3/4"
+                        : "w-1/2",
+                  )}
+                />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="ml-auto h-4 w-14" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="ml-auto h-4 w-20" />
+              </TableCell>
+            </TableRow>
+          ))}
+        {!loading && logs.map((log) => (
           <TableRow
             key={log.id}
             onClick={() => onSelectLog?.(log)}
@@ -196,10 +245,10 @@ export function LogTable({
             </TableCell>
           </TableRow>
         ))}
-        {logs.length === 0 && (
+        {!loading && logs.length === 0 && (
           <TableRow>
             <TableCell
-              colSpan={(showAgent ? 7 : 6) + (shouldShowSelectionColumn ? 1 : 0)}
+              colSpan={columnCount}
               className="py-8 text-center text-muted-foreground"
             >
               No logs yet.

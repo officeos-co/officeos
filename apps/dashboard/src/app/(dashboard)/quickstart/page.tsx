@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -126,6 +127,40 @@ function ChannelPermSelect({
     >
       {channelPermissionLabels[value]}
     </button>
+  );
+}
+
+function QuickstartIntegrationSkeleton() {
+  return (
+    <div className="flex min-h-[92px] flex-col gap-3 rounded-xl border border-border p-3">
+      <div className="flex items-start gap-3">
+        <Skeleton className="size-8 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+        <Skeleton className="size-4 rounded" />
+      </div>
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-3 w-2/3" />
+    </div>
+  );
+}
+
+function QuickstartChannelSkeleton() {
+  return (
+    <div className="flex min-h-[92px] flex-col gap-3 rounded-xl border border-border p-3">
+      <div className="flex items-start gap-3">
+        <Skeleton className="size-8 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+        <Skeleton className="h-5 w-14 rounded-full" />
+      </div>
+      <Skeleton className="h-3 w-full" />
+      <Skeleton className="h-3 w-3/4" />
+    </div>
   );
 }
 
@@ -304,8 +339,8 @@ function ChannelPermissionSection({
 
 export default function QuickstartPage() {
   const router = useRouter();
-  const { integrations } = useIntegrations();
-  const { channels } = useChannels();
+  const { integrations, loading: integrationsLoading } = useIntegrations();
+  const { channels, loading: channelsLoading } = useChannels();
   const { createAgent } = useCreateAgent();
   const { models, defaultModelId } = useModels();
   const { tools: toolCatalog } = useAgentToolCatalog();
@@ -554,15 +589,21 @@ export default function QuickstartPage() {
                 </Link>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {sortedIntegrations.map((i) => (
-                  <IntegrationCard
-                    key={i.name}
-                    integration={i}
-                    selected={selectedIntegrations.has(i.name)}
-                    onConfigure={() => setConfigureSlug(i.name)}
-                    onToggle={() => toggleIntegration(i.name)}
-                  />
-                ))}
+                {integrationsLoading && sortedIntegrations.length === 0
+                  ? Array.from({ length: 20 }).map((_, index) => (
+                      <QuickstartIntegrationSkeleton
+                        key={`integration-skeleton-${index}`}
+                      />
+                    ))
+                  : sortedIntegrations.map((i) => (
+                      <IntegrationCard
+                        key={i.name}
+                        integration={i}
+                        selected={selectedIntegrations.has(i.name)}
+                        onConfigure={() => setConfigureSlug(i.name)}
+                        onToggle={() => toggleIntegration(i.name)}
+                      />
+                    ))}
               </div>
             </div>
 
@@ -590,15 +631,21 @@ export default function QuickstartPage() {
                 </Link>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {sortedChannels.map((c) => (
-                  <ChannelCard
-                    key={c.slug}
-                    channel={c}
-                    selected={selectedChannels.has(c.slug)}
-                    onConnect={() => setOnboardChannel(c)}
-                    onToggle={() => toggleChannel(c.slug)}
-                  />
-                ))}
+                {channelsLoading && sortedChannels.length === 0
+                  ? Array.from({ length: 10 }).map((_, index) => (
+                      <QuickstartChannelSkeleton
+                        key={`channel-skeleton-${index}`}
+                      />
+                    ))
+                  : sortedChannels.map((c) => (
+                      <ChannelCard
+                        key={c.slug}
+                        channel={c}
+                        selected={selectedChannels.has(c.slug)}
+                        onConnect={() => setOnboardChannel(c)}
+                        onToggle={() => toggleChannel(c.slug)}
+                      />
+                    ))}
               </div>
             </div>
 

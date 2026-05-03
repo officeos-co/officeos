@@ -30,7 +30,7 @@ const ALL_TYPES = [
 const PAGE_SIZES = [10, 25, 50] as const;
 
 export default function LogsPage() {
-  const { logs: allLogs } = useGlobalLogs();
+  const { logs: allLogs, loading } = useGlobalLogs();
   const ALL_AGENTS = [
     "All",
     ...Array.from(new Set(allLogs.map((l) => l.agentName))),
@@ -127,7 +127,12 @@ export default function LogsPage() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
-            <LogTable logs={paged} showAgent />
+            <LogTable
+              logs={paged}
+              showAgent
+              loading={loading && allLogs.length === 0}
+              skeletonRows={10}
+            />
           </div>
 
           <div className="shrink-0 py-2">

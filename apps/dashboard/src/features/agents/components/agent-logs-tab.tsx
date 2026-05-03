@@ -33,7 +33,7 @@ export function AgentLogsTab({
   agentId: string;
   composer?: ReactNode;
 }) {
-  const { logs } = useAgentLogs(agentId);
+  const { logs, loading } = useAgentLogs(agentId);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
   const [pageSize, setPageSize] = useState<number>(25);
@@ -71,8 +71,8 @@ export function AgentLogsTab({
     <div
       className={
         selectedLog
-          ? "grid min-h-0 flex-1 overflow-hidden grid-cols-[minmax(0,1fr)_clamp(360px,42vw,560px)]"
-          : "flex min-h-0 flex-1 flex-col overflow-hidden"
+          ? "grid h-full min-h-0 flex-1 overflow-hidden grid-cols-[minmax(0,1fr)_clamp(360px,42vw,560px)]"
+          : "flex h-full min-h-0 flex-1 flex-col overflow-hidden"
       }
     >
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
@@ -115,6 +115,8 @@ export function AgentLogsTab({
               logs={paged}
               selectedLogId={effectiveSelectedLogId}
               showSelectionColumn={false}
+              loading={loading && logs.length === 0}
+              skeletonRows={10}
               className="[&_tr]:border-0"
               onSelectLog={(log) => {
                 setSelectedLogId(log.id);
