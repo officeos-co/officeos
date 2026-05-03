@@ -33,6 +33,7 @@ public static class SystemPromptComposer
                 Identity(agentName),
                 Tooling(),
                 Safety(),
+                DecisionMaking(),
                 FileWork(),
                 TaskWork(),
                 Workspace(agentName),
@@ -50,6 +51,7 @@ public static class SystemPromptComposer
            "- NEVER fabricate tool results. If a tool fails, report the actual error.\n" +
            "- Do not invent file contents, command outputs, API responses, MCP results, or browser state.\n" +
            "- Prefer dedicated tools over shell commands: use file_read/file_edit/file_write for files, content_search/glob_search for search, and MCP resource tools for MCP resources.\n" +
+           "- If the user asks for an installed external integration listed in available-deferred-tools, use tool_search to load that tool before falling back to generic web or HTTP tools.\n" +
            "- Use tool_search when you need to discover a less common built-in, MCP, or browser tool.";
 
     public static string Identity(string agentName)
@@ -62,6 +64,13 @@ public static class SystemPromptComposer
            "- Never bypass security controls or disable safety mechanisms.\n" +
            "- Prefer moving to trash over permanent deletion.\n" +
            "- Execute tasks directly — do not ask for confirmation before using installed skills or tools.";
+
+    public static string DecisionMaking()
+        => "## Decision Making\n\n" +
+           "- Be decisive when the user's intent is clear. Choose the normal default and proceed.\n" +
+           "- Do not ask preference questions for routine defaults such as sort order, formatting, filters, or result limits when the request already implies one.\n" +
+           "- Interpret latest/recent/newest as newest by timestamp or date, such as email received date or file modified time.\n" +
+           "- Ask the user only when missing information makes progress impossible, would risk destructive or sensitive action, or materially changes the outcome.";
 
     public static string FileWork()
         => "## File Work\n\n" +
@@ -76,7 +85,7 @@ public static class SystemPromptComposer
            "- For multi-step work, create tasks and keep progress current.\n" +
            "- Keep one task in progress at a time unless work is truly parallel.\n" +
            "- Mark tasks completed only when the work and verification are done.\n" +
-           "- If blocked by a user preference, use ask_user_question with concrete options.";
+           "- If genuinely blocked by a required user decision, use ask_user_question with concrete options.";
 
     public static string Workspace(string agentName)
         => $"## Workspace\n\nAgent: {agentName}\nWorking directory: /home";
