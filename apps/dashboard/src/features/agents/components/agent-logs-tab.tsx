@@ -71,7 +71,7 @@ export function AgentLogsTab({
     <div
       className={
         selectedLog
-          ? "grid min-h-0 flex-1 overflow-hidden grid-cols-[minmax(0,1fr)_360px]"
+          ? "grid min-h-0 flex-1 overflow-hidden grid-cols-[minmax(0,1fr)_clamp(360px,42vw,560px)]"
           : "flex min-h-0 flex-1 flex-col overflow-hidden"
       }
     >
