@@ -28,7 +28,12 @@ import {
 import { SearchInput } from "@/components/ui/search-input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FilterIcon, MoreHorizontalIcon, Trash2Icon } from "lucide-react";
+import {
+  FilterIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useAgents, useDeleteAgent } from "@/features/agents";
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const;
@@ -100,6 +105,12 @@ export default function AgentsPage() {
         page="Agents"
         subtitle="Create and manage autonomous agents."
         width="wide"
+        action={
+          <Button size="sm" onClick={() => router.push("/quickstart")}>
+            <PlusIcon className="size-3.5" />
+            New agent
+          </Button>
+        }
       />
       <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
         <div className="flex min-h-9 items-center justify-between gap-2">
