@@ -29,19 +29,24 @@ jobs:
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKER_PAT }}" | docker login -u harkro123 --password-stdin
 
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Building tagged release: ${VERSION}"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "Building latest from main branch"
+          fi
+
       - name: Publish container image
         working-directory: apps/backend
-        run: dotnet publish src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj -c Release /t:PublishContainer
+        run: dotnet publish src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj -c Release /t:PublishContainer /p:ContainerImageTag=${{ steps.version.outputs.tag }}
 
-      - name: Push to Docker Hub (staging)
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        run: docker push harkro123/eaos-backend:latest
-
-      - name: Tag and push to Docker Hub (prod)
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        run: |
-          docker tag harkro123/eaos-backend:latest harkro123/eaos-backend:${{ github.ref_name }}
-          docker push harkro123/eaos-backend:${{ github.ref_name }}
+      - name: Push to Docker Hub
+        run: docker push harkro123/eaos-backend:${{ steps.version.outputs.tag }}
 
   deploy:
     needs: build
@@ -54,14 +59,16 @@ jobs:
           KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
-          .github/scripts/configure-kubectl.sh
+          kubectl config set-cluster nova --server="${KUBE_SERVER}" --insecure-skip-tls-verify
+          kubectl config set-credentials ci --token="${KUBE_TOKEN}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
 
       - name: Deploy staging
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
           kubectl apply --validate=false -f k8s/staging/backend.yaml
           kubectl rollout restart deployment/eaos-backend-staging
-          kubectl rollout status deployment/eaos-backend-staging --timeout=180s
 
       - name: Deploy prod
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -69,4 +76,4 @@ jobs:
           TAG="${{ github.ref_name }}"
           sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/backend.yaml
           kubectl apply --validate=false -f k8s/prod/backend.yaml
-          kubectl rollout status deployment/eaos-backend-prod --timeout=180s
+          kubectl rollout restart deployment/eaos-backend-prod

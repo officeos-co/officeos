@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'apps/docs/**'
-      - 'docs/**'
-      - 'k8s/docs.yaml'
-      - '.github/workflows/deploy-docs-prod.yml'
+      - "apps/docs/**"
+      - "docs/**"
+      - "k8s/docs.yaml"
+      - ".github/workflows/deploy-docs-prod.yml"
 
 concurrency:
   group: deploy-docs-prod
@@ -43,13 +43,9 @@ jobs:
           KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
-          .github/scripts/configure-kubectl.sh
+          kubectl config set-cluster nova --server="${KUBE_SERVER}" --insecure-skip-tls-verify
+          kubectl config set-credentials ci --token="${KUBE_TOKEN}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
           kubectl apply --validate=false -f k8s/docs.yaml
           kubectl rollout restart deployment/eaos-docs-prod
-          if ! kubectl rollout status deployment/eaos-docs-prod --timeout=180s; then
-            kubectl get pods -l app=eaos-docs-prod -o wide || true
-            kubectl describe deployment/eaos-docs-prod || true
-            kubectl describe pods -l app=eaos-docs-prod || true
-            kubectl logs -l app=eaos-docs-prod --all-containers --tail=100 || true
-            exit 1
-          fi

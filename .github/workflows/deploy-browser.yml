@@ -29,12 +29,24 @@ jobs:
           username: harkro123
           password: ${{ secrets.DOCKER_PAT }}
 
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Building tagged release: ${VERSION}"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "Building latest from main branch"
+          fi
+
       - name: Build and push controller image
         uses: docker/build-push-action@v6
         with:
           context: packages/auto-browser/controller
           push: true
-          tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('harkro123/eaos-auto-browser-controller:{0}', github.ref_name) || 'harkro123/eaos-auto-browser-controller:latest' }}
+          tags: harkro123/eaos-auto-browser-controller:${{ steps.version.outputs.tag }}
           cache-from: type=gha,scope=auto-browser-controller
           cache-to: type=gha,scope=auto-browser-controller,mode=max
 
@@ -43,7 +55,7 @@ jobs:
         with:
           context: packages/auto-browser/browser-node
           push: true
-          tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('harkro123/eaos-auto-browser-node:{0}', github.ref_name) || 'harkro123/eaos-auto-browser-node:latest' }}
+          tags: harkro123/eaos-auto-browser-node:${{ steps.version.outputs.tag }}
           cache-from: type=gha,scope=auto-browser-node
           cache-to: type=gha,scope=auto-browser-node,mode=max
 
@@ -58,14 +70,16 @@ jobs:
           KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
-          .github/scripts/configure-kubectl.sh
+          kubectl config set-cluster nova --server="${KUBE_SERVER}" --insecure-skip-tls-verify
+          kubectl config set-credentials ci --token="${KUBE_TOKEN}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
 
       - name: Deploy staging
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
           kubectl apply --validate=false -f k8s/staging/browser.yaml
           kubectl rollout restart deployment/eaos-browser-staging
-          kubectl rollout status deployment/eaos-browser-staging --timeout=240s
 
       - name: Deploy prod
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -73,4 +87,4 @@ jobs:
           TAG="${{ github.ref_name }}"
           sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/browser.yaml
           kubectl apply --validate=false -f k8s/prod/browser.yaml
-          kubectl rollout status deployment/eaos-browser-prod --timeout=240s
+          kubectl rollout restart deployment/eaos-browser-prod

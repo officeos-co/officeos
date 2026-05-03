@@ -38,6 +38,8 @@ jobs:
           KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
-          .github/scripts/configure-kubectl.sh
+          kubectl config set-cluster nova --server="${KUBE_SERVER}" --insecure-skip-tls-verify
+          kubectl config set-credentials ci --token="${KUBE_TOKEN}"
+          kubectl config set-context nova --cluster=nova --user=ci --namespace=default
+          kubectl config use-context nova
           kubectl rollout restart deployment/eaos-backend-staging
-          kubectl rollout status deployment/eaos-backend-staging --timeout=180s
