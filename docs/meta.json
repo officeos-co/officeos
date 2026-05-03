@@ -1,0 +1,17 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "---Getting Started---",
+    "agent-lifecycle",
+    "---Architecture---",
+    "llm-proxy",
+    "zeroclaw-runtime",
+    "engineering-patterns",
+    "environment-management",
+    "---Features---",
+    "skills",
+    "runners",
+    "SKILLS_ROADMAP"
+  ]
+}

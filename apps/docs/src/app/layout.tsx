@@ -1,6 +1,5 @@
 import { RootProvider } from "fumadocs-ui/provider/next";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
-import { source } from "@/lib/source";
+import { DocsShell } from "@/components/docs-shell";
 import "fumadocs-ui/style.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -16,10 +15,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" className="light" suppressHydrationWarning>
       <body>
         <RootProvider theme={{ defaultTheme: "light", enableSystem: false }}>
-          <DocsLayout tree={source.pageTree}>{children}</DocsLayout>
+          <DocsShell>{children}</DocsShell>
         </RootProvider>
       </body>
     </html>

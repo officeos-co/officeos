@@ -3,3 +3,17 @@
 :root {
   color-scheme: light;
 }
+
+.docs-layout {
+  width: 100%;
+}
+
+.docs-page {
+  max-width: 1120px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+.docs-body > h1:first-child {
+  display: none;
+}

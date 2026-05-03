@@ -18,10 +18,15 @@ export default async function Page(props: {
   const MDX = page.data.body;
 
   return (
-    <DocsPage toc={page.data.toc}>
+    <DocsPage
+      toc={page.data.toc}
+      className="docs-page"
+      tableOfContent={{ single: true }}
+      tableOfContentPopover={{ enabled: false }}
+    >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
-      <DocsBody>
+      <DocsBody className="docs-body">
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>
