@@ -46,4 +46,10 @@ jobs:
           .github/scripts/configure-kubectl.sh
           kubectl apply --validate=false -f k8s/docs.yaml
           kubectl rollout restart deployment/eaos-docs-prod
-          kubectl rollout status deployment/eaos-docs-prod --timeout=180s
+          if ! kubectl rollout status deployment/eaos-docs-prod --timeout=180s; then
+            kubectl get pods -l app=eaos-docs-prod -o wide || true
+            kubectl describe deployment/eaos-docs-prod || true
+            kubectl describe pods -l app=eaos-docs-prod || true
+            kubectl logs -l app=eaos-docs-prod --all-containers --tail=100 || true
+            exit 1
+          fi

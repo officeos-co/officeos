@@ -1,13 +1,14 @@
 # syntax=docker/dockerfile:1.7
 FROM oven/bun:1 AS deps
-WORKDIR /app
+WORKDIR /app/apps/docs
 COPY apps/docs/package.json apps/docs/bun.lock* ./
 RUN bun install --ignore-scripts
 
 FROM oven/bun:1 AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+WORKDIR /app/apps/docs
+COPY --from=deps /app/apps/docs/node_modules ./node_modules
 COPY apps/docs/. ./
+COPY docs /app/docs
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 
@@ -17,8 +18,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+COPY --from=build /app/apps/docs/.next/standalone ./
+COPY --from=build /app/apps/docs/.next/static ./apps/docs/.next/static
+COPY --from=build /app/apps/docs/public ./apps/docs/public
+WORKDIR /app/apps/docs
 EXPOSE 3000
 CMD ["bun", "server.js"]

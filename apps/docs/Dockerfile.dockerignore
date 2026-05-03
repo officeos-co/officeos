@@ -1,0 +1,13 @@
+**
+
+!apps/
+!apps/docs/
+!apps/docs/**
+!docs/
+!docs/**
+
+apps/docs/.next
+apps/docs/.source
+apps/docs/node_modules
+apps/docs/*.tsbuildinfo
+apps/docs/next-env.d.ts
