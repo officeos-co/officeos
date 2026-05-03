@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -55,7 +56,14 @@ export function CredentialDialog({
         <div className="space-y-3 pt-2">
           {credentials.map((c) => (
             <div key={c.name} className="space-y-1.5">
-              <Label className="text-xs">{c.label}{c.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+              <Label className="text-xs">
+                {c.label}
+                {c.required && <span className="text-red-500 ml-0.5">*</span>}
+                <HelpTooltip>
+                  Stored by the backend for this MCP server. Agents receive
+                  tool access, not the raw credential value.
+                </HelpTooltip>
+              </Label>
               <Input
                 type={c.type === "password" ? "password" : "text"}
                 value={values[c.name] ?? ""}
@@ -67,7 +75,9 @@ export function CredentialDialog({
         {credentials.length > 0 && (
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleSave}>Save credentials</Button>
+            <WithTooltip tooltip="Save these credentials so the backend can call this MCP server on behalf of configured agents.">
+              <Button size="sm" onClick={handleSave}>Save credentials</Button>
+            </WithTooltip>
           </div>
         )}
       </DialogContent>

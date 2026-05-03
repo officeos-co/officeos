@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -110,17 +111,25 @@ export default function TeamPage() {
         subtitle="Manage organization members and access."
         contentClassName="max-w-3xl"
         action={
-          <Button size="sm" onClick={() => setInviteOpen(true)}>
-            <PlusIcon className="size-3.5" />
-            Invite member
-          </Button>
+          <WithTooltip tooltip="Invite a teammate into this organization. Member access can be reviewed here.">
+            <Button size="sm" onClick={() => setInviteOpen(true)}>
+              <PlusIcon className="size-3.5" />
+              Invite member
+            </Button>
+          </WithTooltip>
         }
       />
       <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
         <section>
           <h3 className="text-sm font-semibold mb-3">Organization</h3>
           <div className="space-y-2 max-w-sm">
-            <Label>Organization name</Label>
+            <Label>
+              Organization name
+              <HelpTooltip>
+                Used for workspace display. Renaming does not change billing or
+                provider configuration.
+              </HelpTooltip>
+            </Label>
             <Input
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
@@ -155,11 +164,13 @@ export default function TeamPage() {
                     {m.email}
                   </td>
                   <td className="px-0 py-2.5">
-                    <span
-                      className={`rounded bg-muted px-1.5 py-0.5 text-xs ${m.role === "Owner" ? "font-medium" : ""}`}
-                    >
-                      {m.role}
-                    </span>
+                    <WithTooltip tooltip={m.role === "Owner" ? "Owners manage organization settings and members." : "Members can use organization resources according to their assigned access."}>
+                      <span
+                        className={`rounded bg-muted px-1.5 py-0.5 text-xs ${m.role === "Owner" ? "font-medium" : ""}`}
+                      >
+                        {m.role}
+                      </span>
+                    </WithTooltip>
                     {m.status === "invited" && (
                       <span className="ml-2 rounded bg-amber-100 text-amber-900 px-1.5 py-0.5 text-xs">
                         invited
@@ -171,14 +182,16 @@ export default function TeamPage() {
                   </td>
                   <td className="px-0 py-2.5">
                     {m.role !== "Owner" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleRemove(m.id)}
-                      >
-                        <Trash2Icon className="size-3.5" />
-                      </Button>
+                      <WithTooltip tooltip="Remove this member from the organization.">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemove(m.id)}
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </Button>
+                      </WithTooltip>
                     )}
                   </td>
                 </tr>
@@ -199,7 +212,12 @@ export default function TeamPage() {
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="space-y-1.5">
-              <Label>Email address</Label>
+              <Label>
+                Email address
+                <HelpTooltip>
+                  The invitation is sent to this email address.
+                </HelpTooltip>
+              </Label>
               <Input
                 type="email"
                 value={inviteEmail}
@@ -216,13 +234,15 @@ export default function TeamPage() {
             >
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={handleInvite}
-              disabled={!inviteEmail.includes("@")}
-            >
-              Send invite
-            </Button>
+            <WithTooltip tooltip="Send the organization invitation.">
+              <Button
+                size="sm"
+                onClick={handleInvite}
+                disabled={!inviteEmail.includes("@")}
+              >
+                Send invite
+              </Button>
+            </WithTooltip>
           </div>
         </DialogContent>
       </Dialog>

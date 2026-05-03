@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -96,10 +97,12 @@ export function ChannelOnboardingDialog({
               Connect {channel.name} to start receiving and sending messages through your agents.
             </p>
             <div className="flex items-center gap-2 pt-2">
-              <Button size="sm" onClick={handleComplete} disabled={connecting}>
-                {connecting && <LoaderIcon className="size-3 animate-spin" />}
-                Connect channel
-              </Button>
+              <WithTooltip tooltip="Create a channel connection that agents can later bind to.">
+                <Button size="sm" onClick={handleComplete} disabled={connecting}>
+                  {connecting && <LoaderIcon className="size-3 animate-spin" />}
+                  Connect channel
+                </Button>
+              </WithTooltip>
               <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)} className="ml-auto" disabled={connecting}>Cancel</Button>
             </div>
           </div>
@@ -134,9 +137,11 @@ export function ChannelOnboardingDialog({
                 {current.type === "copy" && current.value && (
                   <div className="flex items-center gap-2">
                     <code className="flex-1 rounded-lg bg-muted px-3 py-2 text-xs font-mono break-all">{current.value}</code>
-                    <Button size="icon" variant="outline" className="shrink-0 size-8" onClick={() => navigator.clipboard.writeText(current.value!)}>
-                      <CopyIcon className="size-3.5" />
-                    </Button>
+                    <WithTooltip tooltip="Copy this setup value to the external channel configuration.">
+                      <Button size="icon" variant="outline" className="shrink-0 size-8" onClick={() => navigator.clipboard.writeText(current.value!)}>
+                        <CopyIcon className="size-3.5" />
+                      </Button>
+                    </WithTooltip>
                   </div>
                 )}
 
@@ -152,7 +157,14 @@ export function ChannelOnboardingDialog({
 
                 {current.type === "input" && current.inputKey && (
                   <div className="space-y-1.5">
-                    <Label className="text-xs">{current.inputLabel ?? current.title}{!current.inputRequired && <span className="text-muted-foreground ml-1">(optional)</span>}</Label>
+                    <Label className="text-xs">
+                      {current.inputLabel ?? current.title}
+                      {!current.inputRequired && <span className="text-muted-foreground ml-1">(optional)</span>}
+                      <HelpTooltip>
+                        This value is saved as channel configuration for the
+                        backend connection.
+                      </HelpTooltip>
+                    </Label>
                     {current.inputKind === "textarea" ? (
                       <Textarea
                         placeholder={current.inputPlaceholder}
@@ -179,12 +191,16 @@ export function ChannelOnboardingDialog({
 
             <div className="flex items-center gap-2 pt-2">
               {isLast ? (
-                <Button size="sm" onClick={handleComplete} disabled={connecting || !canContinue()}>
-                  {connecting && <LoaderIcon className="size-3 animate-spin" />}
-                  Connect channel
-                </Button>
+                <WithTooltip tooltip="Create the channel connection with the setup values from this flow.">
+                  <Button size="sm" onClick={handleComplete} disabled={connecting || !canContinue()}>
+                    {connecting && <LoaderIcon className="size-3 animate-spin" />}
+                    Connect channel
+                  </Button>
+                </WithTooltip>
               ) : (
-                <Button size="sm" onClick={() => setStep(step + 1)} disabled={!canContinue()}>Continue</Button>
+                <WithTooltip tooltip="Continue to the next setup step.">
+                  <Button size="sm" onClick={() => setStep(step + 1)} disabled={!canContinue()}>Continue</Button>
+                </WithTooltip>
               )}
               {step > 0 && <Button size="sm" variant="ghost" onClick={() => setStep(step - 1)} disabled={connecting}>Back</Button>}
               <Button size="sm" variant="ghost" onClick={() => onOpenChange(false)} className="ml-auto" disabled={connecting}>Cancel</Button>

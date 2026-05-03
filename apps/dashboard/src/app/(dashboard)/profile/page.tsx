@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -163,7 +164,12 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div className="grid grid-cols-[1fr_1fr] gap-4">
               <div className="space-y-2">
-                <Label>Full name</Label>
+                <Label>
+                  Full name
+                  <HelpTooltip>
+                    Used for account display in the operator UI.
+                  </HelpTooltip>
+                </Label>
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground shrink-0">
                     {initials}
@@ -172,13 +178,24 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Display name <span className="text-destructive">*</span></Label>
+                <Label>
+                  Display name <span className="text-destructive">*</span>
+                  <HelpTooltip>
+                    Name shown to teammates and in dashboard activity.
+                  </HelpTooltip>
+                </Label>
                 <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Timezone</Label>
+              <Label>
+                Timezone
+                <HelpTooltip>
+                  Used for display and scheduling defaults. Cron schedules are
+                  still stored as backend schedule expressions.
+                </HelpTooltip>
+              </Label>
               <Select value={timezone || undefined} onValueChange={(v) => { if (v) setTimezone(v) }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select your timezone" />
@@ -196,7 +213,13 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label>What personal preferences should agents consider?</Label>
+              <Label>
+                What personal preferences should agents consider?
+                <HelpTooltip>
+                  These preferences are available to agents as operator context
+                  and should not contain secrets.
+                </HelpTooltip>
+              </Label>
               <p className="text-xs text-muted-foreground">Your preferences will apply to all agents.</p>
               <Textarea
                 value={preferences}
@@ -220,10 +243,12 @@ export default function ProfilePage() {
                   Get notified when an agent has finished a task. Useful for long-running tool calls and research.
                 </p>
               </div>
-              <Switch
-                checked={prefs.taskCompletions}
-                onCheckedChange={(v) => updatePref("taskCompletions", v)}
-              />
+              <WithTooltip tooltip="Toggle task completion notifications for long-running agent work.">
+                <Switch
+                  checked={prefs.taskCompletions}
+                  onCheckedChange={(v) => updatePref("taskCompletions", v)}
+                />
+              </WithTooltip>
             </div>
             <div className="flex items-start justify-between py-4 border-b border-border">
               <div>
@@ -232,10 +257,12 @@ export default function ProfilePage() {
                   Get an email when an agent needs your approval or has completed a scheduled task.
                 </p>
               </div>
-              <Switch
-                checked={prefs.email}
-                onCheckedChange={(v) => updatePref("email", v)}
-              />
+              <WithTooltip tooltip="Toggle email notifications for approval requests and scheduled task completion.">
+                <Switch
+                  checked={prefs.email}
+                  onCheckedChange={(v) => updatePref("email", v)}
+                />
+              </WithTooltip>
             </div>
             <div className="flex items-start justify-between py-4">
               <div>
@@ -244,10 +271,12 @@ export default function ProfilePage() {
                   Get a push notification when a channel message requires your attention.
                 </p>
               </div>
-              <Switch
-                checked={prefs.channelMessages}
-                onCheckedChange={(v) => updatePref("channelMessages", v)}
-              />
+              <WithTooltip tooltip="Toggle push notifications for connected channel messages that need attention.">
+                <Switch
+                  checked={prefs.channelMessages}
+                  onCheckedChange={(v) => updatePref("channelMessages", v)}
+                />
+              </WithTooltip>
             </div>
           </div>
         </section>

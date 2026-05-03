@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/page-header";
 import { LogTable } from "@/components/log-table";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/help-tooltip";
 import {
   Select,
   SelectContent,
@@ -62,10 +63,12 @@ export default function LogsPage() {
         page="Logs"
         contentClassName="max-w-4xl"
         action={
-          <Button variant="outline" size="sm">
-            <DownloadIcon />
-            Export
-          </Button>
+          <WithTooltip tooltip="Export the currently available log data for offline review.">
+            <Button variant="outline" size="sm">
+              <DownloadIcon />
+              Export
+            </Button>
+          </WithTooltip>
         }
       />
       <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">

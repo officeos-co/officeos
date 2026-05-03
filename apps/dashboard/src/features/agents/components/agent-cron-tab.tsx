@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -193,10 +194,12 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
             Run this agent on a schedule with a specific prompt.
           </p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <PlusIcon className="size-3.5" />
-          New schedule
-        </Button>
+        <WithTooltip tooltip="Create a backend cron job that sends this agent a prompt on schedule.">
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <PlusIcon className="size-3.5" />
+            New schedule
+          </Button>
+        </WithTooltip>
       </div>
 
       {/* Job list */}
@@ -238,14 +241,16 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
                       : "Pending"}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => deleteCronJob(job.id)}
-                >
-                  <Trash2Icon className="size-3.5" />
-                </Button>
+                <WithTooltip tooltip="Delete this scheduled task. This does not delete agent logs or memory.">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => deleteCronJob(job.id)}
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
+                </WithTooltip>
               </div>
             </div>
             <div className="border-t border-border px-4 py-3">
@@ -264,13 +269,15 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
             Create a schedule to run this agent automatically — including
             heartbeats.
           </p>
-          <Button
-            size="sm"
-            className="mt-4"
-            onClick={() => setDialogOpen(true)}
-          >
-            <PlusIcon className="size-3.5" /> New schedule
-          </Button>
+          <WithTooltip tooltip="Schedules run through the backend, so they continue even when the dashboard is closed.">
+            <Button
+              size="sm"
+              className="mt-4"
+              onClick={() => setDialogOpen(true)}
+            >
+              <PlusIcon className="size-3.5" /> New schedule
+            </Button>
+          </WithTooltip>
         </div>
       )}
 
@@ -286,7 +293,13 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="cron-name">Name</Label>
+              <Label htmlFor="cron-name">
+                Name
+                <HelpTooltip>
+                  Names are only for operators. They do not change the prompt
+                  sent to the agent.
+                </HelpTooltip>
+              </Label>
               <Input
                 id="cron-name"
                 value={name}
@@ -300,7 +313,13 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
             </div>
 
             <div className="space-y-3">
-              <Label>Frequency</Label>
+              <Label>
+                Frequency
+                <HelpTooltip>
+                  Frequencies are converted to cron expressions and evaluated
+                  by the backend scheduler.
+                </HelpTooltip>
+              </Label>
               <div className="grid grid-cols-2 gap-2">
                 {FREQUENCIES.map((f) => (
                   <button
@@ -405,7 +424,13 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cron-prompt">Prompt</Label>
+              <Label htmlFor="cron-prompt">
+                Prompt
+                <HelpTooltip>
+                  This exact prompt is sent to the agent whenever the schedule
+                  runs.
+                </HelpTooltip>
+              </Label>
               <Textarea
                 id="cron-prompt"
                 value={prompt}
@@ -427,9 +452,11 @@ export function AgentCronTab({ agentId }: { agentId: string }) {
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleCreate} disabled={!prompt.trim()}>
-              Create schedule
-            </Button>
+            <WithTooltip tooltip="Create the schedule. It can be disabled or deleted later.">
+              <Button size="sm" onClick={handleCreate} disabled={!prompt.trim()}>
+                Create schedule
+              </Button>
+            </WithTooltip>
           </div>
         </DialogContent>
       </Dialog>

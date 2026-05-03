@@ -5,6 +5,7 @@ import { isDevelopment } from "@/lib/env";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -24,6 +25,7 @@ import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
 import { useCreateSession } from "@/features/agents";
+import { getModelTooltip } from "@/features/agents/model-tooltips";
 import { SendIcon, PlusIcon } from "lucide-react";
 
 /* ── Tabs (URL-driven) ───────────────────────────────────── */
@@ -168,6 +170,10 @@ export default function AgentDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <HelpTooltip>
+                The selected model controls LLM dispatch for this agent. Auto is
+                only shown when Anthropic smart routing is configured.
+              </HelpTooltip>
               {models.length === 0 && isDevelopment() ? (
                 <Link href="/providers" className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground transition-colors">
                   Add provider
@@ -182,31 +188,39 @@ export default function AgentDetailPage({
                   <SelectTrigger className="w-[180px] h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="w-max min-w-(--anchor-width) max-w-[calc(100vw-2rem)]">
                     {models.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
+                      <SelectItem
+                        key={m.id}
+                        value={m.id}
+                        title={getModelTooltip(m.id)}
+                      >
                         {m.displayName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => createSession(id)}
-              >
-                <PlusIcon className="size-3.5" />
-                New Session
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<Link href="/agents" />}
-              >
-                All agents
-              </Button>
+              <WithTooltip tooltip="Start a fresh conversation session for this agent. Existing logs and memory are not deleted.">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => createSession(id)}
+                >
+                  <PlusIcon className="size-3.5" />
+                  New Session
+                </Button>
+              </WithTooltip>
+              <WithTooltip tooltip="Return to the agent list.">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href="/agents" />}
+                >
+                  All agents
+                </Button>
+              </WithTooltip>
             </div>
           </div>
 
@@ -264,13 +278,15 @@ export default function AgentDetailPage({
                         if (e.key === "Enter" && message.trim()) submit();
                       }}
                     />
-                    <Button
-                      size="icon"
-                      disabled={!message.trim()}
-                      onClick={submit}
-                    >
-                      <SendIcon className="size-4" />
-                    </Button>
+                    <WithTooltip tooltip="Send this message into the active agent session.">
+                      <Button
+                        size="icon"
+                        disabled={!message.trim()}
+                        onClick={submit}
+                      >
+                        <SendIcon className="size-4" />
+                      </Button>
+                    </WithTooltip>
                   </div>
                 </>
               }

@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useProviders } from "@/features/manage";
+import { getProviderTooltip } from "@/features/agents/model-tooltips";
 
 /** Logo map — provider name (lowercase) → public asset path */
 const LOGOS: Record<string, string> = {
@@ -63,7 +65,13 @@ export default function ProvidersPage() {
         {/* Configured providers */}
         {configured.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold mb-3">Configured Providers</h3>
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              Configured Providers
+              <HelpTooltip>
+                Connected providers expose their concrete model list to agents.
+                Auto only appears when Anthropic is configured.
+              </HelpTooltip>
+            </h3>
             <div className="space-y-2">
               {configured.map((p) => (
                 <div
@@ -76,9 +84,11 @@ export default function ProvidersPage() {
                       <span className="font-medium text-sm">
                         {p.displayName}
                       </span>
-                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                        Connected
-                      </span>
+                      <WithTooltip tooltip={getProviderTooltip(p.name, true)}>
+                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                          Connected
+                        </span>
+                      </WithTooltip>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {p.models.length} model
@@ -96,7 +106,13 @@ export default function ProvidersPage() {
         {/* Unconfigured providers */}
         {unconfigured.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold mb-1">Not Configured</h3>
+            <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+              Not Configured
+              <HelpTooltip>
+                These providers stay hidden from model pickers until their API
+                key is configured on the backend.
+              </HelpTooltip>
+            </h3>
             <p className="text-xs text-muted-foreground mb-3">
               Set the corresponding environment variable to enable these
               providers.
@@ -111,10 +127,12 @@ export default function ProvidersPage() {
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-sm">{p.displayName}</span>
                     <br />
-                    <span className="text-xs text-muted-foreground">
-                      {p.models.length} model
-                      {p.models.length !== 1 ? "s" : ""}
-                    </span>
+                    <WithTooltip tooltip={getProviderTooltip(p.name, false)}>
+                      <span className="text-xs text-muted-foreground">
+                        {p.models.length} model
+                        {p.models.length !== 1 ? "s" : ""}
+                      </span>
+                    </WithTooltip>
                   </div>
                 </div>
               ))}

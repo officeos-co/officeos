@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -317,7 +318,13 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <Label>MCP Servers</Label>
+              <Label>
+                MCP Servers
+                <HelpTooltip>
+                  MCP servers expose external tools to this agent. Selection
+                  only grants access to this agent, not every agent.
+                </HelpTooltip>
+              </Label>
               <p className="text-xs text-muted-foreground">
                 MCP servers the agent can use.
               </p>
@@ -346,7 +353,13 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <Label>Channels</Label>
+              <Label>
+                Channels
+                <HelpTooltip>
+                  Channels bind connected messaging accounts to this agent so
+                  it can receive and respond in those conversations.
+                </HelpTooltip>
+              </Label>
               <p className="text-xs text-muted-foreground">
                 Messaging platforms that connect to the agent&apos;s session via
                 WebSocket.
@@ -418,7 +431,13 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
 
         {/* Tool permissions */}
         <div className="space-y-3">
-          <Label>Tool permissions</Label>
+          <Label>
+            Tool permissions
+            <HelpTooltip>
+              Permissions are persisted per agent and enforced when tools are
+              called. Denied tools are blocked even if the MCP server is added.
+            </HelpTooltip>
+          </Label>
           <ToolPermissionCard
             title="Built-in tools"
             subtitle="agent_toolset"
@@ -469,6 +488,10 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
           <div className="space-y-3 pointer-events-none opacity-50">
             <Label className="flex items-center gap-2">
               Channel permissions
+              <HelpTooltip>
+                Channel permissions are shown for transparency but are not
+                enforced until this section is enabled.
+              </HelpTooltip>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 Coming soon
               </span>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -38,6 +39,7 @@ import {
 } from "@/features/agents";
 import { useAnalytics } from "@/features/analytics";
 import { type Template } from "@/features/agents";
+import { getModelTooltip } from "@/features/agents/model-tooltips";
 import {
   SearchIcon,
   RocketIcon,
@@ -71,25 +73,31 @@ function PermissionCycleButton({
   onChange: (p: ToolPermission) => void;
 }) {
   const cycle: ToolPermission[] = ["allow", "deny"];
+  const tooltip =
+    value === "allow"
+      ? "Allowed means the agent may call this tool without an extra approval prompt."
+      : "Deny means the tool is hidden from the agent and blocked at execution time.";
   return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={(e) => {
-        e.stopPropagation();
-        onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
+    <WithTooltip tooltip={tooltip}>
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
           e.stopPropagation();
           onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]);
-        }
-      }}
-      className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
-    >
-      {permissionLabels[value]}
-    </span>
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]);
+          }
+        }}
+        className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
+      >
+        {permissionLabels[value]}
+      </span>
+    </WithTooltip>
   );
 }
 
@@ -173,6 +181,10 @@ function ToolPermissionSection({
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           )}
           <span className="text-xs font-medium">Tool permissions</span>
+          <HelpTooltip side="right">
+            Group permissions apply to every tool in this section unless a
+            specific tool has its own override.
+          </HelpTooltip>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
             {tools.length}
           </span>
@@ -491,7 +503,14 @@ export default function QuickstartPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Model</Label>
+                <Label>
+                  Model
+                  <HelpTooltip>
+                    Auto is transparent smart routing and only appears when
+                    Anthropic is configured. Other providers expose concrete
+                    models directly.
+                  </HelpTooltip>
+                </Label>
                 {models.length === 0 && isDevelopment() ? (
                   <Link
                     href="/providers"
@@ -510,9 +529,13 @@ export default function QuickstartPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="w-max min-w-(--anchor-width) max-w-[calc(100vw-2rem)]">
                       {models.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
+                        <SelectItem
+                          key={m.id}
+                          value={m.id}
+                          title={getModelTooltip(m.id)}
+                        >
                           {m.displayName}
                         </SelectItem>
                       ))}
@@ -524,7 +547,13 @@ export default function QuickstartPage() {
 
             {/* System prompt */}
             <div className="space-y-2">
-              <Label htmlFor="prompt">System prompt</Label>
+              <Label htmlFor="prompt">
+                System prompt
+                <HelpTooltip>
+                  This becomes the agent&apos;s standing instruction. Template
+                  prompts and your extra instructions are merged before launch.
+                </HelpTooltip>
+              </Label>
               <Textarea
                 id="prompt"
                 value={prompt}
@@ -540,7 +569,13 @@ export default function QuickstartPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Integrations</Label>
+                  <Label>
+                    Integrations
+                    <HelpTooltip>
+                      Integrations are MCP servers. Adding one exposes its tools
+                      to the agent, subject to the permissions below.
+                    </HelpTooltip>
+                  </Label>
                   <p className="text-xs text-muted-foreground">
                     API-based tools the agent can call.
                   </p>
@@ -569,7 +604,13 @@ export default function QuickstartPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Channels</Label>
+                  <Label>
+                    Channels
+                    <HelpTooltip>
+                      Channels connect external messaging platforms to the
+                      agent&apos;s session over the backend.
+                    </HelpTooltip>
+                  </Label>
                   <p className="text-xs text-muted-foreground">
                     Messaging platforms that connect to the agent&apos;s session
                     via WebSocket.
@@ -642,7 +683,13 @@ export default function QuickstartPage() {
 
             {/* Tool permissions */}
             <div className="space-y-3">
-              <Label>Tool permissions</Label>
+              <Label>
+                Tool permissions
+                <HelpTooltip>
+                  Permissions are stored in the backend and enforced when the
+                  agent tries to call tools.
+                </HelpTooltip>
+              </Label>
               <ToolPermissionSection
                 title="Built-in tools"
                 subtitle="agent_toolset"
@@ -703,7 +750,13 @@ export default function QuickstartPage() {
             {/* Channel permissions */}
             {activeChannels.length > 0 && (
               <div className="space-y-3">
-                <Label>Channel permissions</Label>
+                <Label>
+                  Channel permissions
+                  <HelpTooltip>
+                    Channel permissions control whether the agent can receive,
+                    reply, or initiate messages in connected channels.
+                  </HelpTooltip>
+                </Label>
                 <p className="text-xs text-muted-foreground">
                   Control how each channel interacts with the agent session.
                 </p>

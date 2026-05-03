@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { ChannelOnboardingDialog } from "@/features/agents";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/help-tooltip";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type Channel } from "@/features/agents/data/channels";
@@ -106,21 +107,25 @@ export default function ChannelsPage() {
                     <div className="font-medium text-sm">{channel.name}</div>
                   </div>
                   {channel.added ? (
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
-                      <RadioIcon className="size-3" /> Live
-                    </span>
+                    <WithTooltip tooltip="This channel account is connected and can be bound to agents.">
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
+                        <RadioIcon className="size-3" /> Live
+                      </span>
+                    </WithTooltip>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOnboardingChannel(channel);
-                      }}
-                    >
-                      <PlusIcon className="size-3" /> Connect
-                    </Button>
+                    <WithTooltip tooltip="Connect this external channel before assigning it to an agent.">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOnboardingChannel(channel);
+                        }}
+                      >
+                        <PlusIcon className="size-3" /> Connect
+                      </Button>
+                    </WithTooltip>
                   )}
                 </div>
                 <p className="text-sm line-clamp-2 text-muted-foreground">

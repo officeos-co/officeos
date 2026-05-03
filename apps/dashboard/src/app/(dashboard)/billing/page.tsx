@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -100,9 +101,11 @@ export default function BillingPage() {
                 <p className="text-sm text-muted-foreground">{billing.planDescription}</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => router.push("/pricing")}>
-              Adjust plan
-            </Button>
+            <WithTooltip tooltip="Review available plans and limits before changing subscription settings.">
+              <Button variant="outline" size="sm" onClick={() => router.push("/pricing")}>
+                Adjust plan
+              </Button>
+            </WithTooltip>
           </div>
 
           {billing.canceledAt ? (
@@ -124,7 +127,13 @@ export default function BillingPage() {
 
         {/* Current usage */}
         <section>
-          <h3 className="text-sm font-semibold mb-3">Current usage</h3>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            Current usage
+            <HelpTooltip>
+              Credits are usage accounting units derived from provider token
+              usage and the model cost weight.
+            </HelpTooltip>
+          </h3>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-lg font-semibold">
@@ -146,13 +155,21 @@ export default function BillingPage() {
 
         {/* Payment method */}
         <section>
-          <h3 className="text-sm font-semibold mb-3">Payment</h3>
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            Payment
+            <HelpTooltip>
+              Payment methods are handled by Stripe. The dashboard only shows
+              summary metadata.
+            </HelpTooltip>
+          </h3>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CreditCardIcon className="size-5 text-muted-foreground" />
               <span className="text-sm">{billing.payment.brand} •••• {billing.payment.last4}</span>
             </div>
-            <Button variant="outline" size="sm">Update</Button>
+            <WithTooltip tooltip="Update payment details through the billing provider.">
+              <Button variant="outline" size="sm">Update</Button>
+            </WithTooltip>
           </div>
         </section>
 
@@ -160,7 +177,13 @@ export default function BillingPage() {
 
         {/* Extra usage — simple on/off toggle (replaces old auto-reload card) */}
         <section>
-          <h3 className="text-sm font-semibold mb-1">Extra usage</h3>
+          <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+            Extra usage
+            <HelpTooltip>
+              When disabled, agents stop once the monthly budget is exhausted
+              instead of creating metered overage.
+            </HelpTooltip>
+          </h3>
           <p className="text-xs text-muted-foreground mb-4">
             When enabled, usage above your monthly credit budget is billed at your plan&apos;s metered rate so your agents keep running.
           </p>
@@ -172,10 +195,12 @@ export default function BillingPage() {
                 {billing.extraUsageEnabled ? "Enabled — overage billed via Stripe." : "Disabled — agents stop when budget is exhausted."}
               </p>
             </div>
-            <Switch
-              checked={billing.extraUsageEnabled}
-              onCheckedChange={(v) => setExtraUsageEnabled(v)}
-            />
+            <WithTooltip tooltip="Toggle whether this workspace may continue running agents after the monthly credit budget is exhausted.">
+              <Switch
+                checked={billing.extraUsageEnabled}
+                onCheckedChange={(v) => setExtraUsageEnabled(v)}
+              />
+            </WithTooltip>
           </div>
         </section>
 

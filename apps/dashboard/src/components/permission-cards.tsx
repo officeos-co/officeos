@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import type { Tool } from "@/features/agents/data/integrations"
 import type { Channel, ChannelPermissions } from "@/features/agents/data/channels"
 import {
@@ -18,16 +19,21 @@ const permissionColors: Record<ToolPermission, string> = { allow: "text-emerald-
 
 export function PermissionCycleButton({ value, onChange }: { value: ToolPermission; onChange: (p: ToolPermission) => void }) {
   const cycle: ToolPermission[] = ["allow", "deny"]
+  const tooltip = value === "allow"
+    ? "Allowed means the agent may call this tool without an extra approval prompt."
+    : "Deny means the tool is hidden from the agent and blocked at execution time."
   return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
-      className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
-    >
-      {permissionLabels[value]}
-    </span>
+    <WithTooltip tooltip={tooltip}>
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
+        className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
+      >
+        {permissionLabels[value]}
+      </span>
+    </WithTooltip>
   )
 }
 
@@ -54,6 +60,7 @@ export function ToolPermissionCard({
         <button type="button" onClick={() => setExpanded(!expanded)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-muted/50 transition-colors">
           {expanded ? <ChevronDownIcon className="size-4 text-muted-foreground" /> : <ChevronRightIcon className="size-4 text-muted-foreground" />}
           <span className="text-xs font-medium">Tool permissions</span>
+          <HelpTooltip side="right">Group permissions apply to every tool in this section unless a specific tool has its own override.</HelpTooltip>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tools.length}</span>
           <span className="ml-auto"><PermissionCycleButton value={groupPerm} onChange={onGroupPerm} /></span>
         </button>
@@ -81,16 +88,23 @@ const channelPermColors: Record<ChannelPerm, string> = { allow: "text-emerald-60
 
 function ChannelPermCycleButton({ value, onChange }: { value: ChannelPerm; onChange: (p: ChannelPerm) => void }) {
   const cycle: ChannelPerm[] = ["allow", "ask", "deny"]
+  const tooltip = value === "allow"
+    ? "Allow means the agent can perform this channel action without asking."
+    : value === "ask"
+      ? "Ask means the action should require human approval before it runs."
+      : "Deny means this channel action is blocked."
   return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
-      className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${channelPermColors[value]}`}
-    >
-      {channelPermLabels[value]}
-    </span>
+    <WithTooltip tooltip={tooltip}>
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
+        className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${channelPermColors[value]}`}
+      >
+        {channelPermLabels[value]}
+      </span>
+    </WithTooltip>
   )
 }
 
@@ -128,6 +142,7 @@ export function ChannelPermissionCard({
         <button type="button" onClick={() => setExpanded(!expanded)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-muted/50 transition-colors">
           {expanded ? <ChevronDownIcon className="size-4 text-muted-foreground" /> : <ChevronRightIcon className="size-4 text-muted-foreground" />}
           <span className="text-xs font-medium">Channel permissions</span>
+          <HelpTooltip side="right">These settings control whether the agent may receive messages, reply, or initiate conversations through this channel.</HelpTooltip>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">3</span>
         </button>
         {expanded && channelPerms.map((cp) => (

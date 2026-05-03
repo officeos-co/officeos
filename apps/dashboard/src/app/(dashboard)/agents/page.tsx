@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -154,8 +155,24 @@ export default function AgentsPage() {
               />
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Model</TableHead>
-              <TableHead className="text-center">Status</TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1.5">
+                  Model
+                  <HelpTooltip>
+                    Auto means a transparent backend routing policy. Concrete
+                    model IDs are sent directly to the configured provider.
+                  </HelpTooltip>
+                </span>
+              </TableHead>
+              <TableHead className="text-center">
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  Status
+                  <HelpTooltip>
+                    Running agents can receive messages. Pending agents are
+                    still starting; failed agents need operator attention.
+                  </HelpTooltip>
+                </span>
+              </TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Last updated</TableHead>
               <TableHead className="w-10" />
@@ -206,7 +223,11 @@ export default function AgentsPage() {
                 />
                 <TableCell>{agent.id}</TableCell>
                 <TableCell>{agent.name}</TableCell>
-                <TableCell>{agent.model}</TableCell>
+                <TableCell>
+                  <WithTooltip tooltip={agent.model === "auto" ? "Auto is only exposed when Anthropic smart routing is configured." : "Concrete model. Requests go directly to this model."}>
+                    <span>{agent.model}</span>
+                  </WithTooltip>
+                </TableCell>
                 <TableCell className="text-center">
                   <StatusBadge status={agent.status} />
                 </TableCell>

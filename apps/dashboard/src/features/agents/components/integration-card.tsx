@@ -1,6 +1,7 @@
 "use client"
 
 import type { McpServer } from "../data/integrations"
+import { WithTooltip } from "@/components/ui/help-tooltip"
 import {
   SettingsIcon,
   PlugIcon,
@@ -107,38 +108,52 @@ function IntegrationAction({
 }) {
   if (needsSetup && !i.configured) {
     return (
-      <button type="button" onClick={(e) => { e.stopPropagation(); onConfigure?.() }}
-        className="flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-200 transition-colors shrink-0">
-        <SettingsIcon className="size-3" />
-        {i.oauthProvider ? "Connect" : "Configure"}
-      </button>
+      <WithTooltip
+        tooltip={
+          i.oauthProvider
+            ? "Connect the OAuth account before agents can call this MCP server."
+            : "Add the required credentials before agents can call this MCP server."
+        }
+      >
+        <button type="button" onClick={(e) => { e.stopPropagation(); onConfigure?.() }}
+          className="flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-200 transition-colors shrink-0">
+          <SettingsIcon className="size-3" />
+          {i.oauthProvider ? "Connect" : "Configure"}
+        </button>
+      </WithTooltip>
     )
   }
 
   if (ready && !selected && onToggle) {
     return (
-      <button type="button" onClick={(e) => { e.stopPropagation(); onToggle() }}
-        className="flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-200 transition-colors shrink-0">
-        <PlugIcon className="size-3" />
-        Use
-      </button>
+      <WithTooltip tooltip="Enable this MCP server for the agent. Tool-level access can still be narrowed in permissions below.">
+        <button type="button" onClick={(e) => { e.stopPropagation(); onToggle() }}
+          className="flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-200 transition-colors shrink-0">
+          <PlugIcon className="size-3" />
+          Use
+        </button>
+      </WithTooltip>
     )
   }
 
   if (ready && selected && onToggle) {
     return (
-      <button type="button" onClick={(e) => { e.stopPropagation(); onToggle() }}
-        className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors shrink-0">
-        <CheckIcon className="size-3" />
-        Added
-      </button>
+      <WithTooltip tooltip="This MCP server is enabled for the agent. Click to remove it.">
+        <button type="button" onClick={(e) => { e.stopPropagation(); onToggle() }}
+          className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors shrink-0">
+          <CheckIcon className="size-3" />
+          Added
+        </button>
+      </WithTooltip>
     )
   }
 
   // Available badge
   return (
-    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700 shrink-0">
-      <CheckIcon className="size-3" /> Available
-    </span>
+    <WithTooltip tooltip="This MCP server is configured and available to add to agents.">
+      <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700 shrink-0">
+        <CheckIcon className="size-3" /> Available
+      </span>
+    </WithTooltip>
   )
 }

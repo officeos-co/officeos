@@ -10,6 +10,7 @@ import {
   TableCell,
   TableSelectionCell,
 } from "@/components/ui/table";
+import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { cn } from "@/lib/utils";
 import {
   TerminalIcon,
@@ -69,6 +70,27 @@ function typeLabel(log: AgentLog) {
   }
 }
 
+function typeTooltip(log: AgentLog) {
+  switch (log.type) {
+    case "tool_call":
+      return "The agent requested a tool call. Arguments are logged separately from the result.";
+    case "tool_result":
+      return "A tool returned data to the agent.";
+    case "message_in":
+      return "A user or channel message entered the agent loop.";
+    case "message_out":
+      return "The agent produced an outgoing message.";
+    case "channel_in":
+      return "A connected channel delivered a message.";
+    case "channel_out":
+      return "The backend sent a response to a connected channel.";
+    case "error":
+      return "The run hit an error. Open the row for details where available.";
+    default:
+      return "Structured backend log entry from the agent run timeline.";
+  }
+}
+
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString(undefined, {
     hour: "2-digit",
@@ -100,7 +122,16 @@ export function LogTable({
         <TableRow className="sticky top-0 z-10 bg-background hover:bg-background">
           {shouldShowSelectionColumn && <TableHead className="w-10 px-3" />}
           <TableHead className="w-[32px]" />
-          <TableHead>Type</TableHead>
+          <TableHead>
+            <span className="inline-flex items-center gap-1.5">
+              Type
+              <HelpTooltip>
+                Logs are typed events, not raw chat transcripts. Tool calls,
+                tool results, messages, and system events are recorded
+                separately.
+              </HelpTooltip>
+            </span>
+          </TableHead>
           {showAgent && <TableHead>Agent</TableHead>}
           <TableHead>Source</TableHead>
           <TableHead>Content</TableHead>
@@ -129,9 +160,11 @@ export function LogTable({
               </div>
             </TableCell>
             <TableCell>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                {typeLabel(log)}
-              </span>
+              <WithTooltip tooltip={typeTooltip(log)}>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  {typeLabel(log)}
+                </span>
+              </WithTooltip>
             </TableCell>
             {showAgent && (
               <TableCell className="text-xs">{log.agentName ?? "—"}</TableCell>
