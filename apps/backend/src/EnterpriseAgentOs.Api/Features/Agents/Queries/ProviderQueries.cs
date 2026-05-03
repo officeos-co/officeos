@@ -37,16 +37,21 @@ public class ProviderQueries
             .Select(p => p.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var models = configuredNames
-            .SelectMany(name => ProviderRegistry.GetModelIds(name))
+        var models = configured
+            .Where(p => p.Configured)
+            .SelectMany(p => ProviderRegistry.GetModelIds(p.Name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        if (models.Count > 0)
-            models.Insert(0, "auto");
+        var includeAuto = configuredNames.Contains("anthropic") && models.Count > 0;
+        if (includeAuto)
+            models.Insert(0, ProviderRegistry.DefaultModel);
 
         return models
-            .Select(m => new ModelInfoDto(m, ProviderRegistry.GetDisplayName(m), m == ProviderRegistry.DefaultModel))
+            .Select((m, index) => new ModelInfoDto(
+                m,
+                ProviderRegistry.GetDisplayName(m),
+                includeAuto ? m == ProviderRegistry.DefaultModel : index == 0))
             .ToList();
     }
 }

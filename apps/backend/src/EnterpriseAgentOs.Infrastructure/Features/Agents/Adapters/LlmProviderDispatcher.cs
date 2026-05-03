@@ -34,18 +34,30 @@ public sealed class LlmProviderDispatcher
         JsonElement requestBody,
         CancellationToken ct)
     {
-        _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, model);
-
         var definition = ProviderRegistry.Get(provider);
         if (definition is null)
             return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
 
+        if (model.Equals("auto", StringComparison.OrdinalIgnoreCase) &&
+            !definition.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
+        {
+            return new AgentError(
+                AgentErrorCategory.Configuration,
+                $"Provider '{provider}' does not support auto model routing.");
+        }
+
+        var resolvedModel = definition.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase)
+            ? SmartRouter.Resolve(model, requestBody, definition.Slug)
+            : model;
+
+        _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, resolvedModel);
+
         try
         {
             if (definition.ApiFormat == ApiFormat.Anthropic)
-                return await DispatchAnthropicAsync(apiKey, model, requestBody, ct);
+                return await DispatchAnthropicAsync(apiKey, resolvedModel, requestBody, ct);
 
-            return await DispatchOpenAiCompatAsync(definition.BaseUrl, apiKey, model, requestBody, ct);
+            return await DispatchOpenAiCompatAsync(definition.BaseUrl, apiKey, resolvedModel, requestBody, ct);
         }
         catch (TaskCanceledException ex)
         {
