@@ -1,4 +1,5 @@
 using EnterpriseAgentOs.Domain.Features.Agents;
+using EnterpriseAgentOs.Domain.Common.ValueObjects;
 using EnterpriseAgentOs.Infrastructure.Common.Security;
 
 namespace EnterpriseAgentOs.Api.Features.Agents;
@@ -24,7 +25,7 @@ public static class ChannelActiveEndpoint
                 active.Add(new
                 {
                     connectionId = conn.Id.ToString(),
-                    channelType = conn.ChannelType,
+                    channelType = conn.ChannelType.ToStorageString(),
                     creds = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(decrypted)
                 });
             }

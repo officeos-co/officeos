@@ -38,7 +38,10 @@ internal sealed class ChannelService : IChannelService
             record.EncryptedCreds = _protector.Protect(configJson);
 
         var created = await _repo.CreateConnectionAsync(record, ct);
-        await _gateway.ReloadAsync(ct);
+
+        if (!string.IsNullOrEmpty(created.EncryptedCreds) && created.Enabled)
+            await _gateway.ReloadAsync(ct);
+
         return created;
     }
 
@@ -251,12 +254,17 @@ internal sealed class ChannelService : IChannelService
 
     public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
-        await _repo.UpdateConnectionAsync(connectionId, record =>
+        var updated = await _repo.UpdateConnectionAsync(connectionId, record =>
         {
             record.EncryptedCreds = _protector.Protect(credsJson);
         }, ct);
 
-        await _gateway.ReloadAsync(ct);
+        if (updated is null)
+            throw new InvalidOperationException($"Channel connection '{connectionId}' not found.");
+
+        if (updated.Enabled)
+            await _gateway.ReloadAsync(ct);
+
         await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
     }
 

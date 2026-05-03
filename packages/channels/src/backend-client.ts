@@ -7,6 +7,26 @@ export interface ActiveConnection {
   creds: Record<string, string>;
 }
 
+interface ActiveConnectionResponse {
+  connectionId: string;
+  channelType: string | number;
+  creds: Record<string, string>;
+}
+
+const CHANNEL_TYPE_BY_ENUM_VALUE = new Map<number, string>([
+  [0, 'slack'],
+  [1, 'telegram'],
+  [2, 'discord'],
+  [3, 'whatsapp'],
+  [4, 'teams'],
+  [5, 'google-chat'],
+]);
+
+function normalizeChannelType(channelType: string | number): string | null {
+  if (typeof channelType === 'string') return channelType;
+  return CHANNEL_TYPE_BY_ENUM_VALUE.get(channelType) ?? null;
+}
+
 export async function fetchActiveConnections(): Promise<ActiveConnection[]> {
   const url = `${BACKEND_URL}/api/channels/active`;
   try {
@@ -15,7 +35,23 @@ export async function fetchActiveConnections(): Promise<ActiveConnection[]> {
       log.error('Failed to fetch active connections', { status: res.status });
       return [];
     }
-    return await res.json() as ActiveConnection[];
+    const connections = await res.json() as ActiveConnectionResponse[];
+    const active: ActiveConnection[] = [];
+
+    for (const conn of connections) {
+      const channelType = normalizeChannelType(conn.channelType);
+      if (!channelType) {
+        log.warn('Skipping active connection with unknown channel type', {
+          connectionId: conn.connectionId,
+          channelType: conn.channelType,
+        });
+        continue;
+      }
+
+      active.push({ ...conn, channelType });
+    }
+
+    return active;
   } catch (err) {
     log.error('Failed to fetch active connections', { err });
     return [];
