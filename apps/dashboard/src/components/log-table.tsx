@@ -227,12 +227,12 @@ export function LogTable({
                 <span className="text-xs text-muted-foreground">—</span>
               )}
             </TableCell>
-            <TableCell className="text-xs max-w-[400px] truncate text-muted-foreground">
+            <TableCell className="text-xs max-w-[400px] truncate text-foreground/70">
               {log.content}
             </TableCell>
             <TableCell className="text-right">
               {log.durationMs ? (
-                <span className="flex items-center justify-end gap-0.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-end gap-0.5 text-xs text-foreground/60">
                   <ClockIcon className="size-3" />
                   {log.durationMs}ms
                 </span>
@@ -240,7 +240,7 @@ export function LogTable({
                 <span className="text-xs text-muted-foreground">—</span>
               )}
             </TableCell>
-            <TableCell className="text-right text-xs text-muted-foreground">
+            <TableCell className="text-right text-xs text-foreground/60">
               {formatTime(log.time)}
             </TableCell>
           </TableRow>

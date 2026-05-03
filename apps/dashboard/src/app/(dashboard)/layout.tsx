@@ -16,7 +16,9 @@ export default function DashboardLayout({
         <AnalyticsPageview />
         <AppSidebar />
         <SidebarInset>
-          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+          <div className="mx-auto min-h-svh w-full max-w-[1600px]">
+            {children}
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </AuthGuard>

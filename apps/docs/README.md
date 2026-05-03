@@ -34,3 +34,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+- Docs sidebar shell (https://github.com/fuma-nama/fumadocs/blob/b5af621de0c8da746f0d26d4bd8bd02d55cb0670/packages/radix-ui/src/layouts/docs/slots/sidebar.tsx)
+- Sidebar primitives/state (https://github.com/fuma-nama/fumadocs/blob/b5af621de0c8da746f0d26d4bd8bd02d55cb0670/packages/radix-ui/src/components/sidebar/base.tsx)
+- Page tree renderer (https://github.com/fuma-nama/fumadocs/blob/b5af621de0c8da746f0d26d4bd8bd02d55cb0670/packages/radix-ui/src/components/sidebar/page-tree.tsx)
+- Sidebar link item renderer (https://github.com/fuma-nama/fumadocs/blob/b5af621de0c8da746f0d26d4bd8bd02d55cb0670/packages/radix-ui/src/components/sidebar/link-item.tsx)

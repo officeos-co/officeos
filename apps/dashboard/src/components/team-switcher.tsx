@@ -12,7 +12,7 @@ export function TeamSwitcher() {
     <Link
       href="/agents"
       aria-label="Go to agents"
-      className={`flex items-center gap-2 rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${collapsed ? "justify-center py-3" : "px-4 pt-5 pb-4"}`}
+      className={`flex items-center gap-2 rounded-lg text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 ${collapsed ? "justify-center py-3" : "px-4 pt-5 pb-4"}`}
     >
       <Image
         src="/icon-512.png"

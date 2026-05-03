@@ -3,9 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
-import { ChannelOnboardingDialog } from "@/features/agents";
-import { Button } from "@/components/ui/button";
-import { WithTooltip } from "@/components/ui/help-tooltip";
+import { ChannelCard, ChannelOnboardingDialog } from "@/features/agents";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type Channel } from "@/features/agents/data/channels";
@@ -16,7 +14,6 @@ import {
 } from "@/features/agents";
 import { useAnalytics } from "@/features/analytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusIcon, RadioIcon } from "lucide-react";
 import { useFilterParams } from "@/hooks/useFilterParams";
 
 const PAGE_SIZES = [25, 50, 100] as const;
@@ -68,70 +65,36 @@ export default function ChannelsPage() {
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-3 rounded-xl border border-border p-4"
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.025)]"
               >
                 <div className="flex items-start gap-3">
-                  <Skeleton className="size-8 rounded-full shrink-0" />
+                  <Skeleton className="size-9 shrink-0 rounded-lg" />
                   <div className="flex-1 pt-0.5">
                     <Skeleton className="h-4 w-24" />
                   </div>
                   <Skeleton className="h-7 w-20 rounded-md" />
                 </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
+                <div className="mt-2 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+                <div className="mt-auto flex gap-2 pt-2">
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                  <Skeleton className="h-5 w-20 rounded-md" />
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {paged.map((channel) => (
-              <div
+              <ChannelCard
                 key={channel.slug}
-                role="button"
-                tabIndex={0}
+                channel={channel}
+                variant="marketplace"
                 onClick={() => router.push(`/channels/${channel.slug}`)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    router.push(`/channels/${channel.slug}`);
-                  }
-                }}
-                className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="size-8 shrink-0 [&>svg]:size-8"
-                    dangerouslySetInnerHTML={{ __html: channel.logo }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-sm">{channel.name}</div>
-                  </div>
-                  {channel.added ? (
-                    <WithTooltip tooltip="This channel account is connected and can be bound to agents.">
-                      <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
-                        <RadioIcon className="size-3" /> Live
-                      </span>
-                    </WithTooltip>
-                  ) : (
-                    <WithTooltip tooltip="Connect this external channel before assigning it to an agent.">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOnboardingChannel(channel);
-                        }}
-                      >
-                        <PlusIcon className="size-3" /> Connect
-                      </Button>
-                    </WithTooltip>
-                  )}
-                </div>
-                <p className="text-sm line-clamp-2 text-muted-foreground">
-                  {channel.description}
-                </p>
-              </div>
+                onConnect={() => setOnboardingChannel(channel)}
+              />
             ))}
           </div>
         )}

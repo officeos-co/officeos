@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -45,21 +45,6 @@ export function NavMain({
     () => new Set(items.map((item) => item.title)),
   );
 
-  // When pathname changes, auto-open the group containing the new route
-  useEffect(() => {
-    for (const item of items) {
-      const hasActive = item.items?.some(
-        (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/"),
-      );
-      if (hasActive) {
-        setOpenGroups((prev) => {
-          if (prev.has(item.title)) return prev;
-          return new Set([...prev, item.title]);
-        });
-      }
-    }
-  }, [pathname, items]);
-
   function toggleGroup(title: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -73,21 +58,21 @@ export function NavMain({
     <SidebarGroup className="gap-1 px-3 pt-2">
       <SidebarMenu className="gap-0">
         {items.map((item) => {
-          const isOpen = openGroups.has(item.title);
           const hasActiveChild = item.items?.some(
             (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/"),
           );
+          const isOpen = openGroups.has(item.title) || hasActiveChild;
 
           if (collapsed) {
             return (
               <SidebarMenuItem key={item.title} className="group/collapsed relative">
                 <SidebarMenuButton
-                  className={`h-10 px-3 text-sm font-medium [&_svg]:size-4 [&_svg]:stroke-[1.5] ${hasActiveChild ? "bg-sidebar-border" : ""}`}
+                  className={`h-10 px-3 text-sm font-medium [&_svg]:size-4 [&_svg]:stroke-[1.5] ${hasActiveChild ? "bg-sidebar-primary/10 text-sidebar-primary" : ""}`}
                 >
                   {item.icon}
                 </SidebarMenuButton>
                 <div className="pointer-events-none invisible absolute left-full top-0 z-[9999] ml-1 min-w-[180px] rounded-lg border border-sidebar-border bg-sidebar p-2 shadow-xl group-hover/collapsed:pointer-events-auto group-hover/collapsed:visible">
-                  <p className="mb-1.5 px-2 text-xs font-semibold text-sidebar-foreground/60">
+                  <p className="mb-1.5 px-2 text-xs font-semibold text-sidebar-foreground/70">
                     {item.title}
                   </p>
                   {item.items?.map((subItem) => {
@@ -99,7 +84,7 @@ export function NavMain({
                         key={subItem.title}
                         href={subItem.url}
                         onClick={() => trackNavClicked(subItem.url)}
-                        className={`block rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent ${isActive ? "bg-sidebar-border font-medium" : ""}`}
+                        className={`block rounded-lg px-2 py-1.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground ${isActive ? "bg-sidebar-primary/10 font-medium text-sidebar-primary" : ""}`}
                       >
                         {subItem.title}
                       </Link>
@@ -142,7 +127,7 @@ export function NavMain({
                           isActive={isActive}
                           render={<Link href={subItem.url} />}
                           onClick={() => trackNavClicked(subItem.url)}
-                          className="h-9 pl-9 text-sm data-active:bg-sidebar-border data-active:font-medium"
+                          className="h-9 pl-9 text-sm data-active:font-medium"
                         >
                           <span>{subItem.title}</span>
                         </SidebarMenuSubButton>

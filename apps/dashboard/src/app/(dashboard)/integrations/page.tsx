@@ -105,14 +105,14 @@ export default function IntegrationsPage() {
         </div>
 
         {allCategories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="mb-4 flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedCategory(null)}
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                 !selectedCategory
                   ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
               )}
             >
               All
@@ -127,7 +127,7 @@ export default function IntegrationsPage() {
                   "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                   cat === selectedCategory
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
                 )}
               >
                 {cat}
@@ -141,17 +141,24 @@ export default function IntegrationsPage() {
             {Array.from({ length: 20 }).map((_, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-3 rounded-xl border border-border p-4"
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.025)]"
               >
                 <div className="flex items-start gap-3">
-                  <Skeleton className="size-8 rounded-full shrink-0" />
+                  <Skeleton className="size-9 shrink-0 rounded-lg" />
                   <div className="flex-1 pt-0.5">
                     <Skeleton className="h-4 w-28" />
+                    <Skeleton className="mt-2 h-3 w-40" />
                   </div>
                   <Skeleton className="h-7 w-14 rounded-md" />
                 </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
+                <div className="mt-2 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                <div className="mt-auto flex gap-2 pt-2">
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                  <Skeleton className="h-5 w-14 rounded-md" />
+                </div>
               </div>
             ))}
           </div>

@@ -7,6 +7,7 @@ import {
   PlugIcon,
   CheckIcon,
 } from "lucide-react"
+import { CatalogCard, CatalogMeta } from "@/components/catalog-card"
 
 type IntegrationCardProps = {
   integration: McpServer
@@ -32,21 +33,13 @@ export function IntegrationCard({
 
   if (variant === "marketplace") {
     return (
-      <div
-        role="button"
-        tabIndex={0}
+      <CatalogCard
+        logo={i.logo}
+        title={i.title}
+        subtitle={i.subtitle}
+        description={i.description}
         onClick={onClick}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.() } }}
-        className="flex flex-col gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/50 cursor-pointer"
-      >
-        <div className="flex items-start gap-3">
-          <div className="size-8 shrink-0 [&>svg]:size-8 [&>img]:size-8 [&>img]:object-contain" dangerouslySetInnerHTML={{ __html: i.logo }} />
-          <div className="min-w-0 flex-1">
-            <span className="font-medium text-sm">{i.title}</span>
-            {i.subtitle && (
-              <p className="text-xs text-muted-foreground truncate">{i.subtitle}</p>
-            )}
-          </div>
+        action={
           <IntegrationAction
             integration={i}
             ready={ready}
@@ -54,40 +47,35 @@ export function IntegrationCard({
             selected={false}
             onConfigure={onConfigure}
           />
-        </div>
-        <p className="text-sm line-clamp-2 text-muted-foreground">{i.description}</p>
-        <div className="flex flex-wrap gap-1.5 mt-1.5">
-          {i.category && (
-            <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-              {i.category}
-            </span>
-          )}
-          {i.tools.length > 0 && (
-            <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-              {i.tools.length} tools
-            </span>
-          )}
-        </div>
-      </div>
+        }
+        meta={
+          <>
+            {i.category && <CatalogMeta>{i.category}</CatalogMeta>}
+            {i.tools.length > 0 && <CatalogMeta>{i.tools.length} tools</CatalogMeta>}
+          </>
+        }
+      />
     )
   }
 
   // Quickstart variant — compact inline card
   return (
-    <div
-      className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${selected ? "border-primary bg-primary/5" : "border-border"}`}
-    >
-      <div className="size-[18px] shrink-0 [&>svg]:size-[18px] [&>img]:size-[18px] [&>img]:object-contain" dangerouslySetInnerHTML={{ __html: i.logo }} />
-      <span className="flex-1 truncate">{i.title}</span>
-      <IntegrationAction
-        integration={i}
-        ready={ready}
-        needsSetup={needsSetup}
-        selected={selected}
-        onConfigure={onConfigure}
-        onToggle={onToggle}
-      />
-    </div>
+    <CatalogCard
+      variant="compact"
+      logo={i.logo}
+      title={i.title}
+      selected={selected}
+      action={
+        <IntegrationAction
+          integration={i}
+          ready={ready}
+          needsSetup={needsSetup}
+          selected={selected}
+          onConfigure={onConfigure}
+          onToggle={onToggle}
+        />
+      }
+    />
   )
 }
 
@@ -116,7 +104,7 @@ function IntegrationAction({
         }
       >
         <button type="button" onClick={(e) => { e.stopPropagation(); onConfigure?.() }}
-          className="flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-200 transition-colors shrink-0">
+          className="flex shrink-0 items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-800 transition-colors hover:bg-amber-200">
           <SettingsIcon className="size-3" />
           {i.oauthProvider ? "Connect" : "Configure"}
         </button>
@@ -128,7 +116,7 @@ function IntegrationAction({
     return (
       <WithTooltip tooltip="Enable this MCP server for the agent. Tool-level access can still be narrowed in permissions below.">
         <button type="button" onClick={(e) => { e.stopPropagation(); onToggle() }}
-          className="flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-200 transition-colors shrink-0">
+          className="flex shrink-0 items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-800 transition-colors hover:bg-emerald-200">
           <PlugIcon className="size-3" />
           Use
         </button>
@@ -140,7 +128,7 @@ function IntegrationAction({
     return (
       <WithTooltip tooltip="This MCP server is enabled for the agent. Click to remove it.">
         <button type="button" onClick={(e) => { e.stopPropagation(); onToggle() }}
-          className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors shrink-0">
+          className="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20">
           <CheckIcon className="size-3" />
           Added
         </button>
@@ -151,7 +139,7 @@ function IntegrationAction({
   // Available badge
   return (
     <WithTooltip tooltip="This MCP server is configured and available to add to agents.">
-      <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700 shrink-0">
+      <span className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-800">
         <CheckIcon className="size-3" /> Available
       </span>
     </WithTooltip>
