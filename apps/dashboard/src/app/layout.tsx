@@ -1,22 +1,22 @@
-import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { Toaster } from "@/components/ui/sonner"
-import { Providers } from "./providers"
-import "./globals.css"
+import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "./providers";
+import "./globals.css";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "AgentOS",
+  title: "OfficeOS",
   description: "Deploy and manage autonomous AI agents.",
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html
@@ -30,5 +30,5 @@ export default function RootLayout({
         </Providers>
       </body>
     </html>
-  )
+  );
 }

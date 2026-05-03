@@ -232,9 +232,7 @@ function extractRestEndpoints(source, filePath) {
       const doc = extractDocComment(lines, handleIdx);
       const className = path.basename(filePath, ".cs");
 
-      const recordMatch = source.match(
-        /public\s+record\s+(\w+)\s*\(([^)]+)\)/
-      );
+      const recordMatch = source.match(/public\s+record\s+(\w+)\s*\(([^)]+)\)/);
       const params = [];
       if (recordMatch) {
         for (const field of recordMatch[2].split(",").map((f) => f.trim())) {
@@ -262,7 +260,7 @@ function extractRestEndpoints(source, filePath) {
   // Controller endpoints
   for (let i = 0; i < lines.length; i++) {
     const httpMatch = lines[i].match(
-      /\[Http(Get|Post|Put|Delete|Patch)\(?(?:"([^"]*)")?\)?\]/
+      /\[Http(Get|Post|Put|Delete|Patch)\(?(?:"([^"]*)")?\)?\]/,
     );
     if (!httpMatch) continue;
 
@@ -273,7 +271,7 @@ function extractRestEndpoints(source, filePath) {
     let j = i + 1;
     while (j < lines.length && lines[j].trim().startsWith("[")) j++;
     const sigMatch = lines[j]?.match(
-      /public\s+(?:async\s+)?(?:Task<)?(\w+)>?\s+(\w+)\s*\(/
+      /public\s+(?:async\s+)?(?:Task<)?(\w+)>?\s+(\w+)\s*\(/,
     );
     if (!sigMatch) continue;
 
@@ -357,7 +355,8 @@ function formatTypes(schema) {
     for (const e of enums.sort((a, b) => a.name.localeCompare(b.name))) {
       const vals = e.enumValues.map((v) => v.name).join(" | ");
       let line = `**\`${e.name}\`** — \`${vals}\`\n`;
-      if (e.description) line = `**\`${e.name}\`** — ${e.description}\n\`${vals}\`\n`;
+      if (e.description)
+        line = `**\`${e.name}\`** — ${e.description}\n\`${vals}\`\n`;
       sections.push(line);
     }
   }
@@ -366,13 +365,13 @@ function formatTypes(schema) {
   const interestingObjects = objects.filter(
     (t) =>
       /Dto|Payload|Record|Info|Entry|Page|Result|Definition|Step|Config|Limit/.test(
-        t.name
-      ) || t.name === "Skill"
+        t.name,
+      ) || t.name === "Skill",
   );
   if (interestingObjects.length > 0) {
     sections.push(`\n### Object Types\n`);
     for (const t of interestingObjects.sort((a, b) =>
-      a.name.localeCompare(b.name)
+      a.name.localeCompare(b.name),
     )) {
       let block = `**\`${t.name}\`**`;
       if (t.description) block += ` — ${t.description}`;
@@ -427,7 +426,7 @@ async function generate() {
 
   if (!dashboardSchema) {
     console.error(
-      "✗ Could not introspect dashboard schema. Is the API running?"
+      "✗ Could not introspect dashboard schema. Is the API running?",
     );
     process.exit(1);
   }

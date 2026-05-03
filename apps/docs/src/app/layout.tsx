@@ -7,11 +7,11 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: {
-    default: "EnterpriseAgentOS Docs",
-    template: "%s | EAOS Docs",
+    default: "OfficeOS Docs",
+    template: "%s | OfficeOS Docs",
   },
   description:
-    "Documentation for EnterpriseAgentOS — Kubernetes-native platform for autonomous AI agents.",
+    "Documentation for OfficeOS — Kubernetes-native platform for autonomous AI agents.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -19,9 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className="light">
       <body>
         <RootProvider theme={{ defaultTheme: "light", enableSystem: false }}>
-          <DocsLayout tree={source.pageTree}>
-            {children}
-          </DocsLayout>
+          <DocsLayout tree={source.pageTree}>{children}</DocsLayout>
         </RootProvider>
       </body>
     </html>
