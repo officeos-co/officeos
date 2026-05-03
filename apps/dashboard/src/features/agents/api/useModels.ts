@@ -25,6 +25,6 @@ export function useModels(): {
 } {
   const { data, loading } = useQuery(SUPPORTED_MODELS_QUERY)
   const models: ModelInfo[] = data?.supportedModels ?? []
-  const defaultModelId = models.find((m) => m.isDefault)?.id ?? "auto"
+  const defaultModelId = models.find((m) => m.isDefault)?.id ?? models[0]?.id ?? ""
   return { models, defaultModelId, loading }
 }

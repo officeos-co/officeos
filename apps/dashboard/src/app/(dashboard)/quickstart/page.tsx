@@ -316,7 +316,7 @@ export default function QuickstartPage() {
   const [launching, setLaunching] = useState(false);
   const [agentName, setAgentName] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState(defaultModelId);
+  const [model, setModel] = useState<string | null>(null);
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
     new Set(),
   );
@@ -385,6 +385,8 @@ export default function QuickstartPage() {
       name: tool.permissionTool || tool.runtimeName,
       description: tool.description,
     }));
+  const selectedModel =
+    model && models.some((m) => m.id === model) ? model : defaultModelId;
 
   return (
     <>
@@ -395,7 +397,7 @@ export default function QuickstartPage() {
         action={
           <Button
             size="sm"
-            disabled={!agentName.trim() || launching}
+            disabled={!agentName.trim() || !selectedModel || launching}
             onClick={async () => {
               if (launching) return;
               setLaunching(true);
@@ -421,7 +423,7 @@ export default function QuickstartPage() {
 
                 const created = await createAgent({
                   name: agentName.trim(),
-                  model,
+                  model: selectedModel,
                   systemPrompt,
                   toolNames: Array.from(selectedIntegrations),
                   toolPermissions: tpList,
@@ -430,7 +432,7 @@ export default function QuickstartPage() {
                 });
                 trackAgentCreated({
                   agentName: agentName.trim(),
-                  provider: model.split("-")[0] ?? "unknown",
+                  provider: selectedModel.split("-")[0] ?? "unknown",
                   skillCount: selectedIntegrations.size,
                   allowSkills: Object.values(toolPermissions).filter(
                     (p) => p === "allow",
@@ -456,7 +458,7 @@ export default function QuickstartPage() {
         <div className="flex-1 overflow-y-auto pb-4">
           <div className="mx-auto w-full max-w-6xl space-y-6">
             {/* Name + Model */}
-            <div className="grid grid-cols-[1fr_200px] gap-4">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,480px)_200px]">
               <div className="space-y-2">
                 <Label htmlFor="agent-name">Agent name</Label>
                 <Input
@@ -485,7 +487,7 @@ export default function QuickstartPage() {
                   </Link>
                 ) : (
                   <Select
-                    value={model}
+                    value={selectedModel}
                     onValueChange={(v) => {
                       if (v) setModel(v);
                     }}
