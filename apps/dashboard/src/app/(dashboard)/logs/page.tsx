@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { LogTable } from "@/components/log-table";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/help-tooltip";
@@ -61,7 +62,7 @@ export default function LogsPage() {
     <>
       <PageHeader
         page="Logs"
-        contentClassName="max-w-4xl"
+        width="thin"
         action={
           <WithTooltip tooltip="Export the currently available log data for offline review.">
             <Button variant="outline" size="sm">
@@ -71,7 +72,7 @@ export default function LogsPage() {
           </WithTooltip>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
+      <PageContainer width="thin" className="flex flex-1 flex-col gap-4 pb-4">
         <section className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 py-2">
             <div className="flex items-center gap-2">
@@ -149,7 +150,7 @@ export default function LogsPage() {
             />
           </div>
         </section>
-      </div>
+      </PageContainer>
     </>
   );
 }

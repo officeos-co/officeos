@@ -3,6 +3,7 @@
 import { use, useState } from "react"
 import { notFound } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
+import { PageContainer } from "@/components/page-container"
 import { ChannelOnboardingDialog } from "@/features/agents"
 import { useChannels, useDeleteChannelConnection } from "@/features/agents"
 import { useAnalytics } from "@/features/analytics"
@@ -30,9 +31,9 @@ export default function ChannelDetailPage({
           <PageHeader
             group="Channels"
             page="Loading..."
-            contentClassName="max-w-4xl"
+            width="thin"
           />
-          <div className="flex flex-1 flex-col gap-6 pb-4 max-w-4xl mx-auto w-full">
+          <PageContainer width="thin" className="flex flex-1 flex-col gap-6 pb-4">
             <div className="flex items-start gap-4">
               <Skeleton className="size-12 rounded-xl shrink-0" />
               <div className="flex-1 space-y-2">
@@ -42,7 +43,7 @@ export default function ChannelDetailPage({
               </div>
             </div>
             <Skeleton className="h-40 w-full rounded-xl" />
-          </div>
+          </PageContainer>
         </>
       )
     }
@@ -54,9 +55,9 @@ export default function ChannelDetailPage({
       <PageHeader
         group="Channels"
         page={channel.name}
-        contentClassName="max-w-4xl"
+        width="thin"
       />
-      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-4xl mx-auto w-full">
+      <PageContainer width="thin" className="flex flex-1 flex-col gap-6 pb-4">
         {/* Header */}
         <div className="flex items-start gap-4">
           <div className="size-12 shrink-0 rounded-xl [&>svg]:size-12" dangerouslySetInnerHTML={{ __html: channel.logo }} />
@@ -142,7 +143,7 @@ export default function ChannelDetailPage({
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
 
       {onboarding && (
         <ChannelOnboardingDialog

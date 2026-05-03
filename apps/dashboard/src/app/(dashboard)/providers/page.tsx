@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -42,14 +43,14 @@ export default function ProvidersPage() {
         <PageHeader
           page="Providers"
           subtitle="Review model providers available to this deployment."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
-        <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+        <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
           <Skeleton className="h-4 w-40 mb-3" />
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
-        </div>
+        </PageContainer>
       </>
     );
   }
@@ -59,9 +60,9 @@ export default function ProvidersPage() {
       <PageHeader
         page="Providers"
         subtitle="Review model providers available to this deployment."
-        contentClassName="max-w-3xl"
+        width="narrow"
       />
-      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+      <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
         {/* Configured providers */}
         {configured.length > 0 && (
           <section>
@@ -139,7 +140,7 @@ export default function ProvidersPage() {
             </div>
           </section>
         )}
-      </div>
+      </PageContainer>
     </>
   );
 }

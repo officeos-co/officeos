@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
@@ -64,9 +65,9 @@ export default function TeamPage() {
         <PageHeader
           page="Team"
           subtitle="Manage organization members and access."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
-        <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+        <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
           <section>
             <Skeleton className="h-4 w-24 mb-3" />
             <Skeleton className="h-9 w-64 rounded-md" />
@@ -80,7 +81,7 @@ export default function TeamPage() {
               ))}
             </div>
           </section>
-        </div>
+        </PageContainer>
       </>
     );
   }
@@ -91,7 +92,7 @@ export default function TeamPage() {
         <PageHeader
           page="Team"
           subtitle="Manage organization members and access."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
         <div className="flex items-center justify-center py-20">
           <p className="text-sm text-muted-foreground">
@@ -109,7 +110,7 @@ export default function TeamPage() {
       <PageHeader
         page="Team"
         subtitle="Manage organization members and access."
-        contentClassName="max-w-3xl"
+        width="narrow"
         action={
           <WithTooltip tooltip="Invite a teammate into this organization. Member access can be reviewed here.">
             <Button size="sm" onClick={() => setInviteOpen(true)}>
@@ -119,7 +120,7 @@ export default function TeamPage() {
           </WithTooltip>
         }
       />
-      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+      <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
         <section>
           <h3 className="text-sm font-semibold mb-3">Organization</h3>
           <div className="space-y-2 max-w-sm">
@@ -199,7 +200,7 @@ export default function TeamPage() {
             </tbody>
           </table>
         </section>
-      </div>
+      </PageContainer>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-sm">

@@ -4,6 +4,7 @@ import { use, useState, useEffect } from "react";
 import { isDevelopment } from "@/lib/env";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,7 @@ function AgentSkeleton() {
   return (
     <>
       <div className="sticky top-0 z-10 bg-background">
-        <div className="mx-auto w-full border-b border-border">
+        <PageContainer width="wide" className="border-b border-border">
           <div className="flex items-start justify-between py-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2.5">
@@ -78,13 +79,13 @@ function AgentSkeleton() {
             <Skeleton className="h-8 w-18" />
             <Skeleton className="h-8 w-12" />
           </div>
-        </div>
+        </PageContainer>
       </div>
-      <div className="flex flex-1 flex-col mx-auto w-full pt-6 space-y-4">
+      <PageContainer width="wide" className="flex flex-1 flex-col pt-6 space-y-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-32 w-full rounded-xl" />
         <Skeleton className="h-10 w-full" />
-      </div>
+      </PageContainer>
     </>
   );
 }
@@ -152,7 +153,7 @@ export default function AgentDetailPage({
     >
       {/* Sticky agent header + tabs */}
       <div className="sticky top-0 z-10 bg-background">
-        <div className="mx-auto w-full border-b border-border">
+        <PageContainer width="wide" className="border-b border-border">
           <div className="flex items-start justify-between py-4">
             <div>
               <div className="flex items-center gap-2.5">
@@ -239,14 +240,15 @@ export default function AgentDetailPage({
               </Link>
             ))}
           </div>
-        </div>
+        </PageContainer>
       </div>
 
-      <div
+      <PageContainer
+        width="wide"
         className={
           tab === "logs"
-            ? "flex min-h-0 flex-1 flex-col mx-auto w-full overflow-hidden"
-            : "flex flex-1 flex-col mx-auto w-full"
+            ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+            : "flex flex-1 flex-col"
         }
       >
         <div
@@ -296,7 +298,7 @@ export default function AgentDetailPage({
           {tab === "memory" && <AgentMemoryTab agentId={id} />}
           {tab === "cron" && <AgentCronTab agentId={id} />}
         </div>
-      </div>
+      </PageContainer>
 
     </div>
   );

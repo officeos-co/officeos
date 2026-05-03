@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { ChannelCard, ChannelOnboardingDialog } from "@/features/agents";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -58,8 +59,9 @@ export default function ChannelsPage() {
       <PageHeader
         page="Channels"
         subtitle="Connect agents to external communication channels."
+        width="wide"
       />
-      <div className="flex flex-1 flex-col gap-4 pb-4">
+      <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
         {loading && channels.length === 0 ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -116,7 +118,7 @@ export default function ChannelsPage() {
             }}
           />
         )}
-      </div>
+      </PageContainer>
 
       {onboardingChannel && (
         <ChannelOnboardingDialog

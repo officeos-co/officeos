@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
+import { PageContainer } from "@/components/page-container"
 import { Button } from "@/components/ui/button"
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import { Input } from "@/components/ui/input"
@@ -86,9 +87,9 @@ export default function ProfilePage() {
         <PageHeader
           page="Profile"
           subtitle="Update account details and preferences."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
-        <div className="flex flex-1 flex-col gap-8 pb-4 max-w-3xl mx-auto w-full">
+        <PageContainer width="narrow" className="flex flex-1 flex-col gap-8 pb-4">
           <section>
             <Skeleton className="h-5 w-16 mb-4" />
             <div className="grid grid-cols-[1fr_1fr] gap-4">
@@ -118,7 +119,7 @@ export default function ProfilePage() {
               <Skeleton className="h-8 w-full rounded-md" />
             </div>
           </section>
-        </div>
+        </PageContainer>
       </>
     )
   }
@@ -129,7 +130,7 @@ export default function ProfilePage() {
         <PageHeader
           page="Profile"
           subtitle="Update account details and preferences."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
         <div className="flex items-center justify-center py-20">
           <p className="text-sm text-muted-foreground">Unable to load profile.</p>
@@ -151,14 +152,14 @@ export default function ProfilePage() {
       <PageHeader
         page="Profile"
         subtitle="Update account details and preferences."
-        contentClassName="max-w-3xl"
+        width="narrow"
         action={
           <Button size="sm" onClick={handleSave} disabled={saving || loading}>
             {saving ? "Saving…" : "Save"}
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-8 pb-4 max-w-3xl mx-auto w-full">
+      <PageContainer width="narrow" className="flex flex-1 flex-col gap-8 pb-4">
         <section>
           <h2 className="text-base font-semibold mb-4">Profile</h2>
           <div className="space-y-4">
@@ -280,7 +281,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </section>
-      </div>
+      </PageContainer>
     </>
   )
 }

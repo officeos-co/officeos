@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { SearchInput } from "@/components/ui/search-input";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -91,8 +92,9 @@ export default function IntegrationsPage() {
       <PageHeader
         page="MCP Servers"
         subtitle="Browse and configure tool integrations for agents."
+        width="wide"
       />
-      <div className="flex flex-1 flex-col gap-4 pb-4">
+      <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
         <div className="flex items-center gap-2">
           <SearchInput
             placeholder="Search MCP servers..."
@@ -193,7 +195,7 @@ export default function IntegrationsPage() {
             }}
           />
         )}
-      </div>
+      </PageContainer>
 
       {configIntegration && !configIntegration.oauthProvider && (
         <CredentialDialog

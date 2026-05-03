@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -35,9 +36,9 @@ export default function IntegrationDetailPage({
           <PageHeader
             group="MCP Servers"
             page="Loading..."
-            contentClassName="max-w-4xl"
+            width="thin"
           />
-          <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 pb-4">
+          <PageContainer width="thin" className="flex flex-1 flex-col gap-6 pb-4">
             <div className="flex items-start gap-4">
               <Skeleton className="size-12 shrink-0 rounded-xl" />
               <div className="flex-1 space-y-2">
@@ -47,7 +48,7 @@ export default function IntegrationDetailPage({
             </div>
             <Skeleton className="h-28 w-full rounded-xl" />
             <Skeleton className="h-48 w-full rounded-xl" />
-          </div>
+          </PageContainer>
         </>
       );
     }
@@ -76,7 +77,7 @@ export default function IntegrationDetailPage({
       <PageHeader
         group="MCP Servers"
         page={integration.title}
-        contentClassName="max-w-4xl"
+        width="thin"
         action={
           hasOAuth ? (
             <Button
@@ -102,7 +103,7 @@ export default function IntegrationDetailPage({
         }
       />
 
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 pb-4">
+      <PageContainer width="thin" className="flex flex-1 flex-col gap-6 pb-4">
         <div className="flex items-start gap-4">
           <div
             className="size-12 shrink-0 [&>img]:size-12 [&>img]:object-contain [&>svg]:size-12"
@@ -298,7 +299,7 @@ export default function IntegrationDetailPage({
             </div>
           )}
         </div>
-      </div>
+      </PageContainer>
 
       {hasCredentialFields && (
         <CredentialDialog

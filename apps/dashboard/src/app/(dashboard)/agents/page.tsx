@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import {
@@ -98,8 +99,9 @@ export default function AgentsPage() {
       <PageHeader
         page="Agents"
         subtitle="Create and manage autonomous agents."
+        width="wide"
       />
-      <div className="flex flex-1 flex-col gap-4 pb-4">
+      <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
         <div className="flex min-h-9 items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <SearchInput
@@ -272,7 +274,7 @@ export default function AgentsPage() {
             )}
           </TableBody>
         </Table>
-      </div>
+      </PageContainer>
     </>
   );
 }

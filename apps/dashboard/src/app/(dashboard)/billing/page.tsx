@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
+import { PageContainer } from "@/components/page-container"
 import { Button } from "@/components/ui/button"
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
 import { Switch } from "@/components/ui/switch"
@@ -33,9 +34,9 @@ export default function BillingPage() {
         <PageHeader
           page="Billing"
           subtitle="Manage plan, usage, and payment settings."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
-        <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+        <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
           <section>
             <div className="flex items-center gap-4">
               <Skeleton className="size-12 rounded-xl" />
@@ -57,7 +58,7 @@ export default function BillingPage() {
             <Skeleton className="h-4 w-28 mb-3" />
             <Skeleton className="h-8 w-full rounded-md" />
           </section>
-        </div>
+        </PageContainer>
       </>
     )
   }
@@ -68,7 +69,7 @@ export default function BillingPage() {
         <PageHeader
           page="Billing"
           subtitle="Manage plan, usage, and payment settings."
-          contentClassName="max-w-3xl"
+          width="narrow"
         />
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <SparklesIcon className="size-8 text-muted-foreground" />
@@ -86,9 +87,9 @@ export default function BillingPage() {
       <PageHeader
         page="Billing"
         subtitle="Manage plan, usage, and payment settings."
-        contentClassName="max-w-3xl"
+        width="narrow"
       />
-      <div className="flex flex-1 flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+      <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
         {/* Current plan */}
         <section>
           <div className="flex items-center justify-between">
@@ -247,7 +248,7 @@ export default function BillingPage() {
             </table>
           )}
         </section>
-      </div>
+      </PageContainer>
     </>
   )
 }

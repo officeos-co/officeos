@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { toast } from "sonner"
 import { PageHeader } from "@/components/page-header"
+import { PageContainer } from "@/components/page-container"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
@@ -31,12 +32,12 @@ export default function CostPage() {
       <>
         <PageHeader
           page="Cost"
-          contentClassName="max-w-4xl"
+          width="thin"
         />
-        <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
+        <PageContainer width="thin" className="flex flex-1 flex-col gap-4 pb-4">
           <Skeleton className="h-48 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-xl" />
-        </div>
+        </PageContainer>
       </>
     )
   }
@@ -52,7 +53,7 @@ export default function CostPage() {
     <>
       <PageHeader
         page="Cost"
-        contentClassName="max-w-4xl"
+        width="thin"
         action={
           <Button variant="outline" size="sm">
             <DownloadIcon />
@@ -60,7 +61,7 @@ export default function CostPage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
+      <PageContainer width="thin" className="flex flex-1 flex-col gap-4 pb-4">
         {/* Credit summary */}
         {usage && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -131,7 +132,7 @@ export default function CostPage() {
             })}
           </div>
         </div>
-      </div>
+      </PageContainer>
     </>
   )
 }

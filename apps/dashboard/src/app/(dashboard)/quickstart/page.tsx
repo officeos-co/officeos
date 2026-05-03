@@ -5,6 +5,7 @@ import { isDevelopment } from "@/lib/env";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
 import { Input } from "@/components/ui/input";
@@ -428,7 +429,7 @@ export default function QuickstartPage() {
       <PageHeader
         page="Quickstart"
         subtitle="Launch an agent with tools, channels, and starter instructions."
-        contentClassName="max-w-6xl"
+        width="wide"
         action={
           <Button
             size="sm"
@@ -491,7 +492,7 @@ export default function QuickstartPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Agent configuration */}
         <div className="flex-1 overflow-y-auto pb-4">
-          <div className="mx-auto w-full max-w-6xl space-y-6">
+          <PageContainer width="wide" className="space-y-6">
             {/* Name + Model */}
             <div className="grid gap-4 md:grid-cols-[minmax(0,480px)_200px]">
               <div className="space-y-2">
@@ -787,7 +788,7 @@ export default function QuickstartPage() {
             )}
 
             <div className="h-8" />
-          </div>
+          </PageContainer>
         </div>
       </div>
 

@@ -8,6 +8,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  getPageWidthClassName,
+  type PageWidth,
+} from "@/components/page-container";
 import { cn } from "@/lib/utils";
 
 const groupRoutes: Record<string, string> = {
@@ -25,12 +29,14 @@ export function PageHeader({
   page,
   subtitle,
   action,
+  width = "full",
   contentClassName,
 }: {
   group?: string;
   page: string;
   subtitle?: string;
   action?: React.ReactNode;
+  width?: PageWidth;
   contentClassName?: string;
 }) {
   const groupHref = group ? (groupRoutes[group] ?? "#") : "#";
@@ -39,9 +45,9 @@ export function PageHeader({
   return (
     <header className="flex shrink-0 items-center gap-2 py-4">
       <div
-        className={cn(
-          "mx-auto flex w-full flex-1 items-start justify-between gap-4",
-          contentClassName,
+        className={getPageWidthClassName(
+          width,
+          cn("flex flex-1 items-start justify-between gap-4", contentClassName),
         )}
       >
         <SidebarTrigger className="md:hidden" />

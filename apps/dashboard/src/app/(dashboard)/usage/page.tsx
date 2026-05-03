@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -37,8 +38,8 @@ export default function UsagePage() {
   if (loading && !usage) {
     return (
       <>
-        <PageHeader page="Usage" contentClassName="max-w-4xl" />
-        <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
+        <PageHeader page="Usage" width="thin" />
+        <PageContainer width="thin" className="flex flex-1 flex-col gap-4 pb-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="rounded-xl border border-border p-4">
@@ -49,7 +50,7 @@ export default function UsagePage() {
           </div>
           <Skeleton className="h-6 w-full rounded-md" />
           <Skeleton className="h-48 w-full rounded-xl" />
-        </div>
+        </PageContainer>
       </>
     );
   }
@@ -57,7 +58,7 @@ export default function UsagePage() {
   if (!usage) {
     return (
       <>
-        <PageHeader page="Usage" contentClassName="max-w-4xl" />
+        <PageHeader page="Usage" width="thin" />
         <div className="flex items-center justify-center py-20">
           <p className="text-sm text-muted-foreground">
             Unable to load usage information.
@@ -79,7 +80,7 @@ export default function UsagePage() {
     <>
       <PageHeader
         page="Usage"
-        contentClassName="max-w-4xl"
+        width="thin"
         action={
           <Button variant="outline" size="sm">
             <DownloadIcon />
@@ -87,7 +88,7 @@ export default function UsagePage() {
           </Button>
         }
       />
-      <div className="flex flex-1 flex-col gap-4 pb-4 max-w-4xl mx-auto w-full">
+      <PageContainer width="thin" className="flex flex-1 flex-col gap-4 pb-4">
         {/* Stat cards */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-border p-4">
@@ -165,7 +166,7 @@ export default function UsagePage() {
             </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </>
   );
 }
