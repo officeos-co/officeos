@@ -9,18 +9,28 @@ internal sealed class AgentRepository : IAgentRepository
         _eaosDbContext = db;
     }
 
-    public async Task<IReadOnlyList<AgentRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var entities = await _eaosDbContext.Agents
-            .AsNoTracking()
-            .Where(a => !a.IsDeleted)
-            .OrderByDescending(a => a.CreatedAt)
-            .ToListAsync(ct);
+        var query = _eaosDbContext.Agents.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(a => a.Id == filter.Id.Value);
+
+        if (filter.OwnerId.HasValue)
+            query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (!filter.IncludeDeleted)
+            query = query.Where(a => !a.IsDeleted);
+
+        var entities = await query.OrderByDescending(a => a.CreatedAt).ToListAsync(ct);
         return entities.Select(e => ToAgentRecord(e)).ToList();
     }
 
     public async Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
     {
+        if (!filter.Id.HasValue && !filter.OwnerId.HasValue)
+            throw new ArgumentException("GetByAsync requires at least one AgentFilter selector.", nameof(filter));
+
         var query = _eaosDbContext.Agents.AsNoTracking().AsQueryable();
 
         if (filter.Id.HasValue)
@@ -66,37 +76,63 @@ internal sealed class AgentRepository : IAgentRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateStatusAsync(Guid id, AgentStatus status, CancellationToken ct = default)
+    public async Task UpdateStatusAsync(AgentFilter filter, AgentStatus status, CancellationToken ct = default)
     {
+        if (!filter.Id.HasValue && !filter.OwnerId.HasValue)
+            throw new ArgumentException("UpdateStatusAsync requires at least one AgentFilter selector.", nameof(filter));
+
         var statusStr = status.ToStorageString();
-        await _eaosDbContext.Agents.Where(a => a.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, statusStr), ct);
+        var query = _eaosDbContext.Agents.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(a => a.Id == filter.Id.Value);
+
+        if (filter.OwnerId.HasValue)
+            query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (!filter.IncludeDeleted)
+            query = query.Where(a => !a.IsDeleted);
+
+        await query.ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, statusStr), ct);
     }
 
-    public async Task<bool> SoftDeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task<bool> SoftDeleteAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Agents.FirstOrDefaultAsync(a => a.Id == id, ct);
-        if (entity is null || entity.IsDeleted)
-        {
-            return false;
-        }
+        if (!filter.Id.HasValue && !filter.OwnerId.HasValue)
+            throw new ArgumentException("SoftDeleteAsync requires at least one AgentFilter selector.", nameof(filter));
 
-        entity.IsDeleted = true;
-        await _eaosDbContext.SaveChangesAsync(ct);
-        return true;
+        var query = _eaosDbContext.Agents.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(a => a.Id == filter.Id.Value);
+
+        if (filter.OwnerId.HasValue)
+            query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (!filter.IncludeDeleted)
+            query = query.Where(a => !a.IsDeleted);
+
+        var affected = await query.ExecuteUpdateAsync(s => s.SetProperty(a => a.IsDeleted, true), ct);
+        return affected > 0;
     }
 
-    public async Task<IReadOnlyList<AgentRecord>> ListByOwnerAsync(Guid ownerId, bool includeDeleted = false, CancellationToken ct = default)
+    public async Task HardDeleteAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var q = _eaosDbContext.Agents.AsNoTracking().Where(a => a.OwnerId == ownerId);
-        if (!includeDeleted) q = q.Where(a => !a.IsDeleted);
-        var entities = await q.OrderByDescending(a => a.CreatedAt).ToListAsync(ct);
-        return entities.Select(e => ToAgentRecord(e)).ToList();
-    }
+        if (!filter.Id.HasValue && !filter.OwnerId.HasValue)
+            throw new ArgumentException("HardDeleteAsync requires at least one AgentFilter selector.", nameof(filter));
 
-    public async Task HardDeleteByOwnerAsync(Guid ownerId, CancellationToken ct = default)
-    {
-        await _eaosDbContext.Agents.Where(a => a.OwnerId == ownerId).ExecuteDeleteAsync(ct);
+        var query = _eaosDbContext.Agents.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(a => a.Id == filter.Id.Value);
+
+        if (filter.OwnerId.HasValue)
+            query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (!filter.IncludeDeleted)
+            query = query.Where(a => !a.IsDeleted);
+
+        await query.ExecuteDeleteAsync(ct);
     }
 
     // ── Mapping: child records ──────────────────────────────────────

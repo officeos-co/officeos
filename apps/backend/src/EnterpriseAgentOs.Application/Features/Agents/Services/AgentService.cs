@@ -17,8 +17,10 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentToolPermissionRepository _toolPermissionRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
-    private const string AgentListCacheKey = "agents:list";
-    private static string AgentCacheKey(Guid id) => $"agents:{id}";
+    private static string AgentListCacheKey(AgentFilter filter)
+        => $"agents:list:id={filter.Id?.ToString() ?? "all"}:owner={filter.OwnerId?.ToString() ?? "all"}:deleted={filter.IncludeDeleted}";
+    private static string AgentCacheKey(AgentFilter filter)
+        => $"agents:detail:id={filter.Id?.ToString() ?? "any"}:owner={filter.OwnerId?.ToString() ?? "any"}:deleted={filter.IncludeDeleted}";
 
     public AgentService(
         IAgentRepository repository,
@@ -46,34 +48,35 @@ internal sealed class AgentService : IAgentService
         _toolPermissionRepository = toolPermissionRepository;
     }
 
-    public async Task<IReadOnlyList<AgentDto>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentDto>> ListAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentDto>>(AgentListCacheKey, ct);
+        var cacheKey = AgentListCacheKey(filter);
+        var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentDto>>(cacheKey, ct);
         if (cached is not null)
             return cached;
 
-        var records = await _agentRepository.ListAsync(ct);
+        var records = await _agentRepository.ListAsync(filter, ct);
         _logger.LogDebug("Listing {Count} agents, refreshing pod status", records.Count);
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
         var result = records.Select(ToDto).ToList();
 
-        await _cache.SetJsonAsync(AgentListCacheKey, (IReadOnlyList<AgentDto>)result, AgentCacheTtl, ct);
+        await _cache.SetJsonAsync(cacheKey, (IReadOnlyList<AgentDto>)result, AgentCacheTtl, ct);
         return result;
     }
 
-    public async Task<AgentDto?> GetAsync(Guid id, CancellationToken ct = default)
+    public async Task<AgentDto?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var key = AgentCacheKey(id);
+        var key = AgentCacheKey(filter);
         var cached = await _cache.GetJsonAsync<AgentDto>(key, ct);
         if (cached is not null)
             return cached;
 
-        var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
+        var record = await _agentRepository.GetByAsync(filter, ct);
         if (record is null)
         {
-            _logger.LogDebug("Agent {AgentId} not found", id);
+            _logger.LogDebug("Agent not found for filter {@Filter}", filter);
             return null;
         }
         await RefreshStatusAsync(record, ct);
@@ -176,7 +179,7 @@ internal sealed class AgentService : IAgentService
 
         _logger.LogInformation("Deleting agent {AgentId} ({AgentName})", id, record.Name);
 
-        var deleted = await _agentRepository.SoftDeleteAsync(id, ct);
+        var deleted = await _agentRepository.SoftDeleteAsync(new AgentFilter { Id = id }, ct);
 
         if (deleted)
             await _publisher.Publish(new AgentDeletedEvent(id, record.PodName, record.HasPod, record.OwnerId), ct);
@@ -219,14 +222,14 @@ internal sealed class AgentService : IAgentService
 
     private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)
     {
-        if (!record.HasPod) return;
+        if (!record.HasPod || string.IsNullOrEmpty(record.PodName)) return;
         try
         {
             var live = await _agentDeployer.GetStatusAsync(record.PodName, ct);
             var liveStatus = live.ToAgentStatus();
             if (liveStatus != record.Status)
             {
-                await _agentRepository.UpdateStatusAsync(record.Id, liveStatus, ct);
+                await _agentRepository.UpdateStatusAsync(new AgentFilter { Id = record.Id }, liveStatus, ct);
                 record.Status = liveStatus;
             }
         }

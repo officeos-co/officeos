@@ -9,8 +9,7 @@ internal sealed class InvalidateAgentCacheHandler :
     INotificationHandler<AgentDeletedEvent>,
     INotificationHandler<AgentUpdatedEvent>
 {
-    private const string AgentListCacheKey = "agents:list";
-    private static string AgentCacheKey(Guid id) => $"agents:{id}";
+    private static string AgentCacheKey(Guid id) => $"agents:detail:id={id}:owner=any:deleted=False";
 
     private readonly IDistributedCache _cache;
 
@@ -33,7 +32,6 @@ internal sealed class InvalidateAgentCacheHandler :
 
     private async Task InvalidateAsync(Guid agentId, CancellationToken ct)
     {
-        await _cache.RemoveAsync(AgentListCacheKey, ct);
         await _cache.RemoveAsync(AgentCacheKey(agentId), ct);
     }
 }

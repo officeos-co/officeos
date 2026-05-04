@@ -128,7 +128,8 @@ public sealed class BillingGuardTests
 
         public FakeAgentRepository(AgentRecord agent) => _agent = agent;
 
-        public Task<IReadOnlyList<AgentRecord>> ListAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<AgentRecord>>([_agent]);
+        public Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<AgentRecord>>([_agent]);
         public Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
             => Task.FromResult(
                 (!filter.Id.HasValue || _agent.Id == filter.Id.Value)
@@ -137,10 +138,8 @@ public sealed class BillingGuardTests
                     : null);
         public Task AddAsync(AgentRecord record, CancellationToken ct = default) => Task.CompletedTask;
         public Task UpdateAsync(AgentRecord record, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> SoftDeleteAsync(Guid id, CancellationToken ct = default) => Task.FromResult(false);
-        public Task UpdateStatusAsync(Guid id, AgentStatus status, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<IReadOnlyList<AgentRecord>> ListByOwnerAsync(Guid ownerId, bool includeDeleted = false, CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<AgentRecord>>(_agent.OwnerId == ownerId ? [_agent] : []);
-        public Task HardDeleteByOwnerAsync(Guid ownerId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> SoftDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.FromResult(false);
+        public Task UpdateStatusAsync(AgentFilter filter, AgentStatus status, CancellationToken ct = default) => Task.CompletedTask;
+        public Task HardDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.CompletedTask;
     }
 }

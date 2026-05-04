@@ -4,8 +4,8 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 public class AgentQueries
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
-    private const string ListCacheKey = "agents:dashboard:list";
-    private static string DetailCacheKey(Guid id) => $"agents:dashboard:{id}";
+    private static string ListCacheKey(Guid userId) => $"agents:dashboard:list:{userId}";
+    private static string DetailCacheKey(Guid id, Guid userId) => $"agents:dashboard:{id}:user:{userId}";
 
     [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
     public async Task<IReadOnlyList<AgentDto>> GetAgents(
@@ -14,14 +14,14 @@ public class AgentQueries
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(ListCacheKey, ct);
+        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(ListCacheKey(user.Id), ct);
         if (cached is not null)
             return cached;
 
-        var result = await agents.ListAsync(ct);
-        await cache.SetJsonAsync(ListCacheKey, result, CacheTtl, ct);
+        var result = await agents.ListAsync(new AgentFilter { OwnerId = user.Id }, ct);
+        await cache.SetJsonAsync(ListCacheKey(user.Id), result, CacheTtl, ct);
         return result;
     }
 
@@ -33,14 +33,14 @@ public class AgentQueries
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var key = DetailCacheKey(id);
+        var key = DetailCacheKey(id, user.Id);
         var cached = await cache.GetJsonAsync<AgentRecord>(key, ct);
         if (cached is not null)
             return cached;
 
-        var result = await agents.GetByAsync(new AgentFilter { Id = id }, ct);
+        var result = await agents.GetByAsync(new AgentFilter { Id = id, OwnerId = user.Id }, ct);
         if (result is not null)
             await cache.SetJsonAsync(key, result, CacheTtl, ct);
 

@@ -3,8 +3,8 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentDashboardMutations
 {
-    private const string AgentListQueryCacheKey = "agents:dashboard:list";
-    private static string AgentQueryCacheKey(Guid id) => $"agents:dashboard:{id}";
+    private static string AgentListQueryCacheKey(Guid userId) => $"agents:dashboard:list:{userId}";
+    private static string AgentQueryCacheKey(Guid id, Guid userId) => $"agents:dashboard:{id}:user:{userId}";
 
     [GraphQLDescription("Creates a new agent with the given config. Optionally assigns skills, tool permissions, and channels.")]
     public async Task<AgentDto> CreateAgent(
@@ -50,7 +50,7 @@ public class AgentDashboardMutations
                 bootstrap),
             ct);
 
-        await cache.RemoveAsync(AgentListQueryCacheKey, ct);
+        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
         return dto;
     }
 
@@ -63,7 +63,7 @@ public class AgentDashboardMutations
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
         var dto = await agents.PatchAsync(
             id,
             new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
@@ -76,8 +76,8 @@ public class AgentDashboardMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        await cache.RemoveAsync(AgentListQueryCacheKey, ct);
-        await cache.RemoveAsync(AgentQueryCacheKey(id), ct);
+        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
+        await cache.RemoveAsync(AgentQueryCacheKey(id, user.Id), ct);
         return dto;
     }
 
@@ -90,11 +90,11 @@ public class AgentDashboardMutations
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
         await browser.StopAsync(id, ct);
         var result = await agents.DeleteAsync(id, ct);
-        await cache.RemoveAsync(AgentListQueryCacheKey, ct);
-        await cache.RemoveAsync(AgentQueryCacheKey(id), ct);
+        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
+        await cache.RemoveAsync(AgentQueryCacheKey(id, user.Id), ct);
         return result;
     }
 

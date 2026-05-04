@@ -31,7 +31,7 @@ internal sealed class GdprService : IGdprService
             user.CreatedAt,
             user.LastLoginAt);
 
-        var agentRecords = await _agentRepository.ListByOwnerAsync(userId, includeDeleted: false, ct);
+        var agentRecords = await _agentRepository.ListAsync(new AgentFilter { OwnerId = userId }, ct);
         var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         var agents = agentRecords
@@ -78,13 +78,13 @@ internal sealed class GdprService : IGdprService
 
     public async Task PurgeAsync(Guid userId, CancellationToken ct = default)
     {
-        var agentRecords = await _agentRepository.ListByOwnerAsync(userId, includeDeleted: true, ct);
+        var agentRecords = await _agentRepository.ListAsync(new AgentFilter { OwnerId = userId, IncludeDeleted = true }, ct);
         var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         if (agentIds.Count > 0)
         {
             await _agentLogRepository.DeleteByAgentIdsAsync(agentIds, ct);
-            await _agentRepository.HardDeleteByOwnerAsync(userId, ct);
+            await _agentRepository.HardDeleteAsync(new AgentFilter { OwnerId = userId, IncludeDeleted = true }, ct);
         }
 
         await _sessionRepository.DeleteByUserIdAsync(userId, ct);
