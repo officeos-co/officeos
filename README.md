@@ -26,7 +26,18 @@ Self-host the full stack with Docker Compose or Kubernetes.
 
 ## YC Application Video
 
-<video src="docs/assets/YcApplicationVideo.mov" controls width="100%"></video>
+<video controls width="100%" poster="docs/assets/OfficeOsScreen1.png">
+  <source src="docs/assets/YcApplicationVideo.mp4" type="video/mp4" />
+  <a href="docs/assets/YcApplicationVideo.mp4">Watch the YC application video</a>
+</video>
+
+[Watch the YC application video](docs/assets/YcApplicationVideo.mp4)
+
+## Dashboard Preview
+
+| Quickstart                                                                                                                      | Integrations                                                                                           | Launch setup                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/assets/OfficeOsScreen1.png" alt="OfficeOS quickstart screen with agent name, model, prompt, and integrations" /> | <img src="docs/assets/OfficeScreen2.png" alt="OfficeOS dashboard integrations list for agent tools" /> | <img src="docs/assets/OfficeScreen3.png" alt="OfficeOS quickstart launch setup with available integrations" /> |
 
 ## Highlights
 
