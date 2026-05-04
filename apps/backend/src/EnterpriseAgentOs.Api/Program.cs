@@ -6,13 +6,16 @@ string? FindRootEnvFile()
         var envPath = System.IO.Path.Combine(current.FullName, ".env");
         if (System.IO.File.Exists(System.IO.Path.Combine(current.FullName, "docker-compose.yml"))
             || Directory.Exists(System.IO.Path.Combine(current.FullName, ".git")))
-            return envPath;
+            return System.IO.File.Exists(envPath) ? envPath : null;
 
         current = current.Parent;
     }
 
     return null;
 }
+
+static bool IsDevelopmentEnvironmentName(string? environmentName) =>
+    string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase);
 
 const string FrontendCorsPolicy = "dashboard";
 
@@ -26,6 +29,19 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
     .CreateLogger();
 
+var explicitEnvironment =
+    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+var rootEnvFile = FindRootEnvFile();
+if (IsDevelopmentEnvironmentName(explicitEnvironment)
+    || (string.IsNullOrWhiteSpace(explicitEnvironment) && rootEnvFile is not null))
+{
+    if (rootEnvFile is null)
+        throw new InvalidOperationException("Root .env file not found.");
+
+    dotenv.net.DotEnv.Fluent().WithoutExceptions().WithEnvFiles(rootEnvFile).Load();
+}
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 var isDevelopment = builder.Environment.IsDevelopment();
@@ -34,11 +50,9 @@ var isDevelopment = builder.Environment.IsDevelopment();
 // from Kubernetes secrets and environment variables.
 if (isDevelopment)
 {
-    var rootEnvFile = FindRootEnvFile();
     if (rootEnvFile is null)
         throw new InvalidOperationException("Root .env file not found.");
 
-    dotenv.net.DotEnv.Fluent().WithoutExceptions().WithEnvFiles(rootEnvFile).Load();
     builder.Configuration.AddEnvironmentVariables();
 }
 
