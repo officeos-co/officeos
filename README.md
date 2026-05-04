@@ -6,10 +6,10 @@
   </picture>
 </p>
 
-<h1 align="center">Launch agents in seconds. Scale to hundreds across your infrastructure.</h1>
+<h1 align="center">Launch agents in seconds. Scale to hundreds.</h1>
 
 <p align="center">
-Open-source infrastructure for deploying, hosting, and managing fleets of AI agents from one control plane.
+Open-source infrastructure for deploying, hosting, and managing fleets of AI agents across your infrastructure.
 </p>
 
 <p align="center">
