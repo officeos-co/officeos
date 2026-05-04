@@ -46,6 +46,14 @@ export function LogDetailPanel({
   className?: string;
 }) {
   const formattedContent = log ? formatLogContent(log.content) : null;
+  const hasMetadata =
+    log &&
+    (log.agentName ||
+      log.tool ||
+      log.channel ||
+      log.integration ||
+      log.durationMs != null ||
+      log.tokens);
 
   return (
     <aside
@@ -81,54 +89,56 @@ export function LogDetailPanel({
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 text-sm [scrollbar-gutter:stable]">
-            <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-md border border-border bg-muted/20 p-3">
-              {log.agentName && (
-                <>
-                  <span className="text-muted-foreground">Agent</span>
-                  <span className="min-w-0 break-words text-xs">
-                    {log.agentName}
-                  </span>
-                </>
-              )}
-              {log.tool && (
-                <>
-                  <span className="text-muted-foreground">Tool</span>
-                  <code className="min-w-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs break-all">
-                    {log.tool}
-                  </code>
-                </>
-              )}
-              {log.channel && (
-                <>
-                  <span className="text-muted-foreground">Channel</span>
-                  <code className="min-w-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs break-all">
-                    {log.channel}
-                  </code>
-                </>
-              )}
-              {log.integration && (
-                <>
-                  <span className="text-muted-foreground">Integration</span>
-                  <code className="min-w-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs break-all">
-                    {log.integration}
-                  </code>
-                </>
-              )}
-              {log.durationMs != null && (
-                <>
-                  <span className="text-muted-foreground">Duration</span>
-                  <span className="text-xs">{log.durationMs}ms</span>
-                </>
-              )}
-              {log.tokens && (
-                <>
-                  <span className="text-muted-foreground">Tokens</span>
-                  <span className="text-xs">
-                    {log.tokens.input} in / {log.tokens.output} out
-                  </span>
-                </>
-              )}
-            </div>
+            {hasMetadata && (
+              <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-md border border-border bg-muted/20 p-3">
+                {log.agentName && (
+                  <>
+                    <span className="text-muted-foreground">Agent</span>
+                    <span className="min-w-0 break-words text-xs">
+                      {log.agentName}
+                    </span>
+                  </>
+                )}
+                {log.tool && (
+                  <>
+                    <span className="text-muted-foreground">Tool</span>
+                    <code className="min-w-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs break-all">
+                      {log.tool}
+                    </code>
+                  </>
+                )}
+                {log.channel && (
+                  <>
+                    <span className="text-muted-foreground">Channel</span>
+                    <code className="min-w-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs break-all">
+                      {log.channel}
+                    </code>
+                  </>
+                )}
+                {log.integration && (
+                  <>
+                    <span className="text-muted-foreground">Integration</span>
+                    <code className="min-w-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs break-all">
+                      {log.integration}
+                    </code>
+                  </>
+                )}
+                {log.durationMs != null && (
+                  <>
+                    <span className="text-muted-foreground">Duration</span>
+                    <span className="text-xs">{log.durationMs}ms</span>
+                  </>
+                )}
+                {log.tokens && (
+                  <>
+                    <span className="text-muted-foreground">Tokens</span>
+                    <span className="text-xs">
+                      {log.tokens.input} in / {log.tokens.output} out
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
 
             <div>
               <div className="mb-2 text-xs font-medium text-muted-foreground">
