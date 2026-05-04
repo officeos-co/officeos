@@ -6,6 +6,7 @@ namespace EnterpriseAgentOs.Application.Features.Analytics;
 internal sealed class TurnLoggingHandler :
     INotificationHandler<TurnStartedEvent>,
     INotificationHandler<TurnCompletedEvent>,
+    INotificationHandler<TurnDiagnosticEvent>,
     INotificationHandler<PodConnectedEvent>,
     INotificationHandler<LlmCallCompletedEvent>,
     INotificationHandler<ToolCallStartedEvent>,
@@ -37,6 +38,13 @@ internal sealed class TurnLoggingHandler :
     {
         await _logService.AppendAsync(
             WithRun(AgentLogRecord.System(e.AgentId, "Pod connected",
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
+    }
+
+    public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)
+    {
+        await _logService.AppendAsync(
+            WithRun(AgentLogRecord.System(e.AgentId, e.Message,
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
     }
 
