@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAgentLogs } from "@/features/analytics/api/useAgentLogs";
+import type { AgentLog } from "@/types/logs";
 
 const ALL_TYPES = [
   "All",
@@ -29,9 +30,11 @@ const PAGE_SIZES = [10, 25, 50] as const;
 export function AgentLogsTab({
   agentId,
   composer,
+  pendingTurnStartedAt = null,
 }: {
   agentId: string;
   composer?: ReactNode;
+  pendingTurnStartedAt?: number | null;
 }) {
   const { logs, loading } = useAgentLogs(agentId);
   const [search, setSearch] = useState("");
@@ -58,7 +61,26 @@ export function AgentLogsTab({
     });
   }, [logs, search, typeFilter]);
 
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+  const agentThinking = useMemo(
+    () => isAgentThinking(logs, pendingTurnStartedAt),
+    [logs, pendingTurnStartedAt],
+  );
+  const canShowThinkingRow =
+    agentThinking && search.trim() === "" && typeFilter === "All";
+  const totalRows = filtered.length + (canShowThinkingRow ? 1 : 0);
+  const thinkingRowPage = canShowThinkingRow
+    ? Math.floor(filtered.length / pageSize)
+    : -1;
+  const lastPage = Math.max(0, Math.ceil(totalRows / pageSize) - 1);
+  const effectivePage = canShowThinkingRow
+    ? thinkingRowPage
+    : Math.min(page, lastPage);
+  const showThinkingRow =
+    canShowThinkingRow && effectivePage === thinkingRowPage;
+  const paged = filtered.slice(
+    effectivePage * pageSize,
+    (effectivePage + 1) * pageSize,
+  );
   const latestLogId = logs[logs.length - 1]?.id ?? null;
   const effectiveSelectedLogId = detailOpen
     ? (selectedLogId ?? latestLogId)
@@ -117,6 +139,7 @@ export function AgentLogsTab({
               showSelectionColumn={false}
               loading={loading && logs.length === 0}
               skeletonRows={10}
+              thinking={showThinkingRow}
               className="[&_tr]:border-0"
               onSelectLog={(log) => {
                 setSelectedLogId(log.id);
@@ -125,9 +148,9 @@ export function AgentLogsTab({
             />
             <div className="py-2">
               <DataPagination
-                page={page}
+                page={effectivePage}
                 pageSize={pageSize}
-                total={filtered.length}
+                total={totalRows}
                 pageSizes={PAGE_SIZES}
                 onPageChange={setPage}
                 onPageSizeChange={(size) => {
@@ -156,5 +179,32 @@ export function AgentLogsTab({
         </div>
       )}
     </div>
+  );
+}
+
+function isAgentThinking(logs: AgentLog[], pendingTurnStartedAt: number | null) {
+  const latestStart = logs.reduce<number | null>((latest, log) => {
+    if (!isTurnStart(log)) return latest;
+    return latest === null || log.time > latest ? log.time : latest;
+  }, pendingTurnStartedAt);
+
+  if (latestStart === null) return false;
+
+  return !logs.some((log) => log.time >= latestStart && isTurnTerminal(log));
+}
+
+function isTurnStart(log: AgentLog) {
+  return (
+    log.type === "message_in" ||
+    log.type === "channel_in" ||
+    (log.type === "system" && log.content.startsWith("Turn started:"))
+  );
+}
+
+function isTurnTerminal(log: AgentLog) {
+  return (
+    log.type === "message_out" ||
+    log.type === "error" ||
+    (log.type === "system" && log.content.startsWith("Turn complete:"))
   );
 }

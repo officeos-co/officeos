@@ -22,6 +22,7 @@ import {
   PlayIcon,
   SquareIcon,
   AlertTriangleIcon,
+  LoaderCircleIcon,
 } from "lucide-react";
 
 function logIcon(log: AgentLog) {
@@ -109,6 +110,7 @@ export function LogTable({
   className,
   loading = false,
   skeletonRows = 10,
+  thinking = false,
 }: {
   logs: (AgentLog & { agentName?: string })[];
   showAgent?: boolean;
@@ -118,6 +120,7 @@ export function LogTable({
   className?: string;
   loading?: boolean;
   skeletonRows?: number;
+  thinking?: boolean;
 }) {
   const shouldShowSelectionColumn = showSelectionColumn ?? Boolean(onSelectLog);
   const columnCount =
@@ -189,63 +192,101 @@ export function LogTable({
               </TableCell>
             </TableRow>
           ))}
-        {!loading && logs.map((log) => (
-          <TableRow
-            key={log.id}
-            onClick={() => onSelectLog?.(log)}
-            data-state={selectedLogId === log.id ? "selected" : undefined}
-            className={cn(onSelectLog && "cursor-pointer")}
-          >
-            {shouldShowSelectionColumn && (
-              <TableSelectionCell
-                checked={selectedLogId === log.id}
-                aria-label={`Select ${typeLabel(log)} log`}
-                onCheckedChange={() => onSelectLog?.(log)}
-              />
-            )}
+        {!loading &&
+          logs.map((log) => (
+            <TableRow
+              key={log.id}
+              onClick={() => onSelectLog?.(log)}
+              data-state={selectedLogId === log.id ? "selected" : undefined}
+              className={cn(onSelectLog && "cursor-pointer")}
+            >
+              {shouldShowSelectionColumn && (
+                <TableSelectionCell
+                  checked={selectedLogId === log.id}
+                  aria-label={`Select ${typeLabel(log)} log`}
+                  onCheckedChange={() => onSelectLog?.(log)}
+                />
+              )}
+              <TableCell>
+                <div className="flex size-6 items-center justify-center">
+                  {logIcon(log)}
+                </div>
+              </TableCell>
+              <TableCell>
+                <WithTooltip tooltip={typeTooltip(log)}>
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                    {typeLabel(log)}
+                  </span>
+                </WithTooltip>
+              </TableCell>
+              {showAgent && (
+                <TableCell className="text-xs">
+                  {log.agentName ?? "—"}
+                </TableCell>
+              )}
+              <TableCell>
+                {log.tool || log.channel ? (
+                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                    {log.tool ?? log.channel}
+                  </code>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-xs max-w-[400px] truncate text-foreground/70">
+                {log.content}
+              </TableCell>
+              <TableCell className="text-right">
+                {log.durationMs ? (
+                  <span className="flex items-center justify-end gap-0.5 text-xs text-foreground/60">
+                    <ClockIcon className="size-3" />
+                    {log.durationMs}ms
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right text-xs text-foreground/60">
+                {formatTime(log.time)}
+              </TableCell>
+            </TableRow>
+          ))}
+        {!loading && thinking && (
+          <TableRow aria-live="polite" className="bg-muted/20 hover:bg-muted/30">
+            {shouldShowSelectionColumn && <TableCell className="w-10 px-3" />}
             <TableCell>
               <div className="flex size-6 items-center justify-center">
-                {logIcon(log)}
+                <LoaderCircleIcon className="size-4 animate-spin text-muted-foreground" />
               </div>
             </TableCell>
             <TableCell>
-              <WithTooltip tooltip={typeTooltip(log)}>
-                <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                  {typeLabel(log)}
-                </span>
-              </WithTooltip>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                Thinking
+              </span>
             </TableCell>
             {showAgent && (
-              <TableCell className="text-xs">{log.agentName ?? "—"}</TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-24" />
+              </TableCell>
             )}
             <TableCell>
-              {log.tool || log.channel ? (
-                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-                  {log.tool ?? log.channel}
-                </code>
-              ) : (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
+              <span className="text-xs text-muted-foreground">—</span>
             </TableCell>
-            <TableCell className="text-xs max-w-[400px] truncate text-foreground/70">
-              {log.content}
+            <TableCell className="max-w-[400px]">
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-3.5 w-full max-w-[360px]" />
+                <Skeleton className="h-3.5 w-2/3 max-w-[240px]" />
+              </div>
             </TableCell>
-            <TableCell className="text-right">
-              {log.durationMs ? (
-                <span className="flex items-center justify-end gap-0.5 text-xs text-foreground/60">
-                  <ClockIcon className="size-3" />
-                  {log.durationMs}ms
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
+            <TableCell>
+              <Skeleton className="ml-auto h-4 w-14" />
             </TableCell>
-            <TableCell className="text-right text-xs text-foreground/60">
-              {formatTime(log.time)}
+            <TableCell className="text-right text-xs text-muted-foreground">
+              now
             </TableCell>
           </TableRow>
-        ))}
-        {!loading && logs.length === 0 && (
+        )}
+        {!loading && logs.length === 0 && !thinking && (
           <TableRow>
             <TableCell
               colSpan={columnCount}

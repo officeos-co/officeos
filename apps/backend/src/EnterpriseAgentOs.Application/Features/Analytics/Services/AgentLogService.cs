@@ -12,17 +12,20 @@ internal sealed class AgentLogService : IAgentLogService
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly IAgentRepository _agentRepository;
     private readonly IPublisher _publisher;
+    private readonly ITopicEventSender _topicEventSender;
     private readonly ILogger<AgentLogService> _logger;
 
     public AgentLogService(
         IAgentLogRepository agentLogRepository,
         IAgentRepository agentRepository,
         IPublisher publisher,
+        ITopicEventSender topicEventSender,
         ILogger<AgentLogService> logger)
     {
         _agentLogRepository = agentLogRepository;
         _agentRepository = agentRepository;
         _publisher = publisher;
+        _topicEventSender = topicEventSender;
         _logger = logger;
     }
 
@@ -41,6 +44,10 @@ internal sealed class AgentLogService : IAgentLogService
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
         var saved = await _agentLogRepository.AppendAsync(record, ct);
+        if (saved.AgentId is { } agentId)
+        {
+            await _topicEventSender.SendAsync(AgentLogTopics.AgentLogAppended(agentId), saved.ToDto(), ct);
+        }
         return saved;
     }
 

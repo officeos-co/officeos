@@ -108,7 +108,10 @@ export default function AgentDetailPage({
   );
   const [modelOverride, setModelOverride] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const { sendAgentMessage } = useSendAgentMessage();
+  const [pendingTurnStartedAt, setPendingTurnStartedAt] = useState<number | null>(
+    null,
+  );
+  const { sendAgentMessage, loading: sendingMessage } = useSendAgentMessage();
   const createSession = useCreateSession();
   const activeSession = agent?.activeSession ?? null;
   const tab = (searchParams.get("tab") as TabKey) ?? "integrations";
@@ -138,9 +141,11 @@ export default function AgentDetailPage({
   const submit = () => {
     if (!message.trim()) return;
     const content = message;
+    setPendingTurnStartedAt(Date.now());
     setMessage("");
-    // Fire-and-forget — the optimistic log entry appears immediately
-    sendAgentMessage(id, content);
+    void sendAgentMessage(id, content).catch(() => {
+      setPendingTurnStartedAt(null);
+    });
   };
 
   return (
@@ -262,6 +267,7 @@ export default function AgentDetailPage({
           {tab === "logs" && (
             <AgentLogsTab
               agentId={id}
+              pendingTurnStartedAt={pendingTurnStartedAt}
               composer={
                 <>
                   {activeSession && (
@@ -283,7 +289,7 @@ export default function AgentDetailPage({
                     <WithTooltip tooltip="Send this message into the active agent session.">
                       <Button
                         size="icon"
-                        disabled={!message.trim()}
+                        disabled={!message.trim() || sendingMessage}
                         onClick={submit}
                       >
                         <SendIcon className="size-4" />

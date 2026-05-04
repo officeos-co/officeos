@@ -4,14 +4,14 @@ namespace EnterpriseAgentOs.Application.Features.Analytics;
 
 internal sealed class LogChannelInboundHandler : INotificationHandler<ChannelMessageRoutedEvent>
 {
-    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly IAgentLogService _agentLogService;
 
-    public LogChannelInboundHandler(IAgentLogRepository agentLogRepository)
-        => _agentLogRepository = agentLogRepository;
+    public LogChannelInboundHandler(IAgentLogService agentLogService)
+        => _agentLogService = agentLogService;
 
     public async Task Handle(ChannelMessageRoutedEvent notification, CancellationToken ct)
     {
-        await _agentLogRepository.AppendAsync(new AgentLogRecord
+        await _agentLogService.AppendAsync(new AgentLogRecord
         {
             AgentId = notification.AgentId,
             Type = notification.LogType,

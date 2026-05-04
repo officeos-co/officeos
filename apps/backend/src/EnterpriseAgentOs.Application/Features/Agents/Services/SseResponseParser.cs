@@ -16,7 +16,7 @@ internal sealed class SseResponseParser
     public async Task<SseResult> ParseAsync(HttpResponseMessage response, CancellationToken ct)
     {
         var content = new StringBuilder();
-        var toolCalls = new Dictionary<int, (string Id, string Name, StringBuilder Args)>();
+        var toolCalls = new Dictionary<int, ToolCallAccumulator>();
         int? inputTokens = null;
         int? outputTokens = null;
 
@@ -34,7 +34,7 @@ internal sealed class SseResponseParser
                 using var doc = JsonDocument.Parse(data);
                 var root = doc.RootElement;
 
-                if (root.TryGetProperty("usage", out var usage))
+                if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object)
                 {
                     if (usage.TryGetProperty("prompt_tokens", out var promptTokens))
                         inputTokens = promptTokens.GetInt32();
@@ -42,30 +42,51 @@ internal sealed class SseResponseParser
                         outputTokens = completionTokens.GetInt32();
                 }
 
-                if (!root.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+                if (!root.TryGetProperty("choices", out var choices) ||
+                    choices.ValueKind != JsonValueKind.Array ||
+                    choices.GetArrayLength() == 0)
                     continue;
-                var delta = choices[0].GetProperty("delta");
+
+                var firstChoice = choices[0];
+                if (firstChoice.ValueKind != JsonValueKind.Object ||
+                    !firstChoice.TryGetProperty("delta", out var delta) ||
+                    delta.ValueKind != JsonValueKind.Object)
+                    continue;
 
                 if (delta.TryGetProperty("content", out var text) && text.ValueKind == JsonValueKind.String)
                     content.Append(text.GetString());
 
-                if (delta.TryGetProperty("tool_calls", out var streamedToolCalls))
+                if (delta.TryGetProperty("tool_calls", out var streamedToolCalls) &&
+                    streamedToolCalls.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var toolCall in streamedToolCalls.EnumerateArray())
                     {
-                        var index = toolCall.GetProperty("index").GetInt32();
-                        if (!toolCalls.ContainsKey(index))
+                        if (toolCall.ValueKind != JsonValueKind.Object ||
+                            !toolCall.TryGetProperty("index", out var indexElement) ||
+                            indexElement.ValueKind != JsonValueKind.Number ||
+                            !indexElement.TryGetInt32(out var index))
+                            continue;
+
+                        if (!toolCalls.TryGetValue(index, out var accumulator))
                         {
-                            var id = toolCall.GetProperty("id").GetString() ?? "";
-                            var name = toolCall.GetProperty("function").GetProperty("name").GetString() ?? "";
-                            toolCalls[index] = (id, name, new StringBuilder());
+                            accumulator = new ToolCallAccumulator();
+                            toolCalls[index] = accumulator;
+                        }
+
+                        if (toolCall.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String)
+                        {
+                            accumulator.Id = id.GetString() ?? "";
                         }
 
                         if (toolCall.TryGetProperty("function", out var function) &&
-                            function.TryGetProperty("arguments", out var arguments) &&
-                            arguments.ValueKind == JsonValueKind.String)
+                            function.ValueKind == JsonValueKind.Object)
                         {
-                            toolCalls[index].Args.Append(arguments.GetString());
+                            if (function.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
+                                accumulator.Name = name.GetString() ?? "";
+
+                            if (function.TryGetProperty("arguments", out var arguments) &&
+                                arguments.ValueKind == JsonValueKind.String)
+                                accumulator.Args.Append(arguments.GetString());
                         }
                     }
                 }
@@ -78,5 +99,12 @@ internal sealed class SseResponseParser
             toolCalls.Values.Select(tc => new ParsedToolCall(tc.Id, tc.Name, tc.Args.ToString())).ToList(),
             inputTokens,
             outputTokens);
+    }
+
+    private sealed class ToolCallAccumulator
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public StringBuilder Args { get; } = new();
     }
 }
