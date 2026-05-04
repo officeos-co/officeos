@@ -22,6 +22,15 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ToolRegistryFactory>();
         services.AddScoped<IAgentToolCatalogService, AgentToolCatalogService>();
         services.AddScoped<ConversationCompactionService>();
+        services.AddScoped<AgentRunLifecycle>();
+        services.AddScoped<TurnEventPublisher>();
+        services.AddScoped<TurnContextBuilder>();
+        services.AddScoped<BillingCheckpoint>();
+        services.AddScoped<LlmRequestBuilder>();
+        services.AddScoped<SseResponseParser>();
+        services.AddScoped<UsageResolver>();
+        services.AddScoped<LlmTurnExecutor>();
+        services.AddScoped<ToolExecutionLoop>();
         services.AddScoped<AgentChannelBinder>();
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<IAuthService, AuthService>();

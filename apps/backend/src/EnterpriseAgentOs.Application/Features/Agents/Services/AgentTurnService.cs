@@ -1,52 +1,51 @@
 using System.Diagnostics;
-using MediatR;
 
 namespace EnterpriseAgentOs.Application.Features.Agents;
 
+/// <summary>
+/// Coordinates one user-visible agent turn.
+/// </summary>
+/// <remarks>
+/// <para><strong>Responsible for:</strong> ordering the turn workflow: load the agent, begin the run,
+/// build context, enforce billing checkpoints, execute LLM iterations, execute requested tools,
+/// publish turn-level completion/error outcomes, and complete the run.</para>
+/// <para><strong>Responsible only for:</strong> orchestration decisions that define the turn loop itself.
+/// It delegates billing, event publishing, run persistence, context building, LLM execution, and tool
+/// execution to focused collaborators.</para>
+/// <para><strong>Acceptance criteria:</strong> this class should change only when the turn workflow order,
+/// stop conditions, or iteration policy changes. Provider parsing, token usage calculation, billing
+/// persistence, context reconstruction, and tool dispatch details must change in their owning classes.</para>
+/// </remarks>
 internal sealed class AgentTurnService
 {
+    private const int MaxIterations = 25;
+
     private readonly IAgentRepository _agentRepository;
-    private readonly IPublisher _publisher;
-    private readonly LlmProviderDispatcher _llmProviderDispatcher;
-    private readonly IProviderService _providerService;
-    private readonly IMcpServerService _mcpServerService;
-    private readonly ToolRegistryFactory _toolRegistryFactory;
-    private readonly IAgentSandbox _sandbox;
-    private readonly ConversationCompactionService _compactionService;
-    private readonly IAgentRunRepository _agentRunRepository;
-    private readonly IBillingGuard _billingGuard;
-    private readonly ICreditRecordingService _creditRecording;
+    private readonly AgentRunLifecycle _runLifecycle;
+    private readonly TurnEventPublisher _events;
+    private readonly TurnContextBuilder _contextBuilder;
+    private readonly BillingCheckpoint _billing;
+    private readonly LlmTurnExecutor _llmTurnExecutor;
+    private readonly ToolExecutionLoop _toolExecutionLoop;
     private readonly ILogger<AgentTurnService> _logger;
 
-    private const int MaxIterations = 25;
-    private const int MaxTokens = 8192;
-    private const int KeepRecent = 4;
-
     public AgentTurnService(
-        IAgentRepository agents,
-        IPublisher publisher,
-        LlmProviderDispatcher llm,
-        IProviderService providers,
-        IMcpServerService mcpServerService,
-        ToolRegistryFactory toolRegistryFactory,
-        IAgentSandbox sandbox,
-        ConversationCompactionService compactionService,
-        IAgentRunRepository agentRunRepository,
-        IBillingGuard billingGuard,
-        ICreditRecordingService creditRecording,
+        IAgentRepository agentRepository,
+        AgentRunLifecycle runLifecycle,
+        TurnEventPublisher events,
+        TurnContextBuilder contextBuilder,
+        BillingCheckpoint billing,
+        LlmTurnExecutor llmTurnExecutor,
+        ToolExecutionLoop toolExecutionLoop,
         ILogger<AgentTurnService> logger)
     {
-        _agentRepository = agents;
-        _publisher = publisher;
-        _llmProviderDispatcher = llm;
-        _providerService = providers;
-        _mcpServerService = mcpServerService;
-        _toolRegistryFactory = toolRegistryFactory;
-        _sandbox = sandbox;
-        _compactionService = compactionService;
-        _agentRunRepository = agentRunRepository;
-        _billingGuard = billingGuard;
-        _creditRecording = creditRecording;
+        _agentRepository = agentRepository;
+        _runLifecycle = runLifecycle;
+        _events = events;
+        _contextBuilder = contextBuilder;
+        _billing = billing;
+        _llmTurnExecutor = llmTurnExecutor;
+        _toolExecutionLoop = toolExecutionLoop;
         _logger = logger;
     }
 
@@ -54,14 +53,132 @@ internal sealed class AgentTurnService
     {
         try
         {
-            await RunTurnCoreAsync(agentId, userMessage, correlationId, ct);
+            var turnStart = Stopwatch.GetTimestamp();
+
+            var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
+            if (agent is null)
+            {
+                await _events.PublishErrorAsync(agentId, correlationId, $"Agent {agentId} not found", ct);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(agent.PodName))
+            {
+                await _events.PublishErrorAsync(agentId, correlationId, $"Agent {agentId} has no pod", ct);
+                return;
+            }
+
+            using var run = await _runLifecycle.BeginAsync(agentId, correlationId, userMessage, ct);
+
+            await _events.PublishTurnStartedAsync(agentId, correlationId, userMessage, ct);
+            await _events.PublishPodConnectedAsync(agentId, correlationId, 0, ct);
+
+            await using var tools = await _toolExecutionLoop.CreateSessionAsync(agent, ct);
+            var history = await _contextBuilder.BuildAsync(agentId, correlationId, userMessage, ct);
+            var totalToolCalls = 0;
+
+            for (var i = 0; i < MaxIterations; i++)
+            {
+                try
+                {
+                    await _billing.CheckBeforeLlmCallAsync(agentId, ct);
+                }
+                catch (QuotaExceededException ex)
+                {
+                    await _events.PublishErrorAsync(agentId, correlationId, ex.Message, ct);
+                    var quotaMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
+                    await _events.PublishTurnCompletedAsync(agentId, correlationId, quotaMs, i, totalToolCalls, ct);
+                    await _runLifecycle.FailAsync(run, ex.Message, ct);
+                    return;
+                }
+
+                var llmResult = await _llmTurnExecutor.ExecuteAsync(agent, history, tools.Registry, i + 1, correlationId, ct);
+                if (llmResult.IsFailure)
+                {
+                    await _events.PublishErrorAsync(agentId, correlationId, llmResult.Error.Message, ct);
+                    await _runLifecycle.FailAsync(run, llmResult.Error.Message, ct);
+                    return;
+                }
+
+                var llmTurn = llmResult.Value;
+                try
+                {
+                    await _billing.RecordAfterLlmCallAsync(agentId, correlationId, llmTurn.Model, llmTurn.Usage.TotalTokens, ct);
+                }
+                catch
+                {
+                    await _events.PublishErrorAsync(
+                        agentId,
+                        correlationId,
+                        "LLM usage could not be recorded; refusing to continue the turn.",
+                        ct);
+                    await _runLifecycle.FailAsync(run, "LLM usage could not be recorded.", ct);
+                    return;
+                }
+
+                await _events.PublishLlmCompletedAsync(
+                    agentId,
+                    correlationId,
+                    llmTurn.Model,
+                    llmTurn.DurationMs,
+                    llmTurn.Usage.InputTokens,
+                    llmTurn.Usage.OutputTokens,
+                    ct);
+
+                if (!string.IsNullOrEmpty(llmTurn.AssistantContent))
+                {
+                    await _events.PublishMessageOutAsync(agentId, correlationId, llmTurn.AssistantContent, ct);
+                }
+
+                history.Push(new ChatMessage
+                {
+                    Role = "assistant",
+                    Content = llmTurn.AssistantContent,
+                    ToolCalls = llmTurn.ToolCalls.Count > 0
+                        ? llmTurn.ToolCalls.Select(tc => new ChatToolCall { Id = tc.Id, Name = tc.Name, Arguments = tc.Arguments }).ToList()
+                        : null,
+                });
+
+                if (llmTurn.ToolCalls.Count == 0)
+                {
+                    var totalMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
+                    await _events.PublishTurnCompletedAsync(agentId, correlationId, totalMs, i + 1, totalToolCalls, ct);
+                    await _runLifecycle.CompleteAsync(run, llmTurn.AssistantContent, ct);
+                    return;
+                }
+
+                var toolLoop = await _toolExecutionLoop.ExecuteAsync(
+                    agentId,
+                    correlationId,
+                    llmTurn.ToolCalls,
+                    tools,
+                    history,
+                    totalToolCalls,
+                    ct);
+
+                totalToolCalls = toolLoop.TotalToolCalls;
+                if (toolLoop.ShouldStop)
+                {
+                    await _events.PublishErrorAsync(agentId, correlationId, toolLoop.ErrorMessage!, ct);
+                    var breakMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
+                    await _events.PublishTurnCompletedAsync(agentId, correlationId, breakMs, i + 1, totalToolCalls, ct);
+                    await _runLifecycle.FailAsync(run, toolLoop.ErrorMessage!, ct);
+                    return;
+                }
+            }
+
+            var maxIterationError = $"Hit max iterations ({MaxIterations})";
+            await _events.PublishErrorAsync(agentId, correlationId, maxIterationError, ct);
+            var maxMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
+            await _events.PublishTurnCompletedAsync(agentId, correlationId, maxMs, MaxIterations, totalToolCalls, ct);
+            await _runLifecycle.FailAsync(run, maxIterationError, ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled error in turn for agent {AgentId} correlation {CorrelationId}", agentId, correlationId);
             try
             {
-                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Internal error: {ex.Message}"), ct);
+                await _events.PublishErrorAsync(agentId, correlationId, $"Internal error: {ex.Message}", ct);
             }
             catch (Exception pubEx)
             {
@@ -70,424 +187,4 @@ internal sealed class AgentTurnService
         }
     }
 
-    private async Task RunTurnCoreAsync(Guid agentId, string userMessage, string correlationId, CancellationToken ct)
-    {
-        var turnStart = Stopwatch.GetTimestamp();
-
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
-        if (agent is null)
-        {
-            await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Agent {agentId} not found"), ct);
-            return;
-        }
-
-        if (string.IsNullOrEmpty(agent.PodName))
-        {
-            await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Agent {agentId} has no pod"), ct);
-            return;
-        }
-
-        var run = await _agentRunRepository.CreateAsync(new AgentRunRecord
-        {
-            AgentId = agentId,
-            ParentCorrelationId = correlationId,
-            Kind = "turn",
-            Status = "running",
-            Name = "Agent turn",
-            Prompt = userMessage,
-        }, ct);
-        using var runScope = AgentRunContext.Begin(run.Id, run.ParentRunId);
-
-        async Task FinishRunAsync(string status, string? result = null, string? error = null)
-        {
-            run.Status = status;
-            run.Result = result;
-            run.Error = error;
-            run.CompletedAt = DateTime.UtcNow;
-            run.UpdatedAt = DateTime.UtcNow;
-            await _agentRunRepository.UpdateAsync(run, ct);
-        }
-
-        await _publisher.Publish(new TurnStartedEvent(agentId, correlationId, userMessage), ct);
-
-        var sandboxId = agent.PodName;
-        var sandboxStart = Stopwatch.GetTimestamp();
-        await _publisher.Publish(new PodConnectedEvent(agentId, correlationId, (int)Stopwatch.GetElapsedTime(sandboxStart).TotalMilliseconds), ct);
-
-        var mcpServers = await _mcpServerService.ListForAgentAsync(agentId, ct);
-        await using var registry = await _toolRegistryFactory.CreateAsync(
-            _sandbox, sandboxId, agent.ServiceUrl ?? string.Empty, agentId, mcpServers,
-            serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
-            ct);
-
-        var history = new ConversationHistory();
-        var loopDetector = new LoopDetector();
-        var totalToolCalls = 0;
-
-        // Seed history from recent logs — includes messages, tool calls, and tool results.
-        // Deduplication: ChannelOut is skipped when MessageOut exists for the same correlationId.
-        // ChannelIn raw JSON → plain text extraction.
-        var contextWindow = await _compactionService.LoadAsync(agentId, correlationId, ct);
-        var ordered = contextWindow.Logs.OrderBy(l => l.Time).ToList();
-
-        if (!string.IsNullOrWhiteSpace(contextWindow.Summary))
-        {
-            history.Push(new ChatMessage
-            {
-                Role = "user",
-                Content = $"<persisted-conversation-summary>\n{contextWindow.Summary}\n</persisted-conversation-summary>"
-            });
-        }
-
-        var outCorrelations = new HashSet<string>(
-            ordered.Where(l => l.Type == AgentLogType.MessageOut && l.CorrelationId is not null)
-                   .Select(l => l.CorrelationId!));
-
-        // Build a queue of tool call IDs so ToolResult can reference the matching ToolCall
-        var pendingToolCallIds = new Queue<string>();
-
-        foreach (var log in ordered)
-        {
-            switch (log.Type)
-            {
-                case AgentLogType.MessageIn:
-                    history.Push(new ChatMessage { Role = "user", Content = log.Content ?? "" });
-                    break;
-                case AgentLogType.ChannelIn:
-                    history.Push(new ChatMessage { Role = "user", Content = ExtractPlainText(log.Content ?? "") });
-                    break;
-                case AgentLogType.MessageOut:
-                    history.Push(new ChatMessage { Role = "assistant", Content = log.Content ?? "" });
-                    break;
-                case AgentLogType.ChannelOut when log.CorrelationId is not null && outCorrelations.Contains(log.CorrelationId):
-                    break; // Skip — MessageOut already covers this turn
-                case AgentLogType.ChannelOut:
-                    history.Push(new ChatMessage { Role = "assistant", Content = log.Content ?? "" });
-                    break;
-                case AgentLogType.ToolCall:
-                    var tcId = log.Id.ToString("N");
-                    pendingToolCallIds.Enqueue(tcId);
-                    history.Push(new ChatMessage
-                    {
-                        Role = "assistant", Content = null,
-                        ToolCalls = [new ChatToolCall { Id = tcId, Name = log.Tool ?? "unknown", Arguments = log.Content ?? "{}" }],
-                    });
-                    break;
-                case AgentLogType.ToolResult:
-                    var matchId = pendingToolCallIds.Count > 0 ? pendingToolCallIds.Dequeue() : log.Id.ToString("N");
-                    history.Push(new ChatMessage { Role = "tool", Content = log.Content ?? "", ToolCallId = matchId });
-                    break;
-            }
-        }
-
-        history.Push(new ChatMessage { Role = "user", Content = userMessage });
-
-        for (var i = 0; i < MaxIterations; i++)
-        {
-            // Pre-flight billing check — block if quota exceeded and overage not enabled
-            try
-            {
-                await _billingGuard.ThrowIfQuotaExceededAsync(agentId, ct);
-            }
-            catch (QuotaExceededException ex)
-            {
-                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, ex.Message), ct);
-                var quotaMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
-                await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, quotaMs, i, totalToolCalls), ct);
-                await FinishRunAsync("failed", error: ex.Message);
-                return;
-            }
-
-            var systemPrompt = SystemPromptComposer.Compose(agent);
-
-            history.PruneToolResults(maxResultChars: 500, keepRecentTurns: KeepRecent);
-            history.Prune(MaxTokens, KeepRecent);
-
-            var deferredTools = registry.GetDeferredToolsMessage();
-            var messages = new List<object>
-            {
-                new
-                {
-                    role = "system",
-                    content = $"{systemPrompt}\n\n{deferredTools}\nUse tool_search to reveal deferred tool schemas before calling deferred tools."
-                }
-            };
-
-            foreach (var msg in history.Messages)
-            {
-                if (msg.ToolCalls is { Count: > 0 })
-                {
-                    messages.Add(new
-                    {
-                        role = msg.Role, content = msg.Content ?? "",
-                        tool_calls = msg.ToolCalls.Select(tc => new
-                        {
-                            id = tc.Id, type = "function",
-                            function = new { name = tc.Name, arguments = tc.Arguments }
-                        }).ToList(),
-                    });
-                }
-                else if (msg.ToolCallId is not null)
-                {
-                    messages.Add(new { role = msg.Role, content = msg.Content ?? "", tool_call_id = msg.ToolCallId });
-                }
-                else
-                {
-                    messages.Add(new { role = msg.Role, content = msg.Content ?? "" });
-                }
-            }
-
-            var requestBody = JsonSerializer.SerializeToElement(new
-            {
-                model = agent.Model ?? "auto", messages,
-                tools = registry.GetSchemas(), stream = true,
-            });
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug(
-                    "LLM request payload for agent {AgentId} correlation {CorrelationId} iteration {Iteration}: {Payload}",
-                    agentId,
-                    correlationId,
-                    i + 1,
-                    requestBody.GetRawText());
-            }
-
-            var provider = agent.Provider;
-            var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
-            if (apiKey is null)
-            {
-                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Provider '{provider}' has no API key configured."), ct);
-                await FinishRunAsync("failed", error: $"Provider '{provider}' has no API key configured.");
-                return;
-            }
-
-            var llmStart = Stopwatch.GetTimestamp();
-            var llmResult = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
-            if (llmResult.IsFailure)
-            {
-                await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, llmResult.Error.Message), ct);
-                await FinishRunAsync("failed", error: llmResult.Error.Message);
-                return;
-            }
-
-            var sseResult = await ParseSseResponseAsync(llmResult.Value.Response, ct);
-            var (assistantContent, toolCalls) = (sseResult.Content, sseResult.ToolCalls);
-            var llmDuration = (int)Stopwatch.GetElapsedTime(llmStart).TotalMilliseconds;
-            var resolvedModel = llmResult.Value.Model;
-            var usage = ResolveUsage(requestBody, assistantContent, toolCalls, sseResult.InputTokens, sseResult.OutputTokens);
-
-            if (usage.IsEstimated)
-            {
-                _logger.LogWarning(
-                    "LLM provider did not return complete token usage for agent {AgentId} correlation {CorrelationId}; using estimated usage {InputTokens}/{OutputTokens}",
-                    agentId, correlationId, usage.InputTokens, usage.OutputTokens);
-            }
-
-            try
-            {
-                await _creditRecording.RecordCreditUsageAsync(agentId, resolvedModel, usage.TotalTokens, ct);
-                await _billingGuard.RefreshCacheAsync(agentId, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,
-                    "Billing failed after LLM call for agent {AgentId} correlation {CorrelationId}",
-                    agentId, correlationId);
-                await _publisher.Publish(new AgentErrorOccurredEvent(
-                    agentId, correlationId, "LLM usage could not be recorded; refusing to continue the turn."), ct);
-                await FinishRunAsync("failed", error: "LLM usage could not be recorded.");
-                return;
-            }
-
-            await _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, resolvedModel, llmDuration, usage.InputTokens, usage.OutputTokens), ct);
-
-            if (!string.IsNullOrEmpty(assistantContent))
-                await _publisher.Publish(new MessageOutEvent(agentId, correlationId, assistantContent), ct);
-
-            history.Push(new ChatMessage
-            {
-                Role = "assistant", Content = assistantContent,
-                ToolCalls = toolCalls.Count > 0
-                    ? toolCalls.Select(tc => new ChatToolCall { Id = tc.Id, Name = tc.Name, Arguments = tc.Arguments }).ToList()
-                    : null,
-            });
-
-            if (toolCalls.Count == 0)
-            {
-                var totalMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
-                await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, totalMs, i + 1, totalToolCalls), ct);
-                await FinishRunAsync("completed", result: assistantContent);
-                return;
-            }
-
-            // ── Tool dispatch — tightly coupled, stays in the loop ──
-            foreach (var tc in toolCalls)
-            {
-                JsonElement args;
-                try { args = JsonSerializer.Deserialize<JsonElement>(tc.Arguments); }
-                catch { args = JsonSerializer.SerializeToElement(new { }); }
-
-                await _publisher.Publish(new ToolCallStartedEvent(agentId, correlationId, tc.Name, tc.Arguments), ct);
-                totalToolCalls++;
-
-                var toolStart = Stopwatch.GetTimestamp();
-                var toolDispatchResult = await registry.DispatchAsync(tc.Name, args, ct);
-                var toolDurationMs = (int)Stopwatch.GetElapsedTime(toolStart).TotalMilliseconds;
-                if (toolDispatchResult.IsSuccess
-                    && registry.Tools.FirstOrDefault(t => t.Name == tc.Name) is ToolSearchTool searchTool)
-                {
-                    registry.RevealTools(searchTool.LastMatchedToolNames);
-                }
-
-                if (toolDispatchResult.IsFailure)
-                {
-                    await _publisher.Publish(new ToolCallCompletedEvent(agentId, correlationId, tc.Name, false, toolDispatchResult.Error.Message, toolDurationMs), ct);
-                    history.Push(new ChatMessage { Role = "tool", Content = $"[error] {toolDispatchResult.Error.Message}", ToolCallId = tc.Id });
-                    continue;
-                }
-
-                var result = toolDispatchResult.Value;
-                var output = result.Success ? result.Output : $"[error] {result.Error}\n{result.Output}";
-
-                var loopResult = loopDetector.Record(tc.Name, tc.Arguments, output);
-                switch (loopResult)
-                {
-                    case LoopDetectionResult.BreakResult breakResult:
-                        await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, breakResult.Message), ct);
-                        var breakMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
-                        await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, breakMs, i + 1, totalToolCalls), ct);
-                        await FinishRunAsync("failed", error: breakResult.Message);
-                        return;
-                    case LoopDetectionResult.BlockResult blockResult:
-                        output = $"BLOCKED: {blockResult.Message}";
-                        break;
-                }
-
-                await _publisher.Publish(new ToolCallCompletedEvent(agentId, correlationId, tc.Name, result.Success, output, toolDurationMs), ct);
-
-                var historyOutput = output.Length > 10000 ? output[..10000] + "\n[truncated]" : output;
-                history.Push(new ChatMessage { Role = "tool", Content = historyOutput, ToolCallId = tc.Id });
-            }
-        }
-
-        await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Hit max iterations ({MaxIterations})"), ct);
-        var maxMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
-        await _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, maxMs, MaxIterations, totalToolCalls), ct);
-        await FinishRunAsync("failed", error: $"Hit max iterations ({MaxIterations})");
-    }
-
-    private record ParsedToolCall(string Id, string Name, string Arguments);
-    private record SseResult(string? Content, List<ParsedToolCall> ToolCalls, int? InputTokens, int? OutputTokens);
-    private record ResolvedLlmUsage(int InputTokens, int OutputTokens, bool IsEstimated)
-    {
-        public long TotalTokens => (long)InputTokens + OutputTokens;
-    }
-
-    private static ResolvedLlmUsage ResolveUsage(
-        JsonElement requestBody,
-        string? assistantContent,
-        IReadOnlyList<ParsedToolCall> toolCalls,
-        int? reportedInputTokens,
-        int? reportedOutputTokens)
-    {
-        var estimatedInputTokens = EstimateTokens(requestBody.GetRawText());
-        var estimatedOutputTokens = EstimateTokens(
-            $"{assistantContent ?? string.Empty}\n{string.Join('\n', toolCalls.Select(tc => $"{tc.Name} {tc.Arguments}"))}");
-
-        var inputTokens = reportedInputTokens is > 0 ? reportedInputTokens.Value : estimatedInputTokens;
-        var outputTokens = reportedOutputTokens is > 0 ? reportedOutputTokens.Value : estimatedOutputTokens;
-        var isEstimated = reportedInputTokens is not > 0 || reportedOutputTokens is not > 0;
-
-        return new ResolvedLlmUsage(inputTokens, outputTokens, isEstimated);
-    }
-
-    private static int EstimateTokens(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return 1;
-        return Math.Max(1, (text.Length + 3) / 4);
-    }
-
-    private static async Task<SseResult> ParseSseResponseAsync(
-        HttpResponseMessage response, CancellationToken ct)
-    {
-        var content = new StringBuilder();
-        var toolCalls = new Dictionary<int, (string Id, string Name, StringBuilder Args)>();
-        int? inputTokens = null;
-        int? outputTokens = null;
-
-        using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var reader = new StreamReader(stream);
-
-        while (await reader.ReadLineAsync(ct) is { } line)
-        {
-            if (!line.StartsWith("data: ")) continue;
-            var data = line[6..];
-            if (data == "[DONE]") break;
-
-            try
-            {
-                using var doc = JsonDocument.Parse(data);
-                var root = doc.RootElement;
-
-                // Extract usage from the final chunk (OpenAI-compatible: usage.prompt_tokens / completion_tokens)
-                if (root.TryGetProperty("usage", out var usage))
-                {
-                    if (usage.TryGetProperty("prompt_tokens", out var pt))
-                        inputTokens = pt.GetInt32();
-                    if (usage.TryGetProperty("completion_tokens", out var cpt))
-                        outputTokens = cpt.GetInt32();
-                }
-
-                if (!root.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
-                    continue;
-                var delta = choices[0].GetProperty("delta");
-
-                if (delta.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String)
-                    content.Append(c.GetString());
-
-                if (delta.TryGetProperty("tool_calls", out var tcs))
-                {
-                    foreach (var tc in tcs.EnumerateArray())
-                    {
-                        var idx = tc.GetProperty("index").GetInt32();
-                        if (!toolCalls.ContainsKey(idx))
-                        {
-                            var id = tc.GetProperty("id").GetString() ?? "";
-                            var name = tc.GetProperty("function").GetProperty("name").GetString() ?? "";
-                            toolCalls[idx] = (id, name, new StringBuilder());
-                        }
-                        if (tc.TryGetProperty("function", out var fn) &&
-                            fn.TryGetProperty("arguments", out var fnArgs) &&
-                            fnArgs.ValueKind == JsonValueKind.String)
-                            toolCalls[idx].Args.Append(fnArgs.GetString());
-                    }
-                }
-            }
-            catch (JsonException) { }
-        }
-
-        return new SseResult(
-            content.Length > 0 ? content.ToString() : null,
-            toolCalls.Values.Select(tc => new ParsedToolCall(tc.Id, tc.Name, tc.Args.ToString())).ToList(),
-            inputTokens,
-            outputTokens);
-    }
-
-    /// <summary>
-    /// Extracts plain text from a Chat SDK JSON envelope (ChannelIn logs).
-    /// Falls back to the raw string if not JSON or missing "text" field.
-    /// </summary>
-    private static string ExtractPlainText(string raw)
-    {
-        if (string.IsNullOrEmpty(raw) || raw[0] != '{') return raw;
-        try
-        {
-            using var doc = JsonDocument.Parse(raw);
-            if (doc.RootElement.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
-                return t.GetString() ?? raw;
-        }
-        catch (JsonException) { }
-        return raw;
-    }
 }
