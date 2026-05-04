@@ -226,6 +226,32 @@ internal sealed class ToolRegistryFactory
         var mcpConnections = new List<IAsyncDisposable>();
         foreach (var server in mcpServers)
         {
+            if (!string.IsNullOrWhiteSpace(server.ToolsJson))
+            {
+                var lazyConnection = new LazyMcpServerConnection(
+                    server,
+                    credentialLoader,
+                    _mcpClientManager,
+                    _events,
+                    agentId,
+                    correlationId);
+
+                var catalogTools = ParseMcpCatalogTools(server).ToList();
+                foreach (var catalogTool in catalogTools)
+                    tools.Add(new LazyMcpTool(server, catalogTool, lazyConnection));
+                tools.Add(new LazyListMcpResourcesTool(server, lazyConnection));
+                tools.Add(new LazyReadMcpResourceTool(server, lazyConnection));
+                mcpConnections.Add(lazyConnection);
+
+                await _events.PublishDiagnosticAsync(
+                    agentId,
+                    correlationId,
+                    $"Tool setup: MCP catalog loaded ({server.Name}, {catalogTools.Count} tools)",
+                    0,
+                    ct);
+                continue;
+            }
+
             var credentialStart = Stopwatch.GetTimestamp();
             var creds = await credentialLoader(server.Name);
             await _events.PublishDiagnosticAsync(
@@ -275,6 +301,45 @@ internal sealed class ToolRegistryFactory
 
     private static int ElapsedMs(long startTimestamp)
         => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+
+    private static IEnumerable<McpCatalogTool> ParseMcpCatalogTools(McpServerRecord server)
+    {
+        if (string.IsNullOrWhiteSpace(server.ToolsJson))
+            yield break;
+
+        JsonElement parsed;
+        try
+        {
+            parsed = JsonSerializer.Deserialize<JsonElement>(server.ToolsJson);
+        }
+        catch
+        {
+            yield break;
+        }
+
+        if (parsed.ValueKind != JsonValueKind.Array)
+            yield break;
+
+        foreach (var item in parsed.EnumerateArray())
+        {
+            var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+            if (string.IsNullOrWhiteSpace(name))
+                continue;
+
+            var description = item.TryGetProperty("description", out var descProp)
+                ? descProp.GetString() ?? name
+                : name;
+            JsonElement? parameters = null;
+            if (item.TryGetProperty("parameters", out var parametersProp)
+                || item.TryGetProperty("inputSchema", out parametersProp)
+                || item.TryGetProperty("input_schema", out parametersProp))
+            {
+                parameters = JsonSerializer.Deserialize<JsonElement>(parametersProp.GetRawText());
+            }
+
+            yield return new McpCatalogTool(name, description, parameters);
+        }
+    }
 
     private static void AddBrowserTools(
         BrowserToolContext browserContext,
