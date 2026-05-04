@@ -1,6 +1,6 @@
 "use client"
 
-import { gql, useQuery } from "@apollo/client"
+import { gql, useQuery, useSubscription } from "@apollo/client"
 import type { AgentLog } from "@/types/logs"
 
 const AGENT_LOGS_QUERY = gql`
@@ -16,9 +16,42 @@ const AGENT_LOGS_QUERY = gql`
       durationMs
       inputTokens
       outputTokens
+      correlationId
     }
   }
 `
+
+const AGENT_LOG_APPENDED_SUBSCRIPTION = gql`
+  subscription AgentLogAppended($agentId: UUID!) {
+    agentLogAppended(agentId: $agentId) {
+      id
+      time
+      type
+      tool
+      integration
+      channel
+      content
+      durationMs
+      inputTokens
+      outputTokens
+      correlationId
+    }
+  }
+`
+
+type RawAgentLog = {
+  id: string
+  time: string | number
+  type: string
+  tool?: string | null
+  integration?: string | null
+  channel?: string | null
+  content: string
+  durationMs?: number | null
+  inputTokens?: number | null
+  outputTokens?: number | null
+  correlationId?: string | null
+}
 
 function normaliseType(raw: string | null | undefined): AgentLog["type"] {
   if (!raw) return "system"
@@ -39,22 +72,14 @@ function normaliseType(raw: string | null | undefined): AgentLog["type"] {
   return map[v] ?? "system"
 }
 
-function toAgentLog(raw: {
-  id: string
-  time: string | number
-  type: string
-  tool?: string | null
-  integration?: string | null
-  channel?: string | null
-  content: string
-  durationMs?: number | null
-  inputTokens?: number | null
-  outputTokens?: number | null
-}): AgentLog {
-  const time =
-    typeof raw.time === "number"
-      ? raw.time
-      : Date.parse(raw.time) || Date.now()
+function toMillis(time: string | number) {
+  if (typeof time === "number") return time
+  const parsed = Date.parse(time)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function toAgentLog(raw: RawAgentLog): AgentLog {
+  const time = toMillis(raw.time)
   return {
     id: raw.id,
     time,
@@ -68,6 +93,7 @@ function toAgentLog(raw: {
       raw.inputTokens != null || raw.outputTokens != null
         ? { input: raw.inputTokens ?? 0, output: raw.outputTokens ?? 0 }
         : undefined,
+    correlationId: raw.correlationId ?? undefined,
   }
 }
 
@@ -78,11 +104,35 @@ export function useAgentLogs(
   const { data, loading, error } = useQuery(AGENT_LOGS_QUERY, {
     variables: { agentId, limit },
     skip: !agentId,
-    pollInterval: 5000,
     fetchPolicy: "network-only",
   })
 
-  const raw: Array<Parameters<typeof toAgentLog>[0]> = data?.agentLogs ?? []
+  useSubscription(AGENT_LOG_APPENDED_SUBSCRIPTION, {
+    variables: { agentId },
+    skip: !agentId,
+    onData: ({ client, data: subscriptionData }) => {
+      const appended = subscriptionData.data?.agentLogAppended as
+        | RawAgentLog
+        | undefined
+      if (!appended) return
+
+      client.cache.updateQuery(
+        { query: AGENT_LOGS_QUERY, variables: { agentId, limit } },
+        (old: { agentLogs?: RawAgentLog[] } | null) => {
+          const existing = old?.agentLogs ?? []
+          if (existing.some((log) => log.id === appended.id)) return old
+
+          const next = [...existing, appended]
+            .sort((a, b) => toMillis(a.time) - toMillis(b.time))
+            .slice(-limit)
+
+          return { agentLogs: next }
+        },
+      )
+    },
+  })
+
+  const raw: RawAgentLog[] = data?.agentLogs ?? []
   const logs: AgentLog[] = raw.map(toAgentLog)
   return { logs, loading, error: error ?? undefined }
 }

@@ -8,4 +8,5 @@ export type AgentLog = {
   content: string
   durationMs?: number
   tokens?: { input: number; output: number }
+  correlationId?: string
 }

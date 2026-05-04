@@ -21,12 +21,13 @@ const AGENT_LOGS_QUERY = gql`
       integration
       channel
       content
-      durationMs
-      inputTokens
-      outputTokens
-    }
-  }
-`
+	      durationMs
+	      inputTokens
+	      outputTokens
+	      correlationId
+	    }
+	  }
+	`
 
 export function useSendAgentMessage() {
   const [fn, state] = useMutation(SEND_MESSAGE)
@@ -49,6 +50,7 @@ export function useSendAgentMessage() {
         durationMs: null,
         inputTokens: null,
         outputTokens: null,
+        correlationId: null,
       }
 
       try {
