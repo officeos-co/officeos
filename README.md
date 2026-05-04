@@ -26,12 +26,7 @@ Self-host the full stack with Docker Compose or Kubernetes.
 
 ## YC Application Video
 
-<video controls width="100%" poster="docs/assets/OfficeOsScreen1.png">
-  <source src="docs/assets/YcApplicationVideo.mp4" type="video/mp4" />
-  <a href="docs/assets/YcApplicationVideo.mp4">Watch the YC application video</a>
-</video>
-
-[Watch the YC application video](docs/assets/YcApplicationVideo.mp4)
+https://github.com/user-attachments/assets/acf05453-1e49-498b-bc1d-9fc769fdd767
 
 ## Dashboard Preview
 
