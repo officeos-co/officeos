@@ -153,13 +153,14 @@ export function useSetExtraUsageEnabled() {
     setExtraUsageEnabled: async (enabled: boolean): Promise<boolean> => {
       const { data } = await fn({
         variables: { enabled },
-        optimisticResponse: { setExtraUsageEnabled: true },
-        update(cache) {
+        optimisticResponse: { setExtraUsageEnabled: enabled },
+        update(cache, result) {
           const existing = cache.readQuery<{ billing: BillingRaw }>({ query: BILLING_QUERY })
           if (existing?.billing) {
+            const extraUsageEnabled = result.data?.setExtraUsageEnabled ?? enabled
             cache.writeQuery({
               query: BILLING_QUERY,
-              data: { billing: { ...existing.billing, extraUsageEnabled: enabled } },
+              data: { billing: { ...existing.billing, extraUsageEnabled } },
             })
           }
         },

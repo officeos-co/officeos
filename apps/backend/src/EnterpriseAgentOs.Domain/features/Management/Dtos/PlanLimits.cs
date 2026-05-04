@@ -26,6 +26,21 @@ public static class PlanLimits
         SubscriptionPlan.Enterprise => throw new ArgumentException("Enterprise limits are stored on OrgSubscription", nameof(plan)),
         _                           => OrgFree,
     };
+
+    public static BillingPriceKey ForOrgSubscriptionPrice(SubscriptionPlan plan, BillingCycle cycle) => plan switch
+    {
+        SubscriptionPlan.Team when cycle == BillingCycle.Yearly => BillingPriceKey.TeamYearly,
+        SubscriptionPlan.Team                                  => BillingPriceKey.TeamMonthly,
+        SubscriptionPlan.Enterprise                            => throw new ArgumentException("Enterprise billing is negotiated outside Stripe checkout.", nameof(plan)),
+        _                                                      => BillingPriceKey.Free,
+    };
+}
+
+public enum BillingPriceKey
+{
+    Free,
+    TeamMonthly,
+    TeamYearly,
 }
 
 public sealed record PlanLimit(SubscriptionPlan Plan, int ConcurrentAgents, long CreditsPerMonth)

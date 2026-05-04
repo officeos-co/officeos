@@ -42,14 +42,14 @@ internal sealed class OrgBillingService : IOrgBillingService
 
     public async Task<string> CreateSubscriptionAsync(string customerId, string plan, string billingCycle = "monthly", CancellationToken ct = default)
     {
-        //TODO: This is domain logic
         var parsedPlan = plan.ToSubscriptionPlan();
         var parsedCycle = billingCycle.ToBillingCycle();
-        var priceId = (parsedPlan, parsedCycle) switch
+        var priceId = PlanLimits.ForOrgSubscriptionPrice(parsedPlan, parsedCycle) switch
         {
-            (SubscriptionPlan.Team, BillingCycle.Yearly) => _stripeConfig.TeamYearlyPriceId,
-            (SubscriptionPlan.Team, _)                   => _stripeConfig.TeamMonthlyPriceId,
-            _                                            => _stripeConfig.FreePriceId,
+            BillingPriceKey.TeamYearly  => _stripeConfig.TeamYearlyPriceId,
+            BillingPriceKey.TeamMonthly => _stripeConfig.TeamMonthlyPriceId,
+            BillingPriceKey.Free        => _stripeConfig.FreePriceId,
+            _                           => throw new ArgumentOutOfRangeException(nameof(plan)),
         };
         var sub = await new SubscriptionService().CreateAsync(
             new SubscriptionCreateOptions

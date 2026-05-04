@@ -4,9 +4,6 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 public class AgentQueries
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
-    private static string ListCacheKey(Guid userId) => $"agents:dashboard:list:{userId}";
-    private static string DetailCacheKey(Guid id, Guid userId) => $"agents:dashboard:{id}:user:{userId}";
-
     [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
     public async Task<IReadOnlyList<AgentDto>> GetAgents(
         IResolverContext context,
@@ -16,12 +13,13 @@ public class AgentQueries
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(ListCacheKey(user.Id), ct);
+        var listCacheKey = AgentCacheKeys.DashboardList(user.Id);
+        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(listCacheKey, ct);
         if (cached is not null)
             return cached;
 
         var result = await agents.ListAsync(new AgentFilter { OwnerId = user.Id }, ct);
-        await cache.SetJsonAsync(ListCacheKey(user.Id), result, CacheTtl, ct);
+        await cache.SetJsonAsync(listCacheKey, result, CacheTtl, ct);
         return result;
     }
 
@@ -35,7 +33,7 @@ public class AgentQueries
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var key = DetailCacheKey(id, user.Id);
+        var key = AgentCacheKeys.DashboardDetail(id, user.Id);
         var cached = await cache.GetJsonAsync<AgentRecord>(key, ct);
         if (cached is not null)
             return cached;

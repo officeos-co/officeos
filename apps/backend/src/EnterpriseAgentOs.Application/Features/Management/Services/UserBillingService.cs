@@ -78,6 +78,9 @@ internal sealed class UserBillingService : IUserBillingService
         return session.Url;
     }
 
+    public Task CancelSubscriptionAsync(Guid userId, string email, CancellationToken ct = default)
+        => EnableOverageAsync(userId, email, enabled: false, ct);
+
     public async Task EnableOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default)
     {
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
@@ -91,41 +94,63 @@ internal sealed class UserBillingService : IUserBillingService
         {
             if (sub.OverageEnabled) return;
 
-            var customerId = await GetOrCreateCustomerAsync(userId, email, ct);
-            var priceId = sub.Plan == SubscriptionPlan.Pro ? _stripeConfig.ProOveragePriceId : _stripeConfig.FreeOveragePriceId;
+            var priceId = GetOveragePriceId(sub.Plan);
 
-            if (sub.StripeSubscriptionId is not null)
+            try
             {
-                var item = await new SubscriptionItemService().CreateAsync(
-                    new SubscriptionItemCreateOptions { Subscription = sub.StripeSubscriptionId, Price = priceId },
-                    cancellationToken: ct);
-                sub.StripeOverageItemId = item.Id;
+                var customerId = await GetOrCreateCustomerAsync(userId, email, ct);
+
+                if (sub.StripeSubscriptionId is not null)
+                {
+                    var item = await new SubscriptionItemService().CreateAsync(
+                        new SubscriptionItemCreateOptions { Subscription = sub.StripeSubscriptionId, Price = priceId },
+                        cancellationToken: ct);
+                    sub.StripeOverageItemId = item.Id;
+                }
+                else
+                {
+                    var newSub = await new SubscriptionService().CreateAsync(
+                        new SubscriptionCreateOptions
+                        {
+                            Customer = customerId,
+                            Items = [new SubscriptionItemOptions { Price = priceId }],
+                        },
+                        cancellationToken: ct);
+                    sub.StripeSubscriptionId = newSub.Id;
+                    sub.StripeOverageItemId = newSub.Items.Data[0].Id;
+                }
+
+                sub.StripeCustomerId = customerId;
             }
-            else
+            catch (StripeException ex)
             {
-                var newSub = await new SubscriptionService().CreateAsync(
-                    new SubscriptionCreateOptions
-                    {
-                        Customer = customerId,
-                        Items = [new SubscriptionItemOptions { Price = priceId }],
-                    },
-                    cancellationToken: ct);
-                sub.StripeSubscriptionId = newSub.Id;
-                sub.StripeOverageItemId = newSub.Items.Data[0].Id;
+                _logger.LogWarning(ex, "Stripe overage enable failed for user {UserId}", userId);
+                throw new BillingProviderException("Billing provider could not enable extra usage. Please try again.", ex);
             }
 
-            sub.StripeCustomerId = customerId;
             sub.OverageEnabled = true;
             _logger.LogInformation("Overage enabled for user {UserId}", userId);
         }
         else
         {
-            if (!sub.OverageEnabled || sub.StripeOverageItemId is null) return;
+            if (!sub.OverageEnabled) return;
 
-            await new SubscriptionItemService().DeleteAsync(
-                sub.StripeOverageItemId,
-                new SubscriptionItemDeleteOptions { ClearUsage = true },
-                cancellationToken: ct);
+            if (sub.StripeOverageItemId is not null)
+            {
+                EnsureStripeSecretConfigured();
+                try
+                {
+                    await new SubscriptionItemService().DeleteAsync(
+                        sub.StripeOverageItemId,
+                        new SubscriptionItemDeleteOptions { ClearUsage = true },
+                        cancellationToken: ct);
+                }
+                catch (StripeException ex)
+                {
+                    _logger.LogWarning(ex, "Stripe overage disable failed for user {UserId}", userId);
+                    throw new BillingProviderException("Billing provider could not disable extra usage. Please try again.", ex);
+                }
+            }
 
             sub.StripeOverageItemId = null;
             sub.OverageEnabled = false;
@@ -133,6 +158,30 @@ internal sealed class UserBillingService : IUserBillingService
         }
 
         await _userSubscriptionRepository.UpdateAsync(sub, ct);
+    }
+
+    private string GetOveragePriceId(SubscriptionPlan plan)
+    {
+        EnsureStripeSecretConfigured();
+
+        var priceId = plan == SubscriptionPlan.Pro
+            ? _stripeConfig.ProOveragePriceId
+            : _stripeConfig.FreeOveragePriceId;
+
+        if (string.IsNullOrWhiteSpace(priceId))
+        {
+            throw new BillingProviderException("Extra usage billing is not configured for this plan.");
+        }
+
+        return priceId;
+    }
+
+    private void EnsureStripeSecretConfigured()
+    {
+        if (string.IsNullOrWhiteSpace(_stripeConfig.SecretKey))
+        {
+            throw new BillingProviderException("Extra usage billing is not configured.");
+        }
     }
 
     public async Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(

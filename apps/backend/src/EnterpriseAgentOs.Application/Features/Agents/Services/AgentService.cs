@@ -17,11 +17,6 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentToolPermissionRepository _toolPermissionRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
-    private static string AgentListCacheKey(AgentFilter filter)
-        => $"agents:list:id={filter.Id?.ToString() ?? "all"}:owner={filter.OwnerId?.ToString() ?? "all"}:deleted={filter.IncludeDeleted}";
-    private static string AgentCacheKey(AgentFilter filter)
-        => $"agents:detail:id={filter.Id?.ToString() ?? "any"}:owner={filter.OwnerId?.ToString() ?? "any"}:deleted={filter.IncludeDeleted}";
-
     public AgentService(
         IAgentRepository repository,
         IAgentDeployer deployer,
@@ -50,7 +45,7 @@ internal sealed class AgentService : IAgentService
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var cacheKey = AgentListCacheKey(filter);
+        var cacheKey = AgentCacheKeys.List(filter);
         var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentDto>>(cacheKey, ct);
         if (cached is not null)
             return cached;
@@ -63,12 +58,13 @@ internal sealed class AgentService : IAgentService
         var result = records.Select(ToDto).ToList();
 
         await _cache.SetJsonAsync(cacheKey, (IReadOnlyList<AgentDto>)result, AgentCacheTtl, ct);
+        await AgentCacheKeys.TrackListAsync(_cache, cacheKey, ct);
         return result;
     }
 
     public async Task<AgentDto?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var key = AgentCacheKey(filter);
+        var key = AgentCacheKeys.Detail(filter);
         var cached = await _cache.GetJsonAsync<AgentDto>(key, ct);
         if (cached is not null)
             return cached;
@@ -107,14 +103,12 @@ internal sealed class AgentService : IAgentService
         foreach (var personality in defaults)
             await _agentPersonalityRepository.UpsertAsync(record.Id, personality.FileName, personality.Content, ct);
 
-        // If the user supplied a system prompt, persist it as BOOTSTRAP.md so
-        // the agent's prompt composition includes it on every turn.
-
-        //TODO should be inserted into bootstrap put that logic into domain not replaced entirely
+        // If the user supplied a system prompt, merge it into BOOTSTRAP.md
+        // while preserving the domain-owned default bootstrap guidance.
         if (!string.IsNullOrWhiteSpace(request.Prompt))
         {
             await _agentPersonalityRepository.UpsertAsync(
-                record.Id, "BOOTSTRAP.md", request.Prompt.Trim(), ct);
+                record.Id, "BOOTSTRAP.md", AgentPersonalityRecord.CreateBootstrapContent(request.Prompt), ct);
         }
 
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",

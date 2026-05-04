@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll } from "bun:test"
-import { buildClientSchema, getIntrospectionQuery, parse, validate } from "graphql"
+import { buildClientSchema, getIntrospectionQuery, getNamedType, isNonNullType, parse, validate } from "graphql"
 import { readFileSync, readdirSync, statSync, existsSync } from "fs"
 import { join, relative } from "path"
 
@@ -86,6 +86,18 @@ describe("GraphQL contract tests", () => {
     if (!res.ok) throw new Error(`Schema fetch failed: ${res.status} ${res.statusText}`)
     const json = (await res.json()) as { data: Parameters<typeof buildClientSchema>[0] }
     schema = buildClientSchema(json.data)
+  })
+
+  test("schema exposes setExtraUsageEnabled as a boolean toggle", () => {
+    const field = schema.getMutationType()?.getFields().setExtraUsageEnabled
+    expect(field).toBeDefined()
+    expect(isNonNullType(field!.type)).toBe(true)
+    expect(getNamedType(field!.type).name).toBe("Boolean")
+
+    const enabledArg = field!.args.find((arg) => arg.name === "enabled")
+    expect(enabledArg).toBeDefined()
+    expect(isNonNullType(enabledArg!.type)).toBe(true)
+    expect(getNamedType(enabledArg!.type).name).toBe("Boolean")
   })
 
   for (const op of operations) {

@@ -69,6 +69,24 @@ public sealed class CreditRecordingServiceTests
     }
 
     [Fact]
+    public async Task RecordCreditUsageAsync_rejects_overage_without_stripe_metering_state()
+    {
+        var ownerId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
+        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        sub.CreditBudgetPerMonth = 100;
+        sub.CreditsUsedThisMonth = 100;
+        sub.OverageEnabled = true;
+
+        var stripe = new FakeStripeMeteringService();
+        var service = CreateService(new FakeAgentRepository(Agent(agentId, ownerId)), new FakeUserSubscriptionRepository(sub), stripe);
+
+        await Assert.ThrowsAsync<BillingProviderException>(
+            () => service.RecordCreditUsageAsync(agentId, "gpt-4o-mini", rawTokens: 1, CancellationToken.None));
+        Assert.Empty(stripe.Events);
+    }
+
+    [Fact]
     public async Task RecordCreditUsageAsync_refuses_unowned_agents()
     {
         var agentId = Guid.NewGuid();

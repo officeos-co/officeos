@@ -11,6 +11,12 @@ public class BillingMutations
         await cache.RemoveAsync($"billing:sub:{userId}", ct);
     }
 
+    private static GraphQLException BillingProviderGraphQlException(BillingProviderException ex) =>
+        new(ErrorBuilder.New()
+            .SetMessage(ex.Message)
+            .SetCode("BILLING_PROVIDER_ERROR")
+            .Build());
+
     [GraphQLDescription("Initiates a Stripe Checkout session for the given plan (free or pro) and billing cycle (monthly or yearly). Returns the checkout URL.")]
     public async Task<SubscribeResultDto> SubscribeUser(
         string plan,
@@ -64,12 +70,15 @@ public class BillingMutations
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
-        // IUserBillingService has no dedicated cancel method; Stripe portal handles
-        // cancellation via CreatePortalSessionAsync. For dashboard parity we expose a
-        // mutation that disables overage and returns the current subscription.
-        // TODO: add IUserBillingService.CancelAsync when product decides on flow
-        // (Entities/Billing/services/IUserBillingService.cs).
-        await userBilling.EnableOverageAsync(user.Id, user.Email, false, ct);
+        try
+        {
+            await userBilling.CancelSubscriptionAsync(user.Id, user.Email, ct);
+        }
+        catch (BillingProviderException ex)
+        {
+            throw BillingProviderGraphQlException(ex);
+        }
+
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         await InvalidateBillingCacheAsync(cache, user.Id, ct);
@@ -94,7 +103,15 @@ public class BillingMutations
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
-        await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
+        try
+        {
+            await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
+        }
+        catch (BillingProviderException ex)
+        {
+            throw BillingProviderGraphQlException(ex);
+        }
+
         await InvalidateBillingCacheAsync(cache, user.Id, ct);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         return sub.OverageEnabled;
@@ -110,7 +127,15 @@ public class BillingMutations
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
-        await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
+        try
+        {
+            await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
+        }
+        catch (BillingProviderException ex)
+        {
+            throw BillingProviderGraphQlException(ex);
+        }
+
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         await InvalidateBillingCacheAsync(cache, user.Id, ct);

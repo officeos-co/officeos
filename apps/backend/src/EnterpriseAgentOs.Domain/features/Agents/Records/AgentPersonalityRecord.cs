@@ -104,12 +104,28 @@ public sealed class AgentPersonalityRecord
                 <!-- Add their name, role, preferences, and project context as you discover them. -->
                 """),
 
-            Create(agentId, "BOOTSTRAP.md", """
-                # Bootstrap
-
-                Start each turn by understanding the user's actual goal and the current state. Read/search before assuming. For code changes, follow the repository's existing architecture and keep edits scoped. After changing code, run the narrowest meaningful verification available and report what passed or could not be run.
-                """),
+            Create(agentId, "BOOTSTRAP.md", CreateBootstrapContent()),
         ];
+    }
+
+    public static string CreateBootstrapContent(string? userPrompt = null)
+    {
+        const string defaultBootstrap = """
+            # Bootstrap
+
+            Start each turn by understanding the user's actual goal and the current state. Read/search before assuming. For code changes, follow the repository's existing architecture and keep edits scoped. After changing code, run the narrowest meaningful verification available and report what passed or could not be run.
+            """;
+
+        if (string.IsNullOrWhiteSpace(userPrompt))
+            return defaultBootstrap;
+
+        return $"""
+            {defaultBootstrap.Trim()}
+
+            ## User Bootstrap
+
+            {userPrompt.Trim()}
+            """;
     }
 
     // ── Domain logic ─────────────────────────────────────────────────────────

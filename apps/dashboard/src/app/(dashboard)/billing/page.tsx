@@ -22,11 +22,21 @@ import { useBilling, useSetExtraUsageEnabled } from "@/features/manage"
 export default function BillingPage() {
   const router = useRouter()
   const { billing, loading, error } = useBilling()
-  const { setExtraUsageEnabled } = useSetExtraUsageEnabled()
+  const { setExtraUsageEnabled, loading: settingExtraUsage } = useSetExtraUsageEnabled()
 
   useEffect(() => {
     if (error) toast.error("Failed to load billing", { description: error.message })
   }, [error])
+
+  const handleSetExtraUsageEnabled = async (enabled: boolean) => {
+    try {
+      await setExtraUsageEnabled(enabled)
+    } catch (err) {
+      toast.error("Failed to update extra usage", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      })
+    }
+  }
 
   if (loading && !billing) {
     return (
@@ -199,7 +209,8 @@ export default function BillingPage() {
             <WithTooltip tooltip="Toggle whether this workspace may continue running agents after the monthly credit budget is exhausted.">
               <Switch
                 checked={billing.extraUsageEnabled}
-                onCheckedChange={(v) => setExtraUsageEnabled(v)}
+                disabled={settingExtraUsage}
+                onCheckedChange={handleSetExtraUsageEnabled}
               />
             </WithTooltip>
           </div>

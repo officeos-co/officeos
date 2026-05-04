@@ -59,12 +59,14 @@ internal sealed class CreditRecordingService : ICreditRecordingService
             "User {UserId}: {Used}/{Budget} credits this month.",
             agentId, credits, rawTokens, model, agent.OwnerId, sub.CreditsUsedThisMonth, sub.CreditBudgetPerMonth);
 
-        //TODO: This might be critical what if customerid is 0, should the user then be able to just have unlimited credit? Generelly we shouldnt need to verify customer id in billing that should be checked once at start
-        if (sub.OverageEnabled
-            && sub.StripeOverageItemId is not null
-            && sub.StripeCustomerId is not null
-            && sub.CreditsUsedThisMonth > sub.CreditBudgetPerMonth)
+        if (sub.OverageEnabled && sub.CreditsUsedThisMonth > sub.CreditBudgetPerMonth)
         {
+            if (string.IsNullOrWhiteSpace(sub.StripeCustomerId) || string.IsNullOrWhiteSpace(sub.StripeOverageItemId))
+            {
+                throw new BillingProviderException(
+                    $"Extra usage is enabled for user {sub.UserId}, but Stripe metering is not configured.");
+            }
+
             var previousOverage = Math.Max(0, previousCreditsUsed - sub.CreditBudgetPerMonth);
             var currentOverage = sub.CreditsUsedThisMonth - sub.CreditBudgetPerMonth;
             var overageCredits = currentOverage - previousOverage;
