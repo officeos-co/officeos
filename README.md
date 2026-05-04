@@ -24,7 +24,9 @@ The dashboard is the control plane for deploying agents, managing their capabili
 
 Self-host the full stack with Docker Compose or Kubernetes.
 
-## Dashboard Preview
+## Preview
+
+https://github.com/user-attachments/assets/d7b8f2c9-350a-4058-a95f-994092c588db
 
 | Quickstart                                                                                                                      | Integrations                                                                                           | Launch setup                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
