@@ -46,7 +46,7 @@ internal sealed class AgentLogService : IAgentLogService
 
     public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
     {
-        var agent = await _agentRepository.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
         if (agent is null) throw new InvalidOperationException($"Agent {agentId} not found");
 
         var correlationId = Guid.NewGuid().ToString("N");

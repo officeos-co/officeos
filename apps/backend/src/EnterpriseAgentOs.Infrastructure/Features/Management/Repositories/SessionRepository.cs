@@ -21,11 +21,20 @@ internal sealed class SessionRepository : ISessionRepository
         return ToSessionRecord(entity);
     }
 
-    public async Task<SessionRecord?> GetByTokenHashAsync(string tokenHash, CancellationToken ct)
+    public async Task<SessionRecord?> GetByAsync(SessionFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Sessions
-            .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct);
+        var query = _eaosDbContext.Sessions.Include(s => s.User).AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(s => s.Id == filter.Id.Value);
+
+        if (filter.UserId.HasValue)
+            query = query.Where(s => s.UserId == filter.UserId.Value);
+
+        if (!string.IsNullOrEmpty(filter.TokenHash))
+            query = query.Where(s => s.TokenHash == filter.TokenHash);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToSessionRecord(entity);
     }
 

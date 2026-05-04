@@ -39,9 +39,20 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         return ToOrganizationRecord(orgEntity);
     }
 
-    public async Task<OrganizationRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<OrganizationRecord?> GetByAsync(OrganizationFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, ct);
+        var query = _eaosDbContext.Organizations.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(o => o.Id == filter.Id.Value);
+
+        if (filter.OwnerUserId.HasValue)
+            query = query.Where(o => o.OwnerUserId == filter.OwnerUserId.Value);
+
+        if (!string.IsNullOrEmpty(filter.Name))
+            query = query.Where(o => o.Name == filter.Name);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToOrganizationRecord(entity);
     }
 

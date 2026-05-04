@@ -64,9 +64,23 @@ internal sealed class UserRepository : IUserRepository
         return ToUserRecord(entity);
     }
 
-    public async Task<UserRecord?> GetByIdAsync(Guid id, CancellationToken ct)
+    public async Task<UserRecord?> GetByAsync(UserFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
+        var query = _eaosDbContext.Users.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(u => u.Id == filter.Id.Value);
+
+        if (!string.IsNullOrEmpty(filter.Email))
+            query = query.Where(u => u.Email == filter.Email);
+
+        if (!string.IsNullOrEmpty(filter.GoogleSubjectId))
+            query = query.Where(u => u.GoogleSubjectId == filter.GoogleSubjectId);
+
+        if (!string.IsNullOrEmpty(filter.GitHubSubjectId))
+            query = query.Where(u => u.GitHubSubjectId == filter.GitHubSubjectId);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToUserRecord(entity);
     }
 

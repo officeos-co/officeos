@@ -22,7 +22,7 @@ internal sealed class UserBillingService : IUserBillingService
 
     public async Task<UserSubscription> GetSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
-        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         return sub ?? UserSubscription.CreateDefaultFree(userId);
     }
 
@@ -80,7 +80,7 @@ internal sealed class UserBillingService : IUserBillingService
 
     public async Task EnableOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default)
     {
-        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         if (sub is null)
         {
             sub = UserSubscription.CreateDefaultFree(userId);
@@ -138,7 +138,7 @@ internal sealed class UserBillingService : IUserBillingService
     public async Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
         Guid userId, CancellationToken ct = default)
     {
-        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         if (sub?.StripeCustomerId is null)
         {
             return Array.Empty<InvoicePayload>();
@@ -212,7 +212,7 @@ internal sealed class UserBillingService : IUserBillingService
 
     private async Task<string> GetOrCreateCustomerAsync(Guid userId, string email, CancellationToken ct)
     {
-        var existing = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
+        var existing = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
 
         if (existing?.StripeCustomerId is not null)
             return existing.StripeCustomerId;
@@ -227,7 +227,7 @@ internal sealed class UserBillingService : IUserBillingService
 
         _logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
 
-        var sub = await _userSubscriptionRepository.GetByUserIdAsync(userId, ct);
+        var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         if (sub is null)
         {
             sub = UserSubscription.CreateDefaultFree(userId);

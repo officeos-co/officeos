@@ -9,10 +9,20 @@ internal sealed class BrowserSessionRepository : IBrowserSessionRepository
         _eaosDbContext = db;
     }
 
-    public async Task<BrowserSessionRecord?> GetByAgentAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<BrowserSessionRecord?> GetByAsync(BrowserSessionFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.BrowserSessions
-            .FirstOrDefaultAsync(s => s.AgentId == agentId, ct);
+        var query = _eaosDbContext.BrowserSessions.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(s => s.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(s => s.AgentId == filter.AgentId.Value);
+
+        if (!string.IsNullOrEmpty(filter.RuntimeSessionId))
+            query = query.Where(s => s.RuntimeSessionId == filter.RuntimeSessionId);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToBrowserSessionRecord(entity);
     }
 

@@ -51,11 +51,11 @@ internal sealed class BillingGuard : IBillingGuard
 
     private async Task<bool> RefreshAndCheckAsync(Guid agentId, CancellationToken ct)
     {
-        var agent = await _agentRepository.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
         if (agent?.OwnerId is null)
             return false;
 
-        var sub = await _subscriptionRepository.GetByUserIdAsync(agent.OwnerId.Value, ct);
+        var sub = await _subscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
         if (sub is null)
             return false;
 

@@ -20,9 +20,20 @@ internal sealed class ChannelRepository : IChannelRepository
         return entities.Select(ToChannelConnectionRecord).ToList();
     }
 
-    public async Task<ChannelConnectionRecord?> GetConnectionAsync(Guid id, CancellationToken ct = default)
+    public async Task<ChannelConnectionRecord?> GetConnectionByAsync(ChannelConnectionFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.ChannelConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
+        var query = _eaosDbContext.ChannelConnections.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(c => c.Id == filter.Id.Value);
+
+        if (!string.IsNullOrEmpty(filter.ChannelType))
+            query = query.Where(c => c.ChannelType == filter.ChannelType);
+
+        if (filter.CreatedById.HasValue)
+            query = query.Where(c => c.CreatedById == filter.CreatedById.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToChannelConnectionRecord(entity);
     }
 
@@ -74,11 +85,20 @@ internal sealed class ChannelRepository : IChannelRepository
         return entities.Select(ToAgentChannelBindingRecord).ToList();
     }
 
-    public async Task<AgentChannelBindingRecord?> GetBindingAsync(Guid bindingId, CancellationToken ct = default)
+    public async Task<AgentChannelBindingRecord?> GetBindingByAsync(AgentChannelBindingFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.AgentChannelBindings
-            .Include(b => b.ChannelConnection)
-            .FirstOrDefaultAsync(b => b.Id == bindingId, ct);
+        var query = _eaosDbContext.AgentChannelBindings.Include(b => b.ChannelConnection).AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(b => b.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(b => b.AgentId == filter.AgentId.Value);
+
+        if (filter.ChannelConnectionId.HasValue)
+            query = query.Where(b => b.ChannelConnectionId == filter.ChannelConnectionId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToAgentChannelBindingRecord(entity);
     }
 

@@ -7,21 +7,23 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
 
     public AgentSessionRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<AgentSessionRecord?> GetActiveAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<AgentSessionRecord?> GetByAsync(AgentSessionFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.AgentSessions
-            .Where(s => s.AgentId == agentId && s.Status == SessionStatus.Active.ToStorageString())
-            .OrderByDescending(s => s.CreatedAt)
-            .FirstOrDefaultAsync(ct);
-        if (entity is null) return null;
-        var record = ToAgentSessionRecord(entity);
-        _tracked[record.Id] = record;
-        return record;
-    }
+        var query = _eaosDbContext.AgentSessions.AsQueryable();
 
-    public async Task<AgentSessionRecord?> GetByIdAsync(Guid sessionId, CancellationToken ct = default)
-    {
-        var entity = await _eaosDbContext.AgentSessions.FindAsync(new object[] { sessionId }, ct);
+        if (filter.Id.HasValue)
+            query = query.Where(s => s.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(s => s.AgentId == filter.AgentId.Value);
+
+        if (filter.Status.HasValue)
+        {
+            var status = filter.Status.Value.ToStorageString();
+            query = query.Where(s => s.Status == status);
+        }
+
+        var entity = await query.OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
         if (entity is null) return null;
         var record = ToAgentSessionRecord(entity);
         _tracked[record.Id] = record;

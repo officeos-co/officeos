@@ -18,7 +18,7 @@ internal sealed class BrowserService : IBrowserService
 
     public async Task<BrowserSessionState> GetOrCreateAsync(Guid agentId, CancellationToken ct = default)
     {
-        var existing = await _sessions.GetByAgentAsync(agentId, ct);
+        var existing = await _sessions.GetByAsync(new BrowserSessionFilter { AgentId = agentId }, ct);
         if (existing is not null)
         {
             var state = await _runtime.GetSessionAsync(agentId, existing.RuntimeSessionId, ct);
@@ -40,7 +40,7 @@ internal sealed class BrowserService : IBrowserService
 
     public async Task<BrowserSessionState?> GetStateAsync(Guid agentId, CancellationToken ct = default)
     {
-        var existing = await _sessions.GetByAgentAsync(agentId, ct);
+        var existing = await _sessions.GetByAsync(new BrowserSessionFilter { AgentId = agentId }, ct);
         if (existing is null)
             return new BrowserSessionState(agentId, null, "not_started", null, null, null, null, null, null);
 
@@ -65,7 +65,7 @@ internal sealed class BrowserService : IBrowserService
 
     public async Task StopAsync(Guid agentId, CancellationToken ct = default)
     {
-        var existing = await _sessions.GetByAgentAsync(agentId, ct);
+        var existing = await _sessions.GetByAsync(new BrowserSessionFilter { AgentId = agentId }, ct);
         if (existing is null) return;
 
         try

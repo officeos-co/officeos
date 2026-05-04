@@ -13,9 +13,23 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         return run;
     }
 
-    public async Task<AgentRunRecord?> GetAsync(Guid runId, CancellationToken ct = default)
+    public async Task<AgentRunRecord?> GetByAsync(AgentRunFilter filter, CancellationToken ct = default)
     {
-        var entity = await _db.AgentRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == runId, ct);
+        var query = _db.AgentRuns.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(r => r.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(r => r.AgentId == filter.AgentId.Value);
+
+        if (filter.ParentRunId.HasValue)
+            query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
+
+        if (!string.IsNullOrEmpty(filter.Status))
+            query = query.Where(r => r.Status == filter.Status);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToRecord(entity);
     }
 

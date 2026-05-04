@@ -23,7 +23,7 @@ internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedE
 
     public async Task Handle(AgentCreatedEvent notification, CancellationToken ct)
     {
-        var record = await _agentRepository.GetAsync(notification.AgentId, ct);
+        var record = await _agentRepository.GetByAsync(new AgentFilter { Id = notification.AgentId }, ct);
         if (record is null) return;
 
         try

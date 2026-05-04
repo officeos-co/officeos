@@ -45,7 +45,7 @@ public sealed class SessionAuthMiddleware
             if (cachedUser is null)
             {
                 var sessionRepo = context.RequestServices.GetRequiredService<ISessionRepository>();
-                var session = await sessionRepo.GetByTokenHashAsync(tokenHash);
+                var session = await sessionRepo.GetByAsync(new SessionFilter { TokenHash = tokenHash });
 
                 if (session is null)
                 {

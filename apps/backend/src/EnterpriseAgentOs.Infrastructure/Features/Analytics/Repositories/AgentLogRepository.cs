@@ -74,9 +74,23 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public async Task<AgentLogRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<AgentLogRecord?> GetByAsync(AgentLogFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.AgentLogs.FirstOrDefaultAsync(l => l.Id == id, ct);
+        var query = _eaosDbContext.AgentLogs.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(l => l.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(l => l.AgentId == filter.AgentId.Value);
+
+        if (!string.IsNullOrEmpty(filter.CorrelationId))
+            query = query.Where(l => l.CorrelationId == filter.CorrelationId);
+
+        if (filter.Type.HasValue)
+            query = query.Where(l => l.Type == filter.Type.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToAgentLogRecord(entity);
     }
 

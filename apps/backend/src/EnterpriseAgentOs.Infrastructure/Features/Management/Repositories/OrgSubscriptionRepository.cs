@@ -9,15 +9,41 @@ internal sealed class OrgSubscriptionRepository : IOrgSubscriptionRepository
         _eaosDbContext = db;
     }
 
-    public async Task<OrgSubscription?> GetByOrganizationIdAsync(string organizationId, CancellationToken ct = default)
+    public async Task<OrgSubscription?> GetByAsync(OrgSubscriptionFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.OrgSubscriptions.FirstOrDefaultAsync(s => s.OrganizationId == organizationId, ct);
+        var query = _eaosDbContext.OrgSubscriptions.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(s => s.Id == filter.Id.Value);
+
+        if (!string.IsNullOrEmpty(filter.OrganizationId))
+            query = query.Where(s => s.OrganizationId == filter.OrganizationId);
+
+        if (!string.IsNullOrEmpty(filter.StripeCustomerId))
+            query = query.Where(s => s.StripeCustomerId == filter.StripeCustomerId);
+
+        if (!string.IsNullOrEmpty(filter.StripeSubscriptionId))
+            query = query.Where(s => s.StripeSubscriptionId == filter.StripeSubscriptionId);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToOrgSubscription(entity);
     }
 
     public async Task AddAsync(OrgSubscription sub, CancellationToken ct = default)
     {
         await _eaosDbContext.OrgSubscriptions.AddAsync(ToOrgSubscriptionEntity(sub), ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateAsync(OrgSubscription sub, CancellationToken ct = default)
+    {
+        var entity = await _eaosDbContext.OrgSubscriptions
+            .FirstOrDefaultAsync(s => s.OrganizationId == sub.OrganizationId, ct);
+
+        if (entity is null)
+            throw new InvalidOperationException($"Organization subscription for org {sub.OrganizationId} was not found.");
+
+        Apply(entity, sub);
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
@@ -60,4 +86,19 @@ internal sealed class OrgSubscriptionRepository : IOrgSubscriptionRepository
         IsActive = r.IsActive,
         OverageEnabled = r.OverageEnabled,
     };
+
+    private static void Apply(OrgSubscriptionEntity e, OrgSubscription r)
+    {
+        e.Plan = r.Plan.ToStorageString();
+        e.StripeCustomerId = r.StripeCustomerId;
+        e.StripeSubscriptionId = r.StripeSubscriptionId;
+        e.StripeOverageItemId = r.StripeOverageItemId;
+        e.ConcurrentAgentLimit = r.ConcurrentAgentLimit;
+        e.CreditBudgetPerMonth = r.CreditBudgetPerMonth;
+        e.CreditsUsedThisMonth = r.CreditsUsedThisMonth;
+        e.PeriodStart = r.Period.Start;
+        e.PeriodEnd = r.Period.End;
+        e.IsActive = r.IsActive;
+        e.OverageEnabled = r.OverageEnabled;
+    }
 }

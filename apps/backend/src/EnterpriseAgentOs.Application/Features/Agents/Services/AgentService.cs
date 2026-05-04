@@ -70,7 +70,7 @@ internal sealed class AgentService : IAgentService
         if (cached is not null)
             return cached;
 
-        var record = await _agentRepository.GetAsync(id, ct);
+        var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
         if (record is null)
         {
             _logger.LogDebug("Agent {AgentId} not found", id);
@@ -124,7 +124,7 @@ internal sealed class AgentService : IAgentService
 
     public async Task<AgentDto?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default)
     {
-        var record = await _agentRepository.GetAsync(id, ct);
+        var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
         if (record is null)
         {
             _logger.LogWarning("Patch failed: agent {AgentId} not found", id);
@@ -167,7 +167,7 @@ internal sealed class AgentService : IAgentService
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var record = await _agentRepository.GetAsync(id, ct);
+        var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
         if (record is null)
         {
             _logger.LogWarning("Delete failed: agent {AgentId} not found", id);

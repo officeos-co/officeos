@@ -19,20 +19,30 @@ internal sealed class AgentRepository : IAgentRepository
         return entities.Select(e => ToAgentRecord(e)).ToList();
     }
 
-    public async Task<AgentRecord?> GetAsync(Guid id, CancellationToken ct = default)
+    public async Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Agents.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, ct);
+        var query = _eaosDbContext.Agents.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(a => a.Id == filter.Id.Value);
+
+        if (filter.OwnerId.HasValue)
+            query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (!filter.IncludeDeleted)
+            query = query.Where(a => !a.IsDeleted);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         if (entity is null) return null;
 
         var personalityFiles = await _eaosDbContext.AgentPersonalities.AsNoTracking()
-            .Where(p => p.AgentId == id).ToListAsync(ct);
+            .Where(p => p.AgentId == entity.Id).ToListAsync(ct);
         var memories = await _eaosDbContext.AgentMemories.AsNoTracking()
-            .Where(m => m.AgentId == id).ToListAsync(ct);
+            .Where(m => m.AgentId == entity.Id).ToListAsync(ct);
         var channelBindings = await _eaosDbContext.AgentChannelBindings.AsNoTracking()
-            .Where(b => b.AgentId == id).ToListAsync(ct);
+            .Where(b => b.AgentId == entity.Id).ToListAsync(ct);
         var session = await _eaosDbContext.AgentSessions.AsNoTracking()
-            .Where(s => s.AgentId == id && s.Status == SessionStatus.Active.ToStorageString())
+            .Where(s => s.AgentId == entity.Id && s.Status == SessionStatus.Active.ToStorageString())
             .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
 
         return ToAgentRecord(entity,

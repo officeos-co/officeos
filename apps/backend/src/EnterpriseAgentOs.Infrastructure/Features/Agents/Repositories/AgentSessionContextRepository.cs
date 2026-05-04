@@ -6,10 +6,14 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
 
     public AgentSessionContextRepository(EaosDbContext db) => _db = db;
 
-    public async Task<AgentSessionContextRecord?> GetAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<AgentSessionContextRecord?> GetByAsync(AgentSessionContextFilter filter, CancellationToken ct = default)
     {
-        var entity = await _db.AgentSessionContexts.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.AgentId == agentId, ct);
+        var query = _db.AgentSessionContexts.AsNoTracking().AsQueryable();
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(c => c.AgentId == filter.AgentId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToRecord(entity);
     }
 

@@ -6,10 +6,17 @@ internal sealed class AgentMemoryRepository : IAgentMemoryRepository
 
     public AgentMemoryRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<AgentMemoryRecord?> GetAsync(Guid agentId, string key, CancellationToken ct = default)
+    public async Task<AgentMemoryRecord?> GetByAsync(AgentMemoryFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.AgentMemories
-            .FirstOrDefaultAsync(m => m.AgentId == agentId && m.Key == key, ct);
+        var query = _eaosDbContext.AgentMemories.AsQueryable();
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(m => m.AgentId == filter.AgentId.Value);
+
+        if (!string.IsNullOrEmpty(filter.Key))
+            query = query.Where(m => m.Key == filter.Key);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToAgentMemoryRecord(entity);
     }
 

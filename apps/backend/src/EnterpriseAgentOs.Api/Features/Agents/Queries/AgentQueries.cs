@@ -40,7 +40,7 @@ public class AgentQueries
         if (cached is not null)
             return cached;
 
-        var result = await agents.GetAsync(id, ct);
+        var result = await agents.GetByAsync(new AgentFilter { Id = id }, ct);
         if (result is not null)
             await cache.SetJsonAsync(key, result, CacheTtl, ct);
 

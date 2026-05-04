@@ -22,11 +22,11 @@ internal sealed class CreditRecordingService : ICreditRecordingService
 
     public async Task RecordCreditUsageAsync(Guid agentId, string model, long rawTokens, CancellationToken ct = default)
     {
-        var agent = await _agentRepository.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
         if (agent?.OwnerId is null) return;
 
         var credits = ProviderRegistry.ToCredits(model, rawTokens);
-        var sub = await _userSubscriptionRepository.GetByUserIdAsync(agent.OwnerId.Value, ct);
+        var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
         if (sub is null) return;
 
         sub.RecordCredits(credits);

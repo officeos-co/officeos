@@ -71,7 +71,7 @@ internal sealed class AgentTurnService
     {
         var turnStart = Stopwatch.GetTimestamp();
 
-        var agent = await _agentRepository.GetAsync(agentId, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
         if (agent is null)
         {
             await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, $"Agent {agentId} not found"), ct);

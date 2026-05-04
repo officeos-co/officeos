@@ -14,12 +14,12 @@ public class SessionMutations
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var agent = await agentRepo.GetAsync(agentId, ct)
+        var agent = await agentRepo.GetByAsync(new AgentFilter { Id = agentId }, ct)
             ?? throw new GraphQLException(
                 ErrorBuilder.New().SetMessage("Agent not found.").SetCode("NOT_FOUND").Build());
 
         // End any active session
-        var active = await sessions.GetActiveAsync(agentId, ct);
+        var active = await sessions.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
         if (active is not null)
         {
             active.End();
@@ -48,7 +48,7 @@ public class SessionMutations
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
 
-        var active = await sessions.GetActiveAsync(agentId, ct);
+        var active = await sessions.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
         if (active is null) return null;
 
         active.End();

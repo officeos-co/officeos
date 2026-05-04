@@ -16,7 +16,7 @@ internal sealed class OrgBillingService : IOrgBillingService
 
     public async Task<OrgSubscription> GetSubscriptionAsync(string orgId, CancellationToken ct = default)
     {
-        var sub = await _orgSubscriptionRepository.GetByOrganizationIdAsync(orgId, ct);
+        var sub = await _orgSubscriptionRepository.GetByAsync(new OrgSubscriptionFilter { OrganizationId = orgId }, ct);
         return sub ?? OrgSubscription.CreateDefaultFree(orgId);
     }
 
@@ -65,7 +65,7 @@ internal sealed class OrgBillingService : IOrgBillingService
 
     public async Task EnableOverageAsync(string orgId, string email, bool enabled, CancellationToken ct = default)
     {
-        var sub = await _orgSubscriptionRepository.GetByOrganizationIdAsync(orgId, ct);
+        var sub = await _orgSubscriptionRepository.GetByAsync(new OrgSubscriptionFilter { OrganizationId = orgId }, ct);
         if (sub is null)
         {
             sub = OrgSubscription.CreateDefaultFree(orgId);

@@ -8,10 +8,17 @@ internal sealed class McpCredentialRepository : IMcpCredentialRepository
 
     public McpCredentialRepository(EaosDbContext db) => _db = db;
 
-    public async Task<McpCredentialRecord?> GetByServerNameAsync(string serverName, CancellationToken ct)
+    public async Task<McpCredentialRecord?> GetByAsync(McpCredentialFilter filter, CancellationToken ct = default)
     {
-        var entity = await _db.McpCredentials.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.McpServerName == serverName, ct);
+        var query = _db.McpCredentials.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(c => c.Id == filter.Id.Value);
+
+        if (!string.IsNullOrEmpty(filter.ServerName))
+            query = query.Where(c => c.McpServerName == filter.ServerName);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : new McpCredentialRecord
         {
             Id = entity.Id,

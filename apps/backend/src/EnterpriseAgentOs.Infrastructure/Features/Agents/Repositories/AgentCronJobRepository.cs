@@ -25,9 +25,20 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         return entities.Select(ToAgentCronJobRecord).ToList();
     }
 
-    public async Task<AgentCronJobRecord?> GetAsync(Guid id, CancellationToken ct = default)
+    public async Task<AgentCronJobRecord?> GetByAsync(AgentCronJobFilter filter, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.AgentCronJobs.FirstOrDefaultAsync(j => j.Id == id, ct);
+        var query = _eaosDbContext.AgentCronJobs.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(j => j.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(j => j.AgentId == filter.AgentId.Value);
+
+        if (filter.Enabled.HasValue)
+            query = query.Where(j => j.Enabled == filter.Enabled.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToAgentCronJobRecord(entity);
     }
 

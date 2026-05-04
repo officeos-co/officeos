@@ -257,7 +257,7 @@ internal sealed class CronDeleteTool : IAgentTool
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
         if (!Guid.TryParse(args.GetProperty("job_id").GetString(), out var id)) return new ToolResult(false, "", "Invalid job_id.");
-        var job = await _repo.GetAsync(id, ct);
+        var job = await _repo.GetByAsync(new AgentCronJobFilter { Id = id }, ct);
         if (job is null || job.AgentId != _agentId) return new ToolResult(false, "", "Cron job not found.");
         var deleted = await _repo.DeleteAsync(id, ct);
         return new ToolResult(deleted, deleted ? $"Deleted cron job {id}." : "", deleted ? null : "Cron job not found.");

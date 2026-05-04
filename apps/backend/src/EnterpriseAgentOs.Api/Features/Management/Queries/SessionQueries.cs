@@ -24,6 +24,6 @@ public class SessionQueries
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return await sessions.GetActiveAsync(agentId, ct);
+        return await sessions.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
     }
 }

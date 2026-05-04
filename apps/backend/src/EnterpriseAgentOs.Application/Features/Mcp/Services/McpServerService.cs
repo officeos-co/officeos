@@ -83,14 +83,14 @@ internal sealed class McpServerService : IMcpServerService
         if (!string.IsNullOrWhiteSpace(server?.OauthProvider))
             return await GetOAuthCredentialAsync(server, ct);
 
-        var record = await _credentialRepository.GetByServerNameAsync(serverName, ct);
+        var record = await _credentialRepository.GetByAsync(new McpCredentialFilter { ServerName = serverName }, ct);
         if (record is null) return new();
         return _credentialProtector.Unprotect(record.EncryptedCredentials);
     }
 
     private async Task<Dictionary<string, string>> GetOAuthCredentialAsync(McpServerRecord server, CancellationToken ct)
     {
-        var token = await _oauthTokenRepository.GetByProviderAsync(server.OauthProvider!, ct);
+        var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = server.OauthProvider! }, ct);
         if (token is null) return new();
 
         return server.OauthProvider switch
@@ -147,7 +147,7 @@ internal sealed class McpServerService : IMcpServerService
         var configured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var provider in providers)
         {
-            var token = await _oauthTokenRepository.GetByProviderAsync(provider!, ct);
+            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = provider! }, ct);
             if (!string.IsNullOrWhiteSpace(token?.EncryptedAccessToken)
                 || !string.IsNullOrWhiteSpace(token?.EncryptedRefreshToken))
             {
@@ -161,7 +161,7 @@ internal sealed class McpServerService : IMcpServerService
 
         foreach (var server in servers.Where(s => !string.IsNullOrWhiteSpace(s.OauthProvider)))
         {
-            var token = await _oauthTokenRepository.GetByProviderAsync(server.OauthProvider!, ct);
+            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = server.OauthProvider! }, ct);
             if (token is null)
                 continue;
 

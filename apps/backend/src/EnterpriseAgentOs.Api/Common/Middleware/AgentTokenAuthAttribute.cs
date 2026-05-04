@@ -32,7 +32,7 @@ public sealed class AgentTokenAuthAttribute : Attribute, IAsyncAuthorizationFilt
         }
 
         var repo = http.RequestServices.GetRequiredService<IAgentRepository>();
-        var agent = await repo.GetAsync(agentId);
+        var agent = await repo.GetByAsync(new AgentFilter { Id = agentId });
         var exists = agent is not null && !agent.IsDeleted;
 
         if (!exists)

@@ -76,7 +76,7 @@ internal sealed class ChannelService : IChannelService
         // Log even when no agent bindings exist for this connection
         if (bindings.Count == 0)
         {
-            var connection = await _repo.GetConnectionAsync(connectionId, ct);
+            var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
             var channelType = connection?.ChannelType.ToStorageString() ?? "unknown";
 
             await _publisher.Publish(new ChannelMessageRoutedEvent(
@@ -186,7 +186,7 @@ internal sealed class ChannelService : IChannelService
 
     public async Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default)
     {
-        var connection = await _repo.GetConnectionAsync(connectionId, ct);
+        var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
         if (connection is null) return;
 
         var message = $"✅ {connection.DisplayName} connected successfully!";
@@ -205,7 +205,7 @@ internal sealed class ChannelService : IChannelService
 
     public async Task<AgentChannelBindingRecord> BindAgentAsync(Guid agentId, Guid channelConnectionId, string? configJson, CancellationToken ct = default)
     {
-        var connection = await _repo.GetConnectionAsync(channelConnectionId, ct);
+        var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = channelConnectionId }, ct);
         if (connection is null)
             throw new InvalidOperationException("Channel connection not found.");
 

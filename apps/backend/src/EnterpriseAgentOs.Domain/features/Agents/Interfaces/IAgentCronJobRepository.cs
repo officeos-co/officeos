@@ -1,10 +1,17 @@
 namespace EnterpriseAgentOs.Domain.Features.Agents;
 
+public sealed record AgentCronJobFilter
+{
+    public Guid? Id { get; init; }
+    public Guid? AgentId { get; init; }
+    public bool? Enabled { get; init; }
+}
+
 public interface IAgentCronJobRepository
 {
     Task<IReadOnlyList<AgentCronJobRecord>> ListAsync(Guid agentId, CancellationToken ct = default);
     Task<IReadOnlyList<AgentCronJobRecord>> ListAllEnabledAsync(CancellationToken ct = default);
-    Task<AgentCronJobRecord?> GetAsync(Guid id, CancellationToken ct = default);
+    Task<AgentCronJobRecord?> GetByAsync(AgentCronJobFilter filter, CancellationToken ct = default);
     Task<AgentCronJobRecord> CreateAsync(Guid agentId, string name, string expression, string prompt, CancellationToken ct = default);
     Task UpdateAsync(AgentCronJobRecord record, CancellationToken ct = default);
     Task SetEnabledAsync(Guid id, bool enabled, CancellationToken ct = default);

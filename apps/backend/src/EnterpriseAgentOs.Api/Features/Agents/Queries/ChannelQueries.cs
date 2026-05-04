@@ -42,7 +42,7 @@ public class ChannelQueries
         if (cached is not null)
             return cached;
 
-        var row = await repo.GetConnectionAsync(id, ct);
+        var row = await repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = id }, ct);
         if (row is null) return null;
         var dto = ChannelGraphQLMapper.ToDto(row);
 

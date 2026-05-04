@@ -9,11 +9,20 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
 
     public OAuthTokenRepository(EaosDbContext db) => _db = db;
 
-    public async Task<OAuthTokenRecord?> GetByProviderAsync(string provider, CancellationToken ct = default)
+    public async Task<OAuthTokenRecord?> GetByAsync(OAuthTokenFilter filter, CancellationToken ct = default)
     {
-        var entity = await _db.OAuthTokens.AsNoTracking()
-            .Include(t => t.GrantedScopes)
-            .FirstOrDefaultAsync(t => t.Provider == provider, ct);
+        var query = _db.OAuthTokens.AsNoTracking().Include(t => t.GrantedScopes).AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(t => t.Id == filter.Id.Value);
+
+        if (!string.IsNullOrEmpty(filter.Provider))
+            query = query.Where(t => t.Provider == filter.Provider);
+
+        if (!string.IsNullOrEmpty(filter.Email))
+            query = query.Where(t => t.Email == filter.Email);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
 
         return entity is null ? null : ToRecord(entity);
     }

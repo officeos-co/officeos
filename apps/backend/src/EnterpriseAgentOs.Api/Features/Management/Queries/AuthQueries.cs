@@ -20,7 +20,7 @@ public class AuthQueries
         if (cached is not null)
             return cached;
 
-        var user = await users.GetByIdAsync(ctxUser.Id, ct) ?? ctxUser;
+        var user = await users.GetByAsync(new UserFilter { Id = ctxUser.Id }, ct) ?? ctxUser;
         var result = new UserPayload(
             user.Id,
             user.Email,

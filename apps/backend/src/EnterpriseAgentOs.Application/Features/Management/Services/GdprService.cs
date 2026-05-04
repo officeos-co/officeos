@@ -21,7 +21,7 @@ internal sealed class GdprService : IGdprService
 
     public async Task<GdprExportDto> ExportAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _userRepository.GetByIdAsync(userId, ct)
+        var user = await _userRepository.GetByAsync(new UserFilter { Id = userId }, ct)
             ?? throw new InvalidOperationException($"User {userId} not found");
 
         var userDto = new GdprUserDto(

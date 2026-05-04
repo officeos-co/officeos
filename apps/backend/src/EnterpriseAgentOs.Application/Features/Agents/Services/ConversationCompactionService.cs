@@ -27,7 +27,7 @@ internal sealed class ConversationCompactionService
 
     public async Task<ConversationContextWindow> LoadAsync(Guid agentId, string correlationId, CancellationToken ct)
     {
-        var context = await _contextRepository.GetAsync(agentId, ct);
+        var context = await _contextRepository.GetByAsync(new AgentSessionContextFilter { AgentId = agentId }, ct);
         var logs = await _logRepository.ListAfterAsync(agentId, context?.LastCompactedLogId, LoadLimit, ct);
 
         if (logs.Count <= CompactAfterLogCount)
