@@ -7,7 +7,7 @@ build/
 .venv/
 venv/
 reference
-
+todo.md
 # ── Node / Next.js ───────────────────────────────────────────
 node_modules/
 .next/
