@@ -5,32 +5,54 @@ internal sealed class CreditRecordingService : ICreditRecordingService
     private readonly StripeConfig _stripeConfig;
     private readonly IAgentRepository _agentRepository;
     private readonly IUserSubscriptionRepository _userSubscriptionRepository;
+    private readonly IStripeMeteringService _stripeMeteringService;
     private readonly ILogger<CreditRecordingService> _logger;
 
     public CreditRecordingService(
         StripeConfig config,
         IAgentRepository agentRepo,
         IUserSubscriptionRepository subRepo,
+        IStripeMeteringService stripeMeteringService,
         ILogger<CreditRecordingService> logger)
     {
         _stripeConfig = config;
         _agentRepository = agentRepo;
         _userSubscriptionRepository = subRepo;
+        _stripeMeteringService = stripeMeteringService;
         _logger = logger;
         StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
     public async Task RecordCreditUsageAsync(Guid agentId, string model, long rawTokens, CancellationToken ct = default)
     {
+        if (rawTokens <= 0)
+            throw new InvalidOperationException($"Refusing to record non-positive LLM usage for agent {agentId}.");
+
         var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
-        if (agent?.OwnerId is null) return;
+        if (agent is null)
+            throw new InvalidOperationException($"Cannot record LLM usage because agent {agentId} was not found.");
+        if (agent.OwnerId is null)
+            throw new InvalidOperationException($"Cannot record LLM usage because agent {agentId} has no owner.");
 
         var credits = ProviderRegistry.ToCredits(model, rawTokens);
+        var previousCreditsUsed = 0L;
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
-        if (sub is null) return;
+        var createdSubscription = sub is null;
+        if (sub is null)
+        {
+            sub = UserSubscription.CreateDefaultFree(agent.OwnerId.Value);
+            _logger.LogWarning(
+                "Created missing free subscription while recording usage for agent {AgentId} user {UserId}",
+                agentId, agent.OwnerId.Value);
+        }
+
+        previousCreditsUsed = sub.CreditsUsedThisMonth;
 
         sub.RecordCredits(credits);
-        await _userSubscriptionRepository.SaveChangesAsync(ct);
+        if (createdSubscription)
+            await _userSubscriptionRepository.AddAsync(sub, ct);
+        else
+            await _userSubscriptionRepository.UpdateAsync(sub, ct);
 
         _logger.LogDebug(
             "Agent {AgentId} used {Credits} credits ({RawTokens} raw tokens on {Model}). " +
@@ -43,29 +65,13 @@ internal sealed class CreditRecordingService : ICreditRecordingService
             && sub.StripeCustomerId is not null
             && sub.CreditsUsedThisMonth > sub.CreditBudgetPerMonth)
         {
-            var overageCredits = sub.CreditsUsedThisMonth - sub.CreditBudgetPerMonth;
+            var previousOverage = Math.Max(0, previousCreditsUsed - sub.CreditBudgetPerMonth);
+            var currentOverage = sub.CreditsUsedThisMonth - sub.CreditBudgetPerMonth;
+            var overageCredits = currentOverage - previousOverage;
+            if (overageCredits <= 0) return;
+
             var eventName = sub.Plan == SubscriptionPlan.Pro ? "pro_credits_used" : "free_credits_used";
-            await FireMeterEventAsync(eventName, sub.StripeCustomerId, overageCredits, ct);
+            await _stripeMeteringService.FireMeterEventAsync(eventName, sub.StripeCustomerId, overageCredits, ct);
         }
-    }
-
-    private async Task FireMeterEventAsync(string eventName, string customerId, long credits, CancellationToken ct)
-    {
-        var client = new StripeClient(_stripeConfig.SecretKey);
-        await client.V2.Billing.MeterEvents.CreateAsync(
-            new Stripe.V2.Billing.MeterEventCreateOptions
-            {
-                EventName = eventName,
-                Payload = new Dictionary<string, string>
-                {
-                    ["stripe_customer_id"] = customerId,
-                    ["value"] = credits.ToString(),
-                },
-            },
-            cancellationToken: ct);
-
-        _logger.LogInformation(
-            "Fired Stripe meter event {EventName} for customer {CustomerId}: {Credits} overage credits",
-            eventName, customerId, credits);
     }
 }

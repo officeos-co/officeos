@@ -15,6 +15,7 @@ internal sealed class AgentTurnService
     private readonly ConversationCompactionService _compactionService;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly IBillingGuard _billingGuard;
+    private readonly ICreditRecordingService _creditRecording;
     private readonly ILogger<AgentTurnService> _logger;
 
     private const int MaxIterations = 25;
@@ -32,6 +33,7 @@ internal sealed class AgentTurnService
         ConversationCompactionService compactionService,
         IAgentRunRepository agentRunRepository,
         IBillingGuard billingGuard,
+        ICreditRecordingService creditRecording,
         ILogger<AgentTurnService> logger)
     {
         _agentRepository = agents;
@@ -44,6 +46,7 @@ internal sealed class AgentTurnService
         _compactionService = compactionService;
         _agentRunRepository = agentRunRepository;
         _billingGuard = billingGuard;
+        _creditRecording = creditRecording;
         _logger = logger;
     }
 
@@ -268,11 +271,36 @@ internal sealed class AgentTurnService
                 return;
             }
 
-            var sseResult = await ParseSseResponseAsync(llmResult.Value, ct);
+            var sseResult = await ParseSseResponseAsync(llmResult.Value.Response, ct);
             var (assistantContent, toolCalls) = (sseResult.Content, sseResult.ToolCalls);
             var llmDuration = (int)Stopwatch.GetElapsedTime(llmStart).TotalMilliseconds;
-            var resolvedModel = agent.Model ?? "auto";
-            await _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, resolvedModel, llmDuration, sseResult.InputTokens, sseResult.OutputTokens), ct);
+            var resolvedModel = llmResult.Value.Model;
+            var usage = ResolveUsage(requestBody, assistantContent, toolCalls, sseResult.InputTokens, sseResult.OutputTokens);
+
+            if (usage.IsEstimated)
+            {
+                _logger.LogWarning(
+                    "LLM provider did not return complete token usage for agent {AgentId} correlation {CorrelationId}; using estimated usage {InputTokens}/{OutputTokens}",
+                    agentId, correlationId, usage.InputTokens, usage.OutputTokens);
+            }
+
+            try
+            {
+                await _creditRecording.RecordCreditUsageAsync(agentId, resolvedModel, usage.TotalTokens, ct);
+                await _billingGuard.RefreshCacheAsync(agentId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Billing failed after LLM call for agent {AgentId} correlation {CorrelationId}",
+                    agentId, correlationId);
+                await _publisher.Publish(new AgentErrorOccurredEvent(
+                    agentId, correlationId, "LLM usage could not be recorded; refusing to continue the turn."), ct);
+                await FinishRunAsync("failed", error: "LLM usage could not be recorded.");
+                return;
+            }
+
+            await _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, resolvedModel, llmDuration, usage.InputTokens, usage.OutputTokens), ct);
 
             if (!string.IsNullOrEmpty(assistantContent))
                 await _publisher.Publish(new MessageOutEvent(agentId, correlationId, assistantContent), ct);
@@ -351,6 +379,34 @@ internal sealed class AgentTurnService
 
     private record ParsedToolCall(string Id, string Name, string Arguments);
     private record SseResult(string? Content, List<ParsedToolCall> ToolCalls, int? InputTokens, int? OutputTokens);
+    private record ResolvedLlmUsage(int InputTokens, int OutputTokens, bool IsEstimated)
+    {
+        public long TotalTokens => (long)InputTokens + OutputTokens;
+    }
+
+    private static ResolvedLlmUsage ResolveUsage(
+        JsonElement requestBody,
+        string? assistantContent,
+        IReadOnlyList<ParsedToolCall> toolCalls,
+        int? reportedInputTokens,
+        int? reportedOutputTokens)
+    {
+        var estimatedInputTokens = EstimateTokens(requestBody.GetRawText());
+        var estimatedOutputTokens = EstimateTokens(
+            $"{assistantContent ?? string.Empty}\n{string.Join('\n', toolCalls.Select(tc => $"{tc.Name} {tc.Arguments}"))}");
+
+        var inputTokens = reportedInputTokens is > 0 ? reportedInputTokens.Value : estimatedInputTokens;
+        var outputTokens = reportedOutputTokens is > 0 ? reportedOutputTokens.Value : estimatedOutputTokens;
+        var isEstimated = reportedInputTokens is not > 0 || reportedOutputTokens is not > 0;
+
+        return new ResolvedLlmUsage(inputTokens, outputTokens, isEstimated);
+    }
+
+    private static int EstimateTokens(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return 1;
+        return Math.Max(1, (text.Length + 3) / 4);
+    }
 
     private static async Task<SseResult> ParseSseResponseAsync(
         HttpResponseMessage response, CancellationToken ct)

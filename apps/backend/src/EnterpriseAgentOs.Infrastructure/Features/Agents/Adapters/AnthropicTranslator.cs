@@ -169,6 +169,8 @@ public static class AnthropicTranslator
     {
         private readonly StreamReader _streamReader;
         private readonly MemoryStream _memoryStream = new();
+        private int? _inputTokens;
+        private int? _outputTokens;
         private bool _done;
 
         public TranslatingStream(Stream source)
@@ -208,14 +210,7 @@ public static class AnthropicTranslator
                 var line = await _streamReader.ReadLineAsync(ct);
                 if (line is null)
                 {
-                    // Stream ended — emit [DONE]
-                    _done = true;
-                    var doneBytes = Encoding.UTF8.GetBytes("data: [DONE]\n\n");
-                    _memoryStream.SetLength(0);
-                    _memoryStream.Position = 0;
-                    await _memoryStream.WriteAsync(doneBytes, ct);
-                    _memoryStream.Position = 0;
-                    return await _memoryStream.ReadAsync(buffer, offset, count, ct);
+                    return await EmitDoneAsync(buffer, offset, count, ct);
                 }
 
                 if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
@@ -238,6 +233,11 @@ public static class AnthropicTranslator
 
                 switch (type)
                 {
+                    case "message_start":
+                    {
+                        CaptureUsage(parsed);
+                        break;
+                    }
                     case "content_block_start":
                     {
                         // Tool use blocks start here with id, name
@@ -279,17 +279,11 @@ public static class AnthropicTranslator
                     }
                     case "message_stop":
                     {
-                        _done = true;
-                        var bytes = Encoding.UTF8.GetBytes("data: [DONE]\n\n");
-                        _memoryStream.SetLength(0);
-                        _memoryStream.Position = 0;
-                        await _memoryStream.WriteAsync(bytes, ct);
-                        _memoryStream.Position = 0;
-                        return await _memoryStream.ReadAsync(buffer, offset, count, ct);
+                        return await EmitDoneAsync(buffer, offset, count, ct);
                     }
                     case "message_delta":
                     {
-                        // Contains stop_reason — we ignore it, message_stop follows
+                        CaptureUsage(parsed);
                         break;
                     }
                 }
@@ -304,6 +298,54 @@ public static class AnthropicTranslator
                     return await _memoryStream.ReadAsync(buffer, offset, count, ct);
                 }
             }
+        }
+
+        private async Task<int> EmitDoneAsync(byte[] buffer, int offset, int count, CancellationToken ct)
+        {
+            _done = true;
+            var doneBytes = Encoding.UTF8.GetBytes(FormatOpenAiUsage() + "data: [DONE]\n\n");
+            _memoryStream.SetLength(0);
+            _memoryStream.Position = 0;
+            await _memoryStream.WriteAsync(doneBytes, ct);
+            _memoryStream.Position = 0;
+            return await _memoryStream.ReadAsync(buffer, offset, count, ct);
+        }
+
+        private void CaptureUsage(JsonElement parsed)
+        {
+            if (parsed.TryGetProperty("message", out var message)
+                && message.TryGetProperty("usage", out var messageUsage))
+            {
+                CaptureUsageFields(messageUsage);
+            }
+
+            if (parsed.TryGetProperty("usage", out var usage))
+                CaptureUsageFields(usage);
+        }
+
+        private void CaptureUsageFields(JsonElement usage)
+        {
+            if (usage.TryGetProperty("input_tokens", out var input) && input.ValueKind == JsonValueKind.Number)
+                _inputTokens = input.GetInt32();
+
+            if (usage.TryGetProperty("output_tokens", out var output) && output.ValueKind == JsonValueKind.Number)
+                _outputTokens = output.GetInt32();
+        }
+
+        private string FormatOpenAiUsage()
+        {
+            if (!_inputTokens.HasValue && !_outputTokens.HasValue) return string.Empty;
+
+            var chunk = new
+            {
+                choices = Array.Empty<object>(),
+                usage = new
+                {
+                    prompt_tokens = _inputTokens ?? 0,
+                    completion_tokens = _outputTokens ?? 0,
+                },
+            };
+            return $"data: {JsonSerializer.Serialize(chunk)}\n\n";
         }
 
         private static string FormatOpenAiChunk(string content)

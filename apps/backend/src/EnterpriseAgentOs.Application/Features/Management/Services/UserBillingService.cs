@@ -132,7 +132,7 @@ internal sealed class UserBillingService : IUserBillingService
             _logger.LogInformation("Overage disabled for user {UserId}", userId);
         }
 
-        await _userSubscriptionRepository.SaveChangesAsync(ct);
+        await _userSubscriptionRepository.UpdateAsync(sub, ct);
     }
 
     public async Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
@@ -234,7 +234,7 @@ internal sealed class UserBillingService : IUserBillingService
             await _userSubscriptionRepository.AddAsync(sub, ct);
         }
         sub.StripeCustomerId = customer.Id;
-        await _userSubscriptionRepository.SaveChangesAsync(ct);
+        await _userSubscriptionRepository.UpdateAsync(sub, ct);
 
         return customer.Id;
     }

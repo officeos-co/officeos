@@ -1,7 +1,6 @@
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 
-namespace EnterpriseAgentOs.Infrastructure.Features.Management;
+namespace EnterpriseAgentOs.Application.Features.Management;
 
 internal sealed class BillingGuard : IBillingGuard
 {
@@ -29,18 +28,16 @@ internal sealed class BillingGuard : IBillingGuard
 
     public async Task<bool> IsQuotaExceededAsync(Guid agentId, CancellationToken ct = default)
     {
-        // Fast path: check Redis cache first
         var cached = await _cache.GetStringAsync($"billing_status:{agentId}", ct);
         if (cached is not null)
             return cached == "limit_reached";
 
-        // Slow path: query DB and populate cache
         return await RefreshAndCheckAsync(agentId, ct);
     }
 
     public async Task ThrowIfQuotaExceededAsync(Guid agentId, CancellationToken ct = default)
     {
-        if (await IsQuotaExceededAsync(agentId, ct))
+        if (await RefreshAndCheckAsync(agentId, ct))
             throw new QuotaExceededException($"Agent {agentId} has reached the credit limit for this billing period.");
     }
 
@@ -52,12 +49,20 @@ internal sealed class BillingGuard : IBillingGuard
     private async Task<bool> RefreshAndCheckAsync(Guid agentId, CancellationToken ct)
     {
         var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
-        if (agent?.OwnerId is null)
-            return false;
+        if (agent is null)
+            throw new InvalidOperationException($"Cannot check billing because agent {agentId} was not found.");
+        if (agent.OwnerId is null)
+            throw new InvalidOperationException($"Cannot check billing because agent {agentId} has no owner.");
 
         var sub = await _subscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
         if (sub is null)
-            return false;
+        {
+            sub = UserSubscription.CreateDefaultFree(agent.OwnerId.Value);
+            await _subscriptionRepository.AddAsync(sub, ct);
+            _logger.LogWarning(
+                "Created missing free subscription during billing guard check for agent {AgentId} user {UserId}",
+                agentId, agent.OwnerId.Value);
+        }
 
         var budget = sub.CheckBudget();
         var exceeded = budget.OverBudget && !sub.OverageEnabled;

@@ -122,7 +122,7 @@ internal sealed class OrgBillingService : IOrgBillingService
             _logger.LogInformation("Overage disabled for org {OrgId}", orgId);
         }
 
-        await _orgSubscriptionRepository.SaveChangesAsync(ct);
+        await _orgSubscriptionRepository.UpdateAsync(sub, ct);
     }
 
 }

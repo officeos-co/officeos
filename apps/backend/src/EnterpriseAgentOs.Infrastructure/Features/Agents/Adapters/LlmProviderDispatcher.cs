@@ -27,7 +27,7 @@ public sealed class LlmProviderDispatcher
     /// Returns a streaming <see cref="HttpResponseMessage"/> whose body
     /// is standard OpenAI SSE (<c>data: {...}\n\n</c> lines).
     /// </summary>
-    public async Task<AgentResult<HttpResponseMessage>> DispatchAsync(
+    public async Task<AgentResult<LlmDispatchResponse>> DispatchAsync(
         string provider,
         string apiKey,
         string model,
@@ -73,7 +73,7 @@ public sealed class LlmProviderDispatcher
         }
     }
 
-    private async Task<AgentResult<HttpResponseMessage>> DispatchOpenAiCompatAsync(
+    private async Task<AgentResult<LlmDispatchResponse>> DispatchOpenAiCompatAsync(
         string baseUrl,
         string apiKey,
         string model,
@@ -83,8 +83,38 @@ public sealed class LlmProviderDispatcher
         var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(requestBody.GetRawText())
             ?? new Dictionary<string, JsonElement>();
         dict["model"] = JsonDocument.Parse($"\"{EscapeJson(model)}\"").RootElement.Clone();
+        using (var streamOptions = JsonDocument.Parse("""{"include_usage":true}"""))
+        {
+            dict["stream_options"] = streamOptions.RootElement.Clone();
+        }
 
-        var json = JsonSerializer.Serialize(dict);
+        var response = await SendOpenAiCompatRequestAsync(baseUrl, apiKey, dict, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            if (dict.Remove("stream_options") && ShouldRetryWithoutUsageOption(response.StatusCode, errorBody))
+            {
+                response.Dispose();
+                response = await SendOpenAiCompatRequestAsync(baseUrl, apiKey, dict, ct);
+                if (response.IsSuccessStatusCode)
+                    return new LlmDispatchResponse(response, model);
+
+                errorBody = await response.Content.ReadAsStringAsync(ct);
+            }
+
+            return new AgentError(AgentErrorCategory.LlmCall,
+                $"LLM provider returned {(int)response.StatusCode}: {errorBody}");
+        }
+        return new LlmDispatchResponse(response, model);
+    }
+
+    private async Task<HttpResponseMessage> SendOpenAiCompatRequestAsync(
+        string baseUrl,
+        string apiKey,
+        Dictionary<string, JsonElement> body,
+        CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(body);
         var client = _httpClientFactory.CreateClient("llm-proxy");
         var req = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/chat/completions")
         {
@@ -93,17 +123,21 @@ public sealed class LlmProviderDispatcher
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         req.Headers.Accept.ParseAdd("text/event-stream");
 
-        var response = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(ct);
-            return new AgentError(AgentErrorCategory.LlmCall,
-                $"LLM provider returned {(int)response.StatusCode}: {errorBody}");
-        }
-        return response;
+        return await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
     }
 
-    private async Task<AgentResult<HttpResponseMessage>> DispatchAnthropicAsync(
+    private static bool ShouldRetryWithoutUsageOption(HttpStatusCode statusCode, string errorBody)
+    {
+        if (statusCode is not (HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity))
+            return false;
+
+        return errorBody.Contains("stream_options", StringComparison.OrdinalIgnoreCase)
+            || errorBody.Contains("include_usage", StringComparison.OrdinalIgnoreCase)
+            || errorBody.Contains("unknown parameter", StringComparison.OrdinalIgnoreCase)
+            || errorBody.Contains("unsupported parameter", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<AgentResult<LlmDispatchResponse>> DispatchAnthropicAsync(
         string apiKey,
         string model,
         JsonElement requestBody,
@@ -133,9 +167,11 @@ public sealed class LlmProviderDispatcher
         var response = new HttpResponseMessage(upstream.StatusCode);
         response.Content = new StreamContent(translatedStream);
         response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/event-stream");
-        return response;
+        return new LlmDispatchResponse(response, model);
     }
 
     private static string EscapeJson(string s) =>
         s.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }
+
+public sealed record LlmDispatchResponse(HttpResponseMessage Response, string Model);

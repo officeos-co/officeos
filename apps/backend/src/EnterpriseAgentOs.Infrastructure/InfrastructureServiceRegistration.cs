@@ -38,7 +38,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
-        services.AddScoped<IBillingGuard, BillingGuard>();
+        services.AddScoped<IStripeMeteringService, StripeMeteringService>();
         // Adapters — MCP
         services.AddSingleton<IMcpClientManager, McpClientManager>();
 

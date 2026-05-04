@@ -8,3 +8,8 @@ public interface ICreditRecordingService
 {
     Task RecordCreditUsageAsync(Guid agentId, string model, long rawTokens, CancellationToken ct = default);
 }
+
+public interface IStripeMeteringService
+{
+    Task FireMeterEventAsync(string eventName, string customerId, long credits, CancellationToken ct = default);
+}
