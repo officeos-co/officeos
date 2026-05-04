@@ -21,19 +21,9 @@ internal sealed partial class McpTool : IAgentTool
         _mcpTool = (McpClientTool)handle.Tool;
         _client = (McpClient)handle.Client;
 
-        var slug = SlugRegex().Replace(discovered.ServerName, "_");
-        var toolSlug = SlugRegex().Replace(discovered.Name, "_");
-        Name = $"{slug}__{toolSlug}";
+        Schema = CreateSchema(discovered);
+        Name = Schema.Name;
         PermissionScope = $"{discovered.ServerName}:{discovered.Name}";
-
-        var parameters = !string.IsNullOrEmpty(discovered.JsonSchema)
-            ? JsonSerializer.Deserialize<JsonElement>(discovered.JsonSchema)
-            : JsonSerializer.SerializeToElement(new { type = "object", properties = new { } });
-
-        Schema = new ToolSchema(
-            Name: Name,
-            Description: $"[{discovered.ServerName}] {discovered.Description ?? discovered.Name}",
-            Parameters: parameters);
     }
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
@@ -61,14 +51,38 @@ internal sealed partial class McpTool : IAgentTool
 
     [GeneratedRegex(@"[^a-zA-Z0-9]")]
     private static partial Regex SlugRegex();
+
+    internal static ToolSchema CreateSchema(McpDiscoveredTool discovered)
+    {
+        var slug = SlugRegex().Replace(discovered.ServerName, "_");
+        var toolSlug = SlugRegex().Replace(discovered.Name, "_");
+        var name = $"{slug}__{toolSlug}";
+        var parameters = !string.IsNullOrEmpty(discovered.JsonSchema)
+            ? JsonSerializer.Deserialize<JsonElement>(discovered.JsonSchema)
+            : EmptyObjectSchema();
+
+        return new ToolSchema(
+            Name: name,
+            Description: $"[{discovered.ServerName}] {discovered.Description ?? discovered.Name}",
+            Parameters: parameters);
+    }
+
+    internal static JsonElement EmptyObjectSchema()
+        => JsonSerializer.SerializeToElement(new { type = "object", properties = new { } });
 }
 
 internal sealed record McpCatalogTool(string Name, string Description, JsonElement? Parameters);
 
-internal sealed partial class LazyMcpTool : IAgentTool
+internal interface IHydratableToolSchema
+{
+    Task<ToolSchema> HydrateSchemaAsync(CancellationToken ct);
+}
+
+internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
 {
     private readonly string _runtimeToolName;
     private readonly LazyMcpServerConnection _connection;
+    private ToolSchema _schema;
 
     public LazyMcpTool(McpServerRecord server, McpCatalogTool catalogTool, LazyMcpServerConnection connection)
     {
@@ -79,29 +93,44 @@ internal sealed partial class LazyMcpTool : IAgentTool
         var toolSlug = SlugRegex().Replace(catalogTool.Name, "_");
         Name = $"{slug}__{toolSlug}";
         PermissionScope = $"{server.Name}:{catalogTool.Name}";
-        Schema = new ToolSchema(
+        _schema = new ToolSchema(
             Name,
             $"[{server.Name}] {catalogTool.Description}",
             catalogTool.Parameters ?? JsonSerializer.SerializeToElement(new
             {
                 type = "object",
+                properties = new { },
                 additionalProperties = true
             }));
     }
 
     public string Name { get; }
-    public ToolSchema Schema { get; }
+    public ToolSchema Schema => _schema;
     public string PermissionScope { get; }
     public AgentToolKind Kind => AgentToolKind.Mcp;
 
+    public async Task<ToolSchema> HydrateSchemaAsync(CancellationToken ct)
+    {
+        var discovered = await GetDiscoveredToolAsync(ct);
+        if (discovered is not null)
+            _schema = McpTool.CreateSchema(discovered);
+
+        return _schema;
+    }
+
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
     {
-        var connection = await _connection.EnsureConnectedAsync(ct);
-        var discovered = connection.Tools.FirstOrDefault(t => string.Equals(t.Name, _runtimeToolName, StringComparison.Ordinal));
+        var discovered = await GetDiscoveredToolAsync(ct);
         if (discovered is null)
             return new AgentError(AgentErrorCategory.ToolExecution, $"MCP tool '{_runtimeToolName}' was not discovered on server '{_connection.ServerName}'.");
 
         return await new McpTool(discovered).ExecuteAsync(args, ct);
+    }
+
+    private async Task<McpDiscoveredTool?> GetDiscoveredToolAsync(CancellationToken ct)
+    {
+        var connection = await _connection.EnsureConnectedAsync(ct);
+        return connection.Tools.FirstOrDefault(t => string.Equals(t.Name, _runtimeToolName, StringComparison.Ordinal));
     }
 
     [GeneratedRegex(@"[^a-zA-Z0-9]")]
