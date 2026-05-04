@@ -55,6 +55,7 @@ internal sealed class AgentTurnService
         {
             var turnStart = Stopwatch.GetTimestamp();
 
+            var agentLoadStart = Stopwatch.GetTimestamp();
             var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
             if (agent is null)
             {
@@ -68,20 +69,55 @@ internal sealed class AgentTurnService
                 return;
             }
 
+            var runStart = Stopwatch.GetTimestamp();
             using var run = await _runLifecycle.BeginAsync(agentId, correlationId, userMessage, ct);
 
             await _events.PublishTurnStartedAsync(agentId, correlationId, userMessage, ct);
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Turn setup: agent loaded",
+                ElapsedMs(agentLoadStart),
+                ct);
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Turn setup: run begun",
+                ElapsedMs(runStart),
+                ct);
             await _events.PublishPodConnectedAsync(agentId, correlationId, 0, ct);
 
-            await using var tools = await _toolExecutionLoop.CreateSessionAsync(agent, ct);
+            var toolSessionStart = Stopwatch.GetTimestamp();
+            await using var tools = await _toolExecutionLoop.CreateSessionAsync(agent, correlationId, ct);
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Turn setup: tool session ready",
+                ElapsedMs(toolSessionStart),
+                ct);
+
+            var contextStart = Stopwatch.GetTimestamp();
             var history = await _contextBuilder.BuildAsync(agentId, correlationId, userMessage, ct);
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Turn setup: context built",
+                ElapsedMs(contextStart),
+                ct);
             var totalToolCalls = 0;
 
             for (var i = 0; i < MaxIterations; i++)
             {
                 try
                 {
+                    var billingCheckStart = Stopwatch.GetTimestamp();
                     await _billing.CheckBeforeLlmCallAsync(agentId, ct);
+                    await _events.PublishDiagnosticAsync(
+                        agentId,
+                        correlationId,
+                        $"Iteration {i + 1}: billing check complete",
+                        ElapsedMs(billingCheckStart),
+                        ct);
                 }
                 catch (QuotaExceededException ex)
                 {
@@ -103,7 +139,14 @@ internal sealed class AgentTurnService
                 var llmTurn = llmResult.Value;
                 try
                 {
+                    var billingRecordStart = Stopwatch.GetTimestamp();
                     await _billing.RecordAfterLlmCallAsync(agentId, correlationId, llmTurn.Model, llmTurn.Usage.TotalTokens, ct);
+                    await _events.PublishDiagnosticAsync(
+                        agentId,
+                        correlationId,
+                        $"Iteration {i + 1}: billing record complete",
+                        ElapsedMs(billingRecordStart),
+                        ct);
                 }
                 catch
                 {
@@ -186,5 +229,8 @@ internal sealed class AgentTurnService
             }
         }
     }
+
+    private static int ElapsedMs(long startTimestamp)
+        => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
 }

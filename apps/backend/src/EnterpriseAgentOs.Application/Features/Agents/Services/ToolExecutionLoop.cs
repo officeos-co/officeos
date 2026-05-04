@@ -34,16 +34,32 @@ internal sealed class ToolExecutionLoop
         _events = events;
     }
 
-    public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, CancellationToken ct)
+    public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, string correlationId, CancellationToken ct)
     {
+        var mcpListStart = Stopwatch.GetTimestamp();
         var mcpServers = await _mcpServerService.ListForAgentAsync(agent.Id, ct);
+        await _events.PublishDiagnosticAsync(
+            agent.Id,
+            correlationId,
+            $"Tool setup: listed MCP servers ({mcpServers.Count})",
+            ElapsedMs(mcpListStart),
+            ct);
+
+        var registryStart = Stopwatch.GetTimestamp();
         var registry = await _toolRegistryFactory.CreateAsync(
             _sandbox,
             agent.PodName ?? string.Empty,
             agent.ServiceUrl ?? string.Empty,
             agent.Id,
+            correlationId,
             mcpServers,
             serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
+            ct);
+        await _events.PublishDiagnosticAsync(
+            agent.Id,
+            correlationId,
+            $"Tool setup: registry created ({registry.Tools.Count} tools)",
+            ElapsedMs(registryStart),
             ct);
         return new ToolExecutionSession(registry, new LoopDetector());
     }
@@ -112,6 +128,9 @@ internal sealed class ToolExecutionLoop
 
         return ToolLoopResult.Continue(totalToolCalls);
     }
+
+    private static int ElapsedMs(long startTimestamp)
+        => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 }
 
 /// <summary>

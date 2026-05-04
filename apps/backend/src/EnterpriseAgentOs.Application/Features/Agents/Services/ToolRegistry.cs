@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace EnterpriseAgentOs.Application.Features.Agents;
@@ -116,6 +117,7 @@ internal sealed class ToolRegistryFactory
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _permissionRepository;
+    private readonly TurnEventPublisher _events;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
     public ToolRegistryFactory(
@@ -126,6 +128,7 @@ internal sealed class ToolRegistryFactory
         IMcpClientManager mcpClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
         IAgentToolPermissionRepository permissionRepository,
+        TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
         _memoryRepo = memoryRepo;
@@ -135,6 +138,7 @@ internal sealed class ToolRegistryFactory
         _mcpClientManager = mcpClientManager;
         _browserToolContextFactory = browserToolContextFactory;
         _permissionRepository = permissionRepository;
+        _events = events;
         _logger = logger;
     }
 
@@ -143,6 +147,7 @@ internal sealed class ToolRegistryFactory
         string sandboxId,
         string serviceUrl,
         Guid agentId,
+        string correlationId,
         IReadOnlyList<McpServerRecord> mcpServers,
             Func<string, Task<Dictionary<string, string>>> credentialLoader,
             CancellationToken ct)
@@ -177,30 +182,67 @@ internal sealed class ToolRegistryFactory
         };
         var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
 
+        var browserStart = Stopwatch.GetTimestamp();
+        BrowserToolContext? browserContext = null;
+        var browserFailed = false;
         try
         {
-            var browserContext = await _browserToolContextFactory.CreateForTurnAsync(ct);
-            if (browserContext is null)
-            {
-                _logger.LogDebug("Browser runtime unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
-            }
-            else
-            {
-                AddBrowserTools(browserContext, agentId, tools, preloadedToolNames);
-            }
+            browserContext = await _browserToolContextFactory.CreateForTurnAsync(ct);
         }
         catch (Exception ex)
         {
+            browserFailed = true;
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Tool setup: browser unavailable",
+                ElapsedMs(browserStart),
+                ct);
             // Browser is an internal optional runtime. If it is down, omit the
             // tools for this turn instead of failing the whole agent loop.
             _logger.LogWarning(ex, "Browser tools unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
+        }
+        if (browserContext is null && !browserFailed)
+        {
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Tool setup: browser unavailable",
+                ElapsedMs(browserStart),
+                ct);
+            _logger.LogDebug("Browser runtime unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
+        }
+        else if (browserContext is { } availableBrowserContext)
+        {
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                "Tool setup: browser tools discovered",
+                ElapsedMs(browserStart),
+                ct);
+            AddBrowserTools(availableBrowserContext, agentId, tools, preloadedToolNames);
         }
 
         var mcpConnections = new List<IAsyncDisposable>();
         foreach (var server in mcpServers)
         {
+            var credentialStart = Stopwatch.GetTimestamp();
             var creds = await credentialLoader(server.Name);
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                $"Tool setup: MCP credentials loaded ({server.Name})",
+                ElapsedMs(credentialStart),
+                ct);
+
+            var connectStart = Stopwatch.GetTimestamp();
             var result = await _mcpClientManager.ConnectAsync(server, creds, ct);
+            await _events.PublishDiagnosticAsync(
+                agentId,
+                correlationId,
+                $"Tool setup: MCP connected ({server.Name}, {result.Tools.Count} tools)",
+                ElapsedMs(connectStart),
+                ct);
             if (result.Tools.Count == 0)
             {
                 _logger.LogWarning(
@@ -215,7 +257,14 @@ internal sealed class ToolRegistryFactory
             mcpConnections.Add(result);
         }
 
+        var permissionsStart = Stopwatch.GetTimestamp();
         var permissions = await _permissionRepository.ListForAgentAsync(agentId, ct);
+        await _events.PublishDiagnosticAsync(
+            agentId,
+            correlationId,
+            $"Tool setup: permissions loaded ({permissions.Count})",
+            ElapsedMs(permissionsStart),
+            ct);
         var resolver = new AgentToolPermissionResolver(permissions);
         tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
@@ -223,6 +272,9 @@ internal sealed class ToolRegistryFactory
         preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
         return new ToolRegistry(tools, context, mcpConnections, preloadedToolNames);
     }
+
+    private static int ElapsedMs(long startTimestamp)
+        => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
     private static void AddBrowserTools(
         BrowserToolContext browserContext,

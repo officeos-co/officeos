@@ -21,6 +21,7 @@ internal sealed class LlmTurnExecutor
     private readonly LlmRequestBuilder _requestBuilder;
     private readonly SseResponseParser _sseResponseParser;
     private readonly UsageResolver _usageResolver;
+    private readonly TurnEventPublisher _events;
     private readonly ILogger<LlmTurnExecutor> _logger;
 
     public LlmTurnExecutor(
@@ -29,6 +30,7 @@ internal sealed class LlmTurnExecutor
         LlmRequestBuilder requestBuilder,
         SseResponseParser sseResponseParser,
         UsageResolver usageResolver,
+        TurnEventPublisher events,
         ILogger<LlmTurnExecutor> logger)
     {
         _llmProviderDispatcher = llmProviderDispatcher;
@@ -36,6 +38,7 @@ internal sealed class LlmTurnExecutor
         _requestBuilder = requestBuilder;
         _sseResponseParser = sseResponseParser;
         _usageResolver = usageResolver;
+        _events = events;
         _logger = logger;
     }
 
@@ -47,7 +50,14 @@ internal sealed class LlmTurnExecutor
         string correlationId,
         CancellationToken ct)
     {
+        var requestStart = Stopwatch.GetTimestamp();
         var requestBody = _requestBuilder.Build(agent, history, registry);
+        await _events.PublishDiagnosticAsync(
+            agent.Id,
+            correlationId,
+            $"LLM iteration {iteration}: request built",
+            ElapsedMs(requestStart),
+            ct);
 
         if (_logger.IsEnabled(LogLevel.Debug))
         {
@@ -60,7 +70,14 @@ internal sealed class LlmTurnExecutor
         }
 
         var provider = agent.Provider;
+        var providerKeyStart = Stopwatch.GetTimestamp();
         var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
+        await _events.PublishDiagnosticAsync(
+            agent.Id,
+            correlationId,
+            $"LLM iteration {iteration}: provider key loaded",
+            ElapsedMs(providerKeyStart),
+            ct);
         if (apiKey is null)
         {
             return new AgentError(AgentErrorCategory.Configuration, $"Provider '{provider}' has no API key configured.");
@@ -70,17 +87,37 @@ internal sealed class LlmTurnExecutor
         var llmResult = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
         if (llmResult.IsFailure)
         {
+            await _events.PublishDiagnosticAsync(
+                agent.Id,
+                correlationId,
+                $"LLM iteration {iteration}: provider dispatch failed",
+                ElapsedMs(llmStart),
+                ct);
             return llmResult.Error;
         }
 
         var sseResult = await _sseResponseParser.ParseAsync(llmResult.Value.Response, ct);
         var durationMs = (int)Stopwatch.GetElapsedTime(llmStart).TotalMilliseconds;
+        await _events.PublishDiagnosticAsync(
+            agent.Id,
+            correlationId,
+            $"LLM iteration {iteration}: provider stream parsed",
+            durationMs,
+            ct);
+
+        var usageStart = Stopwatch.GetTimestamp();
         var usage = _usageResolver.Resolve(
             requestBody,
             sseResult.Content,
             sseResult.ToolCalls,
             sseResult.InputTokens,
             sseResult.OutputTokens);
+        await _events.PublishDiagnosticAsync(
+            agent.Id,
+            correlationId,
+            $"LLM iteration {iteration}: usage resolved",
+            ElapsedMs(usageStart),
+            ct);
 
         if (usage.IsEstimated)
         {
@@ -99,4 +136,7 @@ internal sealed class LlmTurnExecutor
             durationMs,
             usage);
     }
+
+    private static int ElapsedMs(long startTimestamp)
+        => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 }

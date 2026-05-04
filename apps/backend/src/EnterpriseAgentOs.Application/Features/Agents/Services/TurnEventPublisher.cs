@@ -28,6 +28,9 @@ internal sealed class TurnEventPublisher
     public Task PublishPodConnectedAsync(Guid agentId, string correlationId, int durationMs, CancellationToken ct)
         => _publisher.Publish(new PodConnectedEvent(agentId, correlationId, durationMs), ct);
 
+    public Task PublishDiagnosticAsync(Guid agentId, string correlationId, string message, int durationMs, CancellationToken ct)
+        => _publisher.Publish(new TurnDiagnosticEvent(agentId, correlationId, message, durationMs), ct);
+
     public Task PublishLlmCompletedAsync(
         Guid agentId,
         string correlationId,
