@@ -28,10 +28,12 @@ export function HeroSection() {
           </div>
           <div className="flex flex-row items-center justify-center gap-3">
             <Link
-              href={siteConfig.dashboardUrl}
+              href={siteConfig.links.github}
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-glow flex h-11 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-8 text-base font-medium text-primary-foreground transition-all ease-out hover:bg-secondary/80 active:scale-95"
             >
-              Start Free
+              Start Now
             </Link>
             <button
               type="button"

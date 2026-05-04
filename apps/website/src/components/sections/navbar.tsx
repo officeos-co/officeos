@@ -47,10 +47,15 @@ function formatStars(count: number): string {
 }
 
 function GitHubStars({ compact }: { compact: boolean }) {
+  const githubUrl = getSiteConfig().links.github;
+  const githubApiUrl = githubUrl.replace(
+    "https://github.com/",
+    "https://api.github.com/repos/",
+  );
   const [stars, setStars] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("https://api.github.com/repos/officeos-co/officeos")
+    fetch(githubApiUrl)
       .then((res) => res.json())
       .then((data) => {
         if (typeof data.stargazers_count === "number") {
@@ -58,11 +63,11 @@ function GitHubStars({ compact }: { compact: boolean }) {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [githubApiUrl]);
 
   return (
     <a
-      href="https://github.com/officeos-co/officeos"
+      href={githubUrl}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
@@ -154,9 +159,11 @@ export function Navbar() {
 
               <Link
                 className="btn-glow flex h-10 w-fit items-center justify-center rounded-full bg-secondary px-5 font-medium text-sm text-white tracking-wide"
-                href={siteConfig.dashboardUrl}
+                href={siteConfig.links.github}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Start Free
+                Start Now
               </Link>
             </div>
 
@@ -212,11 +219,13 @@ export function Navbar() {
                 </div>
 
                 <Link
-                  href={siteConfig.dashboardUrl}
+                  href={siteConfig.links.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => setIsDrawerOpen(false)}
                   className="btn-glow flex h-10 w-full items-center justify-center rounded-full bg-secondary px-5 font-medium text-sm tracking-wide transition-all ease-out hover:bg-secondary/80 active:scale-95"
                 >
-                  Start Free
+                  Start Now
                 </Link>
               </div>
             </motion.div>

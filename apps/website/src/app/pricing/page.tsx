@@ -16,8 +16,8 @@ const individualPlans = [
     description: "Get started with one agent",
     price: "Free",
     period: null,
-    cta: "Start Free",
-    ctaHref: getSiteConfig().dashboardUrl,
+    cta: "Start Now",
+    ctaHref: getSiteConfig().links.github,
     highlight: false,
     prefix: null,
     features: [
@@ -36,8 +36,8 @@ const individualPlans = [
     description: "Run up to 3 agents",
     price: "$29",
     period: "/ month",
-    cta: "Start Free",
-    ctaHref: getSiteConfig().dashboardUrl,
+    cta: "Start Now",
+    ctaHref: getSiteConfig().links.github,
     highlight: true,
     prefix: "Everything in Free and:",
     features: [
@@ -58,8 +58,8 @@ const teamPlans = [
     description: "Scale to 10 agents",
     price: "$99",
     period: "/ month",
-    cta: "Start Free",
-    ctaHref: getSiteConfig().dashboardUrl,
+    cta: "Start Now",
+    ctaHref: getSiteConfig().links.github,
     highlight: false,
     prefix: "Everything in Pro and:",
     features: [
@@ -130,6 +130,14 @@ function PlanCard({ plan }: { plan: Plan }) {
 
       <Link
         href={plan.ctaHref}
+        target={
+          plan.ctaHref.startsWith("https://github.com/") ? "_blank" : undefined
+        }
+        rel={
+          plan.ctaHref.startsWith("https://github.com/")
+            ? "noopener noreferrer"
+            : undefined
+        }
         className={`w-full rounded-xl py-3 font-medium text-sm text-center transition-colors ${
           plan.highlight
             ? "bg-secondary text-secondary-foreground hover:bg-secondary/90"
@@ -205,14 +213,16 @@ export default function PricingPage() {
             Not sure which plan?
           </h2>
           <p className="text-muted-foreground mb-6">
-            Start free with one agent. Upgrade anytime as your team grows.
+            Start Now now. Hosted plans can come later as your team grows.
           </p>
           <div className="flex flex-row items-center justify-center gap-3">
             <Link
-              href={getSiteConfig().dashboardUrl}
+              href={getSiteConfig().links.github}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-6 text-sm font-normal text-primary-foreground tracking-wide shadow-sm transition-all hover:bg-secondary/80 active:scale-95"
             >
-              Start Free
+              Start Now
             </Link>
             <Link
               href="/"

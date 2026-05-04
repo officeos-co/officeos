@@ -1,0 +1,106 @@
+{{- if .Values.minio.enabled }}
+{{- $name := include "enterprise-agent-os.componentName" (dict "root" . "component" "minio") -}}
+{{- if .Values.minio.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.minio.persistence.accessModes | nindent 4 }}
+  {{- with .Values.minio.persistence.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.minio.persistence.size }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "minio") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "minio") | nindent 8 }}
+        {{- with .Values.global.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+        - name: minio
+          image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          args: ["server", "/data"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "enterprise-agent-os.secretName" . }}
+                  key: WORKSPACESTORAGE__ACCESSKEY
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "enterprise-agent-os.secretName" . }}
+                  key: WORKSPACESTORAGE__SECRETKEY
+          ports:
+            - containerPort: 9000
+              name: s3
+              protocol: TCP
+          {{- if .Values.minio.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- end }}
+          resources:
+            {{- toYaml .Values.minio.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      {{- if .Values.minio.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $name }}-data
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "minio") | nindent 4 }}
+spec:
+  type: {{ .Values.minio.service.type }}
+  selector:
+    {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "minio") | nindent 4 }}
+  ports:
+    - name: s3
+      protocol: TCP
+      port: {{ .Values.minio.service.port }}
+      targetPort: 9000
+{{- end }}
+

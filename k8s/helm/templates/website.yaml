@@ -1,0 +1,66 @@
+{{- if .Values.website.enabled }}
+{{- $name := include "enterprise-agent-os.componentName" (dict "root" . "component" "website") -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "website") | nindent 4 }}
+spec:
+  replicas: {{ .Values.website.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "website") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "website") | nindent 8 }}
+    spec:
+      containers:
+        - name: website
+          image: "{{ .Values.website.image.repository }}:{{ include "enterprise-agent-os.imageTag" (dict "root" . "tag" .Values.website.image.tag) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            - name: APP_ENV
+              value: {{ .Values.website.appEnv | quote }}
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.website.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "website") | nindent 4 }}
+spec:
+  type: {{ .Values.website.service.type }}
+  selector:
+    {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "website") | nindent 4 }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.website.service.port }}
+      targetPort: 3000
+{{- end }}

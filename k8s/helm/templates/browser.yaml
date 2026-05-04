@@ -1,0 +1,177 @@
+{{- if .Values.browser.enabled }}
+{{- $name := include "enterprise-agent-os.componentName" (dict "root" . "component" "browser") -}}
+{{- if .Values.browser.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "browser") | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.browser.persistence.accessModes | nindent 4 }}
+  {{- with .Values.browser.persistence.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.browser.persistence.size }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "browser") | nindent 4 }}
+spec:
+  replicas: {{ .Values.browser.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "browser") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "browser") | nindent 8 }}
+        {{- with .Values.global.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+        - name: browser-node
+          image: "{{ .Values.browser.node.image.repository }}:{{ include "enterprise-agent-os.imageTag" (dict "root" . "tag" .Values.browser.node.image.tag) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            - name: BROWSER_WIDTH
+              value: {{ .Values.browser.node.width | quote }}
+            - name: BROWSER_HEIGHT
+              value: {{ .Values.browser.node.height | quote }}
+            - name: BROWSER_URL
+              value: "about:blank"
+            - name: BROWSER_WS_ENDPOINT_FILE
+              value: "/data/browser-profile/browser-ws-endpoint.txt"
+            - name: PLAYWRIGHT_SERVER_HOST
+              value: "0.0.0.0"
+            - name: PLAYWRIGHT_SERVER_PORT
+              value: "9223"
+            - name: PLAYWRIGHT_SERVER_ADVERTISED_HOST
+              value: "127.0.0.1"
+          ports:
+            - containerPort: 6080
+              name: novnc
+              protocol: TCP
+            - containerPort: 5900
+              name: vnc
+              protocol: TCP
+            - containerPort: 9223
+              name: playwright
+              protocol: TCP
+          {{- if .Values.browser.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- end }}
+          resources:
+            {{- toYaml .Values.browser.node.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 6080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+        - name: controller
+          image: "{{ .Values.browser.controller.image.repository }}:{{ include "enterprise-agent-os.imageTag" (dict "root" . "tag" .Values.browser.controller.image.tag) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            - name: BROWSER_WS_ENDPOINT_FILE
+              value: "/data/browser-profile/browser-ws-endpoint.txt"
+            - name: TAKEOVER_URL
+              value: {{ .Values.browser.controller.takeoverUrl | quote }}
+            - name: ARTIFACT_ROOT
+              value: "/data/artifacts"
+            - name: UPLOAD_ROOT
+              value: "/data/uploads"
+            - name: AUTH_ROOT
+              value: "/data/auth"
+            - name: APPROVAL_ROOT
+              value: "/data/approvals"
+            - name: AUDIT_ROOT
+              value: "/data/audit"
+            - name: SESSION_STORE_ROOT
+              value: "/data/sessions"
+            - name: MEMORY_ROOT
+              value: "/data/memory"
+            - name: MCP_TOOL_PROFILE
+              value: {{ .Values.browser.controller.mcpToolProfile | quote }}
+            - name: MAX_SESSIONS
+              value: {{ .Values.browser.controller.maxSessions | quote }}
+            - name: ALLOWED_HOSTS
+              value: {{ .Values.browser.controller.allowedHosts | quote }}
+            - name: REQUIRE_OPERATOR_ID
+              value: {{ .Values.browser.controller.requireOperatorId | quote }}
+            - name: REQUIRE_AUTH_STATE_ENCRYPTION
+              value: {{ .Values.browser.controller.requireAuthStateEncryption | quote }}
+            - name: REQUEST_RATE_LIMIT_ENABLED
+              value: {{ .Values.browser.controller.requestRateLimitEnabled | quote }}
+            - name: METRICS_ENABLED
+              value: {{ .Values.browser.controller.metricsEnabled | quote }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          {{- if .Values.browser.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- end }}
+          resources:
+            {{- toYaml .Values.browser.controller.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+      {{- if .Values.browser.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $name }}-data
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "browser") | nindent 4 }}
+spec:
+  type: {{ .Values.browser.service.type }}
+  selector:
+    {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "browser") | nindent 4 }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.browser.service.controllerPort }}
+      targetPort: 8000
+    - name: novnc
+      protocol: TCP
+      port: {{ .Values.browser.service.novncPort }}
+      targetPort: 6080
+{{- end }}
+

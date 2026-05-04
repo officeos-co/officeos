@@ -1,0 +1,18 @@
+secrets:
+  data:
+    CONNECTION_STRING: "Host=postgres.example.internal;Port=5432;Database=eaos;Username=eaos;Password=change-me"
+    WORKSPACESTORAGE__ACCESSKEY: "eaos"
+    WORKSPACESTORAGE__SECRETKEY: "change-me"
+    PLATFORMKEYS__ANTHROPICAPIKEY: ""
+    PLATFORMKEYS__OPENAIAPIKEY: ""
+    PLATFORMKEYS__GEMINIAPIKEY: ""
+    PLATFORMKEYS__XAIAPIKEY: ""
+
+backend:
+  frontendOrigin: "https://dashboard.example.com"
+  browserPublicViewBaseUrl: "https://browser.example.com"
+
+browser:
+  controller:
+    takeoverUrl: "https://browser.example.com/vnc.html?autoconnect=true&resize=scale"
+

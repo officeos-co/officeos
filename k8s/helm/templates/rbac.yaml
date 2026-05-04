@@ -1,0 +1,41 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "enterprise-agent-os.serviceAccountName" . }}
+  labels:
+    {{- include "enterprise-agent-os.labels" . | nindent 4 }}
+{{- end }}
+{{- if .Values.rbac.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "enterprise-agent-os.fullname" . }}-agent-manager
+  labels:
+    {{- include "enterprise-agent-os.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - configmaps
+    verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "enterprise-agent-os.fullname" . }}-agent-manager
+  labels:
+    {{- include "enterprise-agent-os.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "enterprise-agent-os.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "enterprise-agent-os.fullname" . }}-agent-manager
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+

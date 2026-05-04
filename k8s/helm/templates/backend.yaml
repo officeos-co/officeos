@@ -1,0 +1,192 @@
+{{- if .Values.backend.enabled }}
+{{- $name := include "enterprise-agent-os.componentName" (dict "root" . "component" "backend") -}}
+{{- $redisName := include "enterprise-agent-os.componentName" (dict "root" . "component" "redis") -}}
+{{- $minioName := include "enterprise-agent-os.componentName" (dict "root" . "component" "minio") -}}
+{{- $browserName := include "enterprise-agent-os.componentName" (dict "root" . "component" "browser") -}}
+{{- $redisUrl := default (printf "%s:%v,defaultDatabase=%v" $redisName .Values.redis.service.port .Values.backend.redisDatabase) .Values.redis.urlOverride -}}
+{{- $minioEndpoint := default (printf "http://%s:%v" $minioName .Values.minio.service.port) .Values.minio.endpointOverride -}}
+{{- $workspaceBucket := default (printf "%s-workspaces" (include "enterprise-agent-os.fullname" .)) .Values.backend.workspaceBucket -}}
+{{- if .Values.backend.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "backend") | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.backend.persistence.accessModes | nindent 4 }}
+  {{- with .Values.backend.persistence.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.persistence.size }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "backend") | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  progressDeadlineSeconds: {{ .Values.backend.progressDeadlineSeconds }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "backend") | nindent 8 }}
+        {{- with .Values.global.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.global.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "enterprise-agent-os.serviceAccountName" . }}
+      {{- if .Values.backend.persistence.enabled }}
+      initContainers:
+        - name: fix-data-perms
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 1654:1654 /data"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          securityContext:
+            runAsUser: 0
+      {{- end }}
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ include "enterprise-agent-os.imageTag" (dict "root" . "tag" .Values.backend.image.tag) }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "enterprise-agent-os.secretName" . }}
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.backend.aspNetCoreEnvironment | quote }}
+            - name: REDIS
+              value: {{ $redisUrl | quote }}
+            - name: FRONTEND_ORIGIN
+              value: {{ .Values.backend.frontendOrigin | quote }}
+            - name: DATA_PROTECTION_KEY_PATH
+              value: "/data/dp-keys"
+            - name: KUBERNETES__NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: KUBERNETES__IMAGE
+              value: {{ .Values.backend.podExecutorImage | quote }}
+            - name: WORKSPACESTORAGE__ENDPOINT
+              value: {{ $minioEndpoint | quote }}
+            - name: WORKSPACESTORAGE__BUCKET
+              value: {{ $workspaceBucket | quote }}
+            - name: WORKSPACESTORAGE__ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "enterprise-agent-os.secretName" . }}
+                  key: WORKSPACESTORAGE__ACCESSKEY
+            - name: WORKSPACESTORAGE__SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "enterprise-agent-os.secretName" . }}
+                  key: WORKSPACESTORAGE__SECRETKEY
+            - name: CHANNEL_SERVICE_URL
+              value: "http://localhost:{{ .Values.channelGateway.port }}"
+            - name: BROWSER_SERVICE_URL
+              value: "http://{{ $browserName }}:{{ .Values.browser.service.controllerPort }}"
+            - name: BROWSER_PUBLIC_VIEW_BASE_URL
+              value: {{ .Values.backend.browserPublicViewBaseUrl | quote }}
+            - name: POSTHOG__HOST
+              value: {{ .Values.backend.posthogHost | quote }}
+            {{- with .Values.backend.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          {{- if .Values.backend.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- end }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+        {{- if .Values.channelGateway.enabled }}
+        - name: channel-gateway
+          image: "{{ .Values.channelGateway.image.repository }}:{{ .Values.channelGateway.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.channelGateway.port }}
+              name: ch-gateway
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.channelGateway.port | quote }}
+            - name: BACKEND_URL
+              value: "http://localhost:8000"
+          resources:
+            {{- toYaml .Values.channelGateway.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.channelGateway.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.channelGateway.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+        {{- end }}
+      {{- if .Values.backend.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $name }}-data
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "enterprise-agent-os.componentLabels" (dict "root" . "component" "backend") | nindent 4 }}
+spec:
+  type: {{ .Values.backend.service.type }}
+  selector:
+    {{- include "enterprise-agent-os.selectorLabels" (dict "root" . "component" "backend") | nindent 4 }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.backend.service.port }}
+      targetPort: 8000
+{{- end }}

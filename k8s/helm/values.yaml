@@ -1,0 +1,214 @@
+global:
+  imagePullPolicy: Always
+  imageTag: latest
+  podLabels: {}
+  podAnnotations: {}
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+
+secrets:
+  # Use an existing Kubernetes Secret for backend secrets when set.
+  existingSecret: ""
+  create: true
+  data:
+    CONNECTION_STRING: ""
+    WORKSPACESTORAGE__ACCESSKEY: eaos
+    WORKSPACESTORAGE__SECRETKEY: change-me
+    PLATFORMKEYS__ANTHROPICAPIKEY: ""
+    PLATFORMKEYS__OPENAIAPIKEY: ""
+    PLATFORMKEYS__GEMINIAPIKEY: ""
+    PLATFORMKEYS__XAIAPIKEY: ""
+
+backend:
+  enabled: true
+  aspNetCoreEnvironment: Production
+  replicaCount: 1
+  image:
+    repository: harkro123/eaos-backend
+    tag: ""
+  podExecutorImage: harkro123/eaos-pod-executor:latest
+  frontendOrigin: http://localhost:3000
+  browserPublicViewBaseUrl: http://localhost:6080
+  workspaceBucket: ""
+  posthogHost: https://eu.i.posthog.com
+  redisDatabase: 0
+  progressDeadlineSeconds: 900
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: ""
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      memory: 1000Mi
+      cpu: 1000m
+    limits:
+      memory: 2000Mi
+      cpu: 2000m
+  extraEnv: []
+
+channelGateway:
+  enabled: true
+  image:
+    repository: harkro123/eaos-channel-gateway
+    tag: latest
+  port: 3100
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+frontend:
+  enabled: true
+  appEnv: production
+  replicaCount: 1
+  image:
+    repository: harkro123/eaos-frontend
+    tag: ""
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      memory: 1000Mi
+      cpu: 100m
+    limits:
+      memory: 2000Mi
+      cpu: 500m
+  extraEnv: []
+
+browser:
+  enabled: true
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: ""
+  service:
+    type: ClusterIP
+    controllerPort: 8000
+    novncPort: 6080
+  node:
+    image:
+      repository: harkro123/eaos-auto-browser-node
+      tag: ""
+    width: "1280"
+    height: "800"
+    resources:
+      requests:
+        memory: 1500Mi
+        cpu: 1000m
+      limits:
+        memory: 3000Mi
+        cpu: 2500m
+  controller:
+    image:
+      repository: harkro123/eaos-auto-browser-controller
+      tag: ""
+    takeoverUrl: http://localhost:6080/vnc.html?autoconnect=true&resize=scale
+    mcpToolProfile: curated
+    maxSessions: "100"
+    allowedHosts: "*"
+    requireOperatorId: "false"
+    requireAuthStateEncryption: "false"
+    requestRateLimitEnabled: "true"
+    metricsEnabled: "true"
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 500m
+      limits:
+        memory: 1500Mi
+        cpu: 1500m
+
+minio:
+  enabled: true
+  endpointOverride: ""
+  image:
+    repository: minio/minio
+    tag: latest
+  persistence:
+    enabled: true
+    size: 100Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: ""
+  service:
+    type: ClusterIP
+    port: 9000
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 2000Mi
+      cpu: 2000m
+
+redis:
+  enabled: true
+  urlOverride: ""
+  image:
+    repository: redis
+    tag: 7-alpine
+  service:
+    type: ClusterIP
+    port: 6379
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 200m
+
+website:
+  enabled: false
+  appEnv: production
+  replicaCount: 1
+  image:
+    repository: harkro123/eaos-website
+    tag: ""
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 50m
+    limits:
+      memory: 512Mi
+      cpu: 250m
+
+docs:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: harkro123/eaos-docs
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 250m

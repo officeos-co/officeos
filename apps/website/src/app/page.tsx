@@ -25,7 +25,7 @@ const organizationJsonLd = {
     addressLocality: "Hamburg",
     addressCountry: "DE",
   },
-  sameAs: ["https://github.com/officeos"],
+  sameAs: [getSiteConfig().links.github],
 };
 
 const webSiteJsonLd = {
@@ -48,7 +48,8 @@ const softwareJsonLd = {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
-    description: "Free tier includes 3 agents. Bring your own API keys.",
+    description:
+      "Self-hosted deployment from GitHub. Bring your own API keys.",
   },
   featureList: [
     "Enterprise Knowledge Graph",

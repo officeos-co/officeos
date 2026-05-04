@@ -128,10 +128,12 @@ export default function About() {
             </h2>
             <div className="flex flex-row items-center justify-center gap-3">
               <Link
-                href={siteConfig.dashboardUrl}
+                href={siteConfig.links.github}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-secondary px-6 text-sm font-normal text-primary-foreground tracking-wide shadow-sm transition-all hover:bg-secondary/80 active:scale-95"
               >
-                Start Free
+                Start Now
               </Link>
               <Link
                 href="/"

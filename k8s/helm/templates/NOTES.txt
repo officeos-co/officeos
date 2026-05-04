@@ -1,0 +1,14 @@
+EnterpriseAgentOS has been installed.
+
+Core services:
+  Dashboard: {{ include "enterprise-agent-os.componentName" (dict "root" . "component" "frontend") }}:{{ .Values.frontend.service.port }}
+  Backend:   {{ include "enterprise-agent-os.componentName" (dict "root" . "component" "backend") }}:{{ .Values.backend.service.port }}
+  Browser:   {{ include "enterprise-agent-os.componentName" (dict "root" . "component" "browser") }}:{{ .Values.browser.service.controllerPort }}
+
+Required configuration:
+  Set secrets.data.CONNECTION_STRING or provide secrets.existingSecret with CONNECTION_STRING.
+  Set at least one PLATFORMKEYS__* key in the backend secret.
+
+Local dashboard port-forward:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "enterprise-agent-os.componentName" (dict "root" . "component" "frontend") }} 3000:{{ .Values.frontend.service.port }}
+

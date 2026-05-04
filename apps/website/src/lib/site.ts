@@ -10,7 +10,7 @@ export function getSiteConfig() {
     description:
       "OfficeOS is an AI agent platform that deploys autonomous agents across your company — with enterprise knowledge, custom skills, and full infrastructure control.",
     links: {
-      github: "https://github.com/officeos",
+      github: "https://github.com/officeos-co/officeos",
     },
   };
 }

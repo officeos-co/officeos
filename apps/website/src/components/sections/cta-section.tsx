@@ -22,14 +22,16 @@ export function CTASection() {
               Ready to deploy your first agent?
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Start free with your own API keys. No credit card required.
+              Deploy the self-hosted stack from GitHub with your own API keys.
             </p>
 
             <Link
-              href={siteConfig.dashboardUrl}
+              href={siteConfig.links.github}
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-glow mt-5 flex h-10 items-center gap-1.5 rounded-full bg-secondary px-5 text-sm font-medium text-white tracking-wide transition-all hover:bg-secondary/80 active:scale-95"
             >
-              Start Free
+              Start Now
               <ChevronRight className="h-4 w-4" />
             </Link>
           </div>

@@ -6,30 +6,38 @@
   </picture>
 </p>
 
-<h1 align="center">The AI workforce for your company</h1>
+<h1 align="center">Open-source infrastructure to scale AI agents</h1>
 
 <p align="center">
-Employees that work 24/7, know everything about your company, and never need onboarding.
-<a href="https://officeos.co">Website</a> · <a href="https://docs.officeos.co">Docs</a> · <a href="https://dashboard.officeos.co">Cloud</a> · <a href="https://docs.officeos.co/quickstart">Getting Started</a> · <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a>
+Deploy, host, and manage agents with tools, memory, credentials, logs, and isolated workspaces from one control plane.
+</p>
+
+<p align="center">
+<a href="https://officeos.co">Website</a> · <a href="https://docs.officeos.co">Docs</a> · <a href="https://docs.officeos.co/quickstart">Getting Started</a> · <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a>
 </p>
 
 <br/>
 
-OfficeOS deploys autonomous AI agents across your company. Each agent has persistent memory, enterprise knowledge, custom skills, and responds in the channels your team already uses — Slack, Teams, WhatsApp, Telegram, Discord, email.
+OfficeOS is the infrastructure layer for running AI agents in production. Self-host the application, then give every agent its own virtual environment with an attached browser, tools, persistent memory, credential access, structured logs, and an isolated workspace.
 
-The dashboard is the control plane. The product is the agent.
+The dashboard is the control plane for deploying agents, managing their capabilities, observing every turn, and operating them across teams and environments.
 
-Self-host the full stack with Docker Compose or Kubernetes, or use [OfficeOS Cloud](https://dashboard.officeos.co).
+Self-host the full stack with Docker Compose or Kubernetes.
+
+## YC Application Video
+
+<video src="docs/assets/YcApplicationVideo.mov" controls width="100%"></video>
 
 ## Highlights
 
-- **Agents, not chatbots** — persistent agents with memory, knowledge graphs, and their own container runtime
-- **Multi-channel** — agents respond in Slack, Discord, Teams, Telegram, WhatsApp, email
-- **Custom skills in TypeScript** — email, calendar, browser automation, CRM sync, contract review — attach to any agent
-- **Works with your stack** — Notion, GitHub, Salesforce, Google Workspace, Jira, HubSpot, and dozens more
-- **Automated schedules** — cron-based agent tasks: competitor scans, CRM syncs, weekly reports, briefings
-- **Self-hosted** — runs on your infrastructure, data never leaves your network. Or use our cloud
-- **BYOK** — bring your own LLM keys (Anthropic, OpenAI, Google, xAI) or use platform-managed keys
+- **One control plane** — deploy, host, configure, and observe agents from the dashboard
+- **Virtual environments** — every agent gets an isolated workspace with filesystem and shell access
+- **Attached browsers** — every agent has browser capabilities for web workflows and automation
+- **Managed tools and MCP** — connect agents to built-in tools and MCP servers for external integrations
+- **Persistent memory** — store agent memory, conversations, and operational context centrally
+- **Credential management** — give agents scoped access to provider keys and integration secrets
+- **Structured logs** — inspect message, tool call, tool result, and agent output timelines
+- **Model-agnostic** — bring your own LLM keys for Anthropic, OpenAI, Google, xAI, and compatible providers
 
 ## Quick Start
 
@@ -54,6 +62,18 @@ OfficeOS is built for self-hosters who want to run agent infrastructure on their
 
 ```bash
 kubectl apply -f k8s/prod/
+```
+
+You can also install the core control plane with Helm:
+
+```bash
+cp k8s/helm/examples/values.local.example.yaml values.local.yaml
+# Edit values.local.yaml with your database, public URLs, and provider keys.
+
+helm upgrade --install eaos ./k8s/helm \
+  --namespace eaos \
+  --create-namespace \
+  -f values.local.yaml
 ```
 
 ## Development
