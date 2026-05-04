@@ -25,7 +25,7 @@ internal sealed class ToolSearchTool : IAgentTool
             required = new[] { "query" }
         });
 
-    public Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
         var query = args.GetProperty("query").GetString() ?? "";
         var max = args.TryGetProperty("max_results", out var m) ? Math.Clamp(m.GetInt32(), 1, 50) : 10;
@@ -52,6 +52,10 @@ internal sealed class ToolSearchTool : IAgentTool
             .ToList();
         LastMatchedToolNames = matched.Select(t => t.Name).ToList();
 
+        await Task.WhenAll(matched
+            .OfType<IHydratableToolSchema>()
+            .Select(t => HydrateBestEffortAsync(t, ct)));
+
         var payload = matched.Select(t => new
         {
             name = t.Name,
@@ -59,7 +63,19 @@ internal sealed class ToolSearchTool : IAgentTool
             parameters = t.Schema.Parameters
         });
 
-        return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true })));
+        return new ToolResult(true, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static async Task HydrateBestEffortAsync(IHydratableToolSchema tool, CancellationToken ct)
+    {
+        try
+        {
+            await tool.HydrateSchemaAsync(ct);
+        }
+        catch when (!ct.IsCancellationRequested)
+        {
+            // Keep tool_search useful even if one deferred integration is temporarily unavailable.
+        }
     }
 }
 
