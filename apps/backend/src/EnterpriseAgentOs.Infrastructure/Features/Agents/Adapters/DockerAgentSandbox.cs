@@ -1,9 +1,11 @@
 namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
 
-internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
+internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgentRuntimeCleaner
 {
     private const int PodExecutorPort = 42617;
     private const string WorkspacePath = "/workspace";
+    private const string AppLabelValue = "eaos-agent-runtime";
+    private const string ManagedByLabelValue = "eaos";
 
     private readonly HttpClient _docker;
     private readonly DockerConfig _config;
@@ -111,6 +113,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
             await _workspaceStore.CheckpointAsync(podName, await ResolveServiceUrlAsync(podName, ct), ct);
             await _docker.PostAsync($"/containers/{podName}/stop", null, ct);
             await _docker.DeleteAsync($"/containers/{podName}?force=true&v=true", ct);
+            await DeleteVolumesAsync(podName, ct);
             return true;
         }
         catch (Exception ex)
@@ -164,6 +167,16 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
         }
     }
 
+    public async Task<AgentRuntimeCleanupResult> CleanupUnusedAsync(
+        IReadOnlySet<Guid> activeAgentIds,
+        CancellationToken ct = default)
+    {
+        var deletedContainers = await DeleteUnusedContainersAsync(activeAgentIds, ct);
+        var deletedVolumes = await DeleteUnusedVolumesAsync(activeAgentIds, ct);
+
+        return new AgentRuntimeCleanupResult(deletedContainers, 0, deletedVolumes);
+    }
+
     internal static string SandboxName(Guid id) => $"eaos-agent-{id.ToString("N")[..8]}";
 
     internal static string ServiceUrl(string sandboxId) => $"http://{sandboxId}:{PodExecutorPort}";
@@ -191,8 +204,8 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
             },
             Labels = new Dictionary<string, string>
             {
-                ["app"] = "eaos-agent-runtime",
-                ["managed-by"] = "eaos",
+                ["app"] = AppLabelValue,
+                ["managed-by"] = ManagedByLabelValue,
                 ["agent-id"] = agentId.ToString(),
             },
         };
@@ -265,6 +278,162 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer
         catch
         {
             return null;
+        }
+    }
+
+    private async Task<int> DeleteUnusedContainersAsync(IReadOnlySet<Guid> activeAgentIds, CancellationToken ct)
+    {
+        var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
+        var response = await _docker.GetAsync("/containers/json?all=true", ct);
+        if (!response.IsSuccessStatusCode)
+            return 0;
+
+        var containers = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        if (containers.ValueKind != JsonValueKind.Array)
+            return 0;
+
+        var deleted = 0;
+        foreach (var container in containers.EnumerateArray())
+        {
+            var name = GetDockerName(container);
+            if (string.IsNullOrWhiteSpace(name)
+                || !IsUnusedRuntimeResource(container, name, activeAgentIds, activeSandboxNames))
+                continue;
+
+            await TryDockerDeleteAsync(() => _docker.PostAsync($"/containers/{name}/stop", null, ct));
+            await TryDockerDeleteAsync(() => _docker.DeleteAsync($"/containers/{name}?force=true&v=true", ct));
+            deleted++;
+        }
+
+        return deleted;
+    }
+
+    private async Task<int> DeleteUnusedVolumesAsync(IReadOnlySet<Guid> activeAgentIds, CancellationToken ct)
+    {
+        var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
+        var response = await _docker.GetAsync("/volumes", ct);
+        if (!response.IsSuccessStatusCode)
+            return 0;
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        if (!body.TryGetProperty("Volumes", out var volumes) || volumes.ValueKind != JsonValueKind.Array)
+            return 0;
+
+        var deleted = 0;
+        foreach (var volume in volumes.EnumerateArray())
+        {
+            if (!volume.TryGetProperty("Name", out var nameProperty)
+                || nameProperty.ValueKind != JsonValueKind.String
+                || !IsUnusedRuntimeResource(volume, nameProperty.GetString(), activeAgentIds, activeSandboxNames))
+                continue;
+
+            await TryDockerDeleteAsync(() => _docker.DeleteAsync($"/volumes/{Uri.EscapeDataString(nameProperty.GetString()!)}?force=true", ct));
+            deleted++;
+        }
+
+        return deleted;
+    }
+
+    private async Task DeleteVolumesAsync(string sandboxId, CancellationToken ct)
+    {
+        var response = await _docker.GetAsync("/volumes", ct);
+        if (!response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        if (!body.TryGetProperty("Volumes", out var volumes) || volumes.ValueKind != JsonValueKind.Array)
+            return;
+
+        foreach (var volume in volumes.EnumerateArray())
+        {
+            if (!volume.TryGetProperty("Name", out var nameProperty)
+                || nameProperty.ValueKind != JsonValueKind.String
+                || !IsSandboxStorageName(nameProperty.GetString(), sandboxId))
+                continue;
+
+            await TryDockerDeleteAsync(() => _docker.DeleteAsync($"/volumes/{Uri.EscapeDataString(nameProperty.GetString()!)}?force=true", ct));
+        }
+    }
+
+    internal static string RuntimeFilterQuery()
+    {
+        var filters = JsonSerializer.Serialize(new Dictionary<string, string[]>
+        {
+            ["label"] = [$"managed-by={ManagedByLabelValue}", $"app={AppLabelValue}"],
+        });
+        return Uri.EscapeDataString(filters);
+    }
+
+    private static bool TryGetAgentId(JsonElement resource, out Guid agentId)
+    {
+        agentId = default;
+        if (!resource.TryGetProperty("Labels", out var labels)
+            || labels.ValueKind != JsonValueKind.Object
+            || !labels.TryGetProperty("agent-id", out var agentIdProperty)
+            || agentIdProperty.ValueKind != JsonValueKind.String)
+            return false;
+
+        return Guid.TryParse(agentIdProperty.GetString(), out agentId);
+    }
+
+    private static string? GetDockerName(JsonElement container)
+    {
+        if (!container.TryGetProperty("Names", out var names)
+            || names.ValueKind != JsonValueKind.Array
+            || names.GetArrayLength() == 0)
+            return null;
+
+        var name = names[0].GetString();
+        return string.IsNullOrWhiteSpace(name)
+            ? null
+            : name.TrimStart('/');
+    }
+
+    private static bool IsSandboxStorageName(string? name, string sandboxId)
+        => name == sandboxId || name?.StartsWith($"{sandboxId}-", StringComparison.Ordinal) == true;
+
+    private static bool IsUnusedRuntimeResource(
+        JsonElement resource,
+        string? name,
+        IReadOnlySet<Guid> activeAgentIds,
+        IReadOnlySet<string> activeSandboxNames)
+    {
+        if (!IsRuntimeLabels(resource))
+            return false;
+
+        if (TryGetAgentId(resource, out var agentId))
+            return !activeAgentIds.Contains(agentId);
+
+        return IsUnusedSandboxName(name, activeSandboxNames);
+    }
+
+    private static bool IsRuntimeLabels(JsonElement resource)
+    {
+        if (!resource.TryGetProperty("Labels", out var labels) || labels.ValueKind != JsonValueKind.Object)
+            return false;
+
+        return labels.TryGetProperty("managed-by", out var managedBy)
+               && managedBy.GetString() == ManagedByLabelValue
+               && labels.TryGetProperty("app", out var app)
+               && app.GetString() == AppLabelValue;
+    }
+
+    private static bool IsUnusedSandboxName(string? name, IReadOnlySet<string> activeSandboxNames)
+        => name?.StartsWith("eaos-agent-", StringComparison.Ordinal) == true
+           && activeSandboxNames.All(active => !IsSandboxStorageName(name, active));
+
+    private static HashSet<string> ActiveSandboxNames(IReadOnlySet<Guid> activeAgentIds)
+        => activeAgentIds.Select(SandboxName).ToHashSet(StringComparer.Ordinal);
+
+    private static async Task TryDockerDeleteAsync(Func<Task<HttpResponseMessage>> operation)
+    {
+        try
+        {
+            using var response = await operation();
+        }
+        catch
+        {
+            // Runtime cleanup is best-effort; resources may already be gone.
         }
     }
 

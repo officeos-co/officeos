@@ -39,6 +39,7 @@ public static class ApplicationServiceRegistration
 
         // Background services
         services.AddHostedService<CronJobSchedulerService>();
+        services.AddHostedService<AgentRuntimeCleanupService>();
 
         return services;
     }

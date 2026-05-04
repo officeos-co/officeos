@@ -135,6 +135,7 @@ if (!isDevelopment)
     builder.Services.AddScoped<KubernetesAgentSandbox>();
     builder.Services.AddScoped<IAgentSandbox>(sp => sp.GetRequiredService<KubernetesAgentSandbox>());
     builder.Services.AddScoped<IAgentDeployer>(sp => sp.GetRequiredService<KubernetesAgentSandbox>());
+    builder.Services.AddScoped<IAgentRuntimeCleaner>(sp => sp.GetRequiredService<KubernetesAgentSandbox>());
 }
 else
 {
@@ -145,6 +146,7 @@ else
     builder.Services.AddScoped<DockerAgentSandbox>();
     builder.Services.AddScoped<IAgentSandbox>(sp => sp.GetRequiredService<DockerAgentSandbox>());
     builder.Services.AddScoped<IAgentDeployer>(sp => sp.GetRequiredService<DockerAgentSandbox>());
+    builder.Services.AddScoped<IAgentRuntimeCleaner>(sp => sp.GetRequiredService<DockerAgentSandbox>());
 }
 
 

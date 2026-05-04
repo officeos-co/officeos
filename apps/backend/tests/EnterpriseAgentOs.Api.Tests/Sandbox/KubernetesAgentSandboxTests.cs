@@ -14,6 +14,8 @@ public sealed class KubernetesAgentSandboxTests
 
         Assert.Equal("eaos-agent-11111111", pod.Metadata.Name);
         Assert.Equal("eaos-agent-runtime", pod.Metadata.Labels["app"]);
+        Assert.Equal("eaos", pod.Metadata.Labels["managed-by"]);
+        Assert.Equal(AgentId.ToString(), pod.Metadata.Labels["agent-id"]);
 
         var container = Assert.Single(pod.Spec.Containers);
         Assert.Equal("pod-executor", container.Name);
@@ -31,10 +33,17 @@ public sealed class KubernetesAgentSandboxTests
         var service = KubernetesAgentSandbox.BuildService(AgentId);
 
         Assert.Equal("eaos-agent-11111111", service.Metadata.Name);
+        Assert.Equal("eaos", service.Metadata.Labels["managed-by"]);
         Assert.Equal("ClusterIP", service.Spec.Type);
         Assert.Equal("eaos-agent-runtime", service.Spec.Selector["app"]);
         Assert.Equal(AgentId.ToString(), service.Spec.Selector["agent-id"]);
         Assert.Equal(42617, Assert.Single(service.Spec.Ports).Port);
+    }
+
+    [Fact]
+    public void RuntimeLabelSelector_targets_only_eaos_agent_runtimes()
+    {
+        Assert.Equal("managed-by=eaos,app=eaos-agent-runtime", KubernetesAgentSandbox.RuntimeLabelSelector());
     }
 
     [Fact]

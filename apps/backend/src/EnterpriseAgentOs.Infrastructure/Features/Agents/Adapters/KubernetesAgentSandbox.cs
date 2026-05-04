@@ -1,9 +1,11 @@
 namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
 
-internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
+internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IAgentRuntimeCleaner
 {
     internal const int PodExecutorPort = 42617;
     internal const string WorkspacePath = "/workspace";
+    private const string AppLabelValue = "eaos-agent-runtime";
+    private const string ManagedByLabelValue = "eaos";
 
     private readonly IKubernetes _kubernetes;
     private readonly KubernetesConfig _config;
@@ -99,6 +101,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
                 podName,
                 _config.Namespace,
                 cancellationToken: ct));
+            await DeletePersistentVolumeClaimsAsync(podName, ct);
 
             return true;
         }
@@ -149,6 +152,17 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
         {
             return string.Empty;
         }
+    }
+
+    public async Task<AgentRuntimeCleanupResult> CleanupUnusedAsync(
+        IReadOnlySet<Guid> activeAgentIds,
+        CancellationToken ct = default)
+    {
+        var deletedPods = await DeleteUnusedPodsAsync(activeAgentIds, ct);
+        var deletedServices = await DeleteUnusedServicesAsync(activeAgentIds, ct);
+        var deletedClaims = await DeleteUnusedPersistentVolumeClaimsAsync(activeAgentIds, ct);
+
+        return new AgentRuntimeCleanupResult(deletedPods, deletedServices, deletedClaims);
     }
 
     internal static string SandboxName(Guid id) => $"eaos-agent-{id.ToString("N")[..8]}";
@@ -245,10 +259,13 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
     private static IReadOnlyDictionary<string, string> Labels(Guid agentId)
         => new Dictionary<string, string>
         {
-            ["app"] = "eaos-agent-runtime",
-            ["managed-by"] = "eaos",
+            ["app"] = AppLabelValue,
+            ["managed-by"] = ManagedByLabelValue,
             ["agent-id"] = agentId.ToString(),
         };
+
+    internal static string RuntimeLabelSelector()
+        => $"managed-by={ManagedByLabelValue},app={AppLabelValue}";
 
     private static Dictionary<string, string> ToDictionary(IReadOnlyDictionary<string, string> labels)
         => new(labels);
@@ -265,6 +282,138 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer
             PeriodSeconds = 10,
             FailureThreshold = 3,
         };
+
+    private async Task<int> DeleteUnusedPodsAsync(IReadOnlySet<Guid> activeAgentIds, CancellationToken ct)
+    {
+        var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
+        var pods = await _kubernetes.CoreV1.ListNamespacedPodAsync(
+            _config.Namespace,
+            cancellationToken: ct);
+
+        var deleted = 0;
+        foreach (var pod in pods.Items)
+        {
+            var name = pod.Metadata?.Name;
+            if (string.IsNullOrWhiteSpace(name)
+                || !IsUnusedRuntimeResource(pod.Metadata, activeAgentIds, activeSandboxNames))
+                continue;
+
+            await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPodAsync(
+                name,
+                _config.Namespace,
+                cancellationToken: ct));
+            deleted++;
+        }
+
+        return deleted;
+    }
+
+    private async Task<int> DeleteUnusedServicesAsync(IReadOnlySet<Guid> activeAgentIds, CancellationToken ct)
+    {
+        var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
+        var services = await _kubernetes.CoreV1.ListNamespacedServiceAsync(
+            _config.Namespace,
+            cancellationToken: ct);
+
+        var deleted = 0;
+        foreach (var service in services.Items)
+        {
+            var name = service.Metadata?.Name;
+            if (string.IsNullOrWhiteSpace(name)
+                || !IsUnusedRuntimeResource(service.Metadata, activeAgentIds, activeSandboxNames))
+                continue;
+
+            await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedServiceAsync(
+                name,
+                _config.Namespace,
+                cancellationToken: ct));
+            deleted++;
+        }
+
+        return deleted;
+    }
+
+    private async Task<int> DeleteUnusedPersistentVolumeClaimsAsync(
+        IReadOnlySet<Guid> activeAgentIds,
+        CancellationToken ct)
+    {
+        var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
+        var claims = await _kubernetes.CoreV1.ListNamespacedPersistentVolumeClaimAsync(
+            _config.Namespace,
+            cancellationToken: ct);
+
+        var deleted = 0;
+        foreach (var claim in claims.Items)
+        {
+            var name = claim.Metadata?.Name;
+            if (string.IsNullOrWhiteSpace(name)
+                || !IsUnusedRuntimeResource(claim.Metadata, activeAgentIds, activeSandboxNames))
+                continue;
+
+            await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
+                name,
+                _config.Namespace,
+                cancellationToken: ct));
+            deleted++;
+        }
+
+        return deleted;
+    }
+
+    private async Task DeletePersistentVolumeClaimsAsync(string sandboxId, CancellationToken ct)
+    {
+        var claims = await _kubernetes.CoreV1.ListNamespacedPersistentVolumeClaimAsync(
+            _config.Namespace,
+            cancellationToken: ct);
+
+        foreach (var claim in claims.Items.Where(c => IsSandboxStorageName(c.Metadata?.Name, sandboxId)))
+        {
+            var name = claim.Metadata?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+                continue;
+
+            await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
+                name,
+                _config.Namespace,
+                cancellationToken: ct));
+        }
+    }
+
+    private static bool IsUnusedRuntimeResource(
+        V1ObjectMeta? metadata,
+        IReadOnlySet<Guid> activeAgentIds,
+        IReadOnlySet<string> activeSandboxNames)
+    {
+        if (metadata is null)
+            return false;
+
+        var hasRuntimeLabels = metadata.Labels is not null && IsRuntimeLabels(metadata.Labels);
+        if (!hasRuntimeLabels)
+            return false;
+
+        if (metadata.Labels is not null
+            && metadata.Labels.TryGetValue("agent-id", out var agentIdText)
+            && Guid.TryParse(agentIdText, out var agentId))
+            return !activeAgentIds.Contains(agentId);
+
+        return IsUnusedSandboxName(metadata.Name, activeSandboxNames);
+    }
+
+    private static bool IsSandboxStorageName(string? name, string sandboxId)
+        => name == sandboxId || name?.StartsWith($"{sandboxId}-", StringComparison.Ordinal) == true;
+
+    private static bool IsUnusedSandboxName(string? name, IReadOnlySet<string> activeSandboxNames)
+        => name?.StartsWith("eaos-agent-", StringComparison.Ordinal) == true
+           && activeSandboxNames.All(active => !IsSandboxStorageName(name, active));
+
+    private static bool IsRuntimeLabels(IDictionary<string, string> labels)
+        => labels.TryGetValue("managed-by", out var managedBy)
+           && managedBy == ManagedByLabelValue
+           && labels.TryGetValue("app", out var app)
+           && app == AppLabelValue;
+
+    private static HashSet<string> ActiveSandboxNames(IReadOnlySet<Guid> activeAgentIds)
+        => activeAgentIds.Select(SandboxName).ToHashSet(StringComparer.Ordinal);
 
     private static async Task TryDeleteAsync(Func<Task> operation)
     {
