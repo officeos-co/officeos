@@ -24,10 +24,6 @@ The dashboard is the control plane for deploying agents, managing their capabili
 
 Self-host the full stack with Docker Compose or Kubernetes.
 
-## YC Application Video
-
-https://github.com/user-attachments/assets/acf05453-1e49-498b-bc1d-9fc769fdd767
-
 ## Dashboard Preview
 
 | Quickstart                                                                                                                      | Integrations                                                                                           | Launch setup                                                                                                   |
