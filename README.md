@@ -6,10 +6,10 @@
   </picture>
 </p>
 
-<h1 align="center">Open-source infrastructure to scale AI agents</h1>
+<h1 align="center">Launch agents in seconds. Scale to hundreds across your infrastructure.</h1>
 
 <p align="center">
-Deploy, host, and manage agents with tools, memory, credentials, logs, and isolated workspaces from one control plane.
+Open-source infrastructure for deploying, hosting, and managing fleets of AI agents from one control plane.
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@ Deploy, host, and manage agents with tools, memory, credentials, logs, and isola
 
 <br/>
 
-OfficeOS is the infrastructure layer for running AI agents in production. Self-host the application, then give every agent its own virtual environment with an attached browser, tools, persistent memory, credential access, structured logs, and an isolated workspace.
+OfficeOS is the infrastructure layer for running AI agents in production. Self-host the stack once, then launch agents on demand with their own virtual environment, attached browser, tools, persistent memory, credential access, structured logs, and isolated workspace.
 
 The dashboard is the control plane for deploying agents, managing their capabilities, observing every turn, and operating them across teams and environments.
 
@@ -35,6 +35,8 @@ https://github.com/user-attachments/assets/d7b8f2c9-350a-4058-a95f-994092c588db
 ## Highlights
 
 - **One control plane** — deploy, host, configure, and observe agents from the dashboard
+- **Fast agent launch** — go from a configured control plane to new isolated agents in seconds
+- **Fleet scale** — operate one agent or hundreds across your infrastructure
 - **Virtual environments** — every agent gets an isolated workspace with filesystem and shell access
 - **Attached browsers** — every agent has browser capabilities for web workflows and automation
 - **Managed tools and MCP** — connect agents to built-in tools and MCP servers for external integrations
