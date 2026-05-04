@@ -24,18 +24,6 @@ The dashboard is the control plane for deploying agents, managing their capabili
 
 Self-host the full stack with Docker Compose or Kubernetes.
 
-<<<<<<< HEAD
-## YC Application Video
-
-<video controls width="100%" poster="docs/assets/OfficeOsScreen1.png">
-  <source src="docs/assets/YcApplicationVideo.mp4" type="video/mp4" />
-  <a href="docs/assets/YcApplicationVideo.mp4">Watch the YC application video</a>
-</video>
-
-[Watch the YC application video](docs/assets/YcApplicationVideo.mp4)
-
-=======
->>>>>>> e8e7acf9 (remove vid)
 ## Dashboard Preview
 
 | Quickstart                                                                                                                      | Integrations                                                                                           | Launch setup                                                                                                   |
