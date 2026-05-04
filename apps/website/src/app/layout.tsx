@@ -1,3 +1,4 @@
+import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import type { Viewport } from "next";
 import "./globals.css";
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <body
-        className={`${GeistMono.className} bg-background font-sans antialiased`}
+        className={`${GeistSans.variable} ${GeistMono.variable} bg-background font-sans antialiased`}
       >
         {children}
       </body>

@@ -77,7 +77,7 @@ function GitHubStars({ compact }: { compact: boolean }) {
         alt="GitHub"
         width={18}
         height={18}
-        className="h-[18px] w-[18px]"
+        className="h-5 w-5"
       />
       {stars !== null && (
         <>
@@ -139,11 +139,11 @@ export function Navbar() {
               <Image
                 src="/logo.svg"
                 alt="OfficeOS"
-                width={20}
-                height={20}
-                className="h-[1.125rem] w-[1.125rem]"
+                width={24}
+                height={24}
+                className="h-7 w-7"
               />
-              <p className="font-semibold text-lg text-primary">OfficeOS</p>
+              <p className="font-semibold text-xl text-primary">OfficeOS</p>
             </Link>
 
             <div className="flex-1" />

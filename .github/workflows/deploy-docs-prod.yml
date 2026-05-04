@@ -1,5 +1,7 @@
 name: Deploy Docs Prod
 
+# TEMPORARY: Main pushes deploy to production even without version tags.
+# Change this back to tag-gated release promotion before formal prod releases.
 on:
   push:
     branches:

@@ -1,5 +1,7 @@
 name: Deploy Backend
 
+# TEMPORARY: Main pushes deploy to production even without version tags.
+# Change this back to tag-gated release promotion before formal prod releases.
 on:
   push:
     branches:
@@ -13,7 +15,7 @@ on:
       - "v*"
 
 concurrency:
-  group: deploy-backend-${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'staging' }}
+  group: deploy-backend-prod
   cancel-in-progress: false
 
 jobs:
@@ -71,9 +73,12 @@ jobs:
           kubectl rollout restart deployment/eaos-backend-staging
 
       - name: Deploy prod
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          TAG="${{ github.ref_name }}"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="latest"
+          fi
           sed -i "s|IMAGE_TAG|${TAG}|g" k8s/prod/backend.yaml
           kubectl apply --validate=false -f k8s/prod/backend.yaml
           kubectl rollout restart deployment/eaos-backend-prod

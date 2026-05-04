@@ -1,5 +1,7 @@
 name: Build Channel Gateway
 
+# TEMPORARY: Main pushes publish the latest image and roll production without version tags.
+# Change this back to tag-gated release promotion before formal prod releases.
 on:
   push:
     branches: [main]
@@ -43,3 +45,4 @@ jobs:
           kubectl config set-context nova --cluster=nova --user=ci --namespace=default
           kubectl config use-context nova
           kubectl rollout restart deployment/eaos-backend-staging
+          kubectl rollout restart deployment/eaos-backend-prod
