@@ -27,8 +27,13 @@ internal sealed class BillingCheckpoint
         _logger = logger;
     }
 
-    public Task CheckBeforeLlmCallAsync(Guid agentId, CancellationToken ct)
-        => _billingGuard.ThrowIfQuotaExceededAsync(agentId, ct);
+    public async Task CheckBeforeLlmCallAsync(Guid agentId, CancellationToken ct)
+    {
+        var quota = await _billingGuard.CheckQuotaAsync(agentId, ct);
+        if (quota.Exceeded)
+            throw new QuotaExceededException(
+                quota.Reason ?? $"Agent {agentId} has reached the credit limit for this billing period.");
+    }
 
     public async Task RecordAfterLlmCallAsync(Guid agentId, string correlationId, string model, long rawTokens, CancellationToken ct)
     {

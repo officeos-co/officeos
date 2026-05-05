@@ -182,6 +182,10 @@ var platformKeysConfig = RequireSection<PlatformKeysConfig>("PlatformKeys");
 builder.Services.AddSingleton(platformKeysConfig);
 var customLlmProviderConfig = RequireSection<CustomLlmProviderConfig>("CustomLlmProvider");
 builder.Services.AddSingleton(customLlmProviderConfig);
+builder.Services.AddSingleton(new BillingPolicyConfig
+{
+    EnforceUsageLimits = !isDevelopment,
+});
 
 // Session auth — configurable skip prefixes
 var sessionAuthConfig = RequireSection<SessionAuthConfig>("SessionAuth");

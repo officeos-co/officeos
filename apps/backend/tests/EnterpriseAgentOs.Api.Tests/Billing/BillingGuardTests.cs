@@ -2,9 +2,8 @@ using EnterpriseAgentOs.Domain.Common.ValueObjects;
 using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Features.Management;
 using EnterpriseAgentOs.Application.Features.Management;
+using EnterpriseAgentOs.Infrastructure.Common.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -13,21 +12,23 @@ namespace EnterpriseAgentOs.Api.Tests.Billing;
 public sealed class BillingGuardTests
 {
     [Fact]
-    public async Task ThrowIfQuotaExceededAsync_creates_missing_free_subscription_before_allowing_usage()
+    public async Task CheckQuotaAsync_creates_missing_free_subscription_before_allowing_usage()
     {
         var ownerId = Guid.NewGuid();
         var subscriptions = new FakeUserSubscriptionRepository();
         var (guard, agentId) = CreateGuard(Agent(Guid.NewGuid(), ownerId), subscriptions);
 
-        await guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None);
+        var result = await guard.CheckQuotaAsync(agentId, CancellationToken.None);
 
+        Assert.True(result.Enforced);
+        Assert.False(result.Exceeded);
         Assert.NotNull(subscriptions.Current);
         Assert.Equal(SubscriptionPlan.Free, subscriptions.Current!.Plan);
         Assert.Equal(1, subscriptions.AddCount);
     }
 
     [Fact]
-    public async Task ThrowIfQuotaExceededAsync_blocks_when_budget_exceeded_and_overage_disabled()
+    public async Task CheckQuotaAsync_reports_exceeded_when_budget_exceeded_and_overage_disabled()
     {
         var ownerId = Guid.NewGuid();
         var sub = UserSubscription.CreateDefaultFree(ownerId);
@@ -36,8 +37,11 @@ public sealed class BillingGuardTests
 
         var (guard, agentId) = CreateGuard(Agent(Guid.NewGuid(), ownerId), new FakeUserSubscriptionRepository(sub));
 
-        await Assert.ThrowsAsync<QuotaExceededException>(
-            () => guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None));
+        var result = await guard.CheckQuotaAsync(agentId, CancellationToken.None);
+
+        Assert.True(result.Enforced);
+        Assert.True(result.Exceeded);
+        Assert.Contains("credit limit", result.Reason);
     }
 
     [Fact]
@@ -52,12 +56,13 @@ public sealed class BillingGuardTests
         var (guard, agentId) = CreateGuard(
             Agent(Guid.NewGuid(), ownerId),
             subscriptions,
-            new FakeHostEnvironment(Environments.Development));
+            new BillingPolicyConfig { EnforceUsageLimits = false });
 
-        await guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None);
-        var exceeded = await guard.IsQuotaExceededAsync(agentId, CancellationToken.None);
+        var result = await guard.CheckQuotaAsync(agentId, CancellationToken.None);
 
-        Assert.False(exceeded);
+        Assert.False(result.Enforced);
+        Assert.False(result.Exceeded);
+        Assert.Contains("disabled", result.Reason);
         Assert.Equal(0, subscriptions.GetCount);
     }
 
@@ -73,15 +78,17 @@ public sealed class BillingGuardTests
         var (guard, agentId) = CreateGuard(
             Agent(Guid.NewGuid(), ownerId),
             subscriptions,
-            new FakeHostEnvironment(Environments.Production));
+            new BillingPolicyConfig { EnforceUsageLimits = true });
 
-        await Assert.ThrowsAsync<QuotaExceededException>(
-            () => guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None));
+        var result = await guard.CheckQuotaAsync(agentId, CancellationToken.None);
+
+        Assert.True(result.Enforced);
+        Assert.True(result.Exceeded);
         Assert.Equal(1, subscriptions.GetCount);
     }
 
     [Fact]
-    public async Task ThrowIfQuotaExceededAsync_allows_overage_enabled_subscriptions()
+    public async Task CheckQuotaAsync_allows_overage_enabled_subscriptions()
     {
         var ownerId = Guid.NewGuid();
         var sub = UserSubscription.CreateDefaultFree(ownerId);
@@ -91,28 +98,31 @@ public sealed class BillingGuardTests
 
         var (guard, agentId) = CreateGuard(Agent(Guid.NewGuid(), ownerId), new FakeUserSubscriptionRepository(sub));
 
-        await guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None);
+        var result = await guard.CheckQuotaAsync(agentId, CancellationToken.None);
+
+        Assert.True(result.Enforced);
+        Assert.False(result.Exceeded);
     }
 
     [Fact]
-    public async Task ThrowIfQuotaExceededAsync_refuses_unowned_agents()
+    public async Task CheckQuotaAsync_refuses_unowned_agents()
     {
         var (guard, agentId) = CreateGuard(Agent(Guid.NewGuid(), null), new FakeUserSubscriptionRepository());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None));
+            () => guard.CheckQuotaAsync(agentId, CancellationToken.None));
     }
 
     private static (BillingGuard Guard, Guid AgentId) CreateGuard(
         AgentRecord agent,
         FakeUserSubscriptionRepository subscriptions,
-        IHostEnvironment? env = null)
+        BillingPolicyConfig? policy = null)
         => (new BillingGuard(
             new InMemoryDistributedCache(),
             new FakeAgentRepository(agent),
             subscriptions,
             NullLogger<BillingGuard>.Instance,
-            env),
+            policy ?? new BillingPolicyConfig()),
             agent.Id);
 
     private static AgentRecord Agent(Guid id, Guid? ownerId) => new()
@@ -198,13 +208,4 @@ public sealed class BillingGuardTests
         public Task HardDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.CompletedTask;
     }
 
-    private sealed class FakeHostEnvironment : IHostEnvironment
-    {
-        public FakeHostEnvironment(string environmentName) => EnvironmentName = environmentName;
-
-        public string EnvironmentName { get; set; }
-        public string ApplicationName { get; set; } = "EnterpriseAgentOs.Api.Tests";
-        public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
-        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-    }
 }
