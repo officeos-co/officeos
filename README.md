@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/Logo.png" />
-    <source media="(prefers-color-scheme: light)" srcset="apps/website/public/logo.svg" />
-    <img src="apps/website/public/logo.svg" height="200" alt="OfficeOS logo" />
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/Logo.png" />
+    <img src="apps/website/public/logo.svg" height="100" alt="OfficeOS logo" />
   </picture>
 </p>
 
