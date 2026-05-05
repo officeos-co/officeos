@@ -92,11 +92,23 @@ public sealed class AgentRecord
     {
         if (string.IsNullOrWhiteSpace(model))
         {
+            if (ProviderRegistry.IsCustomProvider(Provider))
+                throw new InvalidOperationException("Custom provider requires a configured concrete model.");
+
             Model = ProviderRegistry.DefaultModel;
             return;
         }
 
         var trimmed = model.Trim();
+        if (ProviderRegistry.IsCustomProvider(Provider))
+        {
+            if (trimmed.Equals(ProviderRegistry.DefaultModel, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Custom provider does not support auto model routing.");
+
+            Model = trimmed;
+            return;
+        }
+
         if (!ProviderRegistry.IsValidModel(trimmed))
         {
             var allowed = string.Join(", ", ProviderRegistry.SupportedModels);

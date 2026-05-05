@@ -2,6 +2,7 @@ query SupportedModels {
   supportedModels {
     id
     displayName
+    provider
     isDefault
   }
 }

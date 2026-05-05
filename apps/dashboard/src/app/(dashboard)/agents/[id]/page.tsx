@@ -26,6 +26,7 @@ import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
 import { useCreateSession } from "@/features/agents";
+import { useUpdateAgent } from "@/features/agents";
 import { getModelTooltip } from "@/features/agents/model-tooltips";
 import { SendIcon, PlusIcon } from "lucide-react";
 
@@ -113,6 +114,7 @@ export default function AgentDetailPage({
   );
   const { sendAgentMessage, loading: sendingMessage } = useSendAgentMessage();
   const createSession = useCreateSession();
+  const { updateAgent } = useUpdateAgent();
   const activeSession = agent?.activeSession ?? null;
   const tab = (searchParams.get("tab") as TabKey) ?? "integrations";
   const agentStatus = agentStatusOverride ?? agent?.status ?? "";
@@ -188,7 +190,13 @@ export default function AgentDetailPage({
                 <Select
                   value={model}
                   onValueChange={(v) => {
-                    if (v) setModelOverride(v);
+                    if (!v) return;
+                    const selected = models.find((m) => m.id === v);
+                    setModelOverride(v);
+                    void updateAgent(id, {
+                      model: v,
+                      provider: selected?.provider,
+                    }).catch(() => setModelOverride(null));
                   }}
                 >
                   <SelectTrigger className="w-[180px] h-8 text-xs">

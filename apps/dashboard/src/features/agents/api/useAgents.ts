@@ -239,19 +239,13 @@ export function useAgent(id: string): {
 export type CreateAgentHookInput = {
   name: string;
   model: string;
+  provider: string;
   systemPrompt: string;
   toolNames: string[];
   toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>;
   channelSlugs: string[];
   bootstrapMessage?: string;
 };
-
-function providerFromModel(model: string): string {
-  if (model.startsWith("claude-")) return "anthropic";
-  if (model.startsWith("gpt-") || model.startsWith("o")) return "openai";
-  if (model.startsWith("gemini-")) return "google";
-  return "anthropic";
-}
 
 export function useCreateAgent() {
   const [fn, state] = useMutation(CREATE_AGENT);
@@ -261,7 +255,7 @@ export function useCreateAgent() {
         variables: {
           input: {
             name: input.name,
-            provider: providerFromModel(input.model),
+            provider: input.provider,
             model: input.model,
             prompt: input.systemPrompt,
             toolNames: input.toolNames,
@@ -307,6 +301,7 @@ export function useUpdateAgent() {
       input: Partial<{
         name: string;
         model: string;
+        provider: string;
         prompt: string;
       }>,
     ) => {

@@ -5,6 +5,8 @@ namespace EnterpriseAgentOs.Domain.Common.Services;
 /// </summary>
 public static class ProviderRegistry
 {
+    public const string CustomProviderSlug = "custom";
+
     public static readonly IReadOnlyList<ProviderDefinition> All = new[]
     {
         new ProviderDefinition(
@@ -96,6 +98,9 @@ public static class ProviderRegistry
 
     public static bool IsValidModel(string modelId) =>
         modelId.Equals("auto", StringComparison.OrdinalIgnoreCase) || ModelById.ContainsKey(modelId);
+
+    public static bool IsCustomProvider(string providerSlug) =>
+        providerSlug.Equals(CustomProviderSlug, StringComparison.OrdinalIgnoreCase);
 
     public static int GetCostWeight(string modelId, int defaultWeight = 20) =>
         ModelById.TryGetValue(modelId, out var m) ? m.CostWeight : defaultWeight;

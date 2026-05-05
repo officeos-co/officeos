@@ -1,3 +1,11 @@
+const PROVIDER_CONFIG_HINTS: Record<string, string> = {
+  anthropic: "AnthropicApiKey",
+  openai: "OpenAiApiKey",
+  google: "GeminiApiKey",
+  xai: "XaiApiKey",
+  custom: "CUSTOMLLMPROVIDER__BASEURL and CUSTOMLLMPROVIDER__MODELID",
+};
+
 export function getModelTooltip(modelId: string): string {
   if (modelId === "auto") {
     return "Smart routing is transparent: today it only uses configured Anthropic models, routing simpler turns to Haiku and standard turns to Sonnet.";
@@ -36,16 +44,7 @@ export function getModelTooltip(modelId: string): string {
 
 export function getProviderTooltip(providerName: string, configured: boolean): string {
   const provider = providerName.toLowerCase();
-  const keyName =
-    provider === "anthropic"
-      ? "AnthropicApiKey"
-      : provider === "openai"
-        ? "OpenAiApiKey"
-        : provider === "google"
-          ? "GeminiApiKey"
-          : provider === "xai"
-            ? "XaiApiKey"
-            : "the provider API key";
+  const keyName = PROVIDER_CONFIG_HINTS[provider] ?? "the provider API key";
 
   if (configured) {
     return provider === "anthropic"

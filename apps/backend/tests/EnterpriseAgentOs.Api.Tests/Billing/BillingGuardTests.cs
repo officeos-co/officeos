@@ -3,6 +3,8 @@ using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Features.Management;
 using EnterpriseAgentOs.Application.Features.Management;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -39,6 +41,46 @@ public sealed class BillingGuardTests
     }
 
     [Fact]
+    public async Task Development_environment_does_not_check_or_block_usage_limits()
+    {
+        var ownerId = Guid.NewGuid();
+        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        sub.CreditBudgetPerMonth = 100;
+        sub.CreditsUsedThisMonth = 101;
+        var subscriptions = new FakeUserSubscriptionRepository(sub);
+
+        var (guard, agentId) = CreateGuard(
+            Agent(Guid.NewGuid(), ownerId),
+            subscriptions,
+            new FakeHostEnvironment(Environments.Development));
+
+        await guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None);
+        var exceeded = await guard.IsQuotaExceededAsync(agentId, CancellationToken.None);
+
+        Assert.False(exceeded);
+        Assert.Equal(0, subscriptions.GetCount);
+    }
+
+    [Fact]
+    public async Task Production_environment_checks_and_blocks_usage_limits()
+    {
+        var ownerId = Guid.NewGuid();
+        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        sub.CreditBudgetPerMonth = 100;
+        sub.CreditsUsedThisMonth = 101;
+        var subscriptions = new FakeUserSubscriptionRepository(sub);
+
+        var (guard, agentId) = CreateGuard(
+            Agent(Guid.NewGuid(), ownerId),
+            subscriptions,
+            new FakeHostEnvironment(Environments.Production));
+
+        await Assert.ThrowsAsync<QuotaExceededException>(
+            () => guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None));
+        Assert.Equal(1, subscriptions.GetCount);
+    }
+
+    [Fact]
     public async Task ThrowIfQuotaExceededAsync_allows_overage_enabled_subscriptions()
     {
         var ownerId = Guid.NewGuid();
@@ -61,8 +103,17 @@ public sealed class BillingGuardTests
             () => guard.ThrowIfQuotaExceededAsync(agentId, CancellationToken.None));
     }
 
-    private static (BillingGuard Guard, Guid AgentId) CreateGuard(AgentRecord agent, FakeUserSubscriptionRepository subscriptions)
-        => (new BillingGuard(new InMemoryDistributedCache(), new FakeAgentRepository(agent), subscriptions, NullLogger<BillingGuard>.Instance), agent.Id);
+    private static (BillingGuard Guard, Guid AgentId) CreateGuard(
+        AgentRecord agent,
+        FakeUserSubscriptionRepository subscriptions,
+        IHostEnvironment? env = null)
+        => (new BillingGuard(
+            new InMemoryDistributedCache(),
+            new FakeAgentRepository(agent),
+            subscriptions,
+            NullLogger<BillingGuard>.Instance,
+            env),
+            agent.Id);
 
     private static AgentRecord Agent(Guid id, Guid? ownerId) => new()
     {
@@ -97,14 +148,18 @@ public sealed class BillingGuardTests
 
         public UserSubscription? Current { get; private set; }
         public int AddCount { get; private set; }
+        public int GetCount { get; private set; }
 
         public Task<UserSubscription?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
-            => Task.FromResult(
+        {
+            GetCount++;
+            return Task.FromResult(
                 Current is not null
                 && (!filter.Id.HasValue || Current.Id == filter.Id.Value)
                 && (!filter.UserId.HasValue || Current.UserId == filter.UserId.Value)
                     ? Current
                     : null);
+        }
 
         public Task AddAsync(UserSubscription sub, CancellationToken ct = default)
         {
@@ -141,5 +196,15 @@ public sealed class BillingGuardTests
         public Task<bool> SoftDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.FromResult(false);
         public Task UpdateStatusAsync(AgentFilter filter, AgentStatus status, CancellationToken ct = default) => Task.CompletedTask;
         public Task HardDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    private sealed class FakeHostEnvironment : IHostEnvironment
+    {
+        public FakeHostEnvironment(string environmentName) => EnvironmentName = environmentName;
+
+        public string EnvironmentName { get; set; }
+        public string ApplicationName { get; set; } = "EnterpriseAgentOs.Api.Tests";
+        public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }

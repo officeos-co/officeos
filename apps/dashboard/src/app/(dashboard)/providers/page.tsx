@@ -19,7 +19,16 @@ const LOGOS: Record<string, string> = {
 
 function ProviderLogo({ name, size = 24 }: { name: string; size?: number }) {
   const src = LOGOS[name.toLowerCase()];
-  if (!src) return null;
+  if (!src) {
+    return (
+      <div
+        className="flex shrink-0 items-center justify-center rounded border bg-muted text-xs font-semibold text-muted-foreground"
+        style={{ width: size, height: size }}
+      >
+        AI
+      </div>
+    );
+  }
   return (
     <Image
       src={src}

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using EnterpriseAgentOs.Domain.Common.Services;
+using EnterpriseAgentOs.Infrastructure.Common.Configuration;
 using EnterpriseAgentOs.Infrastructure.Features.Agents;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -69,6 +70,63 @@ public sealed class LlmProviderDispatcherUsageTests
     }
 
     [Fact]
+    public async Task Custom_provider_uses_configured_base_url_and_model_without_authorization_when_key_is_empty()
+    {
+        var handler = new CapturingHandler(_ => SseResponse("data: [DONE]\n\n"));
+        var dispatcher = new LlmProviderDispatcher(
+            new FakeHttpClientFactory(handler),
+            NullLogger<LlmProviderDispatcher>.Instance,
+            new CustomLlmProviderConfig
+            {
+                BaseUrl = "http://self-hosted:8000/v1",
+                ModelId = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+            });
+
+        var result = await dispatcher.DispatchAsync(
+            "custom",
+            string.Empty,
+            "dashboard-model-id",
+            RequestBody("dashboard-model-id"),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal("deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", result.Value.Model);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal("http://self-hosted:8000/v1/chat/completions", sent.RequestUri);
+        Assert.Null(sent.AuthorizationScheme);
+
+        using var doc = JsonDocument.Parse(sent.Body);
+        Assert.Equal("deepseek-ai/DeepSeek-R1-Distill-Qwen-32B", doc.RootElement.GetProperty("model").GetString());
+    }
+
+    [Fact]
+    public async Task Custom_provider_sends_bearer_authorization_when_key_is_configured()
+    {
+        var handler = new CapturingHandler(_ => SseResponse("data: [DONE]\n\n"));
+        var dispatcher = new LlmProviderDispatcher(
+            new FakeHttpClientFactory(handler),
+            NullLogger<LlmProviderDispatcher>.Instance,
+            new CustomLlmProviderConfig
+            {
+                BaseUrl = "http://self-hosted:8000/v1",
+                ModelId = "deepseek-r1:8b",
+            });
+
+        var result = await dispatcher.DispatchAsync(
+            "custom",
+            "custom-key",
+            "deepseek-r1:8b",
+            RequestBody("deepseek-r1:8b"),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal("Bearer", sent.AuthorizationScheme);
+        Assert.Equal("custom-key", sent.AuthorizationParameter);
+    }
+
+    [Fact]
     public async Task Anthropic_provider_translates_usage_into_openai_compatible_stream()
     {
         var handler = new CapturingHandler(_ => SseResponse("""
@@ -129,6 +187,7 @@ public sealed class LlmProviderDispatcherUsageTests
     };
 
     private sealed record CapturedRequest(
+        string RequestUri,
         string Body,
         string? AuthorizationScheme,
         string? AuthorizationParameter,
@@ -148,6 +207,7 @@ public sealed class LlmProviderDispatcherUsageTests
             var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
             request.Headers.TryGetValues("x-api-key", out var apiKeys);
             Requests.Add(new CapturedRequest(
+                request.RequestUri?.ToString() ?? string.Empty,
                 body,
                 request.Headers.Authorization?.Scheme,
                 request.Headers.Authorization?.Parameter,
