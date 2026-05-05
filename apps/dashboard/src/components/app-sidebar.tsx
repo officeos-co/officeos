@@ -91,7 +91,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <span>Documentation</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {isDevelopment() && (
+          {/* TODO: Add OfficeOS Cloud when ready */}
+          {/* {isDevelopment() && (
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Try OfficeOS Cloud"
@@ -107,7 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span>Try OfficeOS Cloud</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          )}
+          )} */}
         </SidebarMenu>
         {!authLoading && !billingLoading && user && (
           <NavUser
