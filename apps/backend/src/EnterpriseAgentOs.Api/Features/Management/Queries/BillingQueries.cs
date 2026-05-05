@@ -175,4 +175,15 @@ public class BillingQueries
             sub.Period.End,
             sub.IsActive);
     }
+
+    [GraphQLDescription("Returns token usage over time plus backend-calculated spend for an exact date range.")]
+    public async Task<UsageAnalyticsDto> GetUsageAnalytics(
+        UsageAnalyticsInput input,
+        IResolverContext context,
+        [Service] IUsageAnalyticsService usageAnalytics,
+        CancellationToken ct)
+    {
+        var user = DashboardAuthContextExtensions.GetUser(context);
+        return await usageAnalytics.GetForUserAsync(user.Id, input, ct);
+    }
 }

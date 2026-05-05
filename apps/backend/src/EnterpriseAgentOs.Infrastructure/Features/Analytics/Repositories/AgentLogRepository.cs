@@ -31,6 +31,27 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         return entities.Select(ToAgentLogRecord).ToList();
     }
 
+    public async Task<List<AgentLogRecord>> ListUsageAsync(
+        Guid ownerId,
+        DateTime fromInclusive,
+        DateTime toExclusive,
+        CancellationToken ct = default)
+    {
+        var entities = await (
+            from l in _eaosDbContext.AgentLogs.AsNoTracking()
+            join a in _eaosDbContext.Agents.AsNoTracking() on l.AgentId equals a.Id
+            where a.OwnerId == ownerId
+                  && l.Type == AgentLogType.System
+                  && l.Time >= fromInclusive
+                  && l.Time < toExclusive
+                  && l.Content.StartsWith("LLM call complete")
+            orderby l.Time
+            select l)
+            .ToListAsync(ct);
+
+        return entities.Select(ToAgentLogRecord).ToList();
+    }
+
     public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
         string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
     {

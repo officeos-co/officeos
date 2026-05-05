@@ -51,9 +51,16 @@ internal sealed class TurnLoggingHandler :
     public async Task Handle(LlmCallCompletedEvent e, CancellationToken ct)
     {
         await _logService.AppendAsync(
-            WithRun(AgentLogRecord.System(e.AgentId,
-                $"LLM call complete ({e.InputTokens ?? 0} in, {e.OutputTokens ?? 0} out)",
-                e.CorrelationId, e.OccurredAt, new TokenUsage(e.InputTokens, e.OutputTokens, e.DurationMs))), ct);
+            WithRun(new AgentLogRecord
+            {
+                AgentId = e.AgentId,
+                Type = AgentLogType.System,
+                Tool = e.Model,
+                Content = $"LLM call complete: {e.Model} ({e.InputTokens ?? 0} in, {e.OutputTokens ?? 0} out)",
+                CorrelationId = e.CorrelationId,
+                Time = e.OccurredAt,
+                Usage = new TokenUsage(e.InputTokens, e.OutputTokens, e.DurationMs),
+            }), ct);
     }
 
     public async Task Handle(ToolCallStartedEvent e, CancellationToken ct)

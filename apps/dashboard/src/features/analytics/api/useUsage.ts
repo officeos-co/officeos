@@ -15,9 +15,25 @@ export type CreditUsage = {
   billingCycle: string;
 };
 
-export type ModelCostWeight = {
-  model: string;
-  weight: number;
+export type UsageAnalyticsPoint = {
+  date: string;
+  tokens: number;
+  credits: number;
+};
+
+export type UsageAnalytics = {
+  from: string;
+  to: string;
+  totalTokens: number;
+  totalCredits: number;
+  cost: {
+    totalCents: number;
+    includedCents: number;
+    onDemandCents: number;
+    currency: string;
+    estimated: boolean;
+  };
+  points: UsageAnalyticsPoint[];
 };
 
 /* ── Credit usage (usage page) ───────────────────────────── */
@@ -48,25 +64,44 @@ export function useUsage(): {
   return { usage: raw ?? null, loading, error: error ?? undefined };
 }
 
-/* ── Model cost weights (cost page) ──────────────────────── */
-
-const MODEL_COST_WEIGHTS_QUERY = gql`
-  query ModelCostWeights {
-    modelCostWeights {
-      model
-      weight
+const USAGE_ANALYTICS_QUERY = gql`
+  query UsageAnalytics($from: DateTime!, $to: DateTime!) {
+    usageAnalytics(input: { from: $from, to: $to }) {
+      from
+      to
+      totalTokens
+      totalCredits
+      cost {
+        totalCents
+        includedCents
+        onDemandCents
+        currency
+        estimated
+      }
+      points {
+        date
+        tokens
+        credits
+      }
     }
   }
 `;
 
-export function useCost(): {
-  weights: ModelCostWeight[];
+export function useUsageAnalytics(from: string, to: string): {
+  usage: UsageAnalytics | null;
   loading: boolean;
   error?: Error;
 } {
-  const { data, loading, error } = useQuery(MODEL_COST_WEIGHTS_QUERY);
-  const weights: ModelCostWeight[] = data?.modelCostWeights ?? [];
-  return { weights, loading, error: error ?? undefined };
+  const { data, loading, error } = useQuery(USAGE_ANALYTICS_QUERY, {
+    variables: {
+      from: `${from}T00:00:00.000Z`,
+      to: `${to}T00:00:00.000Z`,
+    },
+    pollInterval: 5000,
+    fetchPolicy: "network-only",
+  });
+  const raw = data?.usageAnalytics as UsageAnalytics | null;
+  return { usage: raw ?? null, loading, error: error ?? undefined };
 }
 
 /* ── Raw log entries (analytics) ─────────────────────────── */
@@ -74,17 +109,58 @@ export function useCost(): {
 export type LogEntry = {
   id: string;
   time: number;
-  model: string;
+  agentName: string;
   inputTokens: number;
   outputTokens: number;
-  type: string;
-  serviceTier: string;
-  request: string;
+  durationMs: number;
 };
 
 export function useUsageLogs(): {
   logs: LogEntry[];
   loading: boolean;
+  error?: Error;
 } {
-  return { logs: [], loading: false };
+  const { data, loading, error } = useQuery(gql`
+    query UsageLogs {
+      globalLogs(filters: { skip: 0, limit: 200 }) {
+        items {
+          id
+          time
+          content
+          inputTokens
+          outputTokens
+          durationMs
+          agentName
+        }
+      }
+    }
+  `, {
+    pollInterval: 5000,
+    fetchPolicy: "network-only",
+  });
+
+  const raw: Array<{
+    id: string;
+    time: string | number;
+    content: string;
+    inputTokens?: number | null;
+    outputTokens?: number | null;
+    durationMs?: number | null;
+    agentName?: string | null;
+  }> = data?.globalLogs?.items ?? [];
+
+  const logs = raw
+    .filter((r) => r.content.startsWith("LLM call complete"))
+    .map((r) => ({
+      id: r.id,
+      time:
+        typeof r.time === "number" ? r.time : Date.parse(r.time) || 0,
+      agentName: r.agentName ?? "(unbound)",
+      inputTokens: r.inputTokens ?? 0,
+      outputTokens: r.outputTokens ?? 0,
+      durationMs: r.durationMs ?? 0,
+    }))
+    .filter((r) => r.inputTokens + r.outputTokens > 0);
+
+  return { logs, loading, error: error ?? undefined };
 }

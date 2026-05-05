@@ -92,7 +92,7 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
   const logs: GlobalLog[] = raw.map((r) => ({
     id: r.id,
     time:
-      typeof r.time === "number" ? r.time : Date.parse(r.time) || Date.now(),
+      typeof r.time === "number" ? r.time : Date.parse(r.time) || 0,
     type: normaliseType(r.type),
     tool: r.tool ?? undefined,
     integration: r.integration ?? undefined,

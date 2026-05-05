@@ -14,6 +14,7 @@ public interface IAgentLogRepository
 {
     Task<List<AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListAfterAsync(Guid agentId, Guid? afterLogId, int limit, CancellationToken ct = default);
+    Task<List<AgentLogRecord>> ListUsageAsync(Guid ownerId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default);
     Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
         string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default);
     Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default);
