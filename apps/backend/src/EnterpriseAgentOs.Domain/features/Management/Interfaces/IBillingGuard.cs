@@ -2,14 +2,23 @@ namespace EnterpriseAgentOs.Domain.Features.Management;
 
 public interface IBillingGuard
 {
-    /// <summary>Returns true when the agent's owner has exceeded their credit budget.</summary>
-    Task<bool> IsQuotaExceededAsync(Guid agentId, CancellationToken ct = default);
-
-    /// <summary>Throws <see cref="QuotaExceededException"/> when the quota is exceeded.</summary>
-    Task ThrowIfQuotaExceededAsync(Guid agentId, CancellationToken ct = default);
+    /// <summary>Checks whether usage is allowed for the agent's owner.</summary>
+    Task<BillingQuotaCheckResult> CheckQuotaAsync(Guid agentId, CancellationToken ct = default);
 
     /// <summary>Refreshes the Redis cache after credits are recorded.</summary>
     Task RefreshCacheAsync(Guid agentId, CancellationToken ct = default);
+}
+
+public sealed record BillingQuotaCheckResult(
+    bool Enforced,
+    bool Exceeded,
+    string? Reason = null)
+{
+    public static BillingQuotaCheckResult Allowed() => new(true, false);
+
+    public static BillingQuotaCheckResult ExceededLimit(string reason) => new(true, true, reason);
+
+    public static BillingQuotaCheckResult Skipped(string reason) => new(false, false, reason);
 }
 
 public sealed class QuotaExceededException : Exception
