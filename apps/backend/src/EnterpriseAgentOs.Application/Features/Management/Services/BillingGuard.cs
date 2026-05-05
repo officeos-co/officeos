@@ -8,6 +8,7 @@ internal sealed class BillingGuard : IBillingGuard
     private readonly IAgentRepository _agentRepository;
     private readonly IUserSubscriptionRepository _subscriptionRepository;
     private readonly ILogger<BillingGuard> _logger;
+    private readonly IHostEnvironment? _env;
 
     private static readonly DistributedCacheEntryOptions CacheOptions = new()
     {
@@ -18,16 +19,21 @@ internal sealed class BillingGuard : IBillingGuard
         IDistributedCache cache,
         IAgentRepository agentRepo,
         IUserSubscriptionRepository subRepo,
-        ILogger<BillingGuard> logger)
+        ILogger<BillingGuard> logger,
+        IHostEnvironment? env = null)
     {
         _cache = cache;
         _agentRepository = agentRepo;
         _subscriptionRepository = subRepo;
         _logger = logger;
+        _env = env;
     }
 
     public async Task<bool> IsQuotaExceededAsync(Guid agentId, CancellationToken ct = default)
     {
+        if (_env?.IsDevelopment() == true)
+            return false;
+
         var cached = await _cache.GetStringAsync($"billing_status:{agentId}", ct);
         if (cached is not null)
             return cached == "limit_reached";
@@ -37,12 +43,21 @@ internal sealed class BillingGuard : IBillingGuard
 
     public async Task ThrowIfQuotaExceededAsync(Guid agentId, CancellationToken ct = default)
     {
+        if (_env?.IsDevelopment() == true)
+            return;
+
         if (await RefreshAndCheckAsync(agentId, ct))
             throw new QuotaExceededException($"Agent {agentId} has reached the credit limit for this billing period.");
     }
 
     public async Task RefreshCacheAsync(Guid agentId, CancellationToken ct = default)
     {
+        if (_env?.IsDevelopment() == true)
+        {
+            await _cache.SetStringAsync($"billing_status:{agentId}", "ok", CacheOptions, ct);
+            return;
+        }
+
         await RefreshAndCheckAsync(agentId, ct);
     }
 

@@ -6,10 +6,12 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 internal sealed class ProviderService : IProviderService
 {
     private readonly PlatformKeysConfig _platformKeysConfig;
+    private readonly IHostEnvironment? _env;
 
-    public ProviderService(PlatformKeysConfig platformKeys)
+    public ProviderService(PlatformKeysConfig platformKeys, IHostEnvironment? env = null)
     {
         _platformKeysConfig = platformKeys;
+        _env = env;
     }
 
     public Task<IReadOnlyList<ProviderDto>> ListAsync(CancellationToken ct = default)
@@ -19,7 +21,7 @@ internal sealed class ProviderService : IProviderService
                 DeterministicGuid(def.Slug),
                 def.Slug,
                 def.DisplayName,
-                HasPlatformKey(def.Slug),
+                IsDevelopment() || HasPlatformKey(def.Slug),
                 null))
             .ToList();
         return Task.FromResult<IReadOnlyList<ProviderDto>>(list);
@@ -33,6 +35,8 @@ internal sealed class ProviderService : IProviderService
 
     private bool HasPlatformKey(string name) =>
         _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName) is not null;
+
+    private bool IsDevelopment() => _env?.IsDevelopment() == true;
 
     private static Guid DeterministicGuid(string input)
     {

@@ -46,7 +46,6 @@ const data = {
       items: [
         { title: "Logs", url: "/logs" },
         { title: "Usage", url: "/usage" },
-        ...(!isDevelopment() ? [{ title: "Cost", url: "/cost" }] : []),
       ],
     },
     {

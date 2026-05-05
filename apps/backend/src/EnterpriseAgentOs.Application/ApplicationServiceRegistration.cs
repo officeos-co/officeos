@@ -15,6 +15,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IBillingGuard, BillingGuard>();
         services.AddScoped<IGdprService, GdprService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
+        services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IBrowserService, BrowserService>();
         services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();

@@ -24,6 +24,30 @@ public sealed record GlobalLogFiltersInput(
 
 public sealed record GlobalLogsPage(IReadOnlyList<AgentLogDto> Items, int Total);
 
+public sealed record UsageAnalyticsInput(
+    DateTime From,
+    DateTime To);
+
+public sealed record UsageAnalyticsPointDto(
+    DateTime Date,
+    long Tokens,
+    long Credits);
+
+public sealed record UsageCostBreakdownDto(
+    long TotalCents,
+    long IncludedCents,
+    long OnDemandCents,
+    string Currency,
+    bool Estimated);
+
+public sealed record UsageAnalyticsDto(
+    DateTime From,
+    DateTime To,
+    long TotalTokens,
+    long TotalCredits,
+    UsageCostBreakdownDto Cost,
+    IReadOnlyList<UsageAnalyticsPointDto> Points);
+
 public sealed record AppendAgentLogInput(
     Guid AgentId,
     AgentLogType Type,
