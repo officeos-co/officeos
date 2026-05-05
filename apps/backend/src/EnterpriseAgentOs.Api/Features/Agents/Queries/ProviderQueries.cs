@@ -15,12 +15,20 @@ public class ProviderQueries
     }
 
     [GraphQLDescription("Returns available model IDs for a specific provider name.")]
-    public IReadOnlyList<string> GetProviderModels(
+    public async Task<IReadOnlyList<string>> GetProviderModels(
         string providerName,
-        IResolverContext context)
+        IResolverContext context,
+        [Service] IProviderService providers,
+        CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return ProviderRegistry.GetModelIds(providerName);
+        var configured = await providers.ListAsync(ct);
+        var provider = configured.FirstOrDefault(p =>
+            string.Equals(p.Name, providerName, StringComparison.OrdinalIgnoreCase));
+
+        return provider is not null
+            ? provider.Models.Select(m => m.Id).ToList()
+            : ProviderRegistry.GetModelIds(providerName);
     }
 
     [GraphQLDescription("Returns available models with display names and default indicator. In self-hosted mode, only configured providers' models are returned.")]
@@ -39,19 +47,28 @@ public class ProviderQueries
 
         var models = configured
             .Where(p => p.Configured)
-            .SelectMany(p => ProviderRegistry.GetModelIds(p.Name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .SelectMany(p => p.Models.Select(m => (Provider: p.Name, Model: m)))
+            .GroupBy(x => x.Model.Id, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
             .ToList();
 
         var includeAuto = configuredNames.Contains("anthropic") && models.Count > 0;
         if (includeAuto)
-            models.Insert(0, ProviderRegistry.DefaultModel);
+        {
+            models.Insert(0, (
+                "anthropic",
+                new ProviderModelDto(
+                    ProviderRegistry.DefaultModel,
+                    ProviderRegistry.GetDisplayName(ProviderRegistry.DefaultModel),
+                    0)));
+        }
 
         return models
             .Select((m, index) => new ModelInfoDto(
-                m,
-                ProviderRegistry.GetDisplayName(m),
-                includeAuto ? m == ProviderRegistry.DefaultModel : index == 0))
+                m.Model.Id,
+                m.Model.DisplayName,
+                m.Provider,
+                includeAuto ? m.Model.Id == ProviderRegistry.DefaultModel : index == 0))
             .ToList();
     }
 }

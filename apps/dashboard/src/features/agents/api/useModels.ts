@@ -5,6 +5,7 @@ import { gql, useQuery } from "@apollo/client"
 export type ModelInfo = {
   id: string
   displayName: string
+  provider: string
   isDefault: boolean
 }
 
@@ -13,6 +14,7 @@ const SUPPORTED_MODELS_QUERY = gql`
     supportedModels {
       id
       displayName
+      provider
       isDefault
     }
   }

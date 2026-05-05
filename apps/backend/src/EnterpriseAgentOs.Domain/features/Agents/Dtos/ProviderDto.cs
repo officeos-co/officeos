@@ -5,4 +5,10 @@ public sealed record ProviderDto(
     string Name,
     string DisplayName,
     bool Configured,
-    DateTime? ConfiguredAt);
+    DateTime? ConfiguredAt,
+    IReadOnlyList<ProviderModelDto> Models);
+
+public sealed record ProviderModelDto(
+    string Id,
+    string DisplayName,
+    int CostWeight);

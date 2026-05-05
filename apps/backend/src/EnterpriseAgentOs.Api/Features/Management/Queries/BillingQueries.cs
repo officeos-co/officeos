@@ -77,12 +77,23 @@ public class BillingQueries
     }
 
     [GraphQLDescription("Returns the credit cost weight multiplier for each supported LLM model.")]
-    public IReadOnlyList<ModelCostWeightDto> GetModelCostWeights(IResolverContext context)
+    public IReadOnlyList<ModelCostWeightDto> GetModelCostWeights(
+        IResolverContext context,
+        [Service] CustomLlmProviderConfig customLlmProviderConfig)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return ProviderRegistry.GetCostWeights()
+        var weights = ProviderRegistry.GetCostWeights()
             .Select(kv => new ModelCostWeightDto(kv.Key, kv.Value))
             .ToList();
+
+        if (customLlmProviderConfig.IsConfigured)
+        {
+            weights.Add(new ModelCostWeightDto(
+                customLlmProviderConfig.ModelId.Trim(),
+                customLlmProviderConfig.EffectiveCostWeight));
+        }
+
+        return weights;
     }
 
     /// <summary>

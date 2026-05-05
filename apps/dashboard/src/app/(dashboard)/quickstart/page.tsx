@@ -423,6 +423,7 @@ export default function QuickstartPage() {
     }));
   const selectedModel =
     model && models.some((m) => m.id === model) ? model : defaultModelId;
+  const selectedModelInfo = models.find((m) => m.id === selectedModel);
 
   return (
     <>
@@ -460,6 +461,7 @@ export default function QuickstartPage() {
                 const created = await createAgent({
                   name: agentName.trim(),
                   model: selectedModel,
+                  provider: selectedModelInfo?.provider ?? "anthropic",
                   systemPrompt,
                   toolNames: Array.from(selectedIntegrations),
                   toolPermissions: tpList,
@@ -468,7 +470,7 @@ export default function QuickstartPage() {
                 });
                 trackAgentCreated({
                   agentName: agentName.trim(),
-                  provider: selectedModel.split("-")[0] ?? "unknown",
+                  provider: selectedModelInfo?.provider ?? "unknown",
                   skillCount: selectedIntegrations.size,
                   allowSkills: Object.values(toolPermissions).filter(
                     (p) => p === "allow",

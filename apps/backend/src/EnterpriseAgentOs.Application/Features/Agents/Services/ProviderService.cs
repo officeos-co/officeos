@@ -6,12 +6,14 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 internal sealed class ProviderService : IProviderService
 {
     private readonly PlatformKeysConfig _platformKeysConfig;
-    private readonly IHostEnvironment? _env;
+    private readonly CustomLlmProviderConfig _customLlmProviderConfig;
 
-    public ProviderService(PlatformKeysConfig platformKeys, IHostEnvironment? env = null)
+    public ProviderService(
+        PlatformKeysConfig platformKeys,
+        CustomLlmProviderConfig customLlmProviderConfig)
     {
         _platformKeysConfig = platformKeys;
-        _env = env;
+        _customLlmProviderConfig = customLlmProviderConfig;
     }
 
     public Task<IReadOnlyList<ProviderDto>> ListAsync(CancellationToken ct = default)
@@ -21,14 +23,29 @@ internal sealed class ProviderService : IProviderService
                 DeterministicGuid(def.Slug),
                 def.Slug,
                 def.DisplayName,
-                IsDevelopment() || HasPlatformKey(def.Slug),
-                null))
+                HasPlatformKey(def.Slug),
+                null,
+                def.Models.Select(m => new ProviderModelDto(m.Id, m.DisplayName, m.CostWeight)).ToList()))
             .ToList();
+
+        list.Add(new ProviderDto(
+            DeterministicGuid(ProviderRegistry.CustomProviderSlug),
+            ProviderRegistry.CustomProviderSlug,
+            _customLlmProviderConfig.EffectiveDisplayName,
+            _customLlmProviderConfig.IsConfigured,
+            null,
+            GetCustomModels()));
+
         return Task.FromResult<IReadOnlyList<ProviderDto>>(list);
     }
 
     public Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
     {
+        if (ProviderRegistry.IsCustomProvider(name))
+            return Task.FromResult(_customLlmProviderConfig.IsConfigured
+                ? _customLlmProviderConfig.ApiKeyOrNull ?? string.Empty
+                : null);
+
         var key = _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName);
         return Task.FromResult(key);
     }
@@ -36,7 +53,16 @@ internal sealed class ProviderService : IProviderService
     private bool HasPlatformKey(string name) =>
         _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName) is not null;
 
-    private bool IsDevelopment() => _env?.IsDevelopment() == true;
+    private IReadOnlyList<ProviderModelDto> GetCustomModels() =>
+        _customLlmProviderConfig.IsConfigured
+            ? new[]
+            {
+                new ProviderModelDto(
+                    _customLlmProviderConfig.ModelId.Trim(),
+                    _customLlmProviderConfig.EffectiveModelDisplayName,
+                    _customLlmProviderConfig.EffectiveCostWeight),
+            }
+            : [];
 
     private static Guid DeterministicGuid(string input)
     {

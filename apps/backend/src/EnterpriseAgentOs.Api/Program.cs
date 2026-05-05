@@ -180,6 +180,8 @@ builder.Services.AddSingleton(frontendConfig);
 // LLM
 var platformKeysConfig = RequireSection<PlatformKeysConfig>("PlatformKeys");
 builder.Services.AddSingleton(platformKeysConfig);
+var customLlmProviderConfig = RequireSection<CustomLlmProviderConfig>("CustomLlmProvider");
+builder.Services.AddSingleton(customLlmProviderConfig);
 
 // Session auth — configurable skip prefixes
 var sessionAuthConfig = RequireSection<SessionAuthConfig>("SessionAuth");

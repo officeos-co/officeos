@@ -29,6 +29,28 @@ public sealed class CreditRecordingServiceTests
     }
 
     [Fact]
+    public async Task RecordCreditUsageAsync_uses_custom_provider_cost_weight_for_configured_model()
+    {
+        var ownerId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
+        var subscriptions = new FakeUserSubscriptionRepository(UserSubscription.CreateDefaultFree(ownerId));
+        var service = CreateService(
+            new FakeAgentRepository(Agent(agentId, ownerId)),
+            subscriptions,
+            new FakeStripeMeteringService(),
+            new CustomLlmProviderConfig
+            {
+                BaseUrl = "http://localhost:8000/v1",
+                ModelId = "deepseek-r1:8b",
+                CostWeight = 4,
+            });
+
+        await service.RecordCreditUsageAsync(agentId, "deepseek-r1:8b", rawTokens: 10, CancellationToken.None);
+
+        Assert.Equal(40, subscriptions.Current!.CreditsUsedThisMonth);
+    }
+
+    [Fact]
     public async Task RecordCreditUsageAsync_creates_missing_free_subscription_and_records_usage()
     {
         var ownerId = Guid.NewGuid();
@@ -99,13 +121,15 @@ public sealed class CreditRecordingServiceTests
     private static CreditRecordingService CreateService(
         IAgentRepository agents,
         IUserSubscriptionRepository subscriptions,
-        IStripeMeteringService stripe)
+        IStripeMeteringService stripe,
+        CustomLlmProviderConfig? customLlmProviderConfig = null)
         => new(
             new StripeConfig(),
             agents,
             subscriptions,
             stripe,
-            NullLogger<CreditRecordingService>.Instance);
+            NullLogger<CreditRecordingService>.Instance,
+            customLlmProviderConfig);
 
     private static AgentRecord Agent(Guid id, Guid? ownerId) => new()
     {

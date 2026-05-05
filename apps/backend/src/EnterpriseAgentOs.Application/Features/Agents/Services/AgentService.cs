@@ -15,7 +15,6 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentLogService _agentLogService;
     private readonly IMcpServerService _mcpServerService;
     private readonly IAgentToolPermissionRepository _toolPermissionRepository;
-    private readonly IHostEnvironment? _env;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     public AgentService(
@@ -29,8 +28,7 @@ internal sealed class AgentService : IAgentService
         AgentChannelBinder channelBinder,
         IAgentLogService agentLogService,
         IMcpServerService mcpServerService,
-        IAgentToolPermissionRepository toolPermissionRepository,
-        IHostEnvironment? env = null)
+        IAgentToolPermissionRepository toolPermissionRepository)
     {
         _agentRepository = repository;
         _agentDeployer = deployer;
@@ -43,7 +41,6 @@ internal sealed class AgentService : IAgentService
         _agentLogService = agentLogService;
         _mcpServerService = mcpServerService;
         _toolPermissionRepository = toolPermissionRepository;
-        _env = env;
     }
 
     public async Task<IReadOnlyList<AgentDto>> ListAsync(AgentFilter filter, CancellationToken ct = default)
@@ -217,9 +214,6 @@ internal sealed class AgentService : IAgentService
 
     private async Task<bool> RequiresConfiguredProviderKeyAsync(string provider, CancellationToken ct)
     {
-        if (_env?.IsDevelopment() == true)
-            return false;
-
         var key = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
         return key is null;
     }

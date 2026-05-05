@@ -10,17 +10,21 @@ public sealed class LlmProviderDispatcher
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<LlmProviderDispatcher> _logger;
+    private readonly CustomLlmProviderConfig _customLlmProviderConfig;
 
     public LlmProviderDispatcher(
         IHttpClientFactory httpFactory,
-        ILogger<LlmProviderDispatcher> logger)
+        ILogger<LlmProviderDispatcher> logger,
+        CustomLlmProviderConfig? customLlmProviderConfig = null)
     {
         _httpClientFactory = httpFactory;
         _logger = logger;
+        _customLlmProviderConfig = customLlmProviderConfig ?? new CustomLlmProviderConfig();
     }
 
     public bool IsSupported(string provider) =>
-        ProviderRegistry.Get(provider) is not null;
+        ProviderRegistry.Get(provider) is not null ||
+        (ProviderRegistry.IsCustomProvider(provider) && _customLlmProviderConfig.IsConfigured);
 
     /// <summary>
     /// Dispatch a chat-completions request to the upstream provider.
@@ -35,10 +39,22 @@ public sealed class LlmProviderDispatcher
         CancellationToken ct)
     {
         var definition = ProviderRegistry.Get(provider);
-        if (definition is null)
+        var isConfiguredCustomProvider = definition is null &&
+            ProviderRegistry.IsCustomProvider(provider) &&
+            _customLlmProviderConfig.IsConfigured;
+
+        if (definition is null && !isConfiguredCustomProvider)
             return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
 
-        if (model.Equals("auto", StringComparison.OrdinalIgnoreCase) &&
+        if (isConfiguredCustomProvider && model.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return new AgentError(
+                AgentErrorCategory.Configuration,
+                "Provider 'custom' does not support auto model routing.");
+        }
+
+        if (definition is not null &&
+            model.Equals("auto", StringComparison.OrdinalIgnoreCase) &&
             !definition.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
         {
             return new AgentError(
@@ -46,7 +62,9 @@ public sealed class LlmProviderDispatcher
                 $"Provider '{provider}' does not support auto model routing.");
         }
 
-        var resolvedModel = definition.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase)
+        var resolvedModel = isConfiguredCustomProvider
+            ? _customLlmProviderConfig.ModelId.Trim()
+            : definition!.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase)
             ? SmartRouter.Resolve(model, requestBody, definition.Slug)
             : model;
 
@@ -54,10 +72,11 @@ public sealed class LlmProviderDispatcher
 
         try
         {
-            if (definition.ApiFormat == ApiFormat.Anthropic)
+            if (definition?.ApiFormat == ApiFormat.Anthropic)
                 return await DispatchAnthropicAsync(apiKey, resolvedModel, requestBody, ct);
 
-            return await DispatchOpenAiCompatAsync(definition.BaseUrl, apiKey, resolvedModel, requestBody, ct);
+            var baseUrl = isConfiguredCustomProvider ? _customLlmProviderConfig.BaseUrl : definition!.BaseUrl;
+            return await DispatchOpenAiCompatAsync(baseUrl, apiKey, resolvedModel, requestBody, ct);
         }
         catch (TaskCanceledException ex)
         {
@@ -120,7 +139,8 @@ public sealed class LlmProviderDispatcher
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json"),
         };
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         req.Headers.Accept.ParseAdd("text/event-stream");
 
         return await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
