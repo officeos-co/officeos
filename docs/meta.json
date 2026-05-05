@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "---Getting Started---",
+    "quickstart",
     "agent-lifecycle",
     "---Architecture---",
     "llm-proxy",

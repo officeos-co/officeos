@@ -4,10 +4,9 @@ import type { CSSProperties, ReactNode } from "react";
 import { docsSidebar } from "./docs-sidebar";
 
 const docsLayoutStyle = {
-  "--fd-layout-width": "118rem",
-  gridTemplate: `"sidebar header toc ."
-"sidebar toc-popover toc ."
-"sidebar main toc ." 1fr / var(--fd-sidebar-col) minmax(0, calc(var(--fd-layout-width) - var(--fd-sidebar-width) - var(--fd-toc-width))) var(--fd-toc-width) minmax(0, 1fr)`,
+  gridTemplate: `"sidebar header toc"
+"sidebar toc-popover toc"
+"sidebar main toc" 1fr / var(--fd-sidebar-col) minmax(0, 1fr) var(--fd-toc-width)`,
 } as CSSProperties;
 
 export function DocsShell({ children }: { children: ReactNode }) {

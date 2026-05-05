@@ -1,6 +1,7 @@
 import { RootProvider } from "fumadocs-ui/provider/next";
 import { DocsShell } from "@/components/docs-shell";
 import "fumadocs-ui/style.css";
+import "./globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 

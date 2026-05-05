@@ -1,19 +1,38 @@
-@import "tailwindcss";
-
-:root {
-  color-scheme: light;
+.docs-layout {
+  max-width: 100vw;
+  width: 100%;
 }
 
-.docs-layout {
-  width: 100%;
+@media (min-width: 768px) {
+  #nd-docs-layout.docs-layout [data-sidebar-placeholder] {
+    position: fixed !important;
+    inset-block: 0;
+    inset-inline-start: 0;
+    height: 100dvh;
+    width: var(--fd-sidebar-width);
+  }
+
+  #nd-docs-layout.docs-layout #nd-sidebar {
+    position: absolute !important;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--fd-sidebar-width);
+  }
 }
 
 .docs-page {
   max-width: 1120px !important;
+  min-width: 0;
   margin-left: 0 !important;
   margin-right: auto !important;
 }
 
-.docs-body > h1:first-child {
-  display: none;
+.docs-body {
+  min-width: 0;
+}
+
+.docs-body pre,
+.docs-body table {
+  max-width: 100%;
+  overflow-x: auto;
 }

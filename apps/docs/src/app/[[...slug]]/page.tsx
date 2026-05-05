@@ -1,10 +1,5 @@
 import { source } from "@/lib/source";
-import {
-  DocsPage,
-  DocsBody,
-  DocsTitle,
-  DocsDescription,
-} from "fumadocs-ui/page";
+import { DocsPage, DocsBody } from "fumadocs-ui/page";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { notFound } from "next/navigation";
 
@@ -24,8 +19,6 @@ export default async function Page(props: {
       tableOfContent={{ single: true }}
       tableOfContentPopover={{ enabled: false }}
     >
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody className="docs-body">
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
