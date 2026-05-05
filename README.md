@@ -1,11 +1,10 @@
-<p align="center">
+<p align="center" style="margin-bottom: 0;">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/Logo.png" />
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/Logo.png" />
     <img src="apps/website/public/logo.svg" height="100" alt="OfficeOS logo" />
   </picture>
 </p>
-
 <h1 align="center">Launch agents in seconds. Scale to hundreds.</h1>
 
 <p align="center">
