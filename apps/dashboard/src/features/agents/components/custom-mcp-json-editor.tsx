@@ -1,10 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { SaveIcon } from "lucide-react";
+import type { ReactCodeMirrorProps } from "@uiw/react-codemirror";
+import { json as jsonLanguage } from "@codemirror/lang-json";
+import {
+  defaultHighlightStyle,
+  syntaxHighlighting,
+} from "@codemirror/language";
+import { EditorView } from "@codemirror/view";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   useDeleteMcpServer,
   useRegisterMcpServer,
@@ -17,6 +25,11 @@ import {
   isUnchangedCustomMcpExample,
   parseCustomMcpServersJson,
 } from "../data/custom-mcp-import";
+
+const CodeMirror = dynamic<ReactCodeMirrorProps>(
+  () => import("@uiw/react-codemirror").then((mod) => mod.default),
+  { ssr: false },
+);
 
 function graphQLErrorMessage(error: unknown, fallback: string) {
   if (
@@ -45,6 +58,59 @@ export function CustomMcpJsonEditor({
   const [dirty, setDirty] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const editorExtensions = useMemo(
+    () => [
+      jsonLanguage(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      EditorView.lineWrapping,
+      EditorView.theme({
+        "&": {
+          minHeight: "60vh",
+          backgroundColor: "transparent",
+          color: "var(--foreground)",
+          fontSize: "12px",
+        },
+        ".cm-scroller": {
+          minHeight: "60vh",
+          fontFamily:
+            "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+          lineHeight: "1.5",
+        },
+        ".cm-content": {
+          padding: "12px 0",
+        },
+        ".cm-line": {
+          padding: "0 14px",
+        },
+        ".cm-gutters": {
+          backgroundColor: "var(--muted)",
+          color: "var(--muted-foreground)",
+          borderRight: "1px solid var(--border)",
+        },
+        ".cm-activeLine": {
+          backgroundColor: "color-mix(in oklab, var(--muted) 55%, transparent)",
+        },
+        ".cm-activeLineGutter": {
+          backgroundColor: "color-mix(in oklab, var(--muted) 80%, transparent)",
+          color: "var(--foreground)",
+        },
+        ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
+          backgroundColor: "color-mix(in oklab, var(--primary) 22%, transparent)",
+        },
+        "&.cm-focused": {
+          outline: "none",
+        },
+        ".cm-cursor": {
+          borderLeftColor: "var(--foreground)",
+        },
+        ".cm-matchingBracket": {
+          backgroundColor: "color-mix(in oklab, var(--primary) 14%, transparent)",
+          outline: "1px solid color-mix(in oklab, var(--primary) 40%, transparent)",
+        },
+      }),
+    ],
+    [],
+  );
 
   const existingCustomServers = useMemo(
     () => servers.filter((server) => !server.isBuiltin),
@@ -127,19 +193,39 @@ export function CustomMcpJsonEditor({
         </Button>
       </div>
 
-      <Textarea
-        className="min-h-[60vh] flex-1 resize-y font-mono text-xs leading-5"
-        value={json}
-        onChange={(event) => {
-          setJson(event.target.value);
-          setDirty(true);
-          setValidationError(null);
-        }}
+      <div
         aria-invalid={Boolean(validationError)}
-        disabled={loading}
-        spellCheck={false}
-        placeholder={CUSTOM_MCP_EXAMPLE_JSON}
-      />
+        className={cn(
+          "overflow-hidden rounded-lg border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+          validationError &&
+            "border-destructive focus-within:border-destructive focus-within:ring-destructive/20",
+          loading && "opacity-60",
+        )}
+      >
+        <CodeMirror
+          value={json}
+          height="60vh"
+          minHeight="60vh"
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: true,
+            highlightActiveLine: true,
+            highlightActiveLineGutter: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            autocompletion: true,
+          }}
+          extensions={editorExtensions}
+          editable={!loading}
+          theme="light"
+          onChange={(value) => {
+            setJson(value);
+            setDirty(true);
+            setValidationError(null);
+          }}
+          placeholder={CUSTOM_MCP_EXAMPLE_JSON}
+        />
+      </div>
 
       {validationError ? (
         <p className="text-xs text-destructive">{validationError}</p>
