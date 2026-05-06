@@ -17,6 +17,9 @@ export type McpServer = {
   subtitle: string
   description: string
   transportType: string
+  command: string
+  args: string[]
+  url: string
   logo: string
   category: string
   credentialFields: CredentialField[]

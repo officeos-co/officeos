@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Application.Features.Mcp;
 internal sealed class McpServerService : IMcpServerService
 {
     private readonly IAgentMcpServerRepository _agentServerRepository;
+    private readonly IMcpServerRepository _serverRepository;
     private readonly IMcpCredentialRepository _credentialRepository;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
@@ -11,6 +12,7 @@ internal sealed class McpServerService : IMcpServerService
 
     public McpServerService(
         IAgentMcpServerRepository agentServers,
+        IMcpServerRepository servers,
         IMcpCredentialRepository credentials,
         IOAuthTokenRepository oauthTokens,
         CredentialProtector protector,
@@ -18,6 +20,7 @@ internal sealed class McpServerService : IMcpServerService
         ILogger<McpServerService> logger)
     {
         _agentServerRepository = agentServers;
+        _serverRepository = servers;
         _credentialRepository = credentials;
         _oauthTokenRepository = oauthTokens;
         _credentialProtector = protector;
@@ -25,36 +28,50 @@ internal sealed class McpServerService : IMcpServerService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct)
-        => await WithOAuthStatusAsync(OrderedBuiltins(), ct);
+    public async Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct = default)
+        => await WithConnectionStatusAsync(await OrderedCatalogAsync(ct), ct);
 
-    public async Task<McpServerRecord?> GetAsync(string name, CancellationToken ct)
+    public async Task<McpServerRecord?> GetAsync(string name, CancellationToken ct = default)
     {
-        var server = McpServerRegistry.GetBuiltin(name);
+        var server = McpServerRegistry.GetBuiltin(name)
+            ?? await _serverRepository.GetByNameAsync(name, ct);
         if (server is null) return null;
 
-        return (await WithOAuthStatusAsync([server], ct)).FirstOrDefault();
+        return (await WithConnectionStatusAsync([server], ct)).FirstOrDefault();
     }
 
-    public Task<McpServerRecord> RegisterAsync(McpServerRecord server, CancellationToken ct)
-        => throw new NotSupportedException("MCP server catalog definitions are registry-only.");
+    public async Task<McpServerRecord> RegisterAsync(McpServerRecord server, CancellationToken ct = default)
+    {
+        if (McpServerRegistry.GetBuiltin(server.Name) is not null)
+            throw new InvalidOperationException($"MCP server '{server.Name}' is built in and cannot be overwritten.");
 
-    public Task DeleteAsync(string name, CancellationToken ct)
-        => throw new NotSupportedException("MCP server catalog definitions are registry-only.");
+        var saved = await _serverRepository.UpsertAsync(CopyAsCustom(server), ct);
+        return (await WithConnectionStatusAsync([saved], ct)).First();
+    }
 
-    public async Task<IReadOnlyList<McpServerRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct)
+    public async Task DeleteAsync(string name, CancellationToken ct = default)
+    {
+        if (McpServerRegistry.GetBuiltin(name) is not null)
+            throw new InvalidOperationException($"MCP server '{name}' is built in and cannot be deleted.");
+
+        await _serverRepository.DeleteAsync(name, ct);
+        await _credentialRepository.DeleteAsync(name, ct);
+        await _agentServerRepository.UnassignServerFromAllAgentsAsync(name, ct);
+    }
+
+    public async Task<IReadOnlyList<McpServerRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default)
     {
         var names = await _agentServerRepository.ListServerNamesForAgentAsync(agentId, ct);
         _logger.LogDebug("MCP catalog for agent {AgentId}: assigned servers [{Servers}]", agentId, string.Join(", ", names));
         if (names.Count == 0) return [];
 
         var allowed = names.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return await WithOAuthStatusAsync(
-            OrderedBuiltins().Where(s => allowed.Contains(s.Name)).ToList(),
+        return await WithConnectionStatusAsync(
+            (await OrderedCatalogAsync(ct)).Where(s => allowed.Contains(s.Name)).ToList(),
             ct);
     }
 
-    public async Task AssignToAgentAsync(Guid agentId, string serverName, CancellationToken ct)
+    public async Task AssignToAgentAsync(Guid agentId, string serverName, CancellationToken ct = default)
     {
         var server = await GetAsync(serverName, ct)
             ?? throw new InvalidOperationException($"MCP server '{serverName}' was not found.");
@@ -63,10 +80,10 @@ internal sealed class McpServerService : IMcpServerService
         _logger.LogInformation("Assigned MCP server {Server} to agent {AgentId}", server.Name, agentId);
     }
 
-    public Task UnassignFromAgentAsync(Guid agentId, string serverName, CancellationToken ct)
+    public Task UnassignFromAgentAsync(Guid agentId, string serverName, CancellationToken ct = default)
         => _agentServerRepository.UnassignAsync(agentId, serverName, ct);
 
-    public async Task SaveCredentialAsync(string serverName, Dictionary<string, string> fields, CancellationToken ct)
+    public async Task SaveCredentialAsync(string serverName, Dictionary<string, string> fields, CancellationToken ct = default)
     {
         var encrypted = _credentialProtector.Protect(fields);
         await _credentialRepository.UpsertAsync(new McpCredentialRecord
@@ -77,7 +94,7 @@ internal sealed class McpServerService : IMcpServerService
         }, ct);
     }
 
-    public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string serverName, CancellationToken ct)
+    public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string serverName, CancellationToken ct = default)
     {
         var server = McpServerRegistry.GetBuiltin(serverName);
         if (!string.IsNullOrWhiteSpace(server?.OauthProvider))
@@ -132,7 +149,7 @@ internal sealed class McpServerService : IMcpServerService
         return _credentialProtector.Unprotect(encrypted).GetValueOrDefault("token");
     }
 
-    private async Task<IReadOnlyList<McpServerRecord>> WithOAuthStatusAsync(
+    private async Task<IReadOnlyList<McpServerRecord>> WithConnectionStatusAsync(
         IReadOnlyList<McpServerRecord> servers,
         CancellationToken ct)
     {
@@ -141,8 +158,6 @@ internal sealed class McpServerService : IMcpServerService
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-
-        if (providers.Count == 0) return servers;
 
         var configured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var provider in providers)
@@ -177,9 +192,19 @@ internal sealed class McpServerService : IMcpServerService
             }
         }
 
-        return servers.Select(s => string.IsNullOrWhiteSpace(s.OauthProvider)
+        var withOAuth = servers.Select(s => string.IsNullOrWhiteSpace(s.OauthProvider)
             ? s
             : CopyWithOauthConfigured(s, configured.Contains(s.OauthProvider))).ToList();
+
+        var credentialConfigured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var server in withOAuth.Where(s => string.IsNullOrWhiteSpace(s.OauthProvider)))
+        {
+            var record = await _credentialRepository.GetByAsync(new McpCredentialFilter { ServerName = server.Name }, ct);
+            if (!string.IsNullOrWhiteSpace(record?.EncryptedCredentials))
+                credentialConfigured.Add(server.Name);
+        }
+
+        return withOAuth.Select(s => CopyWithCredentialConfigured(s, credentialConfigured.Contains(s.Name))).ToList();
     }
 
     private static IReadOnlyList<string> ParseScopes(string? scopesJson)
@@ -223,8 +248,69 @@ internal sealed class McpServerService : IMcpServerService
         RepositoryUrl = server.RepositoryUrl,
         ToolsJson = server.ToolsJson,
         IsBuiltin = server.IsBuiltin,
+        CredentialConfigured = server.CredentialConfigured,
         CreatedAt = server.CreatedAt,
     };
+
+    private static McpServerRecord CopyWithCredentialConfigured(McpServerRecord server, bool configured) => new()
+    {
+        Id = server.Id,
+        Name = server.Name,
+        Title = server.Title,
+        Description = server.Description,
+        TransportType = server.TransportType,
+        Command = server.Command,
+        Args = server.Args,
+        Url = server.Url,
+        Logo = server.Logo,
+        Category = server.Category,
+        CredentialFieldsJson = server.CredentialFieldsJson,
+        OauthProvider = server.OauthProvider,
+        OauthScopesJson = server.OauthScopesJson,
+        OauthConfigured = server.OauthConfigured,
+        Subtitle = server.Subtitle,
+        AuthorName = server.AuthorName,
+        AuthorUrl = server.AuthorUrl,
+        DocumentationUrl = server.DocumentationUrl,
+        RepositoryUrl = server.RepositoryUrl,
+        ToolsJson = server.ToolsJson,
+        IsBuiltin = server.IsBuiltin,
+        CredentialConfigured = configured,
+        CreatedAt = server.CreatedAt,
+    };
+
+    private static McpServerRecord CopyAsCustom(McpServerRecord server) => new()
+    {
+        Id = server.Id,
+        Name = server.Name,
+        Title = server.Title,
+        Description = server.Description,
+        TransportType = server.TransportType,
+        Command = server.Command,
+        Args = server.Args,
+        Url = server.Url,
+        Logo = server.Logo,
+        Category = server.Category,
+        CredentialFieldsJson = server.CredentialFieldsJson,
+        Subtitle = server.Subtitle,
+        AuthorName = server.AuthorName,
+        AuthorUrl = server.AuthorUrl,
+        DocumentationUrl = server.DocumentationUrl,
+        RepositoryUrl = server.RepositoryUrl,
+        ToolsJson = server.ToolsJson,
+        IsBuiltin = false,
+        CreatedAt = server.CreatedAt == default ? DateTime.UtcNow : server.CreatedAt,
+    };
+
+    private async Task<IReadOnlyList<McpServerRecord>> OrderedCatalogAsync(CancellationToken ct)
+    {
+        var custom = await _serverRepository.ListAsync(ct);
+        return OrderedBuiltins()
+            .Concat(custom)
+            .OrderBy(s => s.Category)
+            .ThenBy(s => s.Title)
+            .ToList();
+    }
 
     private static IReadOnlyList<McpServerRecord> OrderedBuiltins()
         => McpServerRegistry.BuiltinServers

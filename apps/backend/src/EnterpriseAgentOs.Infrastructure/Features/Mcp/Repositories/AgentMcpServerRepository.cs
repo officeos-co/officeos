@@ -36,4 +36,11 @@ internal sealed class AgentMcpServerRepository : IAgentMcpServerRepository
             .Where(a => a.AgentId == agentId && a.McpServerName == mcpServerName)
             .ExecuteDeleteAsync(ct);
     }
+
+    public async Task UnassignServerFromAllAgentsAsync(string mcpServerName, CancellationToken ct)
+    {
+        await _db.AgentMcpServers
+            .Where(a => a.McpServerName == mcpServerName)
+            .ExecuteDeleteAsync(ct);
+    }
 }

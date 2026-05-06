@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/components/ui/button";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -17,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useFilterParams } from "@/hooks/useFilterParams";
+import { BracesIcon } from "lucide-react";
 
 const PAGE_SIZES = [25, 50, 100] as const;
 
@@ -93,6 +95,16 @@ export default function IntegrationsPage() {
         page="MCP Servers"
         subtitle="Browse and configure tool integrations for agents."
         width="wide"
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push("/integrations/custom-mcp")}
+          >
+            <BracesIcon className="size-4" />
+            Custom MCP
+          </Button>
+        }
       />
       <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
         <div className="flex items-center gap-2">
