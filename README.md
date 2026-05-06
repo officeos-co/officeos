@@ -5,7 +5,7 @@
     <img src="apps/website/public/logo.svg" height="100" alt="OfficeOS logo" />
   </picture>
 </p>
-<h1 align="center">Launch agents in seconds. Scale to hundreds.</h1>
+<h1 align="center">Launch in seconds. Scale to millions.</h1>
 
 <p align="center">
 Open-source infrastructure for deploying, hosting, and managing fleets of AI agents across your infrastructure.
