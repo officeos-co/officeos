@@ -33,6 +33,7 @@ public sealed class McpServerRecord
     public string RepositoryUrl { get; init; } = string.Empty;
     public string? ToolsJson { get; init; }
     public bool IsBuiltin { get; init; }
+    public bool CredentialConfigured { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     private static Guid DeterministicGuid(string name)

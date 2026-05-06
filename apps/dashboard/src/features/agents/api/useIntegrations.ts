@@ -21,6 +21,7 @@ const MCP_SERVERS_QUERY = gql`
       oauthProvider
       oauthScopesJson
       oauthConfigured
+      credentialConfigured
       subtitle
       authorName
       authorUrl
@@ -50,6 +51,7 @@ const MCP_SERVER_QUERY = gql`
       oauthProvider
       oauthScopesJson
       oauthConfigured
+      credentialConfigured
       subtitle
       authorName
       authorUrl
@@ -76,8 +78,45 @@ export const AGENT_MCP_SERVERS_QUERY = gql`
       oauthProvider
       oauthScopesJson
       oauthConfigured
+      credentialConfigured
       isBuiltin
     }
+  }
+`;
+
+const REGISTER_MCP_SERVER = gql`
+  mutation RegisterMcpServer($input: RegisterMcpServerInput!) {
+    registerMcpServer(input: $input) {
+      id
+      name
+      title
+      description
+      transportType
+      command
+      args
+      url
+      logo
+      category
+      credentialFieldsJson
+      oauthProvider
+      oauthScopesJson
+      oauthConfigured
+      credentialConfigured
+      subtitle
+      authorName
+      authorUrl
+      documentationUrl
+      repositoryUrl
+      toolsJson
+      isBuiltin
+      createdAt
+    }
+  }
+`;
+
+const DELETE_MCP_SERVER = gql`
+  mutation DeleteMcpServer($name: String!) {
+    deleteMcpServer(name: $name)
   }
 `;
 
@@ -94,7 +133,7 @@ type RawMcpServer = {
   description: string | null;
   transportType: string | null;
   command: string | null;
-  args: string[] | null;
+  args: string | null;
   url: string | null;
   logo: string | null;
   category: string | null;
@@ -102,6 +141,7 @@ type RawMcpServer = {
   oauthProvider: string | null;
   oauthScopesJson: string | null;
   oauthConfigured: boolean | null;
+  credentialConfigured: boolean | null;
   subtitle: string | null;
   authorName: string | null;
   authorUrl: string | null;
@@ -152,6 +192,16 @@ function parseOAuthScopes(json: string | null): string[] {
   }
 }
 
+function parseArgs(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 function mapMcpServer(s: RawMcpServer): McpServer {
   const credentialFields = parseCredentialFields(s.credentialFieldsJson);
   const oauthProvider = s.oauthProvider ?? null;
@@ -163,13 +213,18 @@ function mapMcpServer(s: RawMcpServer): McpServer {
     subtitle: s.subtitle ?? "",
     description: s.description ?? "",
     transportType: s.transportType ?? "stdio",
+    command: s.command ?? "",
+    args: parseArgs(s.args),
+    url: s.url ?? "",
     logo: sanitizeSvg(s.logo ?? ""),
     category: s.category ?? "",
     credentialFields,
     oauthProvider,
     oauthScopes: parseOAuthScopes(s.oauthScopesJson),
     oauthConfigured,
-    configured: oauthProvider ? oauthConfigured : credentialFields.length === 0,
+    configured: oauthProvider
+      ? oauthConfigured
+      : credentialFields.length === 0 || Boolean(s.credentialConfigured),
     isBuiltin: s.isBuiltin,
     authorName: s.authorName ?? "",
     authorUrl: s.authorUrl ?? "",
@@ -216,6 +271,49 @@ export function useSaveMcpCredential() {
     }));
     await fn({
       variables: { serverName, fields },
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }],
+      awaitRefetchQueries: true,
+    });
+  };
+}
+
+export type RegisterMcpServerInput = {
+  name: string;
+  title: string;
+  description: string;
+  subtitle: string;
+  authorName: string;
+  authorUrl: string;
+  documentationUrl: string;
+  repositoryUrl: string;
+  toolsJson?: string | null;
+  transportType: string;
+  command?: string | null;
+  args?: string | null;
+  url?: string | null;
+  category: string;
+  credentialFieldsJson?: string | null;
+  logo?: string | null;
+};
+
+export function useRegisterMcpServer() {
+  const [fn] = useMutation(REGISTER_MCP_SERVER);
+  return async (input: RegisterMcpServerInput) => {
+    await fn({
+      variables: { input },
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }],
+      awaitRefetchQueries: true,
+    });
+  };
+}
+
+export function useDeleteMcpServer() {
+  const [fn] = useMutation(DELETE_MCP_SERVER);
+  return async (name: string) => {
+    await fn({
+      variables: { name },
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }],
+      awaitRefetchQueries: true,
     });
   };
 }

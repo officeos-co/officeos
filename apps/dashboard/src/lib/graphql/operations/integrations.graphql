@@ -14,6 +14,7 @@ query McpServers {
     oauthProvider
     oauthScopesJson
     oauthConfigured
+    credentialConfigured
     isBuiltin
     createdAt
   }
@@ -35,6 +36,7 @@ query McpServer($name: String!) {
     oauthProvider
     oauthScopesJson
     oauthConfigured
+    credentialConfigured
     isBuiltin
     createdAt
   }
@@ -53,6 +55,7 @@ query AgentMcpServers($agentId: UUID!) {
     oauthProvider
     oauthScopesJson
     oauthConfigured
+    credentialConfigured
     isBuiltin
   }
 }

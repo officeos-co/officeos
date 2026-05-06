@@ -10,6 +10,37 @@ public sealed class McpMutations
         RegisterMcpServerInput input,
         [Service] IMcpServerService svc, CancellationToken ct)
     {
+        var transportType = Enum.TryParse<McpTransportType>(input.TransportType, true, out var t)
+            ? t
+            : McpTransportType.Stdio;
+
+        if (transportType == McpTransportType.Stdio && string.IsNullOrWhiteSpace(input.Command))
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage("Stdio MCP servers require a command.")
+                    .SetCode("BAD_INPUT")
+                    .Build());
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Args))
+        {
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<List<string>>(input.Args);
+                if (parsed is null)
+                    throw new JsonException("Args must be an array.");
+            }
+            catch (JsonException)
+            {
+                throw new GraphQLException(
+                    ErrorBuilder.New()
+                        .SetMessage("MCP server args must be a JSON string array.")
+                        .SetCode("BAD_INPUT")
+                        .Build());
+            }
+        }
+
         var record = new McpServerRecord
         {
             Name = input.Name,
@@ -21,21 +52,39 @@ public sealed class McpMutations
             DocumentationUrl = input.DocumentationUrl,
             RepositoryUrl = input.RepositoryUrl,
             ToolsJson = input.ToolsJson,
-            TransportType = Enum.TryParse<McpTransportType>(input.TransportType, true, out var t) ? t : McpTransportType.Stdio,
+            TransportType = transportType,
             Command = input.Command,
             Args = input.Args,
             Url = input.Url,
+            Logo = input.Logo,
             Category = input.Category,
             CredentialFieldsJson = input.CredentialFieldsJson,
         };
-        return await svc.RegisterAsync(record, ct);
+
+        try
+        {
+            return await svc.RegisterAsync(record, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
+        }
     }
 
     public async Task<bool> DeleteMcpServer(
         string name,
         [Service] IMcpServerService svc, CancellationToken ct)
     {
-        await svc.DeleteAsync(name, ct);
+        try
+        {
+            await svc.DeleteAsync(name, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
+        }
         return true;
     }
 
@@ -80,6 +129,7 @@ public record RegisterMcpServerInput(
     string? Args,
     string? Url,
     string Category,
-    string? CredentialFieldsJson);
+    string? CredentialFieldsJson,
+    string? Logo = null);
 
 public record CredentialFieldInput(string Key, string Value);
