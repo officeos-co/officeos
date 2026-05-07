@@ -93,6 +93,23 @@ function GitHubStars({ compact }: { compact: boolean }) {
   );
 }
 
+const navGroups = [
+  {
+    title: "Products",
+    items: [
+      { title: "OfficeOS", href: "/" },
+      { title: "Atlas", href: "/atlas" },
+    ],
+  },
+  {
+    title: "Solutions",
+    items: [
+      { title: "Self-hosted agents", href: "/#deployment" },
+      { title: "Company knowledge", href: "/atlas" },
+    ],
+  },
+];
+
 export function Navbar() {
   const siteConfig = getSiteConfig();
   const pathname = usePathname();
@@ -152,6 +169,27 @@ export function Navbar() {
             </Link>
 
             <div className="flex-1" />
+
+            <nav className="hidden items-center gap-1 md:flex">
+              {navGroups.map((group) => (
+                <div key={group.title} className="group relative">
+                  <button className="h-9 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    {group.title}
+                  </button>
+                  <div className="invisible absolute left-0 top-full z-50 min-w-52 rounded-xl border border-border bg-background p-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.title}
+                        href={item.href}
+                        className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
 
             {/* Desktop actions — right */}
             <div className="hidden items-center gap-2 md:flex">
@@ -217,6 +255,21 @@ export function Navbar() {
                     <X className="size-5" />
                   </button>
                 </div>
+
+                <Link
+                  href="/atlas"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="rounded-md px-2 py-2 text-sm text-muted-foreground"
+                >
+                  Products / Atlas
+                </Link>
+                <Link
+                  href="/#deployment"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="rounded-md px-2 py-2 text-sm text-muted-foreground"
+                >
+                  Solutions
+                </Link>
 
                 <Link
                   href={siteConfig.links.github}

@@ -20,6 +20,11 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IMcpServerRepository, McpServerRepository>();
         services.AddScoped<IAgentMcpServerRepository, AgentMcpServerRepository>();
         services.AddScoped<IMcpCredentialRepository, McpCredentialRepository>();
+        services.AddScoped<IAtlasConnectionRepository, AtlasConnectionRepository>();
+        services.AddScoped<IAtlasEntityStatusRepository, AtlasEntityStatusRepository>();
+        services.AddScoped<IAtlasIndexJobRepository, AtlasIndexJobRepository>();
+        services.AddScoped<IAtlasIndexedRecordRepository, AtlasIndexedRecordRepository>();
+        services.AddScoped<IAtlasRequestHistoryRepository, AtlasRequestHistoryRepository>();
         services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
@@ -52,6 +57,12 @@ public static class InfrastructureServiceRegistration
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient<IBrowserRuntimeClient, AutoBrowserRuntimeClient>();
+        services.AddHttpClient("github-atlas", client =>
+        {
+            client.BaseAddress = new Uri("https://api.github.com/");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeOS-Atlas/1.0");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        });
         services.AddHttpClient("channel-sidecar", client =>
         {
             var channelUrl = Environment.GetEnvironmentVariable("CHANNEL_SERVICE_URL")
