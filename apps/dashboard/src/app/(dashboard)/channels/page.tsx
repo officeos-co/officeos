@@ -56,6 +56,7 @@ export default function ChannelsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12" />
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
@@ -67,6 +68,9 @@ export default function ChannelsPage() {
                 connections.length === 0 &&
                 Array.from({ length: 6 }).map((_, index) => (
                   <TableRow key={`channel-skeleton-${index}`}>
+                    <TableCell>
+                      <Skeleton className="size-8 rounded-lg" />
+                    </TableCell>
                     <TableCell>
                       <Skeleton className="h-4 w-40" />
                     </TableCell>
@@ -83,6 +87,16 @@ export default function ChannelsPage() {
                 ))}
               {connections.map((connection) => (
                 <TableRow key={connection.id}>
+                  <TableCell>
+                    {connection.logo ? (
+                      <span
+                        className="flex size-8 items-center justify-center rounded-lg border border-border bg-muted/40 [&>svg]:size-5"
+                        dangerouslySetInnerHTML={{ __html: connection.logo }}
+                      />
+                    ) : (
+                      <span className="block size-8 rounded-lg bg-muted" />
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Link
                       href={`/channels/${connection.id}`}
@@ -109,7 +123,7 @@ export default function ChannelsPage() {
               {!loading && connections.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="py-10 text-center text-muted-foreground"
                   >
                     No channels yet.
