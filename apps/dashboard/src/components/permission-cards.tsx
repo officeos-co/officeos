@@ -46,7 +46,7 @@ export function ToolPermissionCard({
   permissions: Record<string, ToolPermission>; onToggle: (key: string, p: ToolPermission) => void
   groupPerm: ToolPermission; onGroupPerm: (p: ToolPermission) => void; prefix: string
 }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   return (
     <div className="rounded-xl border border-border">
       <div className="flex items-center gap-3 px-4 py-3">
