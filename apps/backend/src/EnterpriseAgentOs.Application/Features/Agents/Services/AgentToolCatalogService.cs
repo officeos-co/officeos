@@ -8,6 +8,7 @@ public interface IAgentToolCatalogService
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
     private readonly IAgentMemoryRepository _memoryRepo;
+    private readonly IAgentResourceRepository _resourceRepository;
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
@@ -17,6 +18,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
     public AgentToolCatalogService(
         IAgentMemoryRepository memoryRepo,
+        IAgentResourceRepository resourceRepository,
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
@@ -25,6 +27,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IAgentToolPermissionRepository permissionRepository)
     {
         _memoryRepo = memoryRepo;
+        _resourceRepository = resourceRepository;
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
@@ -45,9 +48,9 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new FileEditTool(context),
             new ContentSearchTool(context),
             new GlobSearchTool(context),
-            new MemoryStoreTool(_memoryRepo, effectiveAgentId),
-            new MemoryRecallTool(_memoryRepo, effectiveAgentId),
-            new MemoryForgetTool(_memoryRepo, effectiveAgentId),
+            new MemoryStoreTool(_memoryRepo, _resourceRepository, effectiveAgentId),
+            new MemoryRecallTool(_memoryRepo, _resourceRepository, effectiveAgentId),
+            new MemoryForgetTool(_memoryRepo, _resourceRepository, effectiveAgentId),
             new AskUserQuestionTool(),
             new TaskCreateTool(_taskStore, effectiveAgentId),
             new TaskListTool(_taskStore, effectiveAgentId),

@@ -1,0 +1,198 @@
+"use client";
+
+import { gql, useMutation, useQuery } from "@apollo/client";
+
+export const RESOURCE_TYPES = {
+  browser: "browser",
+  memoryStore: "memory_store",
+} as const;
+
+export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES];
+
+export type BrowserResource = {
+  id: string;
+  ownerId: string;
+  displayName: string;
+  currentAgentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MemoryStoreEntry = {
+  id: string;
+  memoryStoreId: string;
+  key: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MemoryStore = {
+  id: string;
+  ownerId: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
+  entries?: MemoryStoreEntry[] | null;
+};
+
+const BROWSER_RESOURCES = gql`
+  query BrowserResources {
+    browserResources {
+      id
+      ownerId
+      displayName
+      currentAgentId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const BROWSER_RESOURCE = gql`
+  query BrowserResource($id: UUID!) {
+    browserResource(id: $id) {
+      id
+      ownerId
+      displayName
+      currentAgentId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const MEMORY_STORES = gql`
+  query MemoryStores {
+    memoryStores {
+      id
+      ownerId
+      displayName
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const MEMORY_STORE = gql`
+  query MemoryStore($id: UUID!) {
+    memoryStore(id: $id) {
+      id
+      ownerId
+      displayName
+      createdAt
+      updatedAt
+      entries {
+        id
+        memoryStoreId
+        key
+        content
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+const CREATE_BROWSER_RESOURCE = gql`
+  mutation CreateBrowserResource($input: CreateBrowserResourceInput!) {
+    createBrowserResource(input: $input) {
+      id
+      ownerId
+      displayName
+      currentAgentId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const CREATE_MEMORY_STORE = gql`
+  mutation CreateMemoryStore($input: CreateMemoryStoreInput!) {
+    createMemoryStore(input: $input) {
+      id
+      ownerId
+      displayName
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export function useBrowserResources() {
+  const { data, loading, error, refetch } = useQuery(BROWSER_RESOURCES, {
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    browserResources: (data?.browserResources ?? []) as BrowserResource[],
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useBrowserResource(id: string) {
+  const { data, loading, error, refetch } = useQuery(BROWSER_RESOURCE, {
+    variables: { id },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    browserResource: (data?.browserResource ?? null) as BrowserResource | null,
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useMemoryStores() {
+  const { data, loading, error, refetch } = useQuery(MEMORY_STORES, {
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    memoryStores: (data?.memoryStores ?? []) as MemoryStore[],
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useMemoryStore(id: string) {
+  const { data, loading, error, refetch } = useQuery(MEMORY_STORE, {
+    variables: { id },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    memoryStore: (data?.memoryStore ?? null) as MemoryStore | null,
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useCreateBrowserResource() {
+  const [mutate, state] = useMutation(CREATE_BROWSER_RESOURCE, {
+    refetchQueries: ["BrowserResources"],
+  });
+  return {
+    createBrowserResource: async (displayName: string) => {
+      const { data } = await mutate({ variables: { input: { displayName } } });
+      return data?.createBrowserResource as BrowserResource;
+    },
+    ...state,
+  };
+}
+
+export function useCreateMemoryStore() {
+  const [mutate, state] = useMutation(CREATE_MEMORY_STORE, {
+    refetchQueries: ["MemoryStores"],
+  });
+  return {
+    createMemoryStore: async (displayName: string) => {
+      const { data } = await mutate({ variables: { input: { displayName } } });
+      return data?.createMemoryStore as MemoryStore;
+    },
+    ...state,
+  };
+}

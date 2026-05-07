@@ -58,6 +58,9 @@ public sealed class AgentLogRecord
     [MaxLength(64)]
     public string? Channel { get; init; }
 
+    /// <summary>Concrete channel connection for channel entries, when known.</summary>
+    public Guid? ChannelConnectionId { get; init; }
+
     /// <summary>
     /// For message/channel entries: the human-readable text.
     /// For tool_call: serialized JSON params.
@@ -117,15 +120,15 @@ public sealed class AgentLogRecord
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static AgentLogRecord ChannelIn(Guid? agentId, string channel, string content, string? correlationId = null) => new()
+    public static AgentLogRecord ChannelIn(Guid? agentId, string channel, string content, string? correlationId = null, Guid? channelConnectionId = null) => new()
     {
         AgentId = agentId, Type = AgentLogType.ChannelIn, Channel = channel,
-        Content = content, CorrelationId = correlationId,
+        ChannelConnectionId = channelConnectionId, Content = content, CorrelationId = correlationId,
     };
 
-    public static AgentLogRecord ChannelOut(Guid agentId, string channel, string content, string? correlationId = null) => new()
+    public static AgentLogRecord ChannelOut(Guid agentId, string channel, string content, string? correlationId = null, Guid? channelConnectionId = null) => new()
     {
         AgentId = agentId, Type = AgentLogType.ChannelOut, Channel = channel,
-        Content = content, CorrelationId = correlationId,
+        ChannelConnectionId = channelConnectionId, Content = content, CorrelationId = correlationId,
     };
 }

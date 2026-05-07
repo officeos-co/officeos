@@ -11,6 +11,10 @@ public class AgentDashboardMutations
         CreateAgentInput input,
         IResolverContext context,
         [Service] IAgentService agents,
+        [Service] IAgentSessionRepository sessions,
+        [Service] IAgentResourceRepository resources,
+        [Service] IChannelRepository channelRepository,
+        [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
@@ -40,6 +44,40 @@ public class AgentDashboardMutations
             ? input.BootstrapMessage
             : input.Prompt;
 
+        AgentSessionRecord? resourceSession = null;
+        if (input.Resources is { Count: > 0 })
+        {
+            resourceSession = await sessions.GetByAsync(
+                new AgentSessionFilter { AgentId = dto.Id, Status = SessionStatus.Active },
+                ct);
+            if (resourceSession is null)
+            {
+                resourceSession = AgentSessionRecord.Create(dto.Id);
+                await sessions.CreateAsync(resourceSession, ct);
+            }
+
+            foreach (var resource in input.Resources)
+            {
+                var resourceType = NormalizeResourceType(resource.ResourceType);
+                await ValidateResourceAsync(resourceType, resource.ResourceId, user.Id, resources, channelRepository, ct);
+
+                await resources.AttachToSessionAsync(new AgentSessionResourceAttachmentRecord
+                {
+                    AgentId = dto.Id,
+                    SessionId = resourceSession.Id,
+                    ResourceType = resourceType,
+                    ResourceId = resource.ResourceId,
+                    AccessMode = NormalizeAccessMode(resource.AccessMode),
+                    Instructions = string.IsNullOrWhiteSpace(resource.Instructions) ? null : resource.Instructions.Trim(),
+                }, ct);
+
+                if (resourceType == AgentResourceTypes.Browser)
+                    await resources.SetBrowserCurrentAgentAsync(resource.ResourceId, dto.Id, ct);
+                if (resourceType == AgentResourceTypes.Channel)
+                    await channelService.BindAgentAsync(dto.Id, resource.ResourceId, null, ct);
+            }
+        }
+
         await agents.InitializeAgentAsync(
             dto.Id,
             user.Id,
@@ -52,6 +90,57 @@ public class AgentDashboardMutations
 
         await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
         return dto;
+    }
+
+    private static string NormalizeResourceType(string resourceType)
+    {
+        var normalized = resourceType.Trim().ToLowerInvariant();
+        if (normalized is AgentResourceTypes.Browser or AgentResourceTypes.MemoryStore or AgentResourceTypes.Channel)
+            return normalized;
+        throw new GraphQLException(
+            ErrorBuilder.New()
+                .SetMessage($"Unsupported resource type '{resourceType}'.")
+                .SetCode("VALIDATION")
+                .Build());
+    }
+
+    private static string NormalizeAccessMode(string? accessMode)
+    {
+        var normalized = string.IsNullOrWhiteSpace(accessMode)
+            ? AgentResourceAccessModes.ReadWrite
+            : accessMode.Trim().ToLowerInvariant();
+        return normalized is AgentResourceAccessModes.ReadWrite or AgentResourceAccessModes.ReadOnly
+            ? normalized
+            : AgentResourceAccessModes.ReadWrite;
+    }
+
+    private static async Task ValidateResourceAsync(
+        string resourceType,
+        Guid resourceId,
+        Guid ownerId,
+        IAgentResourceRepository resources,
+        IChannelRepository channelRepository,
+        CancellationToken ct)
+    {
+        var exists = resourceType switch
+        {
+            AgentResourceTypes.Browser => await resources.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceTypes.MemoryStore => await resources.GetMemoryStoreAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceTypes.Channel => await channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
+            {
+                Id = resourceId,
+                CreatedById = ownerId,
+            }, ct) is not null,
+            _ => false,
+        };
+        if (!exists)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage("Resource not found.")
+                    .SetCode("NOT_FOUND")
+                    .Build());
+        }
     }
 
     [GraphQLDescription("Patches mutable fields on an existing agent (name, provider, model, prompt). Null fields are left unchanged.")]

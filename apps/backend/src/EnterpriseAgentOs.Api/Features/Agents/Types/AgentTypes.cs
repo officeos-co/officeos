@@ -9,6 +9,7 @@ public sealed record CreateAgentInput(
     List<string>? ChannelSlugs,
     List<string>? ToolNames,
     List<ToolPermissionInput>? ToolPermissions,
+    List<AgentResourceAttachmentInput>? Resources = null,
     string? BootstrapMessage = null);
 
 /// <summary>
@@ -19,6 +20,12 @@ public sealed record CreateAgentInput(
 public sealed record ToolPermissionInput(
     string Tool,
     ToolPermission Mode);
+
+public sealed record AgentResourceAttachmentInput(
+    string ResourceType,
+    Guid ResourceId,
+    string? AccessMode,
+    string? Instructions);
 
 public sealed record UpdateAgentInput(
     string? Name,

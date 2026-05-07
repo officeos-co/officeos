@@ -32,6 +32,10 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
     public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
+    public DbSet<BrowserResourceEntity> BrowserResources => Set<BrowserResourceEntity>();
+    public DbSet<MemoryStoreEntity> MemoryStores => Set<MemoryStoreEntity>();
+    public DbSet<MemoryStoreEntryEntity> MemoryStoreEntries => Set<MemoryStoreEntryEntity>();
+    public DbSet<AgentSessionResourceAttachmentEntity> AgentSessionResourceAttachments => Set<AgentSessionResourceAttachmentEntity>();
 
     public DbSet<McpServerEntity> McpServers => Set<McpServerEntity>();
     public DbSet<AgentMcpServerEntity> AgentMcpServers => Set<AgentMcpServerEntity>();
@@ -166,6 +170,7 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(l => l.Id);
             e.HasIndex(l => l.AgentId);
+            e.HasIndex(l => l.ChannelConnectionId);
             e.HasIndex(l => new { l.AgentId, l.Time });
             e.HasIndex(l => l.CorrelationId);
             e.Property(l => l.Content).HasColumnType("text");
@@ -265,6 +270,45 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(r => r.Agent).WithMany()
                 .HasForeignKey(r => r.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BrowserResourceEntity>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.OwnerId);
+            e.HasIndex(r => r.CurrentAgentId);
+            e.Property(r => r.DisplayName).IsRequired().HasMaxLength(200);
+            e.HasOne(r => r.Owner).WithMany().HasForeignKey(r => r.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.CurrentAgent).WithMany().HasForeignKey(r => r.CurrentAgentId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<MemoryStoreEntity>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => s.OwnerId);
+            e.Property(s => s.DisplayName).IsRequired().HasMaxLength(200);
+            e.HasOne(s => s.Owner).WithMany().HasForeignKey(s => s.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MemoryStoreEntryEntity>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => new { m.MemoryStoreId, m.Key }).IsUnique();
+            e.Property(m => m.Key).HasMaxLength(512).IsRequired();
+            e.Property(m => m.Content).HasColumnType("text").IsRequired();
+            e.HasOne(m => m.MemoryStore).WithMany().HasForeignKey(m => m.MemoryStoreId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentSessionResourceAttachmentEntity>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.SessionId, a.ResourceType, a.ResourceId }).IsUnique();
+            e.HasIndex(a => new { a.AgentId, a.ResourceType });
+            e.Property(a => a.ResourceType).IsRequired().HasMaxLength(32);
+            e.Property(a => a.AccessMode).IsRequired().HasMaxLength(32);
+            e.Property(a => a.Instructions).HasColumnType("text");
+            e.HasOne(a => a.Agent).WithMany().HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Session).WithMany().HasForeignKey(a => a.SessionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<McpServerEntity>(e =>

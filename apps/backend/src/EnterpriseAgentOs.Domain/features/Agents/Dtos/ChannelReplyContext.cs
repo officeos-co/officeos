@@ -11,16 +11,16 @@ public sealed class ChannelReplyContext
 {
     private readonly ConcurrentDictionary<string, Entry> _pending = new();
 
-    public void Set(string correlationId, string channelType, string platformId, string? threadId)
+    public void Set(string correlationId, string channelType, string platformId, string? threadId, Guid? channelConnectionId = null)
     {
-        _pending[correlationId] = new Entry(channelType, platformId, threadId, DateTime.UtcNow);
+        _pending[correlationId] = new Entry(channelType, platformId, threadId, channelConnectionId, DateTime.UtcNow);
     }
 
-    public (string ChannelType, string PlatformId, string? ThreadId)? Take(string correlationId)
+    public (string ChannelType, string PlatformId, string? ThreadId, Guid? ChannelConnectionId)? Take(string correlationId)
     {
         if (!_pending.TryRemove(correlationId, out var entry))
             return null;
-        return (entry.ChannelType, entry.PlatformId, entry.ThreadId);
+        return (entry.ChannelType, entry.PlatformId, entry.ThreadId, entry.ChannelConnectionId);
     }
 
     /// <summary>Remove entries older than the TTL. Called periodically.</summary>
@@ -34,5 +34,5 @@ public sealed class ChannelReplyContext
         }
     }
 
-    private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, DateTime CreatedAt);
+    private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, Guid? ChannelConnectionId, DateTime CreatedAt);
 }

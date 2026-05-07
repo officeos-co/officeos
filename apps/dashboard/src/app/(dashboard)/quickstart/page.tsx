@@ -20,23 +20,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type Tool } from "@/features/agents/data/integrations";
 import {
-  type Channel,
-  type ChannelPermissions,
-} from "@/features/agents/data/channels";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { type Tool } from "@/features/agents/data/integrations";
 import {
   useIntegrations,
   useSetSkillCredentials,
   sortIntegrations,
-  useChannels,
   useCreateAgent,
   useModels,
   useAgentToolCatalog,
   CredentialDialog,
-  ChannelOnboardingDialog,
   IntegrationCard,
-  ChannelCard,
+  ResourceAttachmentCard,
+  useBrowserResources,
+  useMemoryStores,
+  useChannelConnections,
 } from "@/features/agents";
 import { useAnalytics } from "@/features/analytics";
 import { getModelTooltip } from "@/features/agents/model-tooltips";
@@ -54,6 +58,14 @@ import {
 /* ── Permission types ────────────────────────────────────── */
 
 type ToolPermission = "allow" | "deny";
+type QuickstartResourceType = "browser" | "memory_store" | "channel";
+type QuickstartResource = {
+  id: string;
+  type: QuickstartResourceType;
+  resourceId: string;
+  accessMode: string;
+  instructions: string;
+};
 
 const permissionLabels: Record<ToolPermission, string> = {
   allow: "Always allow",
@@ -100,37 +112,6 @@ function PermissionCycleButton({
   );
 }
 
-const channelPermissionLabels: Record<string, string> = {
-  allow: "Allow",
-  ask: "Ask",
-  deny: "Deny",
-};
-
-function ChannelPermSelect({
-  value,
-  onChange,
-}: {
-  value: "allow" | "ask" | "deny";
-  onChange: (v: "allow" | "ask" | "deny") => void;
-}) {
-  const cycle: Array<"allow" | "ask" | "deny"> = ["allow", "ask", "deny"];
-  const color =
-    value === "allow"
-      ? "text-emerald-600"
-      : value === "deny"
-        ? "text-red-500"
-        : "text-muted-foreground";
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length])}
-      className={`text-xs whitespace-nowrap hover:underline ${color}`}
-    >
-      {channelPermissionLabels[value]}
-    </button>
-  );
-}
-
 function QuickstartIntegrationSkeleton() {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
@@ -144,23 +125,6 @@ function QuickstartIntegrationSkeleton() {
       </div>
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-3 w-2/3" />
-    </div>
-  );
-}
-
-function QuickstartChannelSkeleton() {
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
-      <div className="flex items-start gap-3">
-        <Skeleton className="size-8 shrink-0 rounded-lg" />
-        <div className="min-w-0 flex-1 space-y-2 pt-0.5">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-3 w-16" />
-        </div>
-        <Skeleton className="h-5 w-14 rounded-full" />
-      </div>
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-3 w-3/4" />
     </div>
   );
 }
@@ -252,111 +216,25 @@ function ToolPermissionSection({
   );
 }
 
-/* ── Channel permission section ──────────────────────────── */
-
-function ChannelPermissionSection({
-  channel,
-  perms,
-  onChange,
-}: {
-  channel: Channel;
-  perms: ChannelPermissions;
-  onChange: (p: ChannelPermissions) => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  return (
-    <div className="rounded-xl border border-border">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div
-          className="size-8 shrink-0 rounded-lg [&>svg]:size-8"
-          dangerouslySetInnerHTML={{ __html: channel.logo }}
-        />
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium">{channel.name}</div>
-          <div className="text-xs text-muted-foreground">
-            {channel.description}
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-border">
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-muted/50 transition-colors"
-        >
-          {expanded ? (
-            <ChevronDownIcon className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          )}
-          <span className="text-xs font-medium">Channel permissions</span>
-        </button>
-        {expanded && (
-          <>
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
-              <div>
-                <div className="text-sm">Receive messages</div>
-                <div className="text-xs text-muted-foreground">
-                  Inbound messages from users to the agent
-                </div>
-              </div>
-              <ChannelPermSelect
-                value={perms.receive}
-                onChange={(v) => onChange({ ...perms, receive: v })}
-              />
-            </div>
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
-              <div>
-                <div className="text-sm">Send replies</div>
-                <div className="text-xs text-muted-foreground">
-                  Agent responds in the same conversation
-                </div>
-              </div>
-              <ChannelPermSelect
-                value={perms.send}
-                onChange={(v) => onChange({ ...perms, send: v })}
-              />
-            </div>
-            <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
-              <div>
-                <div className="text-sm">Initiate conversations</div>
-                <div className="text-xs text-muted-foreground">
-                  Agent starts new conversations proactively
-                </div>
-              </div>
-              <ChannelPermSelect
-                value={perms.initiate}
-                onChange={(v) => onChange({ ...perms, initiate: v })}
-              />
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ── Page ─────────────────────────────────────────────────── */
 
 export default function QuickstartPage() {
   const router = useRouter();
   const { integrations, loading: integrationsLoading } = useIntegrations();
-  const { channels, loading: channelsLoading } = useChannels();
+  const { connections: channelConnections } = useChannelConnections();
   const { createAgent } = useCreateAgent();
   const { models, defaultModelId } = useModels();
   const { tools: toolCatalog } = useAgentToolCatalog();
+  const { browserResources } = useBrowserResources();
+  const { memoryStores } = useMemoryStores();
   const { trackAgentCreated } = useAnalytics();
   const setSkillCredentials = useSetSkillCredentials();
   const [configureSlug, setConfigureSlug] = useState<string | null>(null);
-  const [onboardChannel, setOnboardChannel] = useState<Channel | null>(null);
   const [launching, setLaunching] = useState(false);
   const [agentName, setAgentName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState<string | null>(null);
   const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
-    new Set(),
-  );
-  const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
     new Set(),
   );
   const [toolPermissions, setToolPermissions] = useState<
@@ -365,9 +243,37 @@ export default function QuickstartPage() {
   const [groupPermissions, setGroupPermissions] = useState<
     Record<string, ToolPermission>
   >({});
-  const [channelPerms, setChannelPerms] = useState<
-    Record<string, ChannelPermissions>
-  >({});
+  const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
+  const [resources, setResources] = useState<QuickstartResource[]>([]);
+
+  function addResource(type: QuickstartResourceType) {
+    setResources((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type,
+        resourceId: "",
+        accessMode: "read_write",
+        instructions: "",
+      },
+    ]);
+    setResourcePickerOpen(false);
+  }
+
+  function updateResource(
+    id: string,
+    patch: Partial<Omit<QuickstartResource, "id" | "type">>,
+  ) {
+    setResources((prev) =>
+      prev.map((resource) =>
+        resource.id === id ? { ...resource, ...patch } : resource,
+      ),
+    );
+  }
+
+  function removeResource(id: string) {
+    setResources((prev) => prev.filter((resource) => resource.id !== id));
+  }
 
   function toggleIntegration(slug: string) {
     setSelectedIntegrations((prev) => {
@@ -378,37 +284,10 @@ export default function QuickstartPage() {
     });
   }
 
-  function toggleChannel(slug: string) {
-    setSelectedChannels((prev) => {
-      const next = new Set(prev);
-      if (next.has(slug)) {
-        next.delete(slug);
-        setChannelPerms((cp) => {
-          const n = { ...cp };
-          delete n[slug];
-          return n;
-        });
-      } else {
-        next.add(slug);
-        const ch = channels.find((c) => c.slug === slug);
-        if (ch)
-          setChannelPerms((cp) => ({
-            ...cp,
-            [slug]: { ...ch.defaultPermissions },
-          }));
-      }
-      return next;
-    });
-  }
-
   const sortedIntegrations = sortIntegrations(integrations);
-  const sortedChannels = [...channels].sort((a, b) =>
-    a.added === b.added ? 0 : a.added ? -1 : 1,
-  );
   const activeIntegrations = integrations.filter((i) =>
     selectedIntegrations.has(i.name),
   );
-  const activeChannels = channels.filter((c) => selectedChannels.has(c.slug));
   const backendBuiltInTools = toolCatalog
     .filter((tool) => tool.group === "builtin")
     .map((tool) => ({
@@ -424,17 +303,30 @@ export default function QuickstartPage() {
   const selectedModel =
     model && models.some((m) => m.id === model) ? model : defaultModelId;
   const selectedModelInfo = models.find((m) => m.id === selectedModel);
+  const browserOptions = browserResources.map((resource) => ({
+    id: resource.id,
+    label: resource.displayName,
+  }));
+  const memoryStoreOptions = memoryStores.map((store) => ({
+    id: store.id,
+    label: store.displayName,
+  }));
+  const channelOptions = channelConnections.map((connection) => ({
+    id: connection.id,
+    label: connection.displayName,
+  }));
+  const resourcesValid = resources.every((resource) => resource.resourceId);
 
   return (
     <>
       <PageHeader
         page="Quickstart"
-        subtitle="Launch an agent with tools, channels, and starter instructions."
+        subtitle="Launch an agent with tools, resources, and starter instructions."
         width="wide"
         action={
           <Button
             size="sm"
-            disabled={!agentName.trim() || !selectedModel || launching}
+            disabled={!agentName.trim() || !selectedModel || !resourcesValid || launching}
             onClick={async () => {
               if (launching) return;
               setLaunching(true);
@@ -465,7 +357,13 @@ export default function QuickstartPage() {
                   systemPrompt,
                   toolNames: Array.from(selectedIntegrations),
                   toolPermissions: tpList,
-                  channelSlugs: Array.from(selectedChannels),
+                  channelSlugs: [],
+                  resources: resources.map((resource) => ({
+                    resourceType: resource.type,
+                    resourceId: resource.resourceId,
+                    accessMode: resource.accessMode,
+                    instructions: resource.instructions.trim() || null,
+                  })),
                   bootstrapMessage: systemPrompt || undefined,
                 });
                 trackAgentCreated({
@@ -610,49 +508,129 @@ export default function QuickstartPage() {
               </div>
             </div>
 
-            {/* Channels (WebSocket session connectors) */}
+            {/* Resources */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>
-                    Channels
-                    <HelpTooltip>
-                      Channels connect external messaging platforms to the
-                      agent&apos;s session over the backend.
-                    </HelpTooltip>
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Messaging platforms that connect to the agent&apos;s session
-                    via WebSocket.
-                  </p>
-                </div>
-                <Link
-                  href="/channels"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Manage channels →
-                </Link>
+              <div>
+                <Label>Resources</Label>
+                <p className="text-xs text-muted-foreground">
+                  Mount files, GitHub repositories, or memory stores into the session.
+                </p>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {channelsLoading && sortedChannels.length === 0
-                  ? Array.from({ length: 10 }).map((_, index) => (
-                      <QuickstartChannelSkeleton
-                        key={`channel-skeleton-${index}`}
-                      />
-                    ))
-                  : sortedChannels.map((c) => (
-                      <ChannelCard
-                        key={c.slug}
-                        channel={c}
-                        selected={selectedChannels.has(c.slug)}
-                        onConnect={() => setOnboardChannel(c)}
-                        onToggle={() => toggleChannel(c.slug)}
-                      />
-                    ))}
+              <div className="space-y-4">
+                {resources.map((resource) => {
+                  const isBrowser = resource.type === "browser";
+                  const isMemoryStore = resource.type === "memory_store";
+                  return (
+                    <ResourceAttachmentCard
+                      key={resource.id}
+                      title={
+                        isBrowser
+                          ? "Browser"
+                          : isMemoryStore
+                            ? "Memory Store"
+                            : "Channel"
+                      }
+                      selectorLabel={
+                        isBrowser
+                          ? "Browser"
+                          : isMemoryStore
+                            ? "Memory store"
+                            : "Channel"
+                      }
+                      selectorPlaceholder={
+                        isBrowser
+                          ? "Select a browser"
+                          : isMemoryStore
+                            ? "Select a memory store"
+                            : "Select a channel"
+                      }
+                      manageHref={
+                        isBrowser
+                          ? "/browser"
+                          : isMemoryStore
+                            ? "/memory-stores"
+                            : "/channels"
+                      }
+                      manageLabel={
+                        isBrowser
+                          ? "Manage browsers"
+                          : isMemoryStore
+                            ? "Manage memory stores"
+                            : "Manage channels"
+                      }
+                      options={
+                        isBrowser
+                          ? browserOptions
+                          : isMemoryStore
+                            ? memoryStoreOptions
+                            : channelOptions
+                      }
+                      value={resource.resourceId}
+                      access={resource.accessMode}
+                      instructions={resource.instructions}
+                      onValueChange={(value) =>
+                        updateResource(resource.id, { resourceId: value })
+                      }
+                      onAccessChange={(value) =>
+                        updateResource(resource.id, { accessMode: value })
+                      }
+                      onInstructionsChange={(value) =>
+                        updateResource(resource.id, { instructions: value })
+                      }
+                      onRemove={() => removeResource(resource.id)}
+                    />
+                  );
+                })}
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setResourcePickerOpen(true)}
+              >
+                <PlusIcon className="size-4" />
+                Resource
+              </Button>
             </div>
 
             <Separator />
+
+            <Dialog open={resourcePickerOpen} onOpenChange={setResourcePickerOpen}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Add resource</DialogTitle>
+                  <DialogDescription>
+                    Choose a resource type to mount into the first session.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => addResource("browser")}
+                  >
+                    <MonitorIcon className="size-4" />
+                    Browser
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => addResource("memory_store")}
+                  >
+                    Memory Store
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => addResource("channel")}
+                  >
+                    Channel
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Unconfigured integrations warning */}
             {(() => {
@@ -763,32 +741,6 @@ export default function QuickstartPage() {
               ))}
             </div>
 
-            {/* Channel permissions */}
-            {activeChannels.length > 0 && (
-              <div className="space-y-3">
-                <Label>
-                  Channel permissions
-                  <HelpTooltip>
-                    Channel permissions control whether the agent can receive,
-                    reply, or initiate messages in connected channels.
-                  </HelpTooltip>
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Control how each channel interacts with the agent session.
-                </p>
-                {activeChannels.map((c) => (
-                  <ChannelPermissionSection
-                    key={c.slug}
-                    channel={c}
-                    perms={channelPerms[c.slug] ?? c.defaultPermissions}
-                    onChange={(p) =>
-                      setChannelPerms((prev) => ({ ...prev, [c.slug]: p }))
-                    }
-                  />
-                ))}
-              </div>
-            )}
-
             <div className="h-8" />
           </PageContainer>
         </div>
@@ -817,17 +769,6 @@ export default function QuickstartPage() {
           );
         })()}
 
-      {/* Channel onboarding dialog for inline connect */}
-      {onboardChannel && (
-        <ChannelOnboardingDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setOnboardChannel(null);
-          }}
-          channel={onboardChannel}
-          onComplete={() => setOnboardChannel(null)}
-        />
-      )}
     </>
   );
 }

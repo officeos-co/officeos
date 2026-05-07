@@ -11,6 +11,7 @@ public sealed class AgentLogEntity
     public string? Tool { get; set; }
     public string? Integration { get; set; }
     public string? Channel { get; set; }
+    public Guid? ChannelConnectionId { get; set; }
     public string Content { get; set; } = string.Empty;
     public int? DurationMs { get; set; }
     public int? InputTokens { get; set; }

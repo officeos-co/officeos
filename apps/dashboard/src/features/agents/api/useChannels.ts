@@ -3,6 +3,7 @@
 import { gql, useMutation, useQuery } from "@apollo/client"
 import type { Channel } from "../data/channels"
 import { sanitizeSvg } from "@/lib/sanitize-svg"
+import type { AgentLog } from "@/types/logs"
 
 const CHANNELS_QUERY = gql`
   query ChannelsAndTypes {
@@ -33,6 +34,68 @@ const CHANNELS_QUERY = gql`
     }
   }
 `
+
+const CHANNEL_CONNECTION_QUERY = gql`
+  query ChannelConnection($id: UUID!) {
+    channelConnection(id: $id) {
+      id
+      channelType
+      displayName
+      enabled
+      createdAt
+    }
+    channelTypes {
+      type
+      displayName
+      description
+      logo
+      onboardingSteps {
+        type
+        title
+        description
+        value
+        inputKey
+        inputLabel
+        inputPlaceholder
+        inputHelp
+        inputKind
+        inputRequired
+      }
+    }
+  }
+`
+
+const CHANNEL_LOGS_QUERY = gql`
+  query ChannelLogs($channelConnectionId: UUID!, $limit: Int!) {
+    channelLogs(channelConnectionId: $channelConnectionId, limit: $limit) {
+      id
+      agentId
+      agentName
+      time
+      type
+      tool
+      integration
+      channel
+      channelConnectionId
+      content
+      durationMs
+      inputTokens
+      outputTokens
+      correlationId
+    }
+  }
+`
+
+export type ChannelConnection = {
+  id: string
+  channelType: string
+  displayName: string
+  enabled: boolean
+  createdAt: string
+  typeDisplayName: string
+  description: string
+  logo: string
+}
 
 const CREATE_CONNECTION = gql`
   mutation CreateChannelConnection($input: CreateChannelConnectionInput!) {
@@ -113,6 +176,197 @@ export function useChannels(): {
   }))
 
   return { channels, loading, error: error ?? undefined }
+}
+
+function toChannelTypes(data: unknown): Channel[] {
+  const d = (data ?? {}) as {
+    channelTypes?: Array<{
+      type: string
+      displayName: string
+      description: string | null
+      logo: string | null
+      onboardingSteps: Array<{
+        type: string
+        title: string
+        description: string
+        value?: string | null
+        inputKey?: string | null
+        inputLabel?: string | null
+        inputPlaceholder?: string | null
+        inputHelp?: string | null
+        inputKind?: string | null
+        inputRequired?: boolean | null
+      }>
+    }>
+    channelConnections?: Array<{ id: string; channelType: string }>
+  }
+  const types = d.channelTypes ?? []
+  const connections = d.channelConnections ?? []
+  const connectedSlugs = new Set(connections.map((c) => c.channelType))
+  const connectionByType = new Map(connections.map((c) => [c.channelType, c.id]))
+  return types.map((t) => ({
+    name: t.displayName,
+    slug: t.type,
+    logo: sanitizeSvg(t.logo ?? ""),
+    description: t.description ?? "",
+    defaultPermissions: { receive: "ask" as const, send: "ask" as const, initiate: "ask" as const },
+    added: connectedSlugs.has(t.type),
+    connectionId: connectionByType.get(t.type) ?? null,
+    onboarding: (t.onboardingSteps ?? []).map((s) => ({
+      type: s.type as "url" | "qr" | "input" | "copy",
+      title: s.title,
+      description: s.description,
+      value: s.value ?? undefined,
+      inputKey: s.inputKey ?? undefined,
+      inputLabel: s.inputLabel ?? undefined,
+      inputPlaceholder: s.inputPlaceholder ?? undefined,
+      inputHelp: s.inputHelp ?? undefined,
+      inputKind: (s.inputKind ?? "text") as "text" | "password" | "textarea",
+      inputRequired: s.inputRequired ?? true,
+    })),
+  }))
+}
+
+export function useChannelConnections(): {
+  connections: ChannelConnection[]
+  channelTypes: Channel[]
+  loading: boolean
+  error?: Error
+} {
+  const { data, loading, error } = useQuery(CHANNELS_QUERY)
+  const channelTypes = toChannelTypes(data)
+  const typeBySlug = new Map(channelTypes.map((type) => [type.slug, type]))
+  const rawConnections: Array<{
+    id: string
+    channelType: string
+    displayName: string
+    enabled: boolean
+    createdAt: string
+  }> = data?.channelConnections ?? []
+
+  return {
+    channelTypes,
+    connections: rawConnections.map((connection) => {
+      const type = typeBySlug.get(connection.channelType)
+      return {
+        ...connection,
+        typeDisplayName: type?.name ?? connection.channelType,
+        description: type?.description ?? "",
+        logo: type?.logo ?? "",
+      }
+    }),
+    loading,
+    error: error ?? undefined,
+  }
+}
+
+export function useChannelConnection(id: string): {
+  connection: ChannelConnection | null
+  channelTypes: Channel[]
+  loading: boolean
+  error?: Error
+} {
+  const { data, loading, error } = useQuery(CHANNEL_CONNECTION_QUERY, {
+    variables: { id },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+  })
+  const channelTypes = toChannelTypes(data)
+  const raw = data?.channelConnection
+  const type = raw ? channelTypes.find((item) => item.slug === raw.channelType) : null
+  return {
+    channelTypes,
+    connection: raw
+      ? {
+          id: raw.id,
+          channelType: raw.channelType,
+          displayName: raw.displayName,
+          enabled: raw.enabled,
+          createdAt: raw.createdAt,
+          typeDisplayName: type?.name ?? raw.channelType,
+          description: type?.description ?? "",
+          logo: type?.logo ?? "",
+        }
+      : null,
+    loading,
+    error: error ?? undefined,
+  }
+}
+
+type RawChannelLog = {
+  id: string
+  agentId?: string | null
+  agentName?: string | null
+  time: string | number
+  type: string
+  tool?: string | null
+  integration?: string | null
+  channel?: string | null
+  channelConnectionId?: string | null
+  content: string
+  durationMs?: number | null
+  inputTokens?: number | null
+  outputTokens?: number | null
+  correlationId?: string | null
+}
+
+function normaliseLogType(raw: string | null | undefined): AgentLog["type"] {
+  if (!raw) return "system"
+  const value = raw.toString()
+  if (value.includes("_")) return value as AgentLog["type"]
+  const map: Record<string, AgentLog["type"]> = {
+    ToolCall: "tool_call",
+    ToolResult: "tool_result",
+    MessageIn: "message_in",
+    MessageOut: "message_out",
+    ChannelIn: "channel_in",
+    ChannelOut: "channel_out",
+    System: "system",
+    AgentStartup: "agent_startup",
+    AgentShutdown: "agent_shutdown",
+    Error: "error",
+  }
+  return map[value] ?? "system"
+}
+
+function toMillis(time: string | number) {
+  if (typeof time === "number") return time
+  const parsed = Date.parse(time)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function useChannelLogs(channelConnectionId: string, limit = 200): {
+  logs: (AgentLog & { agentName?: string })[]
+  loading: boolean
+  error?: Error
+} {
+  const { data, loading, error } = useQuery(CHANNEL_LOGS_QUERY, {
+    variables: { channelConnectionId, limit },
+    skip: !channelConnectionId,
+    fetchPolicy: "network-only",
+  })
+  const raw: RawChannelLog[] = data?.channelLogs ?? []
+  return {
+    logs: raw.map((log) => ({
+      id: log.id,
+      time: toMillis(log.time),
+      type: normaliseLogType(log.type),
+      tool: log.tool ?? undefined,
+      integration: log.integration ?? undefined,
+      channel: log.channel ?? undefined,
+      channelConnectionId: log.channelConnectionId ?? undefined,
+      content: log.content,
+      durationMs: log.durationMs ?? undefined,
+      tokens:
+        log.inputTokens != null || log.outputTokens != null
+          ? { input: log.inputTokens ?? 0, output: log.outputTokens ?? 0 }
+          : undefined,
+      correlationId: log.correlationId ?? undefined,
+      agentName: log.agentName ?? undefined,
+    })),
+    loading,
+    error: error ?? undefined,
+  }
 }
 
 export function useCreateChannelConnection() {

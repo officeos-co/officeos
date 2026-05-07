@@ -19,7 +19,6 @@ import {
   ActivityIcon,
   SettingsIcon,
   BookOpenIcon,
-  CloudIcon,
   DatabaseIcon,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -36,6 +35,9 @@ const data = {
       items: [
         { title: "Quickstart", url: "/quickstart" },
         { title: "Agents", url: "/agents" },
+        { title: "Browser", url: "/browser" },
+        { title: "Memory Store", url: "/memory-stores" },
+        { title: "Cron Jobs", url: "/cron-jobs" },
         { title: "Integrations", url: "/integrations" },
         { title: "Channels", url: "/channels" },
       ],

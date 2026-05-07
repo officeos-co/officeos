@@ -162,6 +162,9 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.Property<string>("Channel")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("ChannelConnectionId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text");
@@ -201,6 +204,8 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AgentId");
+
+                    b.HasIndex("ChannelConnectionId");
 
                     b.HasIndex("CorrelationId");
 
@@ -468,6 +473,47 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.ToTable("AgentSessions");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentSessionResourceAttachmentEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccessMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("AgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Instructions")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResourceType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId", "ResourceType");
+
+                    b.HasIndex("SessionId", "ResourceType", "ResourceId")
+                        .IsUnique();
+
+                    b.ToTable("AgentSessionResourceAttachments");
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentToolPermissionEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -504,6 +550,48 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("AgentToolPermissions");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasActivityEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Entity")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("AtlasActivity");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", b =>
@@ -738,6 +826,38 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.ToTable("AtlasRequestHistory");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.BrowserResourceEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CurrentAgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentAgentId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("BrowserResources");
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.BrowserSessionEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -961,6 +1081,65 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("McpServers");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("MemoryStores");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntryEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("MemoryStoreId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MemoryStoreId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("MemoryStoreEntries");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.OAuthGrantedScopeEntity", b =>
@@ -1428,6 +1607,25 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.Navigation("Agent");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentSessionResourceAttachmentEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentEntity", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentSessionEntity", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentToolPermissionEntity", b =>
                 {
                     b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentEntity", "Agent")
@@ -1437,6 +1635,17 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Agent");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasActivityEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", b =>
@@ -1494,6 +1703,24 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.Navigation("Connection");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.BrowserResourceEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentEntity", "CurrentAgent")
+                        .WithMany()
+                        .HasForeignKey("CurrentAgentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.UserEntity", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CurrentAgent");
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.ChannelConnectionEntity", b =>
                 {
                     b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.UserEntity", "CreatedBy")
@@ -1510,6 +1737,28 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.UserEntity", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntryEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntity", "MemoryStore")
+                        .WithMany()
+                        .HasForeignKey("MemoryStoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MemoryStore");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.OAuthGrantedScopeEntity", b =>

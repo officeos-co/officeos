@@ -36,3 +36,7 @@ public sealed class AgentCronJobRecord
         NextRunAt = nextRun;
     }
 }
+
+public sealed record AgentCronJobWithAgentRecord(
+    AgentCronJobRecord Job,
+    string AgentName);

@@ -16,6 +16,10 @@ export type CronJob = {
   createdAt: string;
 };
 
+export type CronJobSummary = CronJob & {
+  agentName: string;
+};
+
 /* ── Queries / mutations ─────────────────────────────────── */
 
 const CRON_JOBS_QUERY = gql`
@@ -23,6 +27,40 @@ const CRON_JOBS_QUERY = gql`
     agentCronJobs(agentId: $agentId) {
       id
       agentId
+      name
+      expression { value }
+      prompt
+      enabled
+      lastRunAt
+      nextRunAt
+      createdAt
+    }
+  }
+`;
+
+const ALL_CRON_JOBS_QUERY = gql`
+  query CronJobs {
+    cronJobs {
+      id
+      agentId
+      agentName
+      name
+      expression { value }
+      prompt
+      enabled
+      lastRunAt
+      nextRunAt
+      createdAt
+    }
+  }
+`;
+
+const CRON_JOB_QUERY = gql`
+  query CronJob($id: UUID!) {
+    cronJob(id: $id) {
+      id
+      agentId
+      agentName
       name
       expression { value }
       prompt
@@ -65,7 +103,7 @@ const DELETE_CRON_JOB = gql`
 /* ── Hook ────────────────────────────────────────────────── */
 
 export function useCronJobs(agentId: string) {
-  const { data, loading, error, refetch } = useQuery<{ agentCronJobs: CronJob[] }>(
+  const { data, loading, error } = useQuery<{ agentCronJobs: CronJob[] }>(
     CRON_JOBS_QUERY,
     { variables: { agentId } }
   );
@@ -145,4 +183,82 @@ export function useCronJobs(agentId: string) {
   }
 
   return { jobs, loading, error, creating, createCronJob, setCronJobEnabled, deleteCronJob };
+}
+
+export function useAllCronJobs() {
+  const { data, loading, error, refetch } = useQuery<{ cronJobs: CronJobSummary[] }>(
+    ALL_CRON_JOBS_QUERY,
+    { fetchPolicy: "cache-and-network" },
+  );
+
+  const [createMutation, { loading: creating }] = useMutation(CREATE_CRON_JOB, {
+    refetchQueries: ["CronJobs"],
+  });
+  const [setEnabledMutation] = useMutation(SET_CRON_JOB_ENABLED, {
+    refetchQueries: ["CronJobs"],
+  });
+  const [deleteMutation] = useMutation(DELETE_CRON_JOB, {
+    refetchQueries: ["CronJobs"],
+  });
+
+  async function createCronJob(
+    agentId: string,
+    name: string,
+    expression: string,
+    prompt: string,
+  ) {
+    await createMutation({
+      variables: { input: { agentId, name, expression, prompt } },
+    });
+  }
+
+  async function setCronJobEnabled(id: string, enabled: boolean) {
+    await setEnabledMutation({ variables: { id, enabled } });
+  }
+
+  async function deleteCronJob(id: string) {
+    await deleteMutation({ variables: { id } });
+  }
+
+  return {
+    jobs: (data?.cronJobs ?? []) as CronJobSummary[],
+    loading,
+    error: error ?? undefined,
+    creating,
+    createCronJob,
+    setCronJobEnabled,
+    deleteCronJob,
+    refetch,
+  };
+}
+
+export function useCronJob(id: string) {
+  const { data, loading, error, refetch } = useQuery<{ cronJob: CronJobSummary | null }>(
+    CRON_JOB_QUERY,
+    {
+      variables: { id },
+      skip: !id,
+      fetchPolicy: "cache-and-network",
+    },
+  );
+  const [setEnabledMutation] = useMutation(SET_CRON_JOB_ENABLED, {
+    refetchQueries: ["CronJob", "CronJobs"],
+  });
+  const [deleteMutation] = useMutation(DELETE_CRON_JOB, {
+    refetchQueries: ["CronJobs"],
+  });
+
+  return {
+    job: (data?.cronJob ?? null) as CronJobSummary | null,
+    loading,
+    error: error ?? undefined,
+    setCronJobEnabled: async (enabled: boolean) => {
+      await setEnabledMutation({ variables: { id, enabled } });
+      await refetch();
+    },
+    deleteCronJob: async () => {
+      await deleteMutation({ variables: { id } });
+    },
+    refetch,
+  };
 }

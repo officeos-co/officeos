@@ -32,7 +32,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
             return Task.CompletedTask;
         }
 
-        var (channelType, platformId, threadId) = reply.Value;
+        var (channelType, platformId, threadId, channelConnectionId) = reply.Value;
         var agentId = notification.AgentId;
         var correlationId = notification.CorrelationId;
         var content = notification.Content;
@@ -47,7 +47,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
                         ChannelMessage.Text(content), CancellationToken.None);
 
                     await publisher.Publish(new ChannelMessageRoutedEvent(
-                        agentId, AgentLogType.ChannelOut, channelType, content, correlationId));
+                        agentId, AgentLogType.ChannelOut, channelType, content, correlationId, channelConnectionId));
                 }
                 catch (Exception ex)
                 {
@@ -56,7 +56,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
 
                     await publisher.Publish(new ChannelMessageRoutedEvent(
                         agentId, AgentLogType.Error, channelType,
-                        $"Failed to deliver reply via {channelType}: {ex.Message}", correlationId));
+                        $"Failed to deliver reply via {channelType}: {ex.Message}", correlationId, channelConnectionId));
                 }
             },
             _logger);
