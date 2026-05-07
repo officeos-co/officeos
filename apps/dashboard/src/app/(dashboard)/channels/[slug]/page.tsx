@@ -43,7 +43,12 @@ export default function ChannelDetailPage({
         page={connection.displayName}
         width="wide"
         action={
-          <Button size="sm" variant="outline" render={<Link href="/channels" />}>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/channels" />}
+          >
             <ArrowLeftIcon className="size-4" />
             All channels
           </Button>

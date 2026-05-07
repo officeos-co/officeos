@@ -10,6 +10,7 @@ export * from "./api/useSessions";
 export * from "./api/useAgentResources";
 export * from "./components/credential-dialog";
 export * from "./components/channel-onboarding-dialog";
+export * from "./components/connector-directory-dialog";
 export * from "./components/integration-card";
 export * from "./components/channel-card";
 export * from "./components/integration-detail-tab";

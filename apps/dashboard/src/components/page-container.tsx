@@ -17,6 +17,20 @@ export function getPageWidthClassName(
   return cn("mx-auto w-full", pageWidthClassNames[width], className);
 }
 
+const dialogWidthClassNames: Record<PageWidth, string> = {
+  full: "w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] max-w-none sm:max-w-[1600px]",
+  wide: "w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] max-w-none sm:max-w-6xl",
+  thin: "w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] max-w-none sm:max-w-4xl",
+  narrow: "w-[calc(100vw-2rem)] sm:w-[calc(100vw-4rem)] max-w-none sm:max-w-3xl",
+};
+
+export function getDialogWidthClassName(
+  width: PageWidth = "narrow",
+  className?: string,
+) {
+  return cn(dialogWidthClassNames[width], className);
+}
+
 type PageContainerProps = ComponentPropsWithoutRef<"div"> & {
   width?: PageWidth;
 };

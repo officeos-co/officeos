@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -30,13 +29,9 @@ import {
 import { type Tool } from "@/features/agents/data/integrations";
 import {
   useIntegrations,
-  useSetSkillCredentials,
-  sortIntegrations,
   useCreateAgent,
   useModels,
   useAgentToolCatalog,
-  CredentialDialog,
-  IntegrationCard,
   ResourceAttachmentCard,
   useBrowserResources,
   useMemoryStores,
@@ -50,15 +45,17 @@ import {
   ChevronRightIcon,
   TerminalIcon,
   MonitorIcon,
-  AlertTriangleIcon,
-  ExternalLinkIcon,
   PlusIcon,
 } from "lucide-react";
 
 /* ── Permission types ────────────────────────────────────── */
 
 type ToolPermission = "allow" | "deny";
-type QuickstartResourceType = "browser" | "memory_store" | "channel";
+type QuickstartResourceType =
+  | "browser"
+  | "memory_store"
+  | "channel"
+  | "connector";
 type QuickstartResource = {
   id: string;
   type: QuickstartResourceType;
@@ -109,23 +106,6 @@ function PermissionCycleButton({
         {permissionLabels[value]}
       </span>
     </WithTooltip>
-  );
-}
-
-function QuickstartIntegrationSkeleton() {
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
-      <div className="flex items-start gap-3">
-        <Skeleton className="size-8 shrink-0 rounded-lg" />
-        <div className="min-w-0 flex-1 space-y-2 pt-0.5">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-3 w-20" />
-        </div>
-        <Skeleton className="size-4 rounded" />
-      </div>
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-3 w-2/3" />
-    </div>
   );
 }
 
@@ -220,7 +200,7 @@ function ToolPermissionSection({
 
 export default function QuickstartPage() {
   const router = useRouter();
-  const { integrations, loading: integrationsLoading } = useIntegrations();
+  const { integrations } = useIntegrations();
   const { connections: channelConnections } = useChannelConnections();
   const { createAgent } = useCreateAgent();
   const { models, defaultModelId } = useModels();
@@ -228,15 +208,10 @@ export default function QuickstartPage() {
   const { browserResources } = useBrowserResources();
   const { memoryStores } = useMemoryStores();
   const { trackAgentCreated } = useAnalytics();
-  const setSkillCredentials = useSetSkillCredentials();
-  const [configureSlug, setConfigureSlug] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   const [agentName, setAgentName] = useState("");
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState<string | null>(null);
-  const [selectedIntegrations, setSelectedIntegrations] = useState<Set<string>>(
-    new Set(),
-  );
   const [toolPermissions, setToolPermissions] = useState<
     Record<string, ToolPermission>
   >({});
@@ -275,18 +250,13 @@ export default function QuickstartPage() {
     setResources((prev) => prev.filter((resource) => resource.id !== id));
   }
 
-  function toggleIntegration(slug: string) {
-    setSelectedIntegrations((prev) => {
-      const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
-      else next.add(slug);
-      return next;
-    });
-  }
-
-  const sortedIntegrations = sortIntegrations(integrations);
+  const selectedConnectorNames = new Set(
+    resources
+      .filter((resource) => resource.type === "connector" && resource.resourceId)
+      .map((resource) => resource.resourceId),
+  );
   const activeIntegrations = integrations.filter((i) =>
-    selectedIntegrations.has(i.name),
+    selectedConnectorNames.has(i.name),
   );
   const backendBuiltInTools = toolCatalog
     .filter((tool) => tool.group === "builtin")
@@ -315,6 +285,12 @@ export default function QuickstartPage() {
     id: connection.id,
     label: connection.displayName,
   }));
+  const connectorOptions = integrations
+    .filter((integration) => integration.configured)
+    .map((integration) => ({
+      id: integration.name,
+      label: integration.title,
+    }));
   const resourcesValid = resources.every((resource) => resource.resourceId);
 
   return (
@@ -355,21 +331,23 @@ export default function QuickstartPage() {
                   model: selectedModel,
                   provider: selectedModelInfo?.provider ?? "anthropic",
                   systemPrompt,
-                  toolNames: Array.from(selectedIntegrations),
+                  toolNames: Array.from(selectedConnectorNames),
                   toolPermissions: tpList,
                   channelSlugs: [],
-                  resources: resources.map((resource) => ({
-                    resourceType: resource.type,
-                    resourceId: resource.resourceId,
-                    accessMode: resource.accessMode,
-                    instructions: resource.instructions.trim() || null,
-                  })),
+                  resources: resources
+                    .filter((resource) => resource.type !== "connector")
+                    .map((resource) => ({
+                      resourceType: resource.type,
+                      resourceId: resource.resourceId,
+                      accessMode: resource.accessMode,
+                      instructions: resource.instructions.trim() || null,
+                    })),
                   bootstrapMessage: systemPrompt || undefined,
                 });
                 trackAgentCreated({
                   agentName: agentName.trim(),
                   provider: selectedModelInfo?.provider ?? "unknown",
-                  skillCount: selectedIntegrations.size,
+                  skillCount: selectedConnectorNames.size,
                   allowSkills: Object.values(toolPermissions).filter(
                     (p) => p === "allow",
                   ).length,
@@ -467,59 +445,20 @@ export default function QuickstartPage() {
 
             <Separator />
 
-            {/* Integrations (API tools) */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>
-                    Integrations
-                    <HelpTooltip>
-                      Integrations are MCP servers. Adding one exposes its tools
-                      to the agent, subject to the permissions below.
-                    </HelpTooltip>
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    API-based tools the agent can call.
-                  </p>
-                </div>
-                <Link
-                  href="/integrations"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Manage integrations →
-                </Link>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {integrationsLoading && sortedIntegrations.length === 0
-                  ? Array.from({ length: 20 }).map((_, index) => (
-                      <QuickstartIntegrationSkeleton
-                        key={`integration-skeleton-${index}`}
-                      />
-                    ))
-                  : sortedIntegrations.map((i) => (
-                      <IntegrationCard
-                        key={i.name}
-                        integration={i}
-                        selected={selectedIntegrations.has(i.name)}
-                        onConfigure={() => setConfigureSlug(i.name)}
-                        onToggle={() => toggleIntegration(i.name)}
-                      />
-                    ))}
-              </div>
-            </div>
-
             {/* Resources */}
             <div className="space-y-3">
               <div>
                 <Label>Resources</Label>
                 <p className="text-xs text-muted-foreground">
-                  Mount files, GitHub repositories, or memory stores into the session.
+                  Mount connectors, channels, browsers, or memory stores into
+                  the session.
                 </p>
               </div>
               <div className="space-y-4">
                 {resources.map((resource) => {
                   const isBrowser = resource.type === "browser";
                   const isMemoryStore = resource.type === "memory_store";
+                  const isChannel = resource.type === "channel";
                   return (
                     <ResourceAttachmentCard
                       key={resource.id}
@@ -528,42 +467,54 @@ export default function QuickstartPage() {
                           ? "Browser"
                           : isMemoryStore
                             ? "Memory Store"
-                            : "Channel"
+                            : isChannel
+                              ? "Channel"
+                              : "Connector"
                       }
                       selectorLabel={
                         isBrowser
                           ? "Browser"
                           : isMemoryStore
                             ? "Memory store"
-                            : "Channel"
+                            : isChannel
+                              ? "Channel"
+                              : "Connector"
                       }
                       selectorPlaceholder={
                         isBrowser
                           ? "Select a browser"
                           : isMemoryStore
                             ? "Select a memory store"
-                            : "Select a channel"
+                            : isChannel
+                              ? "Select a channel"
+                              : "Select a connector"
                       }
                       manageHref={
                         isBrowser
                           ? "/browser"
                           : isMemoryStore
                             ? "/memory-stores"
-                            : "/channels"
+                            : isChannel
+                              ? "/channels"
+                              : "/integrations"
                       }
                       manageLabel={
                         isBrowser
                           ? "Manage browsers"
                           : isMemoryStore
                             ? "Manage memory stores"
-                            : "Manage channels"
+                            : isChannel
+                              ? "Manage channels"
+                              : "Manage connectors"
                       }
                       options={
                         isBrowser
                           ? browserOptions
                           : isMemoryStore
                             ? memoryStoreOptions
-                            : channelOptions
+                            : isChannel
+                              ? channelOptions
+                              : connectorOptions
                       }
                       value={resource.resourceId}
                       access={resource.accessMode}
@@ -628,52 +579,17 @@ export default function QuickstartPage() {
                   >
                     Channel
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => addResource("connector")}
+                  >
+                    Connector
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
-
-            {/* Unconfigured integrations warning */}
-            {(() => {
-              const unconfigured = activeIntegrations.filter(
-                (i) => i.credentialFields.length > 0 && !i.configured,
-              );
-              if (unconfigured.length === 0) return null;
-              return (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangleIcon className="size-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-amber-800">
-                        {unconfigured.length === 1
-                          ? `${unconfigured[0].title} requires credentials before it can be used.`
-                          : `${unconfigured.length} MCP servers require credentials before they can be used.`}
-                      </p>
-                      <p className="text-xs text-amber-700 mt-1">
-                        The agent will not be able to use unconfigured
-                        integrations. Set up credentials on the integration
-                        page.
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {unconfigured.map((i) => (
-                          <Link
-                            key={i.name}
-                            href={`/integrations/${i.name}`}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200 transition-colors"
-                          >
-                            <div
-                              className="size-3.5 shrink-0 [&>svg]:size-3.5"
-                              dangerouslySetInnerHTML={{ __html: i.logo }}
-                            />
-                            {i.title}
-                            <ExternalLinkIcon className="size-3" />
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* Tool permissions */}
             <div className="space-y-3">
@@ -745,29 +661,6 @@ export default function QuickstartPage() {
           </PageContainer>
         </div>
       </div>
-
-      {/* Credential dialog for inline configure */}
-      {configureSlug &&
-        (() => {
-          const i = integrations.find((x) => x.name === configureSlug);
-          if (!i) return null;
-          return (
-            <CredentialDialog
-              open
-              onOpenChange={(open) => {
-                if (!open) setConfigureSlug(null);
-              }}
-              name={i.title}
-              slug={i.name}
-              logo={i.logo}
-              credentials={i.credentialFields}
-              onSave={(values) => {
-                setSkillCredentials(i.name, values);
-                setConfigureSlug(null);
-              }}
-            />
-          );
-        })()}
 
     </>
   );
