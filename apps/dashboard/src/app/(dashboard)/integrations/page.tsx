@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -10,10 +9,21 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
+import {
+  PageContainer,
+  getDialogWidthClassName,
+} from "@/components/page-container";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -28,6 +38,7 @@ import {
 import {
   CredentialDialog,
   ConnectorDirectoryDialog,
+  CustomMcpJsonEditor,
   sortIntegrations,
   useDeleteMcpServer,
   useIntegrations,
@@ -35,7 +46,6 @@ import {
 } from "@/features/agents";
 import type { McpServer } from "@/features/agents/data/integrations";
 import { buildOAuthUrl } from "@/lib/auth-url";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function IntegrationsPage() {
   const router = useRouter();
@@ -45,6 +55,7 @@ export default function IntegrationsPage() {
   const [search, setSearch] = useState("");
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
   const [directoryOpen, setDirectoryOpen] = useState(false);
+  const [customMcpOpen, setCustomMcpOpen] = useState(false);
   const [configSlug, setConfigSlug] = useState<string | null>(null);
 
   const sorted = useMemo(
@@ -126,8 +137,7 @@ export default function IntegrationsPage() {
             <Button
               size="sm"
               variant="outline"
-              nativeButton={false}
-              render={<Link href="/integrations/custom-mcp" />}
+              onClick={() => setCustomMcpOpen(true)}
             >
               <BracesIcon className="size-4" />
               Custom MCP
@@ -256,6 +266,25 @@ export default function IntegrationsPage() {
         integrations={sorted}
         onConnect={startSetup}
       />
+
+      <Dialog open={customMcpOpen} onOpenChange={setCustomMcpOpen}>
+        <DialogContent
+          className={getDialogWidthClassName(
+            "thin",
+            "flex h-[min(760px,calc(100vh-96px))] flex-col overflow-hidden p-6",
+          )}
+        >
+          <DialogHeader>
+            <DialogTitle>Custom MCP servers</DialogTitle>
+            <DialogDescription>
+              Import custom MCP server definitions from JSON.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 min-h-0 flex-1">
+            <CustomMcpJsonEditor servers={sorted} loading={loading} />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {configIntegration && !configIntegration.oauthProvider && (
         <CredentialDialog
