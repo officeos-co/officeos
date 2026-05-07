@@ -119,6 +119,18 @@ const CREATE_MEMORY_STORE = gql`
   }
 `;
 
+const DELETE_BROWSER_RESOURCE = gql`
+  mutation DeleteBrowserResource($id: UUID!) {
+    deleteBrowserResource(id: $id)
+  }
+`;
+
+const DELETE_MEMORY_STORE = gql`
+  mutation DeleteMemoryStore($id: UUID!) {
+    deleteMemoryStore(id: $id)
+  }
+`;
+
 export function useBrowserResources() {
   const { data, loading, error, refetch } = useQuery(BROWSER_RESOURCES, {
     fetchPolicy: "cache-and-network",
@@ -184,6 +196,19 @@ export function useCreateBrowserResource() {
   };
 }
 
+export function useDeleteBrowserResource() {
+  const [mutate, state] = useMutation(DELETE_BROWSER_RESOURCE, {
+    refetchQueries: ["BrowserResources"],
+  });
+  return {
+    deleteBrowserResource: async (id: string) => {
+      const { data } = await mutate({ variables: { id } });
+      return Boolean(data?.deleteBrowserResource);
+    },
+    ...state,
+  };
+}
+
 export function useCreateMemoryStore() {
   const [mutate, state] = useMutation(CREATE_MEMORY_STORE, {
     refetchQueries: ["MemoryStores"],
@@ -192,6 +217,19 @@ export function useCreateMemoryStore() {
     createMemoryStore: async (displayName: string) => {
       const { data } = await mutate({ variables: { input: { displayName } } });
       return data?.createMemoryStore as MemoryStore;
+    },
+    ...state,
+  };
+}
+
+export function useDeleteMemoryStore() {
+  const [mutate, state] = useMutation(DELETE_MEMORY_STORE, {
+    refetchQueries: ["MemoryStores"],
+  });
+  return {
+    deleteMemoryStore: async (id: string) => {
+      const { data } = await mutate({ variables: { id } });
+      return Boolean(data?.deleteMemoryStore);
     },
     ...state,
   };

@@ -16,7 +16,7 @@ export default function MemoryStoreDetailPage({
   const { memoryStore } = useMemoryStore(id);
 
   return (
-    <>
+    <div className="flex min-h-svh flex-col">
       <PageHeader
         group="Managed Agents"
         page={memoryStore?.displayName ?? "Memory Store"}
@@ -28,9 +28,9 @@ export default function MemoryStoreDetailPage({
           </Button>
         }
       />
-      <PageContainer width="wide" className="flex flex-1 flex-col pb-4">
+      <PageContainer width="wide" className="flex min-h-0 flex-1 flex-col pb-4">
         <MemoryStoreDetail memoryStoreId={id} />
       </PageContainer>
-    </>
+    </div>
   );
 }

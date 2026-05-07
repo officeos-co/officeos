@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { PlusIcon, Trash2Icon } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Table,
   TableBody,
@@ -13,17 +15,74 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableSelectionCell,
+  TableSelectionHead,
+  TableSelectionToolbar,
 } from "@/components/ui/table";
 import {
   ResourceCreateDialog,
   useBrowserResources,
   useCreateBrowserResource,
+  useDeleteBrowserResource,
 } from "@/features/agents";
 
 export default function BrowserResourcesPage() {
+  const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
-  const { browserResources, loading } = useBrowserResources();
+  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { browserResources, loading, refetch } = useBrowserResources();
   const { createBrowserResource, loading: creating } = useCreateBrowserResource();
+  const { deleteBrowserResource } = useDeleteBrowserResource();
+
+  const filtered = useMemo(() => {
+    const query = search.toLowerCase();
+    return browserResources.filter((resource) => {
+      if (!query) return true;
+      return (
+        resource.displayName.toLowerCase().includes(query) ||
+        resource.id.toLowerCase().includes(query) ||
+        (resource.currentAgentId?.toLowerCase().includes(query) ?? false)
+      );
+    });
+  }, [browserResources, search]);
+  const filteredIds = useMemo(
+    () => filtered.map((resource) => resource.id),
+    [filtered],
+  );
+  const selectedVisibleCount = filteredIds.filter((id) =>
+    selectedIds.has(id),
+  ).length;
+  const allVisibleSelected =
+    filteredIds.length > 0 && selectedVisibleCount === filteredIds.length;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
+
+  function toggleResource(resourceId: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(resourceId);
+      else next.delete(resourceId);
+      return next;
+    });
+  }
+
+  function toggleVisibleResources(checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of filteredIds) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  async function deleteSelectedResources() {
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map((id) => deleteBrowserResource(id)));
+    setSelectedIds(new Set());
+    refetch();
+  }
 
   return (
     <>
@@ -31,7 +90,7 @@ export default function BrowserResourcesPage() {
         group="Managed Agents"
         page="Browser"
         subtitle="Manage browser resources agents can mount into sessions."
-        width="thin"
+        width="wide"
         action={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <PlusIcon className="size-4" />
@@ -39,48 +98,73 @@ export default function BrowserResourcesPage() {
           </Button>
         }
       />
-      <PageContainer width="thin" className="flex flex-1 flex-col pb-4">
-        <div className="min-h-0 overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Attached agent</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {browserResources.map((resource) => (
-                <TableRow key={resource.id}>
-                  <TableCell>
-                    <Link
-                      href={`/browser/${resource.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {resource.displayName}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {resource.currentAgentId ?? "Not attached"}
-                  </TableCell>
-                  <TableCell>{formatDate(resource.createdAt)}</TableCell>
-                  <TableCell>{formatDate(resource.updatedAt)}</TableCell>
-                </TableRow>
-              ))}
-              {!loading && browserResources.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="py-10 text-center text-muted-foreground"
-                  >
-                    No browser resources yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+      <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
+        <div className="flex min-h-9 items-center justify-between gap-2">
+          <SearchInput
+            placeholder="Search browsers..."
+            value={search}
+            onChange={setSearch}
+          />
+          <TableSelectionToolbar selectedCount={selectedIds.size}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={deleteSelectedResources}
+            >
+              <Trash2Icon className="size-4" />
+              Delete
+            </Button>
+          </TableSelectionToolbar>
         </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableSelectionHead
+                checked={allVisibleSelected}
+                indeterminate={someVisibleSelected}
+                onCheckedChange={toggleVisibleResources}
+              />
+              <TableHead>ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Attached agent</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Updated</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((resource) => (
+              <TableRow
+                key={resource.id}
+                data-state={selectedIds.has(resource.id) ? "selected" : undefined}
+                onClick={() => router.push(`/browser/${resource.id}`)}
+                className="cursor-pointer"
+              >
+                <TableSelectionCell
+                  checked={selectedIds.has(resource.id)}
+                  aria-label={`Select ${resource.displayName}`}
+                  onCheckedChange={(checked) =>
+                    toggleResource(resource.id, checked)
+                  }
+                />
+                <TableCell>{resource.id}</TableCell>
+                <TableCell>{resource.displayName}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {resource.currentAgentId ?? "Not attached"}
+                </TableCell>
+                <TableCell>{formatDate(resource.createdAt)}</TableCell>
+                <TableCell>{formatDate(resource.updatedAt)}</TableCell>
+              </TableRow>
+            ))}
+            {!loading && filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="p-0">
+                  <EmptyState message="No browser resources found." />
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </PageContainer>
 
       <ResourceCreateDialog
