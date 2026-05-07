@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -56,7 +57,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           nativeButton={false}
-          render={<a href="/api/auth/google" />}
+          render={<Link href="/api/auth/google" prefetch={false} />}
         >
           <GoogleIcon />
           Continue with Google
@@ -65,7 +66,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           nativeButton={false}
-          render={<a href="/api/auth/github" />}
+          render={<Link href="/api/auth/github" prefetch={false} />}
         >
           <GitHubIcon />
           Continue with GitHub

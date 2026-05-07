@@ -34,16 +34,17 @@ internal sealed class AuthService : IAuthService
         _logger = logger;
     }
 
-    public GoogleLoginResult BuildGoogleLoginUrl()
+    public GoogleLoginResult BuildGoogleLoginUrl(string? redirectUri = null)
     {
         if (string.IsNullOrEmpty(_googleOAuthConfig.ClientId) || string.IsNullOrEmpty(_googleOAuthConfig.ClientSecret))
             throw new InvalidOperationException("Google OAuth is not configured on the server.");
 
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var callbackUri = ResolveRedirectUri(redirectUri, _googleOAuthConfig.RedirectUri, "Google");
 
         var url = "https://accounts.google.com/o/oauth2/v2/auth"
             + $"?client_id={Uri.EscapeDataString(_googleOAuthConfig.ClientId)}"
-            + $"&redirect_uri={Uri.EscapeDataString(_googleOAuthConfig.RedirectUri)}"
+            + $"&redirect_uri={Uri.EscapeDataString(callbackUri)}"
             + "&response_type=code"
             + $"&scope={Uri.EscapeDataString(string.Join(' ', GoogleScopes))}"
             + "&access_type=offline"
@@ -54,10 +55,11 @@ internal sealed class AuthService : IAuthService
         return new GoogleLoginResult(url, state);
     }
 
-    public async Task<GoogleCallbackResult> HandleGoogleCallbackAsync(string code, CancellationToken ct = default)
+    public async Task<GoogleCallbackResult> HandleGoogleCallbackAsync(string code, string? redirectUri = null, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_googleOAuthConfig.ClientId) || string.IsNullOrEmpty(_googleOAuthConfig.ClientSecret))
             throw new InvalidOperationException("Google OAuth is not configured on the server.");
+        var callbackUri = ResolveRedirectUri(redirectUri, _googleOAuthConfig.RedirectUri, "Google");
 
         // Exchange code for tokens
         var client = _httpClientFactory.CreateClient();
@@ -67,7 +69,7 @@ internal sealed class AuthService : IAuthService
                 ["code"] = code,
                 ["client_id"] = _googleOAuthConfig.ClientId,
                 ["client_secret"] = _googleOAuthConfig.ClientSecret,
-                ["redirect_uri"] = _googleOAuthConfig.RedirectUri,
+                ["redirect_uri"] = callbackUri,
                 ["grant_type"] = "authorization_code",
             }), ct);
 
@@ -135,26 +137,28 @@ internal sealed class AuthService : IAuthService
         return new GoogleCallbackResult(sessionToken, email);
     }
 
-    public GitHubLoginResult BuildGitHubLoginUrl()
+    public GitHubLoginResult BuildGitHubLoginUrl(string? redirectUri = null)
     {
         if (string.IsNullOrEmpty(_gitHubOAuthConfig.ClientId) || string.IsNullOrEmpty(_gitHubOAuthConfig.ClientSecret))
             throw new InvalidOperationException("GitHub OAuth is not configured on the server.");
 
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var callbackUri = ResolveRedirectUri(redirectUri, _gitHubOAuthConfig.RedirectUri, "GitHub");
 
         var url = "https://github.com/login/oauth/authorize"
             + $"?client_id={Uri.EscapeDataString(_gitHubOAuthConfig.ClientId)}"
-            + $"&redirect_uri={Uri.EscapeDataString(_gitHubOAuthConfig.RedirectUri)}"
+            + $"&redirect_uri={Uri.EscapeDataString(callbackUri)}"
             + $"&scope={Uri.EscapeDataString(string.Join(' ', GitHubScopes))}"
             + $"&state={Uri.EscapeDataString(state)}";
 
         return new GitHubLoginResult(url, state);
     }
 
-    public async Task<GitHubCallbackResult> HandleGitHubCallbackAsync(string code, CancellationToken ct = default)
+    public async Task<GitHubCallbackResult> HandleGitHubCallbackAsync(string code, string? redirectUri = null, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_gitHubOAuthConfig.ClientId) || string.IsNullOrEmpty(_gitHubOAuthConfig.ClientSecret))
             throw new InvalidOperationException("GitHub OAuth is not configured on the server.");
+        var callbackUri = ResolveRedirectUri(redirectUri, _gitHubOAuthConfig.RedirectUri, "GitHub");
 
         // Exchange code for access token
         var client = _httpClientFactory.CreateClient();
@@ -165,7 +169,7 @@ internal sealed class AuthService : IAuthService
                 ["client_id"] = _gitHubOAuthConfig.ClientId,
                 ["client_secret"] = _gitHubOAuthConfig.ClientSecret,
                 ["code"] = code,
-                ["redirect_uri"] = _gitHubOAuthConfig.RedirectUri,
+                ["redirect_uri"] = callbackUri,
             }),
         };
         tokenRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -273,6 +277,17 @@ internal sealed class AuthService : IAuthService
 
     private string ProtectToken(string token) =>
         _credentialProtector.Protect(new Dictionary<string, string> { ["token"] = token });
+
+    private static string ResolveRedirectUri(string? requestedRedirectUri, string configuredRedirectUri, string provider)
+    {
+        if (!string.IsNullOrWhiteSpace(requestedRedirectUri))
+            return requestedRedirectUri;
+
+        if (!string.IsNullOrWhiteSpace(configuredRedirectUri))
+            return configuredRedirectUri;
+
+        throw new InvalidOperationException($"{provider} OAuth redirect URI is not configured on the server.");
+    }
 
     private static IReadOnlyList<string> SplitScopes(string? value) =>
         string.IsNullOrWhiteSpace(value)

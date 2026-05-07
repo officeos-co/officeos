@@ -24,7 +24,8 @@
     <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Stripe.net" Version="51.0.0" />
-    <PackageReference Include="KubernetesClient" Version="15.0.1" />
+    <PackageReference Include="KubernetesClient" Version="17.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.15" />
 
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.1" />
   </ItemGroup>

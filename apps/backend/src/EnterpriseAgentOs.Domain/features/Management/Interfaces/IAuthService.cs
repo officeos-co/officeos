@@ -10,8 +10,8 @@ public sealed record GitHubCallbackResult(string SessionToken, string Email);
 
 public interface IAuthService
 {
-    GoogleLoginResult BuildGoogleLoginUrl();
-    Task<GoogleCallbackResult> HandleGoogleCallbackAsync(string code, CancellationToken ct = default);
-    GitHubLoginResult BuildGitHubLoginUrl();
-    Task<GitHubCallbackResult> HandleGitHubCallbackAsync(string code, CancellationToken ct = default);
+    GoogleLoginResult BuildGoogleLoginUrl(string? redirectUri = null);
+    Task<GoogleCallbackResult> HandleGoogleCallbackAsync(string code, string? redirectUri = null, CancellationToken ct = default);
+    GitHubLoginResult BuildGitHubLoginUrl(string? redirectUri = null);
+    Task<GitHubCallbackResult> HandleGitHubCallbackAsync(string code, string? redirectUri = null, CancellationToken ct = default);
 }
