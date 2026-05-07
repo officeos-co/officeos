@@ -1,19 +1,33 @@
 "use client";
 
-import { use } from "react";
+import { use, useMemo } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import dynamic from "next/dynamic";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
+import type { ReactCodeMirrorProps } from "@uiw/react-codemirror";
+import { json as jsonLanguage } from "@codemirror/lang-json";
+import {
+  defaultHighlightStyle,
+  syntaxHighlighting,
+} from "@codemirror/language";
+import { EditorView } from "@codemirror/view";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   type AtlasIndexedRecord,
   useAtlasConnection,
   useAtlasIndexedRecord,
 } from "@/features/atlas";
+
+const CodeMirror = dynamic<ReactCodeMirrorProps>(
+  () => import("@uiw/react-codemirror").then((mod) => mod.default),
+  { ssr: false },
+);
 
 export default function AtlasExplorerRecordPage({
   params,
@@ -96,19 +110,98 @@ export default function AtlasExplorerRecordPage({
 
         <section>
           <h2 className="mb-2 text-sm font-semibold">Search text</h2>
-          <div className="max-h-72 overflow-auto bg-muted p-3 text-sm text-muted-foreground">
-            {record.searchText}
-          </div>
+          <ReadonlyCodeViewer value={record.searchText} />
         </section>
 
         <section className="min-h-0 flex-1">
           <h2 className="mb-2 text-sm font-semibold">Raw JSON</h2>
-          <pre className="max-h-[32rem] overflow-auto bg-muted p-3 text-xs text-muted-foreground">
-            {formatJson(record.rawJson)}
-          </pre>
+          <ReadonlyCodeViewer
+            value={formatJson(record.rawJson)}
+            language="json"
+          />
         </section>
       </PageContainer>
     </>
+  );
+}
+
+function ReadonlyCodeViewer({
+  value,
+  language = "text",
+  className,
+}: {
+  value: string;
+  language?: "json" | "text";
+  className?: string;
+}) {
+  const extensions = useMemo(
+    () => [
+      ...(language === "json" ? [jsonLanguage()] : []),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      EditorView.lineWrapping,
+      EditorView.theme({
+        "&": {
+          backgroundColor: "transparent",
+          color: "var(--foreground)",
+          fontSize: "12px",
+        },
+        ".cm-scroller": {
+          overflow: "visible",
+          fontFamily:
+            "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+          lineHeight: "1.5",
+        },
+        ".cm-content": {
+          padding: "12px 0",
+        },
+        ".cm-line": {
+          padding: "0 14px",
+        },
+        ".cm-gutters": {
+          backgroundColor: "var(--muted)",
+          color: "var(--muted-foreground)",
+          borderRight: "1px solid var(--border)",
+        },
+        ".cm-activeLine": {
+          backgroundColor: "transparent",
+        },
+        ".cm-activeLineGutter": {
+          backgroundColor: "var(--muted)",
+        },
+        "&.cm-focused": {
+          outline: "none",
+        },
+        ".cm-cursor": {
+          display: "none",
+        },
+      }),
+    ],
+    [language],
+  );
+
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-lg border border-input bg-background",
+        className,
+      )}
+    >
+      <CodeMirror
+        value={value}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: language === "json",
+          highlightActiveLine: false,
+          highlightActiveLineGutter: false,
+          bracketMatching: language === "json",
+          closeBrackets: false,
+          autocompletion: false,
+        }}
+        extensions={extensions}
+        editable={false}
+        theme="light"
+      />
+    </div>
   );
 }
 
