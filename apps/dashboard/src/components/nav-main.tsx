@@ -45,6 +45,19 @@ export function NavMain({
     () => new Set(items.map((item) => item.title)),
   );
 
+  function isRouteActive(
+    url: string,
+    siblings: { title: string; url: string }[] = [],
+  ) {
+    if (pathname === url) return true;
+
+    const hasMoreSpecificSibling = siblings.some(
+      (sibling) => sibling.url !== url && sibling.url.startsWith(url + "/"),
+    );
+
+    return !hasMoreSpecificSibling && pathname.startsWith(url + "/");
+  }
+
   function toggleGroup(title: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -58,10 +71,10 @@ export function NavMain({
     <SidebarGroup className="gap-1 px-3 pt-2">
       <SidebarMenu className="gap-0">
         {items.map((item) => {
-          const hasActiveChild = item.items?.some(
-            (sub) => pathname === sub.url || pathname.startsWith(sub.url + "/"),
+          const hasActiveChild = item.items?.some((sub) =>
+            isRouteActive(sub.url, item.items),
           );
-          const isOpen = openGroups.has(item.title) || hasActiveChild;
+          const isOpen = openGroups.has(item.title);
 
           if (collapsed) {
             return (
@@ -76,9 +89,7 @@ export function NavMain({
                     {item.title}
                   </p>
                   {item.items?.map((subItem) => {
-                    const isActive =
-                      pathname === subItem.url ||
-                      pathname.startsWith(subItem.url + "/");
+                    const isActive = isRouteActive(subItem.url, item.items);
                     return (
                       <Link
                         key={subItem.title}
@@ -118,9 +129,7 @@ export function NavMain({
               <CollapsibleContent>
                 <SidebarMenuSub className="gap-0.5">
                   {item.items?.map((subItem) => {
-                    const isActive =
-                      pathname === subItem.url ||
-                      pathname.startsWith(subItem.url + "/");
+                    const isActive = isRouteActive(subItem.url, item.items);
                     return (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton

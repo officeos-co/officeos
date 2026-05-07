@@ -38,7 +38,9 @@ export default function AtlasConnectorsPage() {
   const { connectorTypes } = useAtlasConnectorTypes();
   const { createConnection } = useCreateAtlasGitHubConnection();
   const { startIndex } = useStartAtlasIndex();
-  const githubConnector = connectorTypes.find((connector) => connector.provider === "github");
+  const githubConnector = connectorTypes.find(
+    (connector) => connector.provider === "github",
+  );
 
   return (
     <>
@@ -46,7 +48,7 @@ export default function AtlasConnectorsPage() {
         group="Atlas"
         page="Connectors"
         subtitle="Manage Atlas-compatible data connectors."
-        width="wide"
+        width="thin"
         action={
           <Button size="sm" onClick={() => setDialogOpen(true)}>
             <PlusIcon className="size-4" />
@@ -54,8 +56,8 @@ export default function AtlasConnectorsPage() {
           </Button>
         }
       />
-      <PageContainer width="wide" className="pb-8">
-        <div className="rounded-lg border border-border bg-card">
+      <PageContainer width="thin" className="flex flex-1 flex-col pb-4">
+        <div className="min-h-0 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -69,7 +71,9 @@ export default function AtlasConnectorsPage() {
             </TableHeader>
             <TableBody>
               {connections.map((connection) => {
-                const repositories = parseJsonArray(connection.repositoriesJson);
+                const repositories = parseJsonArray(
+                  connection.repositoriesJson,
+                );
                 return (
                   <TableRow key={connection.id}>
                     <TableCell>
@@ -78,12 +82,16 @@ export default function AtlasConnectorsPage() {
                           {githubConnector?.logo ? (
                             <span
                               className="size-5 [&>svg]:size-5 [&>svg]:fill-current"
-                              dangerouslySetInnerHTML={{ __html: githubConnector.logo }}
+                              dangerouslySetInnerHTML={{
+                                __html: githubConnector.logo,
+                              }}
                             />
                           ) : null}
                         </div>
                         <div>
-                          <div className="font-medium">{connection.displayName}</div>
+                          <div className="font-medium">
+                            {connection.displayName}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {repositories.join(", ") || "No repositories"}
                           </div>
@@ -96,10 +104,14 @@ export default function AtlasConnectorsPage() {
                       <span
                         className={cn(
                           "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest",
-                          connection.status === "Ready" && "bg-emerald-100 text-emerald-700",
-                          connection.status === "Indexing" && "bg-blue-100 text-blue-700",
-                          connection.status === "NeedsAuth" && "bg-amber-100 text-amber-700",
-                          connection.status === "Failed" && "bg-red-100 text-red-700",
+                          connection.status === "Ready" &&
+                            "bg-emerald-100 text-emerald-700",
+                          connection.status === "Indexing" &&
+                            "bg-blue-100 text-blue-700",
+                          connection.status === "NeedsAuth" &&
+                            "bg-amber-100 text-amber-700",
+                          connection.status === "Failed" &&
+                            "bg-red-100 text-red-700",
                         )}
                       >
                         {statusLabel[connection.status] ?? connection.status}
@@ -128,7 +140,10 @@ export default function AtlasConnectorsPage() {
               })}
               {!loading && connections.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-muted-foreground"
+                  >
                     No Atlas connectors yet.
                   </TableCell>
                 </TableRow>
