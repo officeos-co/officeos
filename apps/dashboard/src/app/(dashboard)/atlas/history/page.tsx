@@ -25,10 +25,10 @@ export default function AtlasHistoryPage() {
         group="Atlas"
         page="History"
         subtitle="Agent request history for Atlas connectors."
-        width="wide"
+        width="thin"
       />
-      <PageContainer width="wide" className="pb-8">
-        <div className="rounded-lg border border-border bg-card">
+      <PageContainer width="thin" className="flex flex-1 flex-col pb-4">
+        <div className="min-h-0 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -44,11 +44,19 @@ export default function AtlasHistoryPage() {
               {history.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.type}</TableCell>
-                  <TableCell className="font-mono text-xs">{item.entity}</TableCell>
-                  <TableCell className="font-mono text-xs">{item.action}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {item.entity}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {item.action}
+                  </TableCell>
                   <TableCell>{formatDate(item.createdAt)}</TableCell>
                   <TableCell>
-                    <span className={item.success ? "text-emerald-700" : "text-red-700"}>
+                    <span
+                      className={
+                        item.success ? "text-emerald-700" : "text-red-700"
+                      }
+                    >
                       {item.success ? "Success" : "Failed"}
                     </span>
                   </TableCell>
@@ -57,7 +65,10 @@ export default function AtlasHistoryPage() {
               ))}
               {!loading && history.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-muted-foreground"
+                  >
                     No Atlas request history yet.
                   </TableCell>
                 </TableRow>

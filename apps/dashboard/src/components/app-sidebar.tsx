@@ -54,7 +54,6 @@ const data = {
       url: "#",
       icon: <DatabaseIcon />,
       items: [
-        { title: "Atlas", url: "/atlas" },
         { title: "Connectors", url: "/atlas/connectors" },
         { title: "History", url: "/atlas/history" },
       ],

@@ -82,7 +82,7 @@ export function GitHubConnectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-5xl overflow-hidden p-0">
+      <DialogContent className="max-h-[90vh] w-[min(96vw,80rem)] max-w-none overflow-hidden p-0 sm:max-w-none">
         <DialogHeader className="border-b border-border px-6 py-5">
           <div className="flex items-center justify-center gap-4">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-foreground text-background">
