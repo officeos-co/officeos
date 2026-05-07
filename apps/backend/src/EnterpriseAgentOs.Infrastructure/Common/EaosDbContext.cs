@@ -36,6 +36,11 @@ public sealed class EaosDbContext : DbContext
     public DbSet<McpServerEntity> McpServers => Set<McpServerEntity>();
     public DbSet<AgentMcpServerEntity> AgentMcpServers => Set<AgentMcpServerEntity>();
     public DbSet<McpCredentialEntity> McpCredentials => Set<McpCredentialEntity>();
+    public DbSet<AtlasConnectorConnectionEntity> AtlasConnectorConnections => Set<AtlasConnectorConnectionEntity>();
+    public DbSet<AtlasEntityStatusEntity> AtlasEntityStatuses => Set<AtlasEntityStatusEntity>();
+    public DbSet<AtlasIndexJobEntity> AtlasIndexJobs => Set<AtlasIndexJobEntity>();
+    public DbSet<AtlasIndexedRecordEntity> AtlasIndexedRecords => Set<AtlasIndexedRecordEntity>();
+    public DbSet<AtlasRequestHistoryEntity> AtlasRequestHistory => Set<AtlasRequestHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -296,6 +301,66 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(c => c.McpServerName).IsUnique();
             e.Property(c => c.McpServerName).IsRequired().HasMaxLength(64);
             e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
+        });
+
+        modelBuilder.Entity<AtlasConnectorConnectionEntity>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.Provider);
+            e.Property(c => c.Provider).IsRequired().HasMaxLength(32);
+            e.Property(c => c.WorkspaceName).IsRequired().HasMaxLength(128);
+            e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
+            e.Property(c => c.RepositoriesJson).HasColumnType("jsonb");
+            e.Property(c => c.EntitiesJson).HasColumnType("jsonb");
+            e.Property(c => c.Status).IsRequired().HasMaxLength(32);
+            e.Property(c => c.Error).HasColumnType("text");
+            e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AtlasEntityStatusEntity>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasIndex(s => new { s.ConnectionId, s.Entity }).IsUnique();
+            e.Property(s => s.Entity).IsRequired().HasMaxLength(64);
+            e.Property(s => s.Status).IsRequired().HasMaxLength(32);
+            e.Property(s => s.Error).HasColumnType("text");
+            e.HasOne(s => s.Connection).WithMany().HasForeignKey(s => s.ConnectionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AtlasIndexJobEntity>(e =>
+        {
+            e.HasKey(j => j.Id);
+            e.HasIndex(j => j.Status);
+            e.HasIndex(j => j.ConnectionId);
+            e.Property(j => j.Status).IsRequired().HasMaxLength(32);
+            e.Property(j => j.Error).HasColumnType("text");
+            e.HasOne(j => j.Connection).WithMany().HasForeignKey(j => j.ConnectionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AtlasIndexedRecordEntity>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => new { r.ConnectionId, r.Entity, r.ExternalId }).IsUnique();
+            e.HasIndex(r => new { r.ConnectionId, r.Entity });
+            e.Property(r => r.Entity).IsRequired().HasMaxLength(64);
+            e.Property(r => r.ExternalId).IsRequired().HasMaxLength(512);
+            e.Property(r => r.Title).HasMaxLength(512);
+            e.Property(r => r.SearchText).HasColumnType("text");
+            e.Property(r => r.RawJson).HasColumnType("jsonb");
+            e.HasOne(r => r.Connection).WithMany().HasForeignKey(r => r.ConnectionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AtlasRequestHistoryEntity>(e =>
+        {
+            e.HasKey(h => h.Id);
+            e.HasIndex(h => h.ConnectionId);
+            e.HasIndex(h => h.CreatedAt);
+            e.Property(h => h.Type).IsRequired().HasMaxLength(16);
+            e.Property(h => h.Entity).IsRequired().HasMaxLength(64);
+            e.Property(h => h.Action).IsRequired().HasMaxLength(64);
+            e.Property(h => h.ParamsJson).HasColumnType("jsonb");
+            e.Property(h => h.Error).HasColumnType("text");
+            e.HasOne(h => h.Connection).WithMany().HasForeignKey(h => h.ConnectionId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

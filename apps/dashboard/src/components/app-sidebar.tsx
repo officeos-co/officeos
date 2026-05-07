@@ -20,6 +20,7 @@ import {
   SettingsIcon,
   BookOpenIcon,
   CloudIcon,
+  DatabaseIcon,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useBilling } from "@/features/manage";
@@ -46,6 +47,16 @@ const data = {
       items: [
         { title: "Logs", url: "/logs" },
         { title: "Usage", url: "/usage" },
+      ],
+    },
+    {
+      title: "Data",
+      url: "#",
+      icon: <DatabaseIcon />,
+      items: [
+        { title: "Atlas", url: "/atlas" },
+        { title: "Connectors", url: "/atlas/connectors" },
+        { title: "History", url: "/atlas/history" },
       ],
     },
     {

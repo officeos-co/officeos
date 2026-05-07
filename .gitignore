@@ -8,6 +8,9 @@ build/
 venv/
 reference
 todo.md
+plan
+references
+
 # ── Node / Next.js ───────────────────────────────────────────
 node_modules/
 .next/
