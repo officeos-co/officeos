@@ -22,8 +22,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  AtlasConnectorDialog,
   type AtlasHistory,
-  GitHubConnectionDialog,
   parseJsonArray,
   useAtlasConnections,
   useAtlasConnectorTypes,
@@ -185,7 +185,7 @@ export default function AtlasConnectorsPage() {
         </div>
       </PageContainer>
 
-      <GitHubConnectionDialog
+      <AtlasConnectorDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         connectorType={githubConnector}
