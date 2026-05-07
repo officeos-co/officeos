@@ -107,6 +107,7 @@ internal sealed class TurnLoggingHandler :
         Tool = record.Tool,
         Integration = record.Integration,
         Channel = record.Channel,
+        ChannelConnectionId = record.ChannelConnectionId,
         Content = record.Content,
         Usage = record.Usage,
         CorrelationId = record.CorrelationId,

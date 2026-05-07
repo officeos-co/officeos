@@ -3,16 +3,15 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class ChannelMutations
 {
-    private const string ChannelListCacheKey = "channels:list";
-
     private static async Task InvalidateChannelCachesAsync(
         IDistributedCache cache,
+        Guid userId,
         Guid? connectionId,
         CancellationToken ct)
     {
-        await cache.RemoveAsync(ChannelListCacheKey, ct);
+        await cache.RemoveAsync($"channels:list:{userId}", ct);
         if (connectionId.HasValue)
-            await cache.RemoveAsync($"channels:{connectionId.Value}", ct);
+            await cache.RemoveAsync($"channels:{connectionId.Value}:user:{userId}", ct);
     }
 
     [GraphQLDescription("Creates a new channel connection (e.g. Slack bot, Telegram bot). ConfigJson contains the encrypted credentials payload.")]
@@ -31,7 +30,7 @@ public class ChannelMutations
                 input.ChannelType, input.DisplayName, input.ConfigJson,
                 user.Id, ct);
 
-            await InvalidateChannelCachesAsync(cache, null, ct);
+            await InvalidateChannelCachesAsync(cache, user.Id, null, ct);
             return ChannelGraphQLMapper.ToDto(created);
         }
         catch (InvalidOperationException ex)
@@ -47,17 +46,19 @@ public class ChannelMutations
         UpdateChannelConnectionInput input,
         IResolverContext context,
         [Service] IChannelService channelService,
+        [Service] IChannelRepository channelRepository,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
 
         try
         {
+            await EnsureOwnedChannelConnectionAsync(channelRepository, id, user.Id, ct);
             var updated = await channelService.UpdateConnectionAsync(
                 id, input.DisplayName, input.Enabled, ct);
 
-            await InvalidateChannelCachesAsync(cache, id, ct);
+            await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
             return ChannelGraphQLMapper.ToDto(updated);
         }
         catch (InvalidOperationException ex)
@@ -72,18 +73,20 @@ public class ChannelMutations
         Guid id,
         IResolverContext context,
         [Service] IChannelService channelService,
+        [Service] IChannelRepository channelRepository,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
 
+        await EnsureOwnedChannelConnectionAsync(channelRepository, id, user.Id, ct);
         var result = await channelService.DeleteConnectionAsync(id, ct);
-        await InvalidateChannelCachesAsync(cache, id, ct);
+        await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
         return result;
     }
 
     [GraphQLDescription("Binds a channel connection to an agent so it receives messages from that channel. Optional config specifies platform/thread IDs.")]
-    public async Task<AgentChannelBindingGqlDto> BindChannelToAgent(
+    public Task<AgentChannelBindingGqlDto> BindChannelToAgent(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput? config,
@@ -93,34 +96,14 @@ public class ChannelMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-
-        try
-        {
-            var configJson = config is null ? null : ChannelGraphQLMapper.SerializeConfig(config);
-            var created = await channelService.BindAgentAsync(agentId, channelConnectionId, configJson, ct);
-            await cache.RemoveAsync($"agents:dashboard:{agentId}", ct);
-            return ChannelGraphQLMapper.ToDto(created);
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage(ex.Message)
-                    .SetCode("NOT_FOUND")
-                    .Build());
-        }
-        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
-        {
-            throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage("This channel is already bound to the agent.")
-                    .SetCode("DUPLICATE_BINDING")
-                    .Build());
-        }
+        _ = channelService;
+        _ = cache;
+        _ = ct;
+        throw ImmutableChannelBindingError();
     }
 
     [GraphQLDescription("Removes a channel binding from an agent.")]
-    public async Task<bool> UnbindChannelFromAgent(
+    public Task<bool> UnbindChannelFromAgent(
         Guid agentId,
         Guid channelConnectionId,
         IResolverContext context,
@@ -129,13 +112,14 @@ public class ChannelMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        var result = await channelService.UnbindAgentAsync(agentId, channelConnectionId, ct);
-        await cache.RemoveAsync($"agents:dashboard:{agentId}", ct);
-        return result;
+        _ = channelService;
+        _ = cache;
+        _ = ct;
+        throw ImmutableChannelBindingError();
     }
 
     [GraphQLDescription("Updates the routing config (platformId, threadId) on an existing agent-channel binding.")]
-    public async Task<AgentChannelBindingGqlDto> UpdateChannelBindingConfig(
+    public Task<AgentChannelBindingGqlDto> UpdateChannelBindingConfig(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput config,
@@ -144,18 +128,34 @@ public class ChannelMutations
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
+        _ = channelService;
+        _ = ct;
+        throw ImmutableChannelBindingError();
+    }
 
-        try
+    private static GraphQLException ImmutableChannelBindingError() =>
+        new(ErrorBuilder.New()
+            .SetMessage("Agent channels are immutable after agent creation. Create a new agent with the desired channels.")
+            .SetCode("IMMUTABLE_AGENT_CAPABILITIES")
+            .Build());
+
+    private static async Task EnsureOwnedChannelConnectionAsync(
+        IChannelRepository channelRepository,
+        Guid id,
+        Guid userId,
+        CancellationToken ct)
+    {
+        var connection = await channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
         {
-            var configJson = ChannelGraphQLMapper.SerializeConfig(config);
-            var updated = await channelService.UpdateBindingConfigAsync(agentId, channelConnectionId, configJson, ct);
-            return ChannelGraphQLMapper.ToDto(updated);
-        }
-        catch (InvalidOperationException ex)
+            Id = id,
+            CreatedById = userId,
+        }, ct);
+
+        if (connection is null)
         {
             throw new GraphQLException(
                 ErrorBuilder.New()
-                    .SetMessage(ex.Message)
+                    .SetMessage("Channel connection not found.")
                     .SetCode("NOT_FOUND")
                     .Build());
         }

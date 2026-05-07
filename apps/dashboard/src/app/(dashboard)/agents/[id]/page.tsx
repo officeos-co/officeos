@@ -19,9 +19,6 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AgentIntegrationsTab } from "@/features/agents/components/agent-integrations-tab";
 import { AgentLogsTab } from "@/features/agents/components/agent-logs-tab";
-import { AgentMemoryTab } from "@/features/agents/components/agent-memory-tab";
-import { AgentCronTab } from "@/features/agents/components/agent-cron-tab";
-import { AgentBrowserTab } from "@/features/agents/components/agent-browser-tab";
 import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
@@ -33,11 +30,8 @@ import { SendIcon, PlusIcon } from "lucide-react";
 /* ── Tabs (URL-driven) ───────────────────────────────────── */
 
 const TABS = [
-  { key: "integrations", label: "Integrations" },
   { key: "logs", label: "Logs" },
-  { key: "browser", label: "Browser" },
-  { key: "memory", label: "Memory" },
-  { key: "cron", label: "Cron" },
+  { key: "permissions", label: "Permissions" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -115,8 +109,13 @@ export default function AgentDetailPage({
   const { sendAgentMessage, loading: sendingMessage } = useSendAgentMessage();
   const createSession = useCreateSession();
   const { updateAgent } = useUpdateAgent();
-  const activeSession = agent?.activeSession ?? null;
-  const tab = (searchParams.get("tab") as TabKey) ?? "integrations";
+  const requestedTab =
+    searchParams.get("tab") === "integrations"
+      ? "permissions"
+      : searchParams.get("tab");
+  const tab = TABS.some((candidate) => candidate.key === requestedTab)
+    ? (requestedTab as TabKey)
+    : "logs";
   const agentStatus = agentStatusOverride ?? agent?.status ?? "";
   const model = modelOverride ?? agent?.model ?? "";
 
@@ -125,7 +124,7 @@ export default function AgentDetailPage({
     if (agentStatus === "booting") {
       const t = setTimeout(() => {
         setAgentStatusOverride("running");
-        router.replace(`/agents/${id}?tab=integrations`);
+        router.replace(`/agents/${id}?tab=logs`);
       }, 5000);
       return () => clearTimeout(t);
     }
@@ -271,46 +270,35 @@ export default function AgentDetailPage({
               : "flex flex-1 flex-col"
           }
         >
-          {tab === "integrations" && <AgentIntegrationsTab agentId={id} />}
+          {tab === "permissions" && <AgentIntegrationsTab agentId={id} />}
           {tab === "logs" && (
             <AgentLogsTab
               agentId={id}
               pendingTurnStartedAt={pendingTurnStartedAt}
               composer={
-                <>
-                  {activeSession && (
-                    <div className="mb-1.5 flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
-                      <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
-                      Session · {activeSession.messageCount} messages
-                    </div>
-                  )}
-                  <div className="flex w-full items-center gap-2">
-                    <Input
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Send a message to the agent..."
-                      className="flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && message.trim()) submit();
-                      }}
-                    />
-                    <WithTooltip tooltip="Send this message into the active agent session.">
-                      <Button
-                        size="icon"
-                        disabled={!message.trim() || sendingMessage}
-                        onClick={submit}
-                      >
-                        <SendIcon className="size-4" />
-                      </Button>
-                    </WithTooltip>
-                  </div>
-                </>
+                <div className="flex w-full items-center gap-2">
+                  <Input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Send a message to the agent..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && message.trim()) submit();
+                    }}
+                  />
+                  <WithTooltip tooltip="Send this message into the active agent session.">
+                    <Button
+                      size="icon"
+                      disabled={!message.trim() || sendingMessage}
+                      onClick={submit}
+                    >
+                      <SendIcon className="size-4" />
+                    </Button>
+                  </WithTooltip>
+                </div>
               }
             />
           )}
-          {tab === "browser" && <AgentBrowserTab agentId={id} />}
-          {tab === "memory" && <AgentMemoryTab agentId={id} />}
-          {tab === "cron" && <AgentCronTab agentId={id} />}
         </div>
       </PageContainer>
 

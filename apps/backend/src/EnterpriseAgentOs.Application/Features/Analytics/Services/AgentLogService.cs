@@ -32,6 +32,9 @@ internal sealed class AgentLogService : IAgentLogService
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
         => _agentLogRepository.ListAsync(agentId, before, limit, ct);
 
+    public Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default)
+        => _agentLogRepository.ListForChannelConnectionAsync(channelConnectionId, before, limit, ct);
+
     public Task<List<AgentLogRecord>> ListUsageAsync(Guid ownerId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default)
         => _agentLogRepository.ListUsageAsync(ownerId, fromInclusive, toExclusive, ct);
 

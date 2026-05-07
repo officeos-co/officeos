@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Domain.Features.Analytics;
 public interface IAgentLogService
 {
     Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default);
+    Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListUsageAsync(Guid ownerId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default);
     Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default);
     Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default);

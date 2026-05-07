@@ -19,6 +19,36 @@ public class AgentLogsQueries
         return rows.OrderBy(r => r.Time).Select(r => AgentLogMapper.ToDto(r)).ToList();
     }
 
+    [GraphQLDescription("Returns paginated log entries for a specific channel connection.")]
+    public async Task<IReadOnlyList<AgentLogDto>> GetChannelLogs(
+        Guid channelConnectionId,
+        DateTime? before,
+        int limit,
+        IResolverContext context,
+        [Service] IAgentLogService logs,
+        [Service] IChannelRepository channels,
+        CancellationToken ct)
+    {
+        var user = DashboardAuthContextExtensions.GetUser(context);
+        var connection = await channels.GetConnectionByAsync(new ChannelConnectionFilter
+        {
+            Id = channelConnectionId,
+            CreatedById = user.Id,
+        }, ct);
+        if (connection is null)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New()
+                    .SetMessage("Channel connection not found.")
+                    .SetCode("NOT_FOUND")
+                    .Build());
+        }
+
+        var capped = Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+        var rows = await logs.ListForChannelConnectionAsync(channelConnectionId, before, capped, ct);
+        return rows.OrderBy(r => r.Time).Select(r => AgentLogMapper.ToDto(r)).ToList();
+    }
+
     [GraphQLDescription("Returns paginated log entries across all agents. Supports filtering by search text, agent name, and log type.")]
     public async Task<GlobalLogsPage> GetGlobalLogs(
         GlobalLogFiltersInput? filters,

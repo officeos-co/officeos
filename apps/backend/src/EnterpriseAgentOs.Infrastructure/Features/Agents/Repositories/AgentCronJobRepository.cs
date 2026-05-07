@@ -17,6 +17,24 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         return entities.Select(ToAgentCronJobRecord).ToList();
     }
 
+    public async Task<IReadOnlyList<AgentCronJobWithAgentRecord>> ListForOwnerAsync(Guid ownerId, CancellationToken ct = default)
+    {
+        var rows = await _eaosDbContext.AgentCronJobs
+            .AsNoTracking()
+            .Join(
+                _eaosDbContext.Agents.AsNoTracking(),
+                job => job.AgentId,
+                agent => agent.Id,
+                (job, agent) => new { job, agent })
+            .Where(row => row.agent.OwnerId == ownerId && !row.agent.IsDeleted)
+            .OrderByDescending(row => row.job.CreatedAt)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(row => new AgentCronJobWithAgentRecord(ToAgentCronJobRecord(row.job), row.agent.Name))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<AgentCronJobRecord>> ListAllEnabledAsync(CancellationToken ct = default)
     {
         var entities = await _eaosDbContext.AgentCronJobs
@@ -40,6 +58,23 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
 
         var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToAgentCronJobRecord(entity);
+    }
+
+    public async Task<AgentCronJobWithAgentRecord?> GetForOwnerAsync(Guid id, Guid ownerId, CancellationToken ct = default)
+    {
+        var row = await _eaosDbContext.AgentCronJobs
+            .AsNoTracking()
+            .Join(
+                _eaosDbContext.Agents.AsNoTracking(),
+                job => job.AgentId,
+                agent => agent.Id,
+                (job, agent) => new { job, agent })
+            .Where(row => row.job.Id == id && row.agent.OwnerId == ownerId && !row.agent.IsDeleted)
+            .FirstOrDefaultAsync(ct);
+
+        return row is null
+            ? null
+            : new AgentCronJobWithAgentRecord(ToAgentCronJobRecord(row.job), row.agent.Name);
     }
 
     public async Task<AgentCronJobRecord> CreateAsync(Guid agentId, string name, string expression, string prompt, CancellationToken ct = default)

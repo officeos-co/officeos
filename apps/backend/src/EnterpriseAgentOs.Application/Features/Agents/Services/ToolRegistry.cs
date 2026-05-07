@@ -111,6 +111,7 @@ internal sealed class ToolRegistry : IAsyncDisposable
 internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryRepository _memoryRepo;
+    private readonly IAgentResourceRepository _resourceRepository;
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
@@ -123,6 +124,7 @@ internal sealed class ToolRegistryFactory
 
     public ToolRegistryFactory(
         IAgentMemoryRepository memoryRepo,
+        IAgentResourceRepository resourceRepository,
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
@@ -134,6 +136,7 @@ internal sealed class ToolRegistryFactory
         ILogger<ToolRegistryFactory> logger)
     {
         _memoryRepo = memoryRepo;
+        _resourceRepository = resourceRepository;
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
@@ -166,9 +169,9 @@ internal sealed class ToolRegistryFactory
             new ContentSearchTool(context),
             new GlobSearchTool(context),
             // Memory tools (Postgres)
-            new MemoryStoreTool(_memoryRepo, agentId),
-            new MemoryRecallTool(_memoryRepo, agentId),
-            new MemoryForgetTool(_memoryRepo, agentId),
+            new MemoryStoreTool(_memoryRepo, _resourceRepository, agentId),
+            new MemoryRecallTool(_memoryRepo, _resourceRepository, agentId),
+            new MemoryForgetTool(_memoryRepo, _resourceRepository, agentId),
             // Session/task orchestration
             new AskUserQuestionTool(),
             new TaskCreateTool(_taskStore, agentId),

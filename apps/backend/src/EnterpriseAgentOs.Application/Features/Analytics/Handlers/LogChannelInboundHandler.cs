@@ -16,6 +16,7 @@ internal sealed class LogChannelInboundHandler : INotificationHandler<ChannelMes
             AgentId = notification.AgentId,
             Type = notification.LogType,
             Channel = notification.ChannelType,
+            ChannelConnectionId = notification.ChannelConnectionId,
             Content = notification.Content,
             CorrelationId = notification.CorrelationId,
         }, ct);

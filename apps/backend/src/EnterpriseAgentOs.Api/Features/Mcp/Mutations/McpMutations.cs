@@ -88,21 +88,29 @@ public sealed class McpMutations
         return true;
     }
 
-    public async Task<bool> AssignMcpServerToAgent(
+    public Task<bool> AssignMcpServerToAgent(
         Guid agentId, string serverName,
         [Service] IMcpServerService svc, CancellationToken ct)
     {
-        await svc.AssignToAgentAsync(agentId, serverName, ct);
-        return true;
+        _ = svc;
+        _ = ct;
+        throw ImmutableAgentCapabilitiesError();
     }
 
-    public async Task<bool> UnassignMcpServerFromAgent(
+    public Task<bool> UnassignMcpServerFromAgent(
         Guid agentId, string serverName,
         [Service] IMcpServerService svc, CancellationToken ct)
     {
-        await svc.UnassignFromAgentAsync(agentId, serverName, ct);
-        return true;
+        _ = svc;
+        _ = ct;
+        throw ImmutableAgentCapabilitiesError();
     }
+
+    private static GraphQLException ImmutableAgentCapabilitiesError() =>
+        new(ErrorBuilder.New()
+            .SetMessage("Agent MCP servers are immutable after agent creation. Create a new agent with the desired MCP servers.")
+            .SetCode("IMMUTABLE_AGENT_CAPABILITIES")
+            .Build());
 
     public async Task<bool> SaveMcpCredential(
         string serverName, List<CredentialFieldInput> fields,

@@ -4,8 +4,8 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 public class ChannelQueries
 {
     private static readonly TimeSpan ChannelCacheTtl = TimeSpan.FromMinutes(5);
-    private const string ChannelListCacheKey = "channels:list";
-    private static string ChannelCacheKey(Guid id) => $"channels:{id}";
+    private static string ChannelListCacheKey(Guid userId) => $"channels:list:{userId}";
+    private static string ChannelCacheKey(Guid id, Guid userId) => $"channels:{id}:user:{userId}";
 
     [GraphQLDescription("Lists all channel connections (Slack, Telegram, Discord, etc.) configured by the user.")]
     public async Task<IReadOnlyList<ChannelConnectionGqlDto>> GetChannelConnections(
@@ -14,16 +14,19 @@ public class ChannelQueries
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var cached = await cache.GetJsonAsync<IReadOnlyList<ChannelConnectionGqlDto>>(ChannelListCacheKey, ct);
+        var listKey = ChannelListCacheKey(user.Id);
+        var cached = await cache.GetJsonAsync<IReadOnlyList<ChannelConnectionGqlDto>>(listKey, ct);
         if (cached is not null)
             return cached;
 
-        var rows = await repo.ListConnectionsAsync(ct);
+        var rows = (await repo.ListConnectionsAsync(ct))
+            .Where(connection => connection.CreatedById == user.Id)
+            .ToList();
         var result = rows.Select(ChannelGraphQLMapper.ToDto).ToList();
 
-        await cache.SetJsonAsync(ChannelListCacheKey, (IReadOnlyList<ChannelConnectionGqlDto>)result, ChannelCacheTtl, ct);
+        await cache.SetJsonAsync(listKey, (IReadOnlyList<ChannelConnectionGqlDto>)result, ChannelCacheTtl, ct);
         return result;
     }
 
@@ -35,14 +38,14 @@ public class ChannelQueries
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
+        var user = DashboardAuthContextExtensions.GetUser(context);
 
-        var key = ChannelCacheKey(id);
+        var key = ChannelCacheKey(id, user.Id);
         var cached = await cache.GetJsonAsync<ChannelConnectionGqlDto>(key, ct);
         if (cached is not null)
             return cached;
 
-        var row = await repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = id }, ct);
+        var row = await repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = id, CreatedById = user.Id }, ct);
         if (row is null) return null;
         var dto = ChannelGraphQLMapper.ToDto(row);
 

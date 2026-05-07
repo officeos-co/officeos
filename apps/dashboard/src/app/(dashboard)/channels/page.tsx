@@ -1,124 +1,168 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useState } from "react";
+import { PlusIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
-import { ChannelCard, ChannelOnboardingDialog } from "@/features/agents";
-import { DataPagination } from "@/components/ui/data-pagination";
-import { EmptyState } from "@/components/ui/empty-state";
-import { type Channel } from "@/features/agents/data/channels";
+import { Button } from "@/components/ui/button";
 import {
-  useChannels,
-  useCreateChannelConnection,
-  useBindChannelToAgent,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ChannelOnboardingDialog,
+  useChannelConnections,
 } from "@/features/agents";
 import { useAnalytics } from "@/features/analytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFilterParams } from "@/hooks/useFilterParams";
-
-const PAGE_SIZES = [25, 50, 100] as const;
-
-type View = "all" | "connected" | "available";
-
-const FILTER_DEFAULTS = { view: "all", size: "50", page: "0" } as const;
+import type { Channel } from "@/features/agents/data/channels";
 
 export default function ChannelsPage() {
-  const router = useRouter();
-  const { channels, loading } = useChannels();
-  const { createChannelConnection } = useCreateChannelConnection();
-  const { bindChannelToAgent } = useBindChannelToAgent();
+  const { connections, channelTypes, loading } = useChannelConnections();
   const { trackChannelConnected } = useAnalytics();
-  void createChannelConnection;
-  void bindChannelToAgent;
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [onboardingChannel, setOnboardingChannel] = useState<Channel | null>(
     null,
   );
 
-  const { get, set: setParams } = useFilterParams(FILTER_DEFAULTS, "/channels");
-
-  const view = (get("view") as View) ?? "all";
-  const pageSize = Number(get("size")) || 50;
-  const page = Number(get("page")) || 0;
-
-  const setPageSize = (v: number) => setParams({ size: String(v), page: null });
-  const setPage = (v: number) => setParams({ page: String(v) });
-
-  const filtered = useMemo(() => {
-    return channels.filter((c) => {
-      if (view === "connected" && !c.added) return false;
-      if (view === "available" && c.added) return false;
-      return true;
-    });
-  }, [channels, view]);
-
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
-
   return (
     <>
       <PageHeader
+        group="Managed Agents"
         page="Channels"
-        subtitle="Connect agents to external communication channels."
-        width="wide"
+        subtitle="Manage communication channels agents can mount into sessions."
+        width="thin"
+        action={
+          <Button size="sm" onClick={() => setPickerOpen(true)}>
+            <PlusIcon className="size-4" />
+            Add channel
+          </Button>
+        }
       />
-      <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
-        {loading && channels.length === 0 ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.025)]"
-              >
-                <div className="flex items-start gap-3">
-                  <Skeleton className="size-9 shrink-0 rounded-lg" />
-                  <div className="flex-1 pt-0.5">
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  <Skeleton className="h-7 w-20 rounded-md" />
-                </div>
-                <div className="mt-2 space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                </div>
-                <div className="mt-auto flex gap-2 pt-2">
-                  <Skeleton className="h-5 w-16 rounded-md" />
-                  <Skeleton className="h-5 w-20 rounded-md" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {paged.map((channel) => (
-              <ChannelCard
-                key={channel.slug}
-                channel={channel}
-                variant="marketplace"
-                onClick={() => router.push(`/channels/${channel.slug}`)}
-                onConnect={() => setOnboardingChannel(channel)}
-              />
-            ))}
-          </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
-          <EmptyState message="No channels found." />
-        )}
-
-        {!loading && filtered.length > 0 && (
-          <DataPagination
-            page={page}
-            pageSize={pageSize}
-            total={filtered.length}
-            pageSizes={PAGE_SIZES}
-            onPageChange={setPage}
-            onPageSizeChange={(s) => {
-              setPageSize(s);
-              setPage(0);
-            }}
-          />
-        )}
+      <PageContainer width="thin" className="flex flex-1 flex-col pb-4">
+        <div className="min-h-0 overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading &&
+                connections.length === 0 &&
+                Array.from({ length: 6 }).map((_, index) => (
+                  <TableRow key={`channel-skeleton-${index}`}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              {connections.map((connection) => (
+                <TableRow key={connection.id}>
+                  <TableCell>
+                    <Link
+                      href={`/channels/${connection.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {connection.displayName}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{connection.typeDisplayName}</TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        connection.enabled
+                          ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                          : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                      }
+                    >
+                      {connection.enabled ? "Enabled" : "Disabled"}
+                    </span>
+                  </TableCell>
+                  <TableCell>{formatDate(connection.createdAt)}</TableCell>
+                </TableRow>
+              ))}
+              {!loading && connections.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="py-10 text-center text-muted-foreground"
+                  >
+                    No channels yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </PageContainer>
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add channel</DialogTitle>
+            <DialogDescription>
+              Create a channel resource that can be attached to an agent
+              session.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {channelTypes.map((channel) => (
+              <button
+                key={channel.slug}
+                type="button"
+                className="flex w-full items-start gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/50"
+                onClick={() => {
+                  setPickerOpen(false);
+                  setOnboardingChannel(channel);
+                }}
+              >
+                <span
+                  className="size-7 shrink-0 [&>svg]:size-7"
+                  dangerouslySetInnerHTML={{ __html: channel.logo }}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">
+                    {channel.name}
+                  </span>
+                  <span className="line-clamp-2 text-xs text-muted-foreground">
+                    {channel.description || "Create a channel connection."}
+                  </span>
+                </span>
+              </button>
+            ))}
+            {!loading && channelTypes.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No channel types available.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {onboardingChannel && (
         <ChannelOnboardingDialog
@@ -135,4 +179,9 @@ export default function ChannelsPage() {
       )}
     </>
   );
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
 }

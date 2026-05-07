@@ -9,6 +9,7 @@ public sealed record AgentLogDto(
     string? Tool,
     string? Integration,
     string? Channel,
+    Guid? ChannelConnectionId,
     string Content,
     int? DurationMs,
     int? InputTokens,
@@ -75,6 +76,6 @@ public static class AgentLogMapper
 {
     public static AgentLogDto ToDto(this AgentLogRecord r, string? agentName = null) => new(
         r.Id, r.AgentId, agentName, r.Time, r.Type,
-        r.Tool, r.Integration, r.Channel, r.Content,
+        r.Tool, r.Integration, r.Channel, r.ChannelConnectionId, r.Content,
         r.Usage.DurationMs, r.Usage.InputTokens, r.Usage.OutputTokens, r.CorrelationId);
 }

@@ -12,6 +12,7 @@ const AGENT_LOGS_QUERY = gql`
       tool
       integration
       channel
+      channelConnectionId
       content
       durationMs
       inputTokens
@@ -30,6 +31,7 @@ const AGENT_LOG_APPENDED_SUBSCRIPTION = gql`
       tool
       integration
       channel
+      channelConnectionId
       content
       durationMs
       inputTokens
@@ -46,6 +48,7 @@ type RawAgentLog = {
   tool?: string | null
   integration?: string | null
   channel?: string | null
+  channelConnectionId?: string | null
   content: string
   durationMs?: number | null
   inputTokens?: number | null
@@ -87,6 +90,7 @@ function toAgentLog(raw: RawAgentLog): AgentLog {
     tool: raw.tool ?? undefined,
     integration: raw.integration ?? undefined,
     channel: raw.channel ?? undefined,
+    channelConnectionId: raw.channelConnectionId ?? undefined,
     content: raw.content,
     durationMs: raw.durationMs ?? undefined,
     tokens:

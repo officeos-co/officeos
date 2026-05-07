@@ -244,6 +244,12 @@ export type CreateAgentHookInput = {
   toolNames: string[];
   toolPermissions: Array<{ tool: string; mode: "ALLOW" | "DENY" }>;
   channelSlugs: string[];
+  resources?: Array<{
+    resourceType: string;
+    resourceId: string;
+    accessMode: string;
+    instructions?: string | null;
+  }>;
   bootstrapMessage?: string;
 };
 
@@ -261,6 +267,7 @@ export function useCreateAgent() {
             toolNames: input.toolNames,
             toolPermissions: input.toolPermissions,
             channelSlugs: input.channelSlugs,
+            resources: input.resources ?? [],
             bootstrapMessage: input.bootstrapMessage ?? null,
           },
         },

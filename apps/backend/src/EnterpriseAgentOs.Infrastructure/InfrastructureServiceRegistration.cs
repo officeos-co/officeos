@@ -40,6 +40,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
         services.AddScoped<IAgentSessionContextRepository, AgentSessionContextRepository>();
         services.AddScoped<IAgentRunRepository, AgentRunRepository>();
+        services.AddScoped<IAgentResourceRepository, AgentResourceRepository>();
 
         // Adapters
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();

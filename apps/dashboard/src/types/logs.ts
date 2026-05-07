@@ -5,6 +5,7 @@ export type AgentLog = {
   tool?: string
   integration?: string
   channel?: string
+  channelConnectionId?: string
   content: string
   durationMs?: number
   tokens?: { input: number; output: number }

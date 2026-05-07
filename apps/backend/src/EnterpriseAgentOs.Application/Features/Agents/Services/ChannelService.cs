@@ -81,7 +81,7 @@ internal sealed class ChannelService : IChannelService
 
             await _publisher.Publish(new ChannelMessageRoutedEvent(
                 null, AgentLogType.ChannelIn, channelType,
-                messageText, Guid.NewGuid().ToString("N")), ct);
+                messageText, Guid.NewGuid().ToString("N"), connectionId), ct);
         }
 
         foreach (var binding in bindings)
@@ -92,7 +92,7 @@ internal sealed class ChannelService : IChannelService
             // Always log the inbound message, even if the binding is disabled
             await _publisher.Publish(new ChannelMessageRoutedEvent(
                 binding.AgentId, AgentLogType.ChannelIn, channelType,
-                messageText, correlationId), ct);
+                messageText, correlationId, binding.ChannelConnectionId), ct);
 
             if (!binding.Enabled) continue;
 
@@ -102,7 +102,7 @@ internal sealed class ChannelService : IChannelService
             // Stash the reply target so the outbound handler can deliver
             // the response back to the same conversation — no DB, pure in-memory
             if (!string.IsNullOrEmpty(channelId))
-                _replyContext.Set(correlationId, channelType, channelId, channelId);
+                _replyContext.Set(correlationId, channelType, channelId, channelId, binding.ChannelConnectionId);
 
             await _publisher.Publish(new MessageReceivedEvent(
                 binding.AgentId, plainText, correlationId), ct);
@@ -171,7 +171,7 @@ internal sealed class ChannelService : IChannelService
                     ChannelMessage.Text(text), ct);
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
-                    agentId, AgentLogType.ChannelOut, channelType, text, correlationId), ct);
+                    agentId, AgentLogType.ChannelOut, channelType, text, correlationId, binding.ChannelConnectionId), ct);
             }
             catch (Exception ex)
             {
@@ -179,7 +179,7 @@ internal sealed class ChannelService : IChannelService
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
                     agentId, AgentLogType.Error, channelType,
-                    $"Failed to deliver message via {channelType}: {ex.Message}", correlationId), ct);
+                    $"Failed to deliver message via {channelType}: {ex.Message}", correlationId, binding.ChannelConnectionId), ct);
             }
         }
     }
