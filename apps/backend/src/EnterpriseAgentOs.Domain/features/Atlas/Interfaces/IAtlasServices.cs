@@ -30,6 +30,7 @@ public interface IAtlasService
     Task<IReadOnlyList<AtlasActivityRecord>> ListActivityAsync(Guid? connectionId, CancellationToken ct = default);
     Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListHistoryAsync(Guid? connectionId, CancellationToken ct = default);
     Task<IReadOnlyList<AtlasIndexJobRecord>> ListIndexJobsAsync(Guid connectionId, int limit = 20, CancellationToken ct = default);
+    Task<AtlasIndexedRecordRecord?> GetRecordAsync(Guid id, CancellationToken ct = default);
     Task<AtlasIndexedRecordPage> SearchRecordsAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default);
     Task<AtlasConnectorConnectionRecord> CreateGitHubConnectionAsync(CreateAtlasGitHubConnectionRequest request, CancellationToken ct = default);
     Task<AtlasConnectorConnectionRecord> UpdateGitHubConnectionAsync(UpdateAtlasGitHubConnectionRequest request, CancellationToken ct = default);

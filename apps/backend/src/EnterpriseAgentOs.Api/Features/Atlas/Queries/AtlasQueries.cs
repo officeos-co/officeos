@@ -64,6 +64,16 @@ public sealed class AtlasQueries
         return service.ListIndexJobsAsync(connectionId, Math.Clamp(limit ?? 20, 1, 100), ct);
     }
 
+    public Task<AtlasIndexedRecordRecord?> GetAtlasIndexedRecord(
+        Guid id,
+        IResolverContext context,
+        [Service] IAtlasService service,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return service.GetRecordAsync(id, ct);
+    }
+
     public Task<AtlasIndexedRecordPage> GetAtlasIndexedRecords(
         Guid connectionId,
         string entity,
