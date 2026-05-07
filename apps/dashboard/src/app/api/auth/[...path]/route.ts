@@ -1,4 +1,4 @@
-rimport { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { getEnvConfig } from "@/lib/env";
 
 type RouteContext = {

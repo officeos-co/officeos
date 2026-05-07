@@ -17,6 +17,7 @@ import {
 } from "@/features/agents";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { buildOAuthUrl } from "@/lib/auth-url";
 import { useFilterParams } from "@/hooks/useFilterParams";
 import { BracesIcon } from "lucide-react";
 
@@ -62,7 +63,7 @@ export default function IntegrationsPage() {
   function startSetup(serverName: string) {
     const integration = integrations.find((i) => i.name === serverName);
     if (integration?.oauthProvider) {
-      window.location.assign(`/api/auth/${integration.oauthProvider}?returnTo=${encodeURIComponent("/integrations")}`);
+      window.location.assign(buildOAuthUrl(integration.oauthProvider, "/integrations"));
       return;
     }
     setConfigSlug(serverName);
