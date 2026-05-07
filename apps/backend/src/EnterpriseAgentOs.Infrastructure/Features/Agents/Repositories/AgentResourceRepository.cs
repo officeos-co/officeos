@@ -32,6 +32,20 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
         return ToBrowserRecord(entity);
     }
 
+    public async Task<bool> DeleteBrowserResourceAsync(Guid id, Guid ownerId, CancellationToken ct = default)
+    {
+        var entity = await _db.BrowserResources
+            .FirstOrDefaultAsync(r => r.Id == id && r.OwnerId == ownerId, ct);
+        if (entity is null) return false;
+
+        await _db.AgentSessionResourceAttachments
+            .Where(a => a.ResourceType == AgentResourceTypes.Browser && a.ResourceId == id)
+            .ExecuteDeleteAsync(ct);
+        _db.BrowserResources.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task SetBrowserCurrentAgentAsync(Guid browserResourceId, Guid agentId, CancellationToken ct = default)
     {
         var entity = await _db.BrowserResources.FirstOrDefaultAsync(r => r.Id == browserResourceId, ct);
@@ -65,6 +79,20 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
         _db.MemoryStores.Add(entity);
         await _db.SaveChangesAsync(ct);
         return ToMemoryStoreRecord(entity);
+    }
+
+    public async Task<bool> DeleteMemoryStoreAsync(Guid id, Guid ownerId, CancellationToken ct = default)
+    {
+        var entity = await _db.MemoryStores
+            .FirstOrDefaultAsync(s => s.Id == id && s.OwnerId == ownerId, ct);
+        if (entity is null) return false;
+
+        await _db.AgentSessionResourceAttachments
+            .Where(a => a.ResourceType == AgentResourceTypes.MemoryStore && a.ResourceId == id)
+            .ExecuteDeleteAsync(ct);
+        _db.MemoryStores.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<IReadOnlyList<MemoryStoreEntryRecord>> ListMemoryStoreEntriesAsync(Guid memoryStoreId, Guid ownerId, CancellationToken ct = default)
