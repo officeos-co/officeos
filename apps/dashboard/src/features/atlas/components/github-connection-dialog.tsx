@@ -22,11 +22,13 @@ export function GitHubConnectionDialog({
   open,
   onOpenChange,
   connectorType,
+  oauthConfigured = false,
   onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   connectorType?: AtlasConnectorType;
+  oauthConfigured?: boolean;
   onSave: (values: {
     workspaceName: string;
     displayName: string;
@@ -181,10 +183,19 @@ export function GitHubConnectionDialog({
               }
             >
               <GlobeIcon className="size-4" />
-              Re-authenticate
+              {oauthConfigured ? "Re-authenticate" : "Connect GitHub"}
             </Button>
-            <div className="mb-10 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-              OAuth connected when GitHub auth exists
+            <div
+              className={cn(
+                "mb-10 rounded-lg border px-4 py-3 text-sm font-medium",
+                oauthConfigured
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-amber-200 bg-amber-50 text-amber-800",
+              )}
+            >
+              {oauthConfigured
+                ? "GitHub OAuth connected"
+                : "GitHub OAuth is not connected"}
             </div>
 
             <div className="space-y-3">

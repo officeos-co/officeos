@@ -42,4 +42,46 @@ public sealed class AtlasQueries
         _ = DashboardAuthContextExtensions.GetUser(context);
         return service.ListHistoryAsync(connectionId, ct);
     }
+
+    public Task<IReadOnlyList<AtlasActivityRecord>> GetAtlasActivity(
+        Guid? connectionId,
+        IResolverContext context,
+        [Service] IAtlasService service,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return service.ListActivityAsync(connectionId, ct);
+    }
+
+    public Task<IReadOnlyList<AtlasIndexJobRecord>> GetAtlasIndexJobs(
+        Guid connectionId,
+        int? limit,
+        IResolverContext context,
+        [Service] IAtlasService service,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return service.ListIndexJobsAsync(connectionId, Math.Clamp(limit ?? 20, 1, 100), ct);
+    }
+
+    public Task<AtlasIndexedRecordPage> GetAtlasIndexedRecords(
+        Guid connectionId,
+        string entity,
+        string? query,
+        string? cursor,
+        int? limit,
+        IResolverContext context,
+        [Service] IAtlasService service,
+        CancellationToken ct)
+    {
+        _ = DashboardAuthContextExtensions.GetUser(context);
+        return service.SearchRecordsAsync(new AtlasIndexedRecordFilter
+        {
+            ConnectionId = connectionId,
+            Entity = entity,
+            Query = query,
+            Cursor = cursor,
+            Limit = Math.Clamp(limit ?? 20, 1, 100),
+        }, ct);
+    }
 }

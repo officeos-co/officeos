@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { PlusIcon, RefreshCwIcon } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
@@ -16,31 +16,73 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  type AtlasHistory,
   GitHubConnectionDialog,
   parseJsonArray,
   useAtlasConnections,
   useAtlasConnectorTypes,
   useCreateAtlasGitHubConnection,
+  useAtlasHistory,
   useStartAtlasIndex,
 } from "@/features/atlas";
 import { cn } from "@/lib/utils";
 
-const statusLabel: Record<string, string> = {
-  NeedsAuth: "Needs auth",
-  Indexing: "Indexing",
-  Ready: "Ready",
-  Failed: "Failed",
+const statusStyles: Record<
+  string,
+  { label: string; className: string; dotClassName: string }
+> = {
+  NeedsAuth: {
+    label: "Needs auth",
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+    dotClassName: "bg-amber-500",
+  },
+  Indexing: {
+    label: "Indexing",
+    className: "border-sky-200 bg-sky-50 text-sky-800",
+    dotClassName: "bg-sky-500",
+  },
+  Ready: {
+    label: "Ready",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    dotClassName: "bg-emerald-500",
+  },
+  Failed: {
+    label: "Failed",
+    className: "border-red-200 bg-red-50 text-red-800",
+    dotClassName: "bg-red-500",
+  },
 };
 
 export default function AtlasConnectorsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { connections, loading, refetch } = useAtlasConnections();
+  const { connections, loading, refetch } = useAtlasConnections({
+    pollInterval: 3000,
+  });
   const { connectorTypes } = useAtlasConnectorTypes();
+  const { history } = useAtlasHistory(null, { pollInterval: 5000 });
   const { createConnection } = useCreateAtlasGitHubConnection();
   const { startIndex } = useStartAtlasIndex();
   const githubConnector = connectorTypes.find(
     (connector) => connector.provider === "github",
   );
+  const historyByConnection = useMemo(() => {
+    const grouped = new Map<string, AtlasHistory[]>();
+    for (const item of history) {
+      const items = grouped.get(item.connectionId);
+      if (items) {
+        if (items.length < 4) items.push(item);
+      } else {
+        grouped.set(item.connectionId, [item]);
+      }
+    }
+    return grouped;
+  }, [history]);
 
   return (
     <>
@@ -89,9 +131,12 @@ export default function AtlasConnectorsPage() {
                           ) : null}
                         </div>
                         <div>
-                          <div className="font-medium">
+                          <Link
+                            href={`/atlas/connectors/${connection.id}`}
+                            className="font-medium transition-colors hover:text-primary hover:underline"
+                          >
                             {connection.displayName}
-                          </div>
+                          </Link>
                           <div className="text-xs text-muted-foreground">
                             {repositories.join(", ") || "No repositories"}
                           </div>
@@ -101,29 +146,16 @@ export default function AtlasConnectorsPage() {
                     <TableCell>{formatDate(connection.createdAt)}</TableCell>
                     <TableCell>{formatDate(connection.updatedAt)}</TableCell>
                     <TableCell>
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest",
-                          connection.status === "Ready" &&
-                            "bg-emerald-100 text-emerald-700",
-                          connection.status === "Indexing" &&
-                            "bg-blue-100 text-blue-700",
-                          connection.status === "NeedsAuth" &&
-                            "bg-amber-100 text-amber-700",
-                          connection.status === "Failed" &&
-                            "bg-red-100 text-red-700",
-                        )}
-                      >
-                        {statusLabel[connection.status] ?? connection.status}
-                      </span>
+                      <ConnectionStatus
+                        status={connection.status}
+                        error={connection.error}
+                      />
                     </TableCell>
                     <TableCell>
-                      <Link
-                        href={`/atlas/history?connectionId=${connection.id}`}
-                        className="text-sm font-medium text-primary hover:underline"
-                      >
-                        History
-                      </Link>
+                      <HistoryLink
+                        connectionId={connection.id}
+                        items={historyByConnection.get(connection.id) ?? []}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -157,12 +189,118 @@ export default function AtlasConnectorsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         connectorType={githubConnector}
+        oauthConfigured={Boolean(githubConnector?.oauthConfigured)}
         onSave={async (values) => {
           await createConnection(values);
           await refetch();
         }}
       />
     </>
+  );
+}
+
+function ConnectionStatus({
+  status,
+  error,
+}: {
+  status: string;
+  error?: string | null;
+}) {
+  const style = statusStyles[status] ?? {
+    label: status,
+    className: "border-border bg-muted text-muted-foreground",
+    dotClassName: "bg-muted-foreground",
+  };
+
+  return (
+    <div className="flex min-w-28 flex-col items-start gap-1">
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest",
+          style.className,
+        )}
+      >
+        <span className={cn("size-1.5 rounded-full", style.dotClassName)} />
+        {style.label}
+      </span>
+      {error ? (
+        <span className="max-w-40 truncate text-xs text-red-700" title={error}>
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function HistoryLink({
+  connectionId,
+  items,
+}: {
+  connectionId: string;
+  items: AtlasHistory[];
+}) {
+  return (
+    <TooltipProvider delay={700}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Link
+              href={`/atlas/history?connectionId=${connectionId}`}
+              className="rounded-sm text-sm font-medium text-primary transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              History
+            </Link>
+          }
+        />
+        <TooltipContent
+          side="bottom"
+          align="start"
+          sideOffset={8}
+          className="block w-80 max-w-80 rounded-md border border-border bg-popover p-3 text-popover-foreground shadow-lg"
+        >
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Recent requests
+          </span>
+          {items.length > 0 ? (
+            <span className="block space-y-2">
+              {items.map((item) => (
+                <span
+                  key={item.id}
+                  className="block rounded-md border border-border bg-background px-3 py-2"
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="truncate font-mono text-xs">
+                      {item.entity}.{item.action}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 text-[10px] font-semibold uppercase tracking-widest",
+                        item.success ? "text-emerald-700" : "text-red-700",
+                      )}
+                    >
+                      {item.success ? "Success" : "Failed"}
+                    </span>
+                  </span>
+                  <span className="mt-1 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span>{formatDate(item.createdAt)}</span>
+                    <span>{item.durationMs}ms</span>
+                  </span>
+                  {item.error ? (
+                    <span className="mt-1 block truncate text-xs text-red-700">
+                      {item.error}
+                    </span>
+                  ) : null}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="block rounded-md border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+              No recent history.
+            </span>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
