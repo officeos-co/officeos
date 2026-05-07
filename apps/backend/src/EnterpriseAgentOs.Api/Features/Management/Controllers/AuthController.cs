@@ -23,8 +23,7 @@ public sealed class AuthController : ControllerBase
     {
         try
         {
-            var callbackUri = BuildProxiedCallbackUri("google");
-            var result = _authService.BuildGoogleLoginUrl(callbackUri);
+            var result = _authService.BuildGoogleLoginUrl();
 
             Response.Cookies.Append("oauth-state", result.State, new CookieOptions
             {
@@ -58,8 +57,7 @@ public sealed class AuthController : ControllerBase
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
-            var callbackUri = BuildProxiedCallbackUri("google");
-            var result = await _authService.HandleGoogleCallbackAsync(code, callbackUri, ct);
+            var result = await _authService.HandleGoogleCallbackAsync(code, ct: ct);
 
             Response.Cookies.Append("eaos-session", result.SessionToken, new CookieOptions
             {
@@ -71,7 +69,7 @@ public sealed class AuthController : ControllerBase
             });
 
             _logger.LogInformation("OAuth: login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
-            return Redirect(returnTo);
+            return Redirect(BuildFrontendRedirect(returnTo));
         }
         catch (Exception ex)
         {
@@ -85,8 +83,7 @@ public sealed class AuthController : ControllerBase
     {
         try
         {
-            var callbackUri = BuildProxiedCallbackUri("github");
-            var result = _authService.BuildGitHubLoginUrl(callbackUri);
+            var result = _authService.BuildGitHubLoginUrl();
 
             Response.Cookies.Append("oauth-state", result.State, new CookieOptions
             {
@@ -120,8 +117,7 @@ public sealed class AuthController : ControllerBase
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
-            var callbackUri = BuildProxiedCallbackUri("github");
-            var result = await _authService.HandleGitHubCallbackAsync(code, callbackUri, ct);
+            var result = await _authService.HandleGitHubCallbackAsync(code, ct: ct);
 
             Response.Cookies.Append("eaos-session", result.SessionToken, new CookieOptions
             {
@@ -133,7 +129,7 @@ public sealed class AuthController : ControllerBase
             });
 
             _logger.LogInformation("OAuth: GitHub login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
-            return Redirect(returnTo);
+            return Redirect(BuildFrontendRedirect(returnTo));
         }
         catch (Exception ex)
         {
@@ -143,28 +139,6 @@ public sealed class AuthController : ControllerBase
     }
 
     private bool IsLocalhost => Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
-
-    private string? BuildProxiedCallbackUri(string provider)
-    {
-        var forwardedHost = Request.Headers["X-Forwarded-Host"].FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(forwardedHost) || !ForwardedHostMatchesFrontend(forwardedHost))
-            return null;
-
-        var forwardedProto = Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
-        var scheme = string.Equals(forwardedProto, "http", StringComparison.OrdinalIgnoreCase)
-            ? "http"
-            : "https";
-
-        return $"{scheme}://{forwardedHost}/api/auth/callback/{provider}";
-    }
-
-    private bool ForwardedHostMatchesFrontend(string forwardedHost)
-    {
-        if (!Uri.TryCreate(_frontendConfig.Origin, UriKind.Absolute, out var frontendOrigin))
-            return false;
-
-        return string.Equals(forwardedHost, frontendOrigin.Authority, StringComparison.OrdinalIgnoreCase);
-    }
 
     private void SetReturnToCookie(string? returnTo)
     {
@@ -193,6 +167,14 @@ public sealed class AuthController : ControllerBase
         && !value.StartsWith("//", StringComparison.Ordinal)
         && !value.Contains("://", StringComparison.Ordinal);
 
+    private string BuildFrontendRedirect(string path)
+    {
+        if (!Uri.TryCreate(_frontendConfig.Origin, UriKind.Absolute, out var frontendOrigin))
+            return path;
+
+        return new Uri(frontendOrigin, path).ToString();
+    }
+
     private IActionResult RedirectWithError(string message)
-        => Redirect($"/login?error={Uri.EscapeDataString(message)}");
+        => Redirect(BuildFrontendRedirect($"/login?error={Uri.EscapeDataString(message)}"));
 }

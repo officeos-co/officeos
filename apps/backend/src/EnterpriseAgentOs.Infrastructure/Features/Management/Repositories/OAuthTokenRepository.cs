@@ -30,7 +30,6 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
     public async Task UpsertAsync(OAuthTokenRecord token, CancellationToken ct = default)
     {
         var existing = await _db.OAuthTokens
-            .Include(t => t.GrantedScopes)
             .FirstOrDefaultAsync(t => t.Provider == token.Provider, ct);
 
         if (existing is null)
@@ -50,18 +49,32 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
         existing.Email = token.Email;
         existing.UpdatedAt = DateTime.UtcNow;
 
-        _db.OAuthGrantedScopes.RemoveRange(existing.GrantedScopes);
-        existing.GrantedScopes = token.GrantedScopes
-            .Select(s => new OAuthGrantedScopeEntity
-            {
-                Id = Guid.NewGuid(),
-                OAuthTokenId = existing.Id,
-                Scope = s.Scope,
-            })
-            .ToList();
+        if (_db.Entry(existing).State == EntityState.Added)
+        {
+            existing.GrantedScopes = token.GrantedScopes
+                .Select(s => CreateScope(existing.Id, s.Scope))
+                .ToList();
+        }
+        else
+        {
+            await _db.OAuthGrantedScopes
+                .Where(s => s.OAuthTokenId == existing.Id)
+                .ExecuteDeleteAsync(ct);
+
+            await _db.OAuthGrantedScopes.AddRangeAsync(
+                token.GrantedScopes.Select(s => CreateScope(existing.Id, s.Scope)),
+                ct);
+        }
 
         await _db.SaveChangesAsync(ct);
     }
+
+    private static OAuthGrantedScopeEntity CreateScope(Guid tokenId, string scope) => new()
+    {
+        Id = Guid.NewGuid(),
+        OAuthTokenId = tokenId,
+        Scope = scope,
+    };
 
     private static OAuthTokenRecord ToRecord(OAuthTokenEntity entity)
     {

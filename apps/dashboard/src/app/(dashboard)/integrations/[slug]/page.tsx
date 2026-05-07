@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { buildOAuthUrl } from "@/lib/auth-url";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
@@ -67,9 +68,7 @@ export default function IntegrationDetailPage({
   function handleOAuthConnect() {
     if (!integration?.oauthProvider) return;
     const returnTo = `/integrations/${integration.name}`;
-    window.location.assign(
-      `/api/auth/${integration.oauthProvider}?returnTo=${encodeURIComponent(returnTo)}`,
-    );
+    window.location.assign(buildOAuthUrl(integration.oauthProvider, returnTo));
   }
 
   return (

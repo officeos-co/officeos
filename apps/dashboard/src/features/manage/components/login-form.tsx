@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { buildOAuthUrl } from "@/lib/auth-url";
 
 function GitHubIcon() {
   return (
@@ -57,7 +58,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           nativeButton={false}
-          render={<Link href="/api/auth/google" prefetch={false} />}
+          render={<Link href={buildOAuthUrl("google", "/agents")} prefetch={false} />}
         >
           <GoogleIcon />
           Continue with Google
@@ -66,7 +67,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           nativeButton={false}
-          render={<Link href="/api/auth/github" prefetch={false} />}
+          render={<Link href={buildOAuthUrl("github", "/agents")} prefetch={false} />}
         >
           <GitHubIcon />
           Continue with GitHub

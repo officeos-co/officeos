@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { AtlasConnectorType } from "@/features/atlas";
+import { buildOAuthUrl } from "@/lib/auth-url";
 import { cn } from "@/lib/utils";
 
 const SUGGESTED = new Set(["commits", "issues", "pull_requests", "repositories"]);
@@ -176,9 +177,7 @@ export function GitHubConnectionDialog({
             <Button
               className="mb-4 h-12 w-full"
               onClick={() =>
-                window.location.assign(
-                  `/api/auth/github?returnTo=${encodeURIComponent("/atlas/connectors")}`,
-                )
+                window.location.assign(buildOAuthUrl("github", "/atlas/connectors"))
               }
             >
               <GlobeIcon className="size-4" />
