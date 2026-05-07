@@ -39,6 +39,47 @@ export type AtlasHistory = {
   createdAt: string;
 };
 
+export type AtlasActivity = {
+  id: string;
+  connectionId: string;
+  type: string;
+  entity?: string | null;
+  message: string;
+  detailsJson: string;
+  success: boolean;
+  createdAt: string;
+};
+
+export type AtlasIndexJob = {
+  id: string;
+  connectionId: string;
+  status: string;
+  error?: string | null;
+  recordsIndexed: number;
+  createdAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+
+export type AtlasIndexedRecord = {
+  id: string;
+  connectionId: string;
+  entity: string;
+  externalId: string;
+  title: string;
+  searchText: string;
+  rawJson: string;
+  externalUpdatedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AtlasIndexedRecordPage = {
+  records: AtlasIndexedRecord[];
+  hasMore: boolean;
+  cursor?: string | null;
+};
+
 export type AtlasConnectorType = {
   name: string;
   provider: string;
@@ -54,6 +95,7 @@ export type AtlasConnectorType = {
   category: string;
   oauthProvider?: string | null;
   oauthScopesJson?: string | null;
+  oauthConfigured: boolean;
   isBuiltin: boolean;
   entities: string[];
 };
@@ -90,6 +132,15 @@ const ATLAS_CONNECTIONS = gql`
   }
 `;
 
+const ATLAS_CONNECTION = gql`
+  ${CONNECTION_FIELDS}
+  query AtlasConnection($id: UUID!) {
+    atlasConnection(id: $id) {
+      ...AtlasConnectionFields
+    }
+  }
+`;
+
 const ATLAS_CONNECTOR_TYPES = gql`
   query AtlasConnectorTypes {
     atlasConnectorTypes {
@@ -107,6 +158,7 @@ const ATLAS_CONNECTOR_TYPES = gql`
       category
       oauthProvider
       oauthScopesJson
+      oauthConfigured
       isBuiltin
       entities
     }
@@ -130,6 +182,69 @@ const ATLAS_HISTORY = gql`
   }
 `;
 
+const ATLAS_ACTIVITY = gql`
+  query AtlasActivity($connectionId: UUID) {
+    atlasActivity(connectionId: $connectionId) {
+      id
+      connectionId
+      type
+      entity
+      message
+      detailsJson
+      success
+      createdAt
+    }
+  }
+`;
+
+const ATLAS_INDEX_JOBS = gql`
+  query AtlasIndexJobs($connectionId: UUID!, $limit: Int) {
+    atlasIndexJobs(connectionId: $connectionId, limit: $limit) {
+      id
+      connectionId
+      status
+      error
+      recordsIndexed
+      createdAt
+      startedAt
+      completedAt
+    }
+  }
+`;
+
+const ATLAS_INDEXED_RECORDS = gql`
+  query AtlasIndexedRecords(
+    $connectionId: UUID!
+    $entity: String!
+    $query: String
+    $cursor: String
+    $limit: Int
+  ) {
+    atlasIndexedRecords(
+      connectionId: $connectionId
+      entity: $entity
+      query: $query
+      cursor: $cursor
+      limit: $limit
+    ) {
+      records {
+        id
+        connectionId
+        entity
+        externalId
+        title
+        searchText
+        rawJson
+        externalUpdatedAt
+        createdAt
+        updatedAt
+      }
+      hasMore
+      cursor
+    }
+  }
+`;
+
 const CREATE_GITHUB_CONNECTION = gql`
   ${CONNECTION_FIELDS}
   mutation CreateAtlasGitHubConnection($input: CreateAtlasGitHubConnectionInput!) {
@@ -148,12 +263,33 @@ const START_ATLAS_INDEX = gql`
   }
 `;
 
-export function useAtlasConnections() {
+export function useAtlasConnections({
+  pollInterval,
+}: { pollInterval?: number } = {}) {
   const { data, loading, error, refetch } = useQuery(ATLAS_CONNECTIONS, {
     fetchPolicy: "cache-and-network",
+    pollInterval,
   });
   return {
     connections: (data?.atlasConnections ?? []) as AtlasConnection[],
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useAtlasConnection(
+  id?: string | null,
+  { pollInterval }: { pollInterval?: number } = {},
+) {
+  const { data, loading, error, refetch } = useQuery(ATLAS_CONNECTION, {
+    variables: { id },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+    pollInterval,
+  });
+  return {
+    connection: (data?.atlasConnection ?? null) as AtlasConnection | null,
     loading,
     error: error ?? undefined,
     refetch,
@@ -178,13 +314,88 @@ export function useAtlasConnectorTypes() {
   };
 }
 
-export function useAtlasHistory(connectionId?: string | null) {
+export function useAtlasHistory(
+  connectionId?: string | null,
+  { pollInterval }: { pollInterval?: number } = {},
+) {
   const { data, loading, error, refetch } = useQuery(ATLAS_HISTORY, {
     variables: { connectionId: connectionId || null },
     fetchPolicy: "cache-and-network",
+    pollInterval,
   });
   return {
     history: (data?.atlasRequestHistory ?? []) as AtlasHistory[],
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useAtlasActivity(
+  connectionId?: string | null,
+  { pollInterval }: { pollInterval?: number } = {},
+) {
+  const { data, loading, error, refetch } = useQuery(ATLAS_ACTIVITY, {
+    variables: { connectionId: connectionId || null },
+    fetchPolicy: "cache-and-network",
+    pollInterval,
+  });
+  return {
+    activity: (data?.atlasActivity ?? []) as AtlasActivity[],
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useAtlasIndexJobs(
+  connectionId?: string | null,
+  { limit = 20, pollInterval }: { limit?: number; pollInterval?: number } = {},
+) {
+  const { data, loading, error, refetch } = useQuery(ATLAS_INDEX_JOBS, {
+    variables: { connectionId, limit },
+    skip: !connectionId,
+    fetchPolicy: "cache-and-network",
+    pollInterval,
+  });
+  return {
+    jobs: (data?.atlasIndexJobs ?? []) as AtlasIndexJob[],
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useAtlasIndexedRecords({
+  connectionId,
+  entity,
+  query,
+  cursor,
+  limit = 20,
+}: {
+  connectionId?: string | null;
+  entity: string;
+  query?: string | null;
+  cursor?: string | null;
+  limit?: number;
+}) {
+  const { data, loading, error, refetch } = useQuery(ATLAS_INDEXED_RECORDS, {
+    variables: {
+      connectionId,
+      entity,
+      query: query || null,
+      cursor: cursor || null,
+      limit,
+    },
+    skip: !connectionId || !entity,
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    page: (data?.atlasIndexedRecords ?? {
+      records: [],
+      hasMore: false,
+      cursor: null,
+    }) as AtlasIndexedRecordPage,
     loading,
     error: error ?? undefined,
     refetch,

@@ -57,6 +57,19 @@ public sealed class AtlasIndexedRecordEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+public sealed class AtlasActivityEntity
+{
+    public Guid Id { get; set; }
+    public Guid ConnectionId { get; set; }
+    public AtlasConnectorConnectionEntity? Connection { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string? Entity { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string DetailsJson { get; set; } = "{}";
+    public bool Success { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public sealed class AtlasRequestHistoryEntity
 {
     public Guid Id { get; set; }

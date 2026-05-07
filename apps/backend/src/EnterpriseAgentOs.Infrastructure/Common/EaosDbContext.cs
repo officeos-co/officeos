@@ -40,6 +40,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AtlasEntityStatusEntity> AtlasEntityStatuses => Set<AtlasEntityStatusEntity>();
     public DbSet<AtlasIndexJobEntity> AtlasIndexJobs => Set<AtlasIndexJobEntity>();
     public DbSet<AtlasIndexedRecordEntity> AtlasIndexedRecords => Set<AtlasIndexedRecordEntity>();
+    public DbSet<AtlasActivityEntity> AtlasActivity => Set<AtlasActivityEntity>();
     public DbSet<AtlasRequestHistoryEntity> AtlasRequestHistory => Set<AtlasRequestHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -348,6 +349,18 @@ public sealed class EaosDbContext : DbContext
             e.Property(r => r.SearchText).HasColumnType("text");
             e.Property(r => r.RawJson).HasColumnType("jsonb");
             e.HasOne(r => r.Connection).WithMany().HasForeignKey(r => r.ConnectionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AtlasActivityEntity>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => a.ConnectionId);
+            e.HasIndex(a => a.CreatedAt);
+            e.Property(a => a.Type).IsRequired().HasMaxLength(64);
+            e.Property(a => a.Entity).HasMaxLength(64);
+            e.Property(a => a.Message).IsRequired().HasMaxLength(512);
+            e.Property(a => a.DetailsJson).HasColumnType("jsonb");
+            e.HasOne(a => a.Connection).WithMany().HasForeignKey(a => a.ConnectionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AtlasRequestHistoryEntity>(e =>

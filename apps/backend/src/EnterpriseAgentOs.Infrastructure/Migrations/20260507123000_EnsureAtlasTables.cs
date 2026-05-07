@@ -87,6 +87,20 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         FOREIGN KEY ("ConnectionId") REFERENCES "AtlasConnectorConnections" ("Id") ON DELETE CASCADE
                 );
 
+                CREATE TABLE IF NOT EXISTS "AtlasActivity" (
+                    "Id" uuid NOT NULL,
+                    "ConnectionId" uuid NOT NULL,
+                    "Type" character varying(64) NOT NULL,
+                    "Entity" character varying(64) NULL,
+                    "Message" character varying(512) NOT NULL,
+                    "DetailsJson" jsonb NOT NULL,
+                    "Success" boolean NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    CONSTRAINT "PK_AtlasActivity" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_AtlasActivity_AtlasConnectorConnections_ConnectionId"
+                        FOREIGN KEY ("ConnectionId") REFERENCES "AtlasConnectorConnections" ("Id") ON DELETE CASCADE
+                );
+
                 CREATE INDEX IF NOT EXISTS "IX_AtlasConnectorConnections_CreatedById"
                     ON "AtlasConnectorConnections" ("CreatedById");
                 CREATE INDEX IF NOT EXISTS "IX_AtlasConnectorConnections_Provider"
@@ -105,6 +119,10 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     ON "AtlasRequestHistory" ("ConnectionId");
                 CREATE INDEX IF NOT EXISTS "IX_AtlasRequestHistory_CreatedAt"
                     ON "AtlasRequestHistory" ("CreatedAt");
+                CREATE INDEX IF NOT EXISTS "IX_AtlasActivity_ConnectionId"
+                    ON "AtlasActivity" ("ConnectionId");
+                CREATE INDEX IF NOT EXISTS "IX_AtlasActivity_CreatedAt"
+                    ON "AtlasActivity" ("CreatedAt");
                 """);
         }
 

@@ -12,6 +12,12 @@ public sealed record AtlasRequestHistoryFilter
     public int Limit { get; init; } = 100;
 }
 
+public sealed record AtlasActivityFilter
+{
+    public Guid? ConnectionId { get; init; }
+    public int Limit { get; init; } = 100;
+}
+
 public sealed record AtlasIndexedRecordFilter
 {
     public Guid ConnectionId { get; init; }
@@ -45,6 +51,7 @@ public interface IAtlasIndexJobRepository
 {
     Task<AtlasIndexJobRecord> CreateAsync(AtlasIndexJobRecord job, CancellationToken ct = default);
     Task<AtlasIndexJobRecord?> DequeueAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(Guid connectionId, int limit = 20, CancellationToken ct = default);
     Task UpdateAsync(AtlasIndexJobRecord job, CancellationToken ct = default);
 }
 
@@ -60,4 +67,10 @@ public interface IAtlasRequestHistoryRepository
 {
     Task AddAsync(AtlasRequestHistoryRecord history, CancellationToken ct = default);
     Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListAsync(AtlasRequestHistoryFilter filter, CancellationToken ct = default);
+}
+
+public interface IAtlasActivityRepository
+{
+    Task AddAsync(AtlasActivityRecord activity, CancellationToken ct = default);
+    Task<IReadOnlyList<AtlasActivityRecord>> ListAsync(AtlasActivityFilter filter, CancellationToken ct = default);
 }

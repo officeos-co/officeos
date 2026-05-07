@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using MediatR;
 
@@ -9,6 +10,7 @@ internal sealed class AtlasIndexingService
     private readonly IAtlasEntityStatusRepository _entityStatuses;
     private readonly IAtlasIndexJobRepository _jobs;
     private readonly IAtlasIndexedRecordRepository _records;
+    private readonly IAtlasActivityRepository _activity;
     private readonly AtlasGitHubClient _github;
     private readonly IPublisher _publisher;
     private readonly ILogger<AtlasIndexingService> _logger;
@@ -18,6 +20,7 @@ internal sealed class AtlasIndexingService
         IAtlasEntityStatusRepository entityStatuses,
         IAtlasIndexJobRepository jobs,
         IAtlasIndexedRecordRepository records,
+        IAtlasActivityRepository activity,
         AtlasGitHubClient github,
         IPublisher publisher,
         ILogger<AtlasIndexingService> logger)
@@ -26,6 +29,7 @@ internal sealed class AtlasIndexingService
         _entityStatuses = entityStatuses;
         _jobs = jobs;
         _records = records;
+        _activity = activity;
         _github = github;
         _publisher = publisher;
         _logger = logger;
@@ -45,7 +49,9 @@ internal sealed class AtlasIndexingService
             var entities = ParseStringArray(connection.EntitiesJson);
 
             await _connections.SetStatusAsync(connection.Id, AtlasConnectorStatus.Indexing, null, ct);
+            await LogActivityAsync(connection.Id, "index_started", null, "Indexing started.", new { JobId = job.Id }, true, ct);
             await _records.DeleteForConnectionAsync(connection.Id, ct);
+            await LogActivityAsync(connection.Id, "records_cleared", null, "Previous indexed records cleared.", new { JobId = job.Id }, true, ct);
 
             foreach (var entity in entities)
             {
@@ -55,12 +61,28 @@ internal sealed class AtlasIndexingService
                     Entity = entity,
                     Status = AtlasEntityStatus.Indexing,
                 }, ct);
+                await LogActivityAsync(connection.Id, "entity_index_started", entity, $"Indexing {DisplayEntity(entity)} started.", new
+                {
+                    JobId = job.Id,
+                    Repositories = repositories,
+                }, true, ct);
 
                 var entityRecords = new List<AtlasIndexedRecordRecord>();
                 foreach (var repository in repositories)
                 {
+                    await LogActivityAsync(connection.Id, "repository_fetch_started", entity, $"Fetching {DisplayEntity(entity)} from {repository}.", new
+                    {
+                        JobId = job.Id,
+                        Repository = repository,
+                    }, true, ct);
                     var rows = await _github.FetchEntityAsync(entity, repository, perPage: 100, ct);
                     entityRecords.AddRange(rows.Select(row => ToIndexedRecord(connection.Id, entity, repository, row)));
+                    await LogActivityAsync(connection.Id, "repository_fetch_completed", entity, $"Fetched {rows.Count} {DisplayEntity(entity)} from {repository}.", new
+                    {
+                        JobId = job.Id,
+                        Repository = repository,
+                        RecordCount = rows.Count,
+                    }, true, ct);
                 }
 
                 if (entityRecords.Count > 0)
@@ -75,6 +97,11 @@ internal sealed class AtlasIndexingService
                     RecordCount = entityRecords.Count,
                     LastSyncedAt = DateTime.UtcNow,
                 }, ct);
+                await LogActivityAsync(connection.Id, "entity_index_completed", entity, $"Indexed {entityRecords.Count} {DisplayEntity(entity)}.", new
+                {
+                    JobId = job.Id,
+                    RecordCount = entityRecords.Count,
+                }, true, ct);
             }
 
             await _connections.SetStatusAsync(connection.Id, AtlasConnectorStatus.Ready, null, ct);
@@ -88,6 +115,11 @@ internal sealed class AtlasIndexingService
                 StartedAt = job.StartedAt,
                 CompletedAt = DateTime.UtcNow,
             }, ct);
+            await LogActivityAsync(connection.Id, "index_completed", null, $"Indexing completed with {recordsIndexed} records.", new
+            {
+                JobId = job.Id,
+                RecordsIndexed = recordsIndexed,
+            }, true, ct);
             await _publisher.Publish(new AtlasIndexCompletedEvent(connection.Id, job.Id, true, recordsIndexed, null), ct);
             return true;
         }
@@ -106,6 +138,12 @@ internal sealed class AtlasIndexingService
                 StartedAt = job.StartedAt,
                 CompletedAt = DateTime.UtcNow,
             }, ct);
+            await LogActivityAsync(job.ConnectionId, "index_failed", null, $"Indexing failed: {ex.Message}", new
+            {
+                JobId = job.Id,
+                RecordsIndexed = recordsIndexed,
+                Error = ex.Message,
+            }, false, ct);
             await _publisher.Publish(new AtlasIndexCompletedEvent(job.ConnectionId, job.Id, false, recordsIndexed, ex.Message), ct);
             return true;
         }
@@ -169,6 +207,27 @@ internal sealed class AtlasIndexingService
 
     private static DateTime? ReadNestedDate(JsonObject obj, params string[] path)
         => DateTime.TryParse(ReadNestedString(obj, path), out var parsed) ? parsed.ToUniversalTime() : null;
+
+    private Task LogActivityAsync(
+        Guid connectionId,
+        string type,
+        string? entity,
+        string message,
+        object? details,
+        bool success,
+        CancellationToken ct)
+        => _activity.AddAsync(new AtlasActivityRecord
+        {
+            ConnectionId = connectionId,
+            Type = type,
+            Entity = entity,
+            Message = message,
+            DetailsJson = details is null ? "{}" : JsonSerializer.Serialize(details),
+            Success = success,
+        }, ct);
+
+    private static string DisplayEntity(string entity)
+        => entity.Replace('_', ' ');
 }
 
 internal sealed class AtlasIndexSchedulerService : BackgroundService

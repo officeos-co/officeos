@@ -186,6 +186,15 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
         return ToRecord(entity);
     }
 
+    public async Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(Guid connectionId, int limit = 20, CancellationToken ct = default)
+        => (await _db.AtlasIndexJobs.AsNoTracking()
+            .Where(j => j.ConnectionId == connectionId)
+            .OrderByDescending(j => j.CreatedAt)
+            .Take(limit)
+            .ToListAsync(ct))
+            .Select(ToRecord)
+            .ToList();
+
     public async Task UpdateAsync(AtlasIndexJobRecord job, CancellationToken ct = default)
     {
         var entity = await _db.AtlasIndexJobs.FirstOrDefaultAsync(j => j.Id == job.Id, ct);
@@ -346,6 +355,53 @@ internal sealed class AtlasRequestHistoryRepository : IAtlasRequestHistoryReposi
                 DurationMs = h.DurationMs,
                 Error = h.Error,
                 CreatedAt = h.CreatedAt,
+            })
+            .ToList();
+    }
+}
+
+internal sealed class AtlasActivityRepository : IAtlasActivityRepository
+{
+    private readonly EaosDbContext _db;
+
+    public AtlasActivityRepository(EaosDbContext db) => _db = db;
+
+    public async Task AddAsync(AtlasActivityRecord activity, CancellationToken ct = default)
+    {
+        _db.AtlasActivity.Add(new AtlasActivityEntity
+        {
+            Id = activity.Id,
+            ConnectionId = activity.ConnectionId,
+            Type = activity.Type,
+            Entity = activity.Entity,
+            Message = activity.Message,
+            DetailsJson = activity.DetailsJson,
+            Success = activity.Success,
+            CreatedAt = activity.CreatedAt,
+        });
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<AtlasActivityRecord>> ListAsync(AtlasActivityFilter filter, CancellationToken ct = default)
+    {
+        var query = _db.AtlasActivity.AsNoTracking().AsQueryable();
+        if (filter.ConnectionId.HasValue)
+            query = query.Where(a => a.ConnectionId == filter.ConnectionId.Value);
+
+        return (await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(filter.Limit)
+                .ToListAsync(ct))
+            .Select(a => new AtlasActivityRecord
+            {
+                Id = a.Id,
+                ConnectionId = a.ConnectionId,
+                Type = a.Type,
+                Entity = a.Entity,
+                Message = a.Message,
+                DetailsJson = a.DetailsJson,
+                Success = a.Success,
+                CreatedAt = a.CreatedAt,
             })
             .ToList();
     }

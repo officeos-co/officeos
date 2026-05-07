@@ -90,6 +90,18 @@ public sealed class AtlasIndexedRecordRecord
     public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;
 }
 
+public sealed class AtlasActivityRecord
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid ConnectionId { get; init; }
+    public string Type { get; init; } = string.Empty;
+    public string? Entity { get; init; }
+    public string Message { get; init; } = string.Empty;
+    public string DetailsJson { get; init; } = "{}";
+    public bool Success { get; init; } = true;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+}
+
 public sealed class AtlasRequestHistoryRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -120,6 +132,7 @@ public sealed record AtlasConnectorTypeRecord
     public string Category { get; init; } = "developer";
     public string? OauthProvider { get; init; }
     public string? OauthScopesJson { get; init; }
+    public bool OauthConfigured { get; init; }
     public bool IsBuiltin { get; init; } = true;
     public IReadOnlyList<string> Entities { get; init; } = [];
 }
