@@ -69,6 +69,29 @@ string Require(string pascalKey, string? envKey = null)
     return value;
 }
 
+string[] RequireCsv(string pascalKey, params string[] envKeys)
+{
+    var value = builder.Configuration[pascalKey];
+    foreach (var envKey in envKeys)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            break;
+        value = builder.Configuration[envKey];
+    }
+
+    var values = (value ?? "")
+        .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(v => !string.IsNullOrWhiteSpace(v))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    if (values.Length == 0)
+        throw new InvalidOperationException(
+            $"Required config '{pascalKey}' is missing. Set it in appsettings.json or as env var '{string.Join("' or '", envKeys)}'.");
+
+    return values;
+}
+
 T RequireSection<T>(string sectionName) where T : new()
 {
     var config = new T();
@@ -173,7 +196,8 @@ if (!isDevelopment)
 }
 builder.Services.AddSingleton(stripeConfig);
 
-var frontendOrigin = Require("FrontendOrigin", "FRONTEND_ORIGIN");
+var frontendOrigins = RequireCsv("FrontendOrigins", "FRONTEND_ORIGINS", "FRONTEND_ORIGIN");
+var frontendOrigin = frontendOrigins[0];
 var frontendConfig = new FrontendConfig(frontendOrigin);
 builder.Services.AddSingleton(frontendConfig);
 
@@ -238,7 +262,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
         policy
-            .WithOrigins(frontendOrigin)
+            .WithOrigins(frontendOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

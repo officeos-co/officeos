@@ -5,11 +5,16 @@ namespace EnterpriseAgentOs.Api.Features.Management;
 public sealed class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly FrontendConfig _frontendConfig;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService authService,
+        FrontendConfig frontendConfig,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
+        _frontendConfig = frontendConfig;
         _logger = logger;
     }
 
@@ -18,7 +23,8 @@ public sealed class AuthController : ControllerBase
     {
         try
         {
-            var result = _authService.BuildGoogleLoginUrl();
+            var callbackUri = BuildProxiedCallbackUri("google");
+            var result = _authService.BuildGoogleLoginUrl(callbackUri);
 
             Response.Cookies.Append("oauth-state", result.State, new CookieOptions
             {
@@ -52,7 +58,8 @@ public sealed class AuthController : ControllerBase
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
-            var result = await _authService.HandleGoogleCallbackAsync(code, ct);
+            var callbackUri = BuildProxiedCallbackUri("google");
+            var result = await _authService.HandleGoogleCallbackAsync(code, callbackUri, ct);
 
             Response.Cookies.Append("eaos-session", result.SessionToken, new CookieOptions
             {
@@ -78,7 +85,8 @@ public sealed class AuthController : ControllerBase
     {
         try
         {
-            var result = _authService.BuildGitHubLoginUrl();
+            var callbackUri = BuildProxiedCallbackUri("github");
+            var result = _authService.BuildGitHubLoginUrl(callbackUri);
 
             Response.Cookies.Append("oauth-state", result.State, new CookieOptions
             {
@@ -112,7 +120,8 @@ public sealed class AuthController : ControllerBase
             if (string.IsNullOrEmpty(savedState) || savedState != state)
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
-            var result = await _authService.HandleGitHubCallbackAsync(code, ct);
+            var callbackUri = BuildProxiedCallbackUri("github");
+            var result = await _authService.HandleGitHubCallbackAsync(code, callbackUri, ct);
 
             Response.Cookies.Append("eaos-session", result.SessionToken, new CookieOptions
             {
@@ -134,6 +143,28 @@ public sealed class AuthController : ControllerBase
     }
 
     private bool IsLocalhost => Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+
+    private string? BuildProxiedCallbackUri(string provider)
+    {
+        var forwardedHost = Request.Headers["X-Forwarded-Host"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(forwardedHost) || !ForwardedHostMatchesFrontend(forwardedHost))
+            return null;
+
+        var forwardedProto = Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+        var scheme = string.Equals(forwardedProto, "http", StringComparison.OrdinalIgnoreCase)
+            ? "http"
+            : "https";
+
+        return $"{scheme}://{forwardedHost}/api/auth/callback/{provider}";
+    }
+
+    private bool ForwardedHostMatchesFrontend(string forwardedHost)
+    {
+        if (!Uri.TryCreate(_frontendConfig.Origin, UriKind.Absolute, out var frontendOrigin))
+            return false;
+
+        return string.Equals(forwardedHost, frontendOrigin.Authority, StringComparison.OrdinalIgnoreCase);
+    }
 
     private void SetReturnToCookie(string? returnTo)
     {

@@ -1,9 +1,12 @@
+using EnterpriseAgentOs.Infrastructure.Common;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace EnterpriseAgentOs.Infrastructure.Migrations
 {
+    [DbContext(typeof(EaosDbContext))]
     [Migration("20260507120000_AddAtlas")]
     public partial class AddAtlas : Migration
     {
