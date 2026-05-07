@@ -57,6 +57,7 @@ const data = {
       icon: <DatabaseIcon />,
       items: [
         { title: "Connectors", url: "/atlas/connectors" },
+        { title: "Explorer", url: "/atlas/explorer" },
         { title: "History", url: "/atlas/history" },
       ],
     },

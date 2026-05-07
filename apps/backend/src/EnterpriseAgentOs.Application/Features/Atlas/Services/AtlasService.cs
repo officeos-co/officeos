@@ -60,6 +60,9 @@ internal sealed class AtlasService : IAtlasService
     public Task<IReadOnlyList<AtlasIndexJobRecord>> ListIndexJobsAsync(Guid connectionId, int limit = 20, CancellationToken ct = default)
         => _jobs.ListAsync(connectionId, limit, ct);
 
+    public Task<AtlasIndexedRecordRecord?> GetRecordAsync(Guid id, CancellationToken ct = default)
+        => _records.GetByIdAsync(id, ct);
+
     public Task<AtlasIndexedRecordPage> SearchRecordsAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
         => _records.SearchAsync(filter, ct);
 

@@ -245,6 +245,23 @@ const ATLAS_INDEXED_RECORDS = gql`
   }
 `;
 
+const ATLAS_INDEXED_RECORD = gql`
+  query AtlasIndexedRecord($id: UUID!) {
+    atlasIndexedRecord(id: $id) {
+      id
+      connectionId
+      entity
+      externalId
+      title
+      searchText
+      rawJson
+      externalUpdatedAt
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 const CREATE_GITHUB_CONNECTION = gql`
   ${CONNECTION_FIELDS}
   mutation CreateAtlasGitHubConnection($input: CreateAtlasGitHubConnectionInput!) {
@@ -396,6 +413,20 @@ export function useAtlasIndexedRecords({
       hasMore: false,
       cursor: null,
     }) as AtlasIndexedRecordPage,
+    loading,
+    error: error ?? undefined,
+    refetch,
+  };
+}
+
+export function useAtlasIndexedRecord(id?: string | null) {
+  const { data, loading, error, refetch } = useQuery(ATLAS_INDEXED_RECORD, {
+    variables: { id },
+    skip: !id,
+    fetchPolicy: "cache-and-network",
+  });
+  return {
+    record: (data?.atlasIndexedRecord ?? null) as AtlasIndexedRecord | null,
     loading,
     error: error ?? undefined,
     refetch,

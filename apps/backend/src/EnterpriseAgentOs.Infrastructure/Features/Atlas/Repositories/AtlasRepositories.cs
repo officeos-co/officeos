@@ -261,6 +261,14 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<AtlasIndexedRecordRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var entity = await _db.AtlasIndexedRecords
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
+        return entity is null ? null : ToRecord(entity);
+    }
+
     public async Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasIndexedRecords.AsNoTracking()

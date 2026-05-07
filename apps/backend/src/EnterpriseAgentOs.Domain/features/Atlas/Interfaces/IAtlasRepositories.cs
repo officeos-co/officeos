@@ -58,6 +58,7 @@ public interface IAtlasIndexJobRepository
 public interface IAtlasIndexedRecordRepository
 {
     Task UpsertManyAsync(IReadOnlyList<AtlasIndexedRecordRecord> records, CancellationToken ct = default);
+    Task<AtlasIndexedRecordRecord?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default);
     Task<int> CountAsync(Guid connectionId, string entity, CancellationToken ct = default);
     Task DeleteForConnectionAsync(Guid connectionId, CancellationToken ct = default);
