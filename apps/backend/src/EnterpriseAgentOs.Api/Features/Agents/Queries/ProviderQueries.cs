@@ -5,11 +5,9 @@ public class ProviderQueries
 {
     [GraphQLDescription("Lists all configured LLM providers with name, display name, models, and whether an API key is set.")]
     public async Task<IReadOnlyList<ProviderGqlDto>> GetProviders(
-        IResolverContext context,
         [Service] IProviderService providers,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var list = await providers.ListAsync(ct);
         return list.Select(ProviderGraphQLMapper.ToDto).ToList();
     }
@@ -17,11 +15,9 @@ public class ProviderQueries
     [GraphQLDescription("Returns available model IDs for a specific provider name.")]
     public async Task<IReadOnlyList<string>> GetProviderModels(
         string providerName,
-        IResolverContext context,
         [Service] IProviderService providers,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var configured = await providers.ListAsync(ct);
         var provider = configured.FirstOrDefault(p =>
             string.Equals(p.Name, providerName, StringComparison.OrdinalIgnoreCase));
@@ -33,12 +29,9 @@ public class ProviderQueries
 
     [GraphQLDescription("Returns available models with display names and default indicator. In self-hosted mode, only configured providers' models are returned.")]
     public async Task<IReadOnlyList<ModelInfoDto>> GetSupportedModels(
-        IResolverContext context,
         [Service] IProviderService providers,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
-
         var configured = await providers.ListAsync(ct);
         var configuredNames = configured
             .Where(p => p.Configured)

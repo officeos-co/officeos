@@ -7,11 +7,10 @@ public class AgentLogsMutations
     public async Task<AgentLogDto> SendAgentMessage(
         Guid agentId,
         string content,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         if (string.IsNullOrWhiteSpace(content))
         {
             throw new GraphQLException(
@@ -27,11 +26,9 @@ public class AgentLogsMutations
     [GraphQLDescription("Appends an arbitrary log entry to an agent's timeline. Used by the dashboard for system events.")]
     public async Task<AgentLogDto> AppendAgentLog(
         AppendAgentLogInput input,
-        IResolverContext context,
         [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var record = new AgentLogRecord
         {
             AgentId = input.AgentId,

@@ -21,12 +21,11 @@ public class BillingMutations
     public async Task<SubscribeResultDto> SubscribeUser(
         string plan,
         string billingCycle,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         SubscriptionPlan planEnum;
         try { planEnum = plan.ToSubscriptionPlan(); }
         catch (ArgumentOutOfRangeException)
@@ -64,12 +63,11 @@ public class BillingMutations
 
     [GraphQLDescription("Cancels the user's subscription by disabling overage. Returns the updated subscription state.")]
     public async Task<UserSubscriptionDto> CancelUserSubscription(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             await userBilling.CancelSubscriptionAsync(user.Id, user.Email, ct);
@@ -97,12 +95,11 @@ public class BillingMutations
     [GraphQLDescription("Turns extra-usage (Stripe metered overage) on or off. When enabled, usage above the credit budget is billed metered.")]
     public async Task<bool> SetExtraUsageEnabled(
         bool enabled,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);
@@ -121,12 +118,11 @@ public class BillingMutations
     [Obsolete("Use setExtraUsageEnabled. Kept for backwards compatibility.")]
     public async Task<UserSubscriptionDto> ToggleOverage(
         bool enabled,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             await userBilling.EnableOverageAsync(user.Id, user.Email, enabled, ct);

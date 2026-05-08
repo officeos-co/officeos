@@ -4,22 +4,20 @@ namespace EnterpriseAgentOs.Api.Features.Data;
 public sealed class MemoryStoreQueries
 {
     public async Task<IReadOnlyList<MemoryStorePayload>> GetMemoryStores(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IMemoryStoreRepository memoryStores,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var rows = await memoryStores.ListAsync(user.Id, ct);
         return rows.Select(row => ToPayload(row, null)).ToList();
     }
 
     public async Task<MemoryStorePayload?> GetMemoryStore(
         Guid id,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IMemoryStoreRepository memoryStores,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var row = await memoryStores.GetAsync(id, user.Id, ct);
         if (row is null) return null;
 

@@ -9,13 +9,11 @@ public class ChannelQueries
 
     [GraphQLDescription("Lists all channel connections (Slack, Telegram, Discord, etc.) configured by the user.")]
     public async Task<IReadOnlyList<ChannelConnectionGqlDto>> GetChannelConnections(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IChannelRepository repo,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         var listKey = ChannelListCacheKey(user.Id);
         var cached = await cache.GetJsonAsync<IReadOnlyList<ChannelConnectionGqlDto>>(listKey, ct);
         if (cached is not null)
@@ -33,13 +31,11 @@ public class ChannelQueries
     [GraphQLDescription("Returns a single channel connection by ID.")]
     public async Task<ChannelConnectionGqlDto?> GetChannelConnection(
         Guid id,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IChannelRepository repo,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         var key = ChannelCacheKey(id, user.Id);
         var cached = await cache.GetJsonAsync<ChannelConnectionGqlDto>(key, ct);
         if (cached is not null)
@@ -54,21 +50,17 @@ public class ChannelQueries
     }
 
     [GraphQLDescription("Returns all supported channel types with display names, descriptions, logos, and onboarding step definitions.")]
-    public IReadOnlyList<ChannelTypeDefinition> GetChannelTypes(
-        IResolverContext context)
+    public IReadOnlyList<ChannelTypeDefinition> GetChannelTypes()
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return ChannelTypes.All;
     }
 
     [GraphQLDescription("Lists all channel bindings for a specific agent showing which channels the agent listens on.")]
     public async Task<IReadOnlyList<AgentChannelBindingGqlDto>> GetAgentChannelBindings(
         Guid agentId,
-        IResolverContext context,
         [Service] IChannelRepository repo,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var rows = await repo.ListBindingsAsync(agentId, ct);
         return rows.Select(ChannelGraphQLMapper.ToDto).ToList();
     }

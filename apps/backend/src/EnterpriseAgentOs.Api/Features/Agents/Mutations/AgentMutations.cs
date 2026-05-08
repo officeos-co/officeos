@@ -12,11 +12,11 @@ public class AgentSchemaMutations
     [GraphQLDescription("Forwards a log entry from the agent pod to the backend timeline. Called by the agent runtime, not the dashboard.")]
     public async Task<AgentLogDto> ForwardLog(
         ForwardLogInput input,
-        IResolverContext context,
+        [Service] IHttpContextAccessor httpContextAccessor,
         [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        var http = context.Service<IHttpContextAccessor>().HttpContext!;
+        var http = httpContextAccessor.HttpContext!;
         var agentId = (Guid)http.Items["agent-id"]!;
 
         if (string.IsNullOrWhiteSpace(input.Content))

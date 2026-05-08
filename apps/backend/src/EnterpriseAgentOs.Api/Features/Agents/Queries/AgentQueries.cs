@@ -6,13 +6,11 @@ public class AgentQueries
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
     [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
     public async Task<IReadOnlyList<AgentDto>> GetAgents(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         var listCacheKey = AgentCacheKeys.DashboardList(user.Id);
         var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(listCacheKey, ct);
         if (cached is not null)
@@ -26,13 +24,11 @@ public class AgentQueries
     [GraphQLDescription("Returns a single agent by ID including its full aggregate: personality files, installed skills, memories, channel bindings, and cron jobs.")]
     public async Task<AgentRecord?> GetAgent(
         Guid id,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentRepository agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         var key = AgentCacheKeys.DashboardDetail(id, user.Id);
         var cached = await cache.GetJsonAsync<AgentRecord>(key, ct);
         if (cached is not null)
@@ -48,11 +44,9 @@ public class AgentQueries
     [GraphQLDescription("Returns explicit allow/deny tool permission overrides for an agent.")]
     public async Task<IReadOnlyList<ToolPermissionPayload>> GetAgentToolPermissions(
         Guid agentId,
-        IResolverContext context,
         [Service] IAgentToolPermissionRepository permissions,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var rows = await permissions.ListForAgentAsync(agentId, ct);
         return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
     }
@@ -60,11 +54,9 @@ public class AgentQueries
     [GraphQLDescription("Returns the backend-owned tool catalog for dashboard permission UIs.")]
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> GetAgentToolCatalog(
         Guid? agentId,
-        IResolverContext context,
         [Service] IAgentToolCatalogService catalog,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return await catalog.ListAsync(agentId, ct);
     }
 
@@ -72,11 +64,9 @@ public class AgentQueries
     public async Task<IReadOnlyList<AgentRunRecord>> GetAgentRuns(
         Guid agentId,
         Guid? parentRunId,
-        IResolverContext context,
         [Service] IAgentRunRepository runs,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return await runs.ListForAgentAsync(agentId, parentRunId, ct);
     }
 }

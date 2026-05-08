@@ -244,6 +244,7 @@ builder.Services.AddSingleton(postHogConfig);
 
 // GraphQL — dashboard operator API
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UserContext>();
 
 var dashboardGql = builder.Services
     .AddGraphQLServer("dashboard")
@@ -260,7 +261,7 @@ var dashboardGql = builder.Services
     });
 GraphQLRegistrationExtensions.AddDomainTypeExtensions(
     dashboardGql, typeof(Program).Assembly)
-    .UseField<DashboardAuthMiddleware>()
+    .RequireDashboardSession()
     .DisableIntrospection(false);
 
 // CORS

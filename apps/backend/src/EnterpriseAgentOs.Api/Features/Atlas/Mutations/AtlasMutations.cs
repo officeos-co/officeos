@@ -7,11 +7,10 @@ public sealed class AtlasMutations
 {
     public async Task<AtlasConnectorConnectionRecord> CreateAtlasGitHubConnection(
         CreateAtlasGitHubConnectionInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             return await service.CreateGitHubConnectionAsync(new CreateAtlasGitHubConnectionRequest(
@@ -29,11 +28,9 @@ public sealed class AtlasMutations
 
     public async Task<AtlasConnectorConnectionRecord> UpdateAtlasGitHubConnection(
         UpdateAtlasGitHubConnectionInput input,
-        IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             return await service.UpdateGitHubConnectionAsync(new UpdateAtlasGitHubConnectionRequest(
@@ -50,22 +47,18 @@ public sealed class AtlasMutations
 
     public async Task<bool> DeleteAtlasConnection(
         Guid id,
-        IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         await service.DeleteConnectionAsync(id, ct);
         return true;
     }
 
     public async Task<AtlasIndexJobRecord> StartAtlasIndex(
         Guid connectionId,
-        IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             return await service.StartIndexAsync(connectionId, ct);

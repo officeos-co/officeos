@@ -11,11 +11,9 @@ public class AgentLogSubscriptions
 
     public async ValueTask<ISourceStream<AgentLogDto>> SubscribeAgentLogAppended(
         Guid agentId,
-        IResolverContext context,
         [Service] ITopicEventReceiver receiver,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return await receiver.SubscribeAsync<AgentLogDto>(AgentLogTopics.AgentLogAppended(agentId), ct);
     }
 }

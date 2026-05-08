@@ -4,33 +4,29 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 public class AgentResourceQueries
 {
     public async Task<IReadOnlyList<BrowserResourcePayload>> GetBrowserResources(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentResourceRepository resources,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var rows = await resources.ListBrowserResourcesAsync(user.Id, ct);
         return rows.Select(ToPayload).ToList();
     }
 
     public async Task<BrowserResourcePayload?> GetBrowserResource(
         Guid id,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentResourceRepository resources,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var row = await resources.GetBrowserResourceAsync(id, user.Id, ct);
         return row is null ? null : ToPayload(row);
     }
 
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentPayload>> GetAgentSessionResourceAttachments(
         Guid sessionId,
-        IResolverContext context,
         [Service] IAgentResourceRepository resources,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var rows = await resources.ListSessionAttachmentsAsync(sessionId, ct);
         return rows.Select(ToPayload).ToList();
     }

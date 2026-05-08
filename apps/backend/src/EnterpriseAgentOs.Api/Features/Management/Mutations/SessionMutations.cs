@@ -6,14 +6,11 @@ public class SessionMutations
     [GraphQLDescription("Creates a new conversation session for an agent. Ends any active session first and appends a bootstrap system message with personality files.")]
     public async Task<AgentSessionRecord> CreateSession(
         Guid agentId,
-        IResolverContext context,
         [Service] IAgentRepository agentRepo,
         [Service] IAgentSessionRepository sessions,
         [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         var agent = await agentRepo.GetByAsync(new AgentFilter { Id = agentId }, ct)
             ?? throw new GraphQLException(
                 ErrorBuilder.New().SetMessage("Agent not found.").SetCode("NOT_FOUND").Build());
@@ -42,12 +39,9 @@ public class SessionMutations
     [GraphQLDescription("Ends the active session for an agent. Returns the ended session or null if none was active.")]
     public async Task<AgentSessionRecord?> EndSession(
         Guid agentId,
-        IResolverContext context,
         [Service] IAgentSessionRepository sessions,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
-
         var active = await sessions.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
         if (active is null) return null;
 

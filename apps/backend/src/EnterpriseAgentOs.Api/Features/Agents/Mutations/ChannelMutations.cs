@@ -17,13 +17,11 @@ public class ChannelMutations
     [GraphQLDescription("Creates a new channel connection (e.g. Slack bot, Telegram bot). ConfigJson contains the encrypted credentials payload.")]
     public async Task<ChannelConnectionGqlDto> CreateChannelConnection(
         CreateChannelConnectionInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         try
         {
             var created = await channelService.CreateConnectionAsync(
@@ -44,14 +42,12 @@ public class ChannelMutations
     public async Task<ChannelConnectionGqlDto> UpdateChannelConnection(
         Guid id,
         UpdateChannelConnectionInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IChannelService channelService,
         [Service] IChannelRepository channelRepository,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         try
         {
             await EnsureOwnedChannelConnectionAsync(channelRepository, id, user.Id, ct);
@@ -71,14 +67,12 @@ public class ChannelMutations
     [GraphQLDescription("Permanently deletes a channel connection and all its agent bindings.")]
     public async Task<bool> DeleteChannelConnection(
         Guid id,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IChannelService channelService,
         [Service] IChannelRepository channelRepository,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
-
         await EnsureOwnedChannelConnectionAsync(channelRepository, id, user.Id, ct);
         var result = await channelService.DeleteConnectionAsync(id, ct);
         await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
@@ -90,12 +84,10 @@ public class ChannelMutations
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput? config,
-        IResolverContext context,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         _ = channelService;
         _ = cache;
         _ = ct;
@@ -106,12 +98,10 @@ public class ChannelMutations
     public Task<bool> UnbindChannelFromAgent(
         Guid agentId,
         Guid channelConnectionId,
-        IResolverContext context,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         _ = channelService;
         _ = cache;
         _ = ct;
@@ -123,11 +113,9 @@ public class ChannelMutations
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput config,
-        IResolverContext context,
         [Service] IChannelService channelService,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         _ = channelService;
         _ = ct;
         throw ImmutableChannelBindingError();
