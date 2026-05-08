@@ -36,7 +36,7 @@ export default function BrowserResourceDetailPage({
           <div className="mt-4 rounded-xl border border-border p-8 text-sm text-muted-foreground">
             {loading
               ? "Loading browser resource..."
-              : "Attach this browser to an agent session from quickstart to open the live browser details."}
+              : "Attach this browser to an agent from the agents page to open the live browser details."}
           </div>
         )}
       </PageContainer>

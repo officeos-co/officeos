@@ -23,10 +23,6 @@ The backend uses clean architecture: Api, Application, Domain, Infrastructure. D
 
 Clean architecture with domain separation under `apps/dashboard/src/features` (agents, analytics, manage). Each domain has its own api, types, and components. Tabs use URL parameters, not JS state.
 
-# Goals
+# Rules
 
-- Agent becomes as good as claude code
-- Full browser capabilities
-- Full cloud coding capabilities
-- MCP-native tool ecosystem with marketplace
-- Model-agnostic — works with any LLM provider
+- never try to run the application yourself, after having changed the code your done; rather you should build the code or lint it only check if it compiles

@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+} from "@/components/ui/select";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 export function DataPagination({
   page,
@@ -18,14 +18,14 @@ export function DataPagination({
   onPageChange,
   onPageSizeChange,
 }: {
-  page: number
-  pageSize: number
-  total: number
-  pageSizes?: readonly number[]
-  onPageChange: (page: number) => void
-  onPageSizeChange: (size: number) => void
+  page: number;
+  pageSize: number;
+  total: number;
+  pageSizes?: readonly number[];
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }) {
-  const totalPages = Math.ceil(total / pageSize)
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="flex items-center justify-between text-sm">
@@ -35,7 +35,7 @@ export function DataPagination({
           value={String(pageSize)}
           onValueChange={(v) => {
             if (v) {
-              onPageSizeChange(Number(v))
+              onPageSizeChange(Number(v));
             }
           }}
         >
@@ -77,5 +77,5 @@ export function DataPagination({
         </Button>
       </div>
     </div>
-  )
+  );
 }

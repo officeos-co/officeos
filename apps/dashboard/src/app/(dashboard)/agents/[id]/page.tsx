@@ -118,6 +118,7 @@ export default function AgentDetailPage({
     : "logs";
   const agentStatus = agentStatusOverride ?? agent?.status ?? "";
   const model = modelOverride ?? agent?.model ?? "";
+  const selectedModelInfo = models.find((modelOption) => modelOption.id === model);
 
   // Simulate boot → running transition
   useEffect(() => {
@@ -199,7 +200,9 @@ export default function AgentDetailPage({
                   }}
                 >
                   <SelectTrigger className="w-[180px] h-8 text-xs">
-                    <SelectValue />
+                    <SelectValue>
+                      {selectedModelInfo?.displayName ?? model}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="w-max min-w-(--anchor-width) max-w-[calc(100vw-2rem)]">
                     {models.map((m) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
@@ -34,7 +34,7 @@ import {
   PlusIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useAgents, useDeleteAgent } from "@/features/agents";
+import { AgentCreateDialog, useAgents, useDeleteAgent } from "@/features/agents";
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const;
 
@@ -45,11 +45,13 @@ export default function AgentsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const filtered = agents.filter((a) => {
-    if (search && !a.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = agents.filter((agent) => {
+    if (search && !agent.name.toLowerCase().includes(search.toLowerCase())) {
       return false;
-    if (statusFilter.size > 0 && !statusFilter.has(a.status)) return false;
+    }
+    if (statusFilter.size > 0 && !statusFilter.has(agent.status)) return false;
     return true;
   });
   const filteredIds = useMemo(
@@ -106,7 +108,7 @@ export default function AgentsPage() {
         subtitle="Create and manage autonomous agents."
         width="wide"
         action={
-          <Button size="sm" onClick={() => router.push("/quickstart")}>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
             <PlusIcon className="size-3.5" />
             New agent
           </Button>
@@ -133,14 +135,14 @@ export default function AgentsPage() {
                 )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                {ALL_STATUSES.map((s) => (
+                {ALL_STATUSES.map((status) => (
                   <DropdownMenuCheckboxItem
-                    key={s}
-                    checked={statusFilter.has(s)}
-                    onCheckedChange={() => toggleStatus(s)}
+                    key={status}
+                    checked={statusFilter.has(status)}
+                    onCheckedChange={() => toggleStatus(status)}
                     className="capitalize"
                   >
-                    {s}
+                    {status}
                   </DropdownMenuCheckboxItem>
                 ))}
               </DropdownMenuContent>
@@ -194,8 +196,8 @@ export default function AgentsPage() {
           <TableBody>
             {loading &&
               agents.length === 0 &&
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
+              Array.from({ length: 3 }).map((_, index) => (
+                <TableRow key={index}>
                   <TableCell className="w-10 px-3">
                     <Skeleton className="size-4 rounded" />
                   </TableCell>
@@ -237,7 +239,13 @@ export default function AgentsPage() {
                 <TableCell>{agent.id}</TableCell>
                 <TableCell>{agent.name}</TableCell>
                 <TableCell>
-                  <WithTooltip tooltip={agent.model === "auto" ? "Auto is only exposed when Anthropic smart routing is configured." : "Concrete model. Requests go directly to this model."}>
+                  <WithTooltip
+                    tooltip={
+                      agent.model === "auto"
+                        ? "Auto is only exposed when Anthropic smart routing is configured."
+                        : "Concrete model. Requests go directly to this model."
+                    }
+                  >
                     <span>{agent.model}</span>
                   </WithTooltip>
                 </TableCell>
@@ -256,7 +264,9 @@ export default function AgentsPage() {
                           className="size-8"
                         />
                       }
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                      onClick={(event: MouseEvent) =>
+                        event.stopPropagation()
+                      }
                     >
                       <MoreHorizontalIcon className="size-4" />
                     </DropdownMenuTrigger>
@@ -286,6 +296,11 @@ export default function AgentsPage() {
           </TableBody>
         </Table>
       </PageContainer>
+      <AgentCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={refetch}
+      />
     </>
   );
 }

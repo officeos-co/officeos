@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { HeartPulseIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  HeartPulseIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -64,6 +68,7 @@ export default function CronJobsPage() {
   const [name, setName] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("daily");
   const [prompt, setPrompt] = useState("");
+  const selectedAgent = agents.find((agent) => agent.id === agentId);
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase();
@@ -121,7 +126,8 @@ export default function CronJobsPage() {
     const expression = expressionFor(frequency);
     await createCronJob(
       agentId,
-      name.trim() || (isHeartbeatCron(expression) ? "Heartbeat" : "Scheduled task"),
+      name.trim() ||
+        (isHeartbeatCron(expression) ? "Heartbeat" : "Scheduled task"),
       expression,
       prompt.trim(),
     );
@@ -140,7 +146,7 @@ export default function CronJobsPage() {
         width="wide"
         action={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="size-4" />
+            <CalendarClockIcon className="size-4" />
             Create
           </Button>
         }
@@ -153,7 +159,11 @@ export default function CronJobsPage() {
             onChange={setSearch}
           />
           <TableSelectionToolbar selectedCount={selectedIds.size}>
-            <Button variant="destructive" size="sm" onClick={deleteSelectedJobs}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={deleteSelectedJobs}
+            >
               <Trash2Icon className="size-4" />
               Delete
             </Button>
@@ -192,14 +202,18 @@ export default function CronJobsPage() {
                 <TableCell>{job.id}</TableCell>
                 <TableCell>
                   <span className="inline-flex items-center gap-2 font-medium">
-                    {isHeartbeatCron(job.expression.value) && (
+                    {isHeartbeatCron(job.expression.value) ? (
                       <HeartPulseIcon className="size-3.5 text-rose-500" />
+                    ) : (
+                      <CalendarClockIcon className="size-3.5 text-muted-foreground" />
                     )}
                     {job.name}
                   </span>
                 </TableCell>
                 <TableCell>{job.agentName}</TableCell>
-                <TableCell>{describeCronExpression(job.expression.value)}</TableCell>
+                <TableCell>
+                  {describeCronExpression(job.expression.value)}
+                </TableCell>
                 <TableCell>{job.enabled ? "Enabled" : "Disabled"}</TableCell>
                 <TableCell>
                   {job.nextRunAt ? formatDate(job.nextRunAt) : "Pending"}
@@ -220,7 +234,10 @@ export default function CronJobsPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create cron job</DialogTitle>
+            <DialogTitle className="inline-flex items-center gap-2">
+              <CalendarClockIcon className="size-4 text-muted-foreground" />
+              Create cron job
+            </DialogTitle>
             <DialogDescription>
               Run an agent automatically on a simple schedule.
             </DialogDescription>
@@ -228,9 +245,14 @@ export default function CronJobsPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Agent</Label>
-              <Select value={agentId} onValueChange={(value) => value && setAgentId(value)}>
+              <Select
+                value={agentId}
+                onValueChange={(value) => value && setAgentId(value)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select an agent" />
+                  <SelectValue placeholder="Select an agent">
+                    {selectedAgent?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {agents.map((agent) => (
@@ -251,7 +273,12 @@ export default function CronJobsPage() {
             </div>
             <div className="space-y-2">
               <Label>Frequency</Label>
-              <Select value={frequency} onValueChange={(value) => value && setFrequency(value as Frequency)}>
+              <Select
+                value={frequency}
+                onValueChange={(value) =>
+                  value && setFrequency(value as Frequency)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -276,7 +303,10 @@ export default function CronJobsPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button disabled={!agentId || !prompt.trim() || creating} onClick={submit}>
+            <Button
+              disabled={!agentId || !prompt.trim() || creating}
+              onClick={submit}
+            >
               Create
             </Button>
           </DialogFooter>
