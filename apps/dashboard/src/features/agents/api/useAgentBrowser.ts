@@ -17,12 +17,6 @@ const BROWSER_QUERY = gql`
   }
 `;
 
-const VIEW_URL_QUERY = gql`
-  query AgentBrowserViewUrl($agentId: UUID!) {
-    agentBrowserViewUrl(agentId: $agentId)
-  }
-`;
-
 const START_BROWSER = gql`
   mutation StartAgentBrowser($agentId: UUID!) {
     startAgentBrowser(agentId: $agentId) {
@@ -66,24 +60,21 @@ export function useAgentBrowser(agentId: string) {
     skip: !agentId,
     pollInterval: 5000,
   });
-  const view = useQuery(VIEW_URL_QUERY, {
-    variables: { agentId },
-    skip: !agentId,
-    fetchPolicy: "network-only",
-  });
   const [startMutation, startState] = useMutation(START_BROWSER);
   const [restartMutation, restartState] = useMutation(RESTART_BROWSER);
   const [stopMutation, stopState] = useMutation(STOP_BROWSER);
 
   async function refresh() {
-    await Promise.all([state.refetch(), view.refetch()]);
+    await state.refetch();
   }
 
+  const browser = (state.data?.agentBrowser ?? null) as AgentBrowserState | null;
+
   return {
-    browser: (state.data?.agentBrowser ?? null) as AgentBrowserState | null,
-    viewUrl: (view.data?.agentBrowserViewUrl ?? null) as string | null,
-    loading: state.loading || view.loading,
-    error: state.error ?? view.error,
+    browser,
+    viewUrl: browser?.takeoverUrl ?? null,
+    loading: state.loading,
+    error: state.error,
     busy: startState.loading || restartState.loading || stopState.loading,
     start: async () => {
       await startMutation({ variables: { agentId } });
