@@ -1,16 +1,96 @@
 "use client";
 
 import { getSiteConfig } from "@/lib/site";
-import { Menu, X } from "lucide-react";
+import {
+  Cable,
+  ChevronDown,
+  Cpu,
+  FileCheck,
+  HeadphonesIcon,
+  Menu,
+  Network,
+  PenTool,
+  Puzzle,
+  ShieldCheck,
+  Swords,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion, useScroll } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const INITIAL_WIDTH = "70rem";
 const MAX_WIDTH = "800px";
+
+const productLinks = [
+  {
+    href: "/product/platform",
+    label: "Platform",
+    description: "Kubernetes-native agent runtime",
+    icon: Cpu,
+  },
+  {
+    href: "/product/knowledge-graph",
+    label: "Knowledge Graph",
+    description: "Organization-wide intelligence",
+    icon: Network,
+  },
+  {
+    href: "/product/skills",
+    label: "Skills & SDK",
+    description: "TypeScript SDK for custom tools",
+    icon: Puzzle,
+  },
+  {
+    href: "/product/integrations",
+    label: "Integrations",
+    description: "Deep API & channel connections",
+    icon: Cable,
+  },
+  {
+    href: "/product/security",
+    label: "Security",
+    description: "Enterprise-grade compliance",
+    icon: ShieldCheck,
+  },
+];
+
+const solutionLinks = [
+  {
+    href: "/solutions/sales-intelligence",
+    label: "Sales Intelligence",
+    description: "Automated lead research",
+    icon: TrendingUp,
+  },
+  {
+    href: "/solutions/customer-success",
+    label: "Customer Success",
+    description: "AI-powered support across channels",
+    icon: HeadphonesIcon,
+  },
+  {
+    href: "/solutions/competitive-intelligence",
+    label: "Competitive Intelligence",
+    description: "Daily competitor monitoring",
+    icon: Swords,
+  },
+  {
+    href: "/solutions/contract-review",
+    label: "Contract Review",
+    description: "Automated compliance checking",
+    icon: FileCheck,
+  },
+  {
+    href: "/solutions/content-strategy",
+    label: "Content Strategy",
+    description: "Research-driven content planning",
+    icon: PenTool,
+  },
+];
 
 const overlayVariants = {
   hidden: { opacity: 0 },
@@ -34,6 +114,22 @@ const drawerVariants = {
   exit: {
     opacity: 0,
     y: 100,
+    transition: { duration: 0.1 },
+  },
+};
+
+const dropdownVariants = {
+  hidden: { opacity: 0, y: 8, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] as const },
+  },
+  exit: {
+    opacity: 0,
+    y: 8,
+    scale: 0.96,
     transition: { duration: 0.1 },
   },
 };
@@ -93,22 +189,35 @@ function GitHubStars({ compact }: { compact: boolean }) {
   );
 }
 
-const navGroups = [
-  {
-    title: "Products",
-    items: [
-      { title: "OfficeOS", href: "/" },
-      { title: "Atlas", href: "/atlas" },
-    ],
-  },
-  {
-    title: "Solutions",
-    items: [
-      { title: "Self-hosted agents", href: "/#deployment" },
-      { title: "Company knowledge", href: "/atlas" },
-    ],
-  },
-];
+type DropdownKey = "products" | "solutions" | null;
+
+function NavDropdown({ links }: { links: typeof productLinks }) {
+  return (
+    <motion.div
+      variants={dropdownVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="absolute left-1/2 top-full z-50 mt-2 w-[320px] -translate-x-1/2 rounded-xl border border-border bg-background/95 p-2 shadow-lg backdrop-blur-xl"
+    >
+      {links.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted"
+        >
+          <link.icon className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
+          <div>
+            <p className="font-medium text-primary text-sm">{link.label}</p>
+            <p className="text-muted-foreground text-xs">
+              {link.description}
+            </p>
+          </div>
+        </Link>
+      ))}
+    </motion.div>
+  );
+}
 
 export function Navbar() {
   const siteConfig = getSiteConfig();
@@ -116,6 +225,9 @@ export function Navbar() {
   const { scrollY } = useScroll();
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<DropdownKey>(null);
+  const [mobileExpanded, setMobileExpanded] = useState<DropdownKey>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const unsubscribe = scrollY.on("change", (latest) => {
@@ -124,8 +236,23 @@ export function Navbar() {
     return unsubscribe;
   }, [scrollY]);
 
+  const handleMouseEnter = (key: DropdownKey) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setActiveDropdown(key);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 150);
+  };
+
   const toggleDrawer = () => setIsDrawerOpen((prev) => !prev);
   const handleOverlayClick = () => setIsDrawerOpen(false);
+
+  const toggleMobileSection = (key: DropdownKey) => {
+    setMobileExpanded((prev) => (prev === key ? null : key));
+  };
 
   return (
     <header
@@ -168,27 +295,50 @@ export function Navbar() {
               <p className="font-semibold text-xl text-primary">OfficeOS</p>
             </Link>
 
-            <div className="flex-1" />
+            <div className="flex-1 md:hidden" />
 
-            <nav className="hidden items-center gap-1 md:flex">
-              {navGroups.map((group) => (
-                <div key={group.title} className="group relative">
-                  <button className="h-9 rounded-full px-3 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    {group.title}
-                  </button>
-                  <div className="invisible absolute left-0 top-full z-50 min-w-52 rounded-xl border border-border bg-background p-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.title}
-                        href={item.href}
-                        className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
+              <div
+                className="relative"
+                onMouseEnter={() => handleMouseEnter("products")}
+                onMouseLeave={handleMouseLeave}
+              >
+                <button className="flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:text-primary">
+                  Products
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform duration-200",
+                      activeDropdown === "products" && "rotate-180",
+                    )}
+                  />
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === "products" && (
+                    <NavDropdown links={productLinks} />
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div
+                className="relative"
+                onMouseEnter={() => handleMouseEnter("solutions")}
+                onMouseLeave={handleMouseLeave}
+              >
+                <button className="flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:text-primary">
+                  Solutions
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform duration-200",
+                      activeDropdown === "solutions" && "rotate-180",
+                    )}
+                  />
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === "solutions" && (
+                    <NavDropdown links={solutionLinks} />
+                  )}
+                </AnimatePresence>
+              </div>
             </nav>
 
             {/* Desktop actions — right */}
@@ -256,20 +406,97 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <Link
-                  href="/atlas"
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="rounded-md px-2 py-2 text-sm text-muted-foreground"
-                >
-                  Products / Atlas
-                </Link>
-                <Link
-                  href="/#deployment"
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="rounded-md px-2 py-2 text-sm text-muted-foreground"
-                >
-                  Solutions
-                </Link>
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => toggleMobileSection("products")}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 font-medium text-primary text-sm transition-colors hover:bg-muted"
+                  >
+                    Products
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                        mobileExpanded === "products" && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {mobileExpanded === "products" && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-0.5 pb-2 pl-2">
+                          {productLinks.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              onClick={() => setIsDrawerOpen(false)}
+                              className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted"
+                            >
+                              <link.icon className="h-4 w-4 shrink-0 text-secondary" />
+                              <div>
+                                <p className="font-medium text-primary text-sm">
+                                  {link.label}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  {link.description}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    onClick={() => toggleMobileSection("solutions")}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 font-medium text-primary text-sm transition-colors hover:bg-muted"
+                  >
+                    Solutions
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                        mobileExpanded === "solutions" && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {mobileExpanded === "solutions" && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-0.5 pb-2 pl-2">
+                          {solutionLinks.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              onClick={() => setIsDrawerOpen(false)}
+                              className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted"
+                            >
+                              <link.icon className="h-4 w-4 shrink-0 text-secondary" />
+                              <div>
+                                <p className="font-medium text-primary text-sm">
+                                  {link.label}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  {link.description}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <Link
                   href={siteConfig.links.github}
