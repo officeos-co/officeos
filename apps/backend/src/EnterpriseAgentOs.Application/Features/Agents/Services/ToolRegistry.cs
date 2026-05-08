@@ -112,6 +112,7 @@ internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryRepository _memoryRepo;
     private readonly IAgentResourceRepository _resourceRepository;
+    private readonly IMemoryStoreRepository _memoryStoreRepository;
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
@@ -125,6 +126,7 @@ internal sealed class ToolRegistryFactory
     public ToolRegistryFactory(
         IAgentMemoryRepository memoryRepo,
         IAgentResourceRepository resourceRepository,
+        IMemoryStoreRepository memoryStoreRepository,
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
@@ -137,6 +139,7 @@ internal sealed class ToolRegistryFactory
     {
         _memoryRepo = memoryRepo;
         _resourceRepository = resourceRepository;
+        _memoryStoreRepository = memoryStoreRepository;
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
@@ -169,9 +172,9 @@ internal sealed class ToolRegistryFactory
             new ContentSearchTool(context),
             new GlobSearchTool(context),
             // Memory tools (Postgres)
-            new MemoryStoreTool(_memoryRepo, _resourceRepository, agentId),
-            new MemoryRecallTool(_memoryRepo, _resourceRepository, agentId),
-            new MemoryForgetTool(_memoryRepo, _resourceRepository, agentId),
+            new MemoryStoreTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, agentId),
+            new MemoryRecallTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, agentId),
+            new MemoryForgetTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, agentId),
             // Session/task orchestration
             new AskUserQuestionTool(),
             new TaskCreateTool(_taskStore, agentId),

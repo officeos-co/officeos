@@ -35,7 +35,6 @@ const data = {
       items: [
         { title: "Agents", url: "/agents" },
         { title: "Browser", url: "/browser" },
-        { title: "Memory Store", url: "/memory-stores" },
         { title: "Cron Jobs", url: "/cron-jobs" },
         { title: "Integrations", url: "/integrations" },
         { title: "Channels", url: "/channels" },
@@ -55,6 +54,7 @@ const data = {
       url: "#",
       icon: <DatabaseIcon />,
       items: [
+        { title: "Memory Store", url: "/memory-stores" },
         { title: "Connectors", url: "/atlas/connectors" },
         { title: "Explorer", url: "/atlas/explorer" },
         { title: "History", url: "/atlas/history" },
