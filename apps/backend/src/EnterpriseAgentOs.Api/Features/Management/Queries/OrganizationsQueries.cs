@@ -7,12 +7,11 @@ public class OrganizationsQueries
 
     [GraphQLDescription("Returns the authenticated user's organization (auto-created on first call) with member list. Cached for 5 minutes.")]
     public async Task<OrganizationPayload> Org(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IOrganizationRepository orgs,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"org:dashboard:{user.Id}";
 
         var cached = await cache.GetJsonAsync<OrganizationPayload>(cacheKey, ct);

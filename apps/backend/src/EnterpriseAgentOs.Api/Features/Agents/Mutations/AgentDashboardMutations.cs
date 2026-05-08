@@ -9,7 +9,7 @@ public class AgentDashboardMutations
     [GraphQLDescription("Creates a new agent with the given config. Optionally assigns skills, tool permissions, and channels.")]
     public async Task<AgentDto> CreateAgent(
         CreateAgentInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentService agents,
         [Service] IAgentSessionRepository sessions,
         [Service] IAgentResourceRepository resources,
@@ -19,7 +19,6 @@ public class AgentDashboardMutations
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         AgentDto dto;
         try
         {
@@ -149,12 +148,11 @@ public class AgentDashboardMutations
     public async Task<AgentDto> UpdateAgent(
         Guid id,
         UpdateAgentInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var dto = await agents.PatchAsync(
             id,
             new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
@@ -175,13 +173,12 @@ public class AgentDashboardMutations
     [GraphQLDescription("Soft-deletes an agent and removes its Kubernetes pod.")]
     public async Task<bool> DeleteAgent(
         Guid id,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IAgentService agents,
         [Service] IBrowserService browser,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         await browser.StopAsync(id, ct);
         var result = await agents.DeleteAsync(id, ct);
         await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
@@ -192,11 +189,9 @@ public class AgentDashboardMutations
     [GraphQLDescription("Sets one explicit tool permission override for an agent.")]
     public async Task<ToolPermissionPayload> SetAgentToolPermission(
         SetAgentToolPermissionInput input,
-        IResolverContext context,
         [Service] IAgentToolPermissionRepository permissions,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         await permissions.UpsertAsync(input.AgentId, input.Skill, input.Tool, input.Mode, ct);
         return new ToolPermissionPayload(input.Skill, input.Tool, input.Mode);
     }
@@ -204,11 +199,9 @@ public class AgentDashboardMutations
     [GraphQLDescription("Replaces explicit tool permission overrides for an agent.")]
     public async Task<IReadOnlyList<ToolPermissionPayload>> SetAgentToolPermissions(
         SetAgentToolPermissionsInput input,
-        IResolverContext context,
         [Service] IAgentToolPermissionRepository permissions,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var rows = input.Entries.Select(e => new AgentToolPermissionRecord
         {
             AgentId = input.AgentId,

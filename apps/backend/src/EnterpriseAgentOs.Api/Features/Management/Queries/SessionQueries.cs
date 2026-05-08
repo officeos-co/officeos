@@ -8,22 +8,18 @@ public class SessionQueries
     public async Task<IReadOnlyList<AgentSessionRecord>> AgentSessions(
         Guid agentId,
         int? limit,
-        IResolverContext context,
         [Service] IAgentSessionRepository sessions,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return await sessions.ListByAgentAsync(agentId, limit ?? 20, ct);
     }
 
     [GraphQLDescription("Returns the currently active session for an agent, or null if no session is active.")]
     public async Task<AgentSessionRecord?> ActiveSession(
         Guid agentId,
-        IResolverContext context,
         [Service] IAgentSessionRepository sessions,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return await sessions.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
     }
 }

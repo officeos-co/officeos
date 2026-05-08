@@ -16,40 +16,39 @@ public class AuthMutations
     [GraphQLDescription("Updates editable profile fields on the authenticated user. Null fields are left unchanged.")]
     public async Task<UserPayload> UpdateProfile(
         UpdateProfileInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserRepository users,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var caller = DashboardAuthContextExtensions.GetUser(context);
-        var user = await users.UpdateProfileAsync(
-            caller.Id,
+        var updated = await users.UpdateProfileAsync(
+            user.Id,
             input.Name,
             input.DisplayName,
             input.Timezone,
             input.NotificationPrefsJson,
             input.Preferences,
             ct);
-        await cache.RemoveAsync($"auth:me:{caller.Id}", ct);
+        await cache.RemoveAsync($"auth:me:{user.Id}", ct);
         return new UserPayload(
-            user.Id,
-            user.Email,
-            user.Name,
-            user.AvatarUrl,
-            user.DisplayName,
-            user.Timezone,
-            user.NotificationPrefsJson,
-            user.Preferences);
+            updated.Id,
+            updated.Email,
+            updated.Name,
+            updated.AvatarUrl,
+            updated.DisplayName,
+            updated.Timezone,
+            updated.NotificationPrefsJson,
+            updated.Preferences);
     }
 
     [GraphQLDescription("Clears the current dashboard session cookie. Returns true if a session was deleted.")]
     public async Task<bool> Logout(
-        IResolverContext context,
+        [Service] IHttpContextAccessor httpContextAccessor,
         [Service] ISessionRepository sessions,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var http = context.Service<IHttpContextAccessor>().HttpContext;
+        var http = httpContextAccessor.HttpContext;
         var cookie = http?.Request.Cookies["eaos-session"];
         if (string.IsNullOrEmpty(cookie))
             return false;
@@ -67,16 +66,16 @@ public class AuthMutations
     /// </summary>
     [GraphQLDescription("Permanently deletes all data owned by the authenticated user (GDPR right-to-erasure). Invalidates the current session.")]
     public async Task<bool> PurgeMyData(
-        IResolverContext context,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] UserContext user,
         [Service] IGdprService gdpr,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         await gdpr.PurgeAsync(user.Id, ct);
 
         // Evict the session cache so the old cookie is immediately invalid
-        var http = context.Service<IHttpContextAccessor>().HttpContext;
+        var http = httpContextAccessor.HttpContext;
         var cookie = http?.Request.Cookies["eaos-session"];
         if (!string.IsNullOrEmpty(cookie))
         {

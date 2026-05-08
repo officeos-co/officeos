@@ -7,12 +7,11 @@ public class BillingQueries
 
     [GraphQLDescription("Returns the authenticated user's billing subscription including plan, credits, limits, and period.")]
     public async Task<UserSubscriptionDto> GetUserSubscription(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"billing:sub:{user.Id}";
 
         var cached = await cache.GetJsonAsync<UserSubscriptionDto>(cacheKey, ct);
@@ -43,11 +42,9 @@ public class BillingQueries
     [GraphQLDescription("Returns billing subscription for a specific organization.")]
     public async Task<OrgSubscriptionDto> GetOrgSubscription(
         string organizationId,
-        IResolverContext context,
         [Service] IOrgBillingService orgBilling,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var sub = await orgBilling.GetSubscriptionAsync(organizationId, ct);
         var (remaining, overBudget) = await orgBilling.CheckCreditBudgetAsync(organizationId, ct);
         return new OrgSubscriptionDto(
@@ -66,9 +63,8 @@ public class BillingQueries
     }
 
     [GraphQLDescription("Returns the limits for all plan tiers (free, pro, org-free, org-team) including concurrent agents and credits per month.")]
-    public PlanLimitsDto GetPlanLimits(IResolverContext context)
+    public PlanLimitsDto GetPlanLimits()
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return new PlanLimitsDto(
             PlanLimits.IndividualFree,
             PlanLimits.IndividualPro,
@@ -78,10 +74,8 @@ public class BillingQueries
 
     [GraphQLDescription("Returns the credit cost weight multiplier for each supported LLM model.")]
     public IReadOnlyList<ModelCostWeightDto> GetModelCostWeights(
-        IResolverContext context,
         [Service] CustomLlmProviderConfig customLlmProviderConfig)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         var weights = ProviderRegistry.GetCostWeights()
             .Select(kv => new ModelCostWeightDto(kv.Key, kv.Value))
             .ToList();
@@ -101,12 +95,11 @@ public class BillingQueries
     /// </summary>
     [GraphQLDescription("Unified billing info for the dashboard billing page. Includes plan, usage, payment method, and invoice history.")]
     public async Task<BillingPayload> Billing(
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var cacheKey = $"billing:dashboard:{user.Id}";
 
         var cached = await cache.GetJsonAsync<BillingPayload>(cacheKey, ct);
@@ -139,12 +132,10 @@ public class BillingQueries
 
     [GraphQLDescription("Returns the price of each plan tier (monthly and yearly) as configured in Stripe.")]
     public async Task<IReadOnlyList<PlanPriceDto>> GetPlanPrices(
-        IResolverContext context,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         const string cacheKey = "billing:plan-prices";
 
         var cached = await cache.GetJsonAsync<IReadOnlyList<PlanPriceDto>>(cacheKey, ct);
@@ -163,12 +154,11 @@ public class BillingQueries
     [GraphQLDescription("Returns credit and token usage for the current billing period. Optional range param for historical periods.")]
     public async Task<UserSubscriptionDto> GetTokenUsage(
         string? range,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         CancellationToken ct)
     {
         _ = range;
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         return new UserSubscriptionDto(
@@ -190,11 +180,10 @@ public class BillingQueries
     [GraphQLDescription("Returns token usage over time plus backend-calculated spend for an exact date range.")]
     public async Task<UsageAnalyticsDto> GetUsageAnalytics(
         UsageAnalyticsInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IUsageAnalyticsService usageAnalytics,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         return await usageAnalytics.GetForUserAsync(user.Id, input, ct);
     }
 }

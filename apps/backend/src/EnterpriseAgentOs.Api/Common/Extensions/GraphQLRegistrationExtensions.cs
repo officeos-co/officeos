@@ -2,6 +2,12 @@ namespace EnterpriseAgentOs.Api.Common.Extensions;
 
 public static class GraphQLRegistrationExtensions
 {
+    public static HotChocolate.Execution.Configuration.IRequestExecutorBuilder RequireDashboardSession(
+        this HotChocolate.Execution.Configuration.IRequestExecutorBuilder builder)
+    {
+        return builder.UseField<DashboardAuthMiddleware>();
+    }
+
     /// <summary>
     /// Scans the given assembly for classes annotated with <c>[ExtendObjectType]</c>
     /// and registers each as a type extension on the request executor. This lets

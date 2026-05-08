@@ -7,10 +7,8 @@ public class AgentLogsQueries
     [GraphQLDescription("Returns log entries for a specific agent using HotChocolate cursor pagination.")]
     public IQueryable<AgentLogDto> GetAgentLogs(
         Guid agentId,
-        IResolverContext context,
         [Service] IAgentLogService logs)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return logs.AgentLogs(agentId);
     }
 
@@ -18,12 +16,11 @@ public class AgentLogsQueries
     [GraphQLDescription("Returns log entries for a specific channel connection using HotChocolate cursor pagination.")]
     public async Task<IQueryable<AgentLogDto>> GetChannelLogs(
         Guid channelConnectionId,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IChannelRepository channels,
         [Service] IAgentLogService logs,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         var connection = await channels.GetConnectionByAsync(new ChannelConnectionFilter
         {
             Id = channelConnectionId,
@@ -45,10 +42,8 @@ public class AgentLogsQueries
     [GraphQLDescription("Returns log entries across all agents using HotChocolate cursor pagination.")]
     public IQueryable<AgentLogDto> GetGlobalLogs(
         GlobalLogFiltersInput? filters,
-        IResolverContext context,
         [Service] IAgentLogService logs)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return logs.GlobalLogs(filters ?? new GlobalLogFiltersInput());
     }
 
@@ -56,10 +51,8 @@ public class AgentLogsQueries
     [GraphQLDescription("Returns skill execution audit trail for an agent using HotChocolate offset pagination.")]
     public IQueryable<AuditEntry> GetAuditLog(
         Guid agentId,
-        IResolverContext context,
         [Service] IAgentLogService logs)
     {
-        _ = DashboardAuthContextExtensions.GetUser(context);
         return logs.AuditLog(agentId);
     }
 }

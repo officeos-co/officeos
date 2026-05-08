@@ -5,26 +5,24 @@ public class OrganizationsMutations
 {
     private static async Task InvalidateOrgCacheAsync(
         IDistributedCache cache,
-        IResolverContext context,
+        UserContext user,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         await cache.RemoveAsync($"org:dashboard:{user.Id}", ct);
     }
 
     [GraphQLDescription("Invites a user to the organization by email. Only the org owner can invite.")]
     public async Task<OrgMemberRecord> InviteMember(
         InviteMemberInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IOrganizationService orgService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             var member = await orgService.InviteMemberAsync(user.Id, user.Email, user.Name, input.Email, input.Role, ct);
-            await InvalidateOrgCacheAsync(cache, context, ct);
+            await InvalidateOrgCacheAsync(cache, user, ct);
             return member;
         }
         catch (InvalidOperationException ex)
@@ -39,16 +37,15 @@ public class OrganizationsMutations
     [GraphQLDescription("Removes a member from the organization. Only the org owner can remove.")]
     public async Task<bool> RemoveMember(
         Guid memberId,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IOrganizationService orgService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             var result = await orgService.RemoveMemberAsync(user.Id, user.Email, user.Name, memberId, ct);
-            await InvalidateOrgCacheAsync(cache, context, ct);
+            await InvalidateOrgCacheAsync(cache, user, ct);
             return result;
         }
         catch (InvalidOperationException ex)
@@ -63,18 +60,17 @@ public class OrganizationsMutations
     [GraphQLDescription("Renames the organization. Only the org owner can rename.")]
     public async Task<OrganizationPayload> RenameOrg(
         RenameOrgInput input,
-        IResolverContext context,
+        [Service] UserContext user,
         [Service] IOrganizationService orgService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var user = DashboardAuthContextExtensions.GetUser(context);
         try
         {
             var renamed = await orgService.RenameAsync(user.Id, user.Email, user.Name, input.Name, ct);
             var members = await orgService.ListMembersAsync(user.Id, user.Email, user.Name, ct);
             var result = new OrganizationPayload(renamed.Id, renamed.Name, renamed.OwnerUserId, renamed.CreatedAt, members);
-            await InvalidateOrgCacheAsync(cache, context, ct);
+            await InvalidateOrgCacheAsync(cache, user, ct);
             return result;
         }
         catch (InvalidOperationException ex)
