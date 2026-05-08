@@ -166,8 +166,8 @@ const ATLAS_CONNECTOR_TYPES = gql`
 `;
 
 const ATLAS_HISTORY = gql`
-  query AtlasRequestHistory($connectionId: UUID) {
-    atlasRequestHistory(filter: { connectionId: $connectionId }) {
+  query AtlasRequestHistory($connectionId: UUID, $limit: Int!) {
+    atlasRequestHistory(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
       type
@@ -183,8 +183,8 @@ const ATLAS_HISTORY = gql`
 `;
 
 const ATLAS_ACTIVITY = gql`
-  query AtlasActivity($connectionId: UUID) {
-    atlasActivity(filter: { connectionId: $connectionId }) {
+  query AtlasActivity($connectionId: UUID, $limit: Int!) {
+    atlasActivity(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
       type
@@ -198,7 +198,7 @@ const ATLAS_ACTIVITY = gql`
 `;
 
 const ATLAS_INDEX_JOBS = gql`
-  query AtlasIndexJobs($connectionId: UUID!, $limit: Int) {
+  query AtlasIndexJobs($connectionId: UUID!, $limit: Int!) {
     atlasIndexJobs(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
@@ -218,7 +218,7 @@ const ATLAS_INDEXED_RECORDS = gql`
     $entity: String!
     $query: String
     $cursor: String
-    $limit: Int
+    $limit: Int!
   ) {
     atlasIndexedRecords(
       filter: {
@@ -335,10 +335,10 @@ export function useAtlasConnectorTypes() {
 
 export function useAtlasHistory(
   connectionId?: string | null,
-  { pollInterval }: { pollInterval?: number } = {},
+  { limit = 100, pollInterval }: { limit?: number; pollInterval?: number } = {},
 ) {
   const { data, loading, error, refetch } = useQuery(ATLAS_HISTORY, {
-    variables: { connectionId: connectionId || null },
+    variables: { connectionId: connectionId || null, limit },
     fetchPolicy: "cache-and-network",
     pollInterval,
   });
@@ -352,10 +352,10 @@ export function useAtlasHistory(
 
 export function useAtlasActivity(
   connectionId?: string | null,
-  { pollInterval }: { pollInterval?: number } = {},
+  { limit = 100, pollInterval }: { limit?: number; pollInterval?: number } = {},
 ) {
   const { data, loading, error, refetch } = useQuery(ATLAS_ACTIVITY, {
-    variables: { connectionId: connectionId || null },
+    variables: { connectionId: connectionId || null, limit },
     fetchPolicy: "cache-and-network",
     pollInterval,
   });
