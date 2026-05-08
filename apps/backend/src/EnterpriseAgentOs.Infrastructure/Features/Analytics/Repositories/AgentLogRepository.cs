@@ -103,13 +103,13 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         return await query.ToListAsync(ct);
     }
 
-    public Task<List<UsageAggregateRow>> ListUsageAggregatesAsync(
+    public async Task<List<UsageAggregateRow>> ListUsageAggregatesAsync(
         Guid ownerId,
         DateTime fromInclusive,
         DateTime toExclusive,
         CancellationToken ct = default)
     {
-        return _eaosDbContext.AgentLogs
+        var rows = await _eaosDbContext.AgentLogs
             .AsNoTracking()
             .Where(l =>
                 l.Agent != null &&
@@ -118,19 +118,28 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 l.Time >= fromInclusive &&
                 l.Time < toExclusive &&
                 ((l.InputTokens ?? 0) + (l.OutputTokens ?? 0)) > 0)
+            .Select(l => new UsageLogRow(
+                l.Time,
+                l.Tool,
+                l.Agent!.Model,
+                l.InputTokens ?? 0,
+                l.OutputTokens ?? 0))
+            .ToListAsync(ct);
+
+        return rows
             .GroupBy(l => new
             {
-                Date = l.Time.Date,
-                Model = l.Tool ?? string.Empty,
+                Date = DateTime.SpecifyKind(l.Time.Date, DateTimeKind.Utc),
+                Model = ResolveUsageModel(l.Tool, l.AgentModel),
             })
             .Select(g => new UsageAggregateRow(
                 g.Key.Date,
                 g.Key.Model,
-                g.Sum(l => (long)(l.InputTokens ?? 0)),
-                g.Sum(l => (long)(l.OutputTokens ?? 0))))
+                g.Sum(l => (long)l.InputTokens),
+                g.Sum(l => (long)l.OutputTokens)))
             .OrderBy(r => r.Date)
             .ThenBy(r => r.Model)
-            .ToListAsync(ct);
+            .ToList();
     }
 
     public Task<int> CountAsync(AgentLogFilter filter, CancellationToken ct = default)
@@ -207,4 +216,22 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         RunId = r.RunId,
         ParentRunId = r.ParentRunId,
     };
+
+    private static string ResolveUsageModel(string? loggedModel, string? agentModel)
+    {
+        if (!string.IsNullOrWhiteSpace(loggedModel))
+            return loggedModel;
+
+        if (!string.IsNullOrWhiteSpace(agentModel))
+            return agentModel;
+
+        return ProviderRegistry.DefaultModel;
+    }
+
+    private sealed record UsageLogRow(
+        DateTime Time,
+        string? Tool,
+        string? AgentModel,
+        int InputTokens,
+        int OutputTokens);
 }
