@@ -18,19 +18,17 @@ const GLOBAL_LOGS_QUERY = gql`
     $search: String
     $agentName: String
     $type: AgentLogType
-    $skip: Int
-    $limit: Int
+    $first: Int
   ) {
     globalLogs(
+      first: $first
       filters: {
         search: $search
         agentName: $agentName
         type: $type
-        skip: $skip
-        limit: $limit
       }
     ) {
-      items {
+      nodes {
         id
         time
         type
@@ -43,7 +41,7 @@ const GLOBAL_LOGS_QUERY = gql`
         outputTokens
         agentName
       }
-      total
+      totalCount
     }
   }
 `;
@@ -71,8 +69,13 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
   loading: boolean;
   error?: Error;
 } {
+  const filterVariables = {
+    search: filters.search,
+    agentName: filters.agentName,
+    type: filters.type,
+  };
   const { data, loading, error } = useQuery(GLOBAL_LOGS_QUERY, {
-    variables: filters,
+    variables: { ...filterVariables, first: filters.limit ?? 50 },
     pollInterval: 5000,
     fetchPolicy: "network-only",
   });
@@ -88,7 +91,7 @@ export function useGlobalLogs(filters: GlobalLogFilters = {}): {
     inputTokens?: number | null;
     outputTokens?: number | null;
     agentName: string;
-  }> = data?.globalLogs?.items ?? [];
+  }> = data?.globalLogs?.nodes ?? [];
   const logs: GlobalLog[] = raw.map((r) => ({
     id: r.id,
     time:

@@ -66,22 +66,24 @@ const CHANNEL_CONNECTION_QUERY = gql`
 `
 
 const CHANNEL_LOGS_QUERY = gql`
-  query ChannelLogs($channelConnectionId: UUID!, $limit: Int!) {
-    channelLogs(channelConnectionId: $channelConnectionId, limit: $limit) {
-      id
-      agentId
-      agentName
-      time
-      type
-      tool
-      integration
-      channel
-      channelConnectionId
-      content
-      durationMs
-      inputTokens
-      outputTokens
-      correlationId
+  query ChannelLogs($channelConnectionId: UUID!, $last: Int!) {
+    channelLogs(channelConnectionId: $channelConnectionId, last: $last) {
+      nodes {
+        id
+        agentId
+        agentName
+        time
+        type
+        tool
+        integration
+        channel
+        channelConnectionId
+        content
+        durationMs
+        inputTokens
+        outputTokens
+        correlationId
+      }
     }
   }
 `
@@ -341,11 +343,11 @@ export function useChannelLogs(channelConnectionId: string, limit = 200): {
   error?: Error
 } {
   const { data, loading, error } = useQuery(CHANNEL_LOGS_QUERY, {
-    variables: { channelConnectionId, limit },
+    variables: { channelConnectionId, last: limit },
     skip: !channelConnectionId,
     fetchPolicy: "network-only",
   })
-  const raw: RawChannelLog[] = data?.channelLogs ?? []
+  const raw: RawChannelLog[] = data?.channelLogs?.nodes ?? []
   return {
     logs: raw.map((log) => ({
       id: log.id,
