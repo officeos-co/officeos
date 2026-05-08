@@ -23,7 +23,7 @@ internal sealed partial class McpTool : IAgentTool
 
         Schema = CreateSchema(discovered);
         Name = Schema.Name;
-        PermissionScope = $"{discovered.ServerName}:{discovered.Name}";
+        PermissionScope = $"{discovered.IntegrationName}:{discovered.Name}";
     }
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
@@ -54,7 +54,7 @@ internal sealed partial class McpTool : IAgentTool
 
     internal static ToolSchema CreateSchema(McpDiscoveredTool discovered)
     {
-        var slug = SlugRegex().Replace(discovered.ServerName, "_");
+        var slug = SlugRegex().Replace(discovered.IntegrationName, "_");
         var toolSlug = SlugRegex().Replace(discovered.Name, "_");
         var name = $"{slug}__{toolSlug}";
         var parameters = !string.IsNullOrEmpty(discovered.JsonSchema)
@@ -63,7 +63,7 @@ internal sealed partial class McpTool : IAgentTool
 
         return new ToolSchema(
             Name: name,
-            Description: $"[{discovered.ServerName}] {discovered.Description ?? discovered.Name}",
+            Description: $"[{discovered.IntegrationName}] {discovered.Description ?? discovered.Name}",
             Parameters: parameters);
     }
 
@@ -84,7 +84,7 @@ internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
     private readonly LazyMcpServerConnection _connection;
     private ToolSchema _schema;
 
-    public LazyMcpTool(McpServerRecord server, McpCatalogTool catalogTool, LazyMcpServerConnection connection)
+    public LazyMcpTool(IntegrationDefinitionRecord server, McpCatalogTool catalogTool, LazyMcpServerConnection connection)
     {
         _runtimeToolName = catalogTool.Name;
         _connection = connection;
@@ -122,7 +122,7 @@ internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
     {
         var discovered = await GetDiscoveredToolAsync(ct);
         if (discovered is null)
-            return new AgentError(AgentErrorCategory.ToolExecution, $"MCP tool '{_runtimeToolName}' was not discovered on server '{_connection.ServerName}'.");
+            return new AgentError(AgentErrorCategory.ToolExecution, $"MCP tool '{_runtimeToolName}' was not discovered on server '{_connection.IntegrationName}'.");
 
         return await new McpTool(discovered).ExecuteAsync(args, ct);
     }
@@ -139,10 +139,10 @@ internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
 
 internal sealed class LazyListMcpResourcesTool : IAgentTool
 {
-    private readonly McpServerRecord _server;
+    private readonly IntegrationDefinitionRecord _server;
     private readonly LazyMcpServerConnection _connection;
 
-    public LazyListMcpResourcesTool(McpServerRecord server, LazyMcpServerConnection connection)
+    public LazyListMcpResourcesTool(IntegrationDefinitionRecord server, LazyMcpServerConnection connection)
     {
         _server = server;
         _connection = connection;
@@ -177,10 +177,10 @@ internal sealed class LazyListMcpResourcesTool : IAgentTool
 
 internal sealed class LazyReadMcpResourceTool : IAgentTool
 {
-    private readonly McpServerRecord _server;
+    private readonly IntegrationDefinitionRecord _server;
     private readonly LazyMcpServerConnection _connection;
 
-    public LazyReadMcpResourceTool(McpServerRecord server, LazyMcpServerConnection connection)
+    public LazyReadMcpResourceTool(IntegrationDefinitionRecord server, LazyMcpServerConnection connection)
     {
         _server = server;
         _connection = connection;
@@ -217,7 +217,7 @@ internal sealed class LazyReadMcpResourceTool : IAgentTool
 
 internal sealed class LazyMcpServerConnection : IAsyncDisposable
 {
-    private readonly McpServerRecord _server;
+    private readonly IntegrationDefinitionRecord _server;
     private readonly Func<string, Task<Dictionary<string, string>>> _credentialLoader;
     private readonly IMcpClientManager _mcpClientManager;
     private readonly TurnEventPublisher _events;
@@ -227,7 +227,7 @@ internal sealed class LazyMcpServerConnection : IAsyncDisposable
     private Task<McpConnectionResult>? _connectionTask;
 
     public LazyMcpServerConnection(
-        McpServerRecord server,
+        IntegrationDefinitionRecord server,
         Func<string, Task<Dictionary<string, string>>> credentialLoader,
         IMcpClientManager mcpClientManager,
         TurnEventPublisher events,
@@ -242,7 +242,7 @@ internal sealed class LazyMcpServerConnection : IAsyncDisposable
         _correlationId = correlationId;
     }
 
-    public string ServerName => _server.Name;
+    public string IntegrationName => _server.Name;
 
     public Task<McpConnectionResult> EnsureConnectedAsync(CancellationToken ct)
     {

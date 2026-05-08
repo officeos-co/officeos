@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
 /// <summary>
 /// Manages connections to MCP servers. Returns raw MCP tool metadata.
@@ -7,7 +7,7 @@ namespace EnterpriseAgentOs.Domain.Features.Mcp;
 public interface IMcpClientManager
 {
     Task<McpConnectionResult> ConnectAsync(
-        McpServerRecord server,
+        IntegrationDefinitionRecord server,
         Dictionary<string, string> credentials,
         CancellationToken ct = default);
 }
@@ -34,7 +34,7 @@ public sealed class McpDiscoveredTool
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? JsonSchema { get; init; }
-    public string ServerName { get; init; } = string.Empty;
+    public string IntegrationName { get; init; } = string.Empty;
     /// <summary>Opaque reference to the SDK tool + client for execution.</summary>
     public object NativeHandle { get; init; } = null!;
 }

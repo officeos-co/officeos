@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Atlas;
+namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
 
 internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
 {
@@ -6,7 +6,7 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
 
     public AtlasConnectionRepository(EaosDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationConnectionRecord>> ListAsync(IntegrationConnectionFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasConnectorConnections.AsNoTracking().AsQueryable();
         if (filter.Id.HasValue) query = query.Where(c => c.Id == filter.Id.Value);
@@ -16,13 +16,13 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
             .OrderByDescending(c => c.UpdatedAt)
             .ToListAsync(ct);
         var ids = rows.Select(r => r.Id).ToList();
-        var statuses = await _db.AtlasEntityStatuses.AsNoTracking()
+        var statuses = await _db.IntegrationIndexEntityStatuses.AsNoTracking()
             .Where(s => ids.Contains(s.ConnectionId))
             .ToListAsync(ct);
         return rows.Select(r => ToRecord(r, statuses.Where(s => s.ConnectionId == r.Id))).ToList();
     }
 
-    public async Task<AtlasConnectorConnectionRecord?> GetByAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
+    public async Task<IntegrationConnectionRecord?> GetByAsync(IntegrationConnectionFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasConnectorConnections.AsNoTracking().AsQueryable();
         if (filter.Id.HasValue) query = query.Where(c => c.Id == filter.Id.Value);
@@ -31,13 +31,13 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
         var row = await query.FirstOrDefaultAsync(ct);
         if (row is null) return null;
 
-        var statuses = await _db.AtlasEntityStatuses.AsNoTracking()
+        var statuses = await _db.IntegrationIndexEntityStatuses.AsNoTracking()
             .Where(s => s.ConnectionId == row.Id)
             .ToListAsync(ct);
         return ToRecord(row, statuses);
     }
 
-    public async Task<AtlasConnectorConnectionRecord> UpsertAsync(AtlasConnectorConnectionRecord connection, CancellationToken ct = default)
+    public async Task<IntegrationConnectionRecord> UpsertAsync(IntegrationConnectionRecord connection, CancellationToken ct = default)
     {
         var existing = await _db.AtlasConnectorConnections.FirstOrDefaultAsync(c => c.Id == connection.Id, ct);
         if (existing is null)
@@ -62,7 +62,7 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
         => await _db.AtlasConnectorConnections.Where(c => c.Id == id).ExecuteDeleteAsync(ct);
 
-    public async Task SetStatusAsync(Guid id, AtlasConnectorStatus status, string? error, CancellationToken ct = default)
+    public async Task SetStatusAsync(Guid id, IntegrationConnectionStatus status, string? error, CancellationToken ct = default)
     {
         var row = await _db.AtlasConnectorConnections.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (row is null) return;
@@ -72,25 +72,25 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    private static AtlasConnectorConnectionRecord ToRecord(
-        AtlasConnectorConnectionEntity e,
-        IEnumerable<AtlasEntityStatusEntity> statuses) => new()
+    private static IntegrationConnectionRecord ToRecord(
+        IntegrationConnectionEntity e,
+        IEnumerable<IntegrationIndexEntityStatusEntity> statuses) => new()
     {
         Id = e.Id,
-        Provider = Enum.Parse<AtlasConnectorProvider>(e.Provider),
+        Provider = Enum.Parse<IntegrationProviderType>(e.Provider),
         WorkspaceName = e.WorkspaceName,
         DisplayName = e.DisplayName,
         RepositoriesJson = e.RepositoriesJson,
         EntitiesJson = e.EntitiesJson,
-        Status = Enum.Parse<AtlasConnectorStatus>(e.Status),
+        Status = Enum.Parse<IntegrationConnectionStatus>(e.Status),
         Error = e.Error,
         CreatedById = e.CreatedById,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt,
-        EntityStatuses = statuses.Select(AtlasEntityStatusRepository.ToRecord).ToList(),
+        EntityStatuses = statuses.Select(IntegrationIndexEntityStatusRepository.ToRecord).ToList(),
     };
 
-    private static AtlasConnectorConnectionEntity ToEntity(AtlasConnectorConnectionRecord r) => new()
+    private static IntegrationConnectionEntity ToEntity(IntegrationConnectionRecord r) => new()
     {
         Id = r.Id,
         Provider = r.Provider.ToString(),
@@ -106,27 +106,27 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
     };
 }
 
-internal sealed class AtlasEntityStatusRepository : IAtlasEntityStatusRepository
+internal sealed class IntegrationIndexEntityStatusRepository : IIntegrationIndexEntityStatusRepository
 {
     private readonly EaosDbContext _db;
 
-    public AtlasEntityStatusRepository(EaosDbContext db) => _db = db;
+    public IntegrationIndexEntityStatusRepository(EaosDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<AtlasEntityStatusRecord>> ListForConnectionAsync(Guid connectionId, CancellationToken ct = default)
-        => (await _db.AtlasEntityStatuses.AsNoTracking()
+    public async Task<IReadOnlyList<IntegrationIndexEntityStatusRecord>> ListForConnectionAsync(Guid connectionId, CancellationToken ct = default)
+        => (await _db.IntegrationIndexEntityStatuses.AsNoTracking()
             .Where(s => s.ConnectionId == connectionId)
             .OrderBy(s => s.Entity)
             .ToListAsync(ct))
             .Select(ToRecord)
             .ToList();
 
-    public async Task UpsertAsync(AtlasEntityStatusRecord status, CancellationToken ct = default)
+    public async Task UpsertAsync(IntegrationIndexEntityStatusRecord status, CancellationToken ct = default)
     {
-        var existing = await _db.AtlasEntityStatuses
+        var existing = await _db.IntegrationIndexEntityStatuses
             .FirstOrDefaultAsync(s => s.ConnectionId == status.ConnectionId && s.Entity == status.Entity, ct);
         if (existing is null)
         {
-            _db.AtlasEntityStatuses.Add(new AtlasEntityStatusEntity
+            _db.IntegrationIndexEntityStatuses.Add(new IntegrationIndexEntityStatusEntity
             {
                 Id = status.Id,
                 ConnectionId = status.ConnectionId,
@@ -149,12 +149,12 @@ internal sealed class AtlasEntityStatusRepository : IAtlasEntityStatusRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    internal static AtlasEntityStatusRecord ToRecord(AtlasEntityStatusEntity e) => new()
+    internal static IntegrationIndexEntityStatusRecord ToRecord(IntegrationIndexEntityStatusEntity e) => new()
     {
         Id = e.Id,
         ConnectionId = e.ConnectionId,
         Entity = e.Entity,
-        Status = Enum.Parse<AtlasEntityStatus>(e.Status),
+        Status = Enum.Parse<IntegrationIndexEntityStatus>(e.Status),
         RecordCount = e.RecordCount,
         Error = e.Error,
         LastSyncedAt = e.LastSyncedAt,
@@ -168,7 +168,7 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
 
     public AtlasIndexJobRepository(EaosDbContext db) => _db = db;
 
-    public async Task<AtlasIndexJobRecord> CreateAsync(AtlasIndexJobRecord job, CancellationToken ct = default)
+    public async Task<IntegrationIndexJobRecord> CreateAsync(IntegrationIndexJobRecord job, CancellationToken ct = default)
     {
         var entity = ToEntity(job);
         _db.AtlasIndexJobs.Add(entity);
@@ -176,21 +176,21 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
         return ToRecord(entity);
     }
 
-    public async Task<AtlasIndexJobRecord?> DequeueAsync(CancellationToken ct = default)
+    public async Task<IntegrationIndexJobRecord?> DequeueAsync(CancellationToken ct = default)
     {
         var entity = await _db.AtlasIndexJobs
-            .Where(j => j.Status == AtlasIndexJobStatus.Queued.ToString())
+            .Where(j => j.Status == IntegrationIndexJobStatus.Queued.ToString())
             .OrderBy(j => j.CreatedAt)
             .FirstOrDefaultAsync(ct);
         if (entity is null) return null;
 
-        entity.Status = AtlasIndexJobStatus.Running.ToString();
+        entity.Status = IntegrationIndexJobStatus.Running.ToString();
         entity.StartedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return ToRecord(entity);
     }
 
-    public async Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(AtlasIndexJobFilter filter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationIndexJobRecord>> ListAsync(IntegrationIndexJobFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasIndexJobs.AsNoTracking().AsQueryable();
         if (filter.ConnectionId.HasValue)
@@ -204,7 +204,7 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
             .ToList();
     }
 
-    public async Task UpdateAsync(AtlasIndexJobRecord job, CancellationToken ct = default)
+    public async Task UpdateAsync(IntegrationIndexJobRecord job, CancellationToken ct = default)
     {
         var entity = await _db.AtlasIndexJobs.FirstOrDefaultAsync(j => j.Id == job.Id, ct);
         if (entity is null) return;
@@ -216,11 +216,11 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    private static AtlasIndexJobRecord ToRecord(AtlasIndexJobEntity e) => new()
+    private static IntegrationIndexJobRecord ToRecord(IntegrationIndexJobEntity e) => new()
     {
         Id = e.Id,
         ConnectionId = e.ConnectionId,
-        Status = Enum.Parse<AtlasIndexJobStatus>(e.Status),
+        Status = Enum.Parse<IntegrationIndexJobStatus>(e.Status),
         Error = e.Error,
         RecordsIndexed = e.RecordsIndexed,
         CreatedAt = e.CreatedAt,
@@ -228,7 +228,7 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
         CompletedAt = e.CompletedAt,
     };
 
-    private static AtlasIndexJobEntity ToEntity(AtlasIndexJobRecord r) => new()
+    private static IntegrationIndexJobEntity ToEntity(IntegrationIndexJobRecord r) => new()
     {
         Id = r.Id,
         ConnectionId = r.ConnectionId,
@@ -247,7 +247,7 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
 
     public AtlasIndexedRecordRepository(EaosDbContext db) => _db = db;
 
-    public async Task UpsertManyAsync(IReadOnlyList<AtlasIndexedRecordRecord> records, CancellationToken ct = default)
+    public async Task UpsertManyAsync(IReadOnlyList<IntegrationIndexedRecordRecord> records, CancellationToken ct = default)
     {
         foreach (var record in records)
         {
@@ -270,7 +270,7 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<AtlasIndexedRecordRecord?> GetByAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
+    public async Task<IntegrationIndexedRecordRecord?> GetByAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasIndexedRecords.AsNoTracking().AsQueryable();
         if (filter.Id.HasValue) query = query.Where(r => r.Id == filter.Id.Value);
@@ -281,12 +281,12 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
         return entity is null ? null : ToRecord(entity);
     }
 
-    public async Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
+    public async Task<IntegrationIndexedRecordPage> SearchAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default)
     {
         if (!filter.ConnectionId.HasValue)
-            throw new ArgumentException("SearchAsync requires AtlasIndexedRecordFilter.ConnectionId.", nameof(filter));
+            throw new ArgumentException("SearchAsync requires IntegrationIndexedRecordFilter.ConnectionId.", nameof(filter));
         if (string.IsNullOrWhiteSpace(filter.Entity))
-            throw new ArgumentException("SearchAsync requires AtlasIndexedRecordFilter.Entity.", nameof(filter));
+            throw new ArgumentException("SearchAsync requires IntegrationIndexedRecordFilter.Entity.", nameof(filter));
 
         var query = _db.AtlasIndexedRecords.AsNoTracking()
             .Where(r => r.ConnectionId == filter.ConnectionId.Value && r.Entity == filter.Entity);
@@ -301,7 +301,7 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
         var rows = await query.OrderBy(r => r.Id).Skip(offset).Take(filter.Limit + 1).ToListAsync(ct);
         var hasMore = rows.Count > filter.Limit;
         var page = rows.Take(filter.Limit).Select(ToRecord).ToList();
-        return new AtlasIndexedRecordPage(page, hasMore, hasMore ? (offset + filter.Limit).ToString() : null);
+        return new IntegrationIndexedRecordPage(page, hasMore, hasMore ? (offset + filter.Limit).ToString() : null);
     }
 
     public async Task<int> CountAsync(Guid connectionId, string entity, CancellationToken ct = default)
@@ -310,7 +310,7 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
     public async Task DeleteForConnectionAsync(Guid connectionId, CancellationToken ct = default)
         => await _db.AtlasIndexedRecords.Where(r => r.ConnectionId == connectionId).ExecuteDeleteAsync(ct);
 
-    private static AtlasIndexedRecordRecord ToRecord(AtlasIndexedRecordEntity e) => new()
+    private static IntegrationIndexedRecordRecord ToRecord(IntegrationIndexedRecordEntity e) => new()
     {
         Id = e.Id,
         ConnectionId = e.ConnectionId,
@@ -324,7 +324,7 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
         UpdatedAt = e.UpdatedAt,
     };
 
-    private static AtlasIndexedRecordEntity ToEntity(AtlasIndexedRecordRecord r) => new()
+    private static IntegrationIndexedRecordEntity ToEntity(IntegrationIndexedRecordRecord r) => new()
     {
         Id = r.Id,
         ConnectionId = r.ConnectionId,
@@ -345,9 +345,9 @@ internal sealed class AtlasRequestHistoryRepository : IAtlasRequestHistoryReposi
 
     public AtlasRequestHistoryRepository(EaosDbContext db) => _db = db;
 
-    public async Task AddAsync(AtlasRequestHistoryRecord history, CancellationToken ct = default)
+    public async Task AddAsync(IntegrationRequestHistoryRecord history, CancellationToken ct = default)
     {
-        _db.AtlasRequestHistory.Add(new AtlasRequestHistoryEntity
+        _db.AtlasRequestHistory.Add(new IntegrationRequestHistoryEntity
         {
             Id = history.Id,
             ConnectionId = history.ConnectionId,
@@ -363,16 +363,16 @@ internal sealed class AtlasRequestHistoryRepository : IAtlasRequestHistoryReposi
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListAsync(AtlasRequestHistoryFilter filter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationRequestHistoryRecord>> ListAsync(IntegrationRequestHistoryFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasRequestHistory.AsNoTracking().AsQueryable();
         if (filter.ConnectionId.HasValue) query = query.Where(h => h.ConnectionId == filter.ConnectionId.Value);
         return (await query.OrderByDescending(h => h.CreatedAt).Take(filter.Limit).ToListAsync(ct))
-            .Select(h => new AtlasRequestHistoryRecord
+            .Select(h => new IntegrationRequestHistoryRecord
             {
                 Id = h.Id,
                 ConnectionId = h.ConnectionId,
-                Type = Enum.Parse<AtlasRequestType>(h.Type),
+                Type = Enum.Parse<IntegrationRequestType>(h.Type),
                 Entity = h.Entity,
                 Action = h.Action,
                 ParamsJson = h.ParamsJson,
@@ -391,9 +391,9 @@ internal sealed class AtlasActivityRepository : IAtlasActivityRepository
 
     public AtlasActivityRepository(EaosDbContext db) => _db = db;
 
-    public async Task AddAsync(AtlasActivityRecord activity, CancellationToken ct = default)
+    public async Task AddAsync(IntegrationActivityRecord activity, CancellationToken ct = default)
     {
-        _db.AtlasActivity.Add(new AtlasActivityEntity
+        _db.AtlasActivity.Add(new IntegrationActivityEntity
         {
             Id = activity.Id,
             ConnectionId = activity.ConnectionId,
@@ -407,7 +407,7 @@ internal sealed class AtlasActivityRepository : IAtlasActivityRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<AtlasActivityRecord>> ListAsync(AtlasActivityFilter filter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationActivityRecord>> ListAsync(IntegrationActivityFilter filter, CancellationToken ct = default)
     {
         var query = _db.AtlasActivity.AsNoTracking().AsQueryable();
         if (filter.ConnectionId.HasValue)
@@ -417,7 +417,7 @@ internal sealed class AtlasActivityRepository : IAtlasActivityRepository
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(filter.Limit)
                 .ToListAsync(ct))
-            .Select(a => new AtlasActivityRecord
+            .Select(a => new IntegrationActivityRecord
             {
                 Id = a.Id,
                 ConnectionId = a.ConnectionId,

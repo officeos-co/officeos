@@ -1,68 +1,68 @@
-using EnterpriseAgentOs.Domain.Features.Atlas;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-namespace EnterpriseAgentOs.Api.Features.Atlas;
+namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public sealed class AtlasQueries
 {
-    public Task<IReadOnlyList<AtlasConnectorTypeRecord>> GetAtlasConnectorTypes(
-        [Service] IAtlasService service,
+    public Task<IReadOnlyList<IntegrationDefinitionRecord>> GetAtlasConnectorTypes(
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         return service.ListConnectorTypesAsync(ct);
     }
 
-    public Task<IReadOnlyList<AtlasConnectorConnectionRecord>> GetAtlasConnections(
-        AtlasConnectionFilter? filter,
-        [Service] IAtlasService service,
+    public Task<IReadOnlyList<IntegrationConnectionRecord>> GetAtlasConnections(
+        IntegrationConnectionFilter? filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
-        return service.ListAsync(filter ?? new AtlasConnectionFilter(), ct);
+        return service.ListAsync(filter ?? new IntegrationConnectionFilter(), ct);
     }
 
-    public Task<AtlasConnectorConnectionRecord?> GetAtlasConnection(
-        AtlasConnectionFilter filter,
-        [Service] IAtlasService service,
+    public Task<IntegrationConnectionRecord?> GetAtlasConnection(
+        IntegrationConnectionFilter filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         return service.GetByAsync(filter, ct);
     }
 
-    public Task<IReadOnlyList<AtlasRequestHistoryRecord>> GetAtlasRequestHistory(
-        AtlasRequestHistoryFilter? filter,
-        [Service] IAtlasService service,
+    public Task<IReadOnlyList<IntegrationRequestHistoryRecord>> GetAtlasRequestHistory(
+        IntegrationRequestHistoryFilter? filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
-        return service.ListAsync(filter ?? new AtlasRequestHistoryFilter(), ct);
+        return service.ListAsync(filter ?? new IntegrationRequestHistoryFilter(), ct);
     }
 
-    public Task<IReadOnlyList<AtlasActivityRecord>> GetAtlasActivity(
-        AtlasActivityFilter? filter,
-        [Service] IAtlasService service,
+    public Task<IReadOnlyList<IntegrationActivityRecord>> GetAtlasActivity(
+        IntegrationActivityFilter? filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
-        return service.ListAsync(filter ?? new AtlasActivityFilter(), ct);
+        return service.ListAsync(filter ?? new IntegrationActivityFilter(), ct);
     }
 
-    public Task<IReadOnlyList<AtlasIndexJobRecord>> GetAtlasIndexJobs(
-        AtlasIndexJobFilter filter,
-        [Service] IAtlasService service,
+    public Task<IReadOnlyList<IntegrationIndexJobRecord>> GetAtlasIndexJobs(
+        IntegrationIndexJobFilter filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         return service.ListAsync(filter, ct);
     }
 
-    public Task<AtlasIndexedRecordRecord?> GetAtlasIndexedRecord(
-        AtlasIndexedRecordFilter filter,
-        [Service] IAtlasService service,
+    public Task<IntegrationIndexedRecordRecord?> GetAtlasIndexedRecord(
+        IntegrationIndexedRecordFilter filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         return service.GetByAsync(filter, ct);
     }
 
-    public Task<AtlasIndexedRecordPage> GetAtlasIndexedRecords(
-        AtlasIndexedRecordFilter filter,
-        [Service] IAtlasService service,
+    public Task<IntegrationIndexedRecordPage> GetAtlasIndexedRecords(
+        IntegrationIndexedRecordFilter filter,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         return service.SearchAsync(filter, ct);

@@ -1,23 +1,23 @@
-namespace EnterpriseAgentOs.Application.Features.Mcp;
+namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
-internal sealed class McpServerService : IMcpServerService
+internal sealed class IntegrationDefinitionService : IIntegrationDefinitionService
 {
-    private readonly IAgentMcpServerRepository _agentServerRepository;
-    private readonly IMcpServerRepository _serverRepository;
-    private readonly IMcpCredentialRepository _credentialRepository;
+    private readonly IAgentIntegrationDefinitionRepository _agentServerRepository;
+    private readonly IIntegrationDefinitionRepository _serverRepository;
+    private readonly IIntegrationCredentialRepository _credentialRepository;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly GoogleOAuthConfig _googleOAuthConfig;
-    private readonly ILogger<McpServerService> _logger;
+    private readonly ILogger<IntegrationDefinitionService> _logger;
 
-    public McpServerService(
-        IAgentMcpServerRepository agentServers,
-        IMcpServerRepository servers,
-        IMcpCredentialRepository credentials,
+    public IntegrationDefinitionService(
+        IAgentIntegrationDefinitionRepository agentServers,
+        IIntegrationDefinitionRepository servers,
+        IIntegrationCredentialRepository credentials,
         IOAuthTokenRepository oauthTokens,
         CredentialProtector protector,
         GoogleOAuthConfig googleOAuthConfig,
-        ILogger<McpServerService> logger)
+        ILogger<IntegrationDefinitionService> logger)
     {
         _agentServerRepository = agentServers;
         _serverRepository = servers;
@@ -28,10 +28,10 @@ internal sealed class McpServerService : IMcpServerService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default)
         => await WithConnectionStatusAsync(await OrderedCatalogAsync(ct), ct);
 
-    public async Task<McpServerRecord?> GetAsync(string name, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord?> GetAsync(string name, CancellationToken ct = default)
     {
         var server = McpServerRegistry.GetBuiltin(name)
             ?? await _serverRepository.GetByNameAsync(name, ct);
@@ -40,7 +40,7 @@ internal sealed class McpServerService : IMcpServerService
         return (await WithConnectionStatusAsync([server], ct)).FirstOrDefault();
     }
 
-    public async Task<McpServerRecord> RegisterAsync(McpServerRecord server, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord> RegisterAsync(IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
         if (McpServerRegistry.GetBuiltin(server.Name) is not null)
             throw new InvalidOperationException($"MCP server '{server.Name}' is built in and cannot be overwritten.");
@@ -59,9 +59,9 @@ internal sealed class McpServerService : IMcpServerService
         await _agentServerRepository.UnassignServerFromAllAgentsAsync(name, ct);
     }
 
-    public async Task<IReadOnlyList<McpServerRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        var names = await _agentServerRepository.ListServerNamesForAgentAsync(agentId, ct);
+        var names = await _agentServerRepository.ListIntegrationNamesForAgentAsync(agentId, ct);
         _logger.LogDebug("MCP catalog for agent {AgentId}: assigned servers [{Servers}]", agentId, string.Join(", ", names));
         if (names.Count == 0) return [];
 
@@ -71,41 +71,41 @@ internal sealed class McpServerService : IMcpServerService
             ct);
     }
 
-    public async Task AssignToAgentAsync(Guid agentId, string serverName, CancellationToken ct = default)
+    public async Task AssignToAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)
     {
-        var server = await GetAsync(serverName, ct)
-            ?? throw new InvalidOperationException($"MCP server '{serverName}' was not found.");
+        var server = await GetAsync(integrationName, ct)
+            ?? throw new InvalidOperationException($"MCP server '{integrationName}' was not found.");
 
         await _agentServerRepository.AssignAsync(agentId, server.Name, ct);
         _logger.LogInformation("Assigned MCP server {Server} to agent {AgentId}", server.Name, agentId);
     }
 
-    public Task UnassignFromAgentAsync(Guid agentId, string serverName, CancellationToken ct = default)
-        => _agentServerRepository.UnassignAsync(agentId, serverName, ct);
+    public Task UnassignFromAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)
+        => _agentServerRepository.UnassignAsync(agentId, integrationName, ct);
 
-    public async Task SaveCredentialAsync(string serverName, Dictionary<string, string> fields, CancellationToken ct = default)
+    public async Task SaveCredentialAsync(string integrationName, Dictionary<string, string> fields, CancellationToken ct = default)
     {
         var encrypted = _credentialProtector.Protect(fields);
-        await _credentialRepository.UpsertAsync(new McpCredentialRecord
+        await _credentialRepository.UpsertAsync(new IntegrationCredentialRecord
         {
-            McpServerName = serverName,
+            IntegrationName = integrationName,
             EncryptedCredentials = encrypted,
             ConfiguredAt = DateTime.UtcNow,
         }, ct);
     }
 
-    public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string serverName, CancellationToken ct = default)
+    public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string integrationName, CancellationToken ct = default)
     {
-        var server = McpServerRegistry.GetBuiltin(serverName);
+        var server = McpServerRegistry.GetBuiltin(integrationName);
         if (!string.IsNullOrWhiteSpace(server?.OauthProvider))
             return await GetOAuthCredentialAsync(server, ct);
 
-        var record = await _credentialRepository.GetByAsync(new McpCredentialFilter { ServerName = serverName }, ct);
+        var record = await _credentialRepository.GetByAsync(new IntegrationCredentialFilter { IntegrationName = integrationName }, ct);
         if (record is null) return new();
         return _credentialProtector.Unprotect(record.EncryptedCredentials);
     }
 
-    private async Task<Dictionary<string, string>> GetOAuthCredentialAsync(McpServerRecord server, CancellationToken ct)
+    private async Task<Dictionary<string, string>> GetOAuthCredentialAsync(IntegrationDefinitionRecord server, CancellationToken ct)
     {
         var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = server.OauthProvider! }, ct);
         if (token is null) return new();
@@ -149,8 +149,8 @@ internal sealed class McpServerService : IMcpServerService
         return _credentialProtector.Unprotect(encrypted).GetValueOrDefault("token");
     }
 
-    private async Task<IReadOnlyList<McpServerRecord>> WithConnectionStatusAsync(
-        IReadOnlyList<McpServerRecord> servers,
+    private async Task<IReadOnlyList<IntegrationDefinitionRecord>> WithConnectionStatusAsync(
+        IReadOnlyList<IntegrationDefinitionRecord> servers,
         CancellationToken ct)
     {
         var providers = servers
@@ -199,7 +199,7 @@ internal sealed class McpServerService : IMcpServerService
         var credentialConfigured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var server in withOAuth.Where(s => string.IsNullOrWhiteSpace(s.OauthProvider)))
         {
-            var record = await _credentialRepository.GetByAsync(new McpCredentialFilter { ServerName = server.Name }, ct);
+            var record = await _credentialRepository.GetByAsync(new IntegrationCredentialFilter { IntegrationName = server.Name }, ct);
             if (!string.IsNullOrWhiteSpace(record?.EncryptedCredentials))
                 credentialConfigured.Add(server.Name);
         }
@@ -225,7 +225,7 @@ internal sealed class McpServerService : IMcpServerService
         }
     }
 
-    private static McpServerRecord CopyWithOauthConfigured(McpServerRecord server, bool configured) => new()
+    private static IntegrationDefinitionRecord CopyWithOauthConfigured(IntegrationDefinitionRecord server, bool configured) => new()
     {
         Id = server.Id,
         Name = server.Name,
@@ -252,7 +252,7 @@ internal sealed class McpServerService : IMcpServerService
         CreatedAt = server.CreatedAt,
     };
 
-    private static McpServerRecord CopyWithCredentialConfigured(McpServerRecord server, bool configured) => new()
+    private static IntegrationDefinitionRecord CopyWithCredentialConfigured(IntegrationDefinitionRecord server, bool configured) => new()
     {
         Id = server.Id,
         Name = server.Name,
@@ -279,7 +279,7 @@ internal sealed class McpServerService : IMcpServerService
         CreatedAt = server.CreatedAt,
     };
 
-    private static McpServerRecord CopyAsCustom(McpServerRecord server) => new()
+    private static IntegrationDefinitionRecord CopyAsCustom(IntegrationDefinitionRecord server) => new()
     {
         Id = server.Id,
         Name = server.Name,
@@ -302,7 +302,7 @@ internal sealed class McpServerService : IMcpServerService
         CreatedAt = server.CreatedAt == default ? DateTime.UtcNow : server.CreatedAt,
     };
 
-    private async Task<IReadOnlyList<McpServerRecord>> OrderedCatalogAsync(CancellationToken ct)
+    private async Task<IReadOnlyList<IntegrationDefinitionRecord>> OrderedCatalogAsync(CancellationToken ct)
     {
         var custom = await _serverRepository.ListAsync(ct);
         return OrderedBuiltins()
@@ -312,7 +312,7 @@ internal sealed class McpServerService : IMcpServerService
             .ToList();
     }
 
-    private static IReadOnlyList<McpServerRecord> OrderedBuiltins()
+    private static IReadOnlyList<IntegrationDefinitionRecord> OrderedBuiltins()
         => McpServerRegistry.BuiltinServers
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)

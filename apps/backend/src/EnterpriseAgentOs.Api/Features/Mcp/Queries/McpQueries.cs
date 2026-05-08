@@ -1,22 +1,22 @@
 using EnterpriseAgentOs.Api.Common;
-using EnterpriseAgentOs.Domain.Features.Mcp;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-namespace EnterpriseAgentOs.Api.Features.Mcp;
+namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public sealed class McpQueries
 {
-    public async Task<IReadOnlyList<McpServerRecord>> GetMcpServers(
-        [Service] IMcpServerService svc, CancellationToken ct)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> GetMcpServers(
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
         => await svc.ListAsync(ct);
 
-    public async Task<McpServerRecord?> GetMcpServer(
+    public async Task<IntegrationDefinitionRecord?> GetMcpServer(
         string name,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
         => await svc.GetAsync(name, ct);
 
-    public async Task<IReadOnlyList<McpServerRecord>> GetAgentMcpServers(
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> GetAgentMcpServers(
         Guid agentId,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
         => await svc.ListForAgentAsync(agentId, ct);
 }

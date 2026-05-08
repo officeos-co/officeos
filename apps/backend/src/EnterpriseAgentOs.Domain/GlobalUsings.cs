@@ -3,7 +3,7 @@ global using System.Text.Json;
 global using EnterpriseAgentOs.Domain.Features.Agents;
 global using EnterpriseAgentOs.Domain.Features.Analytics;
 global using EnterpriseAgentOs.Domain.Features.Management;
-global using EnterpriseAgentOs.Domain.Features.Atlas;
+global using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 global using EnterpriseAgentOs.Domain.Features.Data;
 global using EnterpriseAgentOs.Domain.Common;
 global using EnterpriseAgentOs.Domain.Common.Primitives;

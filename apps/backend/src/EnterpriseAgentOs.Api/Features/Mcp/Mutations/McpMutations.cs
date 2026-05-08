@@ -1,20 +1,20 @@
 using EnterpriseAgentOs.Api.Common;
-using EnterpriseAgentOs.Domain.Features.Mcp;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-namespace EnterpriseAgentOs.Api.Features.Mcp;
+namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public sealed class McpMutations
 {
-    public async Task<McpServerRecord> RegisterMcpServer(
+    public async Task<IntegrationDefinitionRecord> RegisterMcpServer(
         RegisterMcpServerInput input,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
-        var transportType = Enum.TryParse<McpTransportType>(input.TransportType, true, out var t)
+        var transportType = Enum.TryParse<IntegrationTransportType>(input.TransportType, true, out var t)
             ? t
-            : McpTransportType.Stdio;
+            : IntegrationTransportType.Stdio;
 
-        if (transportType == McpTransportType.Stdio && string.IsNullOrWhiteSpace(input.Command))
+        if (transportType == IntegrationTransportType.Stdio && string.IsNullOrWhiteSpace(input.Command))
         {
             throw new GraphQLException(
                 ErrorBuilder.New()
@@ -41,7 +41,7 @@ public sealed class McpMutations
             }
         }
 
-        var record = new McpServerRecord
+        var record = new IntegrationDefinitionRecord
         {
             Name = input.Name,
             Title = input.Title,
@@ -74,7 +74,7 @@ public sealed class McpMutations
 
     public async Task<bool> DeleteMcpServer(
         string name,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         try
         {
@@ -89,8 +89,8 @@ public sealed class McpMutations
     }
 
     public Task<bool> AssignMcpServerToAgent(
-        Guid agentId, string serverName,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        Guid agentId, string integrationName,
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         _ = svc;
         _ = ct;
@@ -98,8 +98,8 @@ public sealed class McpMutations
     }
 
     public Task<bool> UnassignMcpServerFromAgent(
-        Guid agentId, string serverName,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        Guid agentId, string integrationName,
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         _ = svc;
         _ = ct;
@@ -113,11 +113,11 @@ public sealed class McpMutations
             .Build());
 
     public async Task<bool> SaveMcpCredential(
-        string serverName, List<CredentialFieldInput> fields,
-        [Service] IMcpServerService svc, CancellationToken ct)
+        string integrationName, List<CredentialFieldInput> fields,
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         var dict = fields.ToDictionary(f => f.Key, f => f.Value);
-        await svc.SaveCredentialAsync(serverName, dict, ct);
+        await svc.SaveCredentialAsync(integrationName, dict, ct);
         return true;
     }
 }

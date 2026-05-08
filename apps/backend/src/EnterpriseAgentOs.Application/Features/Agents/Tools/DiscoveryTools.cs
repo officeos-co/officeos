@@ -81,13 +81,13 @@ internal sealed class ToolSearchTool : IAgentTool
 
 internal sealed class ListMcpResourcesTool : IAgentTool
 {
-    private readonly string _serverName;
+    private readonly string _integrationName;
     private readonly object? _client;
-    public ListMcpResourcesTool(string serverName, object? client) { _serverName = serverName; _client = client; }
-    public string Name => $"{Slug(_serverName)}__list_mcp_resources";
+    public ListMcpResourcesTool(string integrationName, object? client) { _integrationName = integrationName; _client = client; }
+    public string Name => $"{Slug(_integrationName)}__list_mcp_resources";
     public AgentToolKind Kind => AgentToolKind.Mcp;
     public bool IsReadOnly => true;
-    public ToolSchema Schema => new(Name, $"[{_serverName}] List available MCP resources.", new { type = "object", properties = new { } });
+    public ToolSchema Schema => new(Name, $"[{_integrationName}] List available MCP resources.", new { type = "object", properties = new { } });
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
@@ -160,13 +160,13 @@ internal sealed class ListMcpResourcesTool : IAgentTool
 
 internal sealed class ReadMcpResourceTool : IAgentTool
 {
-    private readonly string _serverName;
+    private readonly string _integrationName;
     private readonly object? _client;
-    public ReadMcpResourceTool(string serverName, object? client) { _serverName = serverName; _client = client; }
-    public string Name => $"{ListMcpResourcesTool.Slug(_serverName)}__read_mcp_resource";
+    public ReadMcpResourceTool(string integrationName, object? client) { _integrationName = integrationName; _client = client; }
+    public string Name => $"{ListMcpResourcesTool.Slug(_integrationName)}__read_mcp_resource";
     public AgentToolKind Kind => AgentToolKind.Mcp;
     public bool IsReadOnly => true;
-    public ToolSchema Schema => new(Name, $"[{_serverName}] Read a specific MCP resource by URI.",
+    public ToolSchema Schema => new(Name, $"[{_integrationName}] Read a specific MCP resource by URI.",
         new { type = "object", properties = new { uri = new { type = "string" } }, required = new[] { "uri" } });
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)

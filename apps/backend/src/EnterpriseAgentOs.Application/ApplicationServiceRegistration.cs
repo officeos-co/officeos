@@ -8,11 +8,11 @@ public static class ApplicationServiceRegistration
     {
         services.AddScoped<IAgentService, AgentService>();
         services.AddScoped<IProviderService, ProviderService>();
-        services.AddScoped<IMcpServerService, McpServerService>();
-        services.AddScoped<IAtlasService, AtlasService>();
-        services.AddScoped<IAtlasConnectorExecutionService, AtlasConnectorExecutionService>();
-        services.AddScoped<AtlasGitHubClient>();
-        services.AddScoped<AtlasIndexingService>();
+        services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
+        services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();
+        services.AddScoped<IIntegrationExecutionService, IntegrationExecutionService>();
+        services.AddScoped<GitHubIntegrationClient>();
+        services.AddScoped<IntegrationIndexingService>();
         services.AddScoped<IUserBillingService, UserBillingService>();
         services.AddScoped<IOrgBillingService, OrgBillingService>();
         services.AddScoped<ICreditRecordingService, CreditRecordingService>();
@@ -44,7 +44,7 @@ public static class ApplicationServiceRegistration
 
         // Background services
         services.AddHostedService<CronJobSchedulerService>();
-        services.AddHostedService<AtlasIndexSchedulerService>();
+        services.AddHostedService<IntegrationIndexSchedulerService>();
         services.AddHostedService<AgentRuntimeCleanupService>();
 
         return services;

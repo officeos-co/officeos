@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 
-public sealed class McpServerEntity
+public sealed class IntegrationDefinitionEntity
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

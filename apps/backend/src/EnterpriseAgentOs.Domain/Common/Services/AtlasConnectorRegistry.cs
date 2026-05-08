@@ -1,17 +1,17 @@
-using EnterpriseAgentOs.Domain.Features.Atlas;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
 namespace EnterpriseAgentOs.Domain.Common.Services;
 
-public static class AtlasConnectorRegistry
+public static class IntegrationDefinitionCatalog
 {
     public static readonly string[] GitHubEntities = ["repositories", "issues", "pull_requests", "commits"];
 
-    public static IReadOnlyList<AtlasConnectorTypeRecord> BuiltinConnectors => GetBuiltinConnectors();
+    public static IReadOnlyList<IntegrationDefinitionRecord> BuiltinConnectors => GetBuiltinConnectors();
 
-    public static AtlasConnectorTypeRecord? GetBuiltin(string name) =>
+    public static IntegrationDefinitionRecord? GetBuiltin(string name) =>
         BuiltinConnectors.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
 
-    private static List<AtlasConnectorTypeRecord> GetBuiltinConnectors() =>
+    private static List<IntegrationDefinitionRecord> GetBuiltinConnectors() =>
     [
         // ── Developer Tools ─────────────────────────────────────────────
 

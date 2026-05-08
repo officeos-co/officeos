@@ -17,13 +17,13 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 /// </remarks>
 internal sealed class ToolExecutionLoop
 {
-    private readonly IMcpServerService _mcpServerService;
+    private readonly IIntegrationDefinitionService _mcpServerService;
     private readonly ToolRegistryFactory _toolRegistryFactory;
     private readonly IAgentSandbox _sandbox;
     private readonly TurnEventPublisher _events;
 
     public ToolExecutionLoop(
-        IMcpServerService mcpServerService,
+        IIntegrationDefinitionService mcpServerService,
         ToolRegistryFactory toolRegistryFactory,
         IAgentSandbox sandbox,
         TurnEventPublisher events)
@@ -53,7 +53,7 @@ internal sealed class ToolExecutionLoop
             agent.Id,
             correlationId,
             mcpServers,
-            serverName => _mcpServerService.GetDecryptedCredentialAsync(serverName, ct),
+            integrationName => _mcpServerService.GetDecryptedCredentialAsync(integrationName, ct),
             ct);
         await _events.PublishDiagnosticAsync(
             agent.Id,

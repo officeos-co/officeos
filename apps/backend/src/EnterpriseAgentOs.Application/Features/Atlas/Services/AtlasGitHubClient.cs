@@ -1,15 +1,15 @@
 using System.Net.Http.Headers;
 using System.Text.Json.Nodes;
 
-namespace EnterpriseAgentOs.Application.Features.Atlas;
+namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
-internal sealed class AtlasGitHubClient
+internal sealed class GitHubIntegrationClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
 
-    public AtlasGitHubClient(
+    public GitHubIntegrationClient(
         IHttpClientFactory httpClientFactory,
         IOAuthTokenRepository oauthTokenRepository,
         CredentialProtector credentialProtector)
