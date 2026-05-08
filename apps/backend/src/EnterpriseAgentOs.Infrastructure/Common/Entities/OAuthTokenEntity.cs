@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 public sealed class OAuthTokenEntity
 {
     public Guid Id { get; set; }
+    public Guid UserId { get; set; }
     public string Provider { get; set; } = string.Empty;
     public string? EncryptedAccessToken { get; set; }
     public string? EncryptedRefreshToken { get; set; }

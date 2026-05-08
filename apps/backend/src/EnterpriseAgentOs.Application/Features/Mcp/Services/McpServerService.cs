@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 internal sealed class IntegrationDefinitionService : IIntegrationDefinitionService
 {
     private readonly IAgentIntegrationRepository _agentServerRepository;
+    private readonly IAgentRepository _agentRepository;
     private readonly IIntegrationDefinitionRepository _serverRepository;
     private readonly IIntegrationCredentialRepository _credentialRepository;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
@@ -12,6 +13,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public IntegrationDefinitionService(
         IAgentIntegrationRepository agentServers,
+        IAgentRepository agentRepository,
         IIntegrationDefinitionRepository servers,
         IIntegrationCredentialRepository credentials,
         IOAuthTokenRepository oauthTokens,
@@ -20,6 +22,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         ILogger<IntegrationDefinitionService> logger)
     {
         _agentServerRepository = agentServers;
+        _agentRepository = agentRepository;
         _serverRepository = servers;
         _credentialRepository = credentials;
         _oauthTokenRepository = oauthTokens;
@@ -28,52 +31,62 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default)
-        => await WithConnectionStatusAsync(await OrderedCatalogAsync(ct), ct);
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
+        => await WithConnectionStatusAsync(ownerId, await OrderedCatalogAsync(ownerId, ct), ct);
 
-    public async Task<IntegrationDefinitionRecord?> GetAsync(string name, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord?> GetAsync(Guid ownerId, string name, CancellationToken ct = default)
     {
         var server = IntegrationDefinitionCatalog.GetBuiltin(name)
-            ?? await _serverRepository.GetByNameAsync(name, ct);
+            ?? await _serverRepository.GetByNameAsync(ownerId, name, ct);
         if (server is null) return null;
 
-        return (await WithConnectionStatusAsync([server], ct)).FirstOrDefault();
+        return (await WithConnectionStatusAsync(ownerId, [server], ct)).FirstOrDefault();
     }
 
-    public async Task<IntegrationDefinitionRecord> RegisterAsync(IntegrationDefinitionRecord server, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord> RegisterAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
         if (IntegrationDefinitionCatalog.GetBuiltin(server.Name) is not null)
             throw new InvalidOperationException($"integration '{server.Name}' is built in and cannot be overwritten.");
 
-        var saved = await _serverRepository.UpsertAsync(CopyAsCustom(server), ct);
-        return (await WithConnectionStatusAsync([saved], ct)).First();
+        var saved = await _serverRepository.UpsertAsync(ownerId, CopyAsCustom(ownerId, server), ct);
+        return (await WithConnectionStatusAsync(ownerId, [saved], ct)).First();
     }
 
-    public async Task DeleteAsync(string name, CancellationToken ct = default)
+    public async Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default)
     {
         if (IntegrationDefinitionCatalog.GetBuiltin(name) is not null)
             throw new InvalidOperationException($"integration '{name}' is built in and cannot be deleted.");
 
-        await _serverRepository.DeleteAsync(name, ct);
-        await _credentialRepository.DeleteAsync(name, ct);
-        await _agentServerRepository.UnassignIntegrationFromAllAgentsAsync(name, ct);
+        await _serverRepository.DeleteAsync(ownerId, name, ct);
+        await _credentialRepository.DeleteAsync(ownerId, name, ct);
+        await _agentServerRepository.UnassignIntegrationFromOwnerAgentsAsync(ownerId, name, ct);
     }
 
-    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListForAgentAsync(Guid agentId, Guid? ownerId = null, CancellationToken ct = default)
     {
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct);
+        if (agent is null) return [];
+        var effectiveOwnerId = agent.OwnerId ?? ownerId;
+        if (!effectiveOwnerId.HasValue) return [];
+
         var names = await _agentServerRepository.ListIntegrationNamesForAgentAsync(agentId, ct);
         _logger.LogDebug("integration catalog for agent {AgentId}: assigned servers [{Servers}]", agentId, string.Join(", ", names));
         if (names.Count == 0) return [];
 
         var allowed = names.ToHashSet(StringComparer.OrdinalIgnoreCase);
         return await WithConnectionStatusAsync(
-            (await OrderedCatalogAsync(ct)).Where(s => allowed.Contains(s.Name)).ToList(),
+            effectiveOwnerId.Value,
+            (await OrderedCatalogAsync(effectiveOwnerId.Value, ct)).Where(s => allowed.Contains(s.Name)).ToList(),
             ct);
     }
 
-    public async Task AssignToAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)
+    public async Task AssignToAgentAsync(Guid agentId, string integrationName, Guid? ownerId = null, CancellationToken ct = default)
     {
-        var server = await GetAsync(integrationName, ct)
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct)
+            ?? throw new InvalidOperationException($"agent '{agentId}' was not found.");
+        var effectiveOwnerId = agent.OwnerId ?? ownerId
+            ?? throw new InvalidOperationException($"agent '{agentId}' has no owner.");
+        var server = await GetAsync(effectiveOwnerId, integrationName, ct)
             ?? throw new InvalidOperationException($"integration '{integrationName}' was not found.");
 
         await _agentServerRepository.AssignAsync(agentId, server.Name, ct);
@@ -83,31 +96,38 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     public Task UnassignFromAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)
         => _agentServerRepository.UnassignAsync(agentId, integrationName, ct);
 
-    public async Task SaveCredentialAsync(string integrationName, Dictionary<string, string> fields, CancellationToken ct = default)
+    public async Task SaveCredentialAsync(Guid ownerId, string integrationName, Dictionary<string, string> fields, CancellationToken ct = default)
     {
         var encrypted = _credentialProtector.Protect(fields);
         await _credentialRepository.UpsertAsync(new IntegrationCredentialRecord
         {
+            OwnerId = ownerId,
             IntegrationName = integrationName,
             EncryptedCredentials = encrypted,
             ConfiguredAt = DateTime.UtcNow,
         }, ct);
     }
 
-    public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string integrationName, CancellationToken ct = default)
+    public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string integrationName, Guid? ownerId = null, CancellationToken ct = default)
     {
+        if (!ownerId.HasValue) return new();
+
         var server = IntegrationDefinitionCatalog.GetBuiltin(integrationName);
         if (!string.IsNullOrWhiteSpace(server?.OauthProvider))
-            return await GetOAuthCredentialAsync(server, ct);
+            return await GetOAuthCredentialAsync(ownerId.Value, server, ct);
 
-        var record = await _credentialRepository.GetByAsync(new IntegrationCredentialFilter { IntegrationName = integrationName }, ct);
+        var record = await _credentialRepository.GetByAsync(new IntegrationCredentialFilter
+        {
+            OwnerId = ownerId.Value,
+            IntegrationName = integrationName,
+        }, ct);
         if (record is null) return new();
         return _credentialProtector.Unprotect(record.EncryptedCredentials);
     }
 
-    private async Task<Dictionary<string, string>> GetOAuthCredentialAsync(IntegrationDefinitionRecord server, CancellationToken ct)
+    private async Task<Dictionary<string, string>> GetOAuthCredentialAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct)
     {
-        var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = server.OauthProvider! }, ct);
+        var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = ownerId, Provider = server.OauthProvider! }, ct);
         if (token is null) return new();
 
         return server.OauthProvider switch
@@ -150,6 +170,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     }
 
     private async Task<IReadOnlyList<IntegrationDefinitionRecord>> WithConnectionStatusAsync(
+        Guid ownerId,
         IReadOnlyList<IntegrationDefinitionRecord> servers,
         CancellationToken ct)
     {
@@ -162,7 +183,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         var configured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var provider in providers)
         {
-            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = provider! }, ct);
+            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = ownerId, Provider = provider! }, ct);
             if (!string.IsNullOrWhiteSpace(token?.EncryptedAccessToken)
                 || !string.IsNullOrWhiteSpace(token?.EncryptedRefreshToken))
             {
@@ -176,7 +197,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
         foreach (var server in servers.Where(s => !string.IsNullOrWhiteSpace(s.OauthProvider)))
         {
-            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = server.OauthProvider! }, ct);
+            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = ownerId, Provider = server.OauthProvider! }, ct);
             if (token is null)
                 continue;
 
@@ -199,7 +220,11 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         var credentialConfigured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var server in withOAuth.Where(s => string.IsNullOrWhiteSpace(s.OauthProvider)))
         {
-            var record = await _credentialRepository.GetByAsync(new IntegrationCredentialFilter { IntegrationName = server.Name }, ct);
+            var record = await _credentialRepository.GetByAsync(new IntegrationCredentialFilter
+            {
+                OwnerId = ownerId,
+                IntegrationName = server.Name,
+            }, ct);
             if (!string.IsNullOrWhiteSpace(record?.EncryptedCredentials))
                 credentialConfigured.Add(server.Name);
         }
@@ -228,6 +253,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private static IntegrationDefinitionRecord CopyWithOauthConfigured(IntegrationDefinitionRecord server, bool configured) => new()
     {
         Id = server.Id,
+        OwnerId = server.OwnerId,
         Name = server.Name,
         Provider = server.Provider,
         Title = server.Title,
@@ -258,6 +284,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private static IntegrationDefinitionRecord CopyWithCredentialConfigured(IntegrationDefinitionRecord server, bool configured) => new()
     {
         Id = server.Id,
+        OwnerId = server.OwnerId,
         Name = server.Name,
         Provider = server.Provider,
         Title = server.Title,
@@ -285,9 +312,10 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         CreatedAt = server.CreatedAt,
     };
 
-    private static IntegrationDefinitionRecord CopyAsCustom(IntegrationDefinitionRecord server) => new()
+    private static IntegrationDefinitionRecord CopyAsCustom(Guid ownerId, IntegrationDefinitionRecord server) => new()
     {
         Id = server.Id,
+        OwnerId = ownerId,
         Name = server.Name,
         Provider = server.Provider,
         Title = server.Title,
@@ -311,9 +339,9 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         CreatedAt = server.CreatedAt == default ? DateTime.UtcNow : server.CreatedAt,
     };
 
-    private async Task<IReadOnlyList<IntegrationDefinitionRecord>> OrderedCatalogAsync(CancellationToken ct)
+    private async Task<IReadOnlyList<IntegrationDefinitionRecord>> OrderedCatalogAsync(Guid ownerId, CancellationToken ct)
     {
-        var custom = await _serverRepository.ListAsync(ct);
+        var custom = await _serverRepository.ListAsync(ownerId, ct);
         return OrderedBuiltins()
             .Concat(custom)
             .OrderBy(s => s.Category)

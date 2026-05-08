@@ -112,10 +112,11 @@ internal sealed class AuthService : IAuthService
         var user = await _userRepository.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
         _logger.LogInformation("OAuth: user upserted {Email} ({UserId})", email, user.Id);
 
-        var existingGoogleToken = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = "google" }, ct);
+        var existingGoogleToken = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = user.Id, Provider = "google" }, ct);
         var googleToken = new OAuthTokenRecord
         {
             Id = existingGoogleToken?.Id ?? Guid.NewGuid(),
+            UserId = user.Id,
             Provider = "google",
             EncryptedAccessToken = ProtectToken(accessToken),
             EncryptedRefreshToken = refreshToken is not null
@@ -235,10 +236,11 @@ internal sealed class AuthService : IAuthService
         var user = await _userRepository.UpsertByGitHubSubjectAsync(sub, email, name, avatar, ct);
         _logger.LogInformation("OAuth: GitHub user upserted {Email} ({UserId})", email, user.Id);
 
-        var existingGitHubToken = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = "github" }, ct);
+        var existingGitHubToken = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = user.Id, Provider = "github" }, ct);
         var gitHubToken = new OAuthTokenRecord
         {
             Id = existingGitHubToken?.Id ?? Guid.NewGuid(),
+            UserId = user.Id,
             Provider = "github",
             EncryptedAccessToken = ProtectToken(accessToken),
             EncryptedRefreshToken = existingGitHubToken?.EncryptedRefreshToken,

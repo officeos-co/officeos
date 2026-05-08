@@ -8,6 +8,7 @@ namespace EnterpriseAgentOs.Domain.Features.Management;
 public sealed class OAuthTokenRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid UserId { get; init; }
 
     /// <summary>OAuth2 provider identifier (e.g. "google", "microsoft", "github").</summary>
     [Required, MaxLength(32)]

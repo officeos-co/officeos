@@ -3,6 +3,7 @@ namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 public sealed class IntegrationDefinitionEntity
 {
     public Guid Id { get; set; }
+    public Guid? OwnerId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;

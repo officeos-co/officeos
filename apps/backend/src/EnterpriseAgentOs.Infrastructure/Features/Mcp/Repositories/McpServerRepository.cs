@@ -8,10 +8,10 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public IntegrationDefinitionRepository(EaosDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
     {
         var entities = await _db.Integrations.AsNoTracking()
-            .Where(s => !s.IsBuiltin)
+            .Where(s => !s.IsBuiltin && s.OwnerId == ownerId)
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)
             .ToListAsync(ct);
@@ -19,23 +19,24 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         return entities.Select(ToRecord).ToList();
     }
 
-    public async Task<IntegrationDefinitionRecord?> GetByNameAsync(string name, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, CancellationToken ct = default)
     {
         var entity = await _db.Integrations.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Name == name && !s.IsBuiltin, ct);
+            .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin, ct);
 
         return entity is null ? null : ToRecord(entity);
     }
 
-    public async Task<IntegrationDefinitionRecord> UpsertAsync(IntegrationDefinitionRecord server, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
         var existing = await _db.Integrations
-            .FirstOrDefaultAsync(s => s.Name == server.Name && !s.IsBuiltin, ct);
+            .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.Name == server.Name && !s.IsBuiltin, ct);
 
         if (existing is null)
         {
             var entity = ToEntity(server);
             entity.Id = server.Id == Guid.Empty ? Guid.NewGuid() : server.Id;
+            entity.OwnerId = ownerId;
             entity.IsBuiltin = false;
             _db.Integrations.Add(entity);
             await _db.SaveChangesAsync(ct);
@@ -65,16 +66,17 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         return ToRecord(existing);
     }
 
-    public async Task DeleteAsync(string name, CancellationToken ct = default)
+    public async Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default)
     {
         await _db.Integrations
-            .Where(s => s.Name == name && !s.IsBuiltin)
+            .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin)
             .ExecuteDeleteAsync(ct);
     }
 
     private static IntegrationDefinitionRecord ToRecord(IntegrationDefinitionEntity entity) => new()
     {
         Id = entity.Id,
+        OwnerId = entity.OwnerId,
         Name = entity.Name,
         Provider = entity.Provider,
         Title = entity.Title,
@@ -103,6 +105,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     private static IntegrationDefinitionEntity ToEntity(IntegrationDefinitionRecord server) => new()
     {
         Id = server.Id,
+        OwnerId = server.OwnerId,
         Name = server.Name,
         Provider = server.Provider,
         Title = server.Title,

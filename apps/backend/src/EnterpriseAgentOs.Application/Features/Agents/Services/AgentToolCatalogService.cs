@@ -80,7 +80,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
         if (agentId.HasValue)
         {
-            var mcpServers = await _mcpServerService.ListForAgentAsync(effectiveAgentId, ct);
+            var mcpServers = await _mcpServerService.ListForAgentAsync(effectiveAgentId, ct: ct);
             foreach (var server in mcpServers)
             {
                 foreach (var tool in ParseMcpTools(server))

@@ -37,10 +37,11 @@ internal sealed class AgentIntegrationRepository : IAgentIntegrationRepository
             .ExecuteDeleteAsync(ct);
     }
 
-    public async Task UnassignIntegrationFromAllAgentsAsync(string integrationName, CancellationToken ct)
+    public async Task UnassignIntegrationFromOwnerAgentsAsync(Guid ownerId, string integrationName, CancellationToken ct)
     {
         await _db.AgentIntegrations
-            .Where(a => a.IntegrationName == integrationName)
+            .Where(a => a.IntegrationName == integrationName
+                && _db.Agents.Any(agent => agent.Id == a.AgentId && agent.OwnerId == ownerId))
             .ExecuteDeleteAsync(ct);
     }
 }

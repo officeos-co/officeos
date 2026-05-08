@@ -37,7 +37,7 @@ internal sealed class ToolExecutionLoop
     public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, string correlationId, CancellationToken ct)
     {
         var mcpListStart = Stopwatch.GetTimestamp();
-        var mcpServers = await _mcpServerService.ListForAgentAsync(agent.Id, ct);
+        var mcpServers = await _mcpServerService.ListForAgentAsync(agent.Id, agent.OwnerId, ct);
         await _events.PublishDiagnosticAsync(
             agent.Id,
             correlationId,
@@ -53,7 +53,7 @@ internal sealed class ToolExecutionLoop
             agent.Id,
             correlationId,
             mcpServers,
-            integrationName => _mcpServerService.GetDecryptedCredentialAsync(integrationName, ct),
+            integrationName => _mcpServerService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, ct),
             ct);
         await _events.PublishDiagnosticAsync(
             agent.Id,

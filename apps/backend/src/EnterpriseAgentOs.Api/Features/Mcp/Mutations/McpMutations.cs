@@ -8,6 +8,7 @@ public sealed class IntegrationDefinitionMutations
 {
     public async Task<IntegrationDefinitionRecord> RegisterIntegration(
         RegisterIntegrationInput input,
+        [Service] UserContext user,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         var transportType = Enum.TryParse<IntegrationTransportType>(input.TransportType, true, out var t)
@@ -63,7 +64,7 @@ public sealed class IntegrationDefinitionMutations
 
         try
         {
-            return await svc.RegisterAsync(record, ct);
+            return await svc.RegisterAsync(user.Id, record, ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -74,11 +75,12 @@ public sealed class IntegrationDefinitionMutations
 
     public async Task<bool> DeleteIntegration(
         string name,
+        [Service] UserContext user,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         try
         {
-            await svc.DeleteAsync(name, ct);
+            await svc.DeleteAsync(user.Id, name, ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -114,10 +116,11 @@ public sealed class IntegrationDefinitionMutations
 
     public async Task<bool> SaveIntegrationCredential(
         string integrationName, List<CredentialFieldInput> fields,
+        [Service] UserContext user,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         var dict = fields.ToDictionary(f => f.Key, f => f.Value);
-        await svc.SaveCredentialAsync(integrationName, dict, ct);
+        await svc.SaveCredentialAsync(user.Id, integrationName, dict, ct);
         return true;
     }
 }

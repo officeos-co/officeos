@@ -6,10 +6,11 @@ namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 public sealed class IntegrationQueries
 {
     public Task<IReadOnlyList<IntegrationDefinitionRecord>> GetIntegrationDefinitions(
+        [Service] UserContext user,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
-        return service.ListIntegrationDefinitionsAsync(ct);
+        return service.ListIntegrationDefinitionsAsync(user.Id, ct);
     }
 
     public Task<IReadOnlyList<IntegrationConnectionRecord>> GetIntegrationConnections(
