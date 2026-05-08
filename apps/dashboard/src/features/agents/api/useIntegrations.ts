@@ -5,8 +5,8 @@ import type { McpServer, CredentialField, Tool } from "../data/integrations";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 
 const MCP_SERVERS_QUERY = gql`
-  query McpServers {
-    mcpServers {
+  query Integrations {
+    integrations {
       id
       name
       title
@@ -35,8 +35,8 @@ const MCP_SERVERS_QUERY = gql`
 `;
 
 const MCP_SERVER_QUERY = gql`
-  query McpServer($name: String!) {
-    mcpServer(name: $name) {
+  query Integration($name: String!) {
+    integration(name: $name) {
       id
       name
       title
@@ -65,8 +65,8 @@ const MCP_SERVER_QUERY = gql`
 `;
 
 export const AGENT_MCP_SERVERS_QUERY = gql`
-  query AgentMcpServers($agentId: UUID!) {
-    agentMcpServers(agentId: $agentId) {
+  query AgentIntegrations($agentId: UUID!) {
+    agentIntegrations(agentId: $agentId) {
       id
       name
       title
@@ -85,8 +85,8 @@ export const AGENT_MCP_SERVERS_QUERY = gql`
 `;
 
 const REGISTER_MCP_SERVER = gql`
-  mutation RegisterMcpServer($input: RegisterMcpServerInput!) {
-    registerMcpServer(input: $input) {
+  mutation RegisterIntegration($input: RegisterIntegrationInput!) {
+    registerIntegration(input: $input) {
       id
       name
       title
@@ -115,14 +115,14 @@ const REGISTER_MCP_SERVER = gql`
 `;
 
 const DELETE_MCP_SERVER = gql`
-  mutation DeleteMcpServer($name: String!) {
-    deleteMcpServer(name: $name)
+  mutation DeleteIntegration($name: String!) {
+    deleteIntegration(name: $name)
   }
 `;
 
 const SAVE_MCP_CREDENTIAL = gql`
-  mutation SaveMcpCredential($serverName: String!, $fields: [CredentialFieldInput!]!) {
-    saveMcpCredential(serverName: $serverName, fields: $fields)
+  mutation SaveIntegrationCredential($integrationName: String!, $fields: [CredentialFieldInput!]!) {
+    saveIntegrationCredential(integrationName: $integrationName, fields: $fields)
   }
 `;
 
@@ -202,7 +202,7 @@ function parseArgs(json: string | null): string[] {
   }
 }
 
-function mapMcpServer(s: RawMcpServer): McpServer {
+function mapIntegration(s: RawMcpServer): McpServer {
   const credentialFields = parseCredentialFields(s.credentialFieldsJson);
   const oauthProvider = s.oauthProvider ?? null;
   const oauthConfigured = Boolean(s.oauthConfigured);
@@ -234,21 +234,21 @@ function mapMcpServer(s: RawMcpServer): McpServer {
   };
 }
 
-export function useMcpServers(): {
-  servers: McpServer[];
+export function useIntegrations(): {
+  integrations: McpServer[];
   loading: boolean;
   error?: Error;
 } {
   const { data, loading, error } = useQuery(MCP_SERVERS_QUERY, {
     fetchPolicy: "cache-and-network",
   });
-  const raw: RawMcpServer[] = data?.mcpServers ?? [];
-  const servers = raw.map(mapMcpServer);
-  return { servers, loading, error: error ?? undefined };
+  const raw: RawMcpServer[] = data?.integrations ?? [];
+  const integrations = raw.map(mapIntegration);
+  return { integrations, loading, error: error ?? undefined };
 }
 
-export function useMcpServer(name: string): {
-  server: McpServer | null;
+export function useIntegration(name: string): {
+  integration: McpServer | null;
   loading: boolean;
   error?: Error;
   refetch: () => void;
@@ -257,27 +257,27 @@ export function useMcpServer(name: string): {
     variables: { name },
     skip: !name,
   });
-  const raw: RawMcpServer | null = data?.mcpServer ?? null;
-  const server = raw ? mapMcpServer(raw) : null;
-  return { server, loading, error: error ?? undefined, refetch };
+  const raw: RawMcpServer | null = data?.integration ?? null;
+  const integration = raw ? mapIntegration(raw) : null;
+  return { integration, loading, error: error ?? undefined, refetch };
 }
 
-export function useSaveMcpCredential() {
+export function useSaveIntegrationCredential() {
   const [fn] = useMutation(SAVE_MCP_CREDENTIAL);
-  return async (serverName: string, credentials: Record<string, string>) => {
+  return async (integrationName: string, credentials: Record<string, string>) => {
     const fields = Object.entries(credentials).map(([key, value]) => ({
       key,
       value,
     }));
     await fn({
-      variables: { serverName, fields },
+      variables: { integrationName, fields },
       refetchQueries: [{ query: MCP_SERVERS_QUERY }],
       awaitRefetchQueries: true,
     });
   };
 }
 
-export type RegisterMcpServerInput = {
+export type RegisterIntegrationInput = {
   name: string;
   title: string;
   description: string;
@@ -296,9 +296,9 @@ export type RegisterMcpServerInput = {
   logo?: string | null;
 };
 
-export function useRegisterMcpServer() {
+export function useRegisterIntegration() {
   const [fn] = useMutation(REGISTER_MCP_SERVER);
-  return async (input: RegisterMcpServerInput) => {
+  return async (input: RegisterIntegrationInput) => {
     await fn({
       variables: { input },
       refetchQueries: [{ query: MCP_SERVERS_QUERY }],
@@ -307,7 +307,7 @@ export function useRegisterMcpServer() {
   };
 }
 
-export function useDeleteMcpServer() {
+export function useDeleteIntegration() {
   const [fn] = useMutation(DELETE_MCP_SERVER);
   return async (name: string) => {
     await fn({
@@ -318,8 +318,8 @@ export function useDeleteMcpServer() {
   };
 }
 
-/** Sort MCP servers: configured first, then alphabetical by title. */
-export function sortMcpServers(list: McpServer[]): McpServer[] {
+/** Sort integrations: configured first, then alphabetical by title. */
+export function sortIntegrations(list: McpServer[]): McpServer[] {
   return [...list].sort((a, b) => {
     const scoreA = a.configured ? 1 : 0;
     const scoreB = b.configured ? 1 : 0;
@@ -328,24 +328,26 @@ export function sortMcpServers(list: McpServer[]): McpServer[] {
   });
 }
 
-// Backward-compatible aliases
-/** @deprecated Use useMcpServers instead */
-export function useIntegrations() {
-  const { servers, loading, error } = useMcpServers();
-  return { integrations: servers, loading, error };
-}
-
-/** @deprecated Use useMcpServer instead */
-export function useIntegration(slug: string) {
-  const { server, loading, error, refetch } = useMcpServer(slug);
-  return { integration: server, loading, error, refetch };
-}
-
-/** @deprecated Use sortMcpServers instead */
-export const sortIntegrations = sortMcpServers;
-
-/** @deprecated Use useSaveMcpCredential instead */
+/** @deprecated Use useSaveIntegrationCredential instead */
 export function useSetSkillCredentials() {
-  const save = useSaveMcpCredential();
+  const save = useSaveIntegrationCredential();
   return save;
 }
+
+/** @deprecated Use useIntegrations instead */
+export function useMcpServers() {
+  const { integrations, loading, error } = useIntegrations();
+  return { servers: integrations, loading, error };
+}
+
+/** @deprecated Use useIntegration instead */
+export function useMcpServer(slug: string) {
+  const { integration, loading, error, refetch } = useIntegration(slug);
+  return { server: integration, loading, error, refetch };
+}
+
+/** @deprecated Use useRegisterIntegration instead */
+export const useRegisterMcpServer = useRegisterIntegration;
+
+/** @deprecated Use useDeleteIntegration instead */
+export const useDeleteMcpServer = useDeleteIntegration;

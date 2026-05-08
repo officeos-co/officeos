@@ -3,6 +3,10 @@
 import { useState } from "react"
 import Image from "next/image"
 import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
+import {
+  PermissionModeSelect,
+  type PermissionMode,
+} from "@/components/ui/permission-mode-select"
 import type { Tool } from "@/features/agents/data/integrations"
 import type { Channel, ChannelPermissions } from "@/features/agents/data/channels"
 import {
@@ -12,26 +16,19 @@ import {
 
 /* ── Permission types ────────────────────────────────────── */
 
-export type ToolPermission = "allow" | "deny"
-
-const permissionLabels: Record<ToolPermission, string> = { allow: "Always allow", deny: "Deny" }
-const permissionColors: Record<ToolPermission, string> = { allow: "text-emerald-600", deny: "text-red-500" }
+export type ToolPermission = PermissionMode
 
 export function PermissionCycleButton({ value, onChange }: { value: ToolPermission; onChange: (p: ToolPermission) => void }) {
-  const cycle: ToolPermission[] = ["allow", "deny"]
   const tooltip = value === "allow"
     ? "Allowed means the agent may call this tool without an extra approval prompt."
     : "Deny means the tool is hidden from the agent and blocked at execution time."
   return (
     <WithTooltip tooltip={tooltip}>
-      <span
-        role="button"
-        tabIndex={0}
-        onClick={(e) => { e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) }}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onChange(cycle[(cycle.indexOf(value) + 1) % cycle.length]) } }}
-        className={`text-xs whitespace-nowrap hover:underline cursor-pointer ${permissionColors[value]}`}
-      >
-        {permissionLabels[value]}
+      <span onClick={(event) => event.stopPropagation()}>
+        <PermissionModeSelect
+          value={value}
+          onChange={(permission) => onChange(permission)}
+        />
       </span>
     </WithTooltip>
   )

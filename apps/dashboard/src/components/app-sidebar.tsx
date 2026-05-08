@@ -19,7 +19,6 @@ import {
   ActivityIcon,
   SettingsIcon,
   BookOpenIcon,
-  DatabaseIcon,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useBilling } from "@/features/manage";
@@ -38,6 +37,7 @@ const data = {
         { title: "Cron Jobs", url: "/cron-jobs" },
         { title: "Integrations", url: "/integrations" },
         { title: "Channels", url: "/channels" },
+        { title: "Memory Store", url: "/memory-stores" },
       ],
     },
     {
@@ -47,17 +47,6 @@ const data = {
       items: [
         { title: "Logs", url: "/logs" },
         { title: "Usage", url: "/usage" },
-      ],
-    },
-    {
-      title: "Data",
-      url: "#",
-      icon: <DatabaseIcon />,
-      items: [
-        { title: "Memory Store", url: "/memory-stores" },
-        { title: "Connectors", url: "/atlas/connectors" },
-        { title: "Explorer", url: "/atlas/explorer" },
-        { title: "History", url: "/atlas/history" },
       ],
     },
     {

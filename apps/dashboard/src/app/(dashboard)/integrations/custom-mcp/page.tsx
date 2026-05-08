@@ -5,16 +5,16 @@ import { ArrowLeftIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { CustomMcpJsonEditor, useMcpServers } from "@/features/agents";
+import { CustomMcpJsonEditor, useIntegrations } from "@/features/agents";
 
 export default function CustomMcpPage() {
-  const { servers, loading } = useMcpServers();
+  const { integrations, loading } = useIntegrations();
 
   return (
     <>
       <PageHeader
-        group="MCP Servers"
-        page="Custom MCP servers"
+        group="Integrations"
+        page="Custom MCP integrations"
         width="wide"
         action={
           <Button
@@ -29,7 +29,7 @@ export default function CustomMcpPage() {
         }
       />
       <PageContainer width="wide" className="flex flex-1 flex-col pb-4">
-        <CustomMcpJsonEditor servers={servers} loading={loading} />
+        <CustomMcpJsonEditor servers={integrations} loading={loading} />
       </PageContainer>
     </>
   );

@@ -38,13 +38,12 @@ public class AgentLogsQueries
         return logs.ChannelLogs(channelConnectionId);
     }
 
-    [UsePaging(typeof(AgentLogDto), IncludeTotalCount = true, MaxPageSize = 200, DefaultPageSize = 50)]
-    [GraphQLDescription("Returns log entries across all agents using HotChocolate cursor pagination.")]
-    public IQueryable<AgentLogDto> GetGlobalLogs(
+    [GraphQLDescription("Returns log entries across all agents using offset pagination.")]
+    public Task<GlobalLogsPage> GetGlobalLogs(
         GlobalLogFiltersInput? filters,
         [Service] IAgentLogService logs)
     {
-        return logs.GlobalLogs(filters ?? new GlobalLogFiltersInput());
+        return logs.ListGlobalAsync(filters ?? new GlobalLogFiltersInput());
     }
 
     [UseOffsetPaging(typeof(AuditEntry), IncludeTotalCount = true, MaxPageSize = 100, DefaultPageSize = 50)]
