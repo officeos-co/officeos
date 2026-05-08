@@ -24,7 +24,7 @@ public sealed record IntegrationExecuteRequest(
 
 public interface IIntegrationConnectionService
 {
-    Task<IReadOnlyList<IntegrationDefinitionRecord>> ListConnectorTypesAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationDefinitionRecord>> ListIntegrationDefinitionsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<IntegrationConnectionRecord>> ListAsync(IntegrationConnectionFilter filter, CancellationToken ct = default);
     Task<IntegrationConnectionRecord?> GetByAsync(IntegrationConnectionFilter filter, CancellationToken ct = default);
     Task<IReadOnlyList<IntegrationActivityRecord>> ListAsync(IntegrationActivityFilter filter, CancellationToken ct = default);

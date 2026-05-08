@@ -4,10 +4,10 @@ using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
-public sealed class McpMutations
+public sealed class IntegrationDefinitionMutations
 {
-    public async Task<IntegrationDefinitionRecord> RegisterMcpServer(
-        RegisterMcpServerInput input,
+    public async Task<IntegrationDefinitionRecord> RegisterIntegration(
+        RegisterIntegrationInput input,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         var transportType = Enum.TryParse<IntegrationTransportType>(input.TransportType, true, out var t)
@@ -18,7 +18,7 @@ public sealed class McpMutations
         {
             throw new GraphQLException(
                 ErrorBuilder.New()
-                    .SetMessage("Stdio MCP servers require a command.")
+                    .SetMessage("Stdio integrations require a command.")
                     .SetCode("BAD_INPUT")
                     .Build());
         }
@@ -35,7 +35,7 @@ public sealed class McpMutations
             {
                 throw new GraphQLException(
                     ErrorBuilder.New()
-                        .SetMessage("MCP server args must be a JSON string array.")
+                        .SetMessage("Integration args must be a JSON string array.")
                         .SetCode("BAD_INPUT")
                         .Build());
             }
@@ -72,7 +72,7 @@ public sealed class McpMutations
         }
     }
 
-    public async Task<bool> DeleteMcpServer(
+    public async Task<bool> DeleteIntegration(
         string name,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
@@ -88,7 +88,7 @@ public sealed class McpMutations
         return true;
     }
 
-    public Task<bool> AssignMcpServerToAgent(
+    public Task<bool> AssignIntegrationToAgent(
         Guid agentId, string integrationName,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public sealed class McpMutations
         throw ImmutableAgentCapabilitiesError();
     }
 
-    public Task<bool> UnassignMcpServerFromAgent(
+    public Task<bool> UnassignIntegrationFromAgent(
         Guid agentId, string integrationName,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
@@ -108,11 +108,11 @@ public sealed class McpMutations
 
     private static GraphQLException ImmutableAgentCapabilitiesError() =>
         new(ErrorBuilder.New()
-            .SetMessage("Agent MCP servers are immutable after agent creation. Create a new agent with the desired MCP servers.")
+            .SetMessage("Agent integrations are immutable after agent creation. Create a new agent with the desired integrations.")
             .SetCode("IMMUTABLE_AGENT_CAPABILITIES")
             .Build());
 
-    public async Task<bool> SaveMcpCredential(
+    public async Task<bool> SaveIntegrationCredential(
         string integrationName, List<CredentialFieldInput> fields,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
@@ -122,7 +122,7 @@ public sealed class McpMutations
     }
 }
 
-public record RegisterMcpServerInput(
+public record RegisterIntegrationInput(
     string Name,
     string Title,
     string Description,

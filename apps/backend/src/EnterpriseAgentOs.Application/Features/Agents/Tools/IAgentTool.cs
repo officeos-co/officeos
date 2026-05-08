@@ -86,7 +86,7 @@ internal static class ToolPermissionPolicy
         "task_update",
         "http_request",
         "web_fetch",
-        "connector_execute",
+        "integration_execute",
     };
 
     public static string ScopeFor(IAgentTool tool)

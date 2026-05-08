@@ -1,19 +1,19 @@
 namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
-internal sealed class AtlasConnectorExecuteTool : IAgentTool
+internal sealed class IntegrationExecuteTool : IAgentTool
 {
     private readonly IIntegrationExecutionService _execution;
 
-    public AtlasConnectorExecuteTool(IIntegrationExecutionService execution)
+    public IntegrationExecuteTool(IIntegrationExecutionService execution)
     {
         _execution = execution;
     }
 
-    public string Name => "connector_execute";
+    public string Name => "integration_execute";
 
     public ToolSchema Schema => new(
         Name,
-        "Execute an Atlas connector operation. Use context_store_search for indexed search and list/get for direct provider requests.",
+        "Execute an integration operation. Use context_store_search for indexed search and list/get for direct provider requests.",
         Parameters);
 
     public AgentToolKind Kind => AgentToolKind.Network;
@@ -31,12 +31,12 @@ internal sealed class AtlasConnectorExecuteTool : IAgentTool
             {
                 type = "string",
                 format = "uuid",
-                description = "Atlas connector/source id.",
+                description = "Integration connection/source id.",
             },
             entity = new
             {
                 type = "string",
-                description = "Connector entity, for example repositories, issues, pull_requests, or commits.",
+                description = "Integration entity, for example repositories, issues, pull_requests, or commits.",
             },
             action = new
             {
@@ -62,7 +62,7 @@ internal sealed class AtlasConnectorExecuteTool : IAgentTool
     public Task<ToolValidationResult> ValidateAsync(JsonElement args, CancellationToken ct = default)
     {
         if (!args.TryGetProperty("source_id", out var sourceId) || !Guid.TryParse(sourceId.GetString(), out _))
-            return Task.FromResult(ToolValidationResult.Invalid("source_id must be a valid Atlas connector UUID."));
+            return Task.FromResult(ToolValidationResult.Invalid("source_id must be a valid integration connection UUID."));
         if (!args.TryGetProperty("entity", out var entity) || string.IsNullOrWhiteSpace(entity.GetString()))
             return Task.FromResult(ToolValidationResult.Invalid("entity is required."));
         if (!args.TryGetProperty("action", out var action) || string.IsNullOrWhiteSpace(action.GetString()))

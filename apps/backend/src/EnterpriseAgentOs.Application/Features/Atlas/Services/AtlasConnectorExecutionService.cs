@@ -6,16 +6,16 @@ namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
 internal sealed class IntegrationExecutionService : IIntegrationExecutionService
 {
-    private readonly IAtlasConnectionRepository _connections;
-    private readonly IAtlasIndexedRecordRepository _records;
-    private readonly IAtlasRequestHistoryRepository _history;
+    private readonly IIntegrationConnectionRepository _connections;
+    private readonly IIntegrationIndexedRecordRepository _records;
+    private readonly IIntegrationRequestHistoryRepository _history;
     private readonly GitHubIntegrationClient _github;
     private readonly IPublisher _publisher;
 
     public IntegrationExecutionService(
-        IAtlasConnectionRepository connections,
-        IAtlasIndexedRecordRepository records,
-        IAtlasRequestHistoryRepository history,
+        IIntegrationConnectionRepository connections,
+        IIntegrationIndexedRecordRepository records,
+        IIntegrationRequestHistoryRepository history,
         GitHubIntegrationClient github,
         IPublisher publisher)
     {
@@ -35,9 +35,9 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         try
         {
             var connection = await _connections.GetByAsync(new IntegrationConnectionFilter { Id = request.SourceId }, ct)
-                ?? throw new InvalidOperationException("Atlas connector source_id was not found.");
+                ?? throw new InvalidOperationException("Integration connector source_id was not found.");
             if (connection.Provider != IntegrationProviderType.GitHub)
-                throw new InvalidOperationException($"Unsupported Atlas provider '{connection.Provider}'.");
+                throw new InvalidOperationException($"Unsupported Integration provider '{connection.Provider}'.");
 
             JsonElement response = type == IntegrationRequestType.Search
                 ? await ExecuteSearchAsync(connection, request, ElapsedMs(started), ct)
