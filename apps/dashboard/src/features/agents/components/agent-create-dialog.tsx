@@ -179,6 +179,8 @@ function ToolPermissionSection({
   prefix: string;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const hasTools = tools.length > 0;
+  const isExpanded = hasTools && expanded;
 
   return (
     <div className="rounded-lg border border-border">
@@ -196,10 +198,13 @@ function ToolPermissionSection({
       <div className="border-t border-border">
         <button
           type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-muted/50"
+          disabled={!hasTools}
+          onClick={() => {
+            if (hasTools) setExpanded(!isExpanded);
+          }}
+          className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
         >
-          {expanded ? (
+          {isExpanded ? (
             <ChevronDownIcon className="size-4 text-muted-foreground" />
           ) : (
             <ChevronRightIcon className="size-4 text-muted-foreground" />
@@ -216,7 +221,7 @@ function ToolPermissionSection({
             <PermissionCycleButton value={groupPerm} onChange={onGroupPerm} />
           </span>
         </button>
-        {expanded &&
+        {isExpanded &&
           tools.map((tool) => {
             const key = `${prefix}:${tool.name}`;
             const perm = permissions[key] ?? groupPerm;

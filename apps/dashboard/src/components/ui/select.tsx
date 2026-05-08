@@ -6,7 +6,94 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+function hasSelectItems(children: React.ReactNode): boolean {
+  if (
+    children === null ||
+    children === undefined ||
+    typeof children === "boolean"
+  ) {
+    return false
+  }
+
+  if (Array.isArray(children)) {
+    return children.some(hasSelectItems)
+  }
+
+  if (!React.isValidElement(children)) {
+    return false
+  }
+
+  if (
+    children.type === SelectItem ||
+    children.type === SelectPrimitive.Item
+  ) {
+    return true
+  }
+
+  return hasSelectItems(
+    (children.props as { children?: React.ReactNode }).children
+  )
+}
+
+function hasItemsPropContent(
+  items: SelectPrimitive.Root.Props<unknown>["items"]
+): boolean {
+  if (!items) return false
+
+  if (Array.isArray(items)) {
+    return items.some((item) => {
+      if ("items" in item) return item.items.length > 0
+      return true
+    })
+  }
+
+  return Object.keys(items).length > 0
+}
+
+function Select<Value, Multiple extends boolean | undefined = false>({
+  children,
+  disabled,
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
+  items,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const hasContent = hasSelectItems(children) || hasItemsPropContent(items)
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(
+    defaultOpen ?? false
+  )
+  const isControlled = openProp !== undefined
+  const requestedOpen = isControlled ? openProp : uncontrolledOpen
+  const open = hasContent ? requestedOpen : false
+
+  const handleOpenChange = React.useCallback<
+    NonNullable<SelectPrimitive.Root.Props<Value, Multiple>["onOpenChange"]>
+  >(
+    (nextOpen, eventDetails) => {
+      const allowedOpen = hasContent && nextOpen
+
+      if (!isControlled) {
+        setUncontrolledOpen(allowedOpen)
+      }
+
+      onOpenChange?.(allowedOpen, eventDetails)
+    },
+    [hasContent, isControlled, onOpenChange]
+  )
+
+  return (
+    <SelectPrimitive.Root
+      disabled={disabled || !hasContent}
+      open={open}
+      onOpenChange={handleOpenChange}
+      items={items}
+      {...props}
+    >
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
