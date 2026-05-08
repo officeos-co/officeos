@@ -96,19 +96,6 @@ internal sealed class AgentLogService : IAgentLogService
             new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
             ct);
 
-    public Task<List<AgentLogRecord>> ListUsageAsync(Guid ownerId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default)
-        => _agentLogRepository.ListAsync(
-            new AgentLogFilter
-            {
-                OwnerId = ownerId,
-                Type = AgentLogType.System,
-                FromInclusive = fromInclusive,
-                ToExclusive = toExclusive,
-                ContentStartsWith = "LLM call complete",
-            },
-            new AgentLogListOptions { Sort = AgentLogSort.TimeAscending },
-            ct);
-
     public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default)
     {
         var limit = Math.Clamp(filters.Limit, 1, 200);

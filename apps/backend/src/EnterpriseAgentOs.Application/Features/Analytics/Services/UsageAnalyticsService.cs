@@ -3,16 +3,16 @@ namespace EnterpriseAgentOs.Application.Features.Analytics;
 internal sealed class UsageAnalyticsService : IUsageAnalyticsService
 {
     private readonly IUserBillingService _userBilling;
-    private readonly IAgentLogService _logs;
+    private readonly IAgentLogRepository _agentLogRepository;
     private readonly IHostEnvironment _env;
 
     public UsageAnalyticsService(
         IUserBillingService userBilling,
-        IAgentLogService logs,
+        IAgentLogRepository agentLogRepository,
         IHostEnvironment env)
     {
         _userBilling = userBilling;
-        _logs = logs;
+        _agentLogRepository = agentLogRepository;
         _env = env;
     }
 
@@ -20,7 +20,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
     {
         var (from, toExclusive) = NormalizeRange(input.From, input.To);
         var sub = await _userBilling.GetSubscriptionAsync(userId, ct);
-        var rows = await _logs.ListUsageAsync(userId, from, toExclusive, ct);
+        var rows = await _agentLogRepository.ListUsageAggregatesAsync(userId, from, toExclusive, ct);
 
         var points = BuildEmptyPoints(from, toExclusive);
         long totalTokens = 0;
@@ -28,14 +28,14 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
 
         foreach (var row in rows)
         {
-            var tokens = (long)(row.Usage.InputTokens ?? 0) + (row.Usage.OutputTokens ?? 0);
+            var tokens = row.InputTokens + row.OutputTokens;
             if (tokens <= 0) continue;
 
-            var credits = ProviderRegistry.ToCredits(row.Tool ?? string.Empty, tokens);
+            var credits = ProviderRegistry.ToCredits(row.Model, tokens);
             totalTokens += tokens;
             totalCredits += credits;
 
-            var key = row.Time.Date;
+            var key = row.Date.Date;
             if (points.TryGetValue(key, out var existing))
             {
                 points[key] = existing with
