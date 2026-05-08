@@ -247,7 +247,7 @@ export type CreateAgentHookInput = {
   resources?: Array<{
     resourceType: string;
     resourceId: string;
-    accessMode: string;
+    accessMode?: string | null;
     instructions?: string | null;
   }>;
   bootstrapMessage?: string;
