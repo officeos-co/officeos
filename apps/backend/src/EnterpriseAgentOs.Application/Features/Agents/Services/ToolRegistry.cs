@@ -188,9 +188,17 @@ internal sealed class ToolRegistryFactory
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
-            new IntegrationExecuteTool(_integrationExecution),
         };
         var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
+
+        var permissionsStart = Stopwatch.GetTimestamp();
+        var permissions = await _permissionRepository.ListForAgentAsync(agentId, ct);
+        await _events.PublishDiagnosticAsync(
+            agentId,
+            correlationId,
+            $"Tool setup: permissions loaded ({permissions.Count})",
+            ElapsedMs(permissionsStart),
+            ct);
 
         var browserStart = Stopwatch.GetTimestamp();
         BrowserToolContext? browserContext = null;
@@ -234,6 +242,9 @@ internal sealed class ToolRegistryFactory
         }
 
         var mcpConnections = new List<IAsyncDisposable>();
+        if (HasEnabledIndexedIntegration(mcpServers, permissions))
+            tools.Add(new IntegrationExecuteTool(_integrationExecution));
+
         foreach (var server in mcpServers)
         {
             if (!string.IsNullOrWhiteSpace(server.ToolsJson))
@@ -293,14 +304,6 @@ internal sealed class ToolRegistryFactory
             mcpConnections.Add(result);
         }
 
-        var permissionsStart = Stopwatch.GetTimestamp();
-        var permissions = await _permissionRepository.ListForAgentAsync(agentId, ct);
-        await _events.PublishDiagnosticAsync(
-            agentId,
-            correlationId,
-            $"Tool setup: permissions loaded ({permissions.Count})",
-            ElapsedMs(permissionsStart),
-            ct);
         var resolver = new AgentToolPermissionResolver(permissions);
         tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
@@ -311,6 +314,21 @@ internal sealed class ToolRegistryFactory
 
     private static int ElapsedMs(long startTimestamp)
         => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+
+    private static bool HasEnabledIndexedIntegration(
+        IReadOnlyList<IntegrationDefinitionRecord> integrations,
+        IReadOnlyList<AgentToolPermissionRecord> permissions)
+    {
+        var indexable = integrations
+            .Where(integration => integration.Entities.Count > 0)
+            .Select(integration => integration.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return permissions.Any(permission =>
+            indexable.Contains(permission.SkillName)
+            && string.Equals(permission.ToolName, IntegrationIndexAccess.ToolName, StringComparison.Ordinal)
+            && permission.Permission == ToolPermission.Allow);
+    }
 
     private static IEnumerable<McpCatalogTool> ParseMcpCatalogTools(IntegrationDefinitionRecord server)
     {

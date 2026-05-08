@@ -36,3 +36,8 @@ public sealed record IntegrationToolDefinitionRecord(
     string Name,
     string Description,
     bool IsReadOnly);
+
+public static class IntegrationIndexAccess
+{
+    public const string ToolName = "__indexed_data";
+}

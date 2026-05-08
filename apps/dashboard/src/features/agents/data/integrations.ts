@@ -3,6 +3,12 @@ export type Tool = {
   description: string
 }
 
+export type IntegrationCapability = {
+  type: string
+  name: string
+  description: string
+}
+
 export type CredentialField = {
   name: string
   label: string
@@ -13,6 +19,7 @@ export type CredentialField = {
 export type McpServer = {
   id: string
   name: string        // slug
+  provider: string
   title: string
   subtitle: string
   description: string
@@ -33,6 +40,9 @@ export type McpServer = {
   documentationUrl: string
   repositoryUrl: string
   tools: Tool[]
+  capabilities: IntegrationCapability[]
+  entities: string[]
+  isIndexable: boolean
 }
 
 /** @deprecated Use McpServer instead */
