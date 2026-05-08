@@ -126,7 +126,7 @@ const CONNECTION_FIELDS = gql`
 const ATLAS_CONNECTIONS = gql`
   ${CONNECTION_FIELDS}
   query AtlasConnections {
-    atlasConnections {
+    atlasConnections(filter: {}) {
       ...AtlasConnectionFields
     }
   }
@@ -135,7 +135,7 @@ const ATLAS_CONNECTIONS = gql`
 const ATLAS_CONNECTION = gql`
   ${CONNECTION_FIELDS}
   query AtlasConnection($id: UUID!) {
-    atlasConnection(id: $id) {
+    atlasConnection(filter: { id: $id }) {
       ...AtlasConnectionFields
     }
   }
@@ -167,7 +167,7 @@ const ATLAS_CONNECTOR_TYPES = gql`
 
 const ATLAS_HISTORY = gql`
   query AtlasRequestHistory($connectionId: UUID) {
-    atlasRequestHistory(connectionId: $connectionId) {
+    atlasRequestHistory(filter: { connectionId: $connectionId }) {
       id
       connectionId
       type
@@ -184,7 +184,7 @@ const ATLAS_HISTORY = gql`
 
 const ATLAS_ACTIVITY = gql`
   query AtlasActivity($connectionId: UUID) {
-    atlasActivity(connectionId: $connectionId) {
+    atlasActivity(filter: { connectionId: $connectionId }) {
       id
       connectionId
       type
@@ -199,7 +199,7 @@ const ATLAS_ACTIVITY = gql`
 
 const ATLAS_INDEX_JOBS = gql`
   query AtlasIndexJobs($connectionId: UUID!, $limit: Int) {
-    atlasIndexJobs(connectionId: $connectionId, limit: $limit) {
+    atlasIndexJobs(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
       status
@@ -221,11 +221,13 @@ const ATLAS_INDEXED_RECORDS = gql`
     $limit: Int
   ) {
     atlasIndexedRecords(
-      connectionId: $connectionId
-      entity: $entity
-      query: $query
-      cursor: $cursor
-      limit: $limit
+      filter: {
+        connectionId: $connectionId
+        entity: $entity
+        query: $query
+        cursor: $cursor
+        limit: $limit
+      }
     ) {
       records {
         id
@@ -247,7 +249,7 @@ const ATLAS_INDEXED_RECORDS = gql`
 
 const ATLAS_INDEXED_RECORD = gql`
   query AtlasIndexedRecord($id: UUID!) {
-    atlasIndexedRecord(id: $id) {
+    atlasIndexedRecord(filter: { id: $id }) {
       id
       connectionId
       entity

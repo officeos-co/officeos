@@ -45,26 +45,31 @@ internal sealed class AtlasService : IAtlasService
             .ToList();
     }
 
-    public Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListConnectionsAsync(CancellationToken ct = default)
-        => _connections.ListAsync(ct);
+    public Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
+        => _connections.ListAsync(filter, ct);
 
-    public Task<AtlasConnectorConnectionRecord?> GetConnectionAsync(Guid id, CancellationToken ct = default)
-        => _connections.GetByAsync(new AtlasConnectionFilter { Id = id }, ct);
+    public Task<AtlasConnectorConnectionRecord?> GetByAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
+        => _connections.GetByAsync(filter, ct);
 
-    public Task<IReadOnlyList<AtlasActivityRecord>> ListActivityAsync(Guid? connectionId, CancellationToken ct = default)
-        => _activity.ListAsync(new AtlasActivityFilter { ConnectionId = connectionId }, ct);
+    public Task<IReadOnlyList<AtlasActivityRecord>> ListAsync(AtlasActivityFilter filter, CancellationToken ct = default)
+        => _activity.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
 
-    public Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListHistoryAsync(Guid? connectionId, CancellationToken ct = default)
-        => _history.ListAsync(new AtlasRequestHistoryFilter { ConnectionId = connectionId }, ct);
+    public Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListAsync(AtlasRequestHistoryFilter filter, CancellationToken ct = default)
+        => _history.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
 
-    public Task<IReadOnlyList<AtlasIndexJobRecord>> ListIndexJobsAsync(Guid connectionId, int limit = 20, CancellationToken ct = default)
-        => _jobs.ListAsync(connectionId, limit, ct);
+    public Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(AtlasIndexJobFilter filter, CancellationToken ct = default)
+        => _jobs.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 20, 100) }, ct);
 
-    public Task<AtlasIndexedRecordRecord?> GetRecordAsync(Guid id, CancellationToken ct = default)
-        => _records.GetByIdAsync(id, ct);
+    public Task<AtlasIndexedRecordRecord?> GetByAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
+        => _records.GetByAsync(filter, ct);
 
-    public Task<AtlasIndexedRecordPage> SearchRecordsAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
-        => _records.SearchAsync(filter, ct);
+    public Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
+        => _records.SearchAsync(filter with
+        {
+            Entity = filter.Entity?.Trim(),
+            Query = filter.Query?.Trim(),
+            Limit = NormalizeLimit(filter.Limit, 20, 100),
+        }, ct);
 
     public async Task<AtlasConnectorConnectionRecord> CreateGitHubConnectionAsync(CreateAtlasGitHubConnectionRequest request, CancellationToken ct = default)
     {
@@ -117,12 +122,12 @@ internal sealed class AtlasService : IAtlasService
         await _publisher.Publish(new AtlasConnectionCreatedEvent(saved.Id, "github", saved.WorkspaceName), ct);
         if (hasToken)
             await StartIndexAsync(saved.Id, ct);
-        return await GetConnectionAsync(saved.Id, ct) ?? saved;
+        return await GetByAsync(new AtlasConnectionFilter { Id = saved.Id }, ct) ?? saved;
     }
 
     public async Task<AtlasConnectorConnectionRecord> UpdateGitHubConnectionAsync(UpdateAtlasGitHubConnectionRequest request, CancellationToken ct = default)
     {
-        var existing = await GetConnectionAsync(request.Id, ct)
+        var existing = await GetByAsync(new AtlasConnectionFilter { Id = request.Id }, ct)
             ?? throw new InvalidOperationException("Atlas connection not found.");
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
@@ -177,7 +182,7 @@ internal sealed class AtlasService : IAtlasService
         await _publisher.Publish(new AtlasConnectionUpdatedEvent(saved.Id, "github"), ct);
         if (hasToken)
             await StartIndexAsync(saved.Id, ct);
-        return await GetConnectionAsync(saved.Id, ct) ?? saved;
+        return await GetByAsync(new AtlasConnectionFilter { Id = saved.Id }, ct) ?? saved;
     }
 
     public async Task DeleteConnectionAsync(Guid id, CancellationToken ct = default)
@@ -185,7 +190,7 @@ internal sealed class AtlasService : IAtlasService
 
     public async Task<AtlasIndexJobRecord> StartIndexAsync(Guid connectionId, CancellationToken ct = default)
     {
-        var connection = await GetConnectionAsync(connectionId, ct)
+        var connection = await GetByAsync(new AtlasConnectionFilter { Id = connectionId }, ct)
             ?? throw new InvalidOperationException("Atlas connection not found.");
         var job = await _jobs.CreateAsync(new AtlasIndexJobRecord
         {
@@ -236,4 +241,7 @@ internal sealed class AtlasService : IAtlasService
         var normalized = entities.Where(allowed.Contains).Distinct(StringComparer.Ordinal).ToList();
         return normalized.Count == 0 ? SupportedGitHubEntities : normalized;
     }
+
+    private static int NormalizeLimit(int limit, int defaultLimit, int maxLimit)
+        => Math.Clamp(limit <= 0 ? defaultLimit : limit, 1, maxLimit);
 }

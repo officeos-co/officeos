@@ -6,9 +6,13 @@ internal sealed class AtlasConnectionRepository : IAtlasConnectionRepository
 
     public AtlasConnectionRepository(EaosDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
     {
-        var rows = await _db.AtlasConnectorConnections.AsNoTracking()
+        var query = _db.AtlasConnectorConnections.AsNoTracking().AsQueryable();
+        if (filter.Id.HasValue) query = query.Where(c => c.Id == filter.Id.Value);
+        if (filter.Provider.HasValue) query = query.Where(c => c.Provider == filter.Provider.Value.ToString());
+
+        var rows = await query
             .OrderByDescending(c => c.UpdatedAt)
             .ToListAsync(ct);
         var ids = rows.Select(r => r.Id).ToList();
@@ -186,14 +190,19 @@ internal sealed class AtlasIndexJobRepository : IAtlasIndexJobRepository
         return ToRecord(entity);
     }
 
-    public async Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(Guid connectionId, int limit = 20, CancellationToken ct = default)
-        => (await _db.AtlasIndexJobs.AsNoTracking()
-            .Where(j => j.ConnectionId == connectionId)
+    public async Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(AtlasIndexJobFilter filter, CancellationToken ct = default)
+    {
+        var query = _db.AtlasIndexJobs.AsNoTracking().AsQueryable();
+        if (filter.ConnectionId.HasValue)
+            query = query.Where(j => j.ConnectionId == filter.ConnectionId.Value);
+
+        return (await query
             .OrderByDescending(j => j.CreatedAt)
-            .Take(limit)
+            .Take(filter.Limit)
             .ToListAsync(ct))
             .Select(ToRecord)
             .ToList();
+    }
 
     public async Task UpdateAsync(AtlasIndexJobRecord job, CancellationToken ct = default)
     {
@@ -261,18 +270,26 @@ internal sealed class AtlasIndexedRecordRepository : IAtlasIndexedRecordReposito
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<AtlasIndexedRecordRecord?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<AtlasIndexedRecordRecord?> GetByAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
     {
-        var entity = await _db.AtlasIndexedRecords
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == id, ct);
+        var query = _db.AtlasIndexedRecords.AsNoTracking().AsQueryable();
+        if (filter.Id.HasValue) query = query.Where(r => r.Id == filter.Id.Value);
+        if (filter.ConnectionId.HasValue) query = query.Where(r => r.ConnectionId == filter.ConnectionId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.Entity)) query = query.Where(r => r.Entity == filter.Entity);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToRecord(entity);
     }
 
     public async Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
     {
+        if (!filter.ConnectionId.HasValue)
+            throw new ArgumentException("SearchAsync requires AtlasIndexedRecordFilter.ConnectionId.", nameof(filter));
+        if (string.IsNullOrWhiteSpace(filter.Entity))
+            throw new ArgumentException("SearchAsync requires AtlasIndexedRecordFilter.Entity.", nameof(filter));
+
         var query = _db.AtlasIndexedRecords.AsNoTracking()
-            .Where(r => r.ConnectionId == filter.ConnectionId && r.Entity == filter.Entity);
+            .Where(r => r.ConnectionId == filter.ConnectionId.Value && r.Entity == filter.Entity);
 
         if (!string.IsNullOrWhiteSpace(filter.Query))
         {

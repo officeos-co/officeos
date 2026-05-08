@@ -15,83 +15,72 @@ public sealed class AtlasQueries
     }
 
     public Task<IReadOnlyList<AtlasConnectorConnectionRecord>> GetAtlasConnections(
+        AtlasConnectionFilter? filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.ListConnectionsAsync(ct);
+        return service.ListAsync(filter ?? new AtlasConnectionFilter(), ct);
     }
 
     public Task<AtlasConnectorConnectionRecord?> GetAtlasConnection(
-        Guid id,
+        AtlasConnectionFilter filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.GetConnectionAsync(id, ct);
+        return service.GetByAsync(filter, ct);
     }
 
     public Task<IReadOnlyList<AtlasRequestHistoryRecord>> GetAtlasRequestHistory(
-        Guid? connectionId,
+        AtlasRequestHistoryFilter? filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.ListHistoryAsync(connectionId, ct);
+        return service.ListAsync(filter ?? new AtlasRequestHistoryFilter(), ct);
     }
 
     public Task<IReadOnlyList<AtlasActivityRecord>> GetAtlasActivity(
-        Guid? connectionId,
+        AtlasActivityFilter? filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.ListActivityAsync(connectionId, ct);
+        return service.ListAsync(filter ?? new AtlasActivityFilter(), ct);
     }
 
     public Task<IReadOnlyList<AtlasIndexJobRecord>> GetAtlasIndexJobs(
-        Guid connectionId,
-        int? limit,
+        AtlasIndexJobFilter filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.ListIndexJobsAsync(connectionId, Math.Clamp(limit ?? 20, 1, 100), ct);
+        return service.ListAsync(filter, ct);
     }
 
     public Task<AtlasIndexedRecordRecord?> GetAtlasIndexedRecord(
-        Guid id,
+        AtlasIndexedRecordFilter filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.GetRecordAsync(id, ct);
+        return service.GetByAsync(filter, ct);
     }
 
     public Task<AtlasIndexedRecordPage> GetAtlasIndexedRecords(
-        Guid connectionId,
-        string entity,
-        string? query,
-        string? cursor,
-        int? limit,
+        AtlasIndexedRecordFilter filter,
         IResolverContext context,
         [Service] IAtlasService service,
         CancellationToken ct)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return service.SearchRecordsAsync(new AtlasIndexedRecordFilter
-        {
-            ConnectionId = connectionId,
-            Entity = entity,
-            Query = query,
-            Cursor = cursor,
-            Limit = Math.Clamp(limit ?? 20, 1, 100),
-        }, ct);
+        return service.SearchAsync(filter, ct);
     }
 }

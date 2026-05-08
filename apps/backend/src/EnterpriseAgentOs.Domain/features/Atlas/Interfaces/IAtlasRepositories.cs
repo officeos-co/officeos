@@ -18,10 +18,17 @@ public sealed record AtlasActivityFilter
     public int Limit { get; init; } = 100;
 }
 
+public sealed record AtlasIndexJobFilter
+{
+    public Guid? ConnectionId { get; init; }
+    public int Limit { get; init; } = 20;
+}
+
 public sealed record AtlasIndexedRecordFilter
 {
-    public Guid ConnectionId { get; init; }
-    public string Entity { get; init; } = string.Empty;
+    public Guid? Id { get; init; }
+    public Guid? ConnectionId { get; init; }
+    public string? Entity { get; init; }
     public string? Query { get; init; }
     public string? Cursor { get; init; }
     public int Limit { get; init; } = 20;
@@ -34,7 +41,7 @@ public sealed record AtlasIndexedRecordPage(
 
 public interface IAtlasConnectionRepository
 {
-    Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(AtlasConnectionFilter filter, CancellationToken ct = default);
     Task<AtlasConnectorConnectionRecord?> GetByAsync(AtlasConnectionFilter filter, CancellationToken ct = default);
     Task<AtlasConnectorConnectionRecord> UpsertAsync(AtlasConnectorConnectionRecord connection, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
@@ -51,14 +58,14 @@ public interface IAtlasIndexJobRepository
 {
     Task<AtlasIndexJobRecord> CreateAsync(AtlasIndexJobRecord job, CancellationToken ct = default);
     Task<AtlasIndexJobRecord?> DequeueAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(Guid connectionId, int limit = 20, CancellationToken ct = default);
+    Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(AtlasIndexJobFilter filter, CancellationToken ct = default);
     Task UpdateAsync(AtlasIndexJobRecord job, CancellationToken ct = default);
 }
 
 public interface IAtlasIndexedRecordRepository
 {
     Task UpsertManyAsync(IReadOnlyList<AtlasIndexedRecordRecord> records, CancellationToken ct = default);
-    Task<AtlasIndexedRecordRecord?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<AtlasIndexedRecordRecord?> GetByAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default);
     Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default);
     Task<int> CountAsync(Guid connectionId, string entity, CancellationToken ct = default);
     Task DeleteForConnectionAsync(Guid connectionId, CancellationToken ct = default);
