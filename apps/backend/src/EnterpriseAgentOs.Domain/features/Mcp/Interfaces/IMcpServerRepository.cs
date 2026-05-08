@@ -2,8 +2,8 @@ namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
 public interface IIntegrationDefinitionRepository
 {
-    Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default);
-    Task<IntegrationDefinitionRecord?> GetByNameAsync(string name, CancellationToken ct = default);
-    Task<IntegrationDefinitionRecord> UpsertAsync(IntegrationDefinitionRecord server, CancellationToken ct = default);
-    Task DeleteAsync(string name, CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default);
+    Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, CancellationToken ct = default);
+    Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default);
+    Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default);
 }

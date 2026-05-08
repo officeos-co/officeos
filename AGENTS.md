@@ -26,3 +26,5 @@ Clean architecture with domain separation under `apps/dashboard/src/features` (a
 # Rules
 
 - never try to run the application yourself, after having changed the code your done; rather you should build the code or lint it only check if it compiles
+- dont care about legacy integrations the default should always be to just delete the old entirely
+- the default integration should be big-bang-integration unless i explicitely tell you to.

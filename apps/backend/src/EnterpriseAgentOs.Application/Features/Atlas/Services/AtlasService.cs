@@ -35,9 +35,9 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
         _publisher = publisher;
     }
 
-    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListIntegrationDefinitionsAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListIntegrationDefinitionsAsync(Guid userId, CancellationToken ct = default)
     {
-        var githubConfigured = await _github.HasTokenAsync(ct);
+        var githubConfigured = await _github.HasTokenAsync(userId, ct);
         return IntegrationDefinitionCatalog.BuiltinDefinitions
             .Select(connector => connector.OauthProvider == "github"
                 ? connector with { OauthConfigured = githubConfigured }
@@ -75,9 +75,9 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     {
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
-        var hasToken = await _github.HasTokenAsync(ct);
+        var hasToken = await _github.HasTokenAsync(request.CreatedById, ct);
         if (hasToken)
-            await _github.ValidateRepositoriesAsync(repositories, ct);
+            await _github.ValidateRepositoriesAsync(request.CreatedById, repositories, ct);
 
         var connection = new IntegrationConnectionRecord
         {
@@ -131,9 +131,9 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             ?? throw new InvalidOperationException("Integration connection not found.");
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
-        var hasToken = await _github.HasTokenAsync(ct);
+        var hasToken = await _github.HasTokenAsync(existing.CreatedById, ct);
         if (hasToken)
-            await _github.ValidateRepositoriesAsync(repositories, ct);
+            await _github.ValidateRepositoriesAsync(existing.CreatedById, repositories, ct);
 
         var updated = new IntegrationConnectionRecord
         {

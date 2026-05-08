@@ -64,11 +64,13 @@ public sealed class EaosDbContext : DbContext
         modelBuilder.Entity<OAuthTokenEntity>(e =>
         {
             e.HasKey(o => o.Id);
-            e.HasIndex(o => o.Provider).IsUnique();
+            e.HasIndex(o => o.UserId);
+            e.HasIndex(o => new { o.UserId, o.Provider }).IsUnique();
             e.Property(o => o.Provider).IsRequired().HasMaxLength(32);
             e.Property(o => o.EncryptedAccessToken).HasMaxLength(16384);
             e.Property(o => o.EncryptedRefreshToken).HasMaxLength(16384);
             e.Property(o => o.Email).HasMaxLength(256);
+            e.HasOne<UserEntity>().WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(o => o.GrantedScopes).WithOne(s => s.OAuthToken).HasForeignKey(s => s.OAuthTokenId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -315,7 +317,8 @@ public sealed class EaosDbContext : DbContext
         {
             e.ToTable("Integrations");
             e.HasKey(s => s.Id);
-            e.HasIndex(s => s.Name).IsUnique();
+            e.HasIndex(s => new { s.OwnerId, s.Name }).IsUnique();
+            e.HasIndex(s => s.OwnerId);
             e.Property(s => s.Name).IsRequired().HasMaxLength(64);
             e.Property(s => s.Provider).HasMaxLength(64);
             e.Property(s => s.Title).IsRequired().HasMaxLength(128);
@@ -349,9 +352,11 @@ public sealed class EaosDbContext : DbContext
         {
             e.ToTable("IntegrationCredentials");
             e.HasKey(c => c.Id);
-            e.HasIndex(c => c.IntegrationName).IsUnique();
+            e.HasIndex(c => c.OwnerId);
+            e.HasIndex(c => new { c.OwnerId, c.IntegrationName }).IsUnique();
             e.Property(c => c.IntegrationName).IsRequired().HasMaxLength(64);
             e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
+            e.HasOne<UserEntity>().WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<IntegrationConnectionEntity>(e =>

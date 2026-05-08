@@ -185,14 +185,14 @@ internal sealed class AgentService : IAgentService
 
         if (init.ToolNames is { Count: > 0 })
         {
-            var servers = await _mcpServerService.ListAsync(ct);
+            var servers = await _mcpServerService.ListAsync(userId, ct);
             var names = servers.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var toolName in init.ToolNames)
             {
                 var parsed = ToolKey.Parse(toolName);
                 var integrationName = names.Contains(toolName) ? toolName : parsed.SkillName;
                 if (names.Contains(integrationName))
-                    await _mcpServerService.AssignToAgentAsync(agentId, integrationName, ct);
+                    await _mcpServerService.AssignToAgentAsync(agentId, integrationName, userId, ct);
             }
         }
 

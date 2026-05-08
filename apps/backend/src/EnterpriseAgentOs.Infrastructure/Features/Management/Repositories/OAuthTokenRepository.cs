@@ -16,6 +16,9 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
         if (filter.Id.HasValue)
             query = query.Where(t => t.Id == filter.Id.Value);
 
+        if (filter.UserId.HasValue)
+            query = query.Where(t => t.UserId == filter.UserId.Value);
+
         if (!string.IsNullOrEmpty(filter.Provider))
             query = query.Where(t => t.Provider == filter.Provider);
 
@@ -30,13 +33,14 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
     public async Task UpsertAsync(OAuthTokenRecord token, CancellationToken ct = default)
     {
         var existing = await _db.OAuthTokens
-            .FirstOrDefaultAsync(t => t.Provider == token.Provider, ct);
+            .FirstOrDefaultAsync(t => t.UserId == token.UserId && t.Provider == token.Provider, ct);
 
         if (existing is null)
         {
             existing = new OAuthTokenEntity
             {
                 Id = token.Id,
+                UserId = token.UserId,
                 Provider = token.Provider,
                 CreatedAt = token.CreatedAt,
             };
@@ -81,6 +85,7 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
         var record = new OAuthTokenRecord
         {
             Id = entity.Id,
+            UserId = entity.UserId,
             Provider = entity.Provider,
             EncryptedAccessToken = entity.EncryptedAccessToken,
             EncryptedRefreshToken = entity.EncryptedRefreshToken,

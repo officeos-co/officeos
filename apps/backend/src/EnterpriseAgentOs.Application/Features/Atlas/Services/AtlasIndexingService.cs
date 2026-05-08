@@ -75,7 +75,7 @@ internal sealed class IntegrationIndexingService
                         JobId = job.Id,
                         Repository = repository,
                     }, true, ct);
-                    var rows = await _github.FetchEntityAsync(entity, repository, perPage: 100, ct);
+                    var rows = await _github.FetchEntityAsync(connection.CreatedById, entity, repository, perPage: 100, ct);
                     entityRecords.AddRange(rows.Select(row => ToIndexedRecord(connection.Id, entity, repository, row)));
                     await LogActivityAsync(connection.Id, "repository_fetch_completed", entity, $"Fetched {rows.Count} {DisplayEntity(entity)} from {repository}.", new
                     {

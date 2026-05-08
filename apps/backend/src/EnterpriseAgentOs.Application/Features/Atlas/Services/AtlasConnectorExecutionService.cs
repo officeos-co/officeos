@@ -123,7 +123,7 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         int durationMs,
         CancellationToken ct)
     {
-        var result = await _github.ExecuteDirectAsync(request.Entity, request.Action, request.Params, ct);
+        var result = await _github.ExecuteDirectAsync(connection.CreatedById, request.Entity, request.Action, request.Params, ct);
         object projected = result.ValueKind == JsonValueKind.Array
             ? result.EnumerateArray()
                 .Select(row => ProjectFields(JsonNode.Parse(row.GetRawText()) as JsonObject ?? new JsonObject(), request.SelectFields))

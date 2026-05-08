@@ -19,32 +19,32 @@ internal sealed class GitHubIntegrationClient
         _credentialProtector = credentialProtector;
     }
 
-    public async Task<bool> HasTokenAsync(CancellationToken ct)
-        => !string.IsNullOrWhiteSpace(await GetAccessTokenAsync(ct));
+    public async Task<bool> HasTokenAsync(Guid? userId, CancellationToken ct)
+        => !string.IsNullOrWhiteSpace(await GetAccessTokenAsync(userId, ct));
 
-    public async Task ValidateRepositoriesAsync(IReadOnlyList<string> repositories, CancellationToken ct)
+    public async Task ValidateRepositoriesAsync(Guid? userId, IReadOnlyList<string> repositories, CancellationToken ct)
     {
         foreach (var repository in repositories)
         {
             var (owner, repo) = SplitRepository(repository);
-            await SendAsync(HttpMethod.Get, $"repos/{Uri.EscapeDataString(owner)}/{Uri.EscapeDataString(repo)}", ct);
+            await SendAsync(userId, HttpMethod.Get, $"repos/{Uri.EscapeDataString(owner)}/{Uri.EscapeDataString(repo)}", ct);
         }
     }
 
-    public async Task<IReadOnlyList<JsonObject>> FetchEntityAsync(string entity, string repository, int perPage, CancellationToken ct)
+    public async Task<IReadOnlyList<JsonObject>> FetchEntityAsync(Guid? userId, string entity, string repository, int perPage, CancellationToken ct)
     {
         var (owner, repo) = SplitRepository(repository);
         return entity switch
         {
-            "repositories" => [await GetRepositoryAsync(owner, repo, ct)],
-            "issues" => await GetArrayAsync($"repos/{owner}/{repo}/issues?state=all&per_page={perPage}", ct, excludePullRequests: true),
-            "pull_requests" => await GetArrayAsync($"repos/{owner}/{repo}/pulls?state=all&per_page={perPage}", ct),
-            "commits" => await GetArrayAsync($"repos/{owner}/{repo}/commits?per_page={perPage}", ct),
+            "repositories" => [await GetRepositoryAsync(userId, owner, repo, ct)],
+            "issues" => await GetArrayAsync(userId, $"repos/{owner}/{repo}/issues?state=all&per_page={perPage}", ct, excludePullRequests: true),
+            "pull_requests" => await GetArrayAsync(userId, $"repos/{owner}/{repo}/pulls?state=all&per_page={perPage}", ct),
+            "commits" => await GetArrayAsync(userId, $"repos/{owner}/{repo}/commits?per_page={perPage}", ct),
             _ => [],
         };
     }
 
-    public async Task<JsonElement> ExecuteDirectAsync(string entity, string action, JsonElement parameters, CancellationToken ct)
+    public async Task<JsonElement> ExecuteDirectAsync(Guid? userId, string entity, string action, JsonElement parameters, CancellationToken ct)
     {
         if (action != "list" && action != "get")
             throw new InvalidOperationException($"GitHub Integration supports only list/get direct actions for V1, got '{action}'.");
@@ -57,7 +57,7 @@ internal sealed class GitHubIntegrationClient
             throw new InvalidOperationException("GitHub direct calls require params.owner and params.repo.");
 
         if (action == "get" || entity == "repositories")
-            return JsonSerializer.SerializeToElement(await GetRepositoryAsync(owner, repo, ct));
+            return JsonSerializer.SerializeToElement(await GetRepositoryAsync(userId, owner, repo, ct));
 
         var path = entity switch
         {
@@ -69,21 +69,21 @@ internal sealed class GitHubIntegrationClient
             _ => throw new InvalidOperationException($"Unsupported GitHub entity '{entity}'."),
         };
 
-        var rows = await GetArrayAsync(path, ct, excludePullRequests: entity == "issues");
+        var rows = await GetArrayAsync(userId, path, ct, excludePullRequests: entity == "issues");
         return JsonSerializer.SerializeToElement(rows);
     }
 
-    private async Task<JsonObject> GetRepositoryAsync(string owner, string repo, CancellationToken ct)
+    private async Task<JsonObject> GetRepositoryAsync(Guid? userId, string owner, string repo, CancellationToken ct)
     {
-        var json = await SendAsync(HttpMethod.Get, $"repos/{owner}/{repo}", ct);
+        var json = await SendAsync(userId, HttpMethod.Get, $"repos/{owner}/{repo}", ct);
         var obj = JsonNode.Parse(json) as JsonObject ?? new JsonObject();
         obj["owner"] = obj["owner"]?.ToJsonString();
         return obj;
     }
 
-    private async Task<IReadOnlyList<JsonObject>> GetArrayAsync(string path, CancellationToken ct, bool excludePullRequests = false)
+    private async Task<IReadOnlyList<JsonObject>> GetArrayAsync(Guid? userId, string path, CancellationToken ct, bool excludePullRequests = false)
     {
-        var json = await SendAsync(HttpMethod.Get, path, ct);
+        var json = await SendAsync(userId, HttpMethod.Get, path, ct);
         var array = JsonNode.Parse(json) as JsonArray ?? [];
         var rows = new List<JsonObject>();
         foreach (var item in array)
@@ -95,9 +95,9 @@ internal sealed class GitHubIntegrationClient
         return rows;
     }
 
-    private async Task<string> SendAsync(HttpMethod method, string path, CancellationToken ct)
+    private async Task<string> SendAsync(Guid? userId, HttpMethod method, string path, CancellationToken ct)
     {
-        var token = await GetAccessTokenAsync(ct)
+        var token = await GetAccessTokenAsync(userId, ct)
             ?? throw new InvalidOperationException("GitHub OAuth is not connected.");
         var client = _httpClientFactory.CreateClient("github-atlas");
         using var request = new HttpRequestMessage(method, path);
@@ -109,9 +109,11 @@ internal sealed class GitHubIntegrationClient
         return body;
     }
 
-    private async Task<string?> GetAccessTokenAsync(CancellationToken ct)
+    private async Task<string?> GetAccessTokenAsync(Guid? userId, CancellationToken ct)
     {
-        var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { Provider = "github" }, ct);
+        if (!userId.HasValue) return null;
+
+        var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = userId.Value, Provider = "github" }, ct);
         if (string.IsNullOrWhiteSpace(token?.EncryptedAccessToken)) return null;
         return _credentialProtector.Unprotect(token.EncryptedAccessToken).GetValueOrDefault("token");
     }
