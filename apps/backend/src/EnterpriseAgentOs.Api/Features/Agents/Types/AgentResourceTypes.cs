@@ -4,6 +4,11 @@ public sealed record CreateBrowserResourceInput(string? DisplayName);
 
 public sealed record CreateMemoryStoreInput(string? DisplayName);
 
+public sealed record UpsertMemoryStoreEntryInput(
+    Guid MemoryStoreId,
+    string Key,
+    string Content);
+
 public sealed record BrowserResourcePayload(
     Guid Id,
     Guid OwnerId,
