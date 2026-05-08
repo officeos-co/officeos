@@ -2,7 +2,7 @@ using System.Text.Json;
 using ModelContextProtocol.Client;
 using Microsoft.Extensions.Logging;
 
-namespace EnterpriseAgentOs.Infrastructure.Features.Mcp;
+namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
 
 internal sealed class McpClientManager : IMcpClientManager
 {
@@ -16,7 +16,7 @@ internal sealed class McpClientManager : IMcpClientManager
     }
 
     public async Task<McpConnectionResult> ConnectAsync(
-        McpServerRecord server,
+        IntegrationDefinitionRecord server,
         Dictionary<string, string> credentials,
         CancellationToken ct)
     {
@@ -24,8 +24,8 @@ internal sealed class McpClientManager : IMcpClientManager
         {
             IClientTransport transport = server.TransportType switch
             {
-                McpTransportType.Stdio => CreateStdioTransport(server, credentials),
-                McpTransportType.Sse or McpTransportType.StreamableHttp => CreateHttpTransport(server, credentials),
+                IntegrationTransportType.Stdio => CreateStdioTransport(server, credentials),
+                IntegrationTransportType.Sse or IntegrationTransportType.StreamableHttp => CreateHttpTransport(server, credentials),
                 _ => throw new ArgumentException($"Unsupported transport: {server.TransportType}"),
             };
 
@@ -39,7 +39,7 @@ internal sealed class McpClientManager : IMcpClientManager
                 JsonSchema = t.JsonSchema.ValueKind != JsonValueKind.Undefined
                     ? t.JsonSchema.GetRawText()
                     : null,
-                ServerName = server.Name,
+                IntegrationName = server.Name,
                 NativeHandle = new McpNativeHandle(t, client),
             }).ToList();
 
@@ -56,7 +56,7 @@ internal sealed class McpClientManager : IMcpClientManager
         }
     }
 
-    private static StdioClientTransport CreateStdioTransport(McpServerRecord server, Dictionary<string, string> credentials)
+    private static StdioClientTransport CreateStdioTransport(IntegrationDefinitionRecord server, Dictionary<string, string> credentials)
     {
         var args = string.IsNullOrEmpty(server.Args)
             ? []
@@ -98,7 +98,7 @@ internal sealed class McpClientManager : IMcpClientManager
         return arg;
     }
 
-    private HttpClientTransport CreateHttpTransport(McpServerRecord server, Dictionary<string, string> credentials)
+    private HttpClientTransport CreateHttpTransport(IntegrationDefinitionRecord server, Dictionary<string, string> credentials)
     {
         var url = server.Url ?? throw new ArgumentException($"MCP server '{server.Name}' has no URL");
         return new HttpClientTransport(new HttpClientTransportOptions

@@ -1,37 +1,37 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace EnterpriseAgentOs.Infrastructure.Features.Mcp;
+namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
 
-internal sealed class McpCredentialRepository : IMcpCredentialRepository
+internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRepository
 {
     private readonly EaosDbContext _db;
 
-    public McpCredentialRepository(EaosDbContext db) => _db = db;
+    public IntegrationCredentialRepository(EaosDbContext db) => _db = db;
 
-    public async Task<McpCredentialRecord?> GetByAsync(McpCredentialFilter filter, CancellationToken ct = default)
+    public async Task<IntegrationCredentialRecord?> GetByAsync(IntegrationCredentialFilter filter, CancellationToken ct = default)
     {
         var query = _db.McpCredentials.AsNoTracking().AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(c => c.Id == filter.Id.Value);
 
-        if (!string.IsNullOrEmpty(filter.ServerName))
-            query = query.Where(c => c.McpServerName == filter.ServerName);
+        if (!string.IsNullOrEmpty(filter.IntegrationName))
+            query = query.Where(c => c.IntegrationName == filter.IntegrationName);
 
         var entity = await query.FirstOrDefaultAsync(ct);
-        return entity is null ? null : new McpCredentialRecord
+        return entity is null ? null : new IntegrationCredentialRecord
         {
             Id = entity.Id,
-            McpServerName = entity.McpServerName,
+            IntegrationName = entity.IntegrationName,
             EncryptedCredentials = entity.EncryptedCredentials,
             ConfiguredAt = entity.ConfiguredAt,
         };
     }
 
-    public async Task UpsertAsync(McpCredentialRecord credential, CancellationToken ct)
+    public async Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct)
     {
         var existing = await _db.McpCredentials
-            .FirstOrDefaultAsync(c => c.McpServerName == credential.McpServerName, ct);
+            .FirstOrDefaultAsync(c => c.IntegrationName == credential.IntegrationName, ct);
         if (existing is not null)
         {
             existing.EncryptedCredentials = credential.EncryptedCredentials;
@@ -39,10 +39,10 @@ internal sealed class McpCredentialRepository : IMcpCredentialRepository
         }
         else
         {
-            _db.McpCredentials.Add(new McpCredentialEntity
+            _db.McpCredentials.Add(new IntegrationCredentialEntity
             {
                 Id = credential.Id,
-                McpServerName = credential.McpServerName,
+                IntegrationName = credential.IntegrationName,
                 EncryptedCredentials = credential.EncryptedCredentials,
                 ConfiguredAt = credential.ConfiguredAt,
             });
@@ -50,8 +50,8 @@ internal sealed class McpCredentialRepository : IMcpCredentialRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(string serverName, CancellationToken ct)
+    public async Task DeleteAsync(string integrationName, CancellationToken ct)
     {
-        await _db.McpCredentials.Where(c => c.McpServerName == serverName).ExecuteDeleteAsync(ct);
+        await _db.McpCredentials.Where(c => c.IntegrationName == integrationName).ExecuteDeleteAsync(ct);
     }
 }

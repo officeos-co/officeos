@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 
-public sealed class AtlasConnectorConnectionEntity
+public sealed class IntegrationConnectionEntity
 {
     public Guid Id { get; set; }
     public string Provider { get; set; } = string.Empty;
@@ -16,11 +16,11 @@ public sealed class AtlasConnectorConnectionEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public sealed class AtlasEntityStatusEntity
+public sealed class IntegrationIndexEntityStatusEntity
 {
     public Guid Id { get; set; }
     public Guid ConnectionId { get; set; }
-    public AtlasConnectorConnectionEntity? Connection { get; set; }
+    public IntegrationConnectionEntity? Connection { get; set; }
     public string Entity { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int RecordCount { get; set; }
@@ -29,11 +29,11 @@ public sealed class AtlasEntityStatusEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public sealed class AtlasIndexJobEntity
+public sealed class IntegrationIndexJobEntity
 {
     public Guid Id { get; set; }
     public Guid ConnectionId { get; set; }
-    public AtlasConnectorConnectionEntity? Connection { get; set; }
+    public IntegrationConnectionEntity? Connection { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Error { get; set; }
     public int RecordsIndexed { get; set; }
@@ -42,11 +42,11 @@ public sealed class AtlasIndexJobEntity
     public DateTime? CompletedAt { get; set; }
 }
 
-public sealed class AtlasIndexedRecordEntity
+public sealed class IntegrationIndexedRecordEntity
 {
     public Guid Id { get; set; }
     public Guid ConnectionId { get; set; }
-    public AtlasConnectorConnectionEntity? Connection { get; set; }
+    public IntegrationConnectionEntity? Connection { get; set; }
     public string Entity { get; set; } = string.Empty;
     public string ExternalId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
@@ -57,11 +57,11 @@ public sealed class AtlasIndexedRecordEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public sealed class AtlasActivityEntity
+public sealed class IntegrationActivityEntity
 {
     public Guid Id { get; set; }
     public Guid ConnectionId { get; set; }
-    public AtlasConnectorConnectionEntity? Connection { get; set; }
+    public IntegrationConnectionEntity? Connection { get; set; }
     public string Type { get; set; } = string.Empty;
     public string? Entity { get; set; }
     public string Message { get; set; } = string.Empty;
@@ -70,11 +70,11 @@ public sealed class AtlasActivityEntity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
-public sealed class AtlasRequestHistoryEntity
+public sealed class IntegrationRequestHistoryEntity
 {
     public Guid Id { get; set; }
     public Guid ConnectionId { get; set; }
-    public AtlasConnectorConnectionEntity? Connection { get; set; }
+    public IntegrationConnectionEntity? Connection { get; set; }
     public string Type { get; set; } = string.Empty;
     public string Entity { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;

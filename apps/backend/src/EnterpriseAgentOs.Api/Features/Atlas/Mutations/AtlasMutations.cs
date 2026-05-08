@@ -1,19 +1,19 @@
-using EnterpriseAgentOs.Domain.Features.Atlas;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-namespace EnterpriseAgentOs.Api.Features.Atlas;
+namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public sealed class AtlasMutations
 {
-    public async Task<AtlasConnectorConnectionRecord> CreateAtlasGitHubConnection(
+    public async Task<IntegrationConnectionRecord> CreateAtlasGitHubConnection(
         CreateAtlasGitHubConnectionInput input,
         [Service] UserContext user,
-        [Service] IAtlasService service,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         try
         {
-            return await service.CreateGitHubConnectionAsync(new CreateAtlasGitHubConnectionRequest(
+            return await service.CreateGitHubConnectionAsync(new CreateGitHubIntegrationConnectionRequest(
                 string.IsNullOrWhiteSpace(input.WorkspaceName) ? "default" : input.WorkspaceName,
                 input.DisplayName,
                 input.Repositories,
@@ -26,14 +26,14 @@ public sealed class AtlasMutations
         }
     }
 
-    public async Task<AtlasConnectorConnectionRecord> UpdateAtlasGitHubConnection(
+    public async Task<IntegrationConnectionRecord> UpdateAtlasGitHubConnection(
         UpdateAtlasGitHubConnectionInput input,
-        [Service] IAtlasService service,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         try
         {
-            return await service.UpdateGitHubConnectionAsync(new UpdateAtlasGitHubConnectionRequest(
+            return await service.UpdateGitHubConnectionAsync(new UpdateGitHubIntegrationConnectionRequest(
                 input.Id,
                 input.DisplayName,
                 input.Repositories,
@@ -47,16 +47,16 @@ public sealed class AtlasMutations
 
     public async Task<bool> DeleteAtlasConnection(
         Guid id,
-        [Service] IAtlasService service,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         await service.DeleteConnectionAsync(id, ct);
         return true;
     }
 
-    public async Task<AtlasIndexJobRecord> StartAtlasIndex(
+    public async Task<IntegrationIndexJobRecord> StartAtlasIndex(
         Guid connectionId,
-        [Service] IAtlasService service,
+        [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
         try

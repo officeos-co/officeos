@@ -17,11 +17,11 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAgentToolPermissionRepository, AgentToolPermissionRepository>();
 
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
-        services.AddScoped<IMcpServerRepository, McpServerRepository>();
-        services.AddScoped<IAgentMcpServerRepository, AgentMcpServerRepository>();
-        services.AddScoped<IMcpCredentialRepository, McpCredentialRepository>();
+        services.AddScoped<IIntegrationDefinitionRepository, IntegrationDefinitionRepository>();
+        services.AddScoped<IAgentIntegrationDefinitionRepository, AgentIntegrationDefinitionRepository>();
+        services.AddScoped<IIntegrationCredentialRepository, IntegrationCredentialRepository>();
         services.AddScoped<IAtlasConnectionRepository, AtlasConnectionRepository>();
-        services.AddScoped<IAtlasEntityStatusRepository, AtlasEntityStatusRepository>();
+        services.AddScoped<IIntegrationIndexEntityStatusRepository, IntegrationIndexEntityStatusRepository>();
         services.AddScoped<IAtlasIndexJobRepository, AtlasIndexJobRepository>();
         services.AddScoped<IAtlasIndexedRecordRepository, AtlasIndexedRecordRepository>();
         services.AddScoped<IAtlasActivityRepository, AtlasActivityRepository>();

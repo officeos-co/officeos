@@ -1,9 +1,9 @@
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public sealed class AgentMcpServerRecord
+public sealed class AgentIntegrationRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
-    public string McpServerName { get; init; } = string.Empty;
+    public string IntegrationName { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

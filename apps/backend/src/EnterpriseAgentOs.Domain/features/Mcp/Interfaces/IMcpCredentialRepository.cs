@@ -1,14 +1,14 @@
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public sealed record McpCredentialFilter
+public sealed record IntegrationCredentialFilter
 {
     public Guid? Id { get; init; }
-    public string? ServerName { get; init; }
+    public string? IntegrationName { get; init; }
 }
 
-public interface IMcpCredentialRepository
+public interface IIntegrationCredentialRepository
 {
-    Task<McpCredentialRecord?> GetByAsync(McpCredentialFilter filter, CancellationToken ct = default);
-    Task UpsertAsync(McpCredentialRecord credential, CancellationToken ct = default);
-    Task DeleteAsync(string serverName, CancellationToken ct = default);
+    Task<IntegrationCredentialRecord?> GetByAsync(IntegrationCredentialFilter filter, CancellationToken ct = default);
+    Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct = default);
+    Task DeleteAsync(string integrationName, CancellationToken ct = default);
 }

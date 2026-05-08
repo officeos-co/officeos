@@ -119,7 +119,7 @@ internal sealed class ToolRegistryFactory
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _permissionRepository;
-    private readonly IAtlasConnectorExecutionService _atlasExecution;
+    private readonly IIntegrationExecutionService _atlasExecution;
     private readonly TurnEventPublisher _events;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
@@ -133,7 +133,7 @@ internal sealed class ToolRegistryFactory
         IMcpClientManager mcpClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
         IAgentToolPermissionRepository permissionRepository,
-        IAtlasConnectorExecutionService atlasExecution,
+        IIntegrationExecutionService atlasExecution,
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
@@ -157,7 +157,7 @@ internal sealed class ToolRegistryFactory
         string serviceUrl,
         Guid agentId,
         string correlationId,
-        IReadOnlyList<McpServerRecord> mcpServers,
+        IReadOnlyList<IntegrationDefinitionRecord> mcpServers,
             Func<string, Task<Dictionary<string, string>>> credentialLoader,
             CancellationToken ct)
     {
@@ -312,7 +312,7 @@ internal sealed class ToolRegistryFactory
     private static int ElapsedMs(long startTimestamp)
         => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
-    private static IEnumerable<McpCatalogTool> ParseMcpCatalogTools(McpServerRecord server)
+    private static IEnumerable<McpCatalogTool> ParseMcpCatalogTools(IntegrationDefinitionRecord server)
     {
         if (string.IsNullOrWhiteSpace(server.ToolsJson))
             yield break;

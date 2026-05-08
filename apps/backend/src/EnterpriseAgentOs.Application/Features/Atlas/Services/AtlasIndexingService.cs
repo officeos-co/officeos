@@ -2,28 +2,28 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Atlas;
+namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
-internal sealed class AtlasIndexingService
+internal sealed class IntegrationIndexingService
 {
     private readonly IAtlasConnectionRepository _connections;
-    private readonly IAtlasEntityStatusRepository _entityStatuses;
+    private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
     private readonly IAtlasIndexJobRepository _jobs;
     private readonly IAtlasIndexedRecordRepository _records;
     private readonly IAtlasActivityRepository _activity;
-    private readonly AtlasGitHubClient _github;
+    private readonly GitHubIntegrationClient _github;
     private readonly IPublisher _publisher;
-    private readonly ILogger<AtlasIndexingService> _logger;
+    private readonly ILogger<IntegrationIndexingService> _logger;
 
-    public AtlasIndexingService(
+    public IntegrationIndexingService(
         IAtlasConnectionRepository connections,
-        IAtlasEntityStatusRepository entityStatuses,
+        IIntegrationIndexEntityStatusRepository entityStatuses,
         IAtlasIndexJobRepository jobs,
         IAtlasIndexedRecordRepository records,
         IAtlasActivityRepository activity,
-        AtlasGitHubClient github,
+        GitHubIntegrationClient github,
         IPublisher publisher,
-        ILogger<AtlasIndexingService> logger)
+        ILogger<IntegrationIndexingService> logger)
     {
         _connections = connections;
         _entityStatuses = entityStatuses;
@@ -43,23 +43,23 @@ internal sealed class AtlasIndexingService
         var recordsIndexed = 0;
         try
         {
-            var connection = await _connections.GetByAsync(new AtlasConnectionFilter { Id = job.ConnectionId }, ct)
+            var connection = await _connections.GetByAsync(new IntegrationConnectionFilter { Id = job.ConnectionId }, ct)
                 ?? throw new InvalidOperationException("Atlas connection not found.");
             var repositories = ParseStringArray(connection.RepositoriesJson);
             var entities = ParseStringArray(connection.EntitiesJson);
 
-            await _connections.SetStatusAsync(connection.Id, AtlasConnectorStatus.Indexing, null, ct);
+            await _connections.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Indexing, null, ct);
             await LogActivityAsync(connection.Id, "index_started", null, "Indexing started.", new { JobId = job.Id }, true, ct);
             await _records.DeleteForConnectionAsync(connection.Id, ct);
             await LogActivityAsync(connection.Id, "records_cleared", null, "Previous indexed records cleared.", new { JobId = job.Id }, true, ct);
 
             foreach (var entity in entities)
             {
-                await _entityStatuses.UpsertAsync(new AtlasEntityStatusRecord
+                await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
                 {
                     ConnectionId = connection.Id,
                     Entity = entity,
-                    Status = AtlasEntityStatus.Indexing,
+                    Status = IntegrationIndexEntityStatus.Indexing,
                 }, ct);
                 await LogActivityAsync(connection.Id, "entity_index_started", entity, $"Indexing {DisplayEntity(entity)} started.", new
                 {
@@ -67,7 +67,7 @@ internal sealed class AtlasIndexingService
                     Repositories = repositories,
                 }, true, ct);
 
-                var entityRecords = new List<AtlasIndexedRecordRecord>();
+                var entityRecords = new List<IntegrationIndexedRecordRecord>();
                 foreach (var repository in repositories)
                 {
                     await LogActivityAsync(connection.Id, "repository_fetch_started", entity, $"Fetching {DisplayEntity(entity)} from {repository}.", new
@@ -89,11 +89,11 @@ internal sealed class AtlasIndexingService
                     await _records.UpsertManyAsync(entityRecords, ct);
                 recordsIndexed += entityRecords.Count;
 
-                await _entityStatuses.UpsertAsync(new AtlasEntityStatusRecord
+                await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
                 {
                     ConnectionId = connection.Id,
                     Entity = entity,
-                    Status = AtlasEntityStatus.Ready,
+                    Status = IntegrationIndexEntityStatus.Ready,
                     RecordCount = entityRecords.Count,
                     LastSyncedAt = DateTime.UtcNow,
                 }, ct);
@@ -104,12 +104,12 @@ internal sealed class AtlasIndexingService
                 }, true, ct);
             }
 
-            await _connections.SetStatusAsync(connection.Id, AtlasConnectorStatus.Ready, null, ct);
-            await _jobs.UpdateAsync(new AtlasIndexJobRecord
+            await _connections.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Ready, null, ct);
+            await _jobs.UpdateAsync(new IntegrationIndexJobRecord
             {
                 Id = job.Id,
                 ConnectionId = job.ConnectionId,
-                Status = AtlasIndexJobStatus.Succeeded,
+                Status = IntegrationIndexJobStatus.Succeeded,
                 RecordsIndexed = recordsIndexed,
                 CreatedAt = job.CreatedAt,
                 StartedAt = job.StartedAt,
@@ -120,18 +120,18 @@ internal sealed class AtlasIndexingService
                 JobId = job.Id,
                 RecordsIndexed = recordsIndexed,
             }, true, ct);
-            await _publisher.Publish(new AtlasIndexCompletedEvent(connection.Id, job.Id, true, recordsIndexed, null), ct);
+            await _publisher.Publish(new IntegrationIndexCompletedEvent(connection.Id, job.Id, true, recordsIndexed, null), ct);
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Atlas index job {JobId} failed", job.Id);
-            await _connections.SetStatusAsync(job.ConnectionId, AtlasConnectorStatus.Failed, ex.Message, ct);
-            await _jobs.UpdateAsync(new AtlasIndexJobRecord
+            await _connections.SetStatusAsync(job.ConnectionId, IntegrationConnectionStatus.Failed, ex.Message, ct);
+            await _jobs.UpdateAsync(new IntegrationIndexJobRecord
             {
                 Id = job.Id,
                 ConnectionId = job.ConnectionId,
-                Status = AtlasIndexJobStatus.Failed,
+                Status = IntegrationIndexJobStatus.Failed,
                 Error = ex.Message,
                 RecordsIndexed = recordsIndexed,
                 CreatedAt = job.CreatedAt,
@@ -144,12 +144,12 @@ internal sealed class AtlasIndexingService
                 RecordsIndexed = recordsIndexed,
                 Error = ex.Message,
             }, false, ct);
-            await _publisher.Publish(new AtlasIndexCompletedEvent(job.ConnectionId, job.Id, false, recordsIndexed, ex.Message), ct);
+            await _publisher.Publish(new IntegrationIndexCompletedEvent(job.ConnectionId, job.Id, false, recordsIndexed, ex.Message), ct);
             return true;
         }
     }
 
-    private static AtlasIndexedRecordRecord ToIndexedRecord(Guid connectionId, string entity, string repository, JsonObject row)
+    private static IntegrationIndexedRecordRecord ToIndexedRecord(Guid connectionId, string entity, string repository, JsonObject row)
     {
         var raw = row.ToJsonString();
         var title = entity switch
@@ -164,7 +164,7 @@ internal sealed class AtlasIndexingService
             ?? ReadString(row, "node_id")
             ?? ReadString(row, "sha")
             ?? $"{repository}:{entity}:{title}";
-        return new AtlasIndexedRecordRecord
+        return new IntegrationIndexedRecordRecord
         {
             ConnectionId = connectionId,
             Entity = entity,
@@ -216,7 +216,7 @@ internal sealed class AtlasIndexingService
         object? details,
         bool success,
         CancellationToken ct)
-        => _activity.AddAsync(new AtlasActivityRecord
+        => _activity.AddAsync(new IntegrationActivityRecord
         {
             ConnectionId = connectionId,
             Type = type,
@@ -230,13 +230,13 @@ internal sealed class AtlasIndexingService
         => entity.Replace('_', ' ');
 }
 
-internal sealed class AtlasIndexSchedulerService : BackgroundService
+internal sealed class IntegrationIndexSchedulerService : BackgroundService
 {
     private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(10);
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<AtlasIndexSchedulerService> _logger;
+    private readonly ILogger<IntegrationIndexSchedulerService> _logger;
 
-    public AtlasIndexSchedulerService(IServiceScopeFactory scopeFactory, ILogger<AtlasIndexSchedulerService> logger)
+    public IntegrationIndexSchedulerService(IServiceScopeFactory scopeFactory, ILogger<IntegrationIndexSchedulerService> logger)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
@@ -244,13 +244,13 @@ internal sealed class AtlasIndexSchedulerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("AtlasIndexSchedulerService started");
+        _logger.LogInformation("IntegrationIndexSchedulerService started");
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 using var scope = _scopeFactory.CreateScope();
-                var indexing = scope.ServiceProvider.GetRequiredService<AtlasIndexingService>();
+                var indexing = scope.ServiceProvider.GetRequiredService<IntegrationIndexingService>();
                 var processed = await indexing.ProcessOneAsync(stoppingToken);
                 if (!processed)
                     await Task.Delay(IdleDelay, stoppingToken);

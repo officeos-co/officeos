@@ -14,7 +14,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
-    private readonly IMcpServerService _mcpServerService;
+    private readonly IIntegrationDefinitionService _mcpServerService;
     private readonly IAgentToolPermissionRepository _permissionRepository;
 
     public AgentToolCatalogService(
@@ -25,7 +25,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IBrowserToolContextFactory browserToolContextFactory,
-        IMcpServerService mcpServerService,
+        IIntegrationDefinitionService mcpServerService,
         IAgentToolPermissionRepository permissionRepository)
     {
         _memoryRepo = memoryRepo;
@@ -137,7 +137,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             tool.ShouldDefer);
     }
 
-    private static IEnumerable<AgentToolCatalogEntry> ParseMcpTools(McpServerRecord server)
+    private static IEnumerable<AgentToolCatalogEntry> ParseMcpTools(IntegrationDefinitionRecord server)
     {
         if (string.IsNullOrWhiteSpace(server.ToolsJson))
             yield break;

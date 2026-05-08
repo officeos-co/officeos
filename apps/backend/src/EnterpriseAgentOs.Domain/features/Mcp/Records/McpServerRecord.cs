@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public sealed class McpServerRecord
+public sealed class IntegrationDefinitionRecord
 {
     private readonly Guid _id = Guid.NewGuid();
 
@@ -14,9 +14,10 @@ public sealed class McpServerRecord
     }
 
     public string Name { get; init; } = string.Empty;
+    public string Provider { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public McpTransportType TransportType { get; init; }
+    public IntegrationTransportType TransportType { get; init; }
     public string? Command { get; init; }
     public string? Args { get; init; }
     public string? Url { get; init; }
@@ -32,6 +33,8 @@ public sealed class McpServerRecord
     public string DocumentationUrl { get; init; } = string.Empty;
     public string RepositoryUrl { get; init; } = string.Empty;
     public string? ToolsJson { get; init; }
+    public string? CapabilitiesJson { get; init; }
+    public IReadOnlyList<string> Entities { get; init; } = [];
     public bool IsBuiltin { get; init; }
     public bool CredentialConfigured { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;

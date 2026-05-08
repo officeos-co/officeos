@@ -2,21 +2,21 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Atlas;
+namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
-internal sealed class AtlasConnectorExecutionService : IAtlasConnectorExecutionService
+internal sealed class IntegrationExecutionService : IIntegrationExecutionService
 {
     private readonly IAtlasConnectionRepository _connections;
     private readonly IAtlasIndexedRecordRepository _records;
     private readonly IAtlasRequestHistoryRepository _history;
-    private readonly AtlasGitHubClient _github;
+    private readonly GitHubIntegrationClient _github;
     private readonly IPublisher _publisher;
 
-    public AtlasConnectorExecutionService(
+    public IntegrationExecutionService(
         IAtlasConnectionRepository connections,
         IAtlasIndexedRecordRepository records,
         IAtlasRequestHistoryRepository history,
-        AtlasGitHubClient github,
+        GitHubIntegrationClient github,
         IPublisher publisher)
     {
         _connections = connections;
@@ -26,20 +26,20 @@ internal sealed class AtlasConnectorExecutionService : IAtlasConnectorExecutionS
         _publisher = publisher;
     }
 
-    public async Task<JsonElement> ExecuteAsync(AtlasConnectorExecuteRequest request, CancellationToken ct = default)
+    public async Task<JsonElement> ExecuteAsync(IntegrationExecuteRequest request, CancellationToken ct = default)
     {
         var started = Stopwatch.GetTimestamp();
-        var type = request.Action == "context_store_search" ? AtlasRequestType.Search : AtlasRequestType.Direct;
+        var type = request.Action == "context_store_search" ? IntegrationRequestType.Search : IntegrationRequestType.Direct;
         var success = false;
         string? error = null;
         try
         {
-            var connection = await _connections.GetByAsync(new AtlasConnectionFilter { Id = request.SourceId }, ct)
+            var connection = await _connections.GetByAsync(new IntegrationConnectionFilter { Id = request.SourceId }, ct)
                 ?? throw new InvalidOperationException("Atlas connector source_id was not found.");
-            if (connection.Provider != AtlasConnectorProvider.GitHub)
+            if (connection.Provider != IntegrationProviderType.GitHub)
                 throw new InvalidOperationException($"Unsupported Atlas provider '{connection.Provider}'.");
 
-            JsonElement response = type == AtlasRequestType.Search
+            JsonElement response = type == IntegrationRequestType.Search
                 ? await ExecuteSearchAsync(connection, request, ElapsedMs(started), ct)
                 : await ExecuteDirectAsync(connection, request, ElapsedMs(started), ct);
             success = true;
@@ -64,7 +64,7 @@ internal sealed class AtlasConnectorExecutionService : IAtlasConnectorExecutionS
         finally
         {
             var durationMs = ElapsedMs(started);
-            await _history.AddAsync(new AtlasRequestHistoryRecord
+            await _history.AddAsync(new IntegrationRequestHistoryRecord
             {
                 ConnectionId = request.SourceId,
                 Type = type,
@@ -75,20 +75,20 @@ internal sealed class AtlasConnectorExecutionService : IAtlasConnectorExecutionS
                 DurationMs = durationMs,
                 Error = error,
             }, ct);
-            await _publisher.Publish(new AtlasConnectorExecutedEvent(request.SourceId, request.Entity, request.Action, success, durationMs), ct);
+            await _publisher.Publish(new IntegrationExecutedEvent(request.SourceId, request.Entity, request.Action, success, durationMs), ct);
         }
     }
 
     private async Task<JsonElement> ExecuteSearchAsync(
-        AtlasConnectorConnectionRecord connection,
-        AtlasConnectorExecuteRequest request,
+        IntegrationConnectionRecord connection,
+        IntegrationExecuteRequest request,
         int durationMs,
         CancellationToken ct)
     {
         var query = ExtractSearchQuery(request.Params);
         var cursor = ReadString(request.Params, "cursor");
         var limit = ReadInt(request.Params, "limit") ?? ReadInt(request.Params, "per_page") ?? 20;
-        var page = await _records.SearchAsync(new AtlasIndexedRecordFilter
+        var page = await _records.SearchAsync(new IntegrationIndexedRecordFilter
         {
             ConnectionId = connection.Id,
             Entity = request.Entity,
@@ -118,8 +118,8 @@ internal sealed class AtlasConnectorExecutionService : IAtlasConnectorExecutionS
     }
 
     private async Task<JsonElement> ExecuteDirectAsync(
-        AtlasConnectorConnectionRecord connection,
-        AtlasConnectorExecuteRequest request,
+        IntegrationConnectionRecord connection,
+        IntegrationExecuteRequest request,
         int durationMs,
         CancellationToken ct)
     {

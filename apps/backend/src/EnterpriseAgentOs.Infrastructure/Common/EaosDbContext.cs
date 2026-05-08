@@ -37,15 +37,15 @@ public sealed class EaosDbContext : DbContext
     public DbSet<MemoryStoreEntryEntity> MemoryStoreEntries => Set<MemoryStoreEntryEntity>();
     public DbSet<AgentSessionResourceAttachmentEntity> AgentSessionResourceAttachments => Set<AgentSessionResourceAttachmentEntity>();
 
-    public DbSet<McpServerEntity> McpServers => Set<McpServerEntity>();
-    public DbSet<AgentMcpServerEntity> AgentMcpServers => Set<AgentMcpServerEntity>();
-    public DbSet<McpCredentialEntity> McpCredentials => Set<McpCredentialEntity>();
-    public DbSet<AtlasConnectorConnectionEntity> AtlasConnectorConnections => Set<AtlasConnectorConnectionEntity>();
-    public DbSet<AtlasEntityStatusEntity> AtlasEntityStatuses => Set<AtlasEntityStatusEntity>();
-    public DbSet<AtlasIndexJobEntity> AtlasIndexJobs => Set<AtlasIndexJobEntity>();
-    public DbSet<AtlasIndexedRecordEntity> AtlasIndexedRecords => Set<AtlasIndexedRecordEntity>();
-    public DbSet<AtlasActivityEntity> AtlasActivity => Set<AtlasActivityEntity>();
-    public DbSet<AtlasRequestHistoryEntity> AtlasRequestHistory => Set<AtlasRequestHistoryEntity>();
+    public DbSet<IntegrationDefinitionEntity> McpServers => Set<IntegrationDefinitionEntity>();
+    public DbSet<AgentIntegrationDefinitionEntity> AgentMcpServers => Set<AgentIntegrationDefinitionEntity>();
+    public DbSet<IntegrationCredentialEntity> McpCredentials => Set<IntegrationCredentialEntity>();
+    public DbSet<IntegrationConnectionEntity> AtlasConnectorConnections => Set<IntegrationConnectionEntity>();
+    public DbSet<IntegrationIndexEntityStatusEntity> IntegrationIndexEntityStatuses => Set<IntegrationIndexEntityStatusEntity>();
+    public DbSet<IntegrationIndexJobEntity> AtlasIndexJobs => Set<IntegrationIndexJobEntity>();
+    public DbSet<IntegrationIndexedRecordEntity> AtlasIndexedRecords => Set<IntegrationIndexedRecordEntity>();
+    public DbSet<IntegrationActivityEntity> AtlasActivity => Set<IntegrationActivityEntity>();
+    public DbSet<IntegrationRequestHistoryEntity> AtlasRequestHistory => Set<IntegrationRequestHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -311,7 +311,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(a => a.Session).WithMany().HasForeignKey(a => a.SessionId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<McpServerEntity>(e =>
+        modelBuilder.Entity<IntegrationDefinitionEntity>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.Name).IsUnique();
@@ -332,23 +332,23 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.ToolsJson).HasColumnType("jsonb");
         });
 
-        modelBuilder.Entity<AgentMcpServerEntity>(e =>
+        modelBuilder.Entity<AgentIntegrationDefinitionEntity>(e =>
         {
             e.HasKey(a => a.Id);
-            e.HasIndex(a => new { a.AgentId, a.McpServerName }).IsUnique();
+            e.HasIndex(a => new { a.AgentId, a.IntegrationName }).IsUnique();
             e.HasIndex(a => a.AgentId);
-            e.Property(a => a.McpServerName).IsRequired().HasMaxLength(64);
+            e.Property(a => a.IntegrationName).IsRequired().HasMaxLength(64);
         });
 
-        modelBuilder.Entity<McpCredentialEntity>(e =>
+        modelBuilder.Entity<IntegrationCredentialEntity>(e =>
         {
             e.HasKey(c => c.Id);
-            e.HasIndex(c => c.McpServerName).IsUnique();
-            e.Property(c => c.McpServerName).IsRequired().HasMaxLength(64);
+            e.HasIndex(c => c.IntegrationName).IsUnique();
+            e.Property(c => c.IntegrationName).IsRequired().HasMaxLength(64);
             e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
         });
 
-        modelBuilder.Entity<AtlasConnectorConnectionEntity>(e =>
+        modelBuilder.Entity<IntegrationConnectionEntity>(e =>
         {
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.Provider);
@@ -362,7 +362,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById).OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<AtlasEntityStatusEntity>(e =>
+        modelBuilder.Entity<IntegrationIndexEntityStatusEntity>(e =>
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => new { s.ConnectionId, s.Entity }).IsUnique();
@@ -372,7 +372,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(s => s.Connection).WithMany().HasForeignKey(s => s.ConnectionId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AtlasIndexJobEntity>(e =>
+        modelBuilder.Entity<IntegrationIndexJobEntity>(e =>
         {
             e.HasKey(j => j.Id);
             e.HasIndex(j => j.Status);
@@ -382,7 +382,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(j => j.Connection).WithMany().HasForeignKey(j => j.ConnectionId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AtlasIndexedRecordEntity>(e =>
+        modelBuilder.Entity<IntegrationIndexedRecordEntity>(e =>
         {
             e.HasKey(r => r.Id);
             e.HasIndex(r => new { r.ConnectionId, r.Entity, r.ExternalId }).IsUnique();
@@ -395,7 +395,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(r => r.Connection).WithMany().HasForeignKey(r => r.ConnectionId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AtlasActivityEntity>(e =>
+        modelBuilder.Entity<IntegrationActivityEntity>(e =>
         {
             e.HasKey(a => a.Id);
             e.HasIndex(a => a.ConnectionId);
@@ -407,7 +407,7 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(a => a.Connection).WithMany().HasForeignKey(a => a.ConnectionId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AtlasRequestHistoryEntity>(e =>
+        modelBuilder.Entity<IntegrationRequestHistoryEntity>(e =>
         {
             e.HasKey(h => h.Id);
             e.HasIndex(h => h.ConnectionId);

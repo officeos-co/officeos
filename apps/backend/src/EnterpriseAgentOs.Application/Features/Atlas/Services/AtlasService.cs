@@ -1,28 +1,28 @@
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Atlas;
+namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
-internal sealed class AtlasService : IAtlasService
+internal sealed class IntegrationConnectionService : IIntegrationConnectionService
 {
-    internal static readonly string[] SupportedGitHubEntities = AtlasConnectorRegistry.GitHubEntities;
+    internal static readonly string[] SupportedGitHubEntities = IntegrationDefinitionCatalog.GitHubEntities;
 
     private readonly IAtlasConnectionRepository _connections;
-    private readonly IAtlasEntityStatusRepository _entityStatuses;
+    private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
     private readonly IAtlasIndexJobRepository _jobs;
     private readonly IAtlasIndexedRecordRepository _records;
     private readonly IAtlasActivityRepository _activity;
     private readonly IAtlasRequestHistoryRepository _history;
-    private readonly AtlasGitHubClient _github;
+    private readonly GitHubIntegrationClient _github;
     private readonly IPublisher _publisher;
 
-    public AtlasService(
+    public IntegrationConnectionService(
         IAtlasConnectionRepository connections,
-        IAtlasEntityStatusRepository entityStatuses,
+        IIntegrationIndexEntityStatusRepository entityStatuses,
         IAtlasIndexJobRepository jobs,
         IAtlasIndexedRecordRepository records,
         IAtlasActivityRepository activity,
         IAtlasRequestHistoryRepository history,
-        AtlasGitHubClient github,
+        GitHubIntegrationClient github,
         IPublisher publisher)
     {
         _connections = connections;
@@ -35,35 +35,35 @@ internal sealed class AtlasService : IAtlasService
         _publisher = publisher;
     }
 
-    public async Task<IReadOnlyList<AtlasConnectorTypeRecord>> ListConnectorTypesAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListConnectorTypesAsync(CancellationToken ct = default)
     {
         var githubConfigured = await _github.HasTokenAsync(ct);
-        return AtlasConnectorRegistry.BuiltinConnectors
+        return IntegrationDefinitionCatalog.BuiltinConnectors
             .Select(connector => connector.OauthProvider == "github"
                 ? connector with { OauthConfigured = githubConfigured }
                 : connector)
             .ToList();
     }
 
-    public Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
+    public Task<IReadOnlyList<IntegrationConnectionRecord>> ListAsync(IntegrationConnectionFilter filter, CancellationToken ct = default)
         => _connections.ListAsync(filter, ct);
 
-    public Task<AtlasConnectorConnectionRecord?> GetByAsync(AtlasConnectionFilter filter, CancellationToken ct = default)
+    public Task<IntegrationConnectionRecord?> GetByAsync(IntegrationConnectionFilter filter, CancellationToken ct = default)
         => _connections.GetByAsync(filter, ct);
 
-    public Task<IReadOnlyList<AtlasActivityRecord>> ListAsync(AtlasActivityFilter filter, CancellationToken ct = default)
+    public Task<IReadOnlyList<IntegrationActivityRecord>> ListAsync(IntegrationActivityFilter filter, CancellationToken ct = default)
         => _activity.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
 
-    public Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListAsync(AtlasRequestHistoryFilter filter, CancellationToken ct = default)
+    public Task<IReadOnlyList<IntegrationRequestHistoryRecord>> ListAsync(IntegrationRequestHistoryFilter filter, CancellationToken ct = default)
         => _history.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
 
-    public Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(AtlasIndexJobFilter filter, CancellationToken ct = default)
+    public Task<IReadOnlyList<IntegrationIndexJobRecord>> ListAsync(IntegrationIndexJobFilter filter, CancellationToken ct = default)
         => _jobs.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 20, 100) }, ct);
 
-    public Task<AtlasIndexedRecordRecord?> GetByAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
+    public Task<IntegrationIndexedRecordRecord?> GetByAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default)
         => _records.GetByAsync(filter, ct);
 
-    public Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default)
+    public Task<IntegrationIndexedRecordPage> SearchAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default)
         => _records.SearchAsync(filter with
         {
             Entity = filter.Entity?.Trim(),
@@ -71,7 +71,7 @@ internal sealed class AtlasService : IAtlasService
             Limit = NormalizeLimit(filter.Limit, 20, 100),
         }, ct);
 
-    public async Task<AtlasConnectorConnectionRecord> CreateGitHubConnectionAsync(CreateAtlasGitHubConnectionRequest request, CancellationToken ct = default)
+    public async Task<IntegrationConnectionRecord> CreateGitHubConnectionAsync(CreateGitHubIntegrationConnectionRequest request, CancellationToken ct = default)
     {
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
@@ -79,14 +79,14 @@ internal sealed class AtlasService : IAtlasService
         if (hasToken)
             await _github.ValidateRepositoriesAsync(repositories, ct);
 
-        var connection = new AtlasConnectorConnectionRecord
+        var connection = new IntegrationConnectionRecord
         {
-            Provider = AtlasConnectorProvider.GitHub,
+            Provider = IntegrationProviderType.GitHub,
             WorkspaceName = string.IsNullOrWhiteSpace(request.WorkspaceName) ? "default" : request.WorkspaceName.Trim(),
             DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? "GitHub" : request.DisplayName.Trim(),
             RepositoriesJson = JsonSerializer.Serialize(repositories),
             EntitiesJson = JsonSerializer.Serialize(entities),
-            Status = hasToken ? AtlasConnectorStatus.Indexing : AtlasConnectorStatus.NeedsAuth,
+            Status = hasToken ? IntegrationConnectionStatus.Indexing : IntegrationConnectionStatus.NeedsAuth,
             CreatedById = request.CreatedById,
         };
 
@@ -108,26 +108,26 @@ internal sealed class AtlasService : IAtlasService
         }
 
         foreach (var entity in entities)
-            await _entityStatuses.UpsertAsync(new AtlasEntityStatusRecord
+            await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
             {
                 ConnectionId = saved.Id,
                 Entity = entity,
-                Status = hasToken ? AtlasEntityStatus.Initializing : AtlasEntityStatus.Failed,
+                Status = hasToken ? IntegrationIndexEntityStatus.Initializing : IntegrationIndexEntityStatus.Failed,
                 Error = hasToken ? null : "GitHub OAuth is not connected.",
             }, ct);
 
         if (!hasToken)
             await LogActivityAsync(saved.Id, "auth_required", null, "GitHub OAuth is not connected.", null, false, ct);
 
-        await _publisher.Publish(new AtlasConnectionCreatedEvent(saved.Id, "github", saved.WorkspaceName), ct);
+        await _publisher.Publish(new IntegrationConnectionCreatedEvent(saved.Id, "github", saved.WorkspaceName), ct);
         if (hasToken)
             await StartIndexAsync(saved.Id, ct);
-        return await GetByAsync(new AtlasConnectionFilter { Id = saved.Id }, ct) ?? saved;
+        return await GetByAsync(new IntegrationConnectionFilter { Id = saved.Id }, ct) ?? saved;
     }
 
-    public async Task<AtlasConnectorConnectionRecord> UpdateGitHubConnectionAsync(UpdateAtlasGitHubConnectionRequest request, CancellationToken ct = default)
+    public async Task<IntegrationConnectionRecord> UpdateGitHubConnectionAsync(UpdateGitHubIntegrationConnectionRequest request, CancellationToken ct = default)
     {
-        var existing = await GetByAsync(new AtlasConnectionFilter { Id = request.Id }, ct)
+        var existing = await GetByAsync(new IntegrationConnectionFilter { Id = request.Id }, ct)
             ?? throw new InvalidOperationException("Atlas connection not found.");
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
@@ -135,7 +135,7 @@ internal sealed class AtlasService : IAtlasService
         if (hasToken)
             await _github.ValidateRepositoriesAsync(repositories, ct);
 
-        var updated = new AtlasConnectorConnectionRecord
+        var updated = new IntegrationConnectionRecord
         {
             Id = existing.Id,
             Provider = existing.Provider,
@@ -143,7 +143,7 @@ internal sealed class AtlasService : IAtlasService
             DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? existing.DisplayName : request.DisplayName.Trim(),
             RepositoriesJson = JsonSerializer.Serialize(repositories),
             EntitiesJson = JsonSerializer.Serialize(entities),
-            Status = hasToken ? AtlasConnectorStatus.Indexing : AtlasConnectorStatus.NeedsAuth,
+            Status = hasToken ? IntegrationConnectionStatus.Indexing : IntegrationConnectionStatus.NeedsAuth,
             Error = hasToken ? null : "GitHub OAuth is not connected.",
             CreatedById = existing.CreatedById,
             CreatedAt = existing.CreatedAt,
@@ -168,38 +168,38 @@ internal sealed class AtlasService : IAtlasService
 
         await _records.DeleteForConnectionAsync(saved.Id, ct);
         foreach (var entity in entities)
-            await _entityStatuses.UpsertAsync(new AtlasEntityStatusRecord
+            await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
             {
                 ConnectionId = saved.Id,
                 Entity = entity,
-                Status = hasToken ? AtlasEntityStatus.Initializing : AtlasEntityStatus.Failed,
+                Status = hasToken ? IntegrationIndexEntityStatus.Initializing : IntegrationIndexEntityStatus.Failed,
                 Error = hasToken ? null : "GitHub OAuth is not connected.",
             }, ct);
 
         if (!hasToken)
             await LogActivityAsync(saved.Id, "auth_required", null, "GitHub OAuth is not connected.", null, false, ct);
 
-        await _publisher.Publish(new AtlasConnectionUpdatedEvent(saved.Id, "github"), ct);
+        await _publisher.Publish(new IntegrationConnectionUpdatedEvent(saved.Id, "github"), ct);
         if (hasToken)
             await StartIndexAsync(saved.Id, ct);
-        return await GetByAsync(new AtlasConnectionFilter { Id = saved.Id }, ct) ?? saved;
+        return await GetByAsync(new IntegrationConnectionFilter { Id = saved.Id }, ct) ?? saved;
     }
 
     public async Task DeleteConnectionAsync(Guid id, CancellationToken ct = default)
         => await _connections.DeleteAsync(id, ct);
 
-    public async Task<AtlasIndexJobRecord> StartIndexAsync(Guid connectionId, CancellationToken ct = default)
+    public async Task<IntegrationIndexJobRecord> StartIndexAsync(Guid connectionId, CancellationToken ct = default)
     {
-        var connection = await GetByAsync(new AtlasConnectionFilter { Id = connectionId }, ct)
+        var connection = await GetByAsync(new IntegrationConnectionFilter { Id = connectionId }, ct)
             ?? throw new InvalidOperationException("Atlas connection not found.");
-        var job = await _jobs.CreateAsync(new AtlasIndexJobRecord
+        var job = await _jobs.CreateAsync(new IntegrationIndexJobRecord
         {
             ConnectionId = connection.Id,
-            Status = AtlasIndexJobStatus.Queued,
+            Status = IntegrationIndexJobStatus.Queued,
         }, ct);
-        await _connections.SetStatusAsync(connection.Id, AtlasConnectorStatus.Indexing, null, ct);
+        await _connections.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Indexing, null, ct);
         await LogActivityAsync(connection.Id, "index_queued", null, "Index job queued.", new { JobId = job.Id }, true, ct);
-        await _publisher.Publish(new AtlasIndexRequestedEvent(connection.Id, job.Id), ct);
+        await _publisher.Publish(new IntegrationIndexRequestedEvent(connection.Id, job.Id), ct);
         return job;
     }
 
@@ -211,7 +211,7 @@ internal sealed class AtlasService : IAtlasService
         object? details,
         bool success,
         CancellationToken ct)
-        => _activity.AddAsync(new AtlasActivityRecord
+        => _activity.AddAsync(new IntegrationActivityRecord
         {
             ConnectionId = connectionId,
             Type = type,

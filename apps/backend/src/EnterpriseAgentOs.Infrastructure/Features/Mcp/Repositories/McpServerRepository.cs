@@ -1,14 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace EnterpriseAgentOs.Infrastructure.Features.Mcp;
+namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
 
-internal sealed class McpServerRepository : IMcpServerRepository
+internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRepository
 {
     private readonly EaosDbContext _db;
 
-    public McpServerRepository(EaosDbContext db) => _db = db;
+    public IntegrationDefinitionRepository(EaosDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default)
     {
         var entities = await _db.McpServers.AsNoTracking()
             .Where(s => !s.IsBuiltin)
@@ -19,7 +19,7 @@ internal sealed class McpServerRepository : IMcpServerRepository
         return entities.Select(ToRecord).ToList();
     }
 
-    public async Task<McpServerRecord?> GetByNameAsync(string name, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
         var entity = await _db.McpServers.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Name == name && !s.IsBuiltin, ct);
@@ -27,7 +27,7 @@ internal sealed class McpServerRepository : IMcpServerRepository
         return entity is null ? null : ToRecord(entity);
     }
 
-    public async Task<McpServerRecord> UpsertAsync(McpServerRecord server, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord> UpsertAsync(IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
         var existing = await _db.McpServers
             .FirstOrDefaultAsync(s => s.Name == server.Name && !s.IsBuiltin, ct);
@@ -69,15 +69,15 @@ internal sealed class McpServerRepository : IMcpServerRepository
             .ExecuteDeleteAsync(ct);
     }
 
-    private static McpServerRecord ToRecord(McpServerEntity entity) => new()
+    private static IntegrationDefinitionRecord ToRecord(IntegrationDefinitionEntity entity) => new()
     {
         Id = entity.Id,
         Name = entity.Name,
         Title = entity.Title,
         Description = entity.Description,
-        TransportType = Enum.TryParse<McpTransportType>(entity.TransportType, true, out var transport)
+        TransportType = Enum.TryParse<IntegrationTransportType>(entity.TransportType, true, out var transport)
             ? transport
-            : McpTransportType.Stdio,
+            : IntegrationTransportType.Stdio,
         Command = entity.Command,
         Args = entity.Args,
         Url = entity.Url,
@@ -94,7 +94,7 @@ internal sealed class McpServerRepository : IMcpServerRepository
         CreatedAt = entity.CreatedAt,
     };
 
-    private static McpServerEntity ToEntity(McpServerRecord server) => new()
+    private static IntegrationDefinitionEntity ToEntity(IntegrationDefinitionRecord server) => new()
     {
         Id = server.Id,
         Name = server.Name,

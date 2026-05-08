@@ -1,9 +1,9 @@
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public interface IMcpServerRepository
+public interface IIntegrationDefinitionRepository
 {
-    Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct = default);
-    Task<McpServerRecord?> GetByNameAsync(string name, CancellationToken ct = default);
-    Task<McpServerRecord> UpsertAsync(McpServerRecord server, CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default);
+    Task<IntegrationDefinitionRecord?> GetByNameAsync(string name, CancellationToken ct = default);
+    Task<IntegrationDefinitionRecord> UpsertAsync(IntegrationDefinitionRecord server, CancellationToken ct = default);
     Task DeleteAsync(string name, CancellationToken ct = default);
 }

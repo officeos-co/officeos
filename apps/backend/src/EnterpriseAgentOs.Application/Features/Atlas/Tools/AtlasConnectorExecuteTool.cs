@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Application.Features.Atlas;
+namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
 internal sealed class AtlasConnectorExecuteTool : IAgentTool
 {
-    private readonly IAtlasConnectorExecutionService _execution;
+    private readonly IIntegrationExecutionService _execution;
 
-    public AtlasConnectorExecuteTool(IAtlasConnectorExecutionService execution)
+    public AtlasConnectorExecuteTool(IIntegrationExecutionService execution)
     {
         _execution = execution;
     }
@@ -74,7 +74,7 @@ internal sealed class AtlasConnectorExecuteTool : IAgentTool
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var request = new AtlasConnectorExecuteRequest(
+        var request = new IntegrationExecuteRequest(
             Guid.Parse(args.GetProperty("source_id").GetString()!),
             args.GetProperty("entity").GetString()!,
             args.GetProperty("action").GetString()!,

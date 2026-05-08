@@ -1,6 +1,6 @@
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public enum McpTransportType
+public enum IntegrationTransportType
 {
     Stdio,
     Sse,

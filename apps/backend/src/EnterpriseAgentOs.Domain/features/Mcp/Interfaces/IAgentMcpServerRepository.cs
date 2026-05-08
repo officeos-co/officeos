@@ -1,9 +1,9 @@
-namespace EnterpriseAgentOs.Domain.Features.Mcp;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public interface IAgentMcpServerRepository
+public interface IAgentIntegrationDefinitionRepository
 {
-    Task<IReadOnlyList<string>> ListServerNamesForAgentAsync(Guid agentId, CancellationToken ct = default);
-    Task AssignAsync(Guid agentId, string mcpServerName, CancellationToken ct = default);
-    Task UnassignAsync(Guid agentId, string mcpServerName, CancellationToken ct = default);
-    Task UnassignServerFromAllAgentsAsync(string mcpServerName, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> ListIntegrationNamesForAgentAsync(Guid agentId, CancellationToken ct = default);
+    Task AssignAsync(Guid agentId, string mcpIntegrationName, CancellationToken ct = default);
+    Task UnassignAsync(Guid agentId, string mcpIntegrationName, CancellationToken ct = default);
+    Task UnassignServerFromAllAgentsAsync(string mcpIntegrationName, CancellationToken ct = default);
 }

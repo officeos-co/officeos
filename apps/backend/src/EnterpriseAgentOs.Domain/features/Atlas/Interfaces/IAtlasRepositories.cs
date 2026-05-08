@@ -1,30 +1,30 @@
-namespace EnterpriseAgentOs.Domain.Features.Atlas;
+namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public sealed record AtlasConnectionFilter
+public sealed record IntegrationConnectionFilter
 {
     public Guid? Id { get; init; }
-    public AtlasConnectorProvider? Provider { get; init; }
+    public IntegrationProviderType? Provider { get; init; }
 }
 
-public sealed record AtlasRequestHistoryFilter
+public sealed record IntegrationRequestHistoryFilter
 {
     public Guid? ConnectionId { get; init; }
     public int Limit { get; init; } = 100;
 }
 
-public sealed record AtlasActivityFilter
+public sealed record IntegrationActivityFilter
 {
     public Guid? ConnectionId { get; init; }
     public int Limit { get; init; } = 100;
 }
 
-public sealed record AtlasIndexJobFilter
+public sealed record IntegrationIndexJobFilter
 {
     public Guid? ConnectionId { get; init; }
     public int Limit { get; init; } = 20;
 }
 
-public sealed record AtlasIndexedRecordFilter
+public sealed record IntegrationIndexedRecordFilter
 {
     public Guid? Id { get; init; }
     public Guid? ConnectionId { get; init; }
@@ -34,51 +34,51 @@ public sealed record AtlasIndexedRecordFilter
     public int Limit { get; init; } = 20;
 }
 
-public sealed record AtlasIndexedRecordPage(
-    IReadOnlyList<AtlasIndexedRecordRecord> Records,
+public sealed record IntegrationIndexedRecordPage(
+    IReadOnlyList<IntegrationIndexedRecordRecord> Records,
     bool HasMore,
     string? Cursor);
 
 public interface IAtlasConnectionRepository
 {
-    Task<IReadOnlyList<AtlasConnectorConnectionRecord>> ListAsync(AtlasConnectionFilter filter, CancellationToken ct = default);
-    Task<AtlasConnectorConnectionRecord?> GetByAsync(AtlasConnectionFilter filter, CancellationToken ct = default);
-    Task<AtlasConnectorConnectionRecord> UpsertAsync(AtlasConnectorConnectionRecord connection, CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationConnectionRecord>> ListAsync(IntegrationConnectionFilter filter, CancellationToken ct = default);
+    Task<IntegrationConnectionRecord?> GetByAsync(IntegrationConnectionFilter filter, CancellationToken ct = default);
+    Task<IntegrationConnectionRecord> UpsertAsync(IntegrationConnectionRecord connection, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
-    Task SetStatusAsync(Guid id, AtlasConnectorStatus status, string? error, CancellationToken ct = default);
+    Task SetStatusAsync(Guid id, IntegrationConnectionStatus status, string? error, CancellationToken ct = default);
 }
 
-public interface IAtlasEntityStatusRepository
+public interface IIntegrationIndexEntityStatusRepository
 {
-    Task<IReadOnlyList<AtlasEntityStatusRecord>> ListForConnectionAsync(Guid connectionId, CancellationToken ct = default);
-    Task UpsertAsync(AtlasEntityStatusRecord status, CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationIndexEntityStatusRecord>> ListForConnectionAsync(Guid connectionId, CancellationToken ct = default);
+    Task UpsertAsync(IntegrationIndexEntityStatusRecord status, CancellationToken ct = default);
 }
 
 public interface IAtlasIndexJobRepository
 {
-    Task<AtlasIndexJobRecord> CreateAsync(AtlasIndexJobRecord job, CancellationToken ct = default);
-    Task<AtlasIndexJobRecord?> DequeueAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<AtlasIndexJobRecord>> ListAsync(AtlasIndexJobFilter filter, CancellationToken ct = default);
-    Task UpdateAsync(AtlasIndexJobRecord job, CancellationToken ct = default);
+    Task<IntegrationIndexJobRecord> CreateAsync(IntegrationIndexJobRecord job, CancellationToken ct = default);
+    Task<IntegrationIndexJobRecord?> DequeueAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationIndexJobRecord>> ListAsync(IntegrationIndexJobFilter filter, CancellationToken ct = default);
+    Task UpdateAsync(IntegrationIndexJobRecord job, CancellationToken ct = default);
 }
 
 public interface IAtlasIndexedRecordRepository
 {
-    Task UpsertManyAsync(IReadOnlyList<AtlasIndexedRecordRecord> records, CancellationToken ct = default);
-    Task<AtlasIndexedRecordRecord?> GetByAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default);
-    Task<AtlasIndexedRecordPage> SearchAsync(AtlasIndexedRecordFilter filter, CancellationToken ct = default);
+    Task UpsertManyAsync(IReadOnlyList<IntegrationIndexedRecordRecord> records, CancellationToken ct = default);
+    Task<IntegrationIndexedRecordRecord?> GetByAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default);
+    Task<IntegrationIndexedRecordPage> SearchAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default);
     Task<int> CountAsync(Guid connectionId, string entity, CancellationToken ct = default);
     Task DeleteForConnectionAsync(Guid connectionId, CancellationToken ct = default);
 }
 
 public interface IAtlasRequestHistoryRepository
 {
-    Task AddAsync(AtlasRequestHistoryRecord history, CancellationToken ct = default);
-    Task<IReadOnlyList<AtlasRequestHistoryRecord>> ListAsync(AtlasRequestHistoryFilter filter, CancellationToken ct = default);
+    Task AddAsync(IntegrationRequestHistoryRecord history, CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationRequestHistoryRecord>> ListAsync(IntegrationRequestHistoryFilter filter, CancellationToken ct = default);
 }
 
 public interface IAtlasActivityRepository
 {
-    Task AddAsync(AtlasActivityRecord activity, CancellationToken ct = default);
-    Task<IReadOnlyList<AtlasActivityRecord>> ListAsync(AtlasActivityFilter filter, CancellationToken ct = default);
+    Task AddAsync(IntegrationActivityRecord activity, CancellationToken ct = default);
+    Task<IReadOnlyList<IntegrationActivityRecord>> ListAsync(IntegrationActivityFilter filter, CancellationToken ct = default);
 }

@@ -13,7 +13,7 @@ internal sealed class AgentService : IAgentService
     private readonly IPublisher _publisher;
     private readonly AgentChannelBinder _channelBinder;
     private readonly IAgentLogService _agentLogService;
-    private readonly IMcpServerService _mcpServerService;
+    private readonly IIntegrationDefinitionService _mcpServerService;
     private readonly IAgentToolPermissionRepository _toolPermissionRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
@@ -27,7 +27,7 @@ internal sealed class AgentService : IAgentService
         IPublisher publisher,
         AgentChannelBinder channelBinder,
         IAgentLogService agentLogService,
-        IMcpServerService mcpServerService,
+        IIntegrationDefinitionService mcpServerService,
         IAgentToolPermissionRepository toolPermissionRepository)
     {
         _agentRepository = repository;
@@ -190,9 +190,9 @@ internal sealed class AgentService : IAgentService
             foreach (var toolName in init.ToolNames)
             {
                 var parsed = ToolKey.Parse(toolName);
-                var serverName = names.Contains(toolName) ? toolName : parsed.SkillName;
-                if (names.Contains(serverName))
-                    await _mcpServerService.AssignToAgentAsync(agentId, serverName, ct);
+                var integrationName = names.Contains(toolName) ? toolName : parsed.SkillName;
+                if (names.Contains(integrationName))
+                    await _mcpServerService.AssignToAgentAsync(agentId, integrationName, ct);
             }
         }
 
