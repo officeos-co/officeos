@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 export type ResourceOption = {
   id: string;
   label: string;
+  logo?: string;
 };
 
 export function ResourceAttachmentCard({
@@ -47,6 +48,7 @@ export function ResourceAttachmentCard({
   onRemove: () => void;
 }) {
   const selectedOption = options.find((option) => option.id === value);
+  const selectedOptionLogo = selectedOption?.logo;
 
   return (
     <div className="rounded-xl border border-border p-4">
@@ -81,13 +83,31 @@ export function ResourceAttachmentCard({
       <Select value={value} onValueChange={(next) => next && onValueChange(next)}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder={selectorPlaceholder}>
-            {selectedOption?.label}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              {selectedOptionLogo ? (
+                <span
+                  aria-hidden="true"
+                  className="flex size-4 shrink-0 items-center justify-center [&>img]:size-4 [&>img]:object-contain [&>svg]:size-4"
+                  dangerouslySetInnerHTML={{ __html: selectedOptionLogo }}
+                />
+              ) : null}
+              <span className="truncate">{selectedOption?.label}</span>
+            </span>
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
             <SelectItem key={option.id} value={option.id}>
-              {option.label}
+              <span className="inline-flex min-w-0 items-center gap-2">
+                {option.logo ? (
+                  <span
+                    aria-hidden="true"
+                    className="flex size-4 shrink-0 items-center justify-center [&>img]:size-4 [&>img]:object-contain [&>svg]:size-4"
+                    dangerouslySetInnerHTML={{ __html: option.logo }}
+                  />
+                ) : null}
+                <span className="truncate">{option.label}</span>
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
