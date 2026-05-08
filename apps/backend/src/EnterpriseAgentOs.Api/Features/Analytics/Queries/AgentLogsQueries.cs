@@ -8,15 +8,10 @@ public class AgentLogsQueries
     public IQueryable<AgentLogDto> GetAgentLogs(
         Guid agentId,
         IResolverContext context,
-        [Service] EaosDbContext db)
+        [Service] IAgentLogService logs)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        return ProjectAgentLogs(
-            db.AgentLogs
-                .AsNoTracking()
-                .Where(l => l.AgentId == agentId)
-                .OrderBy(l => l.Time)
-                .ThenBy(l => l.Id));
+        return logs.AgentLogs(agentId);
     }
 
     [UsePaging(typeof(AgentLogDto), IncludeTotalCount = true, MaxPageSize = 500, DefaultPageSize = 100)]
@@ -25,7 +20,7 @@ public class AgentLogsQueries
         Guid channelConnectionId,
         IResolverContext context,
         [Service] IChannelRepository channels,
-        [Service] EaosDbContext db,
+        [Service] IAgentLogService logs,
         CancellationToken ct)
     {
         var user = DashboardAuthContextExtensions.GetUser(context);
@@ -43,12 +38,7 @@ public class AgentLogsQueries
                     .Build());
         }
 
-        return ProjectAgentLogs(
-            db.AgentLogs
-                .AsNoTracking()
-                .Where(l => l.ChannelConnectionId == channelConnectionId)
-                .OrderBy(l => l.Time)
-                .ThenBy(l => l.Id));
+        return logs.ChannelLogs(channelConnectionId);
     }
 
     [UsePaging(typeof(AgentLogDto), IncludeTotalCount = true, MaxPageSize = 200, DefaultPageSize = 50)]
@@ -56,38 +46,10 @@ public class AgentLogsQueries
     public IQueryable<AgentLogDto> GetGlobalLogs(
         GlobalLogFiltersInput? filters,
         IResolverContext context,
-        [Service] EaosDbContext db)
+        [Service] IAgentLogService logs)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-        filters ??= new GlobalLogFiltersInput();
-
-        var query = db.AgentLogs
-            .AsNoTracking()
-            .Include(l => l.Agent)
-            .AsQueryable();
-
-        if (filters.Type.HasValue)
-        {
-            var type = filters.Type.Value;
-            query = query.Where(l => l.Type == type);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filters.AgentName))
-        {
-            var needle = filters.AgentName.Trim();
-            query = query.Where(l => l.Agent != null && EF.Functions.ILike(l.Agent.Name, $"%{needle}%"));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filters.Search))
-        {
-            var needle = filters.Search.Trim();
-            query = query.Where(l => EF.Functions.ILike(l.Content, $"%{needle}%"));
-        }
-
-        return ProjectAgentLogs(
-            query
-                .OrderByDescending(l => l.Time)
-                .ThenByDescending(l => l.Id));
+        return logs.GlobalLogs(filters ?? new GlobalLogFiltersInput());
     }
 
     [UseOffsetPaging(typeof(AuditEntry), IncludeTotalCount = true, MaxPageSize = 100, DefaultPageSize = 50)]
@@ -95,50 +57,9 @@ public class AgentLogsQueries
     public IQueryable<AuditEntry> GetAuditLog(
         Guid agentId,
         IResolverContext context,
-        [Service] EaosDbContext db)
+        [Service] IAgentLogService logs)
     {
         _ = DashboardAuthContextExtensions.GetUser(context);
-
-        var results = db.AgentLogs
-            .AsNoTracking()
-            .Where(r => r.AgentId == agentId
-                        && r.Type == AgentLogType.ToolResult
-                        && r.CorrelationId != null);
-
-        return
-            from call in db.AgentLogs.AsNoTracking()
-            where call.AgentId == agentId && call.Type == AgentLogType.ToolCall
-            join result in results on call.CorrelationId equals result.CorrelationId into pairedResults
-            from result in pairedResults.DefaultIfEmpty()
-            orderby call.Time descending, call.Id descending
-            select new AuditEntry(
-                call.Id,
-                call.AgentId,
-                null,
-                call.Integration ?? string.Empty,
-                call.Tool ?? string.Empty,
-                call.Content,
-                result == null ? null : result.Content,
-                result == null
-                    ? call.DurationMs ?? 0
-                    : result.DurationMs ?? call.DurationMs ?? 0,
-                call.Time);
+        return logs.AuditLog(agentId);
     }
-
-    private static IQueryable<AgentLogDto> ProjectAgentLogs(IQueryable<AgentLogEntity> query) =>
-        query.Select(log => new AgentLogDto(
-            log.Id,
-            log.AgentId,
-            log.Agent == null ? null : log.Agent.Name,
-            log.Time,
-            log.Type,
-            log.Tool,
-            log.Integration,
-            log.Channel,
-            log.ChannelConnectionId,
-            log.Content,
-            log.DurationMs,
-            log.InputTokens,
-            log.OutputTokens,
-            log.CorrelationId));
 }

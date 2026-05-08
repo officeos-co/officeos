@@ -6,88 +6,105 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
     public AgentLogRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<List<AgentLogRecord>> ListAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
+    public IQueryable<AgentLogRecord> Query(AgentLogFilter filter)
     {
-        var q = _eaosDbContext.AgentLogs.Where(l => l.AgentId == agentId);
-        if (before.HasValue) q = q.Where(l => l.Time < before.Value);
-        var entities = await q.OrderByDescending(l => l.Time).Take(limit).ToListAsync(ct);
-        return entities.Select(ToAgentLogRecord).ToList();
+        var query = _eaosDbContext.AgentLogs.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(l => l.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(l => l.AgentId == filter.AgentId.Value);
+
+        if (filter.AgentIds is not null)
+            query = filter.AgentIds.Count == 0
+                ? query.Where(_ => false)
+                : query.Where(l => l.AgentId.HasValue && filter.AgentIds.Contains(l.AgentId.Value));
+
+        if (filter.OwnerId.HasValue)
+            query = query.Where(l => l.Agent != null && l.Agent.OwnerId == filter.OwnerId.Value);
+
+        if (filter.ChannelConnectionId.HasValue)
+            query = query.Where(l => l.ChannelConnectionId == filter.ChannelConnectionId.Value);
+
+        if (!string.IsNullOrEmpty(filter.CorrelationId))
+            query = query.Where(l => l.CorrelationId == filter.CorrelationId);
+
+        if (filter.CorrelationIds is not null)
+            query = filter.CorrelationIds.Count == 0
+                ? query.Where(_ => false)
+                : query.Where(l => l.CorrelationId != null && filter.CorrelationIds.Contains(l.CorrelationId));
+
+        if (filter.Type.HasValue)
+            query = query.Where(l => l.Type == filter.Type.Value);
+
+        if (filter.Types is not null)
+            query = filter.Types.Count == 0
+                ? query.Where(_ => false)
+                : query.Where(l => filter.Types.Contains(l.Type));
+
+        if (!string.IsNullOrWhiteSpace(filter.AgentName))
+        {
+            var needle = filter.AgentName.Trim();
+            query = query.Where(l => l.Agent != null && EF.Functions.ILike(l.Agent.Name, $"%{needle}%"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var needle = filter.Search.Trim();
+            query = query.Where(l => EF.Functions.ILike(l.Content, $"%{needle}%"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.ContentStartsWith))
+            query = query.Where(l => l.Content.StartsWith(filter.ContentStartsWith));
+
+        if (filter.FromInclusive.HasValue)
+            query = query.Where(l => l.Time >= filter.FromInclusive.Value);
+
+        if (filter.ToExclusive.HasValue)
+            query = query.Where(l => l.Time < filter.ToExclusive.Value);
+
+        if (filter.Before.HasValue)
+            query = query.Where(l => l.Time < filter.Before.Value);
+
+        return ProjectAgentLogRecords(query);
     }
 
-    public async Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default)
+    public async Task<List<AgentLogRecord>> ListAsync(
+        AgentLogFilter filter,
+        AgentLogListOptions? options = null,
+        CancellationToken ct = default)
     {
-        var q = _eaosDbContext.AgentLogs.Where(l => l.ChannelConnectionId == channelConnectionId);
-        if (before.HasValue) q = q.Where(l => l.Time < before.Value);
-        var entities = await q.OrderByDescending(l => l.Time).Take(limit).ToListAsync(ct);
-        return entities.Select(ToAgentLogRecord).ToList();
-    }
+        options ??= new AgentLogListOptions();
+        var query = Query(filter);
 
-    public async Task<List<AgentLogRecord>> ListAfterAsync(Guid agentId, Guid? afterLogId, int limit, CancellationToken ct = default)
-    {
-        var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => l.AgentId == agentId);
-        if (afterLogId.HasValue)
+        if (options.AfterLogId.HasValue)
         {
             var boundary = await _eaosDbContext.AgentLogs.AsNoTracking()
-                .Where(l => l.Id == afterLogId.Value)
+                .Where(l => l.Id == options.AfterLogId.Value)
                 .Select(l => (DateTime?)l.Time)
                 .FirstOrDefaultAsync(ct);
             if (boundary.HasValue)
-                q = q.Where(l => l.Time > boundary.Value);
+                query = query.Where(l => l.Time > boundary.Value);
         }
 
-        var entities = await q.OrderBy(l => l.Time).Take(limit).ToListAsync(ct);
-        return entities.Select(ToAgentLogRecord).ToList();
+        query = options.Sort switch
+        {
+            AgentLogSort.TimeAscending => query.OrderBy(l => l.Time).ThenBy(l => l.Id),
+            _ => query.OrderByDescending(l => l.Time).ThenByDescending(l => l.Id),
+        };
+
+        if (options.Skip is > 0)
+            query = query.Skip(options.Skip.Value);
+
+        if (options.Limit is > 0)
+            query = query.Take(options.Limit.Value);
+
+        return await query.ToListAsync(ct);
     }
 
-    public async Task<List<AgentLogRecord>> ListUsageAsync(
-        Guid ownerId,
-        DateTime fromInclusive,
-        DateTime toExclusive,
-        CancellationToken ct = default)
-    {
-        var entities = await (
-            from l in _eaosDbContext.AgentLogs.AsNoTracking()
-            join a in _eaosDbContext.Agents.AsNoTracking() on l.AgentId equals a.Id
-            where a.OwnerId == ownerId
-                  && l.Type == AgentLogType.System
-                  && l.Time >= fromInclusive
-                  && l.Time < toExclusive
-                  && l.Content.StartsWith("LLM call complete")
-            orderby l.Time
-            select l)
-            .ToListAsync(ct);
-
-        return entities.Select(ToAgentLogRecord).ToList();
-    }
-
-    public async Task<(List<GlobalLogRow> Items, int Total)> ListGlobalAsync(
-        string? search, string? agentName, AgentLogType? type, int skip, int limit, CancellationToken ct = default)
-    {
-        var q = from l in _eaosDbContext.AgentLogs
-                join a in _eaosDbContext.Agents on l.AgentId equals a.Id into agents
-                from a in agents.DefaultIfEmpty()
-                select new { Log = l, AgentName = a != null ? a.Name : "(unbound)" };
-
-        if (type.HasValue)
-        {
-            var t = type.Value;
-            q = q.Where(x => x.Log.Type == t);
-        }
-        if (!string.IsNullOrWhiteSpace(agentName))
-        {
-            var needle = agentName.Trim();
-            q = q.Where(x => EF.Functions.ILike(x.AgentName, $"%{needle}%"));
-        }
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var needle = search.Trim();
-            q = q.Where(x => EF.Functions.ILike(x.Log.Content, $"%{needle}%"));
-        }
-
-        var total = await q.CountAsync(ct);
-        var rows = await q.OrderByDescending(x => x.Log.Time).Skip(skip).Take(limit).ToListAsync(ct);
-        return (rows.Select(x => new GlobalLogRow(ToAgentLogRecord(x.Log), x.AgentName)).ToList(), total);
-    }
+    public Task<int> CountAsync(AgentLogFilter filter, CancellationToken ct = default)
+        => Query(filter).CountAsync(ct);
 
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
@@ -103,90 +120,44 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public async Task<AgentLogRecord?> GetByAsync(AgentLogFilter filter, CancellationToken ct = default)
-    {
-        var query = _eaosDbContext.AgentLogs.AsQueryable();
-
-        if (filter.Id.HasValue)
-            query = query.Where(l => l.Id == filter.Id.Value);
-
-        if (filter.AgentId.HasValue)
-            query = query.Where(l => l.AgentId == filter.AgentId.Value);
-
-        if (!string.IsNullOrEmpty(filter.CorrelationId))
-            query = query.Where(l => l.CorrelationId == filter.CorrelationId);
-
-        if (filter.Type.HasValue)
-            query = query.Where(l => l.Type == filter.Type.Value);
-
-        var entity = await query.FirstOrDefaultAsync(ct);
-        return entity is null ? null : ToAgentLogRecord(entity);
-    }
-
-    public async Task<(List<AgentLogRecord> Items, int Total)> GetToolCallsAsync(
-        Guid agentId, int limit, int offset, CancellationToken ct = default)
-    {
-        var query = _eaosDbContext.AgentLogs
-            .Where(r => r.AgentId == agentId && r.Type == AgentLogType.ToolCall)
-            .OrderByDescending(r => r.Time);
-
-        var total = await query.CountAsync(ct);
-        var entities = await query.Skip(offset).Take(limit).ToListAsync(ct);
-        return (entities.Select(ToAgentLogRecord).ToList(), total);
-    }
-
-    public async Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(
-        Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
-    {
-        if (correlationIds.Count == 0)
-            return new Dictionary<string, AgentLogRecord>();
-
-        var entities = await _eaosDbContext.AgentLogs
-            .Where(r => r.AgentId == agentId
-                        && r.Type == AgentLogType.ToolResult
-                        && r.CorrelationId != null
-                        && correlationIds.Contains(r.CorrelationId))
-            .ToListAsync(ct);
-
-        return entities
-            .Select(ToAgentLogRecord)
-            .Where(r => r.CorrelationId is not null)
-            .GroupBy(r => r.CorrelationId!)
-            .ToDictionary(g => g.Key, g => g.First());
-    }
+    public Task<AgentLogRecord?> GetByAsync(AgentLogFilter filter, CancellationToken ct = default)
+        => Query(filter).FirstOrDefaultAsync(ct);
 
     public async Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default)
     {
         if (agentIds.Count == 0) return;
-        await _eaosDbContext.AgentLogs.Where(l => l.AgentId.HasValue && agentIds.Contains(l.AgentId.Value)).ExecuteDeleteAsync(ct);
+        await _eaosDbContext.AgentLogs
+            .Where(l => l.AgentId.HasValue && agentIds.Contains(l.AgentId.Value))
+            .ExecuteDeleteAsync(ct);
     }
 
-    public async Task<List<AgentLogRecord>> ListByAgentIdsAsync(IReadOnlyList<Guid> agentIds, IReadOnlyList<AgentLogType>? types = null, CancellationToken ct = default)
-    {
-        if (agentIds.Count == 0) return new List<AgentLogRecord>();
-        var q = _eaosDbContext.AgentLogs.AsNoTracking().Where(l => l.AgentId.HasValue && agentIds.Contains(l.AgentId.Value));
-        if (types is { Count: > 0 }) q = q.Where(l => types.Contains(l.Type));
-        var entities = await q.ToListAsync(ct);
-        return entities.Select(ToAgentLogRecord).ToList();
-    }
-
-    private static AgentLogRecord ToAgentLogRecord(AgentLogEntity e) => new()
-    {
-        Id = e.Id,
-        AgentId = e.AgentId,
-        Time = e.Time,
-        Type = e.Type,
-        Tool = e.Tool,
-        Integration = e.Integration,
-        Channel = e.Channel,
-        ChannelConnectionId = e.ChannelConnectionId,
-        Content = e.Content,
-        Usage = new TokenUsage(e.InputTokens, e.OutputTokens, e.DurationMs),
-        CorrelationId = e.CorrelationId,
-        RunId = e.RunId,
-        ParentRunId = e.ParentRunId,
-        Agent = null,
-    };
+    private static IQueryable<AgentLogRecord> ProjectAgentLogRecords(IQueryable<AgentLogEntity> query) =>
+        query.Select(log => new AgentLogRecord
+        {
+            Id = log.Id,
+            AgentId = log.AgentId,
+            Agent = log.Agent == null
+                ? null
+                : new AgentRecord
+                {
+                    Id = log.Agent.Id,
+                    Name = log.Agent.Name,
+                    Provider = log.Agent.Provider,
+                    Model = log.Agent.Model,
+                    OwnerId = log.Agent.OwnerId,
+                },
+            Time = log.Time,
+            Type = log.Type,
+            Tool = log.Tool,
+            Integration = log.Integration,
+            Channel = log.Channel,
+            ChannelConnectionId = log.ChannelConnectionId,
+            Content = log.Content,
+            Usage = new TokenUsage(log.InputTokens, log.OutputTokens, log.DurationMs),
+            CorrelationId = log.CorrelationId,
+            RunId = log.RunId,
+            ParentRunId = log.ParentRunId,
+        });
 
     private static AgentLogEntity ToAgentLogEntity(AgentLogRecord r) => new()
     {

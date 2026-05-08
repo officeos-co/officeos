@@ -29,21 +29,102 @@ internal sealed class AgentLogService : IAgentLogService
         _logger = logger;
     }
 
+    public IQueryable<AgentLogDto> AgentLogs(Guid agentId) =>
+        ToDtoQuery(
+            _agentLogRepository.Query(new AgentLogFilter { AgentId = agentId })
+                .OrderBy(l => l.Time)
+                .ThenBy(l => l.Id));
+
+    public IQueryable<AgentLogDto> ChannelLogs(Guid channelConnectionId) =>
+        ToDtoQuery(
+            _agentLogRepository.Query(new AgentLogFilter { ChannelConnectionId = channelConnectionId })
+                .OrderBy(l => l.Time)
+                .ThenBy(l => l.Id));
+
+    public IQueryable<AgentLogDto> GlobalLogs(GlobalLogFiltersInput filters) =>
+        ToDtoQuery(
+            _agentLogRepository.Query(new AgentLogFilter
+                {
+                    Search = filters.Search,
+                    AgentName = filters.AgentName,
+                    Type = filters.Type,
+                })
+                .OrderByDescending(l => l.Time)
+                .ThenByDescending(l => l.Id));
+
+    public IQueryable<AuditEntry> AuditLog(Guid agentId)
+    {
+        var toolCalls = _agentLogRepository.Query(new AgentLogFilter
+        {
+            AgentId = agentId,
+            Type = AgentLogType.ToolCall,
+        });
+        var results = _agentLogRepository.Query(new AgentLogFilter
+        {
+            AgentId = agentId,
+            Type = AgentLogType.ToolResult,
+        });
+
+        return
+            from call in toolCalls
+            join result in results on call.CorrelationId equals result.CorrelationId into pairedResults
+            from result in pairedResults.DefaultIfEmpty()
+            orderby call.Time descending, call.Id descending
+            select new AuditEntry(
+                call.Id,
+                call.AgentId,
+                null,
+                call.Integration ?? string.Empty,
+                call.Tool ?? string.Empty,
+                call.Content,
+                result == null ? null : result.Content,
+                result == null
+                    ? call.Usage.DurationMs ?? 0
+                    : result.Usage.DurationMs ?? call.Usage.DurationMs ?? 0,
+                call.Time);
+    }
+
     public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default)
-        => _agentLogRepository.ListAsync(agentId, before, limit, ct);
+        => _agentLogRepository.ListAsync(
+            new AgentLogFilter { AgentId = agentId, Before = before },
+            new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
+            ct);
 
     public Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default)
-        => _agentLogRepository.ListForChannelConnectionAsync(channelConnectionId, before, limit, ct);
+        => _agentLogRepository.ListAsync(
+            new AgentLogFilter { ChannelConnectionId = channelConnectionId, Before = before },
+            new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
+            ct);
 
     public Task<List<AgentLogRecord>> ListUsageAsync(Guid ownerId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default)
-        => _agentLogRepository.ListUsageAsync(ownerId, fromInclusive, toExclusive, ct);
+        => _agentLogRepository.ListAsync(
+            new AgentLogFilter
+            {
+                OwnerId = ownerId,
+                Type = AgentLogType.System,
+                FromInclusive = fromInclusive,
+                ToExclusive = toExclusive,
+                ContentStartsWith = "LLM call complete",
+            },
+            new AgentLogListOptions { Sort = AgentLogSort.TimeAscending },
+            ct);
 
     public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default)
     {
         var limit = Math.Clamp(filters.Limit, 1, 200);
         var skip = Math.Max(filters.Skip, 0);
-        var (rows, total) = await _agentLogRepository.ListGlobalAsync(filters.Search, filters.AgentName, filters.Type, skip, limit, ct);
-        var items = rows.Select(r => r.Log.ToDto(r.AgentName)).ToList();
+        var filter = new AgentLogFilter
+        {
+            Search = filters.Search,
+            AgentName = filters.AgentName,
+            Type = filters.Type,
+        };
+        var total = await _agentLogRepository.CountAsync(filter, ct);
+        var rows = await _agentLogRepository.ListAsync(
+            filter,
+            new AgentLogListOptions { Skip = skip, Limit = limit, Sort = AgentLogSort.TimeDescending },
+            ct);
+        var items = rows.Select(r => r.ToDto(r.Agent?.Name ?? "(unbound)")).ToList();
         return new GlobalLogsPage(items, total);
     }
 
@@ -107,13 +188,34 @@ internal sealed class AgentLogService : IAgentLogService
     public async Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(
         Guid agentId, int limit, int offset, CancellationToken ct = default)
     {
-        return await _agentLogRepository.GetToolCallsAsync(agentId, limit, offset, ct);
+        var filter = new AgentLogFilter { AgentId = agentId, Type = AgentLogType.ToolCall };
+        var total = await _agentLogRepository.CountAsync(filter, ct);
+        var items = await _agentLogRepository.ListAsync(
+            filter,
+            new AgentLogListOptions { Skip = offset, Limit = limit, Sort = AgentLogSort.TimeDescending },
+            ct);
+        return (items, total);
     }
 
     public async Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(
         Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default)
     {
-        return await _agentLogRepository.GetResultsByCorrelationAsync(agentId, correlationIds, ct);
+        if (correlationIds.Count == 0)
+            return new Dictionary<string, AgentLogRecord>();
+
+        var rows = await _agentLogRepository.ListAsync(
+            new AgentLogFilter
+            {
+                AgentId = agentId,
+                Type = AgentLogType.ToolResult,
+                CorrelationIds = correlationIds.ToList(),
+            },
+            ct: ct);
+
+        return rows
+            .Where(r => r.CorrelationId is not null)
+            .GroupBy(r => r.CorrelationId!)
+            .ToDictionary(g => g.Key, g => g.First());
     }
 
     // ── Secret redaction ─────────────────────────────────────────────────
@@ -148,6 +250,23 @@ internal sealed class AgentLogService : IAgentLogService
         var lower = key.ToLowerInvariant();
         return SecretKeySubstrings.Any(s => lower.Contains(s));
     }
+
+    private static IQueryable<AgentLogDto> ToDtoQuery(IQueryable<AgentLogRecord> query) =>
+        query.Select(log => new AgentLogDto(
+            log.Id,
+            log.AgentId,
+            log.Agent == null ? null : log.Agent.Name,
+            log.Time,
+            log.Type,
+            log.Tool,
+            log.Integration,
+            log.Channel,
+            log.ChannelConnectionId,
+            log.Content,
+            log.Usage.DurationMs,
+            log.Usage.InputTokens,
+            log.Usage.OutputTokens,
+            log.CorrelationId));
 
     private static object? JsonElementToObject(JsonElement el) => el.ValueKind switch
     {
