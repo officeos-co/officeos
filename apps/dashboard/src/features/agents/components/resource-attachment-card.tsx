@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export type ResourceOption = {
 
 export function ResourceAttachmentCard({
   title,
+  icon,
   selectorLabel,
   selectorPlaceholder,
   manageHref,
@@ -34,6 +36,7 @@ export function ResourceAttachmentCard({
   onRemove,
 }: {
   title: string;
+  icon?: ReactNode;
   selectorLabel: string;
   selectorPlaceholder: string;
   manageHref: string;
@@ -47,10 +50,20 @@ export function ResourceAttachmentCard({
   onInstructionsChange: (value: string) => void;
   onRemove: () => void;
 }) {
+  const selectedOption = options.find((option) => option.id === value);
+  const accessLabel = access === "read_only" ? "Read only" : "Read & write";
+
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="mb-8 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-medium">{title}</h3>
+        <h3 className="inline-flex items-center gap-2 text-sm font-medium">
+          {icon && (
+            <span className="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              {icon}
+            </span>
+          )}
+          {title}
+        </h3>
         <Button variant="ghost" size="icon-sm" onClick={onRemove}>
           <Trash2Icon className="size-4" />
         </Button>
@@ -70,7 +83,9 @@ export function ResourceAttachmentCard({
       </div>
       <Select value={value} onValueChange={(next) => next && onValueChange(next)}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder={selectorPlaceholder} />
+          <SelectValue placeholder={selectorPlaceholder}>
+            {selectedOption?.label}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -85,7 +100,7 @@ export function ResourceAttachmentCard({
         <Label>Access</Label>
         <Select value={access} onValueChange={(next) => next && onAccessChange(next)}>
           <SelectTrigger className="w-full">
-            <SelectValue />
+            <SelectValue>{accessLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="read_write">Read & write</SelectItem>

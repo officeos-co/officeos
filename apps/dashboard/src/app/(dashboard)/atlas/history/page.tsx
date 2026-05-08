@@ -107,7 +107,13 @@ export default function AtlasHistoryPage() {
                 }}
               >
                 <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Connector" />
+                  <SelectValue placeholder="Connector">
+                    {connectionFilter === ALL_CONNECTORS
+                      ? "All connectors"
+                      : connections.find(
+                          (connection) => connection.id === connectionFilter,
+                        )?.displayName ?? "Unknown connector"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_CONNECTORS}>All connectors</SelectItem>

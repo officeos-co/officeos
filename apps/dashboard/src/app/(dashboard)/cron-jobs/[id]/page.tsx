@@ -33,10 +33,19 @@ export default function CronJobDetailPage({
       <PageHeader
         group="Managed Agents"
         page={job?.name ?? "Cron Job"}
-        subtitle={job ? `Scheduled task for ${job.agentName}` : "Scheduled task details."}
+        subtitle={
+          job
+            ? `Scheduled task for ${job.agentName}`
+            : "Scheduled task details."
+        }
         width="thin"
         action={
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/cron-jobs" />}>
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/cron-jobs" />}
+          >
             All cron jobs
           </Button>
         }
@@ -77,13 +86,18 @@ export default function CronJobDetailPage({
             <div className="grid gap-3 border-t border-border px-4 py-3 text-sm sm:grid-cols-2">
               <div>
                 <div className="text-xs text-muted-foreground">Agent</div>
-                <Link href={`/agents/${job.agentId}?tab=logs`} className="hover:underline">
+                <Link
+                  href={`/agents/${job.agentId}?tab=logs`}
+                  className="hover:underline"
+                >
                   {job.agentName}
                 </Link>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Expression</div>
-                <code className="font-mono text-xs">{job.expression.value}</code>
+                <code className="font-mono text-xs">
+                  {job.expression.value}
+                </code>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Last run</div>

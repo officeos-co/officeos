@@ -129,7 +129,9 @@ export default function AtlasExplorerPage() {
                 }}
               >
                 <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Connector" />
+                  <SelectValue placeholder="Connector">
+                    {selectedConnection?.displayName}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {connections.map((connection) => (
@@ -151,7 +153,9 @@ export default function AtlasExplorerPage() {
                 }}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Entity" />
+                  <SelectValue placeholder="Entity">
+                    {effectiveEntity ? effectiveEntity.replaceAll("_", " ") : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {entityOptions.map((item) => (
