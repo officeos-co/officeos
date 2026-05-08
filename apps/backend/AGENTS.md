@@ -79,6 +79,7 @@ Do not make Domain depend on Application, Infrastructure, ASP.NET, EF, hosting, 
 - Keep environment checks out of business services. Convert environment into explicit config/policy objects in `Program.cs`, then inject those policies.
 - Register application services in `ApplicationServiceRegistration.AddApplication`.
 - Internal implementation classes should generally be `internal sealed`; public contracts and DTO/record types can be public when referenced across projects.
+- For Services and Repositorys we use generic endpoints with FilterObject parmeters instead of exposing multiple methodes e.g. SearchByName() and SearchById() will be compressed into a single SearchBy(filter) endpoint
 
 ## Events And Logging
 
