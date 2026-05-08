@@ -47,7 +47,7 @@ internal sealed class GitHubIntegrationClient
     public async Task<JsonElement> ExecuteDirectAsync(string entity, string action, JsonElement parameters, CancellationToken ct)
     {
         if (action != "list" && action != "get")
-            throw new InvalidOperationException($"GitHub Atlas supports only list/get direct actions for V1, got '{action}'.");
+            throw new InvalidOperationException($"GitHub Integration supports only list/get direct actions for V1, got '{action}'.");
 
         var owner = ReadString(parameters, "owner");
         var repo = ReadString(parameters, "repo");

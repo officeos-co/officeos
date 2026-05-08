@@ -6,21 +6,21 @@ namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
 internal sealed class IntegrationIndexingService
 {
-    private readonly IAtlasConnectionRepository _connections;
+    private readonly IIntegrationConnectionRepository _connections;
     private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
-    private readonly IAtlasIndexJobRepository _jobs;
-    private readonly IAtlasIndexedRecordRepository _records;
-    private readonly IAtlasActivityRepository _activity;
+    private readonly IIntegrationIndexJobRepository _jobs;
+    private readonly IIntegrationIndexedRecordRepository _records;
+    private readonly IIntegrationActivityRepository _activity;
     private readonly GitHubIntegrationClient _github;
     private readonly IPublisher _publisher;
     private readonly ILogger<IntegrationIndexingService> _logger;
 
     public IntegrationIndexingService(
-        IAtlasConnectionRepository connections,
+        IIntegrationConnectionRepository connections,
         IIntegrationIndexEntityStatusRepository entityStatuses,
-        IAtlasIndexJobRepository jobs,
-        IAtlasIndexedRecordRepository records,
-        IAtlasActivityRepository activity,
+        IIntegrationIndexJobRepository jobs,
+        IIntegrationIndexedRecordRepository records,
+        IIntegrationActivityRepository activity,
         GitHubIntegrationClient github,
         IPublisher publisher,
         ILogger<IntegrationIndexingService> logger)
@@ -44,7 +44,7 @@ internal sealed class IntegrationIndexingService
         try
         {
             var connection = await _connections.GetByAsync(new IntegrationConnectionFilter { Id = job.ConnectionId }, ct)
-                ?? throw new InvalidOperationException("Atlas connection not found.");
+                ?? throw new InvalidOperationException("Integration connection not found.");
             var repositories = ParseStringArray(connection.RepositoriesJson);
             var entities = ParseStringArray(connection.EntitiesJson);
 
@@ -125,7 +125,7 @@ internal sealed class IntegrationIndexingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Atlas index job {JobId} failed", job.Id);
+            _logger.LogError(ex, "Integration index job {JobId} failed", job.Id);
             await _connections.SetStatusAsync(job.ConnectionId, IntegrationConnectionStatus.Failed, ex.Message, ct);
             await _jobs.UpdateAsync(new IntegrationIndexJobRecord
             {
@@ -261,7 +261,7 @@ internal sealed class IntegrationIndexSchedulerService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Atlas index scheduler tick failed");
+                _logger.LogError(ex, "Integration index scheduler tick failed");
                 await Task.Delay(IdleDelay, stoppingToken);
             }
         }

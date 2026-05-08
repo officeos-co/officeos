@@ -18,14 +18,14 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
         services.AddScoped<IIntegrationDefinitionRepository, IntegrationDefinitionRepository>();
-        services.AddScoped<IAgentIntegrationDefinitionRepository, AgentIntegrationDefinitionRepository>();
+        services.AddScoped<IAgentIntegrationRepository, AgentIntegrationRepository>();
         services.AddScoped<IIntegrationCredentialRepository, IntegrationCredentialRepository>();
-        services.AddScoped<IAtlasConnectionRepository, AtlasConnectionRepository>();
+        services.AddScoped<IIntegrationConnectionRepository, IntegrationConnectionRepository>();
         services.AddScoped<IIntegrationIndexEntityStatusRepository, IntegrationIndexEntityStatusRepository>();
-        services.AddScoped<IAtlasIndexJobRepository, AtlasIndexJobRepository>();
-        services.AddScoped<IAtlasIndexedRecordRepository, AtlasIndexedRecordRepository>();
-        services.AddScoped<IAtlasActivityRepository, AtlasActivityRepository>();
-        services.AddScoped<IAtlasRequestHistoryRepository, AtlasRequestHistoryRepository>();
+        services.AddScoped<IIntegrationIndexJobRepository, IntegrationIndexJobRepository>();
+        services.AddScoped<IIntegrationIndexedRecordRepository, IntegrationIndexedRecordRepository>();
+        services.AddScoped<IIntegrationActivityRepository, IntegrationActivityRepository>();
+        services.AddScoped<IIntegrationRequestHistoryRepository, IntegrationRequestHistoryRepository>();
         services.AddScoped<IMemoryStoreRepository, MemoryStoreRepository>();
         services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -63,7 +63,7 @@ public static class InfrastructureServiceRegistration
         services.AddHttpClient("github-atlas", client =>
         {
             client.BaseAddress = new Uri("https://api.github.com/");
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeOS-Atlas/1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeOS-Integration/1.0");
             client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         });
         services.AddHttpClient("channel-sidecar", client =>

@@ -2,23 +2,26 @@ using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
 namespace EnterpriseAgentOs.Domain.Common.Services;
 
-public static class McpServerRegistry
+public static class IntegrationDefinitionCatalog
 {
-    public static IReadOnlyList<IntegrationDefinitionRecord> BuiltinServers => GetBuiltinServers();
+    public static readonly string[] GitHubEntities = ["repositories", "issues", "pull_requests", "commits"];
+
+    public static IReadOnlyList<IntegrationDefinitionRecord> BuiltinDefinitions => GetBuiltinDefinitions();
 
     public static IntegrationDefinitionRecord? GetBuiltin(string name) =>
-        BuiltinServers.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+        BuiltinDefinitions.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
-    private static List<IntegrationDefinitionRecord> GetBuiltinServers() =>
+    private static List<IntegrationDefinitionRecord> GetBuiltinDefinitions() =>
     [
         // ── Developer Tools ─────────────────────────────────────────────
 
         new()
         {
             Name = "github",
+            Provider = "github",
             Title = "GitHub",
-            Description = "Full-featured GitHub integration that lets agents manage repositories, issues, pull requests, code search, file operations, and branch management. Supports creating and updating files, pushing commits, searching across codebases, and automating common GitHub workflows — all through the Model Context Protocol.",
-            Subtitle = "Manage repositories, issues, and pull requests from any conversation",
+            Description = "GitHub integration with live MCP actions and indexable repository, issue, pull request, and commit knowledge.",
+            Subtitle = "Manage and index repositories, issues, and pull requests",
             AuthorName = "Anthropic",
             AuthorUrl = "https://github.com/modelcontextprotocol",
             DocumentationUrl = "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
@@ -31,6 +34,8 @@ public static class McpServerRegistry
             Category = "developer",
             OauthProvider = "github",
             OauthScopesJson = """["user:email","repo","read:org"]""",
+            CapabilitiesJson = """[{"type":"tools","name":"GitHub integration tools","description":"Live GitHub API actions through MCP"},{"type":"indexing","name":"Indexed GitHub knowledge","description":"Search indexed repositories, issues, pull requests, and commits"}]""",
+            Entities = GitHubEntities,
             IsBuiltin = true,
         },
         new()
@@ -448,7 +453,7 @@ public static class McpServerRegistry
         {
             Name = "google-docs",
             Title = "Google Docs",
-            Description = "Create, read, and edit Google Docs through the community google-docs-mcp-server package. EnterpriseAgentOs launches it as a normal self-contained MCP server and adapts the existing Google OAuth refresh token into the credentials.json and token.json files that the package expects.",
+            Description = "Create, read, and edit Google Docs through the community google-docs-mcp-server package. EnterpriseAgentOs launches it as a normal self-contained integration and adapts the existing Google OAuth refresh token into the credentials.json and token.json files that the package expects.",
             Subtitle = "Create and edit Google Docs",
             AuthorName = "NoManNayeem",
             AuthorUrl = "https://github.com/NoManNayeem",

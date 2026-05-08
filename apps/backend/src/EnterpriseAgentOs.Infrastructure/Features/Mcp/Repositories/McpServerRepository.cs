@@ -10,7 +10,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(CancellationToken ct = default)
     {
-        var entities = await _db.McpServers.AsNoTracking()
+        var entities = await _db.Integrations.AsNoTracking()
             .Where(s => !s.IsBuiltin)
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)
@@ -21,7 +21,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public async Task<IntegrationDefinitionRecord?> GetByNameAsync(string name, CancellationToken ct = default)
     {
-        var entity = await _db.McpServers.AsNoTracking()
+        var entity = await _db.Integrations.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Name == name && !s.IsBuiltin, ct);
 
         return entity is null ? null : ToRecord(entity);
@@ -29,7 +29,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public async Task<IntegrationDefinitionRecord> UpsertAsync(IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
-        var existing = await _db.McpServers
+        var existing = await _db.Integrations
             .FirstOrDefaultAsync(s => s.Name == server.Name && !s.IsBuiltin, ct);
 
         if (existing is null)
@@ -37,12 +37,13 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
             var entity = ToEntity(server);
             entity.Id = server.Id == Guid.Empty ? Guid.NewGuid() : server.Id;
             entity.IsBuiltin = false;
-            _db.McpServers.Add(entity);
+            _db.Integrations.Add(entity);
             await _db.SaveChangesAsync(ct);
             return ToRecord(entity);
         }
 
         existing.Title = server.Title;
+        existing.Provider = server.Provider;
         existing.Description = server.Description;
         existing.TransportType = server.TransportType.ToString();
         existing.Command = server.Command;
@@ -57,6 +58,8 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         existing.DocumentationUrl = server.DocumentationUrl;
         existing.RepositoryUrl = server.RepositoryUrl;
         existing.ToolsJson = server.ToolsJson;
+        existing.CapabilitiesJson = server.CapabilitiesJson;
+        existing.EntitiesJson = JsonSerializer.Serialize(server.Entities);
 
         await _db.SaveChangesAsync(ct);
         return ToRecord(existing);
@@ -64,7 +67,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public async Task DeleteAsync(string name, CancellationToken ct = default)
     {
-        await _db.McpServers
+        await _db.Integrations
             .Where(s => s.Name == name && !s.IsBuiltin)
             .ExecuteDeleteAsync(ct);
     }
@@ -73,6 +76,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     {
         Id = entity.Id,
         Name = entity.Name,
+        Provider = entity.Provider,
         Title = entity.Title,
         Description = entity.Description,
         TransportType = Enum.TryParse<IntegrationTransportType>(entity.TransportType, true, out var transport)
@@ -90,6 +94,8 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         DocumentationUrl = entity.DocumentationUrl,
         RepositoryUrl = entity.RepositoryUrl,
         ToolsJson = entity.ToolsJson,
+        CapabilitiesJson = entity.CapabilitiesJson,
+        Entities = DeserializeStringArray(entity.EntitiesJson),
         IsBuiltin = false,
         CreatedAt = entity.CreatedAt,
     };
@@ -98,6 +104,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     {
         Id = server.Id,
         Name = server.Name,
+        Provider = server.Provider,
         Title = server.Title,
         Description = server.Description,
         TransportType = server.TransportType.ToString(),
@@ -113,7 +120,22 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         DocumentationUrl = server.DocumentationUrl,
         RepositoryUrl = server.RepositoryUrl,
         ToolsJson = server.ToolsJson,
+        CapabilitiesJson = server.CapabilitiesJson,
+        EntitiesJson = JsonSerializer.Serialize(server.Entities),
         IsBuiltin = false,
         CreatedAt = server.CreatedAt,
     };
+
+    private static IReadOnlyList<string> DeserializeStringArray(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<IReadOnlyList<string>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
 }

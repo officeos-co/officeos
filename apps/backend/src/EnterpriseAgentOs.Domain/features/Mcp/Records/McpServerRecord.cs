@@ -3,7 +3,7 @@ using System.Text;
 
 namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 
-public sealed class IntegrationDefinitionRecord
+public sealed record IntegrationDefinitionRecord
 {
     private readonly Guid _id = Guid.NewGuid();
 

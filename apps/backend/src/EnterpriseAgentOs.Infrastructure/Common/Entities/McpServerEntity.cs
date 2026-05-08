@@ -4,6 +4,7 @@ public sealed class IntegrationDefinitionEntity
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Provider { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string TransportType { get; set; } = "Stdio";
@@ -19,6 +20,8 @@ public sealed class IntegrationDefinitionEntity
     public string DocumentationUrl { get; set; } = string.Empty;
     public string RepositoryUrl { get; set; } = string.Empty;
     public string? ToolsJson { get; set; }
+    public string? CapabilitiesJson { get; set; }
+    public string EntitiesJson { get; set; } = "[]";
     public bool IsBuiltin { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

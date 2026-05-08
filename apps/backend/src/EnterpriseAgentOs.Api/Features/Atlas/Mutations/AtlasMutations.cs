@@ -3,10 +3,10 @@ using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 namespace EnterpriseAgentOs.Api.Features.Agents.Integrations;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
-public sealed class AtlasMutations
+public sealed class IntegrationMutations
 {
-    public async Task<IntegrationConnectionRecord> CreateAtlasGitHubConnection(
-        CreateAtlasGitHubConnectionInput input,
+    public async Task<IntegrationConnectionRecord> CreateGitHubIntegrationConnection(
+        CreateGitHubIntegrationConnectionInput input,
         [Service] UserContext user,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
@@ -26,8 +26,8 @@ public sealed class AtlasMutations
         }
     }
 
-    public async Task<IntegrationConnectionRecord> UpdateAtlasGitHubConnection(
-        UpdateAtlasGitHubConnectionInput input,
+    public async Task<IntegrationConnectionRecord> UpdateGitHubIntegrationConnection(
+        UpdateGitHubIntegrationConnectionInput input,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
@@ -45,7 +45,7 @@ public sealed class AtlasMutations
         }
     }
 
-    public async Task<bool> DeleteAtlasConnection(
+    public async Task<bool> DeleteIntegrationConnection(
         Guid id,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
@@ -54,7 +54,7 @@ public sealed class AtlasMutations
         return true;
     }
 
-    public async Task<IntegrationIndexJobRecord> StartAtlasIndex(
+    public async Task<IntegrationIndexJobRecord> StartIntegrationIndex(
         Guid connectionId,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
@@ -73,13 +73,13 @@ public sealed class AtlasMutations
         => new(ErrorBuilder.New().SetMessage(message).SetCode("BAD_INPUT").Build());
 }
 
-public sealed record CreateAtlasGitHubConnectionInput(
+public sealed record CreateGitHubIntegrationConnectionInput(
     string WorkspaceName,
     string DisplayName,
     IReadOnlyList<string> Repositories,
     IReadOnlyList<string> Entities);
 
-public sealed record UpdateAtlasGitHubConnectionInput(
+public sealed record UpdateGitHubIntegrationConnectionInput(
     Guid Id,
     string DisplayName,
     IReadOnlyList<string> Repositories,

@@ -37,15 +37,15 @@ public sealed class EaosDbContext : DbContext
     public DbSet<MemoryStoreEntryEntity> MemoryStoreEntries => Set<MemoryStoreEntryEntity>();
     public DbSet<AgentSessionResourceAttachmentEntity> AgentSessionResourceAttachments => Set<AgentSessionResourceAttachmentEntity>();
 
-    public DbSet<IntegrationDefinitionEntity> McpServers => Set<IntegrationDefinitionEntity>();
-    public DbSet<AgentIntegrationDefinitionEntity> AgentMcpServers => Set<AgentIntegrationDefinitionEntity>();
-    public DbSet<IntegrationCredentialEntity> McpCredentials => Set<IntegrationCredentialEntity>();
-    public DbSet<IntegrationConnectionEntity> AtlasConnectorConnections => Set<IntegrationConnectionEntity>();
+    public DbSet<IntegrationDefinitionEntity> Integrations => Set<IntegrationDefinitionEntity>();
+    public DbSet<AgentIntegrationEntity> AgentIntegrations => Set<AgentIntegrationEntity>();
+    public DbSet<IntegrationCredentialEntity> IntegrationCredentials => Set<IntegrationCredentialEntity>();
+    public DbSet<IntegrationConnectionEntity> IntegrationConnections => Set<IntegrationConnectionEntity>();
     public DbSet<IntegrationIndexEntityStatusEntity> IntegrationIndexEntityStatuses => Set<IntegrationIndexEntityStatusEntity>();
-    public DbSet<IntegrationIndexJobEntity> AtlasIndexJobs => Set<IntegrationIndexJobEntity>();
-    public DbSet<IntegrationIndexedRecordEntity> AtlasIndexedRecords => Set<IntegrationIndexedRecordEntity>();
-    public DbSet<IntegrationActivityEntity> AtlasActivity => Set<IntegrationActivityEntity>();
-    public DbSet<IntegrationRequestHistoryEntity> AtlasRequestHistory => Set<IntegrationRequestHistoryEntity>();
+    public DbSet<IntegrationIndexJobEntity> IntegrationIndexJobs => Set<IntegrationIndexJobEntity>();
+    public DbSet<IntegrationIndexedRecordEntity> IntegrationIndexedRecords => Set<IntegrationIndexedRecordEntity>();
+    public DbSet<IntegrationActivityEntity> IntegrationActivity => Set<IntegrationActivityEntity>();
+    public DbSet<IntegrationRequestHistoryEntity> IntegrationRequestHistory => Set<IntegrationRequestHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -313,9 +313,11 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationDefinitionEntity>(e =>
         {
+            e.ToTable("Integrations");
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.Name).IsUnique();
             e.Property(s => s.Name).IsRequired().HasMaxLength(64);
+            e.Property(s => s.Provider).HasMaxLength(64);
             e.Property(s => s.Title).IsRequired().HasMaxLength(128);
             e.Property(s => s.TransportType).IsRequired().HasMaxLength(32);
             e.Property(s => s.Command).HasMaxLength(256);
@@ -330,10 +332,13 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.DocumentationUrl).HasMaxLength(512);
             e.Property(s => s.RepositoryUrl).HasMaxLength(512);
             e.Property(s => s.ToolsJson).HasColumnType("jsonb");
+            e.Property(s => s.CapabilitiesJson).HasColumnType("jsonb");
+            e.Property(s => s.EntitiesJson).HasColumnType("jsonb");
         });
 
-        modelBuilder.Entity<AgentIntegrationDefinitionEntity>(e =>
+        modelBuilder.Entity<AgentIntegrationEntity>(e =>
         {
+            e.ToTable("AgentIntegrations");
             e.HasKey(a => a.Id);
             e.HasIndex(a => new { a.AgentId, a.IntegrationName }).IsUnique();
             e.HasIndex(a => a.AgentId);
@@ -342,6 +347,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationCredentialEntity>(e =>
         {
+            e.ToTable("IntegrationCredentials");
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.IntegrationName).IsUnique();
             e.Property(c => c.IntegrationName).IsRequired().HasMaxLength(64);
@@ -350,6 +356,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationConnectionEntity>(e =>
         {
+            e.ToTable("IntegrationConnections");
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.Provider);
             e.Property(c => c.Provider).IsRequired().HasMaxLength(32);
@@ -364,6 +371,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationIndexEntityStatusEntity>(e =>
         {
+            e.ToTable("IntegrationIndexEntityStatuses");
             e.HasKey(s => s.Id);
             e.HasIndex(s => new { s.ConnectionId, s.Entity }).IsUnique();
             e.Property(s => s.Entity).IsRequired().HasMaxLength(64);
@@ -374,6 +382,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationIndexJobEntity>(e =>
         {
+            e.ToTable("IntegrationIndexJobs");
             e.HasKey(j => j.Id);
             e.HasIndex(j => j.Status);
             e.HasIndex(j => j.ConnectionId);
@@ -384,6 +393,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationIndexedRecordEntity>(e =>
         {
+            e.ToTable("IntegrationIndexedRecords");
             e.HasKey(r => r.Id);
             e.HasIndex(r => new { r.ConnectionId, r.Entity, r.ExternalId }).IsUnique();
             e.HasIndex(r => new { r.ConnectionId, r.Entity });
@@ -397,6 +407,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationActivityEntity>(e =>
         {
+            e.ToTable("IntegrationActivity");
             e.HasKey(a => a.Id);
             e.HasIndex(a => a.ConnectionId);
             e.HasIndex(a => a.CreatedAt);
@@ -409,6 +420,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<IntegrationRequestHistoryEntity>(e =>
         {
+            e.ToTable("IntegrationRequestHistory");
             e.HasKey(h => h.Id);
             e.HasIndex(h => h.ConnectionId);
             e.HasIndex(h => h.CreatedAt);

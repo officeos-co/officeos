@@ -10,7 +10,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
 
     public async Task<IntegrationCredentialRecord?> GetByAsync(IntegrationCredentialFilter filter, CancellationToken ct = default)
     {
-        var query = _db.McpCredentials.AsNoTracking().AsQueryable();
+        var query = _db.IntegrationCredentials.AsNoTracking().AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(c => c.Id == filter.Id.Value);
@@ -30,7 +30,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
 
     public async Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct)
     {
-        var existing = await _db.McpCredentials
+        var existing = await _db.IntegrationCredentials
             .FirstOrDefaultAsync(c => c.IntegrationName == credential.IntegrationName, ct);
         if (existing is not null)
         {
@@ -39,7 +39,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
         }
         else
         {
-            _db.McpCredentials.Add(new IntegrationCredentialEntity
+            _db.IntegrationCredentials.Add(new IntegrationCredentialEntity
             {
                 Id = credential.Id,
                 IntegrationName = credential.IntegrationName,
@@ -52,6 +52,6 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
 
     public async Task DeleteAsync(string integrationName, CancellationToken ct)
     {
-        await _db.McpCredentials.Where(c => c.IntegrationName == integrationName).ExecuteDeleteAsync(ct);
+        await _db.IntegrationCredentials.Where(c => c.IntegrationName == integrationName).ExecuteDeleteAsync(ct);
     }
 }

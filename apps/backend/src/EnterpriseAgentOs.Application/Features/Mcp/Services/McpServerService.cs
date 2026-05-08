@@ -2,7 +2,7 @@ namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
 
 internal sealed class IntegrationDefinitionService : IIntegrationDefinitionService
 {
-    private readonly IAgentIntegrationDefinitionRepository _agentServerRepository;
+    private readonly IAgentIntegrationRepository _agentServerRepository;
     private readonly IIntegrationDefinitionRepository _serverRepository;
     private readonly IIntegrationCredentialRepository _credentialRepository;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
@@ -11,7 +11,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private readonly ILogger<IntegrationDefinitionService> _logger;
 
     public IntegrationDefinitionService(
-        IAgentIntegrationDefinitionRepository agentServers,
+        IAgentIntegrationRepository agentServers,
         IIntegrationDefinitionRepository servers,
         IIntegrationCredentialRepository credentials,
         IOAuthTokenRepository oauthTokens,
@@ -33,7 +33,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public async Task<IntegrationDefinitionRecord?> GetAsync(string name, CancellationToken ct = default)
     {
-        var server = McpServerRegistry.GetBuiltin(name)
+        var server = IntegrationDefinitionCatalog.GetBuiltin(name)
             ?? await _serverRepository.GetByNameAsync(name, ct);
         if (server is null) return null;
 
@@ -42,8 +42,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public async Task<IntegrationDefinitionRecord> RegisterAsync(IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
-        if (McpServerRegistry.GetBuiltin(server.Name) is not null)
-            throw new InvalidOperationException($"MCP server '{server.Name}' is built in and cannot be overwritten.");
+        if (IntegrationDefinitionCatalog.GetBuiltin(server.Name) is not null)
+            throw new InvalidOperationException($"integration '{server.Name}' is built in and cannot be overwritten.");
 
         var saved = await _serverRepository.UpsertAsync(CopyAsCustom(server), ct);
         return (await WithConnectionStatusAsync([saved], ct)).First();
@@ -51,18 +51,18 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public async Task DeleteAsync(string name, CancellationToken ct = default)
     {
-        if (McpServerRegistry.GetBuiltin(name) is not null)
-            throw new InvalidOperationException($"MCP server '{name}' is built in and cannot be deleted.");
+        if (IntegrationDefinitionCatalog.GetBuiltin(name) is not null)
+            throw new InvalidOperationException($"integration '{name}' is built in and cannot be deleted.");
 
         await _serverRepository.DeleteAsync(name, ct);
         await _credentialRepository.DeleteAsync(name, ct);
-        await _agentServerRepository.UnassignServerFromAllAgentsAsync(name, ct);
+        await _agentServerRepository.UnassignIntegrationFromAllAgentsAsync(name, ct);
     }
 
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default)
     {
         var names = await _agentServerRepository.ListIntegrationNamesForAgentAsync(agentId, ct);
-        _logger.LogDebug("MCP catalog for agent {AgentId}: assigned servers [{Servers}]", agentId, string.Join(", ", names));
+        _logger.LogDebug("integration catalog for agent {AgentId}: assigned servers [{Servers}]", agentId, string.Join(", ", names));
         if (names.Count == 0) return [];
 
         var allowed = names.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -74,10 +74,10 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     public async Task AssignToAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)
     {
         var server = await GetAsync(integrationName, ct)
-            ?? throw new InvalidOperationException($"MCP server '{integrationName}' was not found.");
+            ?? throw new InvalidOperationException($"integration '{integrationName}' was not found.");
 
         await _agentServerRepository.AssignAsync(agentId, server.Name, ct);
-        _logger.LogInformation("Assigned MCP server {Server} to agent {AgentId}", server.Name, agentId);
+        _logger.LogInformation("Assigned integration {Server} to agent {AgentId}", server.Name, agentId);
     }
 
     public Task UnassignFromAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)
@@ -96,7 +96,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string integrationName, CancellationToken ct = default)
     {
-        var server = McpServerRegistry.GetBuiltin(integrationName);
+        var server = IntegrationDefinitionCatalog.GetBuiltin(integrationName);
         if (!string.IsNullOrWhiteSpace(server?.OauthProvider))
             return await GetOAuthCredentialAsync(server, ct);
 
@@ -170,7 +170,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             }
             else
             {
-                _logger.LogDebug("MCP OAuth status for provider {Provider}: no stored token", provider);
+                _logger.LogDebug("integration OAuth status for provider {Provider}: no stored token", provider);
             }
         }
 
@@ -185,7 +185,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             if (missingScopes.Count > 0)
             {
                 _logger.LogDebug(
-                    "MCP OAuth status for {Server}: provider {Provider} missing scopes [{MissingScopes}]",
+                    "integration OAuth status for {Server}: provider {Provider} missing scopes [{MissingScopes}]",
                     server.Name,
                     server.OauthProvider,
                     string.Join(", ", missingScopes));
@@ -229,6 +229,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     {
         Id = server.Id,
         Name = server.Name,
+        Provider = server.Provider,
         Title = server.Title,
         Description = server.Description,
         TransportType = server.TransportType,
@@ -247,6 +248,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         DocumentationUrl = server.DocumentationUrl,
         RepositoryUrl = server.RepositoryUrl,
         ToolsJson = server.ToolsJson,
+        CapabilitiesJson = server.CapabilitiesJson,
+        Entities = server.Entities,
         IsBuiltin = server.IsBuiltin,
         CredentialConfigured = server.CredentialConfigured,
         CreatedAt = server.CreatedAt,
@@ -256,6 +259,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     {
         Id = server.Id,
         Name = server.Name,
+        Provider = server.Provider,
         Title = server.Title,
         Description = server.Description,
         TransportType = server.TransportType,
@@ -274,6 +278,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         DocumentationUrl = server.DocumentationUrl,
         RepositoryUrl = server.RepositoryUrl,
         ToolsJson = server.ToolsJson,
+        CapabilitiesJson = server.CapabilitiesJson,
+        Entities = server.Entities,
         IsBuiltin = server.IsBuiltin,
         CredentialConfigured = configured,
         CreatedAt = server.CreatedAt,
@@ -283,6 +289,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     {
         Id = server.Id,
         Name = server.Name,
+        Provider = server.Provider,
         Title = server.Title,
         Description = server.Description,
         TransportType = server.TransportType,
@@ -298,6 +305,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         DocumentationUrl = server.DocumentationUrl,
         RepositoryUrl = server.RepositoryUrl,
         ToolsJson = server.ToolsJson,
+        CapabilitiesJson = server.CapabilitiesJson,
+        Entities = server.Entities,
         IsBuiltin = false,
         CreatedAt = server.CreatedAt == default ? DateTime.UtcNow : server.CreatedAt,
     };
@@ -313,7 +322,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     }
 
     private static IReadOnlyList<IntegrationDefinitionRecord> OrderedBuiltins()
-        => McpServerRegistry.BuiltinServers
+        => IntegrationDefinitionCatalog.BuiltinDefinitions
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)
             .ToList();

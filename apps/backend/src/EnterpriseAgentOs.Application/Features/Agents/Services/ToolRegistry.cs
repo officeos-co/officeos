@@ -119,7 +119,7 @@ internal sealed class ToolRegistryFactory
     private readonly IMcpClientManager _mcpClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _permissionRepository;
-    private readonly IIntegrationExecutionService _atlasExecution;
+    private readonly IIntegrationExecutionService _integrationExecution;
     private readonly TurnEventPublisher _events;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
@@ -133,7 +133,7 @@ internal sealed class ToolRegistryFactory
         IMcpClientManager mcpClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
         IAgentToolPermissionRepository permissionRepository,
-        IIntegrationExecutionService atlasExecution,
+        IIntegrationExecutionService integrationExecution,
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
@@ -146,7 +146,7 @@ internal sealed class ToolRegistryFactory
         _mcpClientManager = mcpClientManager;
         _browserToolContextFactory = browserToolContextFactory;
         _permissionRepository = permissionRepository;
-        _atlasExecution = atlasExecution;
+        _integrationExecution = integrationExecution;
         _events = events;
         _logger = logger;
     }
@@ -188,7 +188,7 @@ internal sealed class ToolRegistryFactory
             // HTTP tools (backend)
             new HttpRequestTool(),
             new WebFetchTool(),
-            new AtlasConnectorExecuteTool(_atlasExecution),
+            new IntegrationExecuteTool(_integrationExecution),
         };
         var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
 

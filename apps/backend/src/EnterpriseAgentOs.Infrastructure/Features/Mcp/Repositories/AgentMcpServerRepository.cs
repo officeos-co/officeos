@@ -2,45 +2,45 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
 
-internal sealed class AgentIntegrationDefinitionRepository : IAgentIntegrationDefinitionRepository
+internal sealed class AgentIntegrationRepository : IAgentIntegrationRepository
 {
     private readonly EaosDbContext _db;
 
-    public AgentIntegrationDefinitionRepository(EaosDbContext db) => _db = db;
+    public AgentIntegrationRepository(EaosDbContext db) => _db = db;
 
     public async Task<IReadOnlyList<string>> ListIntegrationNamesForAgentAsync(Guid agentId, CancellationToken ct)
     {
-        return await _db.AgentMcpServers.AsNoTracking()
+        return await _db.AgentIntegrations.AsNoTracking()
             .Where(a => a.AgentId == agentId)
             .Select(a => a.IntegrationName)
             .ToListAsync(ct);
     }
 
-    public async Task AssignAsync(Guid agentId, string mcpIntegrationName, CancellationToken ct)
+    public async Task AssignAsync(Guid agentId, string integrationName, CancellationToken ct)
     {
-        var exists = await _db.AgentMcpServers.AnyAsync(
-            a => a.AgentId == agentId && a.IntegrationName == mcpIntegrationName, ct);
+        var exists = await _db.AgentIntegrations.AnyAsync(
+            a => a.AgentId == agentId && a.IntegrationName == integrationName, ct);
         if (exists) return;
 
-        _db.AgentMcpServers.Add(new AgentIntegrationDefinitionEntity
+        _db.AgentIntegrations.Add(new AgentIntegrationEntity
         {
             AgentId = agentId,
-            IntegrationName = mcpIntegrationName,
+            IntegrationName = integrationName,
         });
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task UnassignAsync(Guid agentId, string mcpIntegrationName, CancellationToken ct)
+    public async Task UnassignAsync(Guid agentId, string integrationName, CancellationToken ct)
     {
-        await _db.AgentMcpServers
-            .Where(a => a.AgentId == agentId && a.IntegrationName == mcpIntegrationName)
+        await _db.AgentIntegrations
+            .Where(a => a.AgentId == agentId && a.IntegrationName == integrationName)
             .ExecuteDeleteAsync(ct);
     }
 
-    public async Task UnassignServerFromAllAgentsAsync(string mcpIntegrationName, CancellationToken ct)
+    public async Task UnassignIntegrationFromAllAgentsAsync(string integrationName, CancellationToken ct)
     {
-        await _db.AgentMcpServers
-            .Where(a => a.IntegrationName == mcpIntegrationName)
+        await _db.AgentIntegrations
+            .Where(a => a.IntegrationName == integrationName)
             .ExecuteDeleteAsync(ct);
     }
 }

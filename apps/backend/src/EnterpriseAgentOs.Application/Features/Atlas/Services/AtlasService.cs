@@ -6,22 +6,22 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
 {
     internal static readonly string[] SupportedGitHubEntities = IntegrationDefinitionCatalog.GitHubEntities;
 
-    private readonly IAtlasConnectionRepository _connections;
+    private readonly IIntegrationConnectionRepository _connections;
     private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
-    private readonly IAtlasIndexJobRepository _jobs;
-    private readonly IAtlasIndexedRecordRepository _records;
-    private readonly IAtlasActivityRepository _activity;
-    private readonly IAtlasRequestHistoryRepository _history;
+    private readonly IIntegrationIndexJobRepository _jobs;
+    private readonly IIntegrationIndexedRecordRepository _records;
+    private readonly IIntegrationActivityRepository _activity;
+    private readonly IIntegrationRequestHistoryRepository _history;
     private readonly GitHubIntegrationClient _github;
     private readonly IPublisher _publisher;
 
     public IntegrationConnectionService(
-        IAtlasConnectionRepository connections,
+        IIntegrationConnectionRepository connections,
         IIntegrationIndexEntityStatusRepository entityStatuses,
-        IAtlasIndexJobRepository jobs,
-        IAtlasIndexedRecordRepository records,
-        IAtlasActivityRepository activity,
-        IAtlasRequestHistoryRepository history,
+        IIntegrationIndexJobRepository jobs,
+        IIntegrationIndexedRecordRepository records,
+        IIntegrationActivityRepository activity,
+        IIntegrationRequestHistoryRepository history,
         GitHubIntegrationClient github,
         IPublisher publisher)
     {
@@ -35,10 +35,10 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
         _publisher = publisher;
     }
 
-    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListConnectorTypesAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListIntegrationDefinitionsAsync(CancellationToken ct = default)
     {
         var githubConfigured = await _github.HasTokenAsync(ct);
-        return IntegrationDefinitionCatalog.BuiltinConnectors
+        return IntegrationDefinitionCatalog.BuiltinDefinitions
             .Select(connector => connector.OauthProvider == "github"
                 ? connector with { OauthConfigured = githubConfigured }
                 : connector)
@@ -128,7 +128,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     public async Task<IntegrationConnectionRecord> UpdateGitHubConnectionAsync(UpdateGitHubIntegrationConnectionRequest request, CancellationToken ct = default)
     {
         var existing = await GetByAsync(new IntegrationConnectionFilter { Id = request.Id }, ct)
-            ?? throw new InvalidOperationException("Atlas connection not found.");
+            ?? throw new InvalidOperationException("Integration connection not found.");
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
         var hasToken = await _github.HasTokenAsync(ct);
@@ -191,7 +191,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     public async Task<IntegrationIndexJobRecord> StartIndexAsync(Guid connectionId, CancellationToken ct = default)
     {
         var connection = await GetByAsync(new IntegrationConnectionFilter { Id = connectionId }, ct)
-            ?? throw new InvalidOperationException("Atlas connection not found.");
+            ?? throw new InvalidOperationException("Integration connection not found.");
         var job = await _jobs.CreateAsync(new IntegrationIndexJobRecord
         {
             ConnectionId = connection.Id,
@@ -231,7 +231,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
         if (normalized.Count == 0)
             throw new InvalidOperationException("At least one GitHub repository is required.");
         if (normalized.Any(r => r.Contains('*') || r.Split('/').Length != 2))
-            throw new InvalidOperationException("Atlas V1 supports only explicit GitHub repositories in owner/repo format.");
+            throw new InvalidOperationException("Integration V1 supports only explicit GitHub repositories in owner/repo format.");
         return normalized;
     }
 

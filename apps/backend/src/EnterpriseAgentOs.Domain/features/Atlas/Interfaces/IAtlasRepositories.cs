@@ -39,7 +39,7 @@ public sealed record IntegrationIndexedRecordPage(
     bool HasMore,
     string? Cursor);
 
-public interface IAtlasConnectionRepository
+public interface IIntegrationConnectionRepository
 {
     Task<IReadOnlyList<IntegrationConnectionRecord>> ListAsync(IntegrationConnectionFilter filter, CancellationToken ct = default);
     Task<IntegrationConnectionRecord?> GetByAsync(IntegrationConnectionFilter filter, CancellationToken ct = default);
@@ -54,7 +54,7 @@ public interface IIntegrationIndexEntityStatusRepository
     Task UpsertAsync(IntegrationIndexEntityStatusRecord status, CancellationToken ct = default);
 }
 
-public interface IAtlasIndexJobRepository
+public interface IIntegrationIndexJobRepository
 {
     Task<IntegrationIndexJobRecord> CreateAsync(IntegrationIndexJobRecord job, CancellationToken ct = default);
     Task<IntegrationIndexJobRecord?> DequeueAsync(CancellationToken ct = default);
@@ -62,7 +62,7 @@ public interface IAtlasIndexJobRepository
     Task UpdateAsync(IntegrationIndexJobRecord job, CancellationToken ct = default);
 }
 
-public interface IAtlasIndexedRecordRepository
+public interface IIntegrationIndexedRecordRepository
 {
     Task UpsertManyAsync(IReadOnlyList<IntegrationIndexedRecordRecord> records, CancellationToken ct = default);
     Task<IntegrationIndexedRecordRecord?> GetByAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default);
@@ -71,13 +71,13 @@ public interface IAtlasIndexedRecordRepository
     Task DeleteForConnectionAsync(Guid connectionId, CancellationToken ct = default);
 }
 
-public interface IAtlasRequestHistoryRepository
+public interface IIntegrationRequestHistoryRepository
 {
     Task AddAsync(IntegrationRequestHistoryRecord history, CancellationToken ct = default);
     Task<IReadOnlyList<IntegrationRequestHistoryRecord>> ListAsync(IntegrationRequestHistoryFilter filter, CancellationToken ct = default);
 }
 
-public interface IAtlasActivityRepository
+public interface IIntegrationActivityRepository
 {
     Task AddAsync(IntegrationActivityRecord activity, CancellationToken ct = default);
     Task<IReadOnlyList<IntegrationActivityRecord>> ListAsync(IntegrationActivityFilter filter, CancellationToken ct = default);

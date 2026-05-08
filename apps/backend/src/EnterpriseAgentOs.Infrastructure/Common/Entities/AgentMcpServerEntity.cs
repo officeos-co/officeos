@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Infrastructure.Common.Entities;
 
-public sealed class AgentIntegrationDefinitionEntity
+public sealed class AgentIntegrationEntity
 {
     public Guid Id { get; set; }
     public Guid AgentId { get; set; }
