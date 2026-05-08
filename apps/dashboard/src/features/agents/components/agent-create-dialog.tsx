@@ -205,12 +205,14 @@ export function AgentCreateDialog({
   const channelOptions = channelConnections.map((connection) => ({
     id: connection.id,
     label: connection.displayName,
+    logo: connection.logo,
   }));
   const connectorOptions = integrations
     .filter((integration) => integration.configured)
     .map((integration) => ({
       id: integration.name,
       label: integration.title,
+      logo: integration.logo,
     }));
   const resourcesValid = resources.every((resource) => resource.resourceId);
   const canCreate =
