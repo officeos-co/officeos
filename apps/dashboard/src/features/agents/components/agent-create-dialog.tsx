@@ -58,7 +58,6 @@ type AgentResource = {
   id: string;
   type: AgentResourceType;
   resourceId: string;
-  accessMode: string;
   instructions: string;
 };
 
@@ -282,7 +281,6 @@ export function AgentCreateDialog({
         id: crypto.randomUUID(),
         type,
         resourceId: "",
-        accessMode: "read_write",
         instructions: "",
       },
     ]);
@@ -399,7 +397,6 @@ export function AgentCreateDialog({
           .map((resource) => ({
             resourceType: resource.type,
             resourceId: resource.resourceId,
-            accessMode: resource.accessMode,
             instructions: resource.instructions.trim() || null,
           })),
         bootstrapMessage: startupPrompt || undefined,
@@ -466,6 +463,8 @@ export function AgentCreateDialog({
               {models.length === 0 && isDevelopment() ? (
                 <Link
                   href="/providers"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
                 >
                   <PlusIcon className="size-4" />
@@ -549,13 +548,9 @@ export function AgentCreateDialog({
                             : connectorOptions
                     }
                     value={resource.resourceId}
-                    access={resource.accessMode}
                     instructions={resource.instructions}
                     onValueChange={(value) =>
                       updateResource(resource.id, { resourceId: value })
-                    }
-                    onAccessChange={(value) =>
-                      updateResource(resource.id, { accessMode: value })
                     }
                     onInstructionsChange={(value) =>
                       updateResource(resource.id, { instructions: value })

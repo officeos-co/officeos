@@ -28,10 +28,8 @@ export function ResourceAttachmentCard({
   manageLabel,
   options,
   value,
-  access,
   instructions,
   onValueChange,
-  onAccessChange,
   onInstructionsChange,
   onRemove,
 }: {
@@ -43,15 +41,12 @@ export function ResourceAttachmentCard({
   manageLabel: string;
   options: ResourceOption[];
   value: string;
-  access: string;
   instructions: string;
   onValueChange: (value: string) => void;
-  onAccessChange: (value: string) => void;
   onInstructionsChange: (value: string) => void;
   onRemove: () => void;
 }) {
   const selectedOption = options.find((option) => option.id === value);
-  const accessLabel = access === "read_only" ? "Read only" : "Read & write";
 
   return (
     <div className="rounded-xl border border-border p-4">
@@ -75,6 +70,8 @@ export function ResourceAttachmentCard({
         </Label>
         <Link
           href={manageHref}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-sm underline underline-offset-4 hover:text-foreground"
         >
           {manageLabel}
@@ -95,19 +92,6 @@ export function ResourceAttachmentCard({
           ))}
         </SelectContent>
       </Select>
-
-      <div className="mt-6 space-y-2">
-        <Label>Access</Label>
-        <Select value={access} onValueChange={(next) => next && onAccessChange(next)}>
-          <SelectTrigger className="w-full">
-            <SelectValue>{accessLabel}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="read_write">Read & write</SelectItem>
-            <SelectItem value="read_only">Read only</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       <div className="mt-6 space-y-2">
         <Label>Instructions (optional)</Label>
