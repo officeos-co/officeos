@@ -26,6 +26,7 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAtlasIndexedRecordRepository, AtlasIndexedRecordRepository>();
         services.AddScoped<IAtlasActivityRepository, AtlasActivityRepository>();
         services.AddScoped<IAtlasRequestHistoryRepository, AtlasRequestHistoryRepository>();
+        services.AddScoped<IMemoryStoreRepository, MemoryStoreRepository>();
         services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();

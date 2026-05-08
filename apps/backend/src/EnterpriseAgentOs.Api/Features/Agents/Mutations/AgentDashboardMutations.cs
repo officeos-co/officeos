@@ -13,6 +13,7 @@ public class AgentDashboardMutations
         [Service] IAgentService agents,
         [Service] IAgentSessionRepository sessions,
         [Service] IAgentResourceRepository resources,
+        [Service] IMemoryStoreRepository memoryStores,
         [Service] IChannelRepository channelRepository,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
@@ -59,7 +60,7 @@ public class AgentDashboardMutations
             foreach (var resource in input.Resources)
             {
                 var resourceType = NormalizeResourceType(resource.ResourceType);
-                await ValidateResourceAsync(resourceType, resource.ResourceId, user.Id, resources, channelRepository, ct);
+                await ValidateResourceAsync(resourceType, resource.ResourceId, user.Id, resources, memoryStores, channelRepository, ct);
 
                 await resources.AttachToSessionAsync(new AgentSessionResourceAttachmentRecord
                 {
@@ -119,13 +120,14 @@ public class AgentDashboardMutations
         Guid resourceId,
         Guid ownerId,
         IAgentResourceRepository resources,
+        IMemoryStoreRepository memoryStores,
         IChannelRepository channelRepository,
         CancellationToken ct)
     {
         var exists = resourceType switch
         {
             AgentResourceTypes.Browser => await resources.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
-            AgentResourceTypes.MemoryStore => await resources.GetMemoryStoreAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceTypes.MemoryStore => await memoryStores.GetAsync(resourceId, ownerId, ct) is not null,
             AgentResourceTypes.Channel => await channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
             {
                 Id = resourceId,

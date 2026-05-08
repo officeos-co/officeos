@@ -9,6 +9,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
     private readonly IAgentMemoryRepository _memoryRepo;
     private readonly IAgentResourceRepository _resourceRepository;
+    private readonly IMemoryStoreRepository _memoryStoreRepository;
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
@@ -19,6 +20,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     public AgentToolCatalogService(
         IAgentMemoryRepository memoryRepo,
         IAgentResourceRepository resourceRepository,
+        IMemoryStoreRepository memoryStoreRepository,
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
@@ -28,6 +30,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     {
         _memoryRepo = memoryRepo;
         _resourceRepository = resourceRepository;
+        _memoryStoreRepository = memoryStoreRepository;
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
@@ -48,9 +51,9 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new FileEditTool(context),
             new ContentSearchTool(context),
             new GlobSearchTool(context),
-            new MemoryStoreTool(_memoryRepo, _resourceRepository, effectiveAgentId),
-            new MemoryRecallTool(_memoryRepo, _resourceRepository, effectiveAgentId),
-            new MemoryForgetTool(_memoryRepo, _resourceRepository, effectiveAgentId),
+            new MemoryStoreTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, effectiveAgentId),
+            new MemoryRecallTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, effectiveAgentId),
+            new MemoryForgetTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, effectiveAgentId),
             new AskUserQuestionTool(),
             new TaskCreateTool(_taskStore, effectiveAgentId),
             new TaskListTool(_taskStore, effectiveAgentId),

@@ -32,31 +32,6 @@ public sealed class BrowserResourceRecord
         => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 }
 
-public sealed class MemoryStoreRecord
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid OwnerId { get; init; }
-    public string DisplayName { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    public static MemoryStoreRecord Create(Guid ownerId, string displayName) => new()
-    {
-        OwnerId = ownerId,
-        DisplayName = BrowserResourceRecord.NormalizeName(displayName, "Memory Store"),
-    };
-}
-
-public sealed class MemoryStoreEntryRecord
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid MemoryStoreId { get; init; }
-    public string Key { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-}
-
 public sealed class AgentSessionResourceAttachmentRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
