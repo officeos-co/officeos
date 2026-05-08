@@ -2,6 +2,12 @@ namespace EnterpriseAgentOs.Domain.Features.Analytics;
 
 public sealed record GlobalLogRow(AgentLogRecord Log, string AgentName);
 
+public sealed record UsageAggregateRow(
+    DateTime Date,
+    string Model,
+    long InputTokens,
+    long OutputTokens);
+
 public sealed record AgentLogFilter
 {
     public Guid? Id { get; init; }
@@ -39,6 +45,7 @@ public interface IAgentLogRepository
 {
     IQueryable<AgentLogRecord> Query(AgentLogFilter filter);
     Task<List<AgentLogRecord>> ListAsync(AgentLogFilter filter, AgentLogListOptions? options = null, CancellationToken ct = default);
+    Task<List<UsageAggregateRow>> ListUsageAggregatesAsync(Guid ownerId, DateTime fromInclusive, DateTime toExclusive, CancellationToken ct = default);
     Task<int> CountAsync(AgentLogFilter filter, CancellationToken ct = default);
     Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default);
     Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default);

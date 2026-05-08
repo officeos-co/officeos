@@ -103,6 +103,36 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         return await query.ToListAsync(ct);
     }
 
+    public Task<List<UsageAggregateRow>> ListUsageAggregatesAsync(
+        Guid ownerId,
+        DateTime fromInclusive,
+        DateTime toExclusive,
+        CancellationToken ct = default)
+    {
+        return _eaosDbContext.AgentLogs
+            .AsNoTracking()
+            .Where(l =>
+                l.Agent != null &&
+                l.Agent.OwnerId == ownerId &&
+                l.Type == AgentLogType.System &&
+                l.Time >= fromInclusive &&
+                l.Time < toExclusive &&
+                ((l.InputTokens ?? 0) + (l.OutputTokens ?? 0)) > 0)
+            .GroupBy(l => new
+            {
+                Date = l.Time.Date,
+                Model = l.Tool ?? string.Empty,
+            })
+            .Select(g => new UsageAggregateRow(
+                g.Key.Date,
+                g.Key.Model,
+                g.Sum(l => (long)(l.InputTokens ?? 0)),
+                g.Sum(l => (long)(l.OutputTokens ?? 0))))
+            .OrderBy(r => r.Date)
+            .ThenBy(r => r.Model)
+            .ToListAsync(ct);
+    }
+
     public Task<int> CountAsync(AgentLogFilter filter, CancellationToken ct = default)
         => Query(filter).CountAsync(ct);
 
