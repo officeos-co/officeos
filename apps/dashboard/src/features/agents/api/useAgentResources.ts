@@ -131,6 +131,25 @@ const DELETE_MEMORY_STORE = gql`
   }
 `;
 
+const UPSERT_MEMORY_STORE_ENTRY = gql`
+  mutation UpsertMemoryStoreEntry($input: UpsertMemoryStoreEntryInput!) {
+    upsertMemoryStoreEntry(input: $input) {
+      id
+      memoryStoreId
+      key
+      content
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const DELETE_MEMORY_STORE_ENTRY = gql`
+  mutation DeleteMemoryStoreEntry($memoryStoreId: UUID!, $key: String!) {
+    deleteMemoryStoreEntry(memoryStoreId: $memoryStoreId, key: $key)
+  }
+`;
+
 export function useBrowserResources() {
   const { data, loading, error, refetch } = useQuery(BROWSER_RESOURCES, {
     fetchPolicy: "cache-and-network",
@@ -230,6 +249,38 @@ export function useDeleteMemoryStore() {
     deleteMemoryStore: async (id: string) => {
       const { data } = await mutate({ variables: { id } });
       return Boolean(data?.deleteMemoryStore);
+    },
+    ...state,
+  };
+}
+
+export function useUpsertMemoryStoreEntry() {
+  const [mutate, state] = useMutation(UPSERT_MEMORY_STORE_ENTRY, {
+    refetchQueries: ["MemoryStore"],
+  });
+  return {
+    upsertMemoryStoreEntry: async (
+      memoryStoreId: string,
+      key: string,
+      content: string,
+    ) => {
+      const { data } = await mutate({
+        variables: { input: { memoryStoreId, key, content } },
+      });
+      return data?.upsertMemoryStoreEntry as MemoryStoreEntry;
+    },
+    ...state,
+  };
+}
+
+export function useDeleteMemoryStoreEntry() {
+  const [mutate, state] = useMutation(DELETE_MEMORY_STORE_ENTRY, {
+    refetchQueries: ["MemoryStore"],
+  });
+  return {
+    deleteMemoryStoreEntry: async (memoryStoreId: string, key: string) => {
+      const { data } = await mutate({ variables: { memoryStoreId, key } });
+      return Boolean(data?.deleteMemoryStoreEntry);
     },
     ...state,
   };

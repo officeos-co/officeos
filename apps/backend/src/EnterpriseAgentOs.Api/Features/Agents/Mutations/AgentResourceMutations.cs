@@ -48,4 +48,26 @@ public class AgentResourceMutations
         var user = DashboardAuthContextExtensions.GetUser(context);
         return await resources.DeleteMemoryStoreAsync(id, user.Id, ct);
     }
+
+    public async Task<MemoryStoreEntryPayload> UpsertMemoryStoreEntry(
+        UpsertMemoryStoreEntryInput input,
+        IResolverContext context,
+        [Service] IAgentResourceRepository resources,
+        CancellationToken ct)
+    {
+        var user = DashboardAuthContextExtensions.GetUser(context);
+        var row = await resources.UpsertMemoryStoreEntryAsync(input.MemoryStoreId, user.Id, input.Key, input.Content, ct);
+        return new MemoryStoreEntryPayload(row.Id, row.MemoryStoreId, row.Key, row.Content, row.CreatedAt, row.UpdatedAt);
+    }
+
+    public async Task<bool> DeleteMemoryStoreEntry(
+        Guid memoryStoreId,
+        string key,
+        IResolverContext context,
+        [Service] IAgentResourceRepository resources,
+        CancellationToken ct)
+    {
+        var user = DashboardAuthContextExtensions.GetUser(context);
+        return await resources.DeleteMemoryStoreEntryAsync(memoryStoreId, user.Id, key, ct);
+    }
 }
