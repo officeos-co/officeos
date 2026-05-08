@@ -122,8 +122,8 @@ export function useUsageLogs(): {
 } {
   const { data, loading, error } = useQuery(gql`
     query UsageLogs {
-      globalLogs(filters: { skip: 0, limit: 200 }) {
-        items {
+      globalLogs(first: 200) {
+        nodes {
           id
           time
           content
@@ -147,7 +147,7 @@ export function useUsageLogs(): {
     outputTokens?: number | null;
     durationMs?: number | null;
     agentName?: string | null;
-  }> = data?.globalLogs?.items ?? [];
+  }> = data?.globalLogs?.nodes ?? [];
 
   const logs = raw
     .filter((r) => r.content.startsWith("LLM call complete"))

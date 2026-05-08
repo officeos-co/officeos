@@ -4,20 +4,22 @@ import { gql, useQuery, useSubscription } from "@apollo/client"
 import type { AgentLog } from "@/types/logs"
 
 const AGENT_LOGS_QUERY = gql`
-  query AgentLogs($agentId: UUID!, $limit: Int!) {
-    agentLogs(agentId: $agentId, limit: $limit) {
-      id
-      time
-      type
-      tool
-      integration
-      channel
-      channelConnectionId
-      content
-      durationMs
-      inputTokens
-      outputTokens
-      correlationId
+  query AgentLogs($agentId: UUID!, $last: Int!) {
+    agentLogs(agentId: $agentId, last: $last) {
+      nodes {
+        id
+        time
+        type
+        tool
+        integration
+        channel
+        channelConnectionId
+        content
+        durationMs
+        inputTokens
+        outputTokens
+        correlationId
+      }
     }
   }
 `
@@ -106,7 +108,7 @@ export function useAgentLogs(
   limit = 200,
 ): { logs: AgentLog[]; loading: boolean; error?: Error } {
   const { data, loading, error } = useQuery(AGENT_LOGS_QUERY, {
-    variables: { agentId, limit },
+    variables: { agentId, last: limit },
     skip: !agentId,
     fetchPolicy: "network-only",
   })
@@ -121,22 +123,22 @@ export function useAgentLogs(
       if (!appended) return
 
       client.cache.updateQuery(
-        { query: AGENT_LOGS_QUERY, variables: { agentId, limit } },
-        (old: { agentLogs?: RawAgentLog[] } | null) => {
-          const existing = old?.agentLogs ?? []
+        { query: AGENT_LOGS_QUERY, variables: { agentId, last: limit } },
+        (old: { agentLogs?: { nodes?: RawAgentLog[] } } | null) => {
+          const existing = old?.agentLogs?.nodes ?? []
           if (existing.some((log) => log.id === appended.id)) return old
 
           const next = [...existing, appended]
             .sort((a, b) => toMillis(a.time) - toMillis(b.time))
             .slice(-limit)
 
-          return { agentLogs: next }
+          return { agentLogs: { ...old?.agentLogs, nodes: next } }
         },
       )
     },
   })
 
-  const raw: RawAgentLog[] = data?.agentLogs ?? []
+  const raw: RawAgentLog[] = data?.agentLogs?.nodes ?? []
   const logs: AgentLog[] = raw.map(toAgentLog)
   return { logs, loading, error: error ?? undefined }
 }

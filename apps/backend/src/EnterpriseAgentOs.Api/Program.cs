@@ -250,7 +250,14 @@ var dashboardGql = builder.Services
     .AddQueryType<GraphQLQueries>()
     .AddMutationType<GraphQLMutations>()
     .AddSubscriptionType<GraphQLSubscriptions>()
-    .AddInMemorySubscriptions();
+    .AddInMemorySubscriptions()
+    .ModifyPagingOptions(options =>
+    {
+        options.DefaultPageSize = 50;
+        options.MaxPageSize = 500;
+        options.IncludeTotalCount = true;
+        options.IncludeNodesField = true;
+    });
 GraphQLRegistrationExtensions.AddDomainTypeExtensions(
     dashboardGql, typeof(Program).Assembly)
     .UseField<DashboardAuthMiddleware>()

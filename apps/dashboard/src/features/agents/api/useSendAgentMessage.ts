@@ -12,22 +12,24 @@ const SEND_MESSAGE = gql`
 `
 
 const AGENT_LOGS_QUERY = gql`
-  query AgentLogs($agentId: UUID!, $limit: Int!) {
-    agentLogs(agentId: $agentId, limit: $limit) {
-      id
-      time
-      type
-      tool
-      integration
-      channel
-      content
-	      durationMs
-	      inputTokens
-	      outputTokens
-	      correlationId
-	    }
-	  }
-	`
+  query AgentLogs($agentId: UUID!, $last: Int!) {
+    agentLogs(agentId: $agentId, last: $last) {
+      nodes {
+        id
+        time
+        type
+        tool
+        integration
+        channel
+        content
+        durationMs
+        inputTokens
+        outputTokens
+        correlationId
+      }
+    }
+  }
+`
 
 export function useSendAgentMessage() {
   const [fn, state] = useMutation(SEND_MESSAGE)
@@ -55,9 +57,12 @@ export function useSendAgentMessage() {
 
       try {
         client.cache.updateQuery(
-          { query: AGENT_LOGS_QUERY, variables: { agentId, limit: 200 } },
-          (old: { agentLogs?: unknown[] } | null) => ({
-            agentLogs: [...((old?.agentLogs as unknown[]) ?? []), optimisticLog],
+          { query: AGENT_LOGS_QUERY, variables: { agentId, last: 200 } },
+          (old: { agentLogs?: { nodes?: unknown[] } } | null) => ({
+            agentLogs: {
+              ...old?.agentLogs,
+              nodes: [...(old?.agentLogs?.nodes ?? []), optimisticLog],
+            },
           }),
         )
       } catch {
