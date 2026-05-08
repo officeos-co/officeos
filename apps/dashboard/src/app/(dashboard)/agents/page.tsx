@@ -254,7 +254,9 @@ export default function AgentsPage() {
                 </TableCell>
                 <TableCell>{agent.created}</TableCell>
                 <TableCell>{agent.updated}</TableCell>
-                <TableCell>
+                <TableCell
+                  onClick={(event: MouseEvent) => event.stopPropagation()}
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={
@@ -273,7 +275,8 @@ export default function AgentsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
-                        onClick={async () => {
+                        onClick={async (event: MouseEvent) => {
+                          event.stopPropagation();
                           await deleteAgent(agent.id);
                           refetch();
                         }}

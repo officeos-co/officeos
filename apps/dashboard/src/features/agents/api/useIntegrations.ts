@@ -1,7 +1,12 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import type { McpServer, CredentialField, Tool } from "../data/integrations";
+import type {
+  McpServer,
+  CredentialField,
+  IntegrationCapability,
+  Tool,
+} from "../data/integrations";
 import { sanitizeSvg } from "@/lib/sanitize-svg";
 
 const MCP_SERVERS_QUERY = gql`
@@ -9,6 +14,7 @@ const MCP_SERVERS_QUERY = gql`
     integrations {
       id
       name
+      provider
       title
       description
       transportType
@@ -28,6 +34,8 @@ const MCP_SERVERS_QUERY = gql`
       documentationUrl
       repositoryUrl
       toolsJson
+      capabilitiesJson
+      entities
       isBuiltin
       createdAt
     }
@@ -39,6 +47,7 @@ const MCP_SERVER_QUERY = gql`
     integration(name: $name) {
       id
       name
+      provider
       title
       description
       transportType
@@ -58,6 +67,8 @@ const MCP_SERVER_QUERY = gql`
       documentationUrl
       repositoryUrl
       toolsJson
+      capabilitiesJson
+      entities
       isBuiltin
       createdAt
     }
@@ -69,6 +80,7 @@ export const AGENT_MCP_SERVERS_QUERY = gql`
     agentIntegrations(agentId: $agentId) {
       id
       name
+      provider
       title
       description
       transportType
@@ -79,6 +91,8 @@ export const AGENT_MCP_SERVERS_QUERY = gql`
       oauthScopesJson
       oauthConfigured
       credentialConfigured
+      capabilitiesJson
+      entities
       isBuiltin
     }
   }
@@ -129,6 +143,7 @@ const SAVE_MCP_CREDENTIAL = gql`
 type RawMcpServer = {
   id: string;
   name: string;
+  provider: string | null;
   title: string | null;
   description: string | null;
   transportType: string | null;
@@ -148,6 +163,8 @@ type RawMcpServer = {
   documentationUrl: string | null;
   repositoryUrl: string | null;
   toolsJson: string | null;
+  capabilitiesJson: string | null;
+  entities: string[] | null;
   isBuiltin: boolean;
   createdAt: string | null;
 };
@@ -182,6 +199,21 @@ function parseTools(json: string | null): Tool[] {
   }
 }
 
+function parseCapabilities(json: string | null): IntegrationCapability[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((capability: Record<string, unknown>) => ({
+      type: String(capability.type ?? ""),
+      name: String(capability.name ?? ""),
+      description: String(capability.description ?? ""),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function parseOAuthScopes(json: string | null): string[] {
   if (!json) return [];
   try {
@@ -209,6 +241,7 @@ function mapIntegration(s: RawMcpServer): McpServer {
   return {
     id: s.id,
     name: s.name,
+    provider: s.provider ?? s.name,
     title: s.title ?? s.name,
     subtitle: s.subtitle ?? "",
     description: s.description ?? "",
@@ -231,6 +264,9 @@ function mapIntegration(s: RawMcpServer): McpServer {
     documentationUrl: s.documentationUrl ?? "",
     repositoryUrl: s.repositoryUrl ?? "",
     tools: parseTools(s.toolsJson),
+    capabilities: parseCapabilities(s.capabilitiesJson),
+    entities: s.entities ?? [],
+    isIndexable: (s.entities ?? []).length > 0,
   };
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BracesIcon,
   CheckCircle2Icon,
+  DatabaseIcon,
   PlusIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -44,12 +45,14 @@ import {
   useIntegrations,
   useSaveIntegrationCredential,
 } from "@/features/agents";
+import { useIntegrationConnections } from "@/features/atlas";
 import type { McpServer } from "@/features/agents/data/integrations";
 import { buildOAuthUrl } from "@/lib/auth-url";
 
 export default function IntegrationsPage() {
   const router = useRouter();
   const { integrations, loading } = useIntegrations();
+  const { connections } = useIntegrationConnections({ pollInterval: 5000 });
   const setCredentials = useSaveIntegrationCredential();
   const deleteIntegration = useDeleteIntegration();
   const [search, setSearch] = useState("");
@@ -206,62 +209,89 @@ export default function IntegrationsPage() {
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
                   <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
                     <Skeleton className="h-5 w-20 rounded-full" />
                   </TableCell>
                 </TableRow>
               ))}
-            {filtered.map((server) => (
-              <TableRow
-                key={server.name}
-                data-state={
-                  selectedNames.has(server.name) ? "selected" : undefined
-                }
-                onClick={() => router.push(`/integrations/${server.name}`)}
-                className="cursor-pointer"
-              >
-                <TableSelectionCell
-                  checked={selectedNames.has(server.name)}
-                  aria-label={`Select ${server.title}`}
-                  onCheckedChange={(checked) =>
-                    toggleConnector(server.name, checked)
+            {filtered.map((server) => {
+              const indexState = getIndexState(server, connections);
+
+              return (
+                <TableRow
+                  key={server.name}
+                  data-state={
+                    selectedNames.has(server.name) ? "selected" : undefined
                   }
-                />
-                <TableCell>
-                  <span
-                    className="flex size-8 items-center justify-center rounded-lg border border-border bg-muted/40 [&>img]:size-5 [&>img]:object-contain [&>svg]:size-5"
-                    dangerouslySetInnerHTML={{ __html: server.logo }}
+                  onClick={() => router.push(`/integrations/${server.name}`)}
+                  className="cursor-pointer"
+                >
+                  <TableSelectionCell
+                    checked={selectedNames.has(server.name)}
+                    aria-label={`Select ${server.title}`}
+                    onCheckedChange={(checked) =>
+                      toggleConnector(server.name, checked)
+                    }
                   />
-                </TableCell>
-                <TableCell>
-                  <span className="font-medium">{server.title}</span>
-                  {server.subtitle && (
-                    <div className="text-xs text-muted-foreground">
-                      {server.subtitle}
+                  <TableCell>
+                    <span
+                      className="flex size-8 items-center justify-center rounded-lg border border-border bg-muted/40 [&>img]:size-5 [&>img]:object-contain [&>svg]:size-5"
+                      dangerouslySetInnerHTML={{ __html: server.logo }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-medium">{server.title}</span>
+                    {server.subtitle && (
+                      <div className="text-xs text-muted-foreground">
+                        {server.subtitle}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{server.category || "Integration"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                        {server.tools.length > 0
+                          ? `${server.tools.length} tools`
+                          : "No tools"}
+                      </span>
+                      {server.isIndexable ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                          <DatabaseIcon className="size-3" />
+                          Indexed data
+                        </span>
+                      ) : null}
                     </div>
-                  )}
-                </TableCell>
-                <TableCell>{server.category || "Integration"}</TableCell>
-                <TableCell>
-                  {server.tools.length > 0
-                    ? `${server.tools.length} tools`
-                    : "No tools"}
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    Tool policies
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                    <CheckCircle2Icon className="size-3" />
-                    Connected
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {server.isIndexable
+                        ? "Tool policies and data mode"
+                        : "Tool policies"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <CheckCircle2Icon className="size-3" />
+                        Connected
+                      </span>
+                      {server.isIndexable ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+                          <DatabaseIcon className="size-3" />
+                          {indexState.label}
+                        </span>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="p-0">
+                <TableCell colSpan={7} className="p-0">
                   <EmptyState message="No integrations found." />
                 </TableCell>
               </TableRow>
@@ -314,4 +344,42 @@ export default function IntegrationsPage() {
       )}
     </>
   );
+}
+
+function getIndexState(
+  integration: Pick<McpServer, "provider" | "name">,
+  connections: Array<{
+    provider: string;
+    status: string;
+    entityStatuses: Array<{ recordCount: number }>;
+  }>,
+) {
+  const matching = connections.filter((connection) =>
+    providerMatches(connection.provider, integration.provider || integration.name),
+  );
+  const records = matching.reduce(
+    (sum, connection) =>
+      sum +
+      connection.entityStatuses.reduce(
+        (entitySum, entity) => entitySum + entity.recordCount,
+        0,
+      ),
+    0,
+  );
+  if (matching.some((connection) => connection.status === "Indexing")) {
+    return { label: "Indexing" };
+  }
+  if (matching.some((connection) => connection.status === "Ready") || records > 0) {
+    return { label: "Indexed" };
+  }
+  if (matching.some((connection) => connection.status === "Failed")) {
+    return { label: "Index failed" };
+  }
+  return { label: "Indexable" };
+}
+
+function providerMatches(left: string, right: string) {
+  const normalize = (value: string) =>
+    value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalize(left) === normalize(right);
 }
