@@ -29,7 +29,7 @@ export function useAgentBindings(agentId: string): {
     CHANNEL_CONNECTIONS_QUERY,
   );
 
-  const skillSlugs = (mcpData?.agentMcpServers ?? []).map(
+  const skillSlugs = (mcpData?.agentIntegrations ?? []).map(
     (s: { name: string }) => s.name,
   );
 

@@ -150,6 +150,33 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.ToTable("Agents");
                 });
 
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentIntegrationEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IntegrationName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("AgentId", "IntegrationName")
+                        .IsUnique();
+
+                    b.ToTable("AgentIntegrations", (string)null);
+                });
+
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentLogEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -212,33 +239,6 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.HasIndex("AgentId", "Time");
 
                     b.ToTable("AgentLogs");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentMcpServerEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("McpServerName")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("AgentId", "McpServerName")
-                        .IsUnique();
-
-                    b.ToTable("AgentMcpServers");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentMemoryEntity", b =>
@@ -552,280 +552,6 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.ToTable("AgentToolPermissions");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasActivityEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConnectionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DetailsJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Entity")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<bool>("Success")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConnectionId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.ToTable("AtlasActivity");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedById")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("EntitiesJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("RepositoriesJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WorkspaceName")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedById");
-
-                    b.HasIndex("Provider");
-
-                    b.ToTable("AtlasConnectorConnections");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasEntityStatusEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConnectionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Entity")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastSyncedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("RecordCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConnectionId", "Entity")
-                        .IsUnique();
-
-                    b.ToTable("AtlasEntityStatuses");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasIndexJobEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ConnectionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<int>("RecordsIndexed")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConnectionId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("AtlasIndexJobs");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasIndexedRecordEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConnectionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Entity")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("ExternalId")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<DateTime?>("ExternalUpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RawJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("SearchText")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConnectionId", "Entity");
-
-                    b.HasIndex("ConnectionId", "Entity", "ExternalId")
-                        .IsUnique();
-
-                    b.ToTable("AtlasIndexedRecords");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasRequestHistoryEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<Guid>("ConnectionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DurationMs")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Entity")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ParamsJson")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<bool>("Success")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConnectionId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.ToTable("AtlasRequestHistory");
-                });
-
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.BrowserResourceEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -968,7 +694,104 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.ToTable("DeviceCodes");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.McpCredentialEntity", b =>
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationActivityEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Entity")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("IntegrationActivity", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EntitiesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("RepositoriesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WorkspaceName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("Provider");
+
+                    b.ToTable("IntegrationConnections", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationCredentialEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -982,20 +805,20 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasMaxLength(16384)
                         .HasColumnType("character varying(16384)");
 
-                    b.Property<string>("McpServerName")
+                    b.Property<string>("IntegrationName")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("McpServerName")
+                    b.HasIndex("IntegrationName")
                         .IsUnique();
 
-                    b.ToTable("McpCredentials");
+                    b.ToTable("IntegrationCredentials", (string)null);
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.McpServerEntity", b =>
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationDefinitionEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1014,6 +837,9 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
+
+                    b.Property<string>("CapabilitiesJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Category")
                         .HasMaxLength(64)
@@ -1037,6 +863,10 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<string>("EntitiesJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<bool>("IsBuiltin")
                         .HasColumnType("boolean");
 
@@ -1044,6 +874,11 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -1080,7 +915,184 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("McpServers");
+                    b.ToTable("Integrations", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationIndexEntityStatusEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecordCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId", "Entity")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationIndexEntityStatuses", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationIndexJobEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<int>("RecordsIndexed")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("IntegrationIndexJobs", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationIndexedRecordEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime?>("ExternalUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RawJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId", "Entity");
+
+                    b.HasIndex("ConnectionId", "Entity", "ExternalId")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationIndexedRecords", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationRequestHistoryEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ParamsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("IntegrationRequestHistory", (string)null);
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntity", b =>
@@ -1637,72 +1649,6 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                     b.Navigation("Agent");
                 });
 
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasActivityEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", "Connection")
-                        .WithMany()
-                        .HasForeignKey("ConnectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Connection");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.UserEntity", "CreatedBy")
-                        .WithMany()
-                        .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedBy");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasEntityStatusEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", "Connection")
-                        .WithMany()
-                        .HasForeignKey("ConnectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Connection");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasIndexJobEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", "Connection")
-                        .WithMany()
-                        .HasForeignKey("ConnectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Connection");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasIndexedRecordEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", "Connection")
-                        .WithMany()
-                        .HasForeignKey("ConnectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Connection");
-                });
-
-            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasRequestHistoryEntity", b =>
-                {
-                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AtlasConnectorConnectionEntity", "Connection")
-                        .WithMany()
-                        .HasForeignKey("ConnectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Connection");
-                });
-
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.BrowserResourceEntity", b =>
                 {
                     b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.AgentEntity", "CurrentAgent")
@@ -1737,6 +1683,72 @@ namespace EnterpriseAgentOs.Infrastructure.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationActivityEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.UserEntity", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationIndexEntityStatusEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationIndexJobEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationIndexedRecordEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
+                });
+
+            modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationRequestHistoryEntity", b =>
+                {
+                    b.HasOne("EnterpriseAgentOs.Infrastructure.Common.Entities.IntegrationConnectionEntity", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
                 });
 
             modelBuilder.Entity("EnterpriseAgentOs.Infrastructure.Common.Entities.MemoryStoreEntity", b =>

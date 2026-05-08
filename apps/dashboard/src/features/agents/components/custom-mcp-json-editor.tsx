@@ -14,9 +14,9 @@ import { EditorView } from "@codemirror/view";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  useDeleteMcpServer,
-  useRegisterMcpServer,
-  useSaveMcpCredential,
+  useDeleteIntegration,
+  useRegisterIntegration,
+  useSaveIntegrationCredential,
 } from "../api/useIntegrations";
 import type { McpServer } from "../data/integrations";
 import {
@@ -51,9 +51,9 @@ export function CustomMcpJsonEditor({
   servers: McpServer[];
   loading?: boolean;
 }) {
-  const registerMcpServer = useRegisterMcpServer();
-  const saveCredential = useSaveMcpCredential();
-  const deleteMcpServer = useDeleteMcpServer();
+  const registerIntegration = useRegisterIntegration();
+  const saveCredential = useSaveIntegrationCredential();
+  const deleteIntegration = useDeleteIntegration();
   const [json, setJson] = useState("");
   const [dirty, setDirty] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -148,7 +148,7 @@ export function CustomMcpJsonEditor({
     setSaving(true);
     try {
       for (const server of parsedServers) {
-        await registerMcpServer(server.input);
+        await registerIntegration(server.input);
         if (Object.keys(server.credentials).length > 0) {
           await saveCredential(server.name, server.credentials);
         }
@@ -156,14 +156,14 @@ export function CustomMcpJsonEditor({
 
       for (const server of existingCustomServers) {
         if (!nextNames.has(server.name)) {
-          await deleteMcpServer(server.name);
+          await deleteIntegration(server.name);
         }
       }
 
       toast.success(
         parsedServers.length === 1
           ? `Saved ${parsedServers[0].title}`
-          : `Saved ${parsedServers.length} custom MCP servers`,
+          : `Saved ${parsedServers.length} custom MCP integrations`,
       );
       setDirty(false);
     } catch (error) {
@@ -179,7 +179,7 @@ export function CustomMcpJsonEditor({
         <div className="min-w-0">
           <h2 className="text-sm font-medium">Configuration JSON</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            {existingCustomServers.length} custom MCP server
+            {existingCustomServers.length} custom MCP integration
             {existingCustomServers.length === 1 ? "" : "s"} configured
           </p>
         </div>

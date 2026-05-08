@@ -39,7 +39,7 @@ export type AtlasHistory = {
   createdAt: string;
 };
 
-export type AtlasActivity = {
+export type IntegrationActivity = {
   id: string;
   connectionId: string;
   type: string;
@@ -49,6 +49,9 @@ export type AtlasActivity = {
   success: boolean;
   createdAt: string;
 };
+
+/** @deprecated Use IntegrationActivity instead */
+export type AtlasActivity = IntegrationActivity;
 
 export type AtlasIndexJob = {
   id: string;
@@ -101,7 +104,7 @@ export type AtlasConnectorType = {
 };
 
 const CONNECTION_FIELDS = gql`
-  fragment AtlasConnectionFields on AtlasConnectorConnectionRecord {
+  fragment IntegrationConnectionFields on IntegrationConnectionRecord {
     id
     provider
     workspaceName
@@ -125,25 +128,25 @@ const CONNECTION_FIELDS = gql`
 
 const ATLAS_CONNECTIONS = gql`
   ${CONNECTION_FIELDS}
-  query AtlasConnections {
-    atlasConnections(filter: {}) {
-      ...AtlasConnectionFields
+  query IntegrationConnections {
+    integrationConnections(filter: {}) {
+      ...IntegrationConnectionFields
     }
   }
 `;
 
 const ATLAS_CONNECTION = gql`
   ${CONNECTION_FIELDS}
-  query AtlasConnection($id: UUID!) {
-    atlasConnection(filter: { id: $id }) {
-      ...AtlasConnectionFields
+  query IntegrationConnection($id: UUID!) {
+    integrationConnection(filter: { id: $id }) {
+      ...IntegrationConnectionFields
     }
   }
 `;
 
 const ATLAS_CONNECTOR_TYPES = gql`
-  query AtlasConnectorTypes {
-    atlasConnectorTypes {
+  query IntegrationDefinitions {
+    integrationDefinitions {
       name
       provider
       title
@@ -166,8 +169,8 @@ const ATLAS_CONNECTOR_TYPES = gql`
 `;
 
 const ATLAS_HISTORY = gql`
-  query AtlasRequestHistory($connectionId: UUID, $limit: Int!) {
-    atlasRequestHistory(filter: { connectionId: $connectionId, limit: $limit }) {
+  query IntegrationRequestHistory($connectionId: UUID, $limit: Int!) {
+    integrationRequestHistory(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
       type
@@ -183,8 +186,8 @@ const ATLAS_HISTORY = gql`
 `;
 
 const ATLAS_ACTIVITY = gql`
-  query AtlasActivity($connectionId: UUID, $limit: Int!) {
-    atlasActivity(filter: { connectionId: $connectionId, limit: $limit }) {
+  query IntegrationActivity($connectionId: UUID, $limit: Int!) {
+    integrationActivity(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
       type
@@ -198,8 +201,8 @@ const ATLAS_ACTIVITY = gql`
 `;
 
 const ATLAS_INDEX_JOBS = gql`
-  query AtlasIndexJobs($connectionId: UUID!, $limit: Int!) {
-    atlasIndexJobs(filter: { connectionId: $connectionId, limit: $limit }) {
+  query IntegrationIndexJobs($connectionId: UUID!, $limit: Int!) {
+    integrationIndexJobs(filter: { connectionId: $connectionId, limit: $limit }) {
       id
       connectionId
       status
@@ -213,14 +216,14 @@ const ATLAS_INDEX_JOBS = gql`
 `;
 
 const ATLAS_INDEXED_RECORDS = gql`
-  query AtlasIndexedRecords(
+  query IntegrationIndexedRecords(
     $connectionId: UUID!
     $entity: String!
     $query: String
     $cursor: String
     $limit: Int!
   ) {
-    atlasIndexedRecords(
+    integrationIndexedRecords(
       filter: {
         connectionId: $connectionId
         entity: $entity
@@ -248,8 +251,8 @@ const ATLAS_INDEXED_RECORDS = gql`
 `;
 
 const ATLAS_INDEXED_RECORD = gql`
-  query AtlasIndexedRecord($id: UUID!) {
-    atlasIndexedRecord(filter: { id: $id }) {
+  query IntegrationIndexedRecord($id: UUID!) {
+    integrationIndexedRecord(filter: { id: $id }) {
       id
       connectionId
       entity
@@ -266,23 +269,23 @@ const ATLAS_INDEXED_RECORD = gql`
 
 const CREATE_GITHUB_CONNECTION = gql`
   ${CONNECTION_FIELDS}
-  mutation CreateAtlasGitHubConnection($input: CreateAtlasGitHubConnectionInput!) {
-    createAtlasGitHubConnection(input: $input) {
-      ...AtlasConnectionFields
+  mutation CreateGitHubIntegrationConnection($input: CreateGitHubIntegrationConnectionInput!) {
+    createGitHubIntegrationConnection(input: $input) {
+      ...IntegrationConnectionFields
     }
   }
 `;
 
 const START_ATLAS_INDEX = gql`
-  mutation StartAtlasIndex($connectionId: UUID!) {
-    startAtlasIndex(connectionId: $connectionId) {
+  mutation StartIntegrationIndex($connectionId: UUID!) {
+    startIntegrationIndex(connectionId: $connectionId) {
       id
       status
     }
   }
 `;
 
-export function useAtlasConnections({
+export function useIntegrationConnections({
   pollInterval,
 }: { pollInterval?: number } = {}) {
   const { data, loading, error, refetch } = useQuery(ATLAS_CONNECTIONS, {
@@ -290,14 +293,14 @@ export function useAtlasConnections({
     pollInterval,
   });
   return {
-    connections: (data?.atlasConnections ?? []) as AtlasConnection[],
+    connections: (data?.integrationConnections ?? []) as AtlasConnection[],
     loading,
     error: error ?? undefined,
     refetch,
   };
 }
 
-export function useAtlasConnection(
+export function useIntegrationConnection(
   id?: string | null,
   { pollInterval }: { pollInterval?: number } = {},
 ) {
@@ -308,18 +311,18 @@ export function useAtlasConnection(
     pollInterval,
   });
   return {
-    connection: (data?.atlasConnection ?? null) as AtlasConnection | null,
+    connection: (data?.integrationConnection ?? null) as AtlasConnection | null,
     loading,
     error: error ?? undefined,
     refetch,
   };
 }
 
-export function useAtlasConnectorTypes() {
+export function useIntegrationDefinitions() {
   const { data, loading, error, refetch } = useQuery(ATLAS_CONNECTOR_TYPES, {
     fetchPolicy: "cache-and-network",
   });
-  const connectorTypes = ((data?.atlasConnectorTypes ?? []) as AtlasConnectorType[]).map(
+  const connectorTypes = ((data?.integrationDefinitions ?? []) as AtlasConnectorType[]).map(
     (connectorType) => ({
       ...connectorType,
       logo: sanitizeSvg(connectorType.logo ?? ""),
@@ -343,14 +346,14 @@ export function useAtlasHistory(
     pollInterval,
   });
   return {
-    history: (data?.atlasRequestHistory ?? []) as AtlasHistory[],
+    history: (data?.integrationRequestHistory ?? []) as AtlasHistory[],
     loading,
     error: error ?? undefined,
     refetch,
   };
 }
 
-export function useAtlasActivity(
+export function useIntegrationActivity(
   connectionId?: string | null,
   { limit = 100, pollInterval }: { limit?: number; pollInterval?: number } = {},
 ) {
@@ -360,14 +363,14 @@ export function useAtlasActivity(
     pollInterval,
   });
   return {
-    activity: (data?.atlasActivity ?? []) as AtlasActivity[],
+    activity: (data?.integrationActivity ?? []) as IntegrationActivity[],
     loading,
     error: error ?? undefined,
     refetch,
   };
 }
 
-export function useAtlasIndexJobs(
+export function useIntegrationIndexJobs(
   connectionId?: string | null,
   { limit = 20, pollInterval }: { limit?: number; pollInterval?: number } = {},
 ) {
@@ -378,14 +381,14 @@ export function useAtlasIndexJobs(
     pollInterval,
   });
   return {
-    jobs: (data?.atlasIndexJobs ?? []) as AtlasIndexJob[],
+    jobs: (data?.integrationIndexJobs ?? []) as AtlasIndexJob[],
     loading,
     error: error ?? undefined,
     refetch,
   };
 }
 
-export function useAtlasIndexedRecords({
+export function useIntegrationIndexedRecords({
   connectionId,
   entity,
   query,
@@ -410,7 +413,7 @@ export function useAtlasIndexedRecords({
     fetchPolicy: "cache-and-network",
   });
   return {
-    page: (data?.atlasIndexedRecords ?? {
+    page: (data?.integrationIndexedRecords ?? {
       records: [],
       hasMore: false,
       cursor: null,
@@ -421,21 +424,21 @@ export function useAtlasIndexedRecords({
   };
 }
 
-export function useAtlasIndexedRecord(id?: string | null) {
+export function useIntegrationIndexedRecord(id?: string | null) {
   const { data, loading, error, refetch } = useQuery(ATLAS_INDEXED_RECORD, {
     variables: { id },
     skip: !id,
     fetchPolicy: "cache-and-network",
   });
   return {
-    record: (data?.atlasIndexedRecord ?? null) as AtlasIndexedRecord | null,
+    record: (data?.integrationIndexedRecord ?? null) as AtlasIndexedRecord | null,
     loading,
     error: error ?? undefined,
     refetch,
   };
 }
 
-export function useCreateAtlasGitHubConnection() {
+export function useCreateGitHubIntegrationConnection() {
   const [mutate, state] = useMutation(CREATE_GITHUB_CONNECTION, {
     refetchQueries: [{ query: ATLAS_CONNECTIONS }],
   });
@@ -447,13 +450,13 @@ export function useCreateAtlasGitHubConnection() {
       entities: string[];
     }) => {
       const result = await mutate({ variables: { input } });
-      return result.data?.createAtlasGitHubConnection as AtlasConnection;
+      return result.data?.createGitHubIntegrationConnection as AtlasConnection;
     },
     ...state,
   };
 }
 
-export function useStartAtlasIndex() {
+export function useStartIntegrationIndex() {
   const [mutate, state] = useMutation(START_ATLAS_INDEX, {
     refetchQueries: [{ query: ATLAS_CONNECTIONS }],
   });
@@ -462,6 +465,33 @@ export function useStartAtlasIndex() {
     ...state,
   };
 }
+
+/** @deprecated Use useIntegrationConnections instead */
+export const useAtlasConnections = useIntegrationConnections;
+
+/** @deprecated Use useIntegrationConnection instead */
+export const useAtlasConnection = useIntegrationConnection;
+
+/** @deprecated Use useIntegrationDefinitions instead */
+export const useAtlasConnectorTypes = useIntegrationDefinitions;
+
+/** @deprecated Use useIntegrationActivity instead */
+export const useAtlasActivity = useIntegrationActivity;
+
+/** @deprecated Use useIntegrationIndexJobs instead */
+export const useAtlasIndexJobs = useIntegrationIndexJobs;
+
+/** @deprecated Use useIntegrationIndexedRecords instead */
+export const useAtlasIndexedRecords = useIntegrationIndexedRecords;
+
+/** @deprecated Use useIntegrationIndexedRecord instead */
+export const useAtlasIndexedRecord = useIntegrationIndexedRecord;
+
+/** @deprecated Use useCreateGitHubIntegrationConnection instead */
+export const useCreateAtlasGitHubConnection = useCreateGitHubIntegrationConnection;
+
+/** @deprecated Use useStartIntegrationIndex instead */
+export const useStartAtlasIndex = useStartIntegrationIndex;
 
 export function parseJsonArray(value: string): string[] {
   try {

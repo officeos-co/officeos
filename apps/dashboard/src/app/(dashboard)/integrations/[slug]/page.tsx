@@ -1,23 +1,28 @@
 "use client";
 
 import { use, useState } from "react";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buildOAuthUrl } from "@/lib/auth-url";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
+import { PermissionModeSelect } from "@/components/ui/permission-mode-select";
+import type { PermissionMode } from "@/components/ui/permission-mode-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CredentialDialog,
+  useDeleteIntegration,
   useIntegration,
-  useSetSkillCredentials,
+  useSaveIntegrationCredential,
 } from "@/features/agents";
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
+  ChevronDownIcon,
   ExternalLinkIcon,
   KeyIcon,
+  Trash2Icon,
 } from "lucide-react";
 
 export default function IntegrationDetailPage({
@@ -25,17 +30,20 @@ export default function IntegrationDetailPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const router = useRouter();
   const { slug } = use(params);
   const { integration, loading } = useIntegration(slug);
-  const setCredentials = useSetSkillCredentials();
+  const setCredentials = useSaveIntegrationCredential();
+  const deleteIntegration = useDeleteIntegration();
   const [credDialogOpen, setCredDialogOpen] = useState(false);
+  const [toolPolicies, setToolPolicies] = useState<Record<string, PermissionMode>>({});
 
   if (!integration) {
     if (loading) {
       return (
         <>
           <PageHeader
-            group="MCP Servers"
+            group="Integrations"
             page="Loading..."
             width="thin"
           />
@@ -71,34 +79,51 @@ export default function IntegrationDetailPage({
     window.location.assign(buildOAuthUrl(integration.oauthProvider, returnTo));
   }
 
+  async function handleUninstall() {
+    if (!integration || integration.isBuiltin) return;
+    await deleteIntegration(integration.name);
+    router.push("/integrations");
+  }
+
   return (
     <>
       <PageHeader
-        group="MCP Servers"
+        group="Integrations"
         page={integration.title}
         width="thin"
         action={
-          hasOAuth ? (
+          <div className="flex items-center gap-2">
+            {hasOAuth ? (
+              <Button
+                size="sm"
+                variant={integration.oauthConfigured ? "outline" : "default"}
+                onClick={handleOAuthConnect}
+              >
+                <KeyIcon className="size-4" />
+                {integration.oauthConfigured
+                  ? `Reconnect ${integration.oauthProvider}`
+                  : `Connect ${integration.oauthProvider}`}
+              </Button>
+            ) : hasCredentialFields ? (
+              <Button
+                size="sm"
+                variant={integration.configured ? "outline" : "default"}
+                onClick={() => setCredDialogOpen(true)}
+              >
+                <KeyIcon className="size-4" />
+                {integration.configured ? "Reconfigure" : "Configure"}
+              </Button>
+            ) : null}
             <Button
               size="sm"
-              variant={integration.oauthConfigured ? "outline" : "default"}
-              onClick={handleOAuthConnect}
+              variant="outline"
+              disabled={integration.isBuiltin}
+              onClick={handleUninstall}
             >
-              <KeyIcon className="size-4" />
-              {integration.oauthConfigured
-                ? `Reconnect ${integration.oauthProvider}`
-                : `Connect ${integration.oauthProvider}`}
+              <Trash2Icon className="size-4" />
+              Uninstall
             </Button>
-          ) : hasCredentialFields ? (
-            <Button
-              size="sm"
-              variant={integration.configured ? "outline" : "default"}
-              onClick={() => setCredDialogOpen(true)}
-            >
-              <KeyIcon className="size-4" />
-              {integration.configured ? "Reconfigure" : "Configure"}
-            </Button>
-          ) : undefined
+          </div>
         }
       />
 
@@ -144,28 +169,60 @@ export default function IntegrationDetailPage({
         </p>
 
         {integration.tools.length > 0 && (
-          <div className="rounded-xl border border-border bg-card">
-            <div className="border-b border-border px-4 py-3">
-              <span className="text-sm font-medium">Tools</span>
-              <span className="ml-2 text-xs text-muted-foreground">
-                {integration.tools.length}
-              </span>
+          <div className="rounded-lg border border-border bg-card">
+            <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ChevronDownIcon className="size-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Tool permissions</span>
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    {integration.tools.length}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Configure which tools agents may use when this integration is attached.
+                </p>
+              </div>
+              <PermissionModeSelect
+                value="allow"
+                onChange={(value) => {
+                  const next = Object.fromEntries(
+                    integration.tools.map((tool) => [tool.name, value]),
+                  );
+                  setToolPolicies(next);
+                }}
+              />
             </div>
             {integration.tools.map((tool, idx) => (
               <div
                 key={tool.name}
                 className={cn(
-                  "flex items-center gap-4 px-4 py-3",
+                  "grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center",
                   idx < integration.tools.length - 1 &&
                     "border-b border-border",
                 )}
               >
-                <code className="shrink-0 rounded bg-muted px-2 py-1 font-mono text-xs">
-                  {tool.name}
-                </code>
-                <span className="text-sm text-foreground/70">
-                  {tool.description}
-                </span>
+                <div className="min-w-0">
+                  <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
+                    {tool.name}
+                  </code>
+                  {tool.description && (
+                    <p className="mt-2 text-sm leading-5 text-foreground/70">
+                      {tool.description}
+                    </p>
+                  )}
+                </div>
+                <div onClick={(event) => event.stopPropagation()}>
+                  <PermissionModeSelect
+                    value={toolPolicies[tool.name] ?? "allow"}
+                    onChange={(value) =>
+                      setToolPolicies((current) => ({
+                        ...current,
+                        [tool.name]: value,
+                      }))
+                    }
+                  />
+                </div>
               </div>
             ))}
           </div>

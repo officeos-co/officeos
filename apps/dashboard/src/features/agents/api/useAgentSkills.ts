@@ -4,22 +4,22 @@ import { gql, useMutation } from "@apollo/client";
 import { AGENT_MCP_SERVERS_QUERY } from "./useIntegrations";
 
 const ASSIGN_MCP_SERVER = gql`
-  mutation AssignMcpServerToAgent($agentId: UUID!, $serverName: String!) {
-    assignMcpServerToAgent(agentId: $agentId, serverName: $serverName)
+  mutation AssignIntegrationToAgent($agentId: UUID!, $integrationName: String!) {
+    assignIntegrationToAgent(agentId: $agentId, integrationName: $integrationName)
   }
 `;
 
 const UNASSIGN_MCP_SERVER = gql`
-  mutation UnassignMcpServerFromAgent($agentId: UUID!, $serverName: String!) {
-    unassignMcpServerFromAgent(agentId: $agentId, serverName: $serverName)
+  mutation UnassignIntegrationFromAgent($agentId: UUID!, $integrationName: String!) {
+    unassignIntegrationFromAgent(agentId: $agentId, integrationName: $integrationName)
   }
 `;
 
 export function useAssignMcpServerToAgent() {
   const [fn] = useMutation(ASSIGN_MCP_SERVER);
-  return async (agentId: string, serverName: string) => {
+  return async (agentId: string, integrationName: string) => {
     await fn({
-      variables: { agentId, serverName },
+      variables: { agentId, integrationName },
       refetchQueries: [
         { query: AGENT_MCP_SERVERS_QUERY, variables: { agentId } },
       ],
@@ -29,9 +29,9 @@ export function useAssignMcpServerToAgent() {
 
 export function useUnassignMcpServerFromAgent() {
   const [fn] = useMutation(UNASSIGN_MCP_SERVER);
-  return async (agentId: string, serverName: string) => {
+  return async (agentId: string, integrationName: string) => {
     await fn({
-      variables: { agentId, serverName },
+      variables: { agentId, integrationName },
       refetchQueries: [
         { query: AGENT_MCP_SERVERS_QUERY, variables: { agentId } },
       ],

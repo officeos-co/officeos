@@ -40,9 +40,9 @@ import {
   ConnectorDirectoryDialog,
   CustomMcpJsonEditor,
   sortIntegrations,
-  useDeleteMcpServer,
+  useDeleteIntegration,
   useIntegrations,
-  useSetSkillCredentials,
+  useSaveIntegrationCredential,
 } from "@/features/agents";
 import type { McpServer } from "@/features/agents/data/integrations";
 import { buildOAuthUrl } from "@/lib/auth-url";
@@ -50,8 +50,8 @@ import { buildOAuthUrl } from "@/lib/auth-url";
 export default function IntegrationsPage() {
   const router = useRouter();
   const { integrations, loading } = useIntegrations();
-  const setCredentials = useSetSkillCredentials();
-  const deleteMcpServer = useDeleteMcpServer();
+  const setCredentials = useSaveIntegrationCredential();
+  const deleteIntegration = useDeleteIntegration();
   const [search, setSearch] = useState("");
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
   const [directoryOpen, setDirectoryOpen] = useState(false);
@@ -113,7 +113,7 @@ export default function IntegrationsPage() {
   }
 
   async function removeSelectedConnectors() {
-    await Promise.all(selectedRemovableNames.map((name) => deleteMcpServer(name)));
+    await Promise.all(selectedRemovableNames.map((name) => deleteIntegration(name)));
     setSelectedNames(new Set());
   }
 
@@ -129,8 +129,8 @@ export default function IntegrationsPage() {
     <>
       <PageHeader
         group="Managed Agents"
-        page="Connectors"
-        subtitle="Manage MCP connector resources agents can attach during creation."
+        page="Integrations"
+        subtitle="Configure connected integrations, tools, and indexed knowledge for agents."
         width="wide"
         action={
           <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ export default function IntegrationsPage() {
             </Button>
             <Button size="sm" onClick={() => setDirectoryOpen(true)}>
               <PlusIcon className="size-4" />
-              Add connector
+              Add integration
             </Button>
           </div>
         }
@@ -152,7 +152,7 @@ export default function IntegrationsPage() {
       <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
         <div className="flex min-h-9 items-center justify-between gap-2">
           <SearchInput
-            placeholder="Search connectors..."
+            placeholder="Search integrations..."
             value={search}
             onChange={setSearch}
           />
@@ -180,7 +180,8 @@ export default function IntegrationsPage() {
               <TableHead className="w-12" />
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Tools</TableHead>
+              <TableHead>Capabilities</TableHead>
+              <TableHead>Configuration</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -239,8 +240,17 @@ export default function IntegrationsPage() {
                     </div>
                   )}
                 </TableCell>
-                <TableCell>{server.category || "Connector"}</TableCell>
-                <TableCell>{server.tools.length}</TableCell>
+                <TableCell>{server.category || "Integration"}</TableCell>
+                <TableCell>
+                  {server.tools.length > 0
+                    ? `${server.tools.length} tools`
+                    : "No tools"}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    Tool policies
+                  </span>
+                </TableCell>
                 <TableCell>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                     <CheckCircle2Icon className="size-3" />
@@ -252,7 +262,7 @@ export default function IntegrationsPage() {
             {!loading && filtered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="p-0">
-                  <EmptyState message="No connectors found." />
+                  <EmptyState message="No integrations found." />
                 </TableCell>
               </TableRow>
             )}
@@ -275,7 +285,7 @@ export default function IntegrationsPage() {
           )}
         >
           <DialogHeader>
-            <DialogTitle>Custom MCP servers</DialogTitle>
+            <DialogTitle>Custom MCP integrations</DialogTitle>
             <DialogDescription>
               Import custom MCP server definitions from JSON.
             </DialogDescription>
