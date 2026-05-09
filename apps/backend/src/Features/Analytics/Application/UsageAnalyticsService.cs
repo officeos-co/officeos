@@ -16,7 +16,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
         _env = env;
     }
 
-    public async Task<UsageAnalyticsDto> GetForUserAsync(Guid userId, UsageAnalyticsInput input, CancellationToken ct = default)
+    public async Task<UsageAnalyticsResult> GetForUserAsync(Guid userId, UsageAnalyticsInput input, CancellationToken ct = default)
     {
         var (from, toExclusive) = NormalizeRange(input.From, input.To);
         var sub = await _userBilling.GetSubscriptionAsync(userId, ct);
@@ -46,7 +46,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
             }
         }
 
-        return new UsageAnalyticsDto(
+        return new UsageAnalyticsResult(
             from,
             toExclusive,
             totalTokens,
@@ -55,13 +55,13 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
             points.Values.OrderBy(p => p.Date).ToList());
     }
 
-    private static Dictionary<DateTime, UsageAnalyticsPointDto> BuildEmptyPoints(DateTime from, DateTime toExclusive)
+    private static Dictionary<DateTime, UsageAnalyticsPoint> BuildEmptyPoints(DateTime from, DateTime toExclusive)
     {
         return Enumerable.Range(0, (int)Math.Ceiling((toExclusive - from).TotalDays))
             .Select(offset =>
             {
                 var date = from.Date.AddDays(offset);
-                return new UsageAnalyticsPointDto(date, 0, 0);
+                return new UsageAnalyticsPoint(date, 0, 0);
             })
             .ToDictionary(p => p.Date.Date);
     }
@@ -80,7 +80,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
         return (start, end);
     }
 
-    private UsageCostBreakdownDto CalculateCost(
+    private UsageCostBreakdown CalculateCost(
         UserSubscription sub,
         long rangeCredits,
         DateTime from,
@@ -101,7 +101,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
 
         var included = RoundCents(includedCents);
         var onDemand = RoundCents(onDemandCents);
-        return new UsageCostBreakdownDto(
+        return new UsageCostBreakdown(
             included + onDemand,
             included,
             onDemand,

@@ -7,13 +7,13 @@ public class AgentLogSubscriptions
 {
     [Subscribe(With = nameof(SubscribeAgentLogAppended))]
     [GraphQLDescription("Streams newly appended log entries for one agent.")]
-    public AgentLogDto AgentLogAppended([EventMessage] AgentLogDto log) => log;
+    public AgentLogProjection AgentLogAppended([EventMessage] AgentLogProjection log) => log;
 
-    public async ValueTask<ISourceStream<AgentLogDto>> SubscribeAgentLogAppended(
+    public async ValueTask<ISourceStream<AgentLogProjection>> SubscribeAgentLogAppended(
         Guid agentId,
         [Service] ITopicEventReceiver receiver,
         CancellationToken ct)
     {
-        return await receiver.SubscribeAsync<AgentLogDto>(AgentLogTopics.AgentLogAppended(agentId), ct);
+        return await receiver.SubscribeAsync<AgentLogProjection>(AgentLogTopics.AgentLogAppended(agentId), ct);
     }
 }

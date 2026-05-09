@@ -19,12 +19,12 @@ internal sealed class GdprService : IGdprService
         _sessionRepository = sessions;
     }
 
-    public async Task<GdprExportDto> ExportAsync(Guid userId, CancellationToken ct = default)
+    public async Task<GdprExport> ExportAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await _userRepository.GetByAsync(new UserFilter { Id = userId }, ct)
             ?? throw new InvalidOperationException($"User {userId} not found");
 
-        var userDto = new GdprUserDto(
+        var userExport = new GdprUserExport(
             user.Id,
             user.Email,
             user.Name,
@@ -35,7 +35,7 @@ internal sealed class GdprService : IGdprService
         var agentIds = agentRecords.Select(a => a.Id).ToList();
 
         var agents = agentRecords
-            .Select(a => new GdprAgentDto(a.Id, a.Name, a.Provider, a.Model, a.Status.ToStorageString(), a.CreatedAt))
+            .Select(a => new GdprAgentExport(a.Id, a.Name, a.Provider, a.Model, a.Status.ToStorageString(), a.CreatedAt))
             .ToList();
 
         var conversationTypes = new List<AgentLogType>
@@ -50,7 +50,7 @@ internal sealed class GdprService : IGdprService
             ct);
         var conversations = conversationLogs
             .Where(l => l.AgentId.HasValue)
-            .Select(l => new GdprConversationDto(
+            .Select(l => new GdprConversationExport(
                 l.Id,
                 l.AgentId!.Value,
                 l.Type == AgentLogType.MessageIn ? "user"
@@ -68,7 +68,7 @@ internal sealed class GdprService : IGdprService
             ct);
         var auditEntries = toolCallLogs
             .Where(l => l.AgentId.HasValue)
-            .Select(l => new GdprAuditEntryDto(
+            .Select(l => new GdprAuditEntryExport(
                 l.Id,
                 l.AgentId!.Value,
                 l.Integration ?? string.Empty,
@@ -79,7 +79,7 @@ internal sealed class GdprService : IGdprService
                 l.Time))
             .ToList();
 
-        return new GdprExportDto(userDto, agents, conversations, auditEntries);
+        return new GdprExport(userExport, agents, conversations, auditEntries);
     }
 
     public async Task PurgeAsync(Guid userId, CancellationToken ct = default)

@@ -45,6 +45,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\analyzers\EnterpriseAgentOs.Architecture.Analyzers\EnterpriseAgentOs.Architecture.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="..\scripts\google-docs-mcp-oauth-adapter.mjs" Link="scripts\google-docs-mcp-oauth-adapter.mjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

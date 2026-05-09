@@ -35,7 +35,7 @@ public class AuthQueries
     }
 
     [GraphQLDescription("GDPR data export. Returns all user data (profile, agents, conversations, audit entries, skill credentials) as a single payload.")]
-    public async Task<GdprExportDto> ExportMyData(
+    public async Task<GdprExport> ExportMyData(
         [Service] UserContext user,
         [Service] IGdprService gdpr,
         CancellationToken ct)

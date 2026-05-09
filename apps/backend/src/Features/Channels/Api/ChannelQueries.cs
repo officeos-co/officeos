@@ -8,26 +8,26 @@ public class ChannelQueries
     private static string ChannelCacheKey(Guid id, Guid userId) => $"channels:{id}:user:{userId}";
 
     [GraphQLDescription("Lists all channel connections (Slack, Telegram, Discord, etc.) configured by the user.")]
-    public async Task<IReadOnlyList<ChannelConnectionGqlDto>> GetChannelConnections(
+    public async Task<IReadOnlyList<ChannelConnectionPayload>> GetChannelConnections(
         [Service] UserContext user,
         [Service] IChannelRepository repo,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var listKey = ChannelListCacheKey(user.Id);
-        var cached = await cache.GetJsonAsync<IReadOnlyList<ChannelConnectionGqlDto>>(listKey, ct);
+        var cached = await cache.GetJsonAsync<IReadOnlyList<ChannelConnectionPayload>>(listKey, ct);
         if (cached is not null)
             return cached;
 
         var rows = await repo.ListConnectionsAsync(new ChannelConnectionFilter { CreatedById = user.Id }, ct);
-        var result = rows.Select(ChannelGraphQLMapper.ToDto).ToList();
+        var result = rows.Select(ChannelGraphQLMapper.ToPayload).ToList();
 
-        await cache.SetJsonAsync(listKey, (IReadOnlyList<ChannelConnectionGqlDto>)result, ChannelCacheTtl, ct);
+        await cache.SetJsonAsync(listKey, (IReadOnlyList<ChannelConnectionPayload>)result, ChannelCacheTtl, ct);
         return result;
     }
 
     [GraphQLDescription("Returns a single channel connection by ID.")]
-    public async Task<ChannelConnectionGqlDto?> GetChannelConnection(
+    public async Task<ChannelConnectionPayload?> GetChannelConnection(
         Guid id,
         [Service] UserContext user,
         [Service] IChannelRepository repo,
@@ -35,13 +35,13 @@ public class ChannelQueries
         CancellationToken ct)
     {
         var key = ChannelCacheKey(id, user.Id);
-        var cached = await cache.GetJsonAsync<ChannelConnectionGqlDto>(key, ct);
+        var cached = await cache.GetJsonAsync<ChannelConnectionPayload>(key, ct);
         if (cached is not null)
             return cached;
 
         var row = await repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = id, CreatedById = user.Id }, ct);
         if (row is null) return null;
-        var dto = ChannelGraphQLMapper.ToDto(row);
+        var dto = ChannelGraphQLMapper.ToPayload(row);
 
         await cache.SetJsonAsync(key, dto, ChannelCacheTtl, ct);
         return dto;
@@ -54,13 +54,13 @@ public class ChannelQueries
     }
 
     [GraphQLDescription("Lists all channel bindings for a specific agent showing which channels the agent listens on.")]
-    public async Task<IReadOnlyList<AgentChannelBindingGqlDto>> GetAgentChannelBindings(
+    public async Task<IReadOnlyList<AgentChannelBindingPayload>> GetAgentChannelBindings(
         Guid agentId,
         [Service] UserContext user,
         [Service] IChannelService channels,
         CancellationToken ct)
     {
         var rows = await channels.ListBindingsForOwnedAgentAsync(agentId, user.Id, ct);
-        return rows.Select(ChannelGraphQLMapper.ToDto).ToList();
+        return rows.Select(ChannelGraphQLMapper.ToPayload).ToList();
     }
 }

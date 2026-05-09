@@ -2,14 +2,14 @@ namespace EnterpriseAgentOs.Application.Features.Management;
 
 // ── Export DTOs ───────────────────────────────────────────────────────────────
 
-public record GdprUserDto(
+public record GdprUserExport(
     Guid Id,
     string Email,
     string? Name,
     DateTime CreatedAt,
     DateTime LastLoginAt);
 
-public record GdprAgentDto(
+public record GdprAgentExport(
     Guid Id,
     string Name,
     string Provider,
@@ -17,7 +17,7 @@ public record GdprAgentDto(
     string Status,
     DateTime CreatedAt);
 
-public record GdprConversationDto(
+public record GdprConversationExport(
     Guid Id,
     Guid AgentId,
     string Role,
@@ -25,7 +25,7 @@ public record GdprConversationDto(
     string? SessionId,
     DateTime CreatedAt);
 
-public record GdprAuditEntryDto(
+public record GdprAuditEntryExport(
     Guid Id,
     Guid AgentId,
     string SkillName,
@@ -35,8 +35,8 @@ public record GdprAuditEntryDto(
     long DurationMs,
     DateTime Timestamp);
 
-public record GdprExportDto(
-    GdprUserDto User,
-    List<GdprAgentDto> Agents,
-    List<GdprConversationDto> Conversations,
-    List<GdprAuditEntryDto> AuditEntries);
+public record GdprExport(
+    GdprUserExport User,
+    List<GdprAgentExport> Agents,
+    List<GdprConversationExport> Conversations,
+    List<GdprAuditEntryExport> AuditEntries);

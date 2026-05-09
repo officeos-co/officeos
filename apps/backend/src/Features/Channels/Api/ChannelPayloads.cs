@@ -2,14 +2,14 @@ namespace EnterpriseAgentOs.Api.Features.Channels;
 
 // ── Output types (projections that exclude sensitive/nav fields) ─────────
 
-public sealed record ChannelConnectionGqlDto(
+public sealed record ChannelConnectionPayload(
     Guid Id,
     string ChannelType,
     string DisplayName,
     bool Enabled,
     DateTime CreatedAt);
 
-public sealed record AgentChannelBindingGqlDto(
+public sealed record AgentChannelBindingPayload(
     Guid Id,
     Guid AgentId,
     Guid ChannelConnectionId,
@@ -43,14 +43,14 @@ internal static class ChannelGraphQLMapper
         PropertyNameCaseInsensitive = true,
     };
 
-    public static ChannelConnectionGqlDto ToDto(ChannelConnectionRecord r) => new(
+    public static ChannelConnectionPayload ToPayload(ChannelConnectionRecord r) => new(
         r.Id,
         r.ChannelType.ToStorageString(),
         r.DisplayName,
         r.Enabled,
         r.CreatedAt);
 
-    public static AgentChannelBindingGqlDto ToDto(AgentChannelBindingRecord r) => new(
+    public static AgentChannelBindingPayload ToPayload(AgentChannelBindingRecord r) => new(
         r.Id,
         r.AgentId,
         r.ChannelConnectionId,

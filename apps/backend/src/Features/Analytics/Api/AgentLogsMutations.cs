@@ -4,7 +4,7 @@ namespace EnterpriseAgentOs.Api.Features.Analytics;
 public class AgentLogsMutations
 {
     [GraphQLDescription("Sends a user message to an agent. Creates a MessageIn log entry and triggers the agent turn pipeline.")]
-    public async Task<AgentLogDto> SendAgentMessage(
+    public async Task<AgentLogProjection> SendAgentMessage(
         Guid agentId,
         string content,
         [Service] UserContext user,
@@ -20,11 +20,11 @@ public class AgentLogsMutations
                     .Build());
         }
         var saved = await logs.SendMessageAsync(agentId, content, user.Id, ct);
-        return AgentLogMapper.ToDto(saved);
+        return AgentLogMapper.ToProjection(saved);
     }
 
     [GraphQLDescription("Appends an arbitrary log entry to an agent's timeline. Used by the dashboard for system events.")]
-    public async Task<AgentLogDto> AppendAgentLog(
+    public async Task<AgentLogProjection> AppendAgentLog(
         AppendAgentLogInput input,
         [Service] IAgentLogService logs,
         CancellationToken ct)
@@ -41,6 +41,6 @@ public class AgentLogsMutations
             CorrelationId = input.CorrelationId,
         };
         var saved = await logs.AppendAsync(record, ct);
-        return AgentLogMapper.ToDto(saved);
+        return AgentLogMapper.ToProjection(saved);
     }
 }
