@@ -7,7 +7,7 @@
     <AssemblyName>EnterpriseAgentOs.Api.Tests</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EnterpriseAgentOs.Api\EnterpriseAgentOs.Api.csproj" />
+    <ProjectReference Include="..\..\src\EnterpriseAgentOs.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

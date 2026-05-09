@@ -1,0 +1,37 @@
+global using System.ComponentModel.DataAnnotations;
+global using System.Text.Json;
+global using System.Text;
+global using Microsoft.Extensions.Hosting;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Caching.Distributed;
+global using Microsoft.Extensions.DependencyInjection;
+global using HotChocolate;
+global using HotChocolate.Subscriptions;
+global using Stripe;
+global using Stripe.Checkout;
+global using EnterpriseAgentOs.Domain.Features.Agents;
+global using EnterpriseAgentOs.Domain.Features.Analytics;
+global using EnterpriseAgentOs.Domain.Features.Management;
+global using EnterpriseAgentOs.Domain.Features.Data;
+global using EnterpriseAgentOs.Domain.Common;
+global using EnterpriseAgentOs.Domain.Common.Primitives;
+global using EnterpriseAgentOs.Domain.Common.ValueObjects;
+global using EnterpriseAgentOs.Domain.Common.Services;
+global using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+global using EnterpriseAgentOs.Domain.Events;
+// Note: EaosDbContext / Infrastructure.Persistence intentionally NOT imported.
+// All data access goes through Domain repository interfaces.
+global using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+global using EnterpriseAgentOs.Infrastructure.Common.Security;
+global using EnterpriseAgentOs.Infrastructure.Features.Agents;
+global using EnterpriseAgentOs.Infrastructure.Features.Analytics;
+global using EnterpriseAgentOs.Infrastructure.Features.Management;
+global using System.Net.Http;
+global using EnterpriseAgentOs.Database;
+global using Microsoft.EntityFrameworkCore;
+global using System.Net.Http.Json;
+global using EnterpriseAgentOs.Application.Features.Agents;
+global using EnterpriseAgentOs.Application.Features.Analytics;
+global using EnterpriseAgentOs.Application.Features.Management;
+global using EnterpriseAgentOs.Application.Features.Agents.Integrations;
+global using EnterpriseAgentOs.Infrastructure.Common.Caching;

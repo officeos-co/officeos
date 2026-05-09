@@ -6,16 +6,18 @@ Date: 2026-05-09
 
 Initial refactor pass completed on 2026-05-09:
 
-- The solution now contains one backend project, `src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj`, plus the test project.
+- The solution now contains one backend project, `src/EnterpriseAgentOs.Api.csproj`, plus the test project.
 - Api/Application/Domain/Infrastructure source files were moved into the single backend project under `Features/<Feature>/<Layer>`.
 - Top-level `Atlas`, `Data`, and `Mcp` feature folders were folded under `Features/Agents` as `Context`, `Memory`, and `Mcp`.
 - Shared code moved under `Common/{Application,Domain,Infrastructure}` and domain events moved under `Events`.
+- EF code was centralized under `Database`: `Database/Models`, `Database/Migrations`, and `Database/EaosDbContext.cs`.
+- The old `src/EnterpriseAgentOs.Api` wrapper directory was removed; backend code now lives directly under `src`.
 - `AGENTS.md` was rewritten to describe the feature-first single-project convention.
 - The solution builds successfully with `dotnet build EnterpriseAgentOs.sln`.
 
 Remaining cleanup:
 
-- Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling.
+- Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
 - Some stale type names remain around MCP/context (`Integration*`, `Atlas*`). These should be renamed in a follow-up semantic cleanup.
 - Domain DTO folders still exist and need classification/migration.
 - Repository interfaces still need the filter-based simplification pass.
@@ -30,6 +32,7 @@ The desired architecture is:
 - One backend `.csproj`.
 - Three top-level product features: `Agents`, `Analytics`, `Management`.
 - Inside each feature, keep the clean architecture boundaries: `Domain`, `Application`, `Infrastructure`, `Api`.
+- Centralized database code under `src/Database`, because EF context, models, and migrations are shared by the application.
 
 This keeps the separation that matters, but makes feature work local. When working on Agents, the agent domain records, application services, repositories, GraphQL types, and endpoints should be near each other.
 
@@ -38,7 +41,7 @@ This keeps the separation that matters, but makes feature work local. When worki
 Target high-level tree:
 
 ```text
-src/EnterpriseAgentOs.Backend
+src
 ├── Features
 │   ├── Agents
 │   │   ├── Domain
@@ -59,12 +62,16 @@ src/EnterpriseAgentOs.Backend
 │   ├── Domain
 │   ├── Infrastructure
 │   └── Api
+├── Database
+│   ├── Models
+│   ├── Migrations
+│   └── EaosDbContext.cs
 ├── Events
 ├── Program.cs
-└── EnterpriseAgentOs.Backend.csproj
+└── EnterpriseAgentOs.Api.csproj
 ```
 
-The current four-project split can be collapsed after the naming and folder cleanup is clear. Until then, the migration can happen in steps, but the destination should be feature-first.
+The old four-project split has been collapsed. New backend code should live directly under this `src` tree.
 
 ## Feature Rule
 
@@ -163,13 +170,17 @@ Application owns:
 
 Infrastructure owns:
 
-- EF entities.
-- `DbContext` mappings.
 - Repository implementations.
 - External service adapters and clients.
 - Security wrappers/protectors.
 - Provider dispatch implementation.
 - Configuration for external systems.
+
+Database owns:
+
+- EF entities.
+- `EaosDbContext` mappings.
+- EF migrations.
 
 Api owns:
 
@@ -230,11 +241,16 @@ Api:
 
 Infrastructure:
 
-- `*Entity`: EF persistence entity.
 - `*Repository`: implementation of a Domain repository.
 - `*Adapter`, `*Client`, `*Gateway`: external system implementation.
 - `*Config`: infrastructure config for external systems.
 - `*Protector`: credential/data protection implementation.
+
+Database:
+
+- `*Entity`: EF persistence entity under `src/Database/Models`.
+- `EaosDbContext`: centralized EF context under `src/Database`.
+- EF migrations live under `src/Database/Migrations`.
 
 Avoid:
 
