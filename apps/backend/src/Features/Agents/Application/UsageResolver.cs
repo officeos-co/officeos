@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Resolves billable LLM usage from provider-reported tokens or deterministic estimates.

@@ -1,9 +1,4 @@
-using Cronos;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Background service that ticks every 30 seconds, evaluates all enabled cron jobs,
@@ -11,7 +6,7 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 /// </summary>
 internal sealed class CronJobSchedulerService : BackgroundService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<CronJobSchedulerService> _logger;
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(30);
 
@@ -19,7 +14,7 @@ internal sealed class CronJobSchedulerService : BackgroundService
         IServiceScopeFactory scopeFactory,
         ILogger<CronJobSchedulerService> logger)
     {
-        _scopeFactory = scopeFactory;
+        _serviceScopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -47,7 +42,7 @@ internal sealed class CronJobSchedulerService : BackgroundService
 
     private async Task TickAsync(CancellationToken ct)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = _serviceScopeFactory.CreateScope();
         var cronRepo = scope.ServiceProvider.GetRequiredService<IAgentCronJobRepository>();
         var logService = scope.ServiceProvider.GetRequiredService<IAgentLogService>();
 
@@ -88,7 +83,7 @@ internal sealed class CronJobSchedulerService : BackgroundService
                 job.SetNextRun(nextRun);
                 await cronRepo.UpdateAsync(job, ct);
             }
-            catch (CronFormatException ex)
+            catch (Cronos.CronFormatException ex)
             {
                 _logger.LogWarning(ex, "Invalid cron expression for job {JobId}: {Expression}",
                     job.Id, job.Expression);

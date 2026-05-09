@@ -4,8 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>EnterpriseAgentOs.Api</RootNamespace>
-    <AssemblyName>EnterpriseAgentOs.Api</AssemblyName>
+    <RootNamespace>OffceOs</RootNamespace>
+    <AssemblyName>OffceOs</AssemblyName>
     <!-- Container publishing (dotnet publish /t:PublishContainer) -->
     <ContainerRepository>harkro123/eaos-backend</ContainerRepository>
     <ContainerImageTag>latest</ContainerImageTag>
@@ -45,7 +45,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\analyzers\EnterpriseAgentOs.Architecture.Analyzers\EnterpriseAgentOs.Architecture.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\analyzers\OffceOs.Architecture.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,7 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="EnterpriseAgentOs.Api.Tests" />
+    <InternalsVisibleTo Include="OffceOs.Tests" />
   </ItemGroup>
 
 </Project>

@@ -1,14 +1,14 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class AgentToolPermissionRepository : IAgentToolPermissionRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentToolPermissionRepository(EaosDbContext db) => _db = db;
+    public AgentToolPermissionRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default)
     {
-        var entities = await _db.AgentToolPermissions.AsNoTracking()
+        var entities = await _eaosDbContext.AgentToolPermissions.AsNoTracking()
             .Where(p => p.AgentId == agentId)
             .OrderBy(p => p.SkillName).ThenBy(p => p.ToolName)
             .ToListAsync(ct);
@@ -20,12 +20,12 @@ internal sealed class AgentToolPermissionRepository : IAgentToolPermissionReposi
     {
         skillName = Normalize(skillName);
         toolName = Normalize(toolName);
-        var existing = await _db.AgentToolPermissions.FirstOrDefaultAsync(
+        var existing = await _eaosDbContext.AgentToolPermissions.FirstOrDefaultAsync(
             p => p.AgentId == agentId && p.SkillName == skillName && p.ToolName == toolName, ct);
 
         if (existing is null)
         {
-            _db.AgentToolPermissions.Add(new AgentToolPermissionEntity
+            _eaosDbContext.AgentToolPermissions.Add(new AgentToolPermissionEntity
             {
                 Id = Guid.NewGuid(),
                 AgentId = agentId,
@@ -42,12 +42,12 @@ internal sealed class AgentToolPermissionRepository : IAgentToolPermissionReposi
             existing.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task SetManyAsync(Guid agentId, IReadOnlyList<AgentToolPermissionRecord> entries, CancellationToken ct = default)
     {
-        var existing = await _db.AgentToolPermissions
+        var existing = await _eaosDbContext.AgentToolPermissions
             .Where(p => p.AgentId == agentId)
             .ToListAsync(ct);
         var byKey = existing.ToDictionary(p => Key(p.SkillName, p.ToolName), StringComparer.OrdinalIgnoreCase);
@@ -67,7 +67,7 @@ internal sealed class AgentToolPermissionRepository : IAgentToolPermissionReposi
             }
             else
             {
-                _db.AgentToolPermissions.Add(new AgentToolPermissionEntity
+                _eaosDbContext.AgentToolPermissions.Add(new AgentToolPermissionEntity
                 {
                     Id = Guid.NewGuid(),
                     AgentId = agentId,
@@ -81,9 +81,9 @@ internal sealed class AgentToolPermissionRepository : IAgentToolPermissionReposi
         }
 
         foreach (var stale in existing.Where(p => !incomingKeys.Contains(Key(p.SkillName, p.ToolName))))
-            _db.AgentToolPermissions.Remove(stale);
+            _eaosDbContext.AgentToolPermissions.Remove(stale);
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     private static AgentToolPermissionRecord ToRecord(AgentToolPermissionEntity e) => new()

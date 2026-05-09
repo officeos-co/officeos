@@ -1,43 +1,43 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class AgentResourceService : IAgentResourceService
 {
-    private readonly IAgentResourceRepository _resources;
-    private readonly IAgentSessionRepository _sessions;
-    private readonly IAgentRepository _agents;
+    private readonly IAgentResourceRepository _agentResourceRepository;
+    private readonly IAgentSessionRepository _agentSessionRepository;
+    private readonly IAgentRepository _agentRepository;
 
     public AgentResourceService(
         IAgentResourceRepository resources,
         IAgentSessionRepository sessions,
         IAgentRepository agents)
     {
-        _resources = resources;
-        _sessions = sessions;
-        _agents = agents;
+        _agentResourceRepository = resources;
+        _agentSessionRepository = sessions;
+        _agentRepository = agents;
     }
 
     public Task<BrowserResourceRecord> CreateBrowserResourceAsync(
         Guid ownerId,
         string? displayName,
         CancellationToken ct = default) =>
-        _resources.CreateBrowserResourceAsync(BrowserResourceRecord.Create(ownerId, displayName ?? "Browser"), ct);
+        _agentResourceRepository.CreateBrowserResourceAsync(BrowserResourceRecord.Create(ownerId, displayName ?? "Browser"), ct);
 
     public Task<bool> DeleteBrowserResourceAsync(Guid id, Guid ownerId, CancellationToken ct = default) =>
-        _resources.DeleteBrowserResourceAsync(id, ownerId, ct);
+        _agentResourceRepository.DeleteBrowserResourceAsync(id, ownerId, ct);
 
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentRecord>> ListSessionAttachmentsAsync(
         Guid sessionId,
         Guid ownerId,
         CancellationToken ct = default)
     {
-        var session = await _sessions.GetByAsync(new AgentSessionFilter { Id = sessionId }, ct);
+        var session = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { Id = sessionId }, ct);
         if (session is null)
             throw new InvalidOperationException("Session not found.");
 
-        var agent = await _agents.GetByAsync(new AgentFilter { Id = session.AgentId, OwnerId = ownerId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = session.AgentId, OwnerId = ownerId }, ct);
         if (agent is null)
             throw new InvalidOperationException("Session not found.");
 
-        return await _resources.ListSessionAttachmentsAsync(sessionId, ct);
+        return await _agentResourceRepository.ListSessionAttachmentsAsync(sessionId, ct);
     }
 }

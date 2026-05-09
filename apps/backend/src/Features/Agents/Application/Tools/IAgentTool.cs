@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>Result from a tool execution.</summary>
 public record ToolResult(bool Success, string Output, string? Error = null);

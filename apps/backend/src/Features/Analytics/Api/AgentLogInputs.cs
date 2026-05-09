@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Analytics;
+namespace OffceOs.Api.Features.Analytics;
 
 public sealed record GlobalLogFiltersInput(
     string? Search = null,

@@ -1,6 +1,4 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.Domain.Events;
+namespace OffceOs.Domain.Events;
 
 public abstract record DomainEvent : INotification
 {

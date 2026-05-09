@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>Execute a shell command in the agent's OS.</summary>
 internal sealed class ShellTool : IAgentTool
 {
-    private readonly ToolExecutionContext _context;
-    public ShellTool(ToolExecutionContext context) => _context = context;
+    private readonly ToolExecutionContext _toolExecutionContext;
+    public ShellTool(ToolExecutionContext context) => _toolExecutionContext = context;
 
     public string Name => "shell";
     public AgentToolKind Kind => AgentToolKind.Execute;
@@ -42,7 +42,7 @@ internal sealed class ShellTool : IAgentTool
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(timeoutSecs));
 
-        var execResult = await _context.Sandbox.ExecuteAsync(_context.SandboxId, _context.ServiceUrl, command, TimeSpan.FromSeconds(timeoutSecs), cts.Token);
+        var execResult = await _toolExecutionContext.Sandbox.ExecuteAsync(_toolExecutionContext.SandboxId, _toolExecutionContext.ServiceUrl, command, TimeSpan.FromSeconds(timeoutSecs), cts.Token);
         if (execResult.IsFailure)
             return new AgentError(AgentErrorCategory.ToolExecution, $"shell: {execResult.Error.Message}", execResult.Error.Detail);
 

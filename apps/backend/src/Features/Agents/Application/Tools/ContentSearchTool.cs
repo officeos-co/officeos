@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>Search file contents using ripgrep.</summary>
 internal sealed class ContentSearchTool : IAgentTool
 {
-    private readonly ToolExecutionContext _context;
-    public ContentSearchTool(ToolExecutionContext context) => _context = context;
+    private readonly ToolExecutionContext _toolExecutionContext;
+    public ContentSearchTool(ToolExecutionContext context) => _toolExecutionContext = context;
 
     public string Name => "content_search";
     public AgentToolKind Kind => AgentToolKind.Read;
@@ -51,7 +51,7 @@ internal sealed class ContentSearchTool : IAgentTool
         if (headLimit != 0) pipeline += $" | head -n {Math.Clamp(headLimit, 1, 10_000)}";
 
         var cmd = $"rg {string.Join(' ', flags)} {ToolShell.Escape(pattern)} {ToolShell.Escape(searchPath)}{pipeline}";
-        var execResult = await _context.Sandbox.ExecuteAsync(_context.SandboxId, _context.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
+        var execResult = await _toolExecutionContext.Sandbox.ExecuteAsync(_toolExecutionContext.SandboxId, _toolExecutionContext.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
         if (execResult.IsFailure)
             return new AgentError(AgentErrorCategory.ToolExecution, $"content_search: {execResult.Error.Message}", execResult.Error.Detail);
 

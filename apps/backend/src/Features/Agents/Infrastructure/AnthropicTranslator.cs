@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 /// <summary>
 /// Translates between OpenAI chat-completions format and Anthropic Messages

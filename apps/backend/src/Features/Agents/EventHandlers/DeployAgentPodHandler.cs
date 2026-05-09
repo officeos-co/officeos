@@ -1,10 +1,8 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Agents;
+namespace OffceOs.EventHandlers.Features.Agents;
 
 internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedEvent>
 {
-    private readonly IAgentDeployer _deployer;
+    private readonly IAgentDeployer _agentDeployer;
     private readonly IAgentRepository _agentRepository;
     private readonly IPublisher _publisher;
     private readonly ILogger<DeployAgentPodHandler> _logger;
@@ -15,7 +13,7 @@ internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedE
         IPublisher publisher,
         ILogger<DeployAgentPodHandler> logger)
     {
-        _deployer = deployer;
+        _agentDeployer = deployer;
         _agentRepository = agentRepository;
         _publisher = publisher;
         _logger = logger;
@@ -28,7 +26,7 @@ internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedE
 
         try
         {
-            var deployment = await _deployer.DeployAsync(notification.AgentId, ct);
+            var deployment = await _agentDeployer.DeployAsync(notification.AgentId, ct);
             record.MarkDeployed(deployment.PodName, deployment.ServiceUrl);
             await _agentRepository.UpdateAsync(record, ct);
             _logger.LogInformation("Agent {AgentId} deployed as pod {PodName}", notification.AgentId, record.PodName);

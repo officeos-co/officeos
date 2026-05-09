@@ -1,7 +1,4 @@
-using System.Net.Http.Headers;
-using System.Text.Json.Nodes;
-
-namespace EnterpriseAgentOs.Application.Features.Context;
+namespace OffceOs.Application.Features.Context;
 
 internal sealed class GitHubIntegrationClient
 {

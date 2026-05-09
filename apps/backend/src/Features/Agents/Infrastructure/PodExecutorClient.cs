@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class PodExecutorClient
 {
     private const string WorkspacePath = "/workspace";
 
-    private readonly HttpClient _http;
+    private readonly HttpClient _httpClient;
 
     public PodExecutorClient()
         : this(new HttpClient())
@@ -13,7 +13,7 @@ internal sealed class PodExecutorClient
 
     internal PodExecutorClient(HttpClient http)
     {
-        _http = http;
+        _httpClient = http;
     }
 
     public async Task<AgentResult<AgentSandboxCommandResult>> ExecuteAsync(
@@ -42,7 +42,7 @@ internal sealed class PodExecutorClient
             };
             AddBearer(request, sandboxId);
 
-            using var response = await _http.SendAsync(request, cts.Token);
+            using var response = await _httpClient.SendAsync(request, cts.Token);
             if (!response.IsSuccessStatusCode)
                 return await ToAgentErrorAsync("Pod executor command execution failed", response, cts.Token);
 
@@ -78,7 +78,7 @@ internal sealed class PodExecutorClient
                 BuildEndpointUri(serviceUrl, $"files/download?path={Uri.EscapeDataString(path)}"));
             AddBearer(request, sandboxId);
 
-            using var response = await _http.SendAsync(request, ct);
+            using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
                 return await ToAgentErrorAsync($"Failed to read file '{path}'", response, ct);
 
@@ -110,7 +110,7 @@ internal sealed class PodExecutorClient
                     BuildEndpointUri(serviceUrl, $"files/folder?path={Uri.EscapeDataString(parent)}&mode=0755"));
                 AddBearer(mkdirRequest, sandboxId);
 
-                using var mkdirResponse = await _http.SendAsync(mkdirRequest, ct);
+                using var mkdirResponse = await _httpClient.SendAsync(mkdirRequest, ct);
                 if (!mkdirResponse.IsSuccessStatusCode && mkdirResponse.StatusCode != HttpStatusCode.Conflict)
                     return await ToAgentErrorAsync($"Failed to create parent folder for '{path}'", mkdirResponse, ct);
             }
@@ -128,7 +128,7 @@ internal sealed class PodExecutorClient
             };
             AddBearer(uploadRequest, sandboxId);
 
-            using var uploadResponse = await _http.SendAsync(uploadRequest, ct);
+            using var uploadResponse = await _httpClient.SendAsync(uploadRequest, ct);
             if (!uploadResponse.IsSuccessStatusCode)
                 return await ToAgentErrorAsync($"Failed to write file '{path}'", uploadResponse, ct);
 
@@ -156,7 +156,7 @@ internal sealed class PodExecutorClient
                 BuildEndpointUri(serviceUrl, $"files/download?path={Uri.EscapeDataString(path)}"));
             AddBearer(request, sandboxId);
 
-            var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!response.IsSuccessStatusCode)
             {
                 var error = await ToAgentErrorAsync($"Failed to download file '{path}'", response, ct);
@@ -198,7 +198,7 @@ internal sealed class PodExecutorClient
             };
             AddBearer(request, sandboxId);
 
-            using var response = await _http.SendAsync(request, ct);
+            using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
                 return await ToAgentErrorAsync($"Failed to upload file '{path}'", response, ct);
 
@@ -225,7 +225,7 @@ internal sealed class PodExecutorClient
         {
             try
             {
-                using var response = await _http.GetAsync(BuildEndpointUri(serviceUrl, "health"), cts.Token);
+                using var response = await _httpClient.GetAsync(BuildEndpointUri(serviceUrl, "health"), cts.Token);
                 if (response.IsSuccessStatusCode)
                     return true;
             }

@@ -1,16 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Integrations;
+namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class AgentIntegrationRepository : IAgentIntegrationRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentIntegrationRepository(EaosDbContext db) => _db = db;
+    public AgentIntegrationRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<string>> ListIntegrationNamesForAgentAsync(Guid agentId, CancellationToken ct)
     {
-        return await _db.AgentIntegrations.AsNoTracking()
+        return await _eaosDbContext.AgentIntegrations.AsNoTracking()
             .Where(a => a.AgentId == agentId)
             .Select(a => a.IntegrationName)
             .ToListAsync(ct);
@@ -18,30 +16,30 @@ internal sealed class AgentIntegrationRepository : IAgentIntegrationRepository
 
     public async Task AssignAsync(Guid agentId, string integrationName, CancellationToken ct)
     {
-        var exists = await _db.AgentIntegrations.AnyAsync(
+        var exists = await _eaosDbContext.AgentIntegrations.AnyAsync(
             a => a.AgentId == agentId && a.IntegrationName == integrationName, ct);
         if (exists) return;
 
-        _db.AgentIntegrations.Add(new AgentIntegrationEntity
+        _eaosDbContext.AgentIntegrations.Add(new AgentIntegrationEntity
         {
             AgentId = agentId,
             IntegrationName = integrationName,
         });
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task UnassignAsync(Guid agentId, string integrationName, CancellationToken ct)
     {
-        await _db.AgentIntegrations
+        await _eaosDbContext.AgentIntegrations
             .Where(a => a.AgentId == agentId && a.IntegrationName == integrationName)
             .ExecuteDeleteAsync(ct);
     }
 
     public async Task UnassignIntegrationFromOwnerAgentsAsync(Guid ownerId, string integrationName, CancellationToken ct)
     {
-        await _db.AgentIntegrations
+        await _eaosDbContext.AgentIntegrations
             .Where(a => a.IntegrationName == integrationName
-                && _db.Agents.Any(agent => agent.Id == a.AgentId && agent.OwnerId == ownerId))
+                && _eaosDbContext.Agents.Any(agent => agent.Id == a.AgentId && agent.OwnerId == ownerId))
             .ExecuteDeleteAsync(ct);
     }
 }

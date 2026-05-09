@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.Services;
+namespace OffceOs.Domain.Common.Services;
 
 public sealed record ModelDefinition(
     string Id,

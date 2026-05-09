@@ -1,22 +1,18 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class AgentRuntimeCleanupService : BackgroundService
 {
     private static readonly TimeSpan StartupDelay = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan TickInterval = TimeSpan.FromMinutes(10);
 
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<AgentRuntimeCleanupService> _logger;
 
     public AgentRuntimeCleanupService(
         IServiceScopeFactory scopeFactory,
         ILogger<AgentRuntimeCleanupService> logger)
     {
-        _scopeFactory = scopeFactory;
+        _serviceScopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -42,7 +38,7 @@ internal sealed class AgentRuntimeCleanupService : BackgroundService
 
     private async Task TickAsync(CancellationToken ct)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = _serviceScopeFactory.CreateScope();
         var agentRepository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
         var cleaner = scope.ServiceProvider.GetRequiredService<IAgentRuntimeCleaner>();
 

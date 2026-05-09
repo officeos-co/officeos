@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Context;
+namespace OffceOs.Api.Features.Context;
 
 public sealed record CreateMemoryStoreInput(string? DisplayName);
 

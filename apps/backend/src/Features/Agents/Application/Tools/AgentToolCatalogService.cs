@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 public interface IAgentToolCatalogService
 {
@@ -7,13 +7,13 @@ public interface IAgentToolCatalogService
 
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
-    private readonly IAgentMemoryService _memoryService;
-    private readonly IAgentCronJobRepository _cronJobRepository;
+    private readonly IAgentMemoryService _agentMemoryService;
+    private readonly IAgentCronJobRepository _agentCronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
-    private readonly AgentTaskStore _taskStore;
+    private readonly AgentTaskStore _agentTaskStore;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
-    private readonly IAgentToolPermissionRepository _permissionRepository;
+    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
 
     public AgentToolCatalogService(
         IAgentMemoryService memoryService,
@@ -24,13 +24,13 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IIntegrationDefinitionService integrationDefinitionService,
         IAgentToolPermissionRepository permissionRepository)
     {
-        _memoryService = memoryService;
-        _cronJobRepository = cronJobRepository;
+        _agentMemoryService = memoryService;
+        _agentCronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
-        _taskStore = taskStore;
+        _agentTaskStore = taskStore;
         _browserToolContextFactory = browserToolContextFactory;
         _integrationDefinitionService = integrationDefinitionService;
-        _permissionRepository = permissionRepository;
+        _agentToolPermissionRepository = permissionRepository;
     }
 
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default)
@@ -45,17 +45,17 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new FileEditTool(context),
             new ContentSearchTool(context),
             new GlobSearchTool(context),
-            new MemoryStoreTool(_memoryService, effectiveAgentId),
-            new MemoryRecallTool(_memoryService, effectiveAgentId),
-            new MemoryForgetTool(_memoryService, effectiveAgentId),
+            new MemoryStoreTool(_agentMemoryService, effectiveAgentId),
+            new MemoryRecallTool(_agentMemoryService, effectiveAgentId),
+            new MemoryForgetTool(_agentMemoryService, effectiveAgentId),
             new AskUserQuestionTool(),
-            new TaskCreateTool(_taskStore, effectiveAgentId),
-            new TaskListTool(_taskStore, effectiveAgentId),
-            new TaskGetTool(_taskStore, effectiveAgentId),
-            new TaskUpdateTool(_taskStore, effectiveAgentId),
-            new CronCreateTool(_cronJobRepository, effectiveAgentId),
-            new CronListTool(_cronJobRepository, effectiveAgentId),
-            new CronDeleteTool(_cronJobRepository, effectiveAgentId),
+            new TaskCreateTool(_agentTaskStore, effectiveAgentId),
+            new TaskListTool(_agentTaskStore, effectiveAgentId),
+            new TaskGetTool(_agentTaskStore, effectiveAgentId),
+            new TaskUpdateTool(_agentTaskStore, effectiveAgentId),
+            new CronCreateTool(_agentCronJobRepository, effectiveAgentId),
+            new CronListTool(_agentCronJobRepository, effectiveAgentId),
+            new CronDeleteTool(_agentCronJobRepository, effectiveAgentId),
             new AgentSpawnTool(_agentRunRepository, effectiveAgentId),
             new HttpRequestTool(),
             new WebFetchTool(),
@@ -66,7 +66,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
         if (agentId.HasValue)
         {
-            var resolver = new AgentToolPermissionResolver(await _permissionRepository.ListForAgentAsync(effectiveAgentId, ct));
+            var resolver = new AgentToolPermissionResolver(await _agentToolPermissionRepository.ListForAgentAsync(effectiveAgentId, ct));
             tools = tools.Where(resolver.IsAllowed).ToList();
         }
 

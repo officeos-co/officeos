@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features;
+namespace OffceOs.Application.Features;
 
 /// <summary>
 /// Runs a scoped async action on a background thread. Replaces the

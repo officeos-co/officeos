@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Analytics;
+namespace OffceOs.Api.Features.Analytics;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentLogsQueries

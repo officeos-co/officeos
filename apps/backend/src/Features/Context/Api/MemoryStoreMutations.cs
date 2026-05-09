@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Context;
+namespace OffceOs.Api.Features.Context;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public sealed class MemoryStoreMutations

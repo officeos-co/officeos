@@ -6,14 +6,14 @@ Date: 2026-05-09
 
 Initial refactor pass completed on 2026-05-09:
 
-- The solution now contains one backend project, `src/EnterpriseAgentOs.Api.csproj`, plus the test project.
+- The solution now contains one backend project, `src/OffceOs.csproj`, plus the test project.
 - Api/Application/Domain/Infrastructure source files were moved into the single backend project under `Features/<Feature>/<Layer>`.
 - Top-level `Atlas`, `Data`, and `Mcp` feature folders were folded under `Features/Agents` as `Context`, `Memory`, and `Mcp`.
 - Shared code moved under `Common/{Application,Domain,Infrastructure}` and domain events moved under `Events`.
 - EF code was centralized under `Database`: `Database/Models`, `Database/Migrations`, and `Database/EaosDbContext.cs`.
-- The old `src/EnterpriseAgentOs.Api` wrapper directory was removed; backend code now lives directly under `src`.
+- The old `src/OffceOs.Api` wrapper directory was removed; backend code now lives directly under `src`.
 - `AGENTS.md` was rewritten to describe the feature-first single-project convention.
-- The solution builds successfully with `dotnet build EnterpriseAgentOs.sln`.
+- The solution builds successfully with `dotnet build OffceOs.sln`.
 
 Second layout pass completed on 2026-05-09:
 
@@ -29,7 +29,7 @@ Third layout pass completed on 2026-05-09:
 Fourth layout pass completed on 2026-05-09:
 
 - MediatR notification handlers were moved out of Application into `Features/<Feature>/EventHandlers`.
-- Handler namespaces now use `EnterpriseAgentOs.EventHandlers.Features.<Feature>`.
+- Handler namespaces now use `OffceOs.EventHandlers.Features.<Feature>`.
 
 Fifth layout pass completed on 2026-05-09:
 
@@ -55,12 +55,12 @@ Seventh architecture pass completed on 2026-05-09:
 - API methods may still call Domain repositories directly for simple owner-scoped reads, but writes and orchestration now belong in Application services.
 - `ChannelRepository.ListConnectionsAsync` now accepts `ChannelConnectionFilter`, removing in-memory owner filtering from the API.
 - Broad `*Types.cs` files were removed or renamed to boundary-specific names such as `*Payloads`, `*Inputs`, `*Projections`, or the main type name.
-- Architecture tests were added under `tests/EnterpriseAgentOs.Api.Tests/Architecture` to enforce DTO, broad type-file, mutation/repository, and Domain dependency rules.
-- The backend builds successfully with `dotnet build src/EnterpriseAgentOs.Api.csproj --no-restore`.
+- Architecture tests were added under `tests/OffceOs.Tests/Architecture` to enforce DTO, broad type-file, mutation/repository, and Domain dependency rules.
+- The backend builds successfully with `dotnet build src/OffceOs.csproj --no-restore`.
 
 Remaining cleanup:
 
-- Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
+- Namespaces still mostly use the old project-first names (`OffceOs.Domain.*`, `OffceOs.Application.*`, `OffceOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `OffceOs.Database`.
 - Some stale broad type names remain around MCP/context (`Integration*`). These should be tightened in a follow-up semantic cleanup.
 - Repository interfaces still need the filter-based simplification pass.
 - Existing nullable warnings remain.
@@ -130,7 +130,7 @@ src
 ├── Events
 ├── Extensions
 ├── Program.cs
-└── EnterpriseAgentOs.Api.csproj
+└── OffceOs.csproj
 ```
 
 The old four-project split has been collapsed. New backend code should live directly under this `src` tree.
@@ -245,21 +245,21 @@ One project removes project-reference enforcement, so architecture tests must en
 Use namespaces that mirror the flat feature/layer layout:
 
 ```csharp
-EnterpriseAgentOs.Features.Agents.Domain
-EnterpriseAgentOs.Features.Agents.Application
-EnterpriseAgentOs.Features.Agents.Infrastructure
-EnterpriseAgentOs.Features.Agents.Api
+OffceOs.Features.Agents.Domain
+OffceOs.Features.Agents.Application
+OffceOs.Features.Agents.Infrastructure
+OffceOs.Features.Agents.Api
 
-EnterpriseAgentOs.Features.Analytics.Domain
-EnterpriseAgentOs.Features.Management.Application
+OffceOs.Features.Analytics.Domain
+OffceOs.Features.Management.Application
 ```
 
 Avoid namespaces like:
 
 ```csharp
-EnterpriseAgentOs.Domain.Features.Agents.Integrations
-EnterpriseAgentOs.Application.Features.Atlas
-EnterpriseAgentOs.Infrastructure.Features.Data
+OffceOs.Domain.Features.Agents.Integrations
+OffceOs.Application.Features.Atlas
+OffceOs.Infrastructure.Features.Data
 ```
 
 ## Model Naming
@@ -484,10 +484,18 @@ The physical feature cleanup is complete. Rename public types that still carry o
 Naming and layer conventions are enforced by the local Roslyn analyzer:
 
 ```text
-analyzers/EnterpriseAgentOs.Architecture.Analyzers
+analyzers/OffceOs.Architecture.Analyzers
 ```
 
-The analyzer runs during `dotnet build` through an analyzer project reference in `src/EnterpriseAgentOs.Api.csproj`.
+The analyzer runs during `dotnet build` through an analyzer project reference in `src/OffceOs.csproj`.
+
+Analyzer code is split by responsibility:
+
+- `ArchitectureDiagnostics.cs`: diagnostic IDs, messages, and severities.
+- `ArchitecturePaths.cs`: backend path and layer detection helpers.
+- `NamingConvention.cs`: layer suffix vocabulary and dependency field naming rules.
+- `*ArchitectureRule.cs`: one focused rule registration and implementation per analyzer concern.
+- `BackendArchitectureAnalyzer.cs`: thin Roslyn entry point that composes the rule classes.
 
 Current diagnostics:
 
@@ -499,6 +507,8 @@ Current diagnostics:
 - `EAOS006`: Feature type names must match their layer vocabulary.
 - `EAOS007`: Feature type suffixes must be declared in the correct layer/path.
 - `EAOS008`: Public API boundary methods must not expose Application `*Request`/`*Result` types as parameters.
+- `EAOS009`: Backend source files must not declare local `using` directives; all imports live in `src/GlobalUsings.cs`.
+- `EAOS010`: Private readonly dependency fields must match the injected type name, with no shortened aliases.
 
 Layer vocabulary enforced by `EAOS006`:
 
@@ -518,6 +528,21 @@ Path placement enforced by `EAOS007`:
 - `*Handler` belongs in `EventHandlers`.
 - `*Entity` belongs in `src/Database/Models`, never under `src/Features`.
 - Public API method parameters use Api `*Input` records and map to Application `*Request` records inside the method body.
+
+Global using enforcement:
+
+- All backend source imports belong in `src/GlobalUsings.cs`.
+- Do not add local `using` directives to any file under `src` other than `GlobalUsings.cs`.
+- If a global namespace creates a collision, do not reintroduce a local import. Remove the broad global import when possible and use a fully qualified name at the call site, for example `Cronos.CronExpression` or `HotChocolate.Execution.ISourceStream<T>`.
+
+Dependency field naming enforced by `EAOS010`:
+
+- Private readonly injected dependency fields use the dependency type name without shortening.
+- Strip only the leading interface `I`, then camel-case the remaining type name.
+- Examples: `IChannelRepository _channelRepository`, `IChannelGateway _channelGateway`, `IAgentRepository _agentRepository`, `ChannelCredentialProtector _channelCredentialProtector`, `ChannelReplyContext _channelReplyContext`.
+- Framework/common exceptions keep the obvious type-derived names: `ILogger<T> _logger`, `IPublisher _publisher`, `HttpClient _httpClient`, `EaosDbContext _eaosDbContext`, `IDistributedCache _distributedCache`.
+- Avoid aliases such as `_repo`, `_db`, `_agents`, `_gateway`, `_protector`, `_events`, `_cache`, `_http`, `_browser`, or `_runtime`.
+
 
 Keep architecture tests only for behavior that cannot be checked cheaply at compile time. Static analyzer rules should cover naming, forbidden dependencies, and direct injection conventions.
 

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Common.ValueObjects;
 
 /// <summary>
 /// Represents a billing period with a start and end date.

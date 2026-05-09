@@ -1,3 +1,3 @@
-namespace EnterpriseAgentOs.Domain.Common.Services;
+namespace OffceOs.Domain.Common.Services;
 
 public enum ApiFormat { OpenAiCompat, Anthropic }

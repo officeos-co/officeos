@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Channels;
+namespace OffceOs.Domain.Features.Channels;
 
 /// <summary>
 /// Static definitions of supported channel types and their config field schemas.

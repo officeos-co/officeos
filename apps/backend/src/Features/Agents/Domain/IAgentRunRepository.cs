@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Agents;
 
 public interface IAgentRunRepository
 {

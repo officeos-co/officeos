@@ -1,6 +1,4 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Publishes typed events produced by the agent turn application flow.

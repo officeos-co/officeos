@@ -1,15 +1,13 @@
-using System.Text.Json;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class MemoryStoreTool : IAgentTool
 {
-    private readonly IAgentMemoryService _memoryService;
+    private readonly IAgentMemoryService _agentMemoryService;
     private readonly Guid _agentId;
 
     public MemoryStoreTool(IAgentMemoryService memoryService, Guid agentId)
     {
-        _memoryService = memoryService;
+        _agentMemoryService = memoryService;
         _agentId = agentId;
     }
 
@@ -34,7 +32,7 @@ internal sealed class MemoryStoreTool : IAgentTool
 
         try
         {
-            await _memoryService.StoreAsync(_agentId, key, content, ct);
+            await _agentMemoryService.StoreAsync(_agentId, key, content, ct);
             return new ToolResult(true, $"Stored memory '{key}'.");
         }
         catch (Exception ex)
@@ -46,12 +44,12 @@ internal sealed class MemoryStoreTool : IAgentTool
 
 internal sealed class MemoryRecallTool : IAgentTool
 {
-    private readonly IAgentMemoryService _memoryService;
+    private readonly IAgentMemoryService _agentMemoryService;
     private readonly Guid _agentId;
 
     public MemoryRecallTool(IAgentMemoryService memoryService, Guid agentId)
     {
-        _memoryService = memoryService;
+        _agentMemoryService = memoryService;
         _agentId = agentId;
     }
 
@@ -75,7 +73,7 @@ internal sealed class MemoryRecallTool : IAgentTool
 
         try
         {
-            var memories = await _memoryService.RecallAsync(_agentId, query, limit, ct);
+            var memories = await _agentMemoryService.RecallAsync(_agentId, query, limit, ct);
             if (memories.Count == 0)
                 return new ToolResult(true, "No memories found.");
 
@@ -91,12 +89,12 @@ internal sealed class MemoryRecallTool : IAgentTool
 
 internal sealed class MemoryForgetTool : IAgentTool
 {
-    private readonly IAgentMemoryService _memoryService;
+    private readonly IAgentMemoryService _agentMemoryService;
     private readonly Guid _agentId;
 
     public MemoryForgetTool(IAgentMemoryService memoryService, Guid agentId)
     {
-        _memoryService = memoryService;
+        _agentMemoryService = memoryService;
         _agentId = agentId;
     }
 
@@ -119,7 +117,7 @@ internal sealed class MemoryForgetTool : IAgentTool
 
         try
         {
-            var deleted = await _memoryService.ForgetAsync(_agentId, key, ct);
+            var deleted = await _agentMemoryService.ForgetAsync(_agentId, key, ct);
             return deleted
                 ? new ToolResult(true, $"Forgot memory '{key}'.")
                 : new ToolResult(true, $"No memory found with key '{key}'.");

@@ -1,14 +1,14 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class AgentSessionContextRepository : IAgentSessionContextRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentSessionContextRepository(EaosDbContext db) => _db = db;
+    public AgentSessionContextRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<AgentSessionContextRecord?> GetByAsync(AgentSessionContextFilter filter, CancellationToken ct = default)
     {
-        var query = _db.AgentSessionContexts.AsNoTracking().AsQueryable();
+        var query = _eaosDbContext.AgentSessionContexts.AsNoTracking().AsQueryable();
 
         if (filter.AgentId.HasValue)
             query = query.Where(c => c.AgentId == filter.AgentId.Value);
@@ -19,12 +19,12 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
 
     public async Task UpsertAsync(AgentSessionContextRecord context, CancellationToken ct = default)
     {
-        var entity = await _db.AgentSessionContexts
+        var entity = await _eaosDbContext.AgentSessionContexts
             .FirstOrDefaultAsync(c => c.AgentId == context.AgentId, ct);
 
         if (entity is null)
         {
-            _db.AgentSessionContexts.Add(ToEntity(context));
+            _eaosDbContext.AgentSessionContexts.Add(ToEntity(context));
         }
         else
         {
@@ -37,7 +37,7 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
             entity.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     private static AgentSessionContextRecord ToRecord(AgentSessionContextEntity e) => new()

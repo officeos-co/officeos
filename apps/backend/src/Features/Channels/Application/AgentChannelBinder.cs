@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Channels;
+namespace OffceOs.Application.Features.Channels;
 
 internal sealed class AgentChannelBinder
 {

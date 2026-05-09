@@ -1,10 +1,10 @@
-using EnterpriseAgentOs.Application.Features.Agents;
-using EnterpriseAgentOs.Domain.Common.Services;
-using EnterpriseAgentOs.Configuration;
+using OffceOs.Application.Features.Agents;
+using OffceOs.Domain.Common.Services;
+using OffceOs.Configuration;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Agents;
+namespace OffceOs.Tests.Agents;
 
 public sealed class ProviderServiceTests
 {

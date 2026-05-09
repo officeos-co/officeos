@@ -1,15 +1,15 @@
-using EnterpriseAgentOs.Application.Features.Management;
-using EnterpriseAgentOs.Domain.Features.Agents;
-using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Database;
-using EnterpriseAgentOs.Configuration;
-using EnterpriseAgentOs.Infrastructure.Features.Agents;
-using EnterpriseAgentOs.Infrastructure.Features.Management;
+using OffceOs.Application.Features.Management;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Database;
+using OffceOs.Configuration;
+using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.Management;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Billing;
+namespace OffceOs.Tests.Billing;
 
 public sealed class CreditRecordingPersistenceTests
 {

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IAgentRuntimeCleaner
 {
@@ -8,9 +8,9 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     private const string ManagedByLabelValue = "eaos";
 
     private readonly IKubernetes _kubernetes;
-    private readonly KubernetesConfig _config;
-    private readonly PodExecutorClient _executor;
-    private readonly IAgentWorkspaceStore _workspaceStore;
+    private readonly KubernetesConfig _kubernetesConfig;
+    private readonly PodExecutorClient _podExecutorClient;
+    private readonly IAgentWorkspaceStore _agentWorkspaceStore;
     private readonly ILogger<KubernetesAgentSandbox> _logger;
 
     public KubernetesAgentSandbox(
@@ -21,9 +21,9 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         ILogger<KubernetesAgentSandbox> logger)
     {
         _kubernetes = kubernetes;
-        _config = config;
-        _executor = executor;
-        _workspaceStore = workspaceStore;
+        _kubernetesConfig = config;
+        _podExecutorClient = executor;
+        _agentWorkspaceStore = workspaceStore;
         _logger = logger;
     }
 
@@ -43,20 +43,20 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         var labels = Labels(agentId);
 
         await _kubernetes.CoreV1.CreateNamespacedPodAsync(
-            BuildPod(agentId, _config.Image, labels),
-            _config.Namespace,
+            BuildPod(agentId, _kubernetesConfig.Image, labels),
+            _kubernetesConfig.Namespace,
             cancellationToken: ct);
 
         await _kubernetes.CoreV1.CreateNamespacedServiceAsync(
             BuildService(agentId, labels),
-            _config.Namespace,
+            _kubernetesConfig.Namespace,
             cancellationToken: ct);
 
-        var serviceUrl = ServiceUrl(sandboxId, _config.Namespace);
-        if (!await _executor.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
+        var serviceUrl = ServiceUrl(sandboxId, _kubernetesConfig.Namespace);
+        if (!await _podExecutorClient.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
             throw new InvalidOperationException($"Pod executor {sandboxId} did not become available.");
 
-        await _workspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
+        await _agentWorkspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
 
         _logger.LogInformation("Deployed agent {AgentId} as pod executor {SandboxId}", agentId, sandboxId);
         return new AgentDeployment(sandboxId, serviceUrl);
@@ -68,14 +68,14 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         string command,
         TimeSpan timeout,
         CancellationToken ct = default)
-        => _executor.ExecuteAsync(sandboxId, serviceUrl, command, timeout, ct);
+        => _podExecutorClient.ExecuteAsync(sandboxId, serviceUrl, command, timeout, ct);
 
     public Task<AgentResult<string>> ReadFileAsync(
         string sandboxId,
         string serviceUrl,
         string path,
         CancellationToken ct = default)
-        => _executor.ReadFileAsync(sandboxId, serviceUrl, path, ct);
+        => _podExecutorClient.ReadFileAsync(sandboxId, serviceUrl, path, ct);
 
     public Task<AgentResult<bool>> WriteFileAsync(
         string sandboxId,
@@ -83,7 +83,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         string path,
         string content,
         CancellationToken ct = default)
-        => _executor.WriteFileAsync(sandboxId, serviceUrl, path, content, ct);
+        => _podExecutorClient.WriteFileAsync(sandboxId, serviceUrl, path, content, ct);
 
     public Task<bool> TerminateAsync(string sandboxId, CancellationToken ct = default)
         => RemoveAsync(sandboxId, ct);
@@ -92,14 +92,14 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     {
         try
         {
-            await _workspaceStore.CheckpointAsync(podName, ServiceUrl(podName, _config.Namespace), ct);
+            await _agentWorkspaceStore.CheckpointAsync(podName, ServiceUrl(podName, _kubernetesConfig.Namespace), ct);
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPodAsync(
                 podName,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct));
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedServiceAsync(
                 podName,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct));
             await DeletePersistentVolumeClaimsAsync(podName, ct);
 
@@ -118,7 +118,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         {
             var pod = await _kubernetes.CoreV1.ReadNamespacedPodAsync(
                 podName,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct);
 
             return pod.Status?.Phase?.ToLowerInvariant() switch
@@ -142,7 +142,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         {
             using var stream = await _kubernetes.CoreV1.ReadNamespacedPodLogAsync(
                 podName,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 tailLines: tailLines,
                 cancellationToken: ct);
             using var reader = new StreamReader(stream);
@@ -287,7 +287,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     {
         var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
         var pods = await _kubernetes.CoreV1.ListNamespacedPodAsync(
-            _config.Namespace,
+            _kubernetesConfig.Namespace,
             cancellationToken: ct);
 
         var deleted = 0;
@@ -300,7 +300,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
 
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPodAsync(
                 name,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct));
             deleted++;
         }
@@ -312,7 +312,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     {
         var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
         var services = await _kubernetes.CoreV1.ListNamespacedServiceAsync(
-            _config.Namespace,
+            _kubernetesConfig.Namespace,
             cancellationToken: ct);
 
         var deleted = 0;
@@ -325,7 +325,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
 
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedServiceAsync(
                 name,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct));
             deleted++;
         }
@@ -339,7 +339,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     {
         var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
         var claims = await _kubernetes.CoreV1.ListNamespacedPersistentVolumeClaimAsync(
-            _config.Namespace,
+            _kubernetesConfig.Namespace,
             cancellationToken: ct);
 
         var deleted = 0;
@@ -352,7 +352,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
 
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
                 name,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct));
             deleted++;
         }
@@ -363,7 +363,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     private async Task DeletePersistentVolumeClaimsAsync(string sandboxId, CancellationToken ct)
     {
         var claims = await _kubernetes.CoreV1.ListNamespacedPersistentVolumeClaimAsync(
-            _config.Namespace,
+            _kubernetesConfig.Namespace,
             cancellationToken: ct);
 
         foreach (var claim in claims.Items.Where(c => IsSandboxStorageName(c.Metadata?.Name, sandboxId)))
@@ -374,7 +374,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
 
             await TryDeleteAsync(() => _kubernetes.CoreV1.DeleteNamespacedPersistentVolumeClaimAsync(
                 name,
-                _config.Namespace,
+                _kubernetesConfig.Namespace,
                 cancellationToken: ct));
         }
     }

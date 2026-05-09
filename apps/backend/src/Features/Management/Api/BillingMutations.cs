@@ -1,6 +1,6 @@
 // Dashboard mutation set — add more from Entities/Billing/BillingController.cs as dashboard needs them
 
-namespace EnterpriseAgentOs.Api.Features.Management;
+namespace OffceOs.Api.Features.Management;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class BillingMutations

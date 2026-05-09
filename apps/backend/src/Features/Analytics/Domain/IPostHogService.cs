@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Analytics;
+namespace OffceOs.Domain.Features.Analytics;
 
 public interface IPostHogService
 {

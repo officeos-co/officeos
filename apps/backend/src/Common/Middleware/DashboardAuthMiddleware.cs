@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Common.Middleware;
+namespace OffceOs.Api.Common.Middleware;
 
 /// <summary>
 /// GraphQL field middleware that enforces a dashboard session on every resolver call.

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Management;
+namespace OffceOs.Api.Features.Management;
 
 [ApiController]
 [Route("api/auth")]

@@ -1,3 +1,3 @@
-namespace EnterpriseAgentOs.Domain.Events;
+namespace OffceOs.Domain.Events;
 
 public sealed record PodConnectedEvent(Guid AgentId, string CorrelationId, int DurationMs) : DomainEvent;

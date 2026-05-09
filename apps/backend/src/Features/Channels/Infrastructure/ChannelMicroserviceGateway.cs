@@ -1,16 +1,16 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Channels;
+namespace OffceOs.Infrastructure.Features.Channels;
 
 /// <summary>
 /// HTTP proxy to the channel sidecar (same K8s pod, localhost:3100).
 /// </summary>
 public sealed class ChannelSidecarGateway : IChannelGateway
 {
-    private readonly HttpClient _http;
+    private readonly HttpClient _httpClient;
     private readonly ILogger<ChannelSidecarGateway> _logger;
 
     public ChannelSidecarGateway(IHttpClientFactory httpClientFactory, ILogger<ChannelSidecarGateway> logger)
     {
-        _http = httpClientFactory.CreateClient("channel-sidecar");
+        _httpClient = httpClientFactory.CreateClient("channel-sidecar");
         _logger = logger;
     }
 
@@ -18,7 +18,7 @@ public sealed class ChannelSidecarGateway : IChannelGateway
                                 ChannelMessage message, CancellationToken ct = default)
     {
         var payload = new { channelType, platformId, threadId, message = new { kind = message.Kind, content = message.Content } };
-        var response = await _http.PostAsJsonAsync("/send", payload, ct);
+        var response = await _httpClient.PostAsJsonAsync("/send", payload, ct);
         response.EnsureSuccessStatusCode();
     }
 
@@ -26,7 +26,7 @@ public sealed class ChannelSidecarGateway : IChannelGateway
     {
         try
         {
-            var response = await _http.PostAsync("/reload", null, ct);
+            var response = await _httpClient.PostAsync("/reload", null, ct);
             response.EnsureSuccessStatusCode();
         }
         catch (HttpRequestException ex)

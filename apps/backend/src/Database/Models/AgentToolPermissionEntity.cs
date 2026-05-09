@@ -1,6 +1,4 @@
-using EnterpriseAgentOs.Domain.Features.Agents;
-
-namespace EnterpriseAgentOs.Database.Models;
+namespace OffceOs.Database.Models;
 
 public sealed class AgentToolPermissionEntity
 {

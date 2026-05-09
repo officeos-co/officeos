@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Management;
+namespace OffceOs.Api.Features.Management;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class SessionMutations

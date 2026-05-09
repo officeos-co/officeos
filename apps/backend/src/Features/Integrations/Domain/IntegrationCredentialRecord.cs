@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Integrations;
+namespace OffceOs.Domain.Features.Integrations;
 
 public sealed class IntegrationCredentialRecord
 {

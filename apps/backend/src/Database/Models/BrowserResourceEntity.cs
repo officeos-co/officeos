@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Database.Models;
+namespace OffceOs.Database.Models;
 
 public sealed class BrowserResourceEntity
 {

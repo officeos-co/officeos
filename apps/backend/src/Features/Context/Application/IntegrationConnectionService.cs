@@ -1,18 +1,16 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Context;
+namespace OffceOs.Application.Features.Context;
 
 internal sealed class IntegrationConnectionService : IIntegrationConnectionService
 {
     internal static readonly string[] SupportedGitHubEntities = IntegrationDefinitionProvider.GitHubEntities;
 
-    private readonly IIntegrationConnectionRepository _connections;
-    private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
-    private readonly IIntegrationIndexJobRepository _jobs;
-    private readonly IIntegrationIndexedRecordRepository _records;
-    private readonly IIntegrationActivityRepository _activity;
-    private readonly IIntegrationRequestHistoryRepository _history;
-    private readonly GitHubIntegrationClient _github;
+    private readonly IIntegrationConnectionRepository _integrationConnectionRepository;
+    private readonly IIntegrationIndexEntityStatusRepository _integrationIndexEntityStatusRepository;
+    private readonly IIntegrationIndexJobRepository _integrationIndexJobRepository;
+    private readonly IIntegrationIndexedRecordRepository _integrationIndexedRecordRepository;
+    private readonly IIntegrationActivityRepository _integrationActivityRepository;
+    private readonly IIntegrationRequestHistoryRepository _integrationRequestHistoryRepository;
+    private readonly GitHubIntegrationClient _gitHubIntegrationClient;
     private readonly IPublisher _publisher;
 
     public IntegrationConnectionService(
@@ -25,19 +23,19 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
         GitHubIntegrationClient github,
         IPublisher publisher)
     {
-        _connections = connections;
-        _entityStatuses = entityStatuses;
-        _jobs = jobs;
-        _records = records;
-        _activity = activity;
-        _history = history;
-        _github = github;
+        _integrationConnectionRepository = connections;
+        _integrationIndexEntityStatusRepository = entityStatuses;
+        _integrationIndexJobRepository = jobs;
+        _integrationIndexedRecordRepository = records;
+        _integrationActivityRepository = activity;
+        _integrationRequestHistoryRepository = history;
+        _gitHubIntegrationClient = github;
         _publisher = publisher;
     }
 
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListIntegrationDefinitionsAsync(Guid userId, CancellationToken ct = default)
     {
-        var githubConfigured = await _github.HasTokenAsync(userId, ct);
+        var githubConfigured = await _gitHubIntegrationClient.HasTokenAsync(userId, ct);
         return IntegrationDefinitionProvider.BuiltinDefinitions
             .Select(connector => connector.OauthProvider == "github"
                 ? connector with { OauthConfigured = githubConfigured }
@@ -46,25 +44,25 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     }
 
     public Task<IReadOnlyList<IntegrationConnectionRecord>> ListAsync(IntegrationConnectionFilter filter, CancellationToken ct = default)
-        => _connections.ListAsync(filter, ct);
+        => _integrationConnectionRepository.ListAsync(filter, ct);
 
     public Task<IntegrationConnectionRecord?> GetByAsync(IntegrationConnectionFilter filter, CancellationToken ct = default)
-        => _connections.GetByAsync(filter, ct);
+        => _integrationConnectionRepository.GetByAsync(filter, ct);
 
     public Task<IReadOnlyList<IntegrationActivityRecord>> ListAsync(IntegrationActivityFilter filter, CancellationToken ct = default)
-        => _activity.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
+        => _integrationActivityRepository.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
 
     public Task<IReadOnlyList<IntegrationRequestHistoryRecord>> ListAsync(IntegrationRequestHistoryFilter filter, CancellationToken ct = default)
-        => _history.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
+        => _integrationRequestHistoryRepository.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 100, 500) }, ct);
 
     public Task<IReadOnlyList<IntegrationIndexJobRecord>> ListAsync(IntegrationIndexJobFilter filter, CancellationToken ct = default)
-        => _jobs.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 20, 100) }, ct);
+        => _integrationIndexJobRepository.ListAsync(filter with { Limit = NormalizeLimit(filter.Limit, 20, 100) }, ct);
 
     public Task<IntegrationIndexedRecordRecord?> GetByAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default)
-        => _records.GetByAsync(filter, ct);
+        => _integrationIndexedRecordRepository.GetByAsync(filter, ct);
 
     public Task<IntegrationIndexedRecordPage> SearchAsync(IntegrationIndexedRecordFilter filter, CancellationToken ct = default)
-        => _records.SearchAsync(filter with
+        => _integrationIndexedRecordRepository.SearchAsync(filter with
         {
             Entity = filter.Entity?.Trim(),
             Query = filter.Query?.Trim(),
@@ -75,9 +73,9 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     {
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
-        var hasToken = await _github.HasTokenAsync(request.CreatedById, ct);
+        var hasToken = await _gitHubIntegrationClient.HasTokenAsync(request.CreatedById, ct);
         if (hasToken)
-            await _github.ValidateRepositoriesAsync(request.CreatedById, repositories, ct);
+            await _gitHubIntegrationClient.ValidateRepositoriesAsync(request.CreatedById, repositories, ct);
 
         var connection = new IntegrationConnectionRecord
         {
@@ -90,7 +88,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             CreatedById = request.CreatedById,
         };
 
-        var saved = await _connections.UpsertAsync(connection, ct);
+        var saved = await _integrationConnectionRepository.UpsertAsync(connection, ct);
         await LogActivityAsync(saved.Id, "connection_created", null, "GitHub connector created.", new
         {
             saved.WorkspaceName,
@@ -108,7 +106,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
         }
 
         foreach (var entity in entities)
-            await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
+            await _integrationIndexEntityStatusRepository.UpsertAsync(new IntegrationIndexEntityStatusRecord
             {
                 ConnectionId = saved.Id,
                 Entity = entity,
@@ -131,9 +129,9 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             ?? throw new InvalidOperationException("Integration connection not found.");
         var repositories = NormalizeRepositories(request.Repositories);
         var entities = NormalizeEntities(request.Entities);
-        var hasToken = await _github.HasTokenAsync(existing.CreatedById, ct);
+        var hasToken = await _gitHubIntegrationClient.HasTokenAsync(existing.CreatedById, ct);
         if (hasToken)
-            await _github.ValidateRepositoriesAsync(existing.CreatedById, repositories, ct);
+            await _gitHubIntegrationClient.ValidateRepositoriesAsync(existing.CreatedById, repositories, ct);
 
         var updated = new IntegrationConnectionRecord
         {
@@ -150,7 +148,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             UpdatedAt = DateTime.UtcNow,
         };
 
-        var saved = await _connections.UpsertAsync(updated, ct);
+        var saved = await _integrationConnectionRepository.UpsertAsync(updated, ct);
         await LogActivityAsync(saved.Id, "connection_updated", null, "GitHub connector settings updated.", new
         {
             Repositories = repositories,
@@ -166,9 +164,9 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             }, true, ct);
         }
 
-        await _records.DeleteForConnectionAsync(saved.Id, ct);
+        await _integrationIndexedRecordRepository.DeleteForConnectionAsync(saved.Id, ct);
         foreach (var entity in entities)
-            await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
+            await _integrationIndexEntityStatusRepository.UpsertAsync(new IntegrationIndexEntityStatusRecord
             {
                 ConnectionId = saved.Id,
                 Entity = entity,
@@ -186,18 +184,18 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     }
 
     public async Task DeleteConnectionAsync(Guid id, CancellationToken ct = default)
-        => await _connections.DeleteAsync(id, ct);
+        => await _integrationConnectionRepository.DeleteAsync(id, ct);
 
     public async Task<IntegrationIndexJobRecord> StartIndexAsync(Guid connectionId, CancellationToken ct = default)
     {
         var connection = await GetByAsync(new IntegrationConnectionFilter { Id = connectionId }, ct)
             ?? throw new InvalidOperationException("Integration connection not found.");
-        var job = await _jobs.CreateAsync(new IntegrationIndexJobRecord
+        var job = await _integrationIndexJobRepository.CreateAsync(new IntegrationIndexJobRecord
         {
             ConnectionId = connection.Id,
             Status = IntegrationIndexJobStatus.Queued,
         }, ct);
-        await _connections.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Indexing, null, ct);
+        await _integrationConnectionRepository.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Indexing, null, ct);
         await LogActivityAsync(connection.Id, "index_queued", null, "Index job queued.", new { JobId = job.Id }, true, ct);
         await _publisher.Publish(new IntegrationIndexRequestedEvent(connection.Id, job.Id), ct);
         return job;
@@ -211,7 +209,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
         object? details,
         bool success,
         CancellationToken ct)
-        => _activity.AddAsync(new IntegrationActivityRecord
+        => _integrationActivityRepository.AddAsync(new IntegrationActivityRecord
         {
             ConnectionId = connectionId,
             Type = type,

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Agents;
 
 /// <summary>
 /// DB-backed sliding window counter for per-agent rate limiting.
@@ -12,7 +12,7 @@ public sealed class AgentRateLimitRecord
 
     /// <summary>Bucket identifier, e.g. "skill_exec" or "email".</summary>
     [Required, MaxLength(64)]
-    public string BucketKey { get; init; }
+    public string BucketKey { get; init; } = string.Empty;
 
     /// <summary>Start of the current rate-limit window (UTC, truncated to WindowSeconds).</summary>
     public DateTime WindowStart { get; init; }

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Common;
+namespace OffceOs.Api.Common;
 
 public sealed class UserContext
 {

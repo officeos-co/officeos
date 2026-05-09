@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Management;
+namespace OffceOs.Infrastructure.Features.Management;
 
 internal sealed class UserRepository : IUserRepository
 {

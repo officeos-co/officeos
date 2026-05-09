@@ -1,14 +1,14 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Context;
+namespace OffceOs.Infrastructure.Features.Context;
 
 internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public MemoryStoreRepository(EaosDbContext db) => _db = db;
+    public MemoryStoreRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<MemoryStoreRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
     {
-        var entities = await _db.MemoryStores
+        var entities = await _eaosDbContext.MemoryStores
             .AsNoTracking()
             .Where(s => s.OwnerId == ownerId)
             .OrderByDescending(s => s.UpdatedAt)
@@ -18,7 +18,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 
     public async Task<MemoryStoreRecord?> GetAsync(Guid id, Guid ownerId, CancellationToken ct = default)
     {
-        var entity = await _db.MemoryStores
+        var entity = await _eaosDbContext.MemoryStores
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == id && s.OwnerId == ownerId, ct);
         return entity is null ? null : ToRecord(entity);
@@ -27,22 +27,22 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
     public async Task<MemoryStoreRecord> CreateAsync(MemoryStoreRecord store, CancellationToken ct = default)
     {
         var entity = ToEntity(store);
-        _db.MemoryStores.Add(entity);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.MemoryStores.Add(entity);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return ToRecord(entity);
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct = default)
     {
-        var entity = await _db.MemoryStores
+        var entity = await _eaosDbContext.MemoryStores
             .FirstOrDefaultAsync(s => s.Id == id && s.OwnerId == ownerId, ct);
         if (entity is null) return false;
 
-        await _db.AgentSessionResourceAttachments
+        await _eaosDbContext.AgentSessionResourceAttachments
             .Where(a => a.ResourceType == AgentResourceKinds.MemoryStore && a.ResourceId == id)
             .ExecuteDeleteAsync(ct);
-        _db.MemoryStores.Remove(entity);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.MemoryStores.Remove(entity);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
@@ -51,7 +51,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         Guid ownerId,
         CancellationToken ct = default)
     {
-        var ownsStore = await _db.MemoryStores.AnyAsync(s => s.Id == memoryStoreId && s.OwnerId == ownerId, ct);
+        var ownsStore = await _eaosDbContext.MemoryStores.AnyAsync(s => s.Id == memoryStoreId && s.OwnerId == ownerId, ct);
         if (!ownsStore) return [];
 
         return await ListEntriesForStoreAsync(memoryStoreId, ct);
@@ -64,7 +64,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         string content,
         CancellationToken ct = default)
     {
-        var ownsStore = await _db.MemoryStores.AnyAsync(s => s.Id == memoryStoreId && s.OwnerId == ownerId, ct);
+        var ownsStore = await _eaosDbContext.MemoryStores.AnyAsync(s => s.Id == memoryStoreId && s.OwnerId == ownerId, ct);
         if (!ownsStore) throw new InvalidOperationException("Memory store not found.");
 
         return await UpsertEntryForStoreAsync(memoryStoreId, key, content, ct);
@@ -72,7 +72,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 
     public async Task<bool> DeleteEntryAsync(Guid memoryStoreId, Guid ownerId, string key, CancellationToken ct = default)
     {
-        var ownsStore = await _db.MemoryStores.AnyAsync(s => s.Id == memoryStoreId && s.OwnerId == ownerId, ct);
+        var ownsStore = await _eaosDbContext.MemoryStores.AnyAsync(s => s.Id == memoryStoreId && s.OwnerId == ownerId, ct);
         if (!ownsStore) return false;
 
         return await DeleteEntryForStoreAsync(memoryStoreId, key, ct);
@@ -82,7 +82,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         Guid memoryStoreId,
         CancellationToken ct = default)
     {
-        var entities = await _db.MemoryStoreEntries
+        var entities = await _eaosDbContext.MemoryStoreEntries
             .AsNoTracking()
             .Where(e => e.MemoryStoreId == memoryStoreId)
             .OrderBy(e => e.Key)
@@ -97,7 +97,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         CancellationToken ct = default)
     {
         var normalizedKey = key.Trim();
-        var entity = await _db.MemoryStoreEntries
+        var entity = await _eaosDbContext.MemoryStoreEntries
             .FirstOrDefaultAsync(e => e.MemoryStoreId == memoryStoreId && e.Key == normalizedKey, ct);
         if (entity is null)
         {
@@ -110,7 +110,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             };
-            _db.MemoryStoreEntries.Add(entity);
+            _eaosDbContext.MemoryStoreEntries.Add(entity);
         }
         else
         {
@@ -118,19 +118,19 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
             entity.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return ToRecord(entity);
     }
 
     public async Task<bool> DeleteEntryForStoreAsync(Guid memoryStoreId, string key, CancellationToken ct = default)
     {
         var normalizedKey = key.Trim();
-        var entity = await _db.MemoryStoreEntries
+        var entity = await _eaosDbContext.MemoryStoreEntries
             .FirstOrDefaultAsync(e => e.MemoryStoreId == memoryStoreId && e.Key == normalizedKey, ct);
         if (entity is null) return false;
 
-        _db.MemoryStoreEntries.Remove(entity);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.MemoryStoreEntries.Remove(entity);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 

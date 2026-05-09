@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Configuration;
+namespace OffceOs.Configuration;
 
 public sealed class PostHogConfig
 {

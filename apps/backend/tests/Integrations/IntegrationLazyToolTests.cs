@@ -1,11 +1,11 @@
-using EnterpriseAgentOs.Application.Features.Agents;
-using EnterpriseAgentOs.Domain.Events;
-using EnterpriseAgentOs.Domain.Features.Integrations;
+using OffceOs.Application.Features.Agents;
+using OffceOs.Domain.Events;
+using OffceOs.Domain.Features.Integrations;
 using MediatR;
 using System.Text.Json;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Integrations;
+namespace OffceOs.Tests.Integrations;
 
 public sealed class IntegrationLazyToolTests
 {

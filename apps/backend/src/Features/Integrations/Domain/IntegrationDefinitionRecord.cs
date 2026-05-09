@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
-
-namespace EnterpriseAgentOs.Domain.Features.Integrations;
+namespace OffceOs.Domain.Features.Integrations;
 
 public sealed record IntegrationDefinitionRecord
 {

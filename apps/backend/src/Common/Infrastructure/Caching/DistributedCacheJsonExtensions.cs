@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Caching.Distributed;
-
-namespace EnterpriseAgentOs.Infrastructure.Common.Caching;
+namespace OffceOs.Infrastructure.Common.Caching;
 
 public static class DistributedCacheJsonExtensions
 {

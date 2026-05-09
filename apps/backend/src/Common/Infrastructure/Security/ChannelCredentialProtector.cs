@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Common.Security;
+namespace OffceOs.Infrastructure.Common.Security;
 
 public sealed class ChannelCredentialProtector
 {

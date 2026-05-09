@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 /// <summary>
 /// Routes an OpenAI-compatible chat-completions request to the real upstream

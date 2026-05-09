@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Context;
+namespace OffceOs.Domain.Features.Context;
 
 public sealed record IntegrationActivityFilter
 {

@@ -1,15 +1,15 @@
-using EnterpriseAgentOs.Application.Features.Integrations;
-using EnterpriseAgentOs.Domain.Common.ValueObjects;
-using EnterpriseAgentOs.Domain.Features.Agents;
-using EnterpriseAgentOs.Domain.Features.Integrations;
-using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Configuration;
-using EnterpriseAgentOs.Infrastructure.Common.Security;
+using OffceOs.Application.Features.Integrations;
+using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Integrations;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Configuration;
+using OffceOs.Infrastructure.Common.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Integrations;
+namespace OffceOs.Tests.Integrations;
 
 public sealed class IntegrationDefinitionServiceTests
 {

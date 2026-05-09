@@ -1,12 +1,9 @@
-using MediatR;
-using EnterpriseAgentOs.Application.Features;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Channels;
+namespace OffceOs.EventHandlers.Features.Channels;
 
 internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageOutEvent>
 {
-    private readonly ChannelReplyContext _replyContext;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ChannelReplyContext _channelReplyContext;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<BroadcastToChannelsHandler> _logger;
 
     public BroadcastToChannelsHandler(
@@ -14,8 +11,8 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
         IServiceScopeFactory scopeFactory,
         ILogger<BroadcastToChannelsHandler> logger)
     {
-        _replyContext = replyContext;
-        _scopeFactory = scopeFactory;
+        _channelReplyContext = replyContext;
+        _serviceScopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -25,7 +22,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
             return Task.CompletedTask;
 
         // Check if this turn was triggered by a channel message
-        var reply = _replyContext.Take(notification.CorrelationId);
+        var reply = _channelReplyContext.Take(notification.CorrelationId);
         if (reply is null)
         {
             _logger.LogDebug("No reply context for correlation {CorrelationId} — message not from a channel",
@@ -39,7 +36,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
         var content = notification.Content;
 
         BackgroundWork.Run<IChannelGateway, IPublisher>(
-            _scopeFactory,
+            _serviceScopeFactory,
             async (gateway, publisher) =>
             {
                 try

@@ -30,27 +30,27 @@ The clean architecture boundaries should remain, but they should live inside eac
 Command run:
 
 ```bash
-dotnet build EnterpriseAgentOs.sln --no-restore
+dotnet build OffceOs.sln --no-restore
 ```
 
 Result:
 
-- `EnterpriseAgentOs.Domain`, `EnterpriseAgentOs.Infrastructure`, `EnterpriseAgentOs.Application`, and `EnterpriseAgentOs.Api` built.
-- `EnterpriseAgentOs.Api.Tests` failed with 30 compile errors.
+- `OffceOs.Domain`, `OffceOs.Infrastructure`, `OffceOs.Application`, and `OffceOs.Api` built.
+- `OffceOs.Tests` failed with 30 compile errors.
 
 Representative failures:
 
-- Tests import `EnterpriseAgentOs.Domain.Features.Mcp`, but MCP implementation files use `EnterpriseAgentOs.Domain.Features.Agents.Integrations`.
-- Tests import `EnterpriseAgentOs.Application.Features.Atlas`, but Atlas implementation files use `EnterpriseAgentOs.Application.Features.Agents.Integrations`.
+- Tests import `OffceOs.Domain.Features.Mcp`, but MCP implementation files use `OffceOs.Domain.Features.Agents.Integrations`.
+- Tests import `OffceOs.Application.Features.Atlas`, but Atlas implementation files use `OffceOs.Application.Features.Agents.Integrations`.
 - Tests expect MCP names such as `McpServerService`, `McpServerRecord`, `IMcpServerRepository`, and `McpTransportType`.
 - Implementation provides generic integration names such as `IntegrationDefinitionService`, `IntegrationDefinitionRecord`, `IIntegrationDefinitionRepository`, and `IntegrationTransportType`.
 
 Representative drift:
 
-- `src/EnterpriseAgentOs.Domain/features/Mcp/Interfaces/IMcpServerRepository.cs` is physically in `Mcp`, but declares namespace `EnterpriseAgentOs.Domain.Features.Agents.Integrations` and interface `IIntegrationDefinitionRepository`.
-- `src/EnterpriseAgentOs.Domain/features/Atlas/Interfaces/IAtlasRepositories.cs` is physically in `Atlas`, but declares namespace `EnterpriseAgentOs.Domain.Features.Agents.Integrations`. `Atlas` should not be a top-level domain.
-- `src/EnterpriseAgentOs.Domain/features/Data/Interfaces/IMemoryStoreRepository.cs` is physically in `Data`, but memory should belong under Agents.
-- `src/EnterpriseAgentOs.Infrastructure/Features/Atlas/Repositories/AtlasRepositories.cs` groups many repository implementations in one file, while Agents repositories are mostly one implementation per file.
+- `src/OffceOs.Domain/features/Mcp/Interfaces/IMcpServerRepository.cs` is physically in `Mcp`, but declares namespace `OffceOs.Domain.Features.Agents.Integrations` and interface `IIntegrationDefinitionRepository`.
+- `src/OffceOs.Domain/features/Atlas/Interfaces/IAtlasRepositories.cs` is physically in `Atlas`, but declares namespace `OffceOs.Domain.Features.Agents.Integrations`. `Atlas` should not be a top-level domain.
+- `src/OffceOs.Domain/features/Data/Interfaces/IMemoryStoreRepository.cs` is physically in `Data`, but memory should belong under Agents.
+- `src/OffceOs.Infrastructure/Features/Atlas/Repositories/AtlasRepositories.cs` groups many repository implementations in one file, while Agents repositories are mostly one implementation per file.
 - `IMemoryStoreRepository` has duplicate owner-scoped and store-scoped entry methods, which is a symptom of repository interfaces growing by accretion.
 
 ## Root Causes
@@ -86,7 +86,7 @@ Move to a single-project, feature-first modular monolith.
 Target:
 
 ```text
-src/EnterpriseAgentOs.Backend
+src/OffceOs.Backend
 ├── Features
 │   ├── Agents
 │   │   ├── Domain
@@ -145,7 +145,7 @@ Rules:
 - There is one backend `.csproj`.
 - Only `Agents`, `Analytics`, and `Management` exist as top-level feature folders.
 - Each feature owns its `Domain`, `Application`, `Infrastructure`, and `Api` code locally.
-- No source file declares `namespace EnterpriseAgentOs.*.Features.Agents.Integrations`.
+- No source file declares `namespace OffceOs.*.Features.Agents.Integrations`.
 - No top-level `Atlas`, `Data`, or `Mcp` feature folder remains.
 - MCP files live under Agents and use `Mcp*` language consistently.
 - Context/connector files live under Agents and use `AgentContext*` language consistently.

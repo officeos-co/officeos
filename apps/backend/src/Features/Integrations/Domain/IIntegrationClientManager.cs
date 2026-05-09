@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Integrations;
+namespace OffceOs.Domain.Features.Integrations;
 
 /// <summary>
 /// Manages connections to integrations. Returns raw integration tool metadata.

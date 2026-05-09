@@ -1,13 +1,13 @@
-using EnterpriseAgentOs.Application.Features.Management;
-using EnterpriseAgentOs.Domain.Common.Services;
-using EnterpriseAgentOs.Domain.Common.ValueObjects;
-using EnterpriseAgentOs.Domain.Features.Agents;
-using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Configuration;
+using OffceOs.Application.Features.Management;
+using OffceOs.Domain.Common.Services;
+using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Billing;
+namespace OffceOs.Tests.Billing;
 
 public sealed class CreditRecordingServiceTests
 {

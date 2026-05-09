@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
-
-namespace EnterpriseAgentOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Management;
 
 public static class SessionTokenHasher
 {

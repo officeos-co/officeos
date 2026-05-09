@@ -1,15 +1,15 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class BrowserNavigateTool : IAgentTool
 {
-    private readonly IBrowserService _browser;
-    private readonly IBrowserRuntimeClient _runtime;
+    private readonly IBrowserService _browserService;
+    private readonly IBrowserRuntimeClient _browserRuntimeClient;
     private readonly Guid _agentId;
 
     public BrowserNavigateTool(IBrowserService browser, IBrowserRuntimeClient runtime, Guid agentId)
     {
-        _browser = browser;
-        _runtime = runtime;
+        _browserService = browser;
+        _browserRuntimeClient = runtime;
         _agentId = agentId;
     }
 
@@ -44,8 +44,8 @@ internal sealed class BrowserNavigateTool : IAgentTool
 
         try
         {
-            var session = await _browser.GetOrCreateAsync(_agentId, ct);
-            var result = await _runtime.CallToolAsync(
+            var session = await _browserService.GetOrCreateAsync(_agentId, ct);
+            var result = await _browserRuntimeClient.CallToolAsync(
                 "browser.execute_action",
                 new Dictionary<string, object?>
                 {

@@ -1,6 +1,4 @@
-using EnterpriseAgentOs.Domain.Features.Context;
-
-namespace EnterpriseAgentOs.Api.Features.Context;
+namespace OffceOs.Api.Features.Context;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public sealed class IntegrationQueries

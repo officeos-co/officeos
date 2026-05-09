@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Analytics;
+namespace OffceOs.Api.Features.Analytics;
 
 // One mutation per dashboard use case. The GraphQL schema lists every event
 // we ever fire — no generic `captureEvent(name, properties)` escape hatch.

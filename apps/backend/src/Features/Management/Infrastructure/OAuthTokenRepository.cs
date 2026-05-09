@@ -1,17 +1,14 @@
-using EnterpriseAgentOs.Database.Models;
-using Microsoft.EntityFrameworkCore;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Management;
+namespace OffceOs.Infrastructure.Features.Management;
 
 internal sealed class OAuthTokenRepository : IOAuthTokenRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public OAuthTokenRepository(EaosDbContext db) => _db = db;
+    public OAuthTokenRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<OAuthTokenRecord?> GetByAsync(OAuthTokenFilter filter, CancellationToken ct = default)
     {
-        var query = _db.OAuthTokens.AsNoTracking().Include(t => t.GrantedScopes).AsQueryable();
+        var query = _eaosDbContext.OAuthTokens.AsNoTracking().Include(t => t.GrantedScopes).AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(t => t.Id == filter.Id.Value);
@@ -32,7 +29,7 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
 
     public async Task UpsertAsync(OAuthTokenRecord token, CancellationToken ct = default)
     {
-        var existing = await _db.OAuthTokens
+        var existing = await _eaosDbContext.OAuthTokens
             .FirstOrDefaultAsync(t => t.UserId == token.UserId && t.Provider == token.Provider, ct);
 
         if (existing is null)
@@ -44,7 +41,7 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
                 Provider = token.Provider,
                 CreatedAt = token.CreatedAt,
             };
-            _db.OAuthTokens.Add(existing);
+            _eaosDbContext.OAuthTokens.Add(existing);
         }
 
         existing.EncryptedAccessToken = token.EncryptedAccessToken;
@@ -53,7 +50,7 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
         existing.Email = token.Email;
         existing.UpdatedAt = DateTime.UtcNow;
 
-        if (_db.Entry(existing).State == EntityState.Added)
+        if (_eaosDbContext.Entry(existing).State == EntityState.Added)
         {
             existing.GrantedScopes = token.GrantedScopes
                 .Select(s => CreateScope(existing.Id, s.Scope))
@@ -61,16 +58,16 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
         }
         else
         {
-            await _db.OAuthGrantedScopes
+            await _eaosDbContext.OAuthGrantedScopes
                 .Where(s => s.OAuthTokenId == existing.Id)
                 .ExecuteDeleteAsync(ct);
 
-            await _db.OAuthGrantedScopes.AddRangeAsync(
+            await _eaosDbContext.OAuthGrantedScopes.AddRangeAsync(
                 token.GrantedScopes.Select(s => CreateScope(existing.Id, s.Scope)),
                 ct);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     private static OAuthGrantedScopeEntity CreateScope(Guid tokenId, string scope) => new()

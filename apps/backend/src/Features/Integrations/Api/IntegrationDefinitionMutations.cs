@@ -1,7 +1,4 @@
-using EnterpriseAgentOs.Api.Common;
-using EnterpriseAgentOs.Domain.Features.Integrations;
-
-namespace EnterpriseAgentOs.Api.Features.Integrations;
+namespace OffceOs.Api.Features.Integrations;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public sealed class IntegrationDefinitionMutations

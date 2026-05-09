@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Agents;
+namespace OffceOs.Api.Features.Agents;
 
 /// <summary>
 /// Root mutation type for the agent GraphQL schema.

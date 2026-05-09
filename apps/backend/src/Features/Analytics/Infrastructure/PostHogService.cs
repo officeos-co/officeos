@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Analytics;
+namespace OffceOs.Infrastructure.Features.Analytics;
 
 /// <summary>
 /// Forwards dashboard/server events to PostHog. Fire-and-forget: failures are
@@ -10,14 +10,14 @@ namespace EnterpriseAgentOs.Infrastructure.Features.Analytics;
 /// </summary>
 internal sealed class PostHogService : IPostHogService
 {
-    private readonly HttpClient _http;
+    private readonly HttpClient _httpClient;
     private readonly PostHogConfig _postHogConfig;
     private readonly bool _enabled;
     private readonly ILogger<PostHogService> _logger;
 
     public PostHogService(HttpClient http, PostHogConfig config, IHostEnvironment env, ILogger<PostHogService> logger)
     {
-        _http = http;
+        _httpClient = http;
         _postHogConfig = config;
         _enabled = !env.IsDevelopment() && !string.IsNullOrWhiteSpace(config.ApiKey);
         _logger = logger;
@@ -71,7 +71,7 @@ internal sealed class PostHogService : IPostHogService
             var url = _postHogConfig.Host.TrimEnd('/') + path;
             var json = JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
-            using var response = await _http.PostAsync(url, content, ct);
+            using var response = await _httpClient.PostAsync(url, content, ct);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning(

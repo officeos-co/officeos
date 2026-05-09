@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Builds the LLM conversation history for a turn.
@@ -13,17 +13,17 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 /// </remarks>
 internal sealed class TurnContextBuilder
 {
-    private readonly ConversationCompactionService _compactionService;
+    private readonly ConversationCompactionService _conversationCompactionService;
 
     public TurnContextBuilder(ConversationCompactionService compactionService)
     {
-        _compactionService = compactionService;
+        _conversationCompactionService = compactionService;
     }
 
     public async Task<ConversationHistory> BuildAsync(Guid agentId, string correlationId, string userMessage, CancellationToken ct)
     {
         var history = new ConversationHistory();
-        var contextWindow = await _compactionService.LoadAsync(agentId, correlationId, ct);
+        var contextWindow = await _conversationCompactionService.LoadAsync(agentId, correlationId, ct);
         var ordered = contextWindow.Logs.OrderBy(l => l.Time).ToList();
 
         if (!string.IsNullOrWhiteSpace(contextWindow.Summary))

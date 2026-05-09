@@ -1,6 +1,4 @@
-using System.Diagnostics;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Owns per-turn tool registry creation and assistant-requested tool execution.
@@ -19,8 +17,8 @@ internal sealed class ToolExecutionLoop
 {
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly ToolRegistryFactory _toolRegistryFactory;
-    private readonly IAgentSandbox _sandbox;
-    private readonly TurnEventPublisher _events;
+    private readonly IAgentSandbox _agentSandbox;
+    private readonly TurnEventPublisher _turnEventPublisher;
 
     public ToolExecutionLoop(
         IIntegrationDefinitionService integrationDefinitionService,
@@ -30,15 +28,15 @@ internal sealed class ToolExecutionLoop
     {
         _integrationDefinitionService = integrationDefinitionService;
         _toolRegistryFactory = toolRegistryFactory;
-        _sandbox = sandbox;
-        _events = events;
+        _agentSandbox = sandbox;
+        _turnEventPublisher = events;
     }
 
     public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, string correlationId, CancellationToken ct)
     {
         var integrationListStart = Stopwatch.GetTimestamp();
         var integrations = await _integrationDefinitionService.ListForAgentAsync(agent.Id, agent.OwnerId, ct);
-        await _events.PublishDiagnosticAsync(
+        await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
             correlationId,
             $"Tool setup: listed integrations ({integrations.Count})",
@@ -47,7 +45,7 @@ internal sealed class ToolExecutionLoop
 
         var registryStart = Stopwatch.GetTimestamp();
         var registry = await _toolRegistryFactory.CreateAsync(
-            _sandbox,
+            _agentSandbox,
             agent.PodName ?? string.Empty,
             agent.ServiceUrl ?? string.Empty,
             agent.Id,
@@ -55,7 +53,7 @@ internal sealed class ToolExecutionLoop
             integrations,
             integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, ct),
             ct);
-        await _events.PublishDiagnosticAsync(
+        await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
             correlationId,
             $"Tool setup: registry created ({registry.Tools.Count} tools)",
@@ -81,7 +79,7 @@ internal sealed class ToolExecutionLoop
             try { args = JsonSerializer.Deserialize<JsonElement>(toolCall.Arguments); }
             catch { args = JsonSerializer.SerializeToElement(new { }); }
 
-            await _events.PublishToolCallStartedAsync(agentId, correlationId, toolCall.Name, toolCall.Arguments, ct);
+            await _turnEventPublisher.PublishToolCallStartedAsync(agentId, correlationId, toolCall.Name, toolCall.Arguments, ct);
             totalToolCalls++;
 
             var toolStart = Stopwatch.GetTimestamp();
@@ -95,7 +93,7 @@ internal sealed class ToolExecutionLoop
 
             if (toolDispatchResult.IsFailure)
             {
-                await _events.PublishToolCallCompletedAsync(
+                await _turnEventPublisher.PublishToolCallCompletedAsync(
                     agentId,
                     correlationId,
                     toolCall.Name,
@@ -120,7 +118,7 @@ internal sealed class ToolExecutionLoop
                     break;
             }
 
-            await _events.PublishToolCallCompletedAsync(agentId, correlationId, toolCall.Name, result.Success, output, toolDurationMs, ct);
+            await _turnEventPublisher.PublishToolCallCompletedAsync(agentId, correlationId, toolCall.Name, result.Success, output, toolDurationMs, ct);
 
             var historyOutput = output.Length > 10000 ? output[..10000] + "\n[truncated]" : output;
             history.Push(new ChatMessage { Role = "tool", Content = historyOutput, ToolCallId = toolCall.Id });

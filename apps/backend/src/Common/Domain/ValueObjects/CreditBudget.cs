@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Common.ValueObjects;
 
 /// <summary>
 /// Encapsulates credit budget state and logic shared between UserSubscription and OrgSubscription.

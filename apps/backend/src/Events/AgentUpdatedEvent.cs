@@ -1,3 +1,3 @@
-namespace EnterpriseAgentOs.Domain.Events;
+namespace OffceOs.Domain.Events;
 
 public sealed record AgentUpdatedEvent(Guid AgentId) : DomainEvent;

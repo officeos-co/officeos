@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Agents;
 
 /// <summary>
 /// Allow/deny decision for a single (skill, tool) pair on a given agent.
@@ -20,10 +20,10 @@ public sealed class AgentToolPermissionRecord
     public AgentRecord? Agent { get; init; }
 
     [Required, MaxLength(64)]
-    public string SkillName { get; init; }
+    public string SkillName { get; init; } = string.Empty;
 
     [Required, MaxLength(64)]
-    public string ToolName { get; init; }
+    public string ToolName { get; init; } = string.Empty;
 
     public ToolPermission Permission { get; set; } = ToolPermission.Allow;
 

@@ -1,16 +1,13 @@
-using System.Text.Json;
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Channels;
+namespace OffceOs.Application.Features.Channels;
 
 internal sealed class ChannelService : IChannelService
 {
-    private readonly IChannelRepository _repo;
-    private readonly IChannelGateway _gateway;
-    private readonly IAgentRepository _agents;
-    private readonly ChannelCredentialProtector _protector;
+    private readonly IChannelRepository _channelRepository;
+    private readonly IChannelGateway _channelGateway;
+    private readonly IAgentRepository _agentRepository;
+    private readonly ChannelCredentialProtector _channelCredentialProtector;
     private readonly IPublisher _publisher;
-    private readonly ChannelReplyContext _replyContext;
+    private readonly ChannelReplyContext _channelReplyContext;
     private readonly ILogger<ChannelService> _logger;
 
     public ChannelService(
@@ -22,12 +19,12 @@ internal sealed class ChannelService : IChannelService
         ChannelReplyContext replyContext,
         ILogger<ChannelService> logger)
     {
-        _repo = repo;
-        _gateway = gateway;
-        _agents = agents;
-        _protector = protector;
+        _channelRepository = repo;
+        _channelGateway = gateway;
+        _agentRepository = agents;
+        _channelCredentialProtector = protector;
         _publisher = publisher;
-        _replyContext = replyContext;
+        _channelReplyContext = replyContext;
         _logger = logger;
     }
 
@@ -38,12 +35,12 @@ internal sealed class ChannelService : IChannelService
         var record = ChannelConnectionRecord.Create(channelType.ToChannelType(), displayName, createdById);
 
         if (!string.IsNullOrWhiteSpace(configJson))
-            record.EncryptedCreds = _protector.Protect(configJson);
+            record.EncryptedCreds = _channelCredentialProtector.Protect(configJson);
 
-        var created = await _repo.CreateConnectionAsync(record, ct);
+        var created = await _channelRepository.CreateConnectionAsync(record, ct);
 
         if (!string.IsNullOrEmpty(created.EncryptedCreds) && created.Enabled)
-            await _gateway.ReloadAsync(ct);
+            await _channelGateway.ReloadAsync(ct);
 
         return created;
     }
@@ -51,11 +48,11 @@ internal sealed class ChannelService : IChannelService
     public async Task<ChannelConnectionRecord> UpdateConnectionAsync(
         Guid id, string? displayName, bool? enabled, CancellationToken ct = default)
     {
-        var updated = await _repo.UpdateConnectionAsync(id, row => row.ApplyUpdate(displayName, enabled), ct);
+        var updated = await _channelRepository.UpdateConnectionAsync(id, row => row.ApplyUpdate(displayName, enabled), ct);
         if (updated is null) throw new InvalidOperationException($"Channel connection '{id}' not found.");
 
         if (enabled.HasValue)
-            await _gateway.ReloadAsync(ct);
+            await _channelGateway.ReloadAsync(ct);
 
         return updated;
     }
@@ -69,9 +66,9 @@ internal sealed class ChannelService : IChannelService
 
     public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
     {
-        var deleted = await _repo.DeleteConnectionAsync(id, ct);
+        var deleted = await _channelRepository.DeleteConnectionAsync(id, ct);
         if (deleted)
-            await _gateway.ReloadAsync(ct);
+            await _channelGateway.ReloadAsync(ct);
         return deleted;
     }
 
@@ -86,13 +83,13 @@ internal sealed class ChannelService : IChannelService
         bool isGroupMessage, string? messageId, string? channelId,
         CancellationToken ct = default)
     {
-        var bindings = await _repo.FindBindingsByConnectionAsync(connectionId, ct);
+        var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
         var agentIds = new List<Guid>();
 
         // Log even when no agent bindings exist for this connection
         if (bindings.Count == 0)
         {
-            var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
+            var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
             var channelType = connection?.ChannelType.ToStorageString() ?? "unknown";
 
             await _publisher.Publish(new ChannelMessageRoutedEvent(
@@ -118,7 +115,7 @@ internal sealed class ChannelService : IChannelService
             // Stash the reply target so the outbound handler can deliver
             // the response back to the same conversation — no DB, pure in-memory
             if (!string.IsNullOrEmpty(channelId))
-                _replyContext.Set(correlationId, channelType, channelId, channelId, binding.ChannelConnectionId);
+                _channelReplyContext.Set(correlationId, channelType, channelId, channelId, binding.ChannelConnectionId);
 
             await _publisher.Publish(new MessageReceivedEvent(
                 binding.AgentId, plainText, correlationId), ct);
@@ -134,7 +131,7 @@ internal sealed class ChannelService : IChannelService
         bool isGroupMessage, string? messageId, string? channelId,
         CancellationToken ct = default)
     {
-        var connections = await _repo.FindConnectionsByChannelTypeAsync(channelType, ct);
+        var connections = await _channelRepository.FindConnectionsByChannelTypeAsync(channelType, ct);
         if (connections.Count == 0)
         {
             await _publisher.Publish(new ChannelMessageRoutedEvent(
@@ -155,7 +152,7 @@ internal sealed class ChannelService : IChannelService
 
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
-        var bindings = await _repo.ListBindingsAsync(agentId, ct);
+        var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
 
         foreach (var binding in bindings)
         {
@@ -183,7 +180,7 @@ internal sealed class ChannelService : IChannelService
 
             try
             {
-                await _gateway.SendAsync(channelType, platformId, threadId,
+                await _channelGateway.SendAsync(channelType, platformId, threadId,
                     ChannelMessage.Text(text), ct);
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
@@ -202,7 +199,7 @@ internal sealed class ChannelService : IChannelService
 
     public async Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default)
     {
-        var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
+        var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
         if (connection is null) return;
 
         var message = $"✅ {connection.DisplayName} connected successfully!";
@@ -210,7 +207,7 @@ internal sealed class ChannelService : IChannelService
         try
         {
             // Test message — no specific platformId, sidecar adapter handles default delivery
-            await _gateway.SendAsync(connection.ChannelType.ToStorageString(), "default", null,
+            await _channelGateway.SendAsync(connection.ChannelType.ToStorageString(), "default", null,
                 ChannelMessage.Text(message), ct);
         }
         catch (Exception ex)
@@ -221,12 +218,12 @@ internal sealed class ChannelService : IChannelService
 
     public async Task<AgentChannelBindingRecord> BindAgentAsync(Guid agentId, Guid channelConnectionId, string? configJson, CancellationToken ct = default)
     {
-        var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = channelConnectionId }, ct);
+        var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = channelConnectionId }, ct);
         if (connection is null)
             throw new InvalidOperationException("Channel connection not found.");
 
         // Return existing binding if already bound (idempotent)
-        var existing = await _repo.ListBindingsAsync(agentId, ct);
+        var existing = await _channelRepository.ListBindingsAsync(agentId, ct);
         var match = existing.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
         if (match is not null)
             return match;
@@ -238,25 +235,25 @@ internal sealed class ChannelService : IChannelService
             Config = configJson,
         };
 
-        return await _repo.CreateBindingAsync(record, ct);
+        return await _channelRepository.CreateBindingAsync(record, ct);
     }
 
     public async Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default)
     {
-        var bindings = await _repo.ListBindingsAsync(agentId, ct);
+        var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
         var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
         if (match is null) return false;
-        return await _repo.DeleteBindingAsync(match.Id, ct);
+        return await _channelRepository.DeleteBindingAsync(match.Id, ct);
     }
 
     public async Task<AgentChannelBindingRecord> UpdateBindingConfigAsync(Guid agentId, Guid channelConnectionId, string configJson, CancellationToken ct = default)
     {
-        var bindings = await _repo.ListBindingsAsync(agentId, ct);
+        var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
         var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
         if (match is null)
             throw new InvalidOperationException("Binding not found for agent + channel connection.");
 
-        var updated = await _repo.UpdateBindingAsync(match.Id, row =>
+        var updated = await _channelRepository.UpdateBindingAsync(match.Id, row =>
         {
             if (row.AgentId != agentId) return;
             row.Config = configJson;
@@ -270,16 +267,16 @@ internal sealed class ChannelService : IChannelService
 
     public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
     {
-        var updated = await _repo.UpdateConnectionAsync(connectionId, record =>
+        var updated = await _channelRepository.UpdateConnectionAsync(connectionId, record =>
         {
-            record.EncryptedCreds = _protector.Protect(credsJson);
+            record.EncryptedCreds = _channelCredentialProtector.Protect(credsJson);
         }, ct);
 
         if (updated is null)
             throw new InvalidOperationException($"Channel connection '{connectionId}' not found.");
 
         if (updated.Enabled)
-            await _gateway.ReloadAsync(ct);
+            await _channelGateway.ReloadAsync(ct);
 
         await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
     }
@@ -289,16 +286,16 @@ internal sealed class ChannelService : IChannelService
         Guid ownerId,
         CancellationToken ct = default)
     {
-        var agent = await _agents.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct);
         if (agent is null)
             throw new InvalidOperationException("Agent not found.");
 
-        return await _repo.ListBindingsAsync(agentId, ct);
+        return await _channelRepository.ListBindingsAsync(agentId, ct);
     }
 
     private async Task EnsureOwnedConnectionAsync(Guid id, Guid ownerId, CancellationToken ct)
     {
-        var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter
+        var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
         {
             Id = id,
             CreatedById = ownerId,

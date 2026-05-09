@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgentRuntimeCleaner
 {
@@ -7,10 +7,10 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     private const string AppLabelValue = "eaos-agent-runtime";
     private const string ManagedByLabelValue = "eaos";
 
-    private readonly HttpClient _docker;
-    private readonly DockerConfig _config;
-    private readonly PodExecutorClient _executor;
-    private readonly IAgentWorkspaceStore _workspaceStore;
+    private readonly HttpClient _httpClient;
+    private readonly DockerConfig _dockerConfig;
+    private readonly PodExecutorClient _podExecutorClient;
+    private readonly IAgentWorkspaceStore _agentWorkspaceStore;
     private readonly ILogger<DockerAgentSandbox> _logger;
 
     public DockerAgentSandbox(
@@ -29,10 +29,10 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         IAgentWorkspaceStore workspaceStore,
         ILogger<DockerAgentSandbox> logger)
     {
-        _docker = docker;
-        _config = config;
-        _executor = executor;
-        _workspaceStore = workspaceStore;
+        _httpClient = docker;
+        _dockerConfig = config;
+        _podExecutorClient = executor;
+        _agentWorkspaceStore = workspaceStore;
         _logger = logger;
     }
 
@@ -53,10 +53,10 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
             "Deploying agent {AgentId} as Docker pod executor {SandboxId} using image {Image}",
             agentId,
             sandboxId,
-            _config.Image);
+            _dockerConfig.Image);
 
-        using var content = JsonContent.Create(BuildCreateContainerBody(agentId, _config));
-        var createResponse = await _docker.PostAsync($"/containers/create?name={sandboxId}", content, ct);
+        using var content = JsonContent.Create(BuildCreateContainerBody(agentId, _dockerConfig));
+        var createResponse = await _httpClient.PostAsync($"/containers/create?name={sandboxId}", content, ct);
 
         if (!createResponse.IsSuccessStatusCode && createResponse.StatusCode != HttpStatusCode.Conflict)
         {
@@ -64,7 +64,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
             throw new InvalidOperationException($"Docker create failed ({createResponse.StatusCode}): {error}");
         }
 
-        var startResponse = await _docker.PostAsync($"/containers/{sandboxId}/start", null, ct);
+        var startResponse = await _httpClient.PostAsync($"/containers/{sandboxId}/start", null, ct);
         if (!startResponse.IsSuccessStatusCode && startResponse.StatusCode != HttpStatusCode.NotModified)
         {
             var error = await startResponse.Content.ReadAsStringAsync(ct);
@@ -72,10 +72,10 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         }
 
         var serviceUrl = await ResolveServiceUrlAsync(sandboxId, ct);
-        if (!await _executor.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
+        if (!await _podExecutorClient.WaitUntilAvailableAsync(serviceUrl, TimeSpan.FromSeconds(60), ct))
             throw new InvalidOperationException($"Pod executor {sandboxId} did not become available.");
 
-        await _workspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
+        await _agentWorkspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
 
         return new AgentDeployment(sandboxId, serviceUrl);
     }
@@ -86,14 +86,14 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         string command,
         TimeSpan timeout,
         CancellationToken ct = default)
-        => _executor.ExecuteAsync(sandboxId, serviceUrl, command, timeout, ct);
+        => _podExecutorClient.ExecuteAsync(sandboxId, serviceUrl, command, timeout, ct);
 
     public Task<AgentResult<string>> ReadFileAsync(
         string sandboxId,
         string serviceUrl,
         string path,
         CancellationToken ct = default)
-        => _executor.ReadFileAsync(sandboxId, serviceUrl, path, ct);
+        => _podExecutorClient.ReadFileAsync(sandboxId, serviceUrl, path, ct);
 
     public Task<AgentResult<bool>> WriteFileAsync(
         string sandboxId,
@@ -101,7 +101,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         string path,
         string content,
         CancellationToken ct = default)
-        => _executor.WriteFileAsync(sandboxId, serviceUrl, path, content, ct);
+        => _podExecutorClient.WriteFileAsync(sandboxId, serviceUrl, path, content, ct);
 
     public Task<bool> TerminateAsync(string sandboxId, CancellationToken ct = default)
         => RemoveAsync(sandboxId, ct);
@@ -110,9 +110,9 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     {
         try
         {
-            await _workspaceStore.CheckpointAsync(podName, await ResolveServiceUrlAsync(podName, ct), ct);
-            await _docker.PostAsync($"/containers/{podName}/stop", null, ct);
-            await _docker.DeleteAsync($"/containers/{podName}?force=true&v=true", ct);
+            await _agentWorkspaceStore.CheckpointAsync(podName, await ResolveServiceUrlAsync(podName, ct), ct);
+            await _httpClient.PostAsync($"/containers/{podName}/stop", null, ct);
+            await _httpClient.DeleteAsync($"/containers/{podName}?force=true&v=true", ct);
             await DeleteVolumesAsync(podName, ct);
             return true;
         }
@@ -127,7 +127,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     {
         try
         {
-            var response = await _docker.GetAsync($"/containers/{podName}/json", ct);
+            var response = await _httpClient.GetAsync($"/containers/{podName}/json", ct);
             if (!response.IsSuccessStatusCode)
                 return "not_found";
 
@@ -154,7 +154,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     {
         try
         {
-            var response = await _docker.GetAsync(
+            var response = await _httpClient.GetAsync(
                 $"/containers/{podName}/logs?stdout=true&stderr=true&tail={tailLines}",
                 ct);
             return response.IsSuccessStatusCode
@@ -239,20 +239,20 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
 
     private async Task<string> ResolveServiceUrlAsync(string sandboxId, CancellationToken ct)
     {
-        if (!_config.PublishHostPort)
+        if (!_dockerConfig.PublishHostPort)
             return ServiceUrl(sandboxId);
 
         var hostPort = await GetPublishedPortAsync(sandboxId, ct);
         return string.IsNullOrWhiteSpace(hostPort)
             ? ServiceUrl(sandboxId)
-            : HostServiceUrl(_config.Host, hostPort);
+            : HostServiceUrl(_dockerConfig.Host, hostPort);
     }
 
     private async Task<string?> GetPublishedPortAsync(string sandboxId, CancellationToken ct)
     {
         try
         {
-            var response = await _docker.GetAsync($"/containers/{sandboxId}/json", ct);
+            var response = await _httpClient.GetAsync($"/containers/{sandboxId}/json", ct);
             if (!response.IsSuccessStatusCode)
                 return null;
 
@@ -284,7 +284,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     private async Task<int> DeleteUnusedContainersAsync(IReadOnlySet<Guid> activeAgentIds, CancellationToken ct)
     {
         var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
-        var response = await _docker.GetAsync("/containers/json?all=true", ct);
+        var response = await _httpClient.GetAsync("/containers/json?all=true", ct);
         if (!response.IsSuccessStatusCode)
             return 0;
 
@@ -300,8 +300,8 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
                 || !IsUnusedRuntimeResource(container, name, activeAgentIds, activeSandboxNames))
                 continue;
 
-            await TryDockerDeleteAsync(() => _docker.PostAsync($"/containers/{name}/stop", null, ct));
-            await TryDockerDeleteAsync(() => _docker.DeleteAsync($"/containers/{name}?force=true&v=true", ct));
+            await TryDockerDeleteAsync(() => _httpClient.PostAsync($"/containers/{name}/stop", null, ct));
+            await TryDockerDeleteAsync(() => _httpClient.DeleteAsync($"/containers/{name}?force=true&v=true", ct));
             deleted++;
         }
 
@@ -311,7 +311,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     private async Task<int> DeleteUnusedVolumesAsync(IReadOnlySet<Guid> activeAgentIds, CancellationToken ct)
     {
         var activeSandboxNames = ActiveSandboxNames(activeAgentIds);
-        var response = await _docker.GetAsync("/volumes", ct);
+        var response = await _httpClient.GetAsync("/volumes", ct);
         if (!response.IsSuccessStatusCode)
             return 0;
 
@@ -327,7 +327,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
                 || !IsUnusedRuntimeResource(volume, nameProperty.GetString(), activeAgentIds, activeSandboxNames))
                 continue;
 
-            await TryDockerDeleteAsync(() => _docker.DeleteAsync($"/volumes/{Uri.EscapeDataString(nameProperty.GetString()!)}?force=true", ct));
+            await TryDockerDeleteAsync(() => _httpClient.DeleteAsync($"/volumes/{Uri.EscapeDataString(nameProperty.GetString()!)}?force=true", ct));
             deleted++;
         }
 
@@ -336,7 +336,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
 
     private async Task DeleteVolumesAsync(string sandboxId, CancellationToken ct)
     {
-        var response = await _docker.GetAsync("/volumes", ct);
+        var response = await _httpClient.GetAsync("/volumes", ct);
         if (!response.IsSuccessStatusCode)
             return;
 
@@ -351,7 +351,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
                 || !IsSandboxStorageName(nameProperty.GetString(), sandboxId))
                 continue;
 
-            await TryDockerDeleteAsync(() => _docker.DeleteAsync($"/volumes/{Uri.EscapeDataString(nameProperty.GetString()!)}?force=true", ct));
+            await TryDockerDeleteAsync(() => _httpClient.DeleteAsync($"/volumes/{Uri.EscapeDataString(nameProperty.GetString()!)}?force=true", ct));
         }
     }
 

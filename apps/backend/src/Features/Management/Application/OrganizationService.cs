@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Management;
 
 internal sealed class OrganizationService : IOrganizationService
 {

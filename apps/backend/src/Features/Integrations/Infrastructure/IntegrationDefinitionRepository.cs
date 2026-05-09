@@ -1,16 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Integrations;
+namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public IntegrationDefinitionRepository(EaosDbContext db) => _db = db;
+    public IntegrationDefinitionRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
     {
-        var entities = await _db.Integrations.AsNoTracking()
+        var entities = await _eaosDbContext.Integrations.AsNoTracking()
             .Where(s => !s.IsBuiltin && s.OwnerId == ownerId)
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)
@@ -21,7 +19,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public async Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, CancellationToken ct = default)
     {
-        var entity = await _db.Integrations.AsNoTracking()
+        var entity = await _eaosDbContext.Integrations.AsNoTracking()
             .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin, ct);
 
         return entity is null ? null : ToRecord(entity);
@@ -29,7 +27,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public async Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
-        var existing = await _db.Integrations
+        var existing = await _eaosDbContext.Integrations
             .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.Name == server.Name && !s.IsBuiltin, ct);
 
         if (existing is null)
@@ -38,8 +36,8 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
             entity.Id = server.Id == Guid.Empty ? Guid.NewGuid() : server.Id;
             entity.OwnerId = ownerId;
             entity.IsBuiltin = false;
-            _db.Integrations.Add(entity);
-            await _db.SaveChangesAsync(ct);
+            _eaosDbContext.Integrations.Add(entity);
+            await _eaosDbContext.SaveChangesAsync(ct);
             return ToRecord(entity);
         }
 
@@ -62,13 +60,13 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         existing.CapabilitiesJson = server.CapabilitiesJson;
         existing.EntitiesJson = JsonSerializer.Serialize(server.Entities);
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return ToRecord(existing);
     }
 
     public async Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default)
     {
-        await _db.Integrations
+        await _eaosDbContext.Integrations
             .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin)
             .ExecuteDeleteAsync(ct);
     }

@@ -1,6 +1,4 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class AgentService : IAgentService
 {
@@ -8,13 +6,13 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentDeployer _agentDeployer;
     private readonly IProviderService _providerService;
     private readonly ILogger<AgentService> _logger;
-    private readonly IDistributedCache _cache;
+    private readonly IDistributedCache _distributedCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
-    private readonly AgentChannelBinder _channelBinder;
+    private readonly AgentChannelBinder _agentChannelBinder;
     private readonly IAgentLogService _agentLogService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
-    private readonly IAgentToolPermissionRepository _toolPermissionRepository;
+    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     public AgentService(
@@ -34,19 +32,19 @@ internal sealed class AgentService : IAgentService
         _agentDeployer = deployer;
         _providerService = providerService;
         _logger = logger;
-        _cache = cache;
+        _distributedCache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
-        _channelBinder = channelBinder;
+        _agentChannelBinder = channelBinder;
         _agentLogService = agentLogService;
         _integrationDefinitionService = integrationDefinitionService;
-        _toolPermissionRepository = toolPermissionRepository;
+        _agentToolPermissionRepository = toolPermissionRepository;
     }
 
     public async Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
     {
         var cacheKey = AgentCacheKeys.List(filter);
-        var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentRecord>>(cacheKey, ct);
+        var cached = await _distributedCache.GetJsonAsync<IReadOnlyList<AgentRecord>>(cacheKey, ct);
         if (cached is not null)
             return cached;
 
@@ -55,15 +53,15 @@ internal sealed class AgentService : IAgentService
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
-        await _cache.SetJsonAsync(cacheKey, records, AgentCacheTtl, ct);
-        await AgentCacheKeys.TrackListAsync(_cache, cacheKey, ct);
+        await _distributedCache.SetJsonAsync(cacheKey, records, AgentCacheTtl, ct);
+        await AgentCacheKeys.TrackListAsync(_distributedCache, cacheKey, ct);
         return records;
     }
 
     public async Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
     {
         var key = AgentCacheKeys.Detail(filter);
-        var cached = await _cache.GetJsonAsync<AgentRecord>(key, ct);
+        var cached = await _distributedCache.GetJsonAsync<AgentRecord>(key, ct);
         if (cached is not null)
             return cached;
 
@@ -75,7 +73,7 @@ internal sealed class AgentService : IAgentService
         }
         await RefreshStatusAsync(record, ct);
 
-        await _cache.SetJsonAsync(key, record, AgentCacheTtl, ct);
+        await _distributedCache.SetJsonAsync(key, record, AgentCacheTtl, ct);
         return record;
     }
 
@@ -178,7 +176,7 @@ internal sealed class AgentService : IAgentService
 
     public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
     {
-        await _channelBinder.BindBySlugsAsync(agentId, init.ChannelSlugs, ct);
+        await _agentChannelBinder.BindBySlugsAsync(agentId, init.ChannelSlugs, ct);
 
         if (init.ToolNames is { Count: > 0 })
         {
@@ -198,7 +196,7 @@ internal sealed class AgentService : IAgentService
             foreach (var permission in init.ToolPermissions)
             {
                 var key = AgentToolPermissionResolver.NormalizeDashboardKey(permission.Tool);
-                await _toolPermissionRepository.UpsertAsync(agentId, key.SkillName, key.ToolName, permission.Mode, ct);
+                await _agentToolPermissionRepository.UpsertAsync(agentId, key.SkillName, key.ToolName, permission.Mode, ct);
             }
         }
 

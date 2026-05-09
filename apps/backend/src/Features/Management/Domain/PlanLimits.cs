@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Management;
 
 /// <summary>
 /// Single source of truth for plan limits. Used by both billing enforcement

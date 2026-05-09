@@ -1,9 +1,9 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Application.Features.Agents;
-using EnterpriseAgentOs.Domain.Features.Context;
+using OffceOs.Application.Features.Agents;
+using OffceOs.Domain.Features.Context;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Context;
+namespace OffceOs.Tests.Context;
 
 public sealed class IntegrationExecuteToolContractTests
 {

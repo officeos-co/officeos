@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>Exact string replacement in a file.</summary>
 internal sealed class FileEditTool : IAgentTool
 {
-    private readonly ToolExecutionContext _context;
-    public FileEditTool(ToolExecutionContext context) => _context = context;
+    private readonly ToolExecutionContext _toolExecutionContext;
+    public FileEditTool(ToolExecutionContext context) => _toolExecutionContext = context;
 
     public string Name => "file_edit";
     public AgentToolKind Kind => AgentToolKind.Write;
@@ -31,7 +31,7 @@ internal sealed class FileEditTool : IAgentTool
         if (string.IsNullOrWhiteSpace(path)) return Task.FromResult(ToolValidationResult.Invalid("file_edit path is required."));
         if (oldStr.Length == 0) return Task.FromResult(ToolValidationResult.Invalid("file_edit old_string must not be empty."));
         if (oldStr == newStr) return Task.FromResult(ToolValidationResult.Invalid("No changes to make: old_string and new_string are identical."));
-        if (!_context.WasFileRead(path)) return Task.FromResult(ToolValidationResult.Invalid($"file_edit refused to edit {path}; read the file with file_read first."));
+        if (!_toolExecutionContext.WasFileRead(path)) return Task.FromResult(ToolValidationResult.Invalid($"file_edit refused to edit {path}; read the file with file_read first."));
         return Task.FromResult(ToolValidationResult.Valid);
     }
 
@@ -45,7 +45,7 @@ internal sealed class FileEditTool : IAgentTool
         var payload = JsonSerializer.Serialize(new { path, old_string = oldStr, new_string = newStr, replace_all = replaceAll });
         var cmd = $"python3 - <<'PY'\nimport json\np = json.loads({ToolShell.Escape(payload)})\npath = p['path']\nwith open(path, 'r', encoding='utf-8') as f:\n    content = f.read()\ncount = content.count(p['old_string'])\nif count == 0:\n    raise SystemExit('old_string not found in ' + path)\nif not p['replace_all'] and count != 1:\n    raise SystemExit(f'old_string found {{count}} times in {{path}}, must be exactly 1 or use replace_all')\nupdated = content.replace(p['old_string'], p['new_string'] if p['replace_all'] else p['new_string'], -1 if p['replace_all'] else 1)\nwith open(path, 'w', encoding='utf-8') as f:\n    f.write(updated)\nprint(f'Edited {{path}}: replaced {{count if p[\"replace_all\"] else 1}} occurrence(s)')\nPY";
 
-        var execResult = await _context.Sandbox.ExecuteAsync(_context.SandboxId, _context.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
+        var execResult = await _toolExecutionContext.Sandbox.ExecuteAsync(_toolExecutionContext.SandboxId, _toolExecutionContext.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
         if (execResult.IsFailure)
             return new AgentError(AgentErrorCategory.ToolExecution, $"file_edit: {execResult.Error.Message}", execResult.Error.Detail);
 

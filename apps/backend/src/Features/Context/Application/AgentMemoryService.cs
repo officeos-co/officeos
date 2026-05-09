@@ -1,9 +1,9 @@
-namespace EnterpriseAgentOs.Application.Features.Context;
+namespace OffceOs.Application.Features.Context;
 
 internal sealed class AgentMemoryService : IAgentMemoryService
 {
     private readonly IAgentMemoryRepository _agentMemoryRepository;
-    private readonly IAgentResourceRepository _resourceRepository;
+    private readonly IAgentResourceRepository _agentResourceRepository;
     private readonly IMemoryStoreRepository _memoryStoreRepository;
 
     public AgentMemoryService(
@@ -12,7 +12,7 @@ internal sealed class AgentMemoryService : IAgentMemoryService
         IMemoryStoreRepository memoryStoreRepository)
     {
         _agentMemoryRepository = agentMemoryRepository;
-        _resourceRepository = resourceRepository;
+        _agentResourceRepository = resourceRepository;
         _memoryStoreRepository = memoryStoreRepository;
     }
 
@@ -22,7 +22,7 @@ internal sealed class AgentMemoryService : IAgentMemoryService
         string content,
         CancellationToken ct = default)
     {
-        var attachment = await _resourceRepository.GetActiveMemoryStoreAttachmentAsync(agentId, ct);
+        var attachment = await _agentResourceRepository.GetActiveMemoryStoreAttachmentAsync(agentId, ct);
         if (attachment is null)
             await _agentMemoryRepository.UpsertAsync(agentId, key, content, ct);
         else
@@ -51,7 +51,7 @@ internal sealed class AgentMemoryService : IAgentMemoryService
 
     public async Task<bool> ForgetAsync(Guid agentId, string key, CancellationToken ct = default)
     {
-        var attachment = await _resourceRepository.GetActiveMemoryStoreAttachmentAsync(agentId, ct);
+        var attachment = await _agentResourceRepository.GetActiveMemoryStoreAttachmentAsync(agentId, ct);
         return attachment is null
             ? await _agentMemoryRepository.DeleteAsync(agentId, key, ct)
             : await _memoryStoreRepository.DeleteEntryForStoreAsync(attachment.ResourceId, key, ct);
@@ -59,7 +59,7 @@ internal sealed class AgentMemoryService : IAgentMemoryService
 
     private async Task<IReadOnlyList<AgentMemoryRecord>> ListActiveMemoriesAsync(Guid agentId, CancellationToken ct)
     {
-        var attachment = await _resourceRepository.GetActiveMemoryStoreAttachmentAsync(agentId, ct);
+        var attachment = await _agentResourceRepository.GetActiveMemoryStoreAttachmentAsync(agentId, ct);
         if (attachment is null)
             return await _agentMemoryRepository.ListAsync(agentId, ct);
 

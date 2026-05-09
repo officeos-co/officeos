@@ -1,6 +1,4 @@
-using EnterpriseAgentOs.Domain.Features.Agents;
-
-namespace EnterpriseAgentOs.Api.Features.Channels;
+namespace OffceOs.Api.Features.Channels;
 
 public static class ChannelInboundEndpoint
 {

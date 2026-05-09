@@ -1,10 +1,10 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Application.Features.Agents;
-using EnterpriseAgentOs.Domain.Common.Primitives;
-using EnterpriseAgentOs.Domain.Features.Agents;
+using OffceOs.Application.Features.Agents;
+using OffceOs.Domain.Common.Primitives;
+using OffceOs.Domain.Features.Agents;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Sandbox;
+namespace OffceOs.Tests.Sandbox;
 
 public sealed class BrowserToolTests
 {
