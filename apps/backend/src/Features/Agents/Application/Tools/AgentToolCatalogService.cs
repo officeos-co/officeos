@@ -7,9 +7,7 @@ public interface IAgentToolCatalogService
 
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
-    private readonly IAgentMemoryRepository _memoryRepo;
-    private readonly IAgentResourceRepository _resourceRepository;
-    private readonly IMemoryStoreRepository _memoryStoreRepository;
+    private readonly IAgentMemoryService _memoryService;
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
@@ -18,9 +16,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IAgentToolPermissionRepository _permissionRepository;
 
     public AgentToolCatalogService(
-        IAgentMemoryRepository memoryRepo,
-        IAgentResourceRepository resourceRepository,
-        IMemoryStoreRepository memoryStoreRepository,
+        IAgentMemoryService memoryService,
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
@@ -28,9 +24,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IIntegrationDefinitionService integrationDefinitionService,
         IAgentToolPermissionRepository permissionRepository)
     {
-        _memoryRepo = memoryRepo;
-        _resourceRepository = resourceRepository;
-        _memoryStoreRepository = memoryStoreRepository;
+        _memoryService = memoryService;
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
@@ -51,9 +45,9 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new FileEditTool(context),
             new ContentSearchTool(context),
             new GlobSearchTool(context),
-            new MemoryStoreTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, effectiveAgentId),
-            new MemoryRecallTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, effectiveAgentId),
-            new MemoryForgetTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, effectiveAgentId),
+            new MemoryStoreTool(_memoryService, effectiveAgentId),
+            new MemoryRecallTool(_memoryService, effectiveAgentId),
+            new MemoryForgetTool(_memoryService, effectiveAgentId),
             new AskUserQuestionTool(),
             new TaskCreateTool(_taskStore, effectiveAgentId),
             new TaskListTool(_taskStore, effectiveAgentId),

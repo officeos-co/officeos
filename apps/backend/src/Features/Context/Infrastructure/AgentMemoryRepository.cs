@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace EnterpriseAgentOs.Infrastructure.Features.Context;
 
 internal sealed class AgentMemoryRepository : IAgentMemoryRepository
 {
@@ -66,7 +66,6 @@ internal sealed class AgentMemoryRepository : IAgentMemoryRepository
         Content = e.Content,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt,
-        Agent = null!,
     };
 
     private static AgentMemoryEntity ToAgentMemoryEntity(AgentMemoryRecord r) => new()

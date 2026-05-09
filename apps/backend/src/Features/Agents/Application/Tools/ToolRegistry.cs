@@ -110,9 +110,7 @@ internal sealed class ToolRegistry : IAsyncDisposable
 /// </summary>
 internal sealed class ToolRegistryFactory
 {
-    private readonly IAgentMemoryRepository _memoryRepo;
-    private readonly IAgentResourceRepository _resourceRepository;
-    private readonly IMemoryStoreRepository _memoryStoreRepository;
+    private readonly IAgentMemoryService _memoryService;
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
@@ -124,9 +122,7 @@ internal sealed class ToolRegistryFactory
     private readonly ILogger<ToolRegistryFactory> _logger;
 
     public ToolRegistryFactory(
-        IAgentMemoryRepository memoryRepo,
-        IAgentResourceRepository resourceRepository,
-        IMemoryStoreRepository memoryStoreRepository,
+        IAgentMemoryService memoryService,
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
@@ -137,9 +133,7 @@ internal sealed class ToolRegistryFactory
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
-        _memoryRepo = memoryRepo;
-        _resourceRepository = resourceRepository;
-        _memoryStoreRepository = memoryStoreRepository;
+        _memoryService = memoryService;
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
@@ -172,9 +166,9 @@ internal sealed class ToolRegistryFactory
             new ContentSearchTool(context),
             new GlobSearchTool(context),
             // Memory tools (Postgres)
-            new MemoryStoreTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, agentId),
-            new MemoryRecallTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, agentId),
-            new MemoryForgetTool(_memoryRepo, _resourceRepository, _memoryStoreRepository, agentId),
+            new MemoryStoreTool(_memoryService, agentId),
+            new MemoryRecallTool(_memoryService, agentId),
+            new MemoryForgetTool(_memoryService, agentId),
             // Session/task orchestration
             new AskUserQuestionTool(),
             new TaskCreateTool(_taskStore, agentId),

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace EnterpriseAgentOs.Domain.Features.Context;
 
 public sealed class AgentMemoryRecord
 {
@@ -8,8 +8,6 @@ public sealed class AgentMemoryRecord
     public string Content { get; set; } = null!;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    public AgentRecord Agent { get; init; } = null!;
 
     // ── Factory ──────────────────────────────────────────────────────────────
 
