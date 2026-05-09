@@ -7,10 +7,10 @@ public class CronJobQueries
     [GraphQLDescription("Lists all scheduled cron jobs for agents owned by the authenticated user.")]
     public async Task<IReadOnlyList<CronJobPayload>> GetCronJobs(
         [Service] UserContext user,
-        [Service] IAgentCronJobRepository repo,
+        [Service] IAgentCronJobService jobs,
         CancellationToken ct)
     {
-        var rows = await repo.ListForOwnerAsync(user.Id, ct);
+        var rows = await jobs.ListForOwnerAsync(user.Id, ct);
         return rows.Select(ToPayload).ToList();
     }
 
@@ -18,20 +18,21 @@ public class CronJobQueries
     public async Task<CronJobPayload?> GetCronJob(
         Guid id,
         [Service] UserContext user,
-        [Service] IAgentCronJobRepository repo,
+        [Service] IAgentCronJobService jobs,
         CancellationToken ct)
     {
-        var row = await repo.GetForOwnerAsync(id, user.Id, ct);
+        var row = await jobs.GetForOwnerAsync(id, user.Id, ct);
         return row is null ? null : ToPayload(row);
     }
 
     [GraphQLDescription("Lists all scheduled cron jobs for a specific agent.")]
     public async Task<IReadOnlyList<AgentCronJobRecord>> GetAgentCronJobs(
         Guid agentId,
-        [Service] IAgentCronJobRepository repo,
+        [Service] UserContext user,
+        [Service] IAgentCronJobService jobs,
         CancellationToken ct)
     {
-        return await repo.ListAsync(agentId, ct);
+        return await jobs.ListForAgentAsync(agentId, user.Id, ct);
     }
 
     private static CronJobPayload ToPayload(AgentCronJobWithAgentRecord row) =>

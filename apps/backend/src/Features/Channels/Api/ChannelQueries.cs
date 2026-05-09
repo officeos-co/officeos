@@ -19,9 +19,7 @@ public class ChannelQueries
         if (cached is not null)
             return cached;
 
-        var rows = (await repo.ListConnectionsAsync(ct))
-            .Where(connection => connection.CreatedById == user.Id)
-            .ToList();
+        var rows = await repo.ListConnectionsAsync(new ChannelConnectionFilter { CreatedById = user.Id }, ct);
         var result = rows.Select(ChannelGraphQLMapper.ToDto).ToList();
 
         await cache.SetJsonAsync(listKey, (IReadOnlyList<ChannelConnectionGqlDto>)result, ChannelCacheTtl, ct);

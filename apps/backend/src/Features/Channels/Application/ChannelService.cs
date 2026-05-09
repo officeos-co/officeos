@@ -57,12 +57,25 @@ internal sealed class ChannelService : IChannelService
         return updated;
     }
 
+    public async Task<ChannelConnectionRecord> UpdateOwnedConnectionAsync(
+        Guid id, Guid ownerId, string? displayName, bool? enabled, CancellationToken ct = default)
+    {
+        await EnsureOwnedConnectionAsync(id, ownerId, ct);
+        return await UpdateConnectionAsync(id, displayName, enabled, ct);
+    }
+
     public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
     {
         var deleted = await _repo.DeleteConnectionAsync(id, ct);
         if (deleted)
             await _gateway.ReloadAsync(ct);
         return deleted;
+    }
+
+    public async Task<bool> DeleteOwnedConnectionAsync(Guid id, Guid ownerId, CancellationToken ct = default)
+    {
+        await EnsureOwnedConnectionAsync(id, ownerId, ct);
+        return await DeleteConnectionAsync(id, ct);
     }
 
     public async Task<IReadOnlyList<Guid>> RouteInboundAsync(
@@ -266,6 +279,18 @@ internal sealed class ChannelService : IChannelService
             await _gateway.ReloadAsync(ct);
 
         await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
+    }
+
+    private async Task EnsureOwnedConnectionAsync(Guid id, Guid ownerId, CancellationToken ct)
+    {
+        var connection = await _repo.GetConnectionByAsync(new ChannelConnectionFilter
+        {
+            Id = id,
+            CreatedById = ownerId,
+        }, ct);
+
+        if (connection is null)
+            throw new InvalidOperationException("Channel connection not found.");
     }
 
     /// <summary>

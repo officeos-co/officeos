@@ -44,15 +44,13 @@ public class ChannelMutations
         UpdateChannelConnectionInput input,
         [Service] UserContext user,
         [Service] IChannelService channelService,
-        [Service] IChannelRepository channelRepository,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         try
         {
-            await EnsureOwnedChannelConnectionAsync(channelRepository, id, user.Id, ct);
-            var updated = await channelService.UpdateConnectionAsync(
-                id, input.DisplayName, input.Enabled, ct);
+            var updated = await channelService.UpdateOwnedConnectionAsync(
+                id, user.Id, input.DisplayName, input.Enabled, ct);
 
             await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
             return ChannelGraphQLMapper.ToDto(updated);
@@ -69,14 +67,20 @@ public class ChannelMutations
         Guid id,
         [Service] UserContext user,
         [Service] IChannelService channelService,
-        [Service] IChannelRepository channelRepository,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        await EnsureOwnedChannelConnectionAsync(channelRepository, id, user.Id, ct);
-        var result = await channelService.DeleteConnectionAsync(id, ct);
-        await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
-        return result;
+        try
+        {
+            var result = await channelService.DeleteOwnedConnectionAsync(id, user.Id, ct);
+            await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
+            return result;
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("NOT_FOUND").Build());
+        }
     }
 
     [GraphQLDescription("Binds a channel connection to an agent so it receives messages from that channel. Optional config specifies platform/thread IDs.")]
@@ -127,25 +131,4 @@ public class ChannelMutations
             .SetCode("IMMUTABLE_AGENT_CAPABILITIES")
             .Build());
 
-    private static async Task EnsureOwnedChannelConnectionAsync(
-        IChannelRepository channelRepository,
-        Guid id,
-        Guid userId,
-        CancellationToken ct)
-    {
-        var connection = await channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
-        {
-            Id = id,
-            CreatedById = userId,
-        }, ct);
-
-        if (connection is null)
-        {
-            throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage("Channel connection not found.")
-                    .SetCode("NOT_FOUND")
-                    .Build());
-        }
-    }
 }

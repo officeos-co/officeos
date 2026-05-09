@@ -11,12 +11,20 @@ internal sealed class ChannelRepository : IChannelRepository
 
     // ---------- Channel Connections ----------
 
-    public async Task<IReadOnlyList<ChannelConnectionRecord>> ListConnectionsAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<ChannelConnectionRecord>> ListConnectionsAsync(ChannelConnectionFilter? filter = null, CancellationToken ct = default)
     {
-        var entities = await _eaosDbContext.ChannelConnections
-            .AsNoTracking()
-            .OrderBy(c => c.CreatedAt)
-            .ToListAsync(ct);
+        var query = _eaosDbContext.ChannelConnections.AsNoTracking();
+
+        if (filter?.Id is { } id)
+            query = query.Where(c => c.Id == id);
+
+        if (!string.IsNullOrEmpty(filter?.ChannelType))
+            query = query.Where(c => c.ChannelType == filter.ChannelType);
+
+        if (filter?.CreatedById is { } createdById)
+            query = query.Where(c => c.CreatedById == createdById);
+
+        var entities = await query.OrderBy(c => c.CreatedAt).ToListAsync(ct);
         return entities.Select(ToChannelConnectionRecord).ToList();
     }
 

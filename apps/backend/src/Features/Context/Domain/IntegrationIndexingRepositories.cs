@@ -1,39 +1,5 @@
 namespace EnterpriseAgentOs.Domain.Features.Context;
 
-public sealed record IntegrationConnectionFilter
-{
-    public Guid? Id { get; init; }
-    public IntegrationProviderType? Provider { get; init; }
-}
-
-public sealed record IntegrationRequestHistoryFilter
-{
-    public Guid? ConnectionId { get; init; }
-    public int Limit { get; init; } = 100;
-}
-
-public sealed record IntegrationActivityFilter
-{
-    public Guid? ConnectionId { get; init; }
-    public int Limit { get; init; } = 100;
-}
-
-public sealed record IntegrationIndexJobFilter
-{
-    public Guid? ConnectionId { get; init; }
-    public int Limit { get; init; } = 20;
-}
-
-public sealed record IntegrationIndexedRecordFilter
-{
-    public Guid? Id { get; init; }
-    public Guid? ConnectionId { get; init; }
-    public string? Entity { get; init; }
-    public string? Query { get; init; }
-    public string? Cursor { get; init; }
-    public int Limit { get; init; } = 20;
-}
-
 public sealed record IntegrationIndexedRecordPage(
     IReadOnlyList<IntegrationIndexedRecordRecord> Records,
     bool HasMore,

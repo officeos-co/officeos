@@ -12,6 +12,7 @@ internal sealed class AuthService : IAuthService
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IDistributedCache _cache;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -22,6 +23,7 @@ internal sealed class AuthService : IAuthService
         IOAuthTokenRepository oauthTokens,
         CredentialProtector credentialProtector,
         IHttpClientFactory httpFactory,
+        IDistributedCache cache,
         ILogger<AuthService> logger)
     {
         _googleOAuthConfig = googleOAuth;
@@ -31,6 +33,7 @@ internal sealed class AuthService : IAuthService
         _oauthTokenRepository = oauthTokens;
         _credentialProtector = credentialProtector;
         _httpClientFactory = httpFactory;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -257,6 +260,38 @@ internal sealed class AuthService : IAuthService
         _logger.LogInformation("OAuth: session created for {Email}", email);
 
         return new GitHubCallbackResult(sessionToken, email);
+    }
+
+    public async Task<UserRecord> UpdateProfileAsync(
+        Guid userId,
+        string? name,
+        string? displayName,
+        string? timezone,
+        string? notificationPrefsJson,
+        string? preferences,
+        CancellationToken ct = default)
+    {
+        var updated = await _userRepository.UpdateProfileAsync(
+            userId,
+            name,
+            displayName,
+            timezone,
+            notificationPrefsJson,
+            preferences,
+            ct);
+        await _cache.RemoveAsync($"auth:me:{userId}", ct);
+        return updated;
+    }
+
+    public async Task<bool> LogoutAsync(string? sessionToken, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(sessionToken))
+            return false;
+
+        var tokenHash = SessionTokenHasher.Hash(sessionToken);
+        await _sessionRepository.DeleteAsync(tokenHash, ct);
+        await _cache.RemoveAsync($"session:{tokenHash[..16]}", ct);
+        return true;
     }
 
     private static readonly string[] GoogleScopes =

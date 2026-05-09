@@ -1,23 +1,9 @@
 namespace EnterpriseAgentOs.Domain.Features.Channels;
 
-public sealed record ChannelConnectionFilter
-{
-    public Guid? Id { get; init; }
-    public string? ChannelType { get; init; }
-    public Guid? CreatedById { get; init; }
-}
-
-public sealed record AgentChannelBindingFilter
-{
-    public Guid? Id { get; init; }
-    public Guid? AgentId { get; init; }
-    public Guid? ChannelConnectionId { get; init; }
-}
-
 public interface IChannelRepository
 {
     // ---------- Channel Connections ----------
-    Task<IReadOnlyList<ChannelConnectionRecord>> ListConnectionsAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<ChannelConnectionRecord>> ListConnectionsAsync(ChannelConnectionFilter? filter = null, CancellationToken ct = default);
     Task<ChannelConnectionRecord?> GetConnectionByAsync(ChannelConnectionFilter filter, CancellationToken ct = default);
     Task<ChannelConnectionRecord> CreateConnectionAsync(ChannelConnectionRecord record, CancellationToken ct = default);
     Task<ChannelConnectionRecord?> UpdateConnectionAsync(Guid id, Action<ChannelConnectionRecord> apply, CancellationToken ct = default);

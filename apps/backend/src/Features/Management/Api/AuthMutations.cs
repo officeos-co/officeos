@@ -17,11 +17,10 @@ public class AuthMutations
     public async Task<UserPayload> UpdateProfile(
         UpdateProfileInput input,
         [Service] UserContext user,
-        [Service] IUserRepository users,
-        [Service] IDistributedCache cache,
+        [Service] IAuthService auth,
         CancellationToken ct)
     {
-        var updated = await users.UpdateProfileAsync(
+        var updated = await auth.UpdateProfileAsync(
             user.Id,
             input.Name,
             input.DisplayName,
@@ -29,7 +28,6 @@ public class AuthMutations
             input.NotificationPrefsJson,
             input.Preferences,
             ct);
-        await cache.RemoveAsync($"auth:me:{user.Id}", ct);
         return new UserPayload(
             updated.Id,
             updated.Email,
@@ -44,20 +42,15 @@ public class AuthMutations
     [GraphQLDescription("Clears the current dashboard session cookie. Returns true if a session was deleted.")]
     public async Task<bool> Logout(
         [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] ISessionRepository sessions,
-        [Service] IDistributedCache cache,
+        [Service] IAuthService auth,
         CancellationToken ct)
     {
         var http = httpContextAccessor.HttpContext;
         var cookie = http?.Request.Cookies["eaos-session"];
-        if (string.IsNullOrEmpty(cookie))
-            return false;
-
-        var tokenHash = SessionAuthMiddleware.HashToken(cookie);
-        await sessions.DeleteAsync(tokenHash, ct);
-        await cache.RemoveAsync($"session:{tokenHash[..16]}", ct);
-        http!.Response.Cookies.Delete("eaos-session");
-        return true;
+        var deleted = await auth.LogoutAsync(cookie, ct);
+        if (deleted)
+            http!.Response.Cookies.Delete("eaos-session");
+        return deleted;
     }
 
     /// <summary>
