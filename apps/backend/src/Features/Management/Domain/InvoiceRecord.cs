@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Domain.Features.Management;
 
-public sealed record InvoicePayload(
+public sealed record InvoiceRecord(
     string Id,
     DateTime Date,
     string Total,

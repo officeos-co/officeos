@@ -41,7 +41,7 @@ internal sealed class AgentLogService : IAgentLogService
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
-    public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersInput filters) =>
+    public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters) =>
         ToProjectionQuery(
             _agentLogRepository.Query(new AgentLogFilter
                 {
@@ -96,7 +96,7 @@ internal sealed class AgentLogService : IAgentLogService
             new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
             ct);
 
-    public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersInput filters, CancellationToken ct = default)
+    public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersRequest filters, CancellationToken ct = default)
     {
         var limit = Math.Clamp(filters.Limit, 1, 200);
         var skip = Math.Max(filters.Skip, 0);

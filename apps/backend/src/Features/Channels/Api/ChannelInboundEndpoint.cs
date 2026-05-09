@@ -4,7 +4,7 @@ namespace EnterpriseAgentOs.Api.Features.Channels;
 
 public static class ChannelInboundEndpoint
 {
-    public record ChannelInboundRequest(
+    public record ChannelInboundInput(
         string ChannelType,
         string SenderIdentifier,
         string MessageText,
@@ -13,7 +13,7 @@ public static class ChannelInboundEndpoint
         string? ChannelId);
 
     public static async Task<IResult> Handle(
-        ChannelInboundRequest request,
+        ChannelInboundInput request,
         IChannelService channelService,
         CancellationToken ct)
     {

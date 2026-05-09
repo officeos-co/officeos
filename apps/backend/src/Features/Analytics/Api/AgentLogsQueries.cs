@@ -43,7 +43,11 @@ public class AgentLogsQueries
         GlobalLogFiltersInput? filters,
         [Service] IAgentLogService logs)
     {
-        return logs.ListGlobalAsync(filters ?? new GlobalLogFiltersInput());
+        var request = filters is null
+            ? new GlobalLogFiltersRequest()
+            : new GlobalLogFiltersRequest(filters.Search, filters.AgentName, filters.Type, filters.Skip, filters.Limit);
+
+        return logs.ListGlobalAsync(request);
     }
 
     [UseOffsetPaging(typeof(AuditEntry), IncludeTotalCount = true, MaxPageSize = 100, DefaultPageSize = 50)]

@@ -16,7 +16,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
         _env = env;
     }
 
-    public async Task<UsageAnalyticsResult> GetForUserAsync(Guid userId, UsageAnalyticsInput input, CancellationToken ct = default)
+    public async Task<UsageAnalyticsResult> GetForUserAsync(Guid userId, UsageAnalyticsRequest input, CancellationToken ct = default)
     {
         var (from, toExclusive) = NormalizeRange(input.From, input.To);
         var sub = await _userBilling.GetSubscriptionAsync(userId, ct);

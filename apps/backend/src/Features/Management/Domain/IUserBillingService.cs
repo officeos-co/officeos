@@ -8,7 +8,7 @@ public interface IUserBillingService
     Task<string> CreatePortalSessionAsync(Guid userId, string email, CancellationToken ct = default);
     Task CancelSubscriptionAsync(Guid userId, string email, CancellationToken ct = default);
     Task EnableOverageAsync(Guid userId, string email, bool enabled, CancellationToken ct = default);
-    Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
+    Task<IReadOnlyList<InvoiceRecord>> ListInvoicesAsync(
         Guid userId,
         CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, (long MonthlyAmountCents, long YearlyAmountCents, string Currency)>> GetPlanPricesAsync(CancellationToken ct = default);
