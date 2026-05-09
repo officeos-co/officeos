@@ -3,7 +3,7 @@ namespace EnterpriseAgentOs.Domain.Features.Channels;
 /// <summary>
 /// Static definitions of supported channel types and their config field schemas.
 /// </summary>
-public static class ChannelTypes
+public static class ChannelKinds
 {
     public static readonly IReadOnlyList<ChannelTypeDefinition> All = new[]
     {

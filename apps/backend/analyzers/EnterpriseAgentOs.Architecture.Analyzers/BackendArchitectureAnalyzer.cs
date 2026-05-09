@@ -49,6 +49,14 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor LayerNamingRule = new(
+        "EAOS006",
+        "Feature type name must match its layer vocabulary",
+        "{0} type '{1}' does not match the allowed naming vocabulary for the {2} layer",
+        "EnterpriseAgentOs.Architecture",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private static readonly string[] ForbiddenDomainNamespaces =
     [
         "EnterpriseAgentOs.Api",
@@ -61,13 +69,151 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         "Stripe",
     ];
 
+    private static readonly string[] DomainSuffixes =
+    [
+        "Record",
+        "Filter",
+        "Event",
+        "Result",
+        "Request",
+        "Response",
+        "Payload",
+        "Config",
+        "Message",
+        "Context",
+        "Definition",
+        "Step",
+        "Provider",
+        "Access",
+        "Limits",
+        "Hasher",
+        "Topics",
+        "Key",
+        "Mode",
+        "Modes",
+        "Kinds",
+        "Kind",
+        "State",
+        "Descriptor",
+        "Tool",
+        "Deployment",
+        "Row",
+        "Options",
+        "Page",
+        "Overview",
+        "Exception",
+        "Subscription",
+        "Limit",
+    ];
+
+    private static readonly string[] DomainInterfaceSuffixes =
+    [
+        "Repository",
+        "Service",
+        "Gateway",
+        "Client",
+        "Manager",
+        "Sandbox",
+        "Deployer",
+        "Cleaner",
+        "Guard",
+    ];
+
+    private static readonly string[] ApplicationSuffixes =
+    [
+        "Service",
+        "Request",
+        "Result",
+        "Policy",
+        "Input",
+        "Payload",
+        "Projection",
+        "Entry",
+        "Item",
+        "Export",
+        "Context",
+        "Builder",
+        "Executor",
+        "Publisher",
+        "Resolver",
+        "Parser",
+        "Detector",
+        "Checkpoint",
+        "Guard",
+        "History",
+        "Lifecycle",
+        "Scope",
+        "Loop",
+        "Session",
+        "Connection",
+        "Shell",
+        "Init",
+        "Bootstrap",
+        "Summary",
+        "Point",
+        "Breakdown",
+        "Page",
+        "Mapper",
+        "Usage",
+        "Binder",
+        "Client",
+        "Tool",
+        "Registry",
+        "Factory",
+        "Store",
+        "Keys",
+        "Message",
+        "Call",
+        "Window",
+        "Schema",
+        "Kind",
+    ];
+
+    private static readonly string[] ApiSuffixes =
+    [
+        "Input",
+        "Payload",
+        "Request",
+        "Queries",
+        "Mutations",
+        "Subscriptions",
+        "Controller",
+        "Endpoint",
+        "Mapper",
+        "Bootstrap",
+        "Summary",
+    ];
+
+    private static readonly string[] InfrastructureSuffixes =
+    [
+        "Repository",
+        "Adapter",
+        "Client",
+        "Gateway",
+        "Config",
+        "Protector",
+        "Dispatcher",
+        "Translator",
+        "Sandbox",
+        "Store",
+        "Injector",
+        "Router",
+        "Service",
+        "Manager",
+        "Handle",
+        "Response",
+    ];
+
+    private static readonly string[] EventHandlersSuffixes = ["Handler"];
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(
             DomainDtoTypeRule,
             BroadTypesFileRule,
             ApiMutationRepositoryInjectionRule,
             DomainForbiddenDependencyRule,
-            FeatureDtoTypeRule);
+            FeatureDtoTypeRule,
+            LayerNamingRule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -128,18 +274,23 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
             return;
 
         var filePath = NormalizePath(declaringSyntax.SyntaxTree.FilePath);
-        if (!IsFeatureFile(filePath) || !typeSymbol.Name.EndsWith("Dto", StringComparison.Ordinal))
+        if (!IsFeatureFile(filePath))
             return;
 
         var location = declaringSyntax.GetSyntax(context.CancellationToken).GetLocation();
-        if (IsDomainFile(filePath))
+        if (typeSymbol.Name.EndsWith("Dto", StringComparison.Ordinal))
         {
-            context.ReportDiagnostic(Diagnostic.Create(DomainDtoTypeRule, location, typeSymbol.Name));
-            return;
+            if (IsDomainFile(filePath))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(DomainDtoTypeRule, location, typeSymbol.Name));
+                return;
+            }
+
+            if (IsInLayer(filePath, "Api") || IsInLayer(filePath, "Application"))
+                context.ReportDiagnostic(Diagnostic.Create(FeatureDtoTypeRule, location, typeSymbol.Name));
         }
 
-        if (IsInLayer(filePath, "Api") || IsInLayer(filePath, "Application"))
-            context.ReportDiagnostic(Diagnostic.Create(FeatureDtoTypeRule, location, typeSymbol.Name));
+        AnalyzeLayerNaming(context, typeSymbol, filePath, location);
     }
 
     private static void AnalyzeParameter(SyntaxNodeAnalysisContext context)
@@ -172,6 +323,85 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         return typeSymbol.AllInterfaces.Any(interfaceSymbol =>
             interfaceSymbol.Name.StartsWith("I", StringComparison.Ordinal)
             && interfaceSymbol.Name.EndsWith("Repository", StringComparison.Ordinal));
+    }
+
+    private static void AnalyzeLayerNaming(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol typeSymbol,
+        string filePath,
+        Location location)
+    {
+        if (typeSymbol.DeclaredAccessibility is Accessibility.Private)
+            return;
+
+        if (typeSymbol.TypeKind is TypeKind.Enum)
+            return;
+
+        var name = typeSymbol.Name;
+        if (name.StartsWith("<", StringComparison.Ordinal))
+            return;
+
+        var layer = GetLayer(filePath);
+        if (layer is null)
+            return;
+
+        if (IsAllowedName(typeSymbol, layer, name))
+            return;
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            LayerNamingRule,
+            location,
+            typeSymbol.TypeKind.ToString().ToLowerInvariant(),
+            name,
+            layer));
+    }
+
+    private static bool IsAllowedName(INamedTypeSymbol typeSymbol, string layer, string name)
+    {
+        if (typeSymbol.TypeKind is TypeKind.Interface)
+        {
+            return layer switch
+            {
+                "Domain" => StartsWithIAndEndsWith(name, DomainInterfaceSuffixes),
+                "Application" => StartsWithIAndEndsWith(name, ApplicationSuffixes),
+                "Infrastructure" => StartsWithIAndEndsWith(name, InfrastructureSuffixes),
+                _ => name.StartsWith("I", StringComparison.Ordinal),
+            };
+        }
+
+        var suffixes = layer switch
+        {
+            "Domain" => DomainSuffixes,
+            "Application" => ApplicationSuffixes,
+            "Api" => ApiSuffixes,
+            "Infrastructure" => InfrastructureSuffixes,
+            "EventHandlers" => EventHandlersSuffixes,
+            _ => [],
+        };
+
+        return EndsWithAny(name, suffixes);
+    }
+
+    private static bool StartsWithIAndEndsWith(string name, string[] suffixes) =>
+        name.StartsWith("I", StringComparison.Ordinal) && EndsWithAny(name, suffixes);
+
+    private static bool EndsWithAny(string name, string[] suffixes) =>
+        suffixes.Any(suffix => name.EndsWith(suffix, StringComparison.Ordinal));
+
+    private static string? GetLayer(string filePath)
+    {
+        if (IsInLayer(filePath, "Domain"))
+            return "Domain";
+        if (IsInLayer(filePath, "Application"))
+            return "Application";
+        if (IsInLayer(filePath, "Api"))
+            return "Api";
+        if (IsInLayer(filePath, "Infrastructure"))
+            return "Infrastructure";
+        if (IsInLayer(filePath, "EventHandlers"))
+            return "EventHandlers";
+
+        return null;
     }
 
     private static void ReportFileDiagnostic(SyntaxTreeAnalysisContext context, DiagnosticDescriptor descriptor, string argument)

@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Domain.Features.Agents;
 
-public static class AgentResourceTypes
+public static class AgentResourceKinds
 {
     public const string Browser = "browser";
     public const string MemoryStore = "memory_store";

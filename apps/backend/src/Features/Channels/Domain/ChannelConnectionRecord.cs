@@ -34,7 +34,7 @@ public sealed class ChannelConnectionRecord
     public static ChannelConnectionRecord Create(ChannelType channelType, string displayName, Guid createdById)
     {
         // Validate that the type has a known definition
-        _ = ChannelTypes.GetByType(channelType.ToStorageString())
+        _ = ChannelKinds.GetByType(channelType.ToStorageString())
             ?? throw new InvalidOperationException($"Unknown channel type: {channelType}");
 
         return new ChannelConnectionRecord
