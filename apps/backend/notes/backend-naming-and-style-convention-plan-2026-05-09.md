@@ -289,8 +289,8 @@ Api:
 
 - `*Input`: GraphQL/HTTP input.
 - `*Payload`: GraphQL/HTTP output.
-- `*GqlDto`: tolerated only as an existing GraphQL projection name; prefer `*Payload` for new code.
 - `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`.
+- `*Mapper`: API-only mapping helper.
 
 Infrastructure:
 
@@ -307,7 +307,7 @@ Database:
 
 Avoid:
 
-- `Dto` in Domain. Use `*Record`, `*Filter`, value-object names, or a clearer business contract name.
+- `Dto` anywhere under feature Api/Application/Domain. Use `*Input`, `*Payload`, `*Request`, `*Result`, `*Projection`, `*Record`, `*Filter`, or a clearer business contract name.
 - Generic `Integration*` names unless the type truly covers more than MCP and context connectors.
 - Broad files named `Types.cs`, `Records.cs`, or `Repositories.cs`.
 - Duplicate layer files like `AgentTypes.cs` in multiple places.
@@ -479,30 +479,45 @@ The physical feature cleanup is complete. Rename public types that still carry o
 6. Extend architecture tests as new rules become concrete.
 7. Run build/tests and enable architecture tests as required CI checks.
 
-## Enforcement
+## Static Analysis Enforcement
 
-Add architecture tests under:
+Naming and layer conventions are enforced by the local Roslyn analyzer:
 
 ```text
-tests/EnterpriseAgentOs.Api.Tests/Architecture
+analyzers/EnterpriseAgentOs.Architecture.Analyzers
 ```
 
-Required tests:
+The analyzer runs during `dotnet build` through an analyzer project reference in `src/EnterpriseAgentOs.Api.csproj`.
+
+Current diagnostics:
+
+- `EAOS001`: Domain must not define `*Dto` types.
+- `EAOS002`: Feature layers must not use broad `*Types.cs` files.
+- `EAOS003`: API mutations must not inject repositories; call Application services for use cases.
+- `EAOS004`: Domain must not depend on outer layers or transport/infrastructure frameworks.
+- `EAOS005`: Feature Api/Application layers must not define `*Dto` types.
+- `EAOS006`: Feature type names must match their layer vocabulary.
+
+Layer vocabulary enforced by `EAOS006`:
+
+- Domain: `*Record`, `*Filter`, `*Event`, `*Result`, `*Request`, `*Response`, `*Config`, `*Message`, `*Context`, `*Definition`, `*Provider`, `*Kinds`, `*State`, `*Descriptor`, `*Tool`, `*Deployment`, `*Row`, `*Options`, `*Page`, `*Overview`, `*Exception`, `*Subscription`, `*Limit`, and `I*Repository`/`I*Service`/explicit domain ports.
+- Application: `*Service`, `*Request`, `*Result`, `*Policy`, `*Projection`, `*Entry`, `*Item`, `*Export`, `*Context`, `*Builder`, `*Executor`, `*Publisher`, `*Resolver`, `*Parser`, `*Detector`, `*Checkpoint`, `*Guard`, `*Lifecycle`, `*Scope`, `*Loop`, `*Session`, `*Connection`, `*Tool`, `*Registry`, `*Factory`, `*Store`, and closely named orchestration helpers.
+- Api: `*Input`, `*Payload`, `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`, `*Mapper`, plus bootstrap/summary payload helper names.
+- Infrastructure: `*Repository`, `*Adapter`, `*Client`, `*Gateway`, `*Config`, `*Protector`, `*Dispatcher`, `*Translator`, `*Sandbox`, `*Store`, `*Injector`, `*Router`, `*Service`, `*Manager`, `*Handle`, `*Response`.
+- EventHandlers: `*Handler`.
+
+Keep architecture tests only for behavior that cannot be checked cheaply at compile time. Static analyzer rules should cover naming, forbidden dependencies, and direct injection conventions.
+
+Additional checks still worth adding:
 
 - Only top-level feature folders are `Agents`, `Channels`, `Context`, `Analytics`, `Management`.
 - Each feature has explicit `Domain`, `Application`, `EventHandlers`, `Infrastructure`, and `Api` folders when it contains that layer.
 - Feature layer folders do not contain nested bucket folders unless explicitly allowlisted. Current allowlist: `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - No namespace contains `Features.Agents.Integrations`.
 - No namespace contains top-level `Features.Atlas`, `Features.Data`, or `Features.Mcp`.
-- Domain namespaces do not reference Api or Infrastructure namespaces.
-- Api types are not used by Domain or Infrastructure.
-- Domain does not contain files named `*Dto.cs` or types ending in `Dto`.
-- No feature file is named `*Types.cs`.
 - Domain service interfaces do not depend on Application request/result types.
-- API mutation methods do not inject repositories except for simple read validation; writes go through Application services.
 - Infrastructure repository methods do not expose `*Entity` types.
 - Repository implementation files contain one repository class.
-- Domain `*Dto` type names are empty.
 
 Also add:
 

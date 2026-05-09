@@ -39,7 +39,7 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         if (entity is null) return false;
 
         await _db.AgentSessionResourceAttachments
-            .Where(a => a.ResourceType == AgentResourceTypes.MemoryStore && a.ResourceId == id)
+            .Where(a => a.ResourceType == AgentResourceKinds.MemoryStore && a.ResourceId == id)
             .ExecuteDeleteAsync(ct);
         _db.MemoryStores.Remove(entity);
         await _db.SaveChangesAsync(ct);

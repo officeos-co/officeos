@@ -48,9 +48,9 @@ public class ChannelQueries
     }
 
     [GraphQLDescription("Returns all supported channel types with display names, descriptions, logos, and onboarding step definitions.")]
-    public IReadOnlyList<ChannelTypeDefinition> GetChannelTypes()
+    public IReadOnlyList<ChannelTypeDefinition> GetChannelKinds()
     {
-        return ChannelTypes.All;
+        return ChannelKinds.All;
     }
 
     [GraphQLDescription("Lists all channel bindings for a specific agent showing which channels the agent listens on.")]

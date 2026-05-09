@@ -70,9 +70,9 @@ public sealed record AgentGatewayBootstrap(
 public sealed record AgentInstalledSkillSummary(string Name);
 
 public sealed record AgentToolPermissionsBootstrap(
-    IReadOnlyList<AgentBootstrapToolPermission> Entries);
+    IReadOnlyList<AgentBootstrapToolPermissionPayload> Entries);
 
-public sealed record AgentBootstrapToolPermission(
+public sealed record AgentBootstrapToolPermissionPayload(
     string Skill,
     string Tool,
     string Mode);

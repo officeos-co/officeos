@@ -70,9 +70,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
                     Instructions = string.IsNullOrWhiteSpace(resource.Instructions) ? null : resource.Instructions.Trim(),
                 }, ct);
 
-                if (resourceType == AgentResourceTypes.Browser)
+                if (resourceType == AgentResourceKinds.Browser)
                     await _resources.SetBrowserCurrentAgentAsync(resource.ResourceId, agent.Id, ct);
-                if (resourceType == AgentResourceTypes.Channel)
+                if (resourceType == AgentResourceKinds.Channel)
                     await _channelService.BindAgentAsync(agent.Id, resource.ResourceId, null, ct);
             }
         }
@@ -163,9 +163,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     {
         var exists = resourceType switch
         {
-            AgentResourceTypes.Browser => await _resources.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
-            AgentResourceTypes.MemoryStore => await _memoryStores.GetAsync(resourceId, ownerId, ct) is not null,
-            AgentResourceTypes.Channel => await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
+            AgentResourceKinds.Browser => await _resources.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceKinds.MemoryStore => await _memoryStores.GetAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceKinds.Channel => await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
             {
                 Id = resourceId,
                 CreatedById = ownerId,
@@ -180,7 +180,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     private static string NormalizeResourceType(string resourceType)
     {
         var normalized = resourceType.Trim().ToLowerInvariant();
-        return normalized is AgentResourceTypes.Browser or AgentResourceTypes.MemoryStore or AgentResourceTypes.Channel
+        return normalized is AgentResourceKinds.Browser or AgentResourceKinds.MemoryStore or AgentResourceKinds.Channel
             ? normalized
             : throw new InvalidOperationException($"Unsupported resource type '{resourceType}'.");
     }

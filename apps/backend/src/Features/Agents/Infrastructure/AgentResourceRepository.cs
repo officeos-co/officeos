@@ -39,7 +39,7 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
         if (entity is null) return false;
 
         await _db.AgentSessionResourceAttachments
-            .Where(a => a.ResourceType == AgentResourceTypes.Browser && a.ResourceId == id)
+            .Where(a => a.ResourceType == AgentResourceKinds.Browser && a.ResourceId == id)
             .ExecuteDeleteAsync(ct);
         _db.BrowserResources.Remove(entity);
         await _db.SaveChangesAsync(ct);
@@ -96,7 +96,7 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
                 session => session.Id,
                 (attachment, session) => new { attachment, session })
             .Where(x => x.attachment.AgentId == agentId
-                && x.attachment.ResourceType == AgentResourceTypes.MemoryStore
+                && x.attachment.ResourceType == AgentResourceKinds.MemoryStore
                 && x.session.Status == SessionStatus.Active.ToStorageString())
             .OrderByDescending(x => x.attachment.CreatedAt)
             .Select(x => x.attachment)
