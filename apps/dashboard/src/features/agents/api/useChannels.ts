@@ -7,7 +7,7 @@ import type { AgentLog } from "@/types/logs"
 
 const CHANNELS_QUERY = gql`
   query ChannelsAndTypes {
-    channelTypes {
+    channelKinds {
       type
       displayName
       description
@@ -44,7 +44,7 @@ const CHANNEL_CONNECTION_QUERY = gql`
       enabled
       createdAt
     }
-    channelTypes {
+    channelKinds {
       type
       displayName
       description
@@ -150,7 +150,7 @@ export function useChannels(): {
       inputKind?: string | null
       inputRequired?: boolean | null
     }>
-  }> = data?.channelTypes ?? []
+  }> = data?.channelKinds ?? []
   const connections: Array<{ id: string; channelType: string }> = data?.channelConnections ?? []
   const connectedSlugs = new Set(connections.map((c) => c.channelType))
   const connectionByType = new Map(connections.map((c) => [c.channelType, c.id]))
@@ -182,7 +182,7 @@ export function useChannels(): {
 
 function toChannelTypes(data: unknown): Channel[] {
   const d = (data ?? {}) as {
-    channelTypes?: Array<{
+    channelKinds?: Array<{
       type: string
       displayName: string
       description: string | null
@@ -202,7 +202,7 @@ function toChannelTypes(data: unknown): Channel[] {
     }>
     channelConnections?: Array<{ id: string; channelType: string }>
   }
-  const types = d.channelTypes ?? []
+  const types = d.channelKinds ?? []
   const connections = d.channelConnections ?? []
   const connectedSlugs = new Set(connections.map((c) => c.channelType))
   const connectionByType = new Map(connections.map((c) => [c.channelType, c.id]))
@@ -399,18 +399,18 @@ export function useCreateChannelConnection() {
         update(cache, { data: result }) {
           if (!result?.createChannelConnection) return
           const existing = cache.readQuery<{
-            channelTypes: unknown[]
+            channelKinds: unknown[]
             channelConnections: Array<{ id: string; channelType: string; displayName: string; enabled: boolean; createdAt: string }>
           }>({ query: CHANNELS_QUERY })
           if (existing) {
             cache.writeQuery({
               query: CHANNELS_QUERY,
               data: {
-                channelTypes: existing.channelTypes,
+                channelKinds: existing.channelKinds,
                 channelConnections: [
                   ...existing.channelConnections,
                   {
-                    __typename: "ChannelConnection",
+                    __typename: "ChannelConnectionPayload",
                     id: result.createChannelConnection.id,
                     channelType: result.createChannelConnection.channelType,
                     displayName: result.createChannelConnection.displayName,
@@ -438,19 +438,19 @@ export function useDeleteChannelConnection() {
         optimisticResponse: { deleteChannelConnection: true },
         update(cache) {
           const existing = cache.readQuery<{
-            channelTypes: unknown[]
+            channelKinds: unknown[]
             channelConnections: Array<{ id: string; channelType: string; displayName: string; enabled: boolean; createdAt: string }>
           }>({ query: CHANNELS_QUERY })
           if (existing) {
             cache.writeQuery({
               query: CHANNELS_QUERY,
               data: {
-                channelTypes: existing.channelTypes,
+                channelKinds: existing.channelKinds,
                 channelConnections: existing.channelConnections.filter((c) => c.id !== id),
               },
             })
           }
-          cache.evict({ id: cache.identify({ __typename: "ChannelConnection", id }) })
+          cache.evict({ id: cache.identify({ __typename: "ChannelConnectionPayload", id }) })
           cache.gc()
         },
       })
@@ -460,14 +460,14 @@ export function useDeleteChannelConnection() {
   }
 }
 
-const AGENT_FRAGMENT = gql`
-  fragment AgentChannelBindings on Agent {
+const AGENT_FRAGMENT = gql(String.raw`
+  fragment AgentChannelBindings on AgentRecord {
     channelBindings {
       id
       channelConnectionId
     }
   }
-`
+`)
 
 export function useBindChannelToAgent() {
   const [fn, state] = useMutation(BIND_CHANNEL)
@@ -477,7 +477,7 @@ export function useBindChannelToAgent() {
         variables: { agentId, channelConnectionId: connectionId },
         optimisticResponse: {
           bindChannelToAgent: {
-            __typename: "AgentChannelBindingGqlDto",
+            __typename: "AgentChannelBindingPayload",
             id: `bind_optimistic_${Date.now().toString(36)}`,
             agentId,
             channelConnectionId: connectionId,
@@ -486,7 +486,7 @@ export function useBindChannelToAgent() {
         update(cache, { data: mutData }) {
           if (!mutData?.bindChannelToAgent) return
           const binding = mutData.bindChannelToAgent
-          const id = cache.identify({ __typename: "Agent", id: agentId })
+          const id = cache.identify({ __typename: "AgentRecord", id: agentId })
           if (!id) return
           const existing = cache.readFragment<{
             channelBindings: Array<{ id: string; channelConnectionId: string }>
@@ -520,7 +520,7 @@ export function useUnbindChannelFromAgent() {
         variables: { agentId, channelConnectionId: connectionId },
         optimisticResponse: { unbindChannelFromAgent: true },
         update(cache) {
-          const id = cache.identify({ __typename: "Agent", id: agentId })
+          const id = cache.identify({ __typename: "AgentRecord", id: agentId })
           if (!id) return
           const existing = cache.readFragment<{
             channelBindings: Array<{ id: string; channelConnectionId: string }>

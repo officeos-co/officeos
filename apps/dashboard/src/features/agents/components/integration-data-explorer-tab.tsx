@@ -106,7 +106,7 @@ export function IntegrationDataExplorerTab({
         <Select
           value={selectedConnection?.id ?? "none"}
           onValueChange={(value) => {
-            setConnectionId(value);
+            setConnectionId(value ?? "");
             setEntity("");
           }}
         >
@@ -121,7 +121,10 @@ export function IntegrationDataExplorerTab({
             ))}
           </SelectContent>
         </Select>
-        <Select value={effectiveEntity || "none"} onValueChange={setEntity}>
+        <Select
+          value={effectiveEntity || "none"}
+          onValueChange={(value) => setEntity(value ?? "")}
+        >
           <SelectTrigger className="lg:w-[180px]">
             <SelectValue>
               {effectiveEntity

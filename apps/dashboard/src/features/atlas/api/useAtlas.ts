@@ -103,43 +103,52 @@ export type AtlasConnectorType = {
   entities: string[];
 };
 
-const CONNECTION_FIELDS = gql`
-  fragment IntegrationConnectionFields on IntegrationConnectionRecord {
-    id
-    provider
-    workspaceName
-    displayName
-    repositoriesJson
-    entitiesJson
-    status
-    error
-    createdAt
-    updatedAt
-    entityStatuses {
-      entity
-      status
-      recordCount
-      error
-      lastSyncedAt
-      updatedAt
-    }
-  }
-`;
-
 const ATLAS_CONNECTIONS = gql`
-  ${CONNECTION_FIELDS}
   query IntegrationConnections {
     integrationConnections(filter: {}) {
-      ...IntegrationConnectionFields
+      id
+      provider
+      workspaceName
+      displayName
+      repositoriesJson
+      entitiesJson
+      status
+      error
+      createdAt
+      updatedAt
+      entityStatuses {
+        entity
+        status
+        recordCount
+        error
+        lastSyncedAt
+        updatedAt
+      }
     }
   }
 `;
 
 const ATLAS_CONNECTION = gql`
-  ${CONNECTION_FIELDS}
   query IntegrationConnection($id: UUID!) {
     integrationConnection(filter: { id: $id }) {
-      ...IntegrationConnectionFields
+      id
+      provider
+      workspaceName
+      displayName
+      repositoriesJson
+      entitiesJson
+      status
+      error
+      createdAt
+      updatedAt
+      entityStatuses {
+        entity
+        status
+        recordCount
+        error
+        lastSyncedAt
+        updatedAt
+      }
     }
   }
 `;
@@ -252,7 +261,7 @@ const ATLAS_INDEXED_RECORDS = gql`
 
 const ATLAS_INDEXED_RECORD = gql`
   query IntegrationIndexedRecord($id: UUID!) {
-    integrationIndexedRecord(filter: { id: $id }) {
+    integrationIndexedRecord(filter: { id: $id, limit: 1 }) {
       id
       connectionId
       entity
@@ -268,10 +277,26 @@ const ATLAS_INDEXED_RECORD = gql`
 `;
 
 const CREATE_GITHUB_CONNECTION = gql`
-  ${CONNECTION_FIELDS}
   mutation CreateGitHubIntegrationConnection($input: CreateGitHubIntegrationConnectionInput!) {
     createGitHubIntegrationConnection(input: $input) {
-      ...IntegrationConnectionFields
+      id
+      provider
+      workspaceName
+      displayName
+      repositoriesJson
+      entitiesJson
+      status
+      error
+      createdAt
+      updatedAt
+      entityStatuses {
+        entity
+        status
+        recordCount
+        error
+        lastSyncedAt
+        updatedAt
+      }
     }
   }
 `;

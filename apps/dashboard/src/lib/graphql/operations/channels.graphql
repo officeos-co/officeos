@@ -1,5 +1,5 @@
 query ChannelsAndTypes {
-  channelTypes {
+  channelKinds {
     type
     displayName
     description
