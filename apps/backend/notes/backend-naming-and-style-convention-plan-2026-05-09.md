@@ -38,6 +38,12 @@ Fifth layout pass completed on 2026-05-09:
 - Old Atlas filenames were renamed to IntegrationIndexing names.
 - Integration indexing, indexed records, integration execution, and GitHub integration access now live under Context.
 
+Sixth layout pass completed on 2026-05-09:
+
+- Service registration extensions moved to root `src/Extensions`.
+- GraphQL registration extensions moved to root `src/Extensions`.
+- Configuration classes moved to root `src/Configuration`.
+
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
@@ -100,13 +106,16 @@ src
 │       └── Api
 ├── Common
 │   ├── Domain
+│   ├── Application
 │   ├── Infrastructure
-│   └── Api
+│   └── Middleware
+├── Configuration
 ├── Database
 │   ├── Models
 │   ├── Migrations
 │   └── EaosDbContext.cs
 ├── Events
+├── Extensions
 ├── Program.cs
 └── EnterpriseAgentOs.Api.csproj
 ```

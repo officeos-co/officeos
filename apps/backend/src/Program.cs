@@ -133,7 +133,7 @@ var connectionString = Require("ConnectionString", "CONNECTION_STRING");
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddApplication();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
-    typeof(EnterpriseAgentOs.Application.ApplicationServiceRegistration).Assembly,
+    typeof(EnterpriseAgentOs.Extensions.ApplicationServiceCollectionExtensions).Assembly,
     typeof(Program).Assembly));
 
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");

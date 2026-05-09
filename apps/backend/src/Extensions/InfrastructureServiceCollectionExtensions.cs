@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using EnterpriseAgentOs.Infrastructure.Features.Agents.Adapters;
 
-namespace EnterpriseAgentOs.Infrastructure;
+namespace EnterpriseAgentOs.Extensions;
 
-public static class InfrastructureServiceRegistration
+public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {

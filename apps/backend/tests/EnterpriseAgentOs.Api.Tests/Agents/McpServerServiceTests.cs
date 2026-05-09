@@ -3,7 +3,7 @@ using EnterpriseAgentOs.Domain.Common.ValueObjects;
 using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+using EnterpriseAgentOs.Configuration;
 using EnterpriseAgentOs.Infrastructure.Common.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;

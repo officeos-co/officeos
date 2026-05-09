@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EnterpriseAgentOs.Application;
+namespace EnterpriseAgentOs.Extensions;
 
-public static class ApplicationServiceRegistration
+public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {

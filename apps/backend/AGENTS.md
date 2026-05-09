@@ -35,10 +35,11 @@ Shared code lives under:
 - `src/Common/Domain`
 - `src/Common/Application`
 - `src/Common/Infrastructure`
-- `src/Common/Extensions`
 - `src/Common/Middleware`
+- `src/Configuration`
 - `src/Database`
 - `src/Events`
+- `src/Extensions`
 
 ## Feature Ownership
 
@@ -145,7 +146,7 @@ Domain DTOs are exceptional.
 - The agent turn loop is intentionally split across `AgentTurnService`, `AgentRunLifecycle`, `TurnEventPublisher`, `TurnContextBuilder`, `BillingCheckpoint`, `LlmTurnExecutor`, and `ToolExecutionLoop`.
 - Use MediatR domain events for lifecycle changes where possible. Application services publish events; handlers react in EventHandlers.
 - Prefer explicit result records or `AgentResult<T>` for expected business outcomes.
-- Register application services in `ApplicationServiceRegistration.AddApplication`.
+- Register application services in `ApplicationServiceCollectionExtensions.AddApplication`.
 - Internal implementation classes should generally be `internal sealed`.
 
 ## Event Handlers
@@ -173,10 +174,10 @@ Domain DTOs are exceptional.
 
 ## Infrastructure
 
-- Register infrastructure services in `InfrastructureServiceRegistration.AddInfrastructure`.
+- Register infrastructure services in `InfrastructureServiceCollectionExtensions.AddInfrastructure`.
 - Repositories implement Domain interfaces and own all EF mapping.
 - Adapters implement external systems such as channel sidecars, MCP clients, Stripe, PostHog, Kubernetes/Docker, browser runtime, S3, or LLM provider dispatch.
-- Config classes are simple records/classes under Infrastructure/Common or feature Infrastructure configuration.
+- Config classes are simple records/classes under root `src/Configuration`.
 - Protectors and credential wrappers live in Infrastructure.
 - HTTP clients should be registered centrally in Infrastructure or startup wiring.
 

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Common.Configuration;
+namespace EnterpriseAgentOs.Configuration;
 
 public sealed class StripeConfig
 {

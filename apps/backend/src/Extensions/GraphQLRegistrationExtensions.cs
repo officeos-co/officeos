@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Common.Extensions;
+namespace EnterpriseAgentOs.Extensions;
 
 public static class GraphQLRegistrationExtensions
 {

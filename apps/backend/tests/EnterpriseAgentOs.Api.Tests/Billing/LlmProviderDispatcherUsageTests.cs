@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using EnterpriseAgentOs.Domain.Common.Services;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+using EnterpriseAgentOs.Configuration;
 using EnterpriseAgentOs.Infrastructure.Features.Agents;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

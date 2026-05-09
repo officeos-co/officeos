@@ -22,7 +22,7 @@ global using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 global using EnterpriseAgentOs.Domain.Events;
 // Note: EaosDbContext / Infrastructure.Persistence intentionally NOT imported.
 // All data access goes through Domain repository interfaces.
-global using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+global using EnterpriseAgentOs.Configuration;
 global using EnterpriseAgentOs.Infrastructure.Common.Security;
 global using EnterpriseAgentOs.Infrastructure.Features.Agents;
 global using EnterpriseAgentOs.Infrastructure.Features.Channels;

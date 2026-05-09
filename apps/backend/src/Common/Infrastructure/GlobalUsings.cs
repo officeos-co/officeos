@@ -38,5 +38,5 @@ global using EnterpriseAgentOs.Infrastructure.Features.Analytics;
 global using EnterpriseAgentOs.Infrastructure.Features.Management;
 global using EnterpriseAgentOs.Database;
 global using EnterpriseAgentOs.Database.Models;
-global using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+global using EnterpriseAgentOs.Configuration;
 global using EnterpriseAgentOs.Infrastructure.Common.Security;
