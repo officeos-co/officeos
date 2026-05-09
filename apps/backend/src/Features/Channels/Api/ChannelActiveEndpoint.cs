@@ -2,7 +2,7 @@ using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Common.ValueObjects;
 using EnterpriseAgentOs.Infrastructure.Common.Security;
 
-namespace EnterpriseAgentOs.Api.Features.Agents;
+namespace EnterpriseAgentOs.Api.Features.Channels;
 
 public static class ChannelActiveEndpoint
 {

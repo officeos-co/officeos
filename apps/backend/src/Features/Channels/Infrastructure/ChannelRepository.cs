@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace EnterpriseAgentOs.Infrastructure.Features.Channels;
 
 internal sealed class ChannelRepository : IChannelRepository
 {

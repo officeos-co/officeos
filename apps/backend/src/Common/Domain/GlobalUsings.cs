@@ -1,6 +1,7 @@
 global using System.ComponentModel.DataAnnotations;
 global using System.Text.Json;
 global using EnterpriseAgentOs.Domain.Features.Agents;
+global using EnterpriseAgentOs.Domain.Features.Channels;
 global using EnterpriseAgentOs.Domain.Features.Analytics;
 global using EnterpriseAgentOs.Domain.Features.Management;
 global using EnterpriseAgentOs.Domain.Features.Agents.Integrations;

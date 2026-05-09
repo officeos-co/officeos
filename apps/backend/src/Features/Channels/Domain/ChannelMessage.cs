@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace EnterpriseAgentOs.Domain.Features.Channels;
 
 /// <summary>
 /// Value object for outbound channel messages. Serialized to JSON by the gateway.

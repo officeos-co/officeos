@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace EnterpriseAgentOs.Application.Features.Channels;
 
 public sealed record ChannelConnectionGqlDto(
     Guid Id,

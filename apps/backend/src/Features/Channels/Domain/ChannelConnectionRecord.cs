@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace EnterpriseAgentOs.Domain.Features.Channels;
 
 /// <summary>
 /// Lightweight metadata record for a channel connection. The backend stores only
