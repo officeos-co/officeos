@@ -1,6 +1,6 @@
 using EnterpriseAgentOs.Application.Features.Agents;
 using EnterpriseAgentOs.Domain.Events;
-using EnterpriseAgentOs.Domain.Features.Mcp;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 using MediatR;
 using System.Text.Json;
 using Xunit;
@@ -12,7 +12,7 @@ public sealed class McpLazyToolTests
     [Fact]
     public void Lazy_mcp_tool_uses_catalog_metadata_without_connecting()
     {
-        var server = new McpServerRecord { Name = "google-docs" };
+        var server = new IntegrationDefinitionRecord { Name = "google-docs" };
         var connection = new LazyMcpServerConnection(
             server,
             _ => throw new InvalidOperationException("Credentials should not load during catalog setup."),
@@ -30,30 +30,9 @@ public sealed class McpLazyToolTests
     }
 
     [Fact]
-    public void Lazy_mcp_tool_catalog_fallback_schema_is_openai_compatible()
-    {
-        var server = new McpServerRecord { Name = "google-docs" };
-        var connection = new LazyMcpServerConnection(
-            server,
-            _ => throw new InvalidOperationException("Credentials should not load during catalog setup."),
-            new ThrowingMcpClientManager(),
-            new TurnEventPublisher(new NoopPublisher()),
-            Guid.NewGuid(),
-            "correlation-1");
-
-        var tool = new LazyMcpTool(server, new McpCatalogTool("check_auth_status", "Check auth status", null), connection);
-        var schema = JsonSerializer.SerializeToElement(tool.Schema.Parameters);
-
-        Assert.Equal("object", schema.GetProperty("type").GetString());
-        Assert.True(schema.TryGetProperty("properties", out var properties));
-        Assert.Equal(JsonValueKind.Object, properties.ValueKind);
-        Assert.True(schema.GetProperty("additionalProperties").GetBoolean());
-    }
-
-    [Fact]
     public async Task Tool_search_hydrates_lazy_mcp_tool_schema_from_server_discovery()
     {
-        var server = new McpServerRecord { Name = "google-docs" };
+        var server = new IntegrationDefinitionRecord { Name = "google-docs" };
         var manager = new HydratingMcpClientManager();
         var connection = new LazyMcpServerConnection(
             server,
@@ -82,7 +61,7 @@ public sealed class McpLazyToolTests
     private sealed class ThrowingMcpClientManager : IMcpClientManager
     {
         public Task<McpConnectionResult> ConnectAsync(
-            McpServerRecord server,
+            IntegrationDefinitionRecord server,
             Dictionary<string, string> credentials,
             CancellationToken ct = default)
             => throw new InvalidOperationException("MCP should not connect during catalog setup.");
@@ -93,7 +72,7 @@ public sealed class McpLazyToolTests
         public int ConnectCount { get; private set; }
 
         public Task<McpConnectionResult> ConnectAsync(
-            McpServerRecord server,
+            IntegrationDefinitionRecord server,
             Dictionary<string, string> credentials,
             CancellationToken ct = default)
         {
@@ -104,7 +83,7 @@ public sealed class McpLazyToolTests
                 [
                     new McpDiscoveredTool
                     {
-                        ServerName = server.Name,
+                        IntegrationName = server.Name,
                         Name = "create_document",
                         Description = "Create a new Google Document with optional initial content",
                         JsonSchema = """

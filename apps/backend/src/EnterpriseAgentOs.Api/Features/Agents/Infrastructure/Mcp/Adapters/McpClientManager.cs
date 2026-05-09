@@ -81,14 +81,14 @@ internal sealed class McpClientManager : IMcpClientManager
             return arg;
 
         var fileName = arg[scriptPrefix.Length..];
-        var publishedPath = Path.Combine(AppContext.BaseDirectory, "scripts", fileName);
+        var publishedPath = System.IO.Path.Combine(AppContext.BaseDirectory, "scripts", fileName);
         if (System.IO.File.Exists(publishedPath))
             return publishedPath;
 
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (directory is not null)
         {
-            var sourcePath = Path.Combine(directory.FullName, "apps", "backend", "scripts", fileName);
+            var sourcePath = System.IO.Path.Combine(directory.FullName, "apps", "backend", "scripts", fileName);
             if (System.IO.File.Exists(sourcePath))
                 return sourcePath;
 
