@@ -9,7 +9,7 @@ internal static class BackgroundWork
     public static void Run<TService>(
         IServiceScopeFactory scopeFactory,
         Func<TService, Task> work,
-        ILogger logger,
+        Microsoft.Extensions.Logging.ILogger logger,
         TimeSpan? delay = null) where TService : notnull
     {
         _ = Task.Run(async () =>
@@ -33,7 +33,7 @@ internal static class BackgroundWork
     public static void Run<T1, T2>(
         IServiceScopeFactory scopeFactory,
         Func<T1, T2, Task> work,
-        ILogger logger,
+        Microsoft.Extensions.Logging.ILogger logger,
         TimeSpan? delay = null)
         where T1 : notnull where T2 : notnull
     {

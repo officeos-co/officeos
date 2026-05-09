@@ -7,12 +7,12 @@
     <AssemblyName>EnterpriseAgentOs.Api.Tests</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EnterpriseAgentOs.Application\EnterpriseAgentOs.Application.csproj" />
-    <ProjectReference Include="..\..\src\EnterpriseAgentOs.Infrastructure\EnterpriseAgentOs.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\EnterpriseAgentOs.Api\EnterpriseAgentOs.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.15" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.15" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

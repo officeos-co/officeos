@@ -118,7 +118,7 @@ internal sealed class PodExecutorClient
             using var form = new MultipartFormDataContent();
             var file = new ByteArrayContent(Encoding.UTF8.GetBytes(content));
             file.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            form.Add(file, "file", Path.GetFileName(path));
+            form.Add(file, "file", System.IO.Path.GetFileName(path));
 
             using var uploadRequest = new HttpRequestMessage(
                 HttpMethod.Post,

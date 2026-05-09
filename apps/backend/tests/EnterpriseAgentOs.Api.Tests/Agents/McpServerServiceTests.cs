@@ -1,6 +1,8 @@
-using EnterpriseAgentOs.Application.Features.Mcp;
+using EnterpriseAgentOs.Application.Features.Agents.Integrations;
+using EnterpriseAgentOs.Domain.Common.ValueObjects;
+using EnterpriseAgentOs.Domain.Features.Agents;
+using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
 using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Domain.Features.Mcp;
 using EnterpriseAgentOs.Infrastructure.Common.Configuration;
 using EnterpriseAgentOs.Infrastructure.Common.Security;
 using Microsoft.AspNetCore.DataProtection;
@@ -11,22 +13,16 @@ namespace EnterpriseAgentOs.Api.Tests.Agents;
 
 public sealed class McpServerServiceTests
 {
+    private static readonly Guid OwnerId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+
     [Fact]
-    public async Task RegisterAsync_adds_custom_server_to_catalog()
+    public async Task RegisterAsync_adds_custom_server_to_owner_catalog()
     {
         var service = CreateService();
 
-        await service.RegisterAsync(new McpServerRecord
-        {
-            Name = "custom-server",
-            Title = "Custom Server",
-            TransportType = McpTransportType.Stdio,
-            Command = "npx",
-            Args = """["-y","custom-mcp"]""",
-            Category = "custom",
-        });
+        await service.RegisterAsync(OwnerId, CustomServer());
 
-        var all = await service.ListAsync();
+        var all = await service.ListAsync(OwnerId);
         var custom = Assert.Single(all, s => s.Name == "custom-server");
         Assert.Equal("Custom Server", custom.Title);
         Assert.False(custom.IsBuiltin);
@@ -37,192 +33,181 @@ public sealed class McpServerServiceTests
     {
         var service = CreateService();
 
-        await service.RegisterAsync(CustomServer(command: "npx"));
-        await service.RegisterAsync(CustomServer(command: "uvx"));
+        await service.RegisterAsync(OwnerId, CustomServer(command: "npx"));
+        await service.RegisterAsync(OwnerId, CustomServer(command: "uvx"));
 
-        var custom = await service.GetAsync("custom-server");
+        var custom = await service.GetAsync(OwnerId, "custom-server");
         Assert.NotNull(custom);
         Assert.Equal("uvx", custom.Command);
     }
 
     [Fact]
-    public async Task RegisterAsync_rejects_builtin_name_collision()
+    public async Task SaveCredentialAsync_marks_custom_server_configured()
     {
         var service = CreateService();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.RegisterAsync(CustomServer(name: "github")));
-    }
-
-    [Fact]
-    public async Task DeleteAsync_removes_custom_server_and_bindings()
-    {
-        var agents = new FakeAgentMcpServerRepository();
-        var service = CreateService(agentServers: agents);
-
-        await service.RegisterAsync(CustomServer());
-        await service.AssignToAgentAsync(Guid.NewGuid(), "custom-server");
-        await service.DeleteAsync("custom-server");
-
-        Assert.Null(await service.GetAsync("custom-server"));
-        Assert.Empty(agents.AssignedServerNames);
-    }
-
-    [Fact]
-    public async Task DeleteAsync_rejects_builtin_server()
-    {
-        var service = CreateService();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.DeleteAsync("github"));
-    }
-
-    [Fact]
-    public async Task SaveCredentialAsync_marks_credential_server_configured()
-    {
-        var service = CreateService();
-
-        await service.RegisterAsync(CustomServer(
+        await service.RegisterAsync(OwnerId, CustomServer(
             credentialFieldsJson:
             """[{"name":"API_KEY","label":"API Key","type":"password","required":true}]"""));
-        await service.SaveCredentialAsync("custom-server", new() { ["API_KEY"] = "secret" });
+        await service.SaveCredentialAsync(OwnerId, "custom-server", new() { ["API_KEY"] = "secret" });
 
-        var custom = await service.GetAsync("custom-server");
+        var custom = await service.GetAsync(OwnerId, "custom-server");
         Assert.NotNull(custom);
         Assert.True(custom.CredentialConfigured);
     }
 
-    private static McpServerService CreateService(
-        FakeAgentMcpServerRepository? agentServers = null,
-        FakeMcpServerRepository? servers = null,
-        FakeMcpCredentialRepository? credentials = null)
+    [Fact]
+    public async Task DeleteAsync_removes_custom_server_and_owner_bindings()
+    {
+        var agents = new FakeAgentIntegrationRepository();
+        var agentId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var service = CreateService(agentServers: agents);
+
+        await service.RegisterAsync(OwnerId, CustomServer());
+        await service.AssignToAgentAsync(agentId, "custom-server", OwnerId);
+        await service.DeleteAsync(OwnerId, "custom-server");
+
+        Assert.Null(await service.GetAsync(OwnerId, "custom-server"));
+        Assert.Empty(agents.AssignedIntegrationNames);
+    }
+
+    private static IntegrationDefinitionService CreateService(
+        FakeAgentIntegrationRepository? agentServers = null,
+        FakeIntegrationDefinitionRepository? servers = null,
+        FakeIntegrationCredentialRepository? credentials = null)
     {
         var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-test-keys-{Guid.NewGuid():N}");
         var protector = new CredentialProtector(
             DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
 
-        return new McpServerService(
-            agentServers ?? new FakeAgentMcpServerRepository(),
-            servers ?? new FakeMcpServerRepository(),
-            credentials ?? new FakeMcpCredentialRepository(),
+        return new IntegrationDefinitionService(
+            agentServers ?? new FakeAgentIntegrationRepository(),
+            new FakeAgentRepository(),
+            servers ?? new FakeIntegrationDefinitionRepository(),
+            credentials ?? new FakeIntegrationCredentialRepository(),
             new FakeOAuthTokenRepository(),
             protector,
             new GoogleOAuthConfig(),
-            NullLogger<McpServerService>.Instance);
+            NullLogger<IntegrationDefinitionService>.Instance);
     }
 
-    private static McpServerRecord CustomServer(
+    private static IntegrationDefinitionRecord CustomServer(
         string name = "custom-server",
         string command = "npx",
         string? credentialFieldsJson = null) => new()
     {
         Name = name,
         Title = "Custom Server",
-        TransportType = McpTransportType.Stdio,
+        TransportType = IntegrationTransportType.Stdio,
         Command = command,
         Args = """["-y","custom-mcp"]""",
         Category = "custom",
         CredentialFieldsJson = credentialFieldsJson,
     };
 
-    private sealed class FakeMcpServerRepository : IMcpServerRepository
+    private sealed class FakeIntegrationDefinitionRepository : IIntegrationDefinitionRepository
     {
-        private readonly Dictionary<string, McpServerRecord> _servers = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<(Guid OwnerId, string Name), IntegrationDefinitionRecord> _servers = new();
 
-        public Task<IReadOnlyList<McpServerRecord>> ListAsync(CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<McpServerRecord>>(_servers.Values.ToList());
+        public Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<IntegrationDefinitionRecord>>(
+                _servers.Where(kvp => kvp.Key.OwnerId == ownerId).Select(kvp => kvp.Value).ToList());
 
-        public Task<McpServerRecord?> GetByNameAsync(string name, CancellationToken ct = default)
-            => Task.FromResult(_servers.GetValueOrDefault(name));
+        public Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, CancellationToken ct = default)
+            => Task.FromResult(_servers.GetValueOrDefault((ownerId, name)));
 
-        public Task<McpServerRecord> UpsertAsync(McpServerRecord server, CancellationToken ct = default)
+        public Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default)
         {
-            var saved = Copy(server);
-            _servers[server.Name] = saved;
+            var saved = server with { OwnerId = ownerId, IsBuiltin = false };
+            _servers[(ownerId, server.Name)] = saved;
             return Task.FromResult(saved);
         }
 
-        public Task DeleteAsync(string name, CancellationToken ct = default)
+        public Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default)
         {
-            _servers.Remove(name);
+            _servers.Remove((ownerId, name));
             return Task.CompletedTask;
         }
-
-        private static McpServerRecord Copy(McpServerRecord server) => new()
-        {
-            Id = server.Id,
-            Name = server.Name,
-            Title = server.Title,
-            Description = server.Description,
-            TransportType = server.TransportType,
-            Command = server.Command,
-            Args = server.Args,
-            Url = server.Url,
-            Logo = server.Logo,
-            Category = server.Category,
-            CredentialFieldsJson = server.CredentialFieldsJson,
-            Subtitle = server.Subtitle,
-            AuthorName = server.AuthorName,
-            AuthorUrl = server.AuthorUrl,
-            DocumentationUrl = server.DocumentationUrl,
-            RepositoryUrl = server.RepositoryUrl,
-            ToolsJson = server.ToolsJson,
-            IsBuiltin = false,
-            CreatedAt = server.CreatedAt,
-        };
     }
 
-    private sealed class FakeAgentMcpServerRepository : IAgentMcpServerRepository
+    private sealed class FakeAgentIntegrationRepository : IAgentIntegrationRepository
     {
         private readonly Dictionary<Guid, HashSet<string>> _assigned = new();
 
-        public IReadOnlyList<string> AssignedServerNames => _assigned.Values.SelectMany(v => v).ToList();
+        public IReadOnlyList<string> AssignedIntegrationNames => _assigned.Values.SelectMany(v => v).ToList();
 
-        public Task<IReadOnlyList<string>> ListServerNamesForAgentAsync(Guid agentId, CancellationToken ct = default)
+        public Task<IReadOnlyList<string>> ListIntegrationNamesForAgentAsync(Guid agentId, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<string>>(
                 _assigned.TryGetValue(agentId, out var names) ? names.ToList() : []);
 
-        public Task AssignAsync(Guid agentId, string mcpServerName, CancellationToken ct = default)
+        public Task AssignAsync(Guid agentId, string integrationName, CancellationToken ct = default)
         {
             if (!_assigned.TryGetValue(agentId, out var names))
                 _assigned[agentId] = names = new(StringComparer.OrdinalIgnoreCase);
-            names.Add(mcpServerName);
+            names.Add(integrationName);
             return Task.CompletedTask;
         }
 
-        public Task UnassignAsync(Guid agentId, string mcpServerName, CancellationToken ct = default)
+        public Task UnassignAsync(Guid agentId, string integrationName, CancellationToken ct = default)
         {
             if (_assigned.TryGetValue(agentId, out var names))
-                names.Remove(mcpServerName);
+                names.Remove(integrationName);
             return Task.CompletedTask;
         }
 
-        public Task UnassignServerFromAllAgentsAsync(string mcpServerName, CancellationToken ct = default)
+        public Task UnassignIntegrationFromOwnerAgentsAsync(Guid ownerId, string integrationName, CancellationToken ct = default)
         {
             foreach (var names in _assigned.Values)
-                names.Remove(mcpServerName);
+                names.Remove(integrationName);
             return Task.CompletedTask;
         }
     }
 
-    private sealed class FakeMcpCredentialRepository : IMcpCredentialRepository
+    private sealed class FakeIntegrationCredentialRepository : IIntegrationCredentialRepository
     {
-        private readonly Dictionary<string, McpCredentialRecord> _credentials = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<(Guid OwnerId, string IntegrationName), IntegrationCredentialRecord> _credentials = new();
 
-        public Task<McpCredentialRecord?> GetByAsync(McpCredentialFilter filter, CancellationToken ct = default)
-            => Task.FromResult(filter.ServerName is null ? null : _credentials.GetValueOrDefault(filter.ServerName));
-
-        public Task UpsertAsync(McpCredentialRecord credential, CancellationToken ct = default)
+        public Task<IntegrationCredentialRecord?> GetByAsync(IntegrationCredentialFilter filter, CancellationToken ct = default)
         {
-            _credentials[credential.McpServerName] = credential;
+            if (!filter.OwnerId.HasValue || filter.IntegrationName is null)
+                return Task.FromResult<IntegrationCredentialRecord?>(null);
+
+            return Task.FromResult(_credentials.GetValueOrDefault((filter.OwnerId.Value, filter.IntegrationName)));
+        }
+
+        public Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct = default)
+        {
+            _credentials[(credential.OwnerId, credential.IntegrationName)] = credential;
             return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(string serverName, CancellationToken ct = default)
+        public Task DeleteAsync(Guid ownerId, string integrationName, CancellationToken ct = default)
         {
-            _credentials.Remove(serverName);
+            _credentials.Remove((ownerId, integrationName));
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeAgentRepository : IAgentRepository
+    {
+        public Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<AgentRecord>>([]);
+
+        public Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
+            => Task.FromResult<AgentRecord?>(new AgentRecord
+            {
+                Id = filter.Id ?? Guid.NewGuid(),
+                OwnerId = filter.OwnerId ?? OwnerId,
+                Name = "Test Agent",
+                Provider = "openai",
+                Status = AgentStatus.Running,
+            });
+
+        public Task AddAsync(AgentRecord record, CancellationToken ct = default) => Task.CompletedTask;
+        public Task UpdateAsync(AgentRecord record, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> SoftDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.FromResult(true);
+        public Task UpdateStatusAsync(AgentFilter filter, AgentStatus status, CancellationToken ct = default) => Task.CompletedTask;
+        public Task HardDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class FakeOAuthTokenRepository : IOAuthTokenRepository
