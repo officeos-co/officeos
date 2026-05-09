@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${EAOS_LOG_DIR:-$ROOT_DIR/.runlogs}"
+BACKEND_PORT="${EAOS_BACKEND_PORT:-5000}"
+DASHBOARD_PORT="${EAOS_DASHBOARD_PORT:-3000}"
 BUILD_POD_EXECUTOR=false
 
 usage() {
@@ -33,6 +35,67 @@ while [[ $# -gt 0 ]]; do
 done
 
 mkdir -p "$LOG_DIR"
+
+stop_pid_file() {
+  local name="$1"
+  local pid_file="$2"
+
+  if [[ ! -f "$pid_file" ]]; then
+    return
+  fi
+
+  local pid
+  pid="$(cat "$pid_file" 2>/dev/null || true)"
+
+  if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+    echo "Stopping existing $name process ($pid)..."
+    kill "$pid" 2>/dev/null || true
+
+    for _ in {1..20}; do
+      if ! kill -0 "$pid" 2>/dev/null; then
+        return
+      fi
+      sleep 0.1
+    done
+
+    echo "Force stopping existing $name process ($pid)..."
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+}
+
+free_port() {
+  local port="$1"
+  local pids
+
+  pids="$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -z "$pids" ]]; then
+    return
+  fi
+
+  echo "Freeing port $port..."
+  while IFS= read -r pid; do
+    [[ -z "$pid" ]] && continue
+    kill "$pid" 2>/dev/null || true
+  done <<< "$pids"
+
+  for _ in {1..20}; do
+    if [[ -z "$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)" ]]; then
+      return
+    fi
+    sleep 0.1
+  done
+
+  while IFS= read -r pid; do
+    [[ -z "$pid" ]] && continue
+    kill -9 "$pid" 2>/dev/null || true
+  done <<< "$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+}
+
+stop_pid_file "backend" "$LOG_DIR/backend.pid"
+stop_pid_file "dashboard" "$LOG_DIR/dashboard.pid"
+free_port "$BACKEND_PORT"
+free_port "$DASHBOARD_PORT"
+
 rm -f "$LOG_DIR"/backend.log \
   "$LOG_DIR"/dashboard.log \
   "$LOG_DIR"/pod-executor-build.log \
@@ -50,13 +113,13 @@ fi
 
 (
   cd "$ROOT_DIR/apps/backend"
-  dotnet run --project src/EnterpriseAgentOs.Api
+  ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" dotnet run --project src/OffceOs.csproj
 ) > "$LOG_DIR/backend.log" 2>&1 &
 echo "$!" > "$LOG_DIR/backend.pid"
 
 (
   cd "$ROOT_DIR/apps/dashboard"
-  bun dev
+  bun dev --port "$DASHBOARD_PORT"
 ) > "$LOG_DIR/dashboard.log" 2>&1 &
 echo "$!" > "$LOG_DIR/dashboard.pid"
 
