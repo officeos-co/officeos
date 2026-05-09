@@ -207,6 +207,7 @@ public sealed class EaosDbContext : DbContext
 
         modelBuilder.Entity<AgentMemoryEntity>(e =>
         {
+            e.ToTable("AgentMemories");
             e.HasKey(m => m.Id);
             e.Property(m => m.Key).HasMaxLength(512).IsRequired();
             e.Property(m => m.Content).HasColumnType("text").IsRequired();

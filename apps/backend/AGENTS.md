@@ -2,6 +2,8 @@
 
 This backend is a single-project, feature-first modular monolith. Keep clean architecture boundaries, but keep them local to the feature you are changing.
 
+When changing code, apply these conventions proactively rather than only satisfying the literal file move or rename requested. A change is not done if it compiles but leaves names, file placement, contracts, or dependency direction inconsistent with this guide. Prefer the clean final architecture in the first pass: correct feature ownership, correct layer, correct name, thin boundaries, and no temporary compatibility shapes unless the user explicitly asks for a staged migration.
+
 ## Project Layout
 
 - `src`: the single backend project and application host.
@@ -29,6 +31,8 @@ Allowed nested feature folders:
 
 - `src/Features/Agents/Application/Tools`
 - `src/Features/Agents/Application/BrowserTools`
+
+All agent-executable tools must live in one of those two folders. Do not place `IAgentTool` implementations in Context, Channels, Analytics, Management, Integrations, or any other feature. The owning feature exposes business behavior through Application services; the Agents tool wrapper calls that service.
 
 Shared code lives under:
 
@@ -59,6 +63,8 @@ Channels owns channel connections, credentials, bindings, inbound routing, sidec
 
 Context owns markdown-style memory stores, memory entries, external integration connections, integration indexing, indexed records, and integration execution.
 
+Do not use `Data` as a feature, namespace, file prefix, or type prefix for Context-owned memory concepts. If the concept is agent-scoped memory, use `AgentMemory*`. If it is a reusable memory store or store entry, use `MemoryStore*` / `MemoryStoreEntry*`. If it is integration indexing or execution, use the existing Context integration names.
+
 ## Dependency Rules
 
 Even though this is one project, layer boundaries still apply:
@@ -88,6 +94,8 @@ Application:
 - `*Service`: use-case orchestration.
 - `*Contracts`: tight file grouping for application service interfaces plus their request/result records when those types are only useful together.
 - `*Policy`: application decision rules.
+
+Application service contracts must be declared outside implementation files. Use a dedicated `I*Service.cs` file for a single public interface, or a focused `*Contracts.cs` file when the interface and request/result records are a tight use-case group. Do not define public service interfaces or public request/result records at the top of an implementation file.
 
 EventHandlers:
 
@@ -162,6 +170,14 @@ If a new `Dto` appears under `Features/*/Domain`, treat it as a failing architec
 - Prefer `AgentResult<T>` for expected success/failure business outcomes.
 - Register application services in `ApplicationServiceCollectionExtensions.AddApplication`.
 - Internal implementation classes should generally be `internal sealed`.
+
+## Agent Tools
+
+- Agent tool implementations belong only in `src/Features/Agents/Application/Tools` or `src/Features/Agents/Application/BrowserTools`.
+- Tools are thin transport-style wrappers around Application services. They may define schema metadata, parse `JsonElement` arguments, call one Application service method, and translate the service response into `ToolResult`.
+- Tools must not contain business workflows, repository branching, ownership policy, credential handling, persistence mapping, filtering/ranking algorithms, gateway calls, or multi-step orchestration. Put that behavior in the owning feature's Application service.
+- Tools must not inject repositories directly unless the tool is itself the owning low-level runtime boundary, such as shell/file/browser execution. For business features such as memory, context, integrations, channels, billing, or management, inject an Application service.
+- Cross-feature tools stay in Agents, but their behavior stays in the owning feature. For example, memory tools live under Agents tools, while memory storage/recall behavior lives under Context Application.
 
 ## Event Handlers
 

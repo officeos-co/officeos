@@ -15,6 +15,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();
         services.AddScoped<IIntegrationExecutionService, IntegrationExecutionService>();
+        services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<GitHubIntegrationClient>();
         services.AddScoped<IntegrationIndexingService>();
