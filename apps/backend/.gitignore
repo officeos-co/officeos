@@ -4,6 +4,7 @@ obj/
 out/
 publish/
 artifacts/
+src/dp-keys
 
 # .NET user/local files
 *.user
