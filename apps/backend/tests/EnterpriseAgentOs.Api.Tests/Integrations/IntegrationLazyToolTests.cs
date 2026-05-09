@@ -1,47 +1,47 @@
 using EnterpriseAgentOs.Application.Features.Agents;
 using EnterpriseAgentOs.Domain.Events;
-using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+using EnterpriseAgentOs.Domain.Features.Integrations;
 using MediatR;
 using System.Text.Json;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Agents;
+namespace EnterpriseAgentOs.Api.Tests.Integrations;
 
-public sealed class McpLazyToolTests
+public sealed class IntegrationLazyToolTests
 {
     [Fact]
-    public void Lazy_mcp_tool_uses_catalog_metadata_without_connecting()
+    public void Lazy_integration_tool_uses_catalog_metadata_without_connecting()
     {
         var server = new IntegrationDefinitionRecord { Name = "google-docs" };
-        var connection = new LazyMcpServerConnection(
+        var connection = new LazyIntegrationConnection(
             server,
             _ => throw new InvalidOperationException("Credentials should not load during catalog setup."),
-            new ThrowingMcpClientManager(),
+            new ThrowingIntegrationClientManager(),
             new TurnEventPublisher(new NoopPublisher()),
             Guid.NewGuid(),
             "correlation-1");
 
-        var tool = new LazyMcpTool(server, new McpCatalogTool("create_document", "Create a new Google Doc", null), connection);
+        var tool = new LazyIntegrationTool(server, new IntegrationCatalogTool("create_document", "Create a new Google Doc", null), connection);
 
         Assert.Equal("google_docs__create_document", tool.Name);
         Assert.Equal("google-docs:create_document", tool.PermissionScope);
-        Assert.Equal(AgentToolKind.Mcp, tool.Kind);
+        Assert.Equal(AgentToolKind.Integration, tool.Kind);
         Assert.True(((IAgentTool)tool).ShouldDefer);
     }
 
     [Fact]
-    public async Task Tool_search_hydrates_lazy_mcp_tool_schema_from_server_discovery()
+    public async Task Tool_search_hydrates_lazy_integration_tool_schema_from_discovery()
     {
         var server = new IntegrationDefinitionRecord { Name = "google-docs" };
-        var manager = new HydratingMcpClientManager();
-        var connection = new LazyMcpServerConnection(
+        var manager = new HydratingIntegrationClientManager();
+        var connection = new LazyIntegrationConnection(
             server,
             _ => Task.FromResult(new Dictionary<string, string>()),
             manager,
             new TurnEventPublisher(new NoopPublisher()),
             Guid.NewGuid(),
             "correlation-1");
-        var tool = new LazyMcpTool(server, new McpCatalogTool("create_document", "Create a new Google Doc", null), connection);
+        var tool = new LazyIntegrationTool(server, new IntegrationCatalogTool("create_document", "Create a new Google Doc", null), connection);
         var search = new ToolSearchTool([tool]);
 
         var result = await search.ExecuteAsync(JsonSerializer.SerializeToElement(new { query = "google_docs" }));
@@ -58,30 +58,30 @@ public sealed class McpLazyToolTests
         Assert.False(schema.GetProperty("additionalProperties").GetBoolean());
     }
 
-    private sealed class ThrowingMcpClientManager : IMcpClientManager
+    private sealed class ThrowingIntegrationClientManager : IIntegrationClientManager
     {
-        public Task<McpConnectionResult> ConnectAsync(
+        public Task<IntegrationConnectionResult> ConnectAsync(
             IntegrationDefinitionRecord server,
             Dictionary<string, string> credentials,
             CancellationToken ct = default)
-            => throw new InvalidOperationException("MCP should not connect during catalog setup.");
+            => throw new InvalidOperationException("Integration should not connect during catalog setup.");
     }
 
-    private sealed class HydratingMcpClientManager : IMcpClientManager
+    private sealed class HydratingIntegrationClientManager : IIntegrationClientManager
     {
         public int ConnectCount { get; private set; }
 
-        public Task<McpConnectionResult> ConnectAsync(
+        public Task<IntegrationConnectionResult> ConnectAsync(
             IntegrationDefinitionRecord server,
             Dictionary<string, string> credentials,
             CancellationToken ct = default)
         {
             ConnectCount++;
-            return Task.FromResult(new McpConnectionResult
+            return Task.FromResult(new IntegrationConnectionResult
             {
                 Tools =
                 [
-                    new McpDiscoveredTool
+                    new IntegrationDiscoveredTool
                     {
                         IntegrationName = server.Name,
                         Name = "create_document",

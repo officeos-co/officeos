@@ -49,7 +49,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\scripts\google-docs-mcp-oauth-adapter.mjs" Link="scripts\google-docs-mcp-oauth-adapter.mjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\scripts\google-docs-integration-oauth-adapter.mjs" Link="scripts\google-docs-integration-oauth-adapter.mjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

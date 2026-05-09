@@ -4,7 +4,7 @@ namespace EnterpriseAgentOs.Application.Features.Context;
 
 internal sealed class IntegrationConnectionService : IIntegrationConnectionService
 {
-    internal static readonly string[] SupportedGitHubEntities = IntegrationDefinitionCatalog.GitHubEntities;
+    internal static readonly string[] SupportedGitHubEntities = IntegrationDefinitionProvider.GitHubEntities;
 
     private readonly IIntegrationConnectionRepository _connections;
     private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
@@ -38,7 +38,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListIntegrationDefinitionsAsync(Guid userId, CancellationToken ct = default)
     {
         var githubConfigured = await _github.HasTokenAsync(userId, ct);
-        return IntegrationDefinitionCatalog.BuiltinDefinitions
+        return IntegrationDefinitionProvider.BuiltinDefinitions
             .Select(connector => connector.OauthProvider == "github"
                 ? connector with { OauthConfigured = githubConfigured }
                 : connector)

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRepository
 {

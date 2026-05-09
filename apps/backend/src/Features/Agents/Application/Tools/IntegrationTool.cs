@@ -5,20 +5,20 @@ using ModelContextProtocol.Client;
 
 namespace EnterpriseAgentOs.Application.Features.Agents;
 
-internal sealed partial class McpTool : IAgentTool
+internal sealed partial class IntegrationTool : IAgentTool
 {
-    private readonly McpClientTool _mcpTool;
+    private readonly McpClientTool _runtimeTool;
     private readonly McpClient _client;
 
     public string Name { get; }
     public ToolSchema Schema { get; }
     public string PermissionScope { get; }
 
-    public McpTool(McpDiscoveredTool discovered)
+    public IntegrationTool(IntegrationDiscoveredTool discovered)
     {
-        // NativeHandle is McpNativeHandle from Infrastructure
+        // NativeHandle is IntegrationNativeHandle from Infrastructure
         dynamic handle = discovered.NativeHandle;
-        _mcpTool = (McpClientTool)handle.Tool;
+        _runtimeTool = (McpClientTool)handle.Tool;
         _client = (McpClient)handle.Client;
 
         Schema = CreateSchema(discovered);
@@ -34,7 +34,7 @@ internal sealed partial class McpTool : IAgentTool
                 ? args.Deserialize<Dictionary<string, object?>>() ?? new()
                 : new Dictionary<string, object?>();
 
-            var response = await _client.CallToolAsync(_mcpTool.Name, argsDict, cancellationToken: ct);
+            var response = await _client.CallToolAsync(_runtimeTool.Name, argsDict, cancellationToken: ct);
             var output = string.Join("\n", response.Content
                 .OfType<ModelContextProtocol.Protocol.TextContentBlock>()
                 .Select(c => c.Text ?? ""));
@@ -52,7 +52,7 @@ internal sealed partial class McpTool : IAgentTool
     [GeneratedRegex(@"[^a-zA-Z0-9]")]
     private static partial Regex SlugRegex();
 
-    internal static ToolSchema CreateSchema(McpDiscoveredTool discovered)
+    internal static ToolSchema CreateSchema(IntegrationDiscoveredTool discovered)
     {
         var slug = SlugRegex().Replace(discovered.IntegrationName, "_");
         var toolSlug = SlugRegex().Replace(discovered.Name, "_");
@@ -71,20 +71,20 @@ internal sealed partial class McpTool : IAgentTool
         => JsonSerializer.SerializeToElement(new { type = "object", properties = new { } });
 }
 
-internal sealed record McpCatalogTool(string Name, string Description, JsonElement? Parameters);
+internal sealed record IntegrationCatalogTool(string Name, string Description, JsonElement? Parameters);
 
 internal interface IHydratableToolSchema
 {
     Task<ToolSchema> HydrateSchemaAsync(CancellationToken ct);
 }
 
-internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
+internal sealed partial class LazyIntegrationTool : IAgentTool, IHydratableToolSchema
 {
     private readonly string _runtimeToolName;
-    private readonly LazyMcpServerConnection _connection;
+    private readonly LazyIntegrationConnection _connection;
     private ToolSchema _schema;
 
-    public LazyMcpTool(IntegrationDefinitionRecord server, McpCatalogTool catalogTool, LazyMcpServerConnection connection)
+    public LazyIntegrationTool(IntegrationDefinitionRecord server, IntegrationCatalogTool catalogTool, LazyIntegrationConnection connection)
     {
         _runtimeToolName = catalogTool.Name;
         _connection = connection;
@@ -107,13 +107,13 @@ internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
     public string Name { get; }
     public ToolSchema Schema => _schema;
     public string PermissionScope { get; }
-    public AgentToolKind Kind => AgentToolKind.Mcp;
+    public AgentToolKind Kind => AgentToolKind.Integration;
 
     public async Task<ToolSchema> HydrateSchemaAsync(CancellationToken ct)
     {
         var discovered = await GetDiscoveredToolAsync(ct);
         if (discovered is not null)
-            _schema = McpTool.CreateSchema(discovered);
+            _schema = IntegrationTool.CreateSchema(discovered);
 
         return _schema;
     }
@@ -122,12 +122,12 @@ internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
     {
         var discovered = await GetDiscoveredToolAsync(ct);
         if (discovered is null)
-            return new AgentError(AgentErrorCategory.ToolExecution, $"MCP tool '{_runtimeToolName}' was not discovered on server '{_connection.IntegrationName}'.");
+            return new AgentError(AgentErrorCategory.ToolExecution, $"integration tool '{_runtimeToolName}' was not discovered on server '{_connection.IntegrationName}'.");
 
-        return await new McpTool(discovered).ExecuteAsync(args, ct);
+        return await new IntegrationTool(discovered).ExecuteAsync(args, ct);
     }
 
-    private async Task<McpDiscoveredTool?> GetDiscoveredToolAsync(CancellationToken ct)
+    private async Task<IntegrationDiscoveredTool?> GetDiscoveredToolAsync(CancellationToken ct)
     {
         var connection = await _connection.EnsureConnectedAsync(ct);
         return connection.Tools.FirstOrDefault(t => string.Equals(t.Name, _runtimeToolName, StringComparison.Ordinal));
@@ -137,21 +137,21 @@ internal sealed partial class LazyMcpTool : IAgentTool, IHydratableToolSchema
     private static partial Regex SlugRegex();
 }
 
-internal sealed class LazyListMcpResourcesTool : IAgentTool
+internal sealed class LazyListIntegrationResourcesTool : IAgentTool
 {
     private readonly IntegrationDefinitionRecord _server;
-    private readonly LazyMcpServerConnection _connection;
+    private readonly LazyIntegrationConnection _connection;
 
-    public LazyListMcpResourcesTool(IntegrationDefinitionRecord server, LazyMcpServerConnection connection)
+    public LazyListIntegrationResourcesTool(IntegrationDefinitionRecord server, LazyIntegrationConnection connection)
     {
         _server = server;
         _connection = connection;
-        Name = $"{Slug(server.Name)}__list_mcp_resources";
-        Schema = new ToolSchema(Name, $"[{server.Name}] List available MCP resources.", new { type = "object", properties = new { } });
+        Name = $"{Slug(server.Name)}__list_integration_resources";
+        Schema = new ToolSchema(Name, $"[{server.Name}] List available integration resources.", new { type = "object", properties = new { } });
     }
 
     public string Name { get; }
-    public AgentToolKind Kind => AgentToolKind.Mcp;
+    public AgentToolKind Kind => AgentToolKind.Integration;
     public bool IsReadOnly => true;
     public ToolSchema Schema { get; }
 
@@ -159,38 +159,38 @@ internal sealed class LazyListMcpResourcesTool : IAgentTool
     {
         var connection = await _connection.EnsureConnectedAsync(ct);
         if (connection.NativeClient is null)
-            return new ToolResult(false, "", "MCP client is not connected.");
+            return new ToolResult(false, "", "integration client is not connected.");
 
         try
         {
-            var result = await ListMcpResourcesTool.InvokeMcpAsync(connection.NativeClient, ["ListResourcesAsync", "ListResourceAsync"], [], ct);
-            return new ToolResult(true, ListMcpResourcesTool.FormatUnknown(result));
+            var result = await ListIntegrationResourcesTool.InvokeIntegrationClientAsync(connection.NativeClient, ["ListResourcesAsync", "ListResourceAsync"], [], ct);
+            return new ToolResult(true, ListIntegrationResourcesTool.FormatUnknown(result));
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", $"MCP resource listing failed for {_server.Name}: {ex.Message}");
+            return new ToolResult(false, "", $"integration resource listing failed for {_server.Name}: {ex.Message}");
         }
     }
 
     private static string Slug(string value) => new(value.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray());
 }
 
-internal sealed class LazyReadMcpResourceTool : IAgentTool
+internal sealed class LazyReadIntegrationResourceTool : IAgentTool
 {
     private readonly IntegrationDefinitionRecord _server;
-    private readonly LazyMcpServerConnection _connection;
+    private readonly LazyIntegrationConnection _connection;
 
-    public LazyReadMcpResourceTool(IntegrationDefinitionRecord server, LazyMcpServerConnection connection)
+    public LazyReadIntegrationResourceTool(IntegrationDefinitionRecord server, LazyIntegrationConnection connection)
     {
         _server = server;
         _connection = connection;
-        Name = $"{Slug(server.Name)}__read_mcp_resource";
-        Schema = new ToolSchema(Name, $"[{server.Name}] Read a specific MCP resource by URI.",
+        Name = $"{Slug(server.Name)}__read_integration_resource";
+        Schema = new ToolSchema(Name, $"[{server.Name}] Read a specific integration resource by URI.",
             new { type = "object", properties = new { uri = new { type = "string" } }, required = new[] { "uri" } });
     }
 
     public string Name { get; }
-    public AgentToolKind Kind => AgentToolKind.Mcp;
+    public AgentToolKind Kind => AgentToolKind.Integration;
     public bool IsReadOnly => true;
     public ToolSchema Schema { get; }
 
@@ -198,45 +198,45 @@ internal sealed class LazyReadMcpResourceTool : IAgentTool
     {
         var connection = await _connection.EnsureConnectedAsync(ct);
         if (connection.NativeClient is null)
-            return new ToolResult(false, "", "MCP client is not connected.");
+            return new ToolResult(false, "", "integration client is not connected.");
 
         var uri = args.GetProperty("uri").GetString() ?? "";
         try
         {
-            var result = await ListMcpResourcesTool.InvokeMcpAsync(connection.NativeClient, ["ReadResourceAsync", "GetResourceAsync"], [uri], ct);
-            return new ToolResult(true, ListMcpResourcesTool.FormatUnknown(result));
+            var result = await ListIntegrationResourcesTool.InvokeIntegrationClientAsync(connection.NativeClient, ["ReadResourceAsync", "GetResourceAsync"], [uri], ct);
+            return new ToolResult(true, ListIntegrationResourcesTool.FormatUnknown(result));
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", $"MCP resource read failed for {_server.Name}: {ex.Message}");
+            return new ToolResult(false, "", $"integration resource read failed for {_server.Name}: {ex.Message}");
         }
     }
 
     private static string Slug(string value) => new(value.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray());
 }
 
-internal sealed class LazyMcpServerConnection : IAsyncDisposable
+internal sealed class LazyIntegrationConnection : IAsyncDisposable
 {
     private readonly IntegrationDefinitionRecord _server;
     private readonly Func<string, Task<Dictionary<string, string>>> _credentialLoader;
-    private readonly IMcpClientManager _mcpClientManager;
+    private readonly IIntegrationClientManager _integrationClientManager;
     private readonly TurnEventPublisher _events;
     private readonly Guid _agentId;
     private readonly string _correlationId;
     private readonly object _gate = new();
-    private Task<McpConnectionResult>? _connectionTask;
+    private Task<IntegrationConnectionResult>? _connectionTask;
 
-    public LazyMcpServerConnection(
+    public LazyIntegrationConnection(
         IntegrationDefinitionRecord server,
         Func<string, Task<Dictionary<string, string>>> credentialLoader,
-        IMcpClientManager mcpClientManager,
+        IIntegrationClientManager integrationClientManager,
         TurnEventPublisher events,
         Guid agentId,
         string correlationId)
     {
         _server = server;
         _credentialLoader = credentialLoader;
-        _mcpClientManager = mcpClientManager;
+        _integrationClientManager = integrationClientManager;
         _events = events;
         _agentId = agentId;
         _correlationId = correlationId;
@@ -244,7 +244,7 @@ internal sealed class LazyMcpServerConnection : IAsyncDisposable
 
     public string IntegrationName => _server.Name;
 
-    public Task<McpConnectionResult> EnsureConnectedAsync(CancellationToken ct)
+    public Task<IntegrationConnectionResult> EnsureConnectedAsync(CancellationToken ct)
     {
         lock (_gate)
         {
@@ -260,23 +260,23 @@ internal sealed class LazyMcpServerConnection : IAsyncDisposable
             await task.Result.DisposeAsync();
     }
 
-    private async Task<McpConnectionResult> ConnectAsync(CancellationToken ct)
+    private async Task<IntegrationConnectionResult> ConnectAsync(CancellationToken ct)
     {
         var credentialStart = Stopwatch.GetTimestamp();
         var credentials = await _credentialLoader(_server.Name);
         await _events.PublishDiagnosticAsync(
             _agentId,
             _correlationId,
-            $"Tool setup: MCP credentials loaded ({_server.Name})",
+            $"Tool setup: integration credentials loaded ({_server.Name})",
             ElapsedMs(credentialStart),
             ct);
 
         var connectStart = Stopwatch.GetTimestamp();
-        var result = await _mcpClientManager.ConnectAsync(_server, credentials, ct);
+        var result = await _integrationClientManager.ConnectAsync(_server, credentials, ct);
         await _events.PublishDiagnosticAsync(
             _agentId,
             _correlationId,
-            $"Tool setup: MCP connected ({_server.Name}, {result.Tools.Count} tools)",
+            $"Tool setup: integration connected ({_server.Name}, {result.Tools.Count} tools)",
             ElapsedMs(connectStart),
             ct);
         return result;

@@ -13,7 +13,7 @@ internal sealed class ToolSearchTool : IAgentTool
     public bool IsReadOnly => true;
     public bool IsConcurrencySafe => true;
     public ToolSchema Schema => new("tool_search",
-        "Find available tools and return their full JSON schemas. Use when you need to discover MCP, browser, cron, task, or less common tools.",
+        "Find available tools and return their full JSON schemas. Use when you need to discover integration, browser, cron, task, or less common tools.",
         new
         {
             type = "object",
@@ -79,27 +79,27 @@ internal sealed class ToolSearchTool : IAgentTool
     }
 }
 
-internal sealed class ListMcpResourcesTool : IAgentTool
+internal sealed class ListIntegrationResourcesTool : IAgentTool
 {
     private readonly string _integrationName;
     private readonly object? _client;
-    public ListMcpResourcesTool(string integrationName, object? client) { _integrationName = integrationName; _client = client; }
-    public string Name => $"{Slug(_integrationName)}__list_mcp_resources";
-    public AgentToolKind Kind => AgentToolKind.Mcp;
+    public ListIntegrationResourcesTool(string integrationName, object? client) { _integrationName = integrationName; _client = client; }
+    public string Name => $"{Slug(_integrationName)}__list_integration_resources";
+    public AgentToolKind Kind => AgentToolKind.Integration;
     public bool IsReadOnly => true;
-    public ToolSchema Schema => new(Name, $"[{_integrationName}] List available MCP resources.", new { type = "object", properties = new { } });
+    public ToolSchema Schema => new(Name, $"[{_integrationName}] List available integration resources.", new { type = "object", properties = new { } });
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        if (_client is null) return new ToolResult(false, "", "MCP client is not connected.");
+        if (_client is null) return new ToolResult(false, "", "integration client is not connected.");
         try
         {
-            var result = await InvokeMcpAsync(_client, ["ListResourcesAsync", "ListResourceAsync"], [], ct);
+            var result = await InvokeIntegrationClientAsync(_client, ["ListResourcesAsync", "ListResourceAsync"], [], ct);
             return new ToolResult(true, FormatUnknown(result));
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", $"MCP resource listing failed: {ex.Message}");
+            return new ToolResult(false, "", $"integration resource listing failed: {ex.Message}");
         }
     }
 
@@ -118,7 +118,7 @@ internal sealed class ListMcpResourcesTool : IAgentTool
         }
     }
 
-    internal static async Task<object?> InvokeMcpAsync(object client, string[] methodNames, object?[] args, CancellationToken ct)
+    internal static async Task<object?> InvokeIntegrationClientAsync(object client, string[] methodNames, object?[] args, CancellationToken ct)
     {
         var type = client.GetType();
         foreach (var name in methodNames)
@@ -154,33 +154,33 @@ internal sealed class ListMcpResourcesTool : IAgentTool
             return raw;
         }
 
-        throw new MissingMethodException("Connected MCP client does not expose resource methods.");
+        throw new MissingMethodException("Connected integration client does not expose resource methods.");
     }
 }
 
-internal sealed class ReadMcpResourceTool : IAgentTool
+internal sealed class ReadIntegrationResourceTool : IAgentTool
 {
     private readonly string _integrationName;
     private readonly object? _client;
-    public ReadMcpResourceTool(string integrationName, object? client) { _integrationName = integrationName; _client = client; }
-    public string Name => $"{ListMcpResourcesTool.Slug(_integrationName)}__read_mcp_resource";
-    public AgentToolKind Kind => AgentToolKind.Mcp;
+    public ReadIntegrationResourceTool(string integrationName, object? client) { _integrationName = integrationName; _client = client; }
+    public string Name => $"{ListIntegrationResourcesTool.Slug(_integrationName)}__read_integration_resource";
+    public AgentToolKind Kind => AgentToolKind.Integration;
     public bool IsReadOnly => true;
-    public ToolSchema Schema => new(Name, $"[{_integrationName}] Read a specific MCP resource by URI.",
+    public ToolSchema Schema => new(Name, $"[{_integrationName}] Read a specific integration resource by URI.",
         new { type = "object", properties = new { uri = new { type = "string" } }, required = new[] { "uri" } });
 
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        if (_client is null) return new ToolResult(false, "", "MCP client is not connected.");
+        if (_client is null) return new ToolResult(false, "", "integration client is not connected.");
         var uri = args.GetProperty("uri").GetString() ?? "";
         try
         {
-            var result = await ListMcpResourcesTool.InvokeMcpAsync(_client, ["ReadResourceAsync", "GetResourceAsync"], [uri], ct);
-            return new ToolResult(true, ListMcpResourcesTool.FormatUnknown(result));
+            var result = await ListIntegrationResourcesTool.InvokeIntegrationClientAsync(_client, ["ReadResourceAsync", "GetResourceAsync"], [uri], ct);
+            return new ToolResult(true, ListIntegrationResourcesTool.FormatUnknown(result));
         }
         catch (Exception ex)
         {
-            return new ToolResult(false, "", $"MCP resource read failed: {ex.Message}");
+            return new ToolResult(false, "", $"integration resource read failed: {ex.Message}");
         }
     }
 }

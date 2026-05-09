@@ -1,13 +1,13 @@
 namespace EnterpriseAgentOs.Application.Features.Agents;
 
-internal abstract class BrowserMcpTool : IAgentTool
+internal abstract class BrowserRuntimeTool : IAgentTool
 {
     private readonly BrowserToolDescriptor _descriptor;
     private readonly IBrowserService _browser;
     private readonly IBrowserRuntimeClient _runtime;
     private readonly Guid _agentId;
 
-    protected BrowserMcpTool(
+    protected BrowserRuntimeTool(
         string runtimeName,
         string description,
         IReadOnlyDictionary<string, BrowserToolDescriptor> descriptors,
@@ -18,7 +18,7 @@ internal abstract class BrowserMcpTool : IAgentTool
     {
     }
 
-    private BrowserMcpTool(
+    private BrowserRuntimeTool(
         BrowserToolDescriptor descriptor,
         IBrowserService browser,
         IBrowserRuntimeClient runtime,
@@ -66,7 +66,7 @@ internal abstract class BrowserMcpTool : IAgentTool
         }
     }
 
-    public static string ToToolName(string mcpName) => mcpName.Replace(".", "__");
+    public static string ToToolName(string runtimeName) => runtimeName.Replace(".", "__");
 
     private static BrowserToolDescriptor ResolveDescriptor(
         string runtimeName,

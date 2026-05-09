@@ -13,7 +13,7 @@ internal sealed class AgentService : IAgentService
     private readonly IPublisher _publisher;
     private readonly AgentChannelBinder _channelBinder;
     private readonly IAgentLogService _agentLogService;
-    private readonly IIntegrationDefinitionService _mcpServerService;
+    private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IAgentToolPermissionRepository _toolPermissionRepository;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
@@ -27,7 +27,7 @@ internal sealed class AgentService : IAgentService
         IPublisher publisher,
         AgentChannelBinder channelBinder,
         IAgentLogService agentLogService,
-        IIntegrationDefinitionService mcpServerService,
+        IIntegrationDefinitionService integrationDefinitionService,
         IAgentToolPermissionRepository toolPermissionRepository)
     {
         _agentRepository = repository;
@@ -39,7 +39,7 @@ internal sealed class AgentService : IAgentService
         _publisher = publisher;
         _channelBinder = channelBinder;
         _agentLogService = agentLogService;
-        _mcpServerService = mcpServerService;
+        _integrationDefinitionService = integrationDefinitionService;
         _toolPermissionRepository = toolPermissionRepository;
     }
 
@@ -182,14 +182,14 @@ internal sealed class AgentService : IAgentService
 
         if (init.ToolNames is { Count: > 0 })
         {
-            var servers = await _mcpServerService.ListAsync(userId, ct);
+            var servers = await _integrationDefinitionService.ListAsync(userId, ct);
             var names = servers.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var toolName in init.ToolNames)
             {
                 var parsed = ToolKey.Parse(toolName);
                 var integrationName = names.Contains(toolName) ? toolName : parsed.SkillName;
                 if (names.Contains(integrationName))
-                    await _mcpServerService.AssignToAgentAsync(agentId, integrationName, userId, ct);
+                    await _integrationDefinitionService.AssignToAgentAsync(agentId, integrationName, userId, ct);
             }
         }
 

@@ -1,7 +1,7 @@
-using EnterpriseAgentOs.Application.Features.Agents.Integrations;
+using EnterpriseAgentOs.Application.Features.Integrations;
 using EnterpriseAgentOs.Domain.Common.ValueObjects;
 using EnterpriseAgentOs.Domain.Features.Agents;
-using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+using EnterpriseAgentOs.Domain.Features.Integrations;
 using EnterpriseAgentOs.Domain.Features.Management;
 using EnterpriseAgentOs.Configuration;
 using EnterpriseAgentOs.Infrastructure.Common.Security;
@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Agents;
+namespace EnterpriseAgentOs.Api.Tests.Integrations;
 
-public sealed class McpServerServiceTests
+public sealed class IntegrationDefinitionServiceTests
 {
     private static readonly Guid OwnerId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
@@ -100,7 +100,7 @@ public sealed class McpServerServiceTests
         Title = "Custom Server",
         TransportType = IntegrationTransportType.Stdio,
         Command = command,
-        Args = """["-y","custom-mcp"]""",
+        Args = """["-y","custom-integration"]""",
         Category = "custom",
         CredentialFieldsJson = credentialFieldsJson,
     };

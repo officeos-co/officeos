@@ -14,7 +14,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
-    private readonly IIntegrationDefinitionService _mcpServerService;
+    private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IAgentToolPermissionRepository _permissionRepository;
 
     public AgentToolCatalogService(
@@ -25,7 +25,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IBrowserToolContextFactory browserToolContextFactory,
-        IIntegrationDefinitionService mcpServerService,
+        IIntegrationDefinitionService integrationDefinitionService,
         IAgentToolPermissionRepository permissionRepository)
     {
         _memoryRepo = memoryRepo;
@@ -35,7 +35,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
         _browserToolContextFactory = browserToolContextFactory;
-        _mcpServerService = mcpServerService;
+        _integrationDefinitionService = integrationDefinitionService;
         _permissionRepository = permissionRepository;
     }
 
@@ -80,10 +80,10 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
         if (agentId.HasValue)
         {
-            var mcpServers = await _mcpServerService.ListForAgentAsync(effectiveAgentId, ct: ct);
-            foreach (var server in mcpServers)
+            var integrations = await _integrationDefinitionService.ListForAgentAsync(effectiveAgentId, ct: ct);
+            foreach (var server in integrations)
             {
-                foreach (var tool in ParseMcpTools(server))
+                foreach (var tool in ParseIntegrationTools(server))
                     entries.Add(tool);
             }
         }
@@ -137,7 +137,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             tool.ShouldDefer);
     }
 
-    private static IEnumerable<AgentToolCatalogEntry> ParseMcpTools(IntegrationDefinitionRecord server)
+    private static IEnumerable<AgentToolCatalogEntry> ParseIntegrationTools(IntegrationDefinitionRecord server)
     {
         if (string.IsNullOrWhiteSpace(server.ToolsJson))
             yield break;

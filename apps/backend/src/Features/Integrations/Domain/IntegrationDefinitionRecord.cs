@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Domain.Features.Integrations;
 
 public sealed record IntegrationDefinitionRecord
 {
@@ -42,7 +42,7 @@ public sealed record IntegrationDefinitionRecord
 
     private static Guid DeterministicGuid(string name)
     {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"mcp-server:{name}"));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"integration-definition:{name}"));
         return new Guid(hash.AsSpan(0, 16));
     }
 }

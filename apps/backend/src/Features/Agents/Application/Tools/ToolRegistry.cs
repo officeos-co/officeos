@@ -11,24 +11,24 @@ internal sealed class ToolRegistry : IAsyncDisposable
     private readonly List<IAgentTool> _tools;
     private readonly HashSet<string> _preloadedToolNames;
     private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
-    private readonly List<IAsyncDisposable> _mcpConnections;
+    private readonly List<IAsyncDisposable> _integrationConnections;
     private readonly ToolExecutionContext _context;
 
     public ToolRegistry(
         List<IAgentTool> tools,
         ToolExecutionContext context,
-        List<IAsyncDisposable>? mcpConnections = null,
+        List<IAsyncDisposable>? integrationConnections = null,
         IEnumerable<string>? preloadedToolNames = null)
     {
         _tools = tools;
         _context = context;
-        _mcpConnections = mcpConnections ?? [];
+        _integrationConnections = integrationConnections ?? [];
         _preloadedToolNames = (preloadedToolNames ?? []).ToHashSet(StringComparer.Ordinal);
     }
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var conn in _mcpConnections)
+        foreach (var conn in _integrationConnections)
             await conn.DisposeAsync();
     }
 
@@ -44,7 +44,7 @@ internal sealed class ToolRegistry : IAsyncDisposable
     {
         var groups = _tools
             .Where(t => t.ShouldDefer && !_preloadedToolNames.Contains(t.Name) && !_revealed.Contains(t.Name))
-            .GroupBy(t => t.Kind == AgentToolKind.Mcp
+            .GroupBy(t => t.Kind == AgentToolKind.Integration
                 ? ToolKey.Parse(t.PermissionScope).SkillName
                 : t.Name.StartsWith("browser__", StringComparison.Ordinal) ? "browser" : "builtin")
             .OrderBy(g => g.Key);
@@ -116,7 +116,7 @@ internal sealed class ToolRegistryFactory
     private readonly IAgentCronJobRepository _cronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _taskStore;
-    private readonly IMcpClientManager _mcpClientManager;
+    private readonly IIntegrationClientManager _integrationClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _permissionRepository;
     private readonly IIntegrationExecutionService _integrationExecution;
@@ -130,7 +130,7 @@ internal sealed class ToolRegistryFactory
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
-        IMcpClientManager mcpClientManager,
+        IIntegrationClientManager integrationClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
         IAgentToolPermissionRepository permissionRepository,
         IIntegrationExecutionService integrationExecution,
@@ -143,7 +143,7 @@ internal sealed class ToolRegistryFactory
         _cronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _taskStore = taskStore;
-        _mcpClientManager = mcpClientManager;
+        _integrationClientManager = integrationClientManager;
         _browserToolContextFactory = browserToolContextFactory;
         _permissionRepository = permissionRepository;
         _integrationExecution = integrationExecution;
@@ -157,7 +157,7 @@ internal sealed class ToolRegistryFactory
         string serviceUrl,
         Guid agentId,
         string correlationId,
-        IReadOnlyList<IntegrationDefinitionRecord> mcpServers,
+        IReadOnlyList<IntegrationDefinitionRecord> integrations,
             Func<string, Task<Dictionary<string, string>>> credentialLoader,
             CancellationToken ct)
     {
@@ -241,33 +241,33 @@ internal sealed class ToolRegistryFactory
             AddBrowserTools(availableBrowserContext, agentId, tools, preloadedToolNames);
         }
 
-        var mcpConnections = new List<IAsyncDisposable>();
-        if (HasEnabledIndexedIntegration(mcpServers, permissions))
+        var integrationConnections = new List<IAsyncDisposable>();
+        if (HasEnabledIndexedIntegration(integrations, permissions))
             tools.Add(new IntegrationExecuteTool(_integrationExecution));
 
-        foreach (var server in mcpServers)
+        foreach (var server in integrations)
         {
             if (!string.IsNullOrWhiteSpace(server.ToolsJson))
             {
-                var lazyConnection = new LazyMcpServerConnection(
+                var lazyConnection = new LazyIntegrationConnection(
                     server,
                     credentialLoader,
-                    _mcpClientManager,
+                    _integrationClientManager,
                     _events,
                     agentId,
                     correlationId);
 
-                var catalogTools = ParseMcpCatalogTools(server).ToList();
+                var catalogTools = ParseIntegrationCatalogTools(server).ToList();
                 foreach (var catalogTool in catalogTools)
-                    tools.Add(new LazyMcpTool(server, catalogTool, lazyConnection));
-                tools.Add(new LazyListMcpResourcesTool(server, lazyConnection));
-                tools.Add(new LazyReadMcpResourceTool(server, lazyConnection));
-                mcpConnections.Add(lazyConnection);
+                    tools.Add(new LazyIntegrationTool(server, catalogTool, lazyConnection));
+                tools.Add(new LazyListIntegrationResourcesTool(server, lazyConnection));
+                tools.Add(new LazyReadIntegrationResourceTool(server, lazyConnection));
+                integrationConnections.Add(lazyConnection);
 
                 await _events.PublishDiagnosticAsync(
                     agentId,
                     correlationId,
-                    $"Tool setup: MCP catalog loaded ({server.Name}, {catalogTools.Count} tools)",
+                    $"Tool setup: integration catalog loaded ({server.Name}, {catalogTools.Count} tools)",
                     0,
                     ct);
                 continue;
@@ -278,30 +278,30 @@ internal sealed class ToolRegistryFactory
             await _events.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
-                $"Tool setup: MCP credentials loaded ({server.Name})",
+                $"Tool setup: integration credentials loaded ({server.Name})",
                 ElapsedMs(credentialStart),
                 ct);
 
             var connectStart = Stopwatch.GetTimestamp();
-            var result = await _mcpClientManager.ConnectAsync(server, creds, ct);
+            var result = await _integrationClientManager.ConnectAsync(server, creds, ct);
             await _events.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
-                $"Tool setup: MCP connected ({server.Name}, {result.Tools.Count} tools)",
+                $"Tool setup: integration connected ({server.Name}, {result.Tools.Count} tools)",
                 ElapsedMs(connectStart),
                 ct);
             if (result.Tools.Count == 0)
             {
                 _logger.LogWarning(
-                    "Assigned MCP server {Server} discovered no callable tools for agent {AgentId}",
+                    "Assigned integration {Server} discovered no callable tools for agent {AgentId}",
                     server.Name,
                     agentId);
             }
             foreach (var discovered in result.Tools)
-                tools.Add(new McpTool(discovered));
-            tools.Add(new ListMcpResourcesTool(server.Name, result.NativeClient));
-            tools.Add(new ReadMcpResourceTool(server.Name, result.NativeClient));
-            mcpConnections.Add(result);
+                tools.Add(new IntegrationTool(discovered));
+            tools.Add(new ListIntegrationResourcesTool(server.Name, result.NativeClient));
+            tools.Add(new ReadIntegrationResourceTool(server.Name, result.NativeClient));
+            integrationConnections.Add(result);
         }
 
         var resolver = new AgentToolPermissionResolver(permissions);
@@ -309,7 +309,7 @@ internal sealed class ToolRegistryFactory
         tools.Add(new ToolSearchTool(tools));
 
         preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
-        return new ToolRegistry(tools, context, mcpConnections, preloadedToolNames);
+        return new ToolRegistry(tools, context, integrationConnections, preloadedToolNames);
     }
 
     private static int ElapsedMs(long startTimestamp)
@@ -330,7 +330,7 @@ internal sealed class ToolRegistryFactory
             && permission.Permission == ToolPermission.Allow);
     }
 
-    private static IEnumerable<McpCatalogTool> ParseMcpCatalogTools(IntegrationDefinitionRecord server)
+    private static IEnumerable<IntegrationCatalogTool> ParseIntegrationCatalogTools(IntegrationDefinitionRecord server)
     {
         if (string.IsNullOrWhiteSpace(server.ToolsJson))
             yield break;
@@ -365,7 +365,7 @@ internal sealed class ToolRegistryFactory
                 parameters = JsonSerializer.Deserialize<JsonElement>(parametersProp.GetRawText());
             }
 
-            yield return new McpCatalogTool(name, description, parameters);
+            yield return new IntegrationCatalogTool(name, description, parameters);
         }
     }
 

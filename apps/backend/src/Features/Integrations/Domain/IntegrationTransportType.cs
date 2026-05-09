@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Domain.Features.Integrations;
 
 public enum IntegrationTransportType
 {

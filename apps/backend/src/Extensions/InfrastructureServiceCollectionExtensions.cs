@@ -48,8 +48,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IStripeMeteringService, StripeMeteringService>();
-        // Adapters — MCP
-        services.AddSingleton<IMcpClientManager, McpClientManager>();
+        // Adapters - integrations
+        services.AddSingleton<IIntegrationClientManager, IntegrationClientManager>();
 
         // Protectors
         services.AddSingleton<CredentialProtector>();

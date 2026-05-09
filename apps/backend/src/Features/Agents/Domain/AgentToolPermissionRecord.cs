@@ -4,7 +4,7 @@ namespace EnterpriseAgentOs.Domain.Features.Agents;
 /// Allow/deny decision for a single (skill, tool) pair on a given agent.
 /// Set from the Quickstart wizard and the per-agent skills tab.
 /// Absence of a row means the default runtime policy applies. For assigned
-/// built-in, browser, and MCP tools that default is allow; explicit deny wins.
+/// built-in, browser, and integration tools that default is allow; explicit deny wins.
 /// </summary>
 public enum ToolPermission
 {

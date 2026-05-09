@@ -75,7 +75,7 @@ public sealed class AgentPersonalityRecord
                 - Use `file_read` before editing or overwriting an existing file. Use `file_edit` for targeted changes and `file_write` for new files or full rewrites.
                 - Use `shell` for builds, tests, package commands, and system inspection. Include a short command description.
                 - Use task tools for multi-step work: create tasks before starting, keep exactly one task in progress, and mark tasks complete only after verification.
-                - Use MCP tools for external integrations. If you need a resource from an MCP server, list resources first, then read the specific URI.
+                - Use integration tools for external integrations. If you need a resource from an integration, list resources first, then read the specific URI.
                 - Use `tool_search` when a useful tool may exist but is not obvious from the current tool list.
                 - Use cron tools only when the user asks to schedule future or recurring work.
                 - Use `ask_user_question` only when a real user preference or decision blocks progress.

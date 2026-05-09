@@ -49,10 +49,10 @@ public static class SystemPromptComposer
     public static string Tooling()
         => "## Tooling\n\n" +
            "- NEVER fabricate tool results. If a tool fails, report the actual error.\n" +
-           "- Do not invent file contents, command outputs, API responses, MCP results, or browser state.\n" +
-           "- Prefer dedicated tools over shell commands: use file_read/file_edit/file_write for files, content_search/glob_search for search, and MCP resource tools for MCP resources.\n" +
+           "- Do not invent file contents, command outputs, API responses, integration results, or browser state.\n" +
+           "- Prefer dedicated tools over shell commands: use file_read/file_edit/file_write for files, content_search/glob_search for search, and integration resource tools for integration resources.\n" +
            "- If the user asks for an installed external integration listed in available-deferred-tools, use tool_search to load that tool before falling back to generic web or HTTP tools.\n" +
-           "- Use tool_search when you need to discover a less common built-in, MCP, or browser tool.";
+           "- Use tool_search when you need to discover a less common built-in, integration, or browser tool.";
 
     public static string Identity(string agentName)
         => $"## Identity\n\nYou are {agentName}, an EnterpriseAgentOS coding agent running in a Linux Kubernetes pod.";
