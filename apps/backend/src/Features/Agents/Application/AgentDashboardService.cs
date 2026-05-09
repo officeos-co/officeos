@@ -37,7 +37,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _runs = runs;
     }
 
-    public async Task<AgentDto> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
+    public async Task<AgentResult> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
     {
         var dto = await _agents.CreateAsync(
             new CreateAgentRequest(request.Name, request.Provider, request.Model, request.Prompt),
@@ -94,7 +94,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         return dto;
     }
 
-    public async Task<AgentDto?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default)
+    public async Task<AgentResult?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default)
     {
         if (!await AgentIsOwnedAsync(id, ownerId, ct))
             return null;

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Management;
+namespace EnterpriseAgentOs.Application.Features.Management;
 
 // ── Export DTOs ───────────────────────────────────────────────────────────────
 

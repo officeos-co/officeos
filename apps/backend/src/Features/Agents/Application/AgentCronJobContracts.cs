@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace EnterpriseAgentOs.Application.Features.Agents;
 
 public interface IAgentCronJobService
 {
