@@ -11,7 +11,7 @@ public static class ChannelActiveEndpoint
         ChannelCredentialProtector protector,
         CancellationToken ct)
     {
-        var connections = await channelRepository.ListConnectionsAsync(ct);
+        var connections = await channelRepository.ListConnectionsAsync(ct: ct);
         var active = new List<object>();
 
         foreach (var conn in connections)

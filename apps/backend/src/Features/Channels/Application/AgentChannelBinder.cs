@@ -13,7 +13,7 @@ internal sealed class AgentChannelBinder
     {
         if (channelSlugs is not { Count: > 0 }) return;
 
-        var connections = await _channelRepository.ListConnectionsAsync(ct);
+        var connections = await _channelRepository.ListConnectionsAsync(ct: ct);
         foreach (var slug in channelSlugs)
         {
             var match = connections.FirstOrDefault(c =>

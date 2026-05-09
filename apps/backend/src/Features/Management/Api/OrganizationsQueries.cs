@@ -8,7 +8,7 @@ public class OrganizationsQueries
     [GraphQLDescription("Returns the authenticated user's organization (auto-created on first call) with member list. Cached for 5 minutes.")]
     public async Task<OrganizationPayload> Org(
         [Service] UserContext user,
-        [Service] IOrganizationRepository orgs,
+        [Service] IOrganizationService orgs,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
@@ -18,10 +18,10 @@ public class OrganizationsQueries
         if (cached is not null)
             return cached;
 
-        var org = await orgs.GetOrCreateDefaultAsync(user.Id, user.Email, user.Name, ct);
-        var members = await orgs.ListMembersAsync(org.Id, ct);
+        var overview = await orgs.GetOverviewAsync(user.Id, user.Email, user.Name, ct);
+        var org = overview.Organization;
         var result = new OrganizationPayload(
-            org.Id, org.Name, org.OwnerUserId, org.CreatedAt, members);
+            org.Id, org.Name, org.OwnerUserId, org.CreatedAt, overview.Members);
 
         await cache.SetJsonAsync(cacheKey, result, OrgCacheTtl, ct);
         return result;

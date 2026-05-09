@@ -9,6 +9,15 @@ internal sealed class OrganizationService : IOrganizationService
         _organizationRepository = organizationRepository;
     }
 
+    public async Task<OrganizationOverview> GetOverviewAsync(
+        Guid callerUserId, string callerEmail, string? callerName,
+        CancellationToken ct = default)
+    {
+        var org = await _organizationRepository.GetOrCreateDefaultAsync(callerUserId, callerEmail, callerName, ct);
+        var members = await _organizationRepository.ListMembersAsync(org.Id, ct);
+        return new OrganizationOverview(org, members);
+    }
+
     public async Task<OrgMemberRecord> InviteMemberAsync(
         Guid callerUserId, string callerEmail, string? callerName,
         string memberEmail, string? role, CancellationToken ct = default)

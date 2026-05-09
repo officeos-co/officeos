@@ -1,12 +1,5 @@
 namespace EnterpriseAgentOs.Domain.Features.Agents;
 
-public sealed record AgentCronJobFilter
-{
-    public Guid? Id { get; init; }
-    public Guid? AgentId { get; init; }
-    public bool? Enabled { get; init; }
-}
-
 public interface IAgentCronJobRepository
 {
     Task<IReadOnlyList<AgentCronJobRecord>> ListAsync(Guid agentId, CancellationToken ct = default);

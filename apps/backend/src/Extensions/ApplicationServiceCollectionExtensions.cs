@@ -7,10 +7,15 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IAgentService, AgentService>();
+        services.AddScoped<IAgentDashboardService, AgentDashboardService>();
+        services.AddScoped<IAgentCronJobService, AgentCronJobService>();
+        services.AddScoped<IAgentSessionService, AgentSessionService>();
+        services.AddScoped<IAgentResourceService, AgentResourceService>();
         services.AddScoped<IProviderService, ProviderService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();
         services.AddScoped<IIntegrationExecutionService, IntegrationExecutionService>();
+        services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<GitHubIntegrationClient>();
         services.AddScoped<IntegrationIndexingService>();
         services.AddScoped<IUserBillingService, UserBillingService>();
