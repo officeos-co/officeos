@@ -135,6 +135,7 @@ export type AgentListRow = {
   model: string;
   status: string;
   created: string;
+  createdAt: number;
   updated: string;
 };
 
@@ -203,6 +204,7 @@ export function useAgents(): {
     model: a.model,
     status: (a.status ?? "stopped").toLowerCase(),
     created: humanAgo(a.createdAt),
+    createdAt: a.createdAt ? Date.parse(a.createdAt) : 0,
     updated: humanAgo(a.createdAt),
   }));
   return { agents, loading, error: error ?? undefined, refetch };
