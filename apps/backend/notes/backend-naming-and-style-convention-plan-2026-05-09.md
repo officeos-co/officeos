@@ -31,10 +31,17 @@ Fourth layout pass completed on 2026-05-09:
 - MediatR notification handlers were moved out of Application into `Features/<Feature>/EventHandlers`.
 - Handler namespaces now use `EnterpriseAgentOs.EventHandlers.Features.<Feature>`.
 
+Fifth layout pass completed on 2026-05-09:
+
+- `Context` was split out as its own top-level feature.
+- Memory stores and entries moved from Agents/Data naming to Context.
+- Old Atlas filenames were renamed to IntegrationIndexing names.
+- Integration indexing, indexed records, integration execution, and GitHub integration access now live under Context.
+
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
-- Some stale type names remain around MCP/context (`Integration*`, `Atlas*`). These should be renamed in a follow-up semantic cleanup.
+- Some stale broad type names remain around MCP/context (`Integration*`, `*Types`, `*Dto`). These should be tightened in a follow-up semantic cleanup.
 - Domain `*Dto` type names still need classification/migration.
 - Repository interfaces still need the filter-based simplification pass.
 - Existing nullable warnings remain.
@@ -46,7 +53,7 @@ Move the backend toward a single-project, feature-first modular monolith that is
 The desired architecture is:
 
 - One backend `.csproj`.
-- Four top-level product features: `Agents`, `Channels`, `Analytics`, `Management`.
+- Five top-level product features: `Agents`, `Channels`, `Context`, `Analytics`, `Management`.
 - Inside each feature, keep the clean architecture boundaries: `Domain`, `Application`, `EventHandlers`, `Infrastructure`, `Api`.
 - Centralized database code under `src/Database`, because EF context, models, and migrations are shared by the application.
 
@@ -68,6 +75,12 @@ src
 │   │   ├── Infrastructure
 │   │   └── Api
 │   ├── Channels
+│   │   ├── Domain
+│   │   ├── Application
+│   │   ├── EventHandlers
+│   │   ├── Infrastructure
+│   │   └── Api
+│   ├── Context
 │   │   ├── Domain
 │   │   ├── Application
 │   │   ├── EventHandlers
@@ -106,6 +119,7 @@ Only these top-level features are allowed:
 
 - `Agents`
 - `Channels`
+- `Context`
 - `Analytics`
 - `Management`
 
@@ -143,12 +157,12 @@ Subdomain meanings:
 - `Runtime`: agent runs, sessions, turn lifecycle, session context.
 - `Tools`: built-in tools, tool permissions, tool catalog contracts.
 - `Mcp`: MCP servers, credentials, agent assignments, discovered tools.
-- `Memory`: agent memory stores and entries. This replaces top-level `Data`.
-- `Context`: indexed external context/connectors currently called Atlas. This replaces top-level `Atlas`.
 - `Browser`: browser runtime/session records and browser-specific contracts.
 - `Scheduling`: cron jobs and scheduled runs.
 
 Channels owns Telegram/Slack/WhatsApp/Teams-style connections, credentials, agent bindings, inbound routing, sidecar delivery, and channel GraphQL/endpoints.
+
+Context owns markdown-style memory stores, memory entries, external integration connections, integration indexing, indexed records, and integration execution.
 
 ## Layer Boundaries Inside A Feature
 
@@ -392,7 +406,7 @@ The physical feature cleanup is complete. Rename public types that still carry o
 1. Freeze the desired convention in this note and `AGENTS.md`.
 2. Keep the single-project target folder structure.
 3. Keep feature layers flat and rely on strong names.
-4. Rename stale `Atlas*`, `Integration*`, and broad `*Types`/`*Dto` names.
+4. Rename stale broad `Integration*`, `*Types`, and `*Dto` names where they no longer describe the owning feature.
 5. Simplify repository interfaces with filter records.
 6. Add architecture tests that enforce the final shape.
 7. Run build/tests and enable architecture tests as required CI checks.
@@ -407,7 +421,7 @@ tests/EnterpriseAgentOs.Api.Tests/Architecture
 
 Required tests:
 
-- Only top-level feature folders are `Agents`, `Channels`, `Analytics`, `Management`.
+- Only top-level feature folders are `Agents`, `Channels`, `Context`, `Analytics`, `Management`.
 - Each feature has explicit `Domain`, `Application`, `EventHandlers`, `Infrastructure`, and `Api` folders when it contains that layer.
 - Feature layer folders do not contain nested bucket folders unless explicitly allowlisted. Current allowlist: `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - No namespace contains `Features.Agents.Integrations`.
@@ -427,13 +441,14 @@ Also add:
 ## Acceptance Criteria
 
 - There is one backend `.csproj`.
-- The only top-level feature folders are `Agents`, `Channels`, `Analytics`, and `Management`.
+- The only top-level feature folders are `Agents`, `Channels`, `Context`, `Analytics`, and `Management`.
 - Each feature owns its `Domain`, `Application`, `EventHandlers`, `Infrastructure`, and `Api` code locally.
 - Feature layers are flat; new separation is done with strong file/type names, except `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - `Atlas`, `Data`, and `Mcp` do not exist as top-level feature folders.
 - A new contributor can understand agent behavior by opening `Features/Agents`.
 - A new contributor can understand channel behavior by opening `Features/Channels`.
-- Memory, MCP, browser, scheduling, and context are discoverable as Agents subdomains.
+- A new contributor can understand memory and integration indexing behavior by opening `Features/Context`.
+- MCP, browser, scheduling, and runtime are discoverable as Agents subdomains.
 - Domain DTOs are removed or explicitly justified.
 - Repository interfaces use filters and have no duplicate scope-specific methods.
 - `dotnet build` and `dotnet test` pass.

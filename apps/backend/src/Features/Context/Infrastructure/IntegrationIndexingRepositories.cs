@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Infrastructure.Features.Context;
 
 internal sealed class IntegrationConnectionRepository : IIntegrationConnectionRepository
 {

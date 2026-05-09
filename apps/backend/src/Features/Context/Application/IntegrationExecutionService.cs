@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Application.Features.Context;
 
 internal sealed class IntegrationExecutionService : IIntegrationExecutionService
 {
@@ -58,7 +58,7 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
                     connector_instance_id = $"source_id:{request.SourceId}",
                     execution_time_ms = ElapsedMs(started),
                 },
-                error = new { code = "atlas_connector_error", message = ex.Message, detail = ex.ToString() },
+                error = new { code = "integration_execution_error", message = ex.Message, detail = ex.ToString() },
             });
         }
         finally

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Application.Features.Agents;
 
 internal sealed class IntegrationExecuteTool : IAgentTool
 {
