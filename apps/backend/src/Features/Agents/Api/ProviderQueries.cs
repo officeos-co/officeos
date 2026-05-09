@@ -4,12 +4,12 @@ namespace EnterpriseAgentOs.Api.Features.Agents;
 public class ProviderQueries
 {
     [GraphQLDescription("Lists all configured LLM providers with name, display name, models, and whether an API key is set.")]
-    public async Task<IReadOnlyList<ProviderGqlDto>> GetProviders(
+    public async Task<IReadOnlyList<ProviderPayload>> GetProviders(
         [Service] IProviderService providers,
         CancellationToken ct)
     {
         var list = await providers.ListAsync(ct);
-        return list.Select(ProviderGraphQLMapper.ToDto).ToList();
+        return list.Select(ProviderGraphQLMapper.ToPayload).ToList();
     }
 
     [GraphQLDescription("Returns available model IDs for a specific provider name.")]
@@ -28,7 +28,7 @@ public class ProviderQueries
     }
 
     [GraphQLDescription("Returns available models with display names and default indicator. In self-hosted mode, only configured providers' models are returned.")]
-    public async Task<IReadOnlyList<ModelInfoDto>> GetSupportedModels(
+    public async Task<IReadOnlyList<ModelInfoPayload>> GetSupportedModels(
         [Service] IProviderService providers,
         CancellationToken ct)
     {
@@ -57,7 +57,7 @@ public class ProviderQueries
         }
 
         return models
-            .Select((m, index) => new ModelInfoDto(
+            .Select((m, index) => new ModelInfoPayload(
                 m.Model.Id,
                 m.Model.DisplayName,
                 m.Provider,

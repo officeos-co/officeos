@@ -43,10 +43,10 @@ internal sealed class AgentService : IAgentService
         _toolPermissionRepository = toolPermissionRepository;
     }
 
-    public async Task<IReadOnlyList<AgentResult>> ListAsync(AgentFilter filter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
     {
         var cacheKey = AgentCacheKeys.List(filter);
-        var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentResult>>(cacheKey, ct);
+        var cached = await _cache.GetJsonAsync<IReadOnlyList<AgentRecord>>(cacheKey, ct);
         if (cached is not null)
             return cached;
 
@@ -55,17 +55,15 @@ internal sealed class AgentService : IAgentService
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
-        var result = records.Select(ToDto).ToList();
-
-        await _cache.SetJsonAsync(cacheKey, (IReadOnlyList<AgentResult>)result, AgentCacheTtl, ct);
+        await _cache.SetJsonAsync(cacheKey, records, AgentCacheTtl, ct);
         await AgentCacheKeys.TrackListAsync(_cache, cacheKey, ct);
-        return result;
+        return records;
     }
 
-    public async Task<AgentResult?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
+    public async Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
     {
         var key = AgentCacheKeys.Detail(filter);
-        var cached = await _cache.GetJsonAsync<AgentResult>(key, ct);
+        var cached = await _cache.GetJsonAsync<AgentRecord>(key, ct);
         if (cached is not null)
             return cached;
 
@@ -76,13 +74,12 @@ internal sealed class AgentService : IAgentService
             return null;
         }
         await RefreshStatusAsync(record, ct);
-        var dto = ToDto(record);
 
-        await _cache.SetJsonAsync(key, dto, AgentCacheTtl, ct);
-        return dto;
+        await _cache.SetJsonAsync(key, record, AgentCacheTtl, ct);
+        return record;
     }
 
-    public async Task<AgentResult> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, CancellationToken ct = default)
+    public async Task<AgentRecord> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, CancellationToken ct = default)
     {
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
@@ -115,10 +112,10 @@ internal sealed class AgentService : IAgentService
 
         await _publisher.Publish(new AgentCreatedEvent(record.Id, record.Provider, record.Model, ownerId), ct);
 
-        return ToDto(record);
+        return record;
     }
 
-    public async Task<AgentResult?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default)
+    public async Task<AgentRecord?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default)
     {
         var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
         if (record is null)
@@ -157,7 +154,7 @@ internal sealed class AgentService : IAgentService
 
         await _agentRepository.UpdateAsync(record, ct);
         await _publisher.Publish(new AgentUpdatedEvent(id), ct);
-        return ToDto(record);
+        return record;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -236,8 +233,4 @@ internal sealed class AgentService : IAgentService
             _logger.LogWarning(ex, "Failed to refresh status for agent {AgentId}", record.Id);
         }
     }
-
-    private static AgentResult ToDto(AgentRecord record) =>
-        new(record.Id, record.Name, record.Provider, record.Model, record.Prompt, record.Status.ToStorageString(),
-            record.PodName, record.ServiceUrl, record.CreatedAt);
 }

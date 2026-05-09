@@ -47,18 +47,21 @@ Sixth layout pass completed on 2026-05-09:
 Seventh architecture pass completed on 2026-05-09:
 
 - Domain `*Dto` files were removed.
-- Use-case request/result records moved to Application, for example `CreateAgentRequest`, `AgentResult`, `ProviderResult`, analytics result shapes, and GDPR export shapes.
+- Mirror use-case result records were removed where the Domain record is already the right shape; for example, agent list/create/update now return `AgentRecord` instead of an `AgentResult` copy.
+- Remaining use-case request/result records live in Application only when they protect a real boundary or compose data that is not already a Domain record.
 - GraphQL/HTTP input and payload records moved to Api where they are transport-only.
 - Application service contracts that describe use cases moved out of Domain into Application.
 - Multi-step API workflows were moved behind Application services: agent dashboard provisioning, cron jobs, sessions, resources, memory store writes, auth profile/logout, and organization overview.
 - API methods may still call Domain repositories directly for simple owner-scoped reads, but writes and orchestration now belong in Application services.
 - `ChannelRepository.ListConnectionsAsync` now accepts `ChannelConnectionFilter`, removing in-memory owner filtering from the API.
+- Broad `*Types.cs` files were removed or renamed to boundary-specific names such as `*Payloads`, `*Inputs`, `*Projections`, or the main type name.
+- Architecture tests were added under `tests/EnterpriseAgentOs.Api.Tests/Architecture` to enforce DTO, broad type-file, mutation/repository, and Domain dependency rules.
 - The backend builds successfully with `dotnet build src/EnterpriseAgentOs.Api.csproj --no-restore`.
 
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
-- Some stale broad type names remain around MCP/context (`Integration*`, `*Types`). These should be tightened in a follow-up semantic cleanup.
+- Some stale broad type names remain around MCP/context (`Integration*`). These should be tightened in a follow-up semantic cleanup.
 - Repository interfaces still need the filter-based simplification pass.
 - Existing nullable warnings remain.
 
@@ -201,7 +204,7 @@ Application owns:
 
 - Use-case services.
 - Background jobs.
-- Request/result records for use cases.
+- Request/result records only when the Domain model is not already the correct shape.
 - Application service contracts for use cases, for example `IAgentService`, `IAgentDashboardService`, `IProviderService`, `IAgentLogService`, and `IGdprService`.
 - Policies that orchestrate domain behavior.
 - Tool execution orchestration.
@@ -272,8 +275,8 @@ Domain:
 
 Application:
 
-- `*Request`: use-case input.
-- `*Result`: use-case output.
+- `*Request`: use-case input only when a method has a real command/workflow boundary; otherwise prefer explicit parameters.
+- `*Result`: use-case output only when returning a Domain record would be wrong or incomplete.
 - `*Service`: use-case orchestration.
 - `*Contracts`: tight file grouping for application service interfaces plus their request/result records when those types are only useful together.
 - `*Policy`: application decision rules.
@@ -313,6 +316,13 @@ Avoid:
 ## API/Application Boundary
 
 Do not add empty Application services just to forward one repository method, but do not let API methods become use-case orchestration.
+
+The default is domain-first:
+
+- Return Domain records from Application services when the record is already safe and accurate for the use case.
+- Add `*Result` only for composed data, external-provider response shapes, calculations, or when exposing the Domain record would leak data or couple the caller to an aggregate it does not need.
+- Add `*Payload` only at the transport boundary when GraphQL/HTTP needs a different response shape.
+- Add `*Request` only when a use case has enough command data or workflow semantics to justify naming it.
 
 Allowed in Api:
 
@@ -464,9 +474,9 @@ The physical feature cleanup is complete. Rename public types that still carry o
 1. Freeze the desired convention in this note and `AGENTS.md`.
 2. Keep the single-project target folder structure.
 3. Keep feature layers flat and rely on strong names.
-4. Rename stale broad `Integration*` and `*Types` names where they no longer describe the owning feature.
+4. Rename stale broad `Integration*` names where they no longer describe the owning feature.
 5. Simplify repository interfaces with filter records.
-6. Add architecture tests that enforce the final shape.
+6. Extend architecture tests as new rules become concrete.
 7. Run build/tests and enable architecture tests as required CI checks.
 
 ## Enforcement
@@ -487,6 +497,7 @@ Required tests:
 - Domain namespaces do not reference Api or Infrastructure namespaces.
 - Api types are not used by Domain or Infrastructure.
 - Domain does not contain files named `*Dto.cs` or types ending in `Dto`.
+- No feature file is named `*Types.cs`.
 - Domain service interfaces do not depend on Application request/result types.
 - API mutation methods do not inject repositories except for simple read validation; writes go through Application services.
 - Infrastructure repository methods do not expose `*Entity` types.

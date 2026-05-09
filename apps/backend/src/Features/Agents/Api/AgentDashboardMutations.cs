@@ -7,7 +7,7 @@ public class AgentDashboardMutations
     private static string AgentQueryCacheKey(Guid id, Guid userId) => $"agents:dashboard:{id}:user:{userId}";
 
     [GraphQLDescription("Creates a new agent with the given config. Optionally assigns skills, tool permissions, and channels.")]
-    public async Task<AgentResult> CreateAgent(
+    public async Task<AgentRecord> CreateAgent(
         CreateAgentInput input,
         [Service] UserContext user,
         [Service] IAgentDashboardService agents,
@@ -16,7 +16,7 @@ public class AgentDashboardMutations
     {
         try
         {
-            var dto = await agents.CreateAsync(
+            var agent = await agents.CreateAsync(
                 new CreateDashboardAgentRequest(
                     input.Name,
                     input.Provider,
@@ -36,7 +36,7 @@ public class AgentDashboardMutations
                 ct);
 
             await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
-            return dto;
+            return agent;
         }
         catch (InvalidOperationException ex)
         {
@@ -49,7 +49,7 @@ public class AgentDashboardMutations
     }
 
     [GraphQLDescription("Patches mutable fields on an existing agent (name, provider, model, prompt). Null fields are left unchanged.")]
-    public async Task<AgentResult> UpdateAgent(
+    public async Task<AgentRecord> UpdateAgent(
         Guid id,
         UpdateAgentInput input,
         [Service] UserContext user,

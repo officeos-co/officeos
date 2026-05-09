@@ -1,6 +1,6 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace EnterpriseAgentOs.Api.Features.Agents;
 
-public sealed record ProviderGqlDto(
+public sealed record ProviderPayload(
     Guid Id,
     string Name,
     string DisplayName,
@@ -10,7 +10,7 @@ public sealed record ProviderGqlDto(
 
 internal static class ProviderGraphQLMapper
 {
-    public static ProviderGqlDto ToDto(ProviderResult p) =>
+    public static ProviderPayload ToPayload(ProviderResult p) =>
         new(p.Id, p.Name, p.DisplayName, p.Configured, p.ConfiguredAt,
             p.Models.Select(m => m.Id).ToList());
 }

@@ -2,8 +2,8 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 
 public interface IAgentDashboardService
 {
-    Task<AgentResult> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default);
-    Task<AgentResult?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default);
+    Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default);
+    Task<AgentRecord?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct = default);
     Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(Guid ownerId, Guid agentId, CancellationToken ct = default);
     Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(Guid ownerId, Guid agentId, Guid? parentRunId, CancellationToken ct = default);
