@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.Features.Agents;
 
-public sealed record ModelInfoDto(
+public sealed record ModelInfoPayload(
     string Id,
     string DisplayName,
     string Provider,

@@ -37,9 +37,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _runs = runs;
     }
 
-    public async Task<AgentResult> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
+    public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
     {
-        var dto = await _agents.CreateAsync(
+        var agent = await _agents.CreateAsync(
             new CreateAgentRequest(request.Name, request.Provider, request.Model, request.Prompt),
             ownerId,
             ct);
@@ -47,11 +47,11 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         if (request.Resources is { Count: > 0 })
         {
             var resourceSession = await _sessions.GetByAsync(
-                new AgentSessionFilter { AgentId = dto.Id, Status = SessionStatus.Active },
+                new AgentSessionFilter { AgentId = agent.Id, Status = SessionStatus.Active },
                 ct);
             if (resourceSession is null)
             {
-                resourceSession = AgentSessionRecord.Create(dto.Id);
+                resourceSession = AgentSessionRecord.Create(agent.Id);
                 await _sessions.CreateAsync(resourceSession, ct);
             }
 
@@ -62,7 +62,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
 
                 await _resources.AttachToSessionAsync(new AgentSessionResourceAttachmentRecord
                 {
-                    AgentId = dto.Id,
+                    AgentId = agent.Id,
                     SessionId = resourceSession.Id,
                     ResourceType = resourceType,
                     ResourceId = resource.ResourceId,
@@ -71,9 +71,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
                 }, ct);
 
                 if (resourceType == AgentResourceTypes.Browser)
-                    await _resources.SetBrowserCurrentAgentAsync(resource.ResourceId, dto.Id, ct);
+                    await _resources.SetBrowserCurrentAgentAsync(resource.ResourceId, agent.Id, ct);
                 if (resourceType == AgentResourceTypes.Channel)
-                    await _channelService.BindAgentAsync(dto.Id, resource.ResourceId, null, ct);
+                    await _channelService.BindAgentAsync(agent.Id, resource.ResourceId, null, ct);
             }
         }
 
@@ -86,15 +86,15 @@ internal sealed class AgentDashboardService : IAgentDashboardService
             : request.Prompt;
 
         await _agents.InitializeAgentAsync(
-            dto.Id,
+            agent.Id,
             ownerId,
             new AgentInitRequest(toolNames, request.ToolPermissions, request.ChannelSlugs, bootstrap),
             ct);
 
-        return dto;
+        return agent;
     }
 
-    public async Task<AgentResult?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default)
+    public async Task<AgentRecord?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default)
     {
         if (!await AgentIsOwnedAsync(id, ownerId, ct))
             return null;
