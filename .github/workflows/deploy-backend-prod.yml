@@ -45,7 +45,7 @@ jobs:
 
       - name: Publish container image
         working-directory: apps/backend
-        run: dotnet publish src/EnterpriseAgentOs.Api/EnterpriseAgentOs.Api.csproj -c Release /t:PublishContainer /p:ContainerImageTag=${{ steps.version.outputs.tag }}
+        run: dotnet publish src/OffceOs.csproj -c Release /t:PublishContainer /p:ContainerImageTag=${{ steps.version.outputs.tag }}
 
       - name: Push to Docker Hub
         run: docker push harkro123/eaos-backend:${{ steps.version.outputs.tag }}
