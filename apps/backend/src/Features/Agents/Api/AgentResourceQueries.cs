@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Agents;
+namespace OffceOs.Api.Features.Agents;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentResourceQueries

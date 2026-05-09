@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed record BrowserToolContext(
     IBrowserService BrowserService,
@@ -14,35 +14,35 @@ internal interface IBrowserToolContextFactory
 internal sealed class BrowserToolContextFactory : IBrowserToolContextFactory
 {
     private readonly IBrowserService _browserService;
-    private readonly IBrowserRuntimeClient _browserRuntime;
+    private readonly IBrowserRuntimeClient _browserRuntimeClient;
 
     public BrowserToolContextFactory(IBrowserService browserService, IBrowserRuntimeClient browserRuntime)
     {
         _browserService = browserService;
-        _browserRuntime = browserRuntime;
+        _browserRuntimeClient = browserRuntime;
     }
 
     public async Task<BrowserToolContext?> CreateForTurnAsync(CancellationToken ct = default)
     {
-        if (!await _browserRuntime.IsAvailableAsync(ct))
+        if (!await _browserRuntimeClient.IsAvailableAsync(ct))
             return null;
 
         return new BrowserToolContext(
             _browserService,
-            _browserRuntime,
-            ToDescriptorMap(await _browserRuntime.ListToolsAsync(ct)));
+            _browserRuntimeClient,
+            ToDescriptorMap(await _browserRuntimeClient.ListToolsAsync(ct)));
     }
 
     public async Task<BrowserToolContext> CreateCatalogAsync(CancellationToken ct = default)
     {
         try
         {
-            if (await _browserRuntime.IsAvailableAsync(ct))
+            if (await _browserRuntimeClient.IsAvailableAsync(ct))
             {
                 return new BrowserToolContext(
                     _browserService,
-                    _browserRuntime,
-                    ToDescriptorMap(await _browserRuntime.ListToolsAsync(ct)));
+                    _browserRuntimeClient,
+                    ToDescriptorMap(await _browserRuntimeClient.ListToolsAsync(ct)));
             }
         }
         catch
@@ -53,7 +53,7 @@ internal sealed class BrowserToolContextFactory : IBrowserToolContextFactory
 
         return new BrowserToolContext(
             _browserService,
-            _browserRuntime,
+            _browserRuntimeClient,
             new Dictionary<string, BrowserToolDescriptor>(StringComparer.Ordinal));
     }
 

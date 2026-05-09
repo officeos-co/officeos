@@ -1,7 +1,4 @@
-using System.Diagnostics;
-using System.Text.Json;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Registry of all agent tools. Creates tool instances per-turn with the appropriate dependencies.
@@ -12,7 +9,7 @@ internal sealed class ToolRegistry : IAsyncDisposable
     private readonly HashSet<string> _preloadedToolNames;
     private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
     private readonly List<IAsyncDisposable> _integrationConnections;
-    private readonly ToolExecutionContext _context;
+    private readonly ToolExecutionContext _toolExecutionContext;
 
     public ToolRegistry(
         List<IAgentTool> tools,
@@ -21,7 +18,7 @@ internal sealed class ToolRegistry : IAsyncDisposable
         IEnumerable<string>? preloadedToolNames = null)
     {
         _tools = tools;
-        _context = context;
+        _toolExecutionContext = context;
         _integrationConnections = integrationConnections ?? [];
         _preloadedToolNames = (preloadedToolNames ?? []).ToHashSet(StringComparer.Ordinal);
     }
@@ -110,15 +107,15 @@ internal sealed class ToolRegistry : IAsyncDisposable
 /// </summary>
 internal sealed class ToolRegistryFactory
 {
-    private readonly IAgentMemoryService _memoryService;
-    private readonly IAgentCronJobRepository _cronJobRepository;
+    private readonly IAgentMemoryService _agentMemoryService;
+    private readonly IAgentCronJobRepository _agentCronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
-    private readonly AgentTaskStore _taskStore;
+    private readonly AgentTaskStore _agentTaskStore;
     private readonly IIntegrationClientManager _integrationClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
-    private readonly IAgentToolPermissionRepository _permissionRepository;
-    private readonly IIntegrationExecutionService _integrationExecution;
-    private readonly TurnEventPublisher _events;
+    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
+    private readonly IIntegrationExecutionService _integrationExecutionService;
+    private readonly TurnEventPublisher _turnEventPublisher;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
     public ToolRegistryFactory(
@@ -133,15 +130,15 @@ internal sealed class ToolRegistryFactory
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
-        _memoryService = memoryService;
-        _cronJobRepository = cronJobRepository;
+        _agentMemoryService = memoryService;
+        _agentCronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
-        _taskStore = taskStore;
+        _agentTaskStore = taskStore;
         _integrationClientManager = integrationClientManager;
         _browserToolContextFactory = browserToolContextFactory;
-        _permissionRepository = permissionRepository;
-        _integrationExecution = integrationExecution;
-        _events = events;
+        _agentToolPermissionRepository = permissionRepository;
+        _integrationExecutionService = integrationExecution;
+        _turnEventPublisher = events;
         _logger = logger;
     }
 
@@ -166,18 +163,18 @@ internal sealed class ToolRegistryFactory
             new ContentSearchTool(context),
             new GlobSearchTool(context),
             // Memory tools (Postgres)
-            new MemoryStoreTool(_memoryService, agentId),
-            new MemoryRecallTool(_memoryService, agentId),
-            new MemoryForgetTool(_memoryService, agentId),
+            new MemoryStoreTool(_agentMemoryService, agentId),
+            new MemoryRecallTool(_agentMemoryService, agentId),
+            new MemoryForgetTool(_agentMemoryService, agentId),
             // Session/task orchestration
             new AskUserQuestionTool(),
-            new TaskCreateTool(_taskStore, agentId),
-            new TaskListTool(_taskStore, agentId),
-            new TaskGetTool(_taskStore, agentId),
-            new TaskUpdateTool(_taskStore, agentId),
-            new CronCreateTool(_cronJobRepository, agentId),
-            new CronListTool(_cronJobRepository, agentId),
-            new CronDeleteTool(_cronJobRepository, agentId),
+            new TaskCreateTool(_agentTaskStore, agentId),
+            new TaskListTool(_agentTaskStore, agentId),
+            new TaskGetTool(_agentTaskStore, agentId),
+            new TaskUpdateTool(_agentTaskStore, agentId),
+            new CronCreateTool(_agentCronJobRepository, agentId),
+            new CronListTool(_agentCronJobRepository, agentId),
+            new CronDeleteTool(_agentCronJobRepository, agentId),
             new AgentSpawnTool(_agentRunRepository, agentId),
             // HTTP tools (backend)
             new HttpRequestTool(),
@@ -186,8 +183,8 @@ internal sealed class ToolRegistryFactory
         var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
 
         var permissionsStart = Stopwatch.GetTimestamp();
-        var permissions = await _permissionRepository.ListForAgentAsync(agentId, ct);
-        await _events.PublishDiagnosticAsync(
+        var permissions = await _agentToolPermissionRepository.ListForAgentAsync(agentId, ct);
+        await _turnEventPublisher.PublishDiagnosticAsync(
             agentId,
             correlationId,
             $"Tool setup: permissions loaded ({permissions.Count})",
@@ -204,7 +201,7 @@ internal sealed class ToolRegistryFactory
         catch (Exception ex)
         {
             browserFailed = true;
-            await _events.PublishDiagnosticAsync(
+            await _turnEventPublisher.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
                 "Tool setup: browser unavailable",
@@ -216,7 +213,7 @@ internal sealed class ToolRegistryFactory
         }
         if (browserContext is null && !browserFailed)
         {
-            await _events.PublishDiagnosticAsync(
+            await _turnEventPublisher.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
                 "Tool setup: browser unavailable",
@@ -226,7 +223,7 @@ internal sealed class ToolRegistryFactory
         }
         else if (browserContext is { } availableBrowserContext)
         {
-            await _events.PublishDiagnosticAsync(
+            await _turnEventPublisher.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
                 "Tool setup: browser tools discovered",
@@ -237,7 +234,7 @@ internal sealed class ToolRegistryFactory
 
         var integrationConnections = new List<IAsyncDisposable>();
         if (HasEnabledIndexedIntegration(integrations, permissions))
-            tools.Add(new IntegrationExecuteTool(_integrationExecution));
+            tools.Add(new IntegrationExecuteTool(_integrationExecutionService));
 
         foreach (var server in integrations)
         {
@@ -247,7 +244,7 @@ internal sealed class ToolRegistryFactory
                     server,
                     credentialLoader,
                     _integrationClientManager,
-                    _events,
+                    _turnEventPublisher,
                     agentId,
                     correlationId);
 
@@ -258,7 +255,7 @@ internal sealed class ToolRegistryFactory
                 tools.Add(new LazyReadIntegrationResourceTool(server, lazyConnection));
                 integrationConnections.Add(lazyConnection);
 
-                await _events.PublishDiagnosticAsync(
+                await _turnEventPublisher.PublishDiagnosticAsync(
                     agentId,
                     correlationId,
                     $"Tool setup: integration catalog loaded ({server.Name}, {catalogTools.Count} tools)",
@@ -269,7 +266,7 @@ internal sealed class ToolRegistryFactory
 
             var credentialStart = Stopwatch.GetTimestamp();
             var creds = await credentialLoader(server.Name);
-            await _events.PublishDiagnosticAsync(
+            await _turnEventPublisher.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
                 $"Tool setup: integration credentials loaded ({server.Name})",
@@ -278,7 +275,7 @@ internal sealed class ToolRegistryFactory
 
             var connectStart = Stopwatch.GetTimestamp();
             var result = await _integrationClientManager.ConnectAsync(server, creds, ct);
-            await _events.PublishDiagnosticAsync(
+            await _turnEventPublisher.PublishDiagnosticAsync(
                 agentId,
                 correlationId,
                 $"Tool setup: integration connected ({server.Name}, {result.Tools.Count} tools)",

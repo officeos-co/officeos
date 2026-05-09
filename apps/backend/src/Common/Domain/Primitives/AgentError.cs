@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.Primitives;
+namespace OffceOs.Domain.Common.Primitives;
 
 /// <summary>
 /// Structured agent error with category for dashboard filtering.

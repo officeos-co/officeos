@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
-using EnterpriseAgentOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.Agents;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Sandbox;
+namespace OffceOs.Tests.Sandbox;
 
 public sealed class PodExecutorClientTests
 {

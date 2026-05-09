@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Analytics;
+namespace OffceOs.Domain.Features.Analytics;
 
 /// <summary>
 /// Type of a single entry in an agent's append-only activity log.

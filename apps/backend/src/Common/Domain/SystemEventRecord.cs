@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common;
+namespace OffceOs.Domain.Common;
 
 public sealed class SystemEventRecord
 {

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Common.ValueObjects;
 
 public enum SessionStatus
 {

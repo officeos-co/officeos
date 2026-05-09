@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Management;
 
 /// <summary>
 /// Stores OAuth2 tokens for skill credentials. One row per provider per user.

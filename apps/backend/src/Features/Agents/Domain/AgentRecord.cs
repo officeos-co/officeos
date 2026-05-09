@@ -1,13 +1,13 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Agents;
 
 public sealed class AgentRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
     [Required]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
-    public string Provider { get; set; }
+    public string Provider { get; set; } = string.Empty;
 
     public string? Model { get; set; }
 

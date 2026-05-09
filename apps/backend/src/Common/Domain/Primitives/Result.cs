@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.Primitives;
+namespace OffceOs.Domain.Common.Primitives;
 
 /// <summary>
 /// Discriminated result type that forces callers to handle success and failure.

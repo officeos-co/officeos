@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Channels;
+namespace OffceOs.Domain.Features.Channels;
 
 /// <summary>
 /// Per-agent channel binding. Links an agent to an org-level channel connection

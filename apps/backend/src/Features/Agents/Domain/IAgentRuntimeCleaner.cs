@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Agents;
 
 public sealed record AgentRuntimeCleanupResult(int Pods, int Services, int Volumes);
 

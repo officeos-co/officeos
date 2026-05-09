@@ -1,15 +1,13 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Agents;
+namespace OffceOs.EventHandlers.Features.Agents;
 
 internal sealed class RemoveAgentPodHandler : INotificationHandler<AgentDeletedEvent>
 {
-    private readonly IAgentDeployer _deployer;
+    private readonly IAgentDeployer _agentDeployer;
     private readonly ILogger<RemoveAgentPodHandler> _logger;
 
     public RemoveAgentPodHandler(IAgentDeployer deployer, ILogger<RemoveAgentPodHandler> logger)
     {
-        _deployer = deployer;
+        _agentDeployer = deployer;
         _logger = logger;
     }
 
@@ -19,6 +17,6 @@ internal sealed class RemoveAgentPodHandler : INotificationHandler<AgentDeletedE
             return;
 
         _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", notification.PodName, notification.AgentId);
-        await _deployer.RemoveAsync(notification.PodName, ct);
+        await _agentDeployer.RemoveAsync(notification.PodName, ct);
     }
 }

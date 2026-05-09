@@ -1,7 +1,4 @@
-using MediatR;
-using EnterpriseAgentOs.Application.Features.Agents;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Analytics;
+namespace OffceOs.EventHandlers.Features.Analytics;
 
 internal sealed class TurnLoggingHandler :
     INotificationHandler<TurnStartedEvent>,
@@ -15,20 +12,20 @@ internal sealed class TurnLoggingHandler :
     INotificationHandler<MessageOutEvent>,
     INotificationHandler<ConversationCompactedEvent>
 {
-    private readonly IAgentLogService _logService;
+    private readonly IAgentLogService _agentLogService;
 
-    public TurnLoggingHandler(IAgentLogService logService) => _logService = logService;
+    public TurnLoggingHandler(IAgentLogService logService) => _agentLogService = logService;
 
     public async Task Handle(TurnStartedEvent e, CancellationToken ct)
     {
         var preview = e.UserMessage.Length > 100 ? e.UserMessage[..100] + "..." : e.UserMessage;
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt)), ct);
     }
 
     public async Task Handle(TurnCompletedEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.System(e.AgentId,
                 $"Turn complete: {e.Iterations} iterations, {e.ToolCallCount} tool calls",
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
@@ -36,21 +33,21 @@ internal sealed class TurnLoggingHandler :
 
     public async Task Handle(PodConnectedEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.System(e.AgentId, "Pod connected",
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
     }
 
     public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.System(e.AgentId, e.Message,
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
     }
 
     public async Task Handle(LlmCallCompletedEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(new AgentLogRecord
             {
                 AgentId = e.AgentId,
@@ -65,7 +62,7 @@ internal sealed class TurnLoggingHandler :
 
     public async Task Handle(ToolCallStartedEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt)), ct);
     }
 
@@ -73,26 +70,26 @@ internal sealed class TurnLoggingHandler :
     {
         var content = e.Output.Length > 10000 ? e.Output[..10000] + "\n[truncated]" : e.Output;
         if (!e.Success) content = $"[failed] {content}";
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.ToolResultEntry(e.AgentId, e.ToolName, content,
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
     }
 
     public async Task Handle(AgentErrorOccurredEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt)), ct);
     }
 
     public async Task Handle(MessageOutEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt)), ct);
     }
 
     public async Task Handle(ConversationCompactedEvent e, CancellationToken ct)
     {
-        await _logService.AppendAsync(
+        await _agentLogService.AppendAsync(
             WithRun(AgentLogRecord.System(e.AgentId,
                 $"Conversation compacted through log {e.LastCompactedLogId:N} ({e.PreCompactTokens} -> {e.PostCompactTokens} estimated tokens)",
                 e.CorrelationId, e.OccurredAt)), ct);

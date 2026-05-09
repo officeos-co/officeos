@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Context;
+namespace OffceOs.Infrastructure.Features.Context;
 
 internal sealed class AgentMemoryRepository : IAgentMemoryRepository
 {

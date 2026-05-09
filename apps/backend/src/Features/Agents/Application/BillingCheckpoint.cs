@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Enforces billing checks around paid LLM work.
@@ -14,7 +14,7 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 internal sealed class BillingCheckpoint
 {
     private readonly IBillingGuard _billingGuard;
-    private readonly ICreditRecordingService _creditRecording;
+    private readonly ICreditRecordingService _creditRecordingService;
     private readonly ILogger<BillingCheckpoint> _logger;
 
     public BillingCheckpoint(
@@ -23,7 +23,7 @@ internal sealed class BillingCheckpoint
         ILogger<BillingCheckpoint> logger)
     {
         _billingGuard = billingGuard;
-        _creditRecording = creditRecording;
+        _creditRecordingService = creditRecording;
         _logger = logger;
     }
 
@@ -39,7 +39,7 @@ internal sealed class BillingCheckpoint
     {
         try
         {
-            await _creditRecording.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
+            await _creditRecordingService.RecordCreditUsageAsync(agentId, model, rawTokens, ct);
             await _billingGuard.RefreshCacheAsync(agentId, ct);
         }
         catch (Exception ex)

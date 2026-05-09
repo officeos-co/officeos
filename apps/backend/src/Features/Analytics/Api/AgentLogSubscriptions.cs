@@ -1,6 +1,4 @@
-using HotChocolate.Execution;
-
-namespace EnterpriseAgentOs.Api.Features.Analytics;
+namespace OffceOs.Api.Features.Analytics;
 
 [ExtendObjectType(typeof(GraphQLSubscriptions))]
 public class AgentLogSubscriptions
@@ -9,7 +7,7 @@ public class AgentLogSubscriptions
     [GraphQLDescription("Streams newly appended log entries for one agent.")]
     public AgentLogProjection AgentLogAppended([EventMessage] AgentLogProjection log) => log;
 
-    public async ValueTask<ISourceStream<AgentLogProjection>> SubscribeAgentLogAppended(
+    public async ValueTask<HotChocolate.Execution.ISourceStream<AgentLogProjection>> SubscribeAgentLogAppended(
         Guid agentId,
         [Service] ITopicEventReceiver receiver,
         CancellationToken ct)

@@ -1,8 +1,4 @@
-using System.Text.Json;
-using ModelContextProtocol.Client;
-using Microsoft.Extensions.Logging;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Integrations;
+namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationClientManager : IIntegrationClientManager
 {

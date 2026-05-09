@@ -1,12 +1,12 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class IntegrationExecuteTool : IAgentTool
 {
-    private readonly IIntegrationExecutionService _execution;
+    private readonly IIntegrationExecutionService _integrationExecutionService;
 
     public IntegrationExecuteTool(IIntegrationExecutionService execution)
     {
-        _execution = execution;
+        _integrationExecutionService = execution;
     }
 
     public string Name => "integration_execute";
@@ -80,7 +80,7 @@ internal sealed class IntegrationExecuteTool : IAgentTool
             args.GetProperty("action").GetString()!,
             args.GetProperty("params"),
             ReadSelectFields(args));
-        var response = await _execution.ExecuteAsync(request, ct);
+        var response = await _integrationExecutionService.ExecuteAsync(request, ct);
         return new ToolResult(true, JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true }));
     }
 

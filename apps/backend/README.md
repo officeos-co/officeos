@@ -1,12 +1,11 @@
 ```bash
-dotnet build src/EnterpriseAgentOs.Api.csproj --no-restore
+dotnet build src/OffceOs.csproj --no-restore
 ```
 
 ```bash
-dotnet test tests/EnterpriseAgentOs.Api.Tests/
-EnterpriseAgentOs.Api.Tests.csproj --no-restore
+dotnet test tests/OffceOs.Tests.csproj --no-restore
 ```
 
 ```bash
-dotnet build EnterpriseAgentOs.sln --no-restore
+dotnet build OffceOs.sln --no-restore
 ```

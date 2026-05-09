@@ -1,9 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
-
 #nullable disable
 
-namespace EnterpriseAgentOs.Database.Migrations
+namespace OffceOs.Database.Migrations
 {
     /// <inheritdoc />
     public partial class ScopeIntegrationsByUser : Migration

@@ -1,6 +1,4 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed record ConversationContextWindow(string? Summary, IReadOnlyList<AgentLogRecord> Logs);
 
@@ -11,8 +9,8 @@ internal sealed class ConversationCompactionService
     private const int PreserveTailCount = 50;
     private const int SummaryMaxChars = 12_000;
 
-    private readonly IAgentSessionContextRepository _contextRepository;
-    private readonly IAgentLogRepository _logRepository;
+    private readonly IAgentSessionContextRepository _agentSessionContextRepository;
+    private readonly IAgentLogRepository _agentLogRepository;
     private readonly IPublisher _publisher;
 
     public ConversationCompactionService(
@@ -20,15 +18,15 @@ internal sealed class ConversationCompactionService
         IAgentLogRepository logRepository,
         IPublisher publisher)
     {
-        _contextRepository = contextRepository;
-        _logRepository = logRepository;
+        _agentSessionContextRepository = contextRepository;
+        _agentLogRepository = logRepository;
         _publisher = publisher;
     }
 
     public async Task<ConversationContextWindow> LoadAsync(Guid agentId, string correlationId, CancellationToken ct)
     {
-        var context = await _contextRepository.GetByAsync(new AgentSessionContextFilter { AgentId = agentId }, ct);
-        var logs = await _logRepository.ListAsync(
+        var context = await _agentSessionContextRepository.GetByAsync(new AgentSessionContextFilter { AgentId = agentId }, ct);
+        var logs = await _agentLogRepository.ListAsync(
             new AgentLogFilter { AgentId = agentId },
             new AgentLogListOptions
             {
@@ -51,7 +49,7 @@ internal sealed class ConversationCompactionService
         var postTokens = EstimateTokens(summary);
         var boundary = compactable[^1];
 
-        await _contextRepository.UpsertAsync(new AgentSessionContextRecord
+        await _agentSessionContextRepository.UpsertAsync(new AgentSessionContextRecord
         {
             AgentId = agentId,
             Summary = summary,

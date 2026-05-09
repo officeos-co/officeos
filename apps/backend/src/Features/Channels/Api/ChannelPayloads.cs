@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Channels;
+namespace OffceOs.Api.Features.Channels;
 
 // ── Output types (projections that exclude sensitive/nav fields) ─────────
 

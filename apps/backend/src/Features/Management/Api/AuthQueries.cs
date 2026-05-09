@@ -1,5 +1,5 @@
 
-namespace EnterpriseAgentOs.Api.Features.Management;
+namespace OffceOs.Api.Features.Management;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AuthQueries

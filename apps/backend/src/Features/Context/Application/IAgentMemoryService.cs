@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Context;
+namespace OffceOs.Application.Features.Context;
 
 public interface IAgentMemoryService
 {

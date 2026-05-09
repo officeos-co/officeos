@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
-using EnterpriseAgentOs.Application.Features.Agents;
+using OffceOs.Application.Features.Agents;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Agents;
+namespace OffceOs.Tests.Agents;
 
 public sealed class SseResponseParserTests
 {

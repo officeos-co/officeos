@@ -1,32 +1,30 @@
-using System.Net;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Adapters;
+namespace OffceOs.Infrastructure.Features.Agents.Adapters;
 
 internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
 {
-    private readonly HttpClient _http;
-    private readonly BrowserRuntimeConfig _config;
+    private readonly HttpClient _httpClient;
+    private readonly BrowserRuntimeConfig _browserRuntimeConfig;
     private readonly ILogger<AutoBrowserRuntimeClient> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public AutoBrowserRuntimeClient(HttpClient http, BrowserRuntimeConfig config, ILogger<AutoBrowserRuntimeClient> logger)
     {
-        _http = http;
-        _config = config;
+        _httpClient = http;
+        _browserRuntimeConfig = config;
         _logger = logger;
 
-        _http.BaseAddress = new Uri(_config.BaseUrl.TrimEnd('/') + "/");
-        _http.Timeout = TimeSpan.FromSeconds(Math.Max(1, _config.TimeoutSeconds));
-        if (!string.IsNullOrWhiteSpace(_config.BearerToken))
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _config.BearerToken);
+        _httpClient.BaseAddress = new Uri(_browserRuntimeConfig.BaseUrl.TrimEnd('/') + "/");
+        _httpClient.Timeout = TimeSpan.FromSeconds(Math.Max(1, _browserRuntimeConfig.TimeoutSeconds));
+        if (!string.IsNullOrWhiteSpace(_browserRuntimeConfig.BearerToken))
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _browserRuntimeConfig.BearerToken);
     }
 
     public async Task<bool> IsAvailableAsync(CancellationToken ct = default)
     {
-        if (!_config.Enabled) return false;
+        if (!_browserRuntimeConfig.Enabled) return false;
         try
         {
-            using var response = await _http.GetAsync("healthz", ct);
+            using var response = await _httpClient.GetAsync("healthz", ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -40,7 +38,7 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
     {
         try
         {
-            using var response = await _http.GetAsync($"sessions/{Uri.EscapeDataString(runtimeSessionId)}", ct);
+            using var response = await _httpClient.GetAsync($"sessions/{Uri.EscapeDataString(runtimeSessionId)}", ct);
             if (response.StatusCode == HttpStatusCode.NotFound) return null;
             response.EnsureSuccessStatusCode();
             using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
@@ -62,10 +60,10 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
         if (!string.IsNullOrWhiteSpace(authProfile))
             payload["auth_profile"] = authProfile;
 
-        using var response = await _http.PostAsJsonAsync("sessions", payload, JsonOptions, ct);
+        using var response = await _httpClient.PostAsJsonAsync("sessions", payload, JsonOptions, ct);
         if (response.StatusCode == HttpStatusCode.NotFound && payload.Remove("auth_profile"))
         {
-            using var retry = await _http.PostAsJsonAsync("sessions", payload, JsonOptions, ct);
+            using var retry = await _httpClient.PostAsJsonAsync("sessions", payload, JsonOptions, ct);
             retry.EnsureSuccessStatusCode();
             using var retryDoc = await JsonDocument.ParseAsync(await retry.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             return MapSession(agentId, retryDoc.RootElement);
@@ -77,14 +75,14 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
 
     public async Task CloseSessionAsync(string runtimeSessionId, CancellationToken ct = default)
     {
-        using var response = await _http.DeleteAsync($"sessions/{Uri.EscapeDataString(runtimeSessionId)}", ct);
+        using var response = await _httpClient.DeleteAsync($"sessions/{Uri.EscapeDataString(runtimeSessionId)}", ct);
         if (response.StatusCode == HttpStatusCode.NotFound) return;
         response.EnsureSuccessStatusCode();
     }
 
     public async Task<IReadOnlyList<BrowserToolDescriptor>> ListToolsAsync(CancellationToken ct = default)
     {
-        using var response = await _http.GetAsync("mcp/tools", ct);
+        using var response = await _httpClient.GetAsync("mcp/tools", ct);
         response.EnsureSuccessStatusCode();
         using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         var tools = new List<BrowserToolDescriptor>();
@@ -103,7 +101,7 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
 
     public async Task<BrowserToolCallResult> CallToolAsync(string name, Dictionary<string, object?> arguments, CancellationToken ct = default)
     {
-        using var response = await _http.PostAsJsonAsync("mcp/tools/call", new { name, arguments }, JsonOptions, ct);
+        using var response = await _httpClient.PostAsJsonAsync("mcp/tools/call", new { name, arguments }, JsonOptions, ct);
         response.EnsureSuccessStatusCode();
         using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         var root = doc.RootElement;
@@ -127,8 +125,8 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
         var takeoverUrl = ReadString(item, "takeover_url")
             ?? (remoteAccess.ValueKind == JsonValueKind.Object ? ReadString(remoteAccess, "takeover_url") : null);
 
-        if (!string.IsNullOrWhiteSpace(takeoverUrl) && !string.IsNullOrWhiteSpace(_config.PublicViewBaseUrl))
-            takeoverUrl = RewriteViewBase(takeoverUrl, _config.PublicViewBaseUrl);
+        if (!string.IsNullOrWhiteSpace(takeoverUrl) && !string.IsNullOrWhiteSpace(_browserRuntimeConfig.PublicViewBaseUrl))
+            takeoverUrl = RewriteViewBase(takeoverUrl, _browserRuntimeConfig.PublicViewBaseUrl);
 
         return new BrowserSessionState(
             AgentId: agentId,

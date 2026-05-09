@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal abstract class BrowserRuntimeTool : IAgentTool
 {
     private readonly BrowserToolDescriptor _descriptor;
-    private readonly IBrowserService _browser;
-    private readonly IBrowserRuntimeClient _runtime;
+    private readonly IBrowserService _browserService;
+    private readonly IBrowserRuntimeClient _browserRuntimeClient;
     private readonly Guid _agentId;
 
     protected BrowserRuntimeTool(
@@ -25,8 +25,8 @@ internal abstract class BrowserRuntimeTool : IAgentTool
         Guid agentId)
     {
         _descriptor = descriptor;
-        _browser = browser;
-        _runtime = runtime;
+        _browserService = browser;
+        _browserRuntimeClient = runtime;
         _agentId = agentId;
 
         Name = ToToolName(descriptor.Name);
@@ -49,13 +49,13 @@ internal abstract class BrowserRuntimeTool : IAgentTool
 
             if (ShouldBindAgentSession(_descriptor))
             {
-                var session = await _browser.GetOrCreateAsync(_agentId, ct);
+                var session = await _browserService.GetOrCreateAsync(_agentId, ct);
                 arguments["session_id"] = session.RuntimeSessionId;
             }
             if (_descriptor.Name == "browser.save_auth_profile")
                 arguments["profile_name"] = BrowserService.AgentProfileName(_agentId);
 
-            var result = await _runtime.CallToolAsync(_descriptor.Name, arguments, ct);
+            var result = await _browserRuntimeClient.CallToolAsync(_descriptor.Name, arguments, ct);
             return result.IsError
                 ? new ToolResult(false, result.Output, result.Output)
                 : new ToolResult(true, result.Output);

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Management;
 
 public sealed record GoogleLoginResult(string RedirectUrl, string State);
 

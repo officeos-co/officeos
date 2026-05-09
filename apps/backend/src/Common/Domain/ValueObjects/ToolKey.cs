@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Common.ValueObjects;
 
 /// <summary>
 /// Represents a "skill:tool" key. Keys without ":" are treated as

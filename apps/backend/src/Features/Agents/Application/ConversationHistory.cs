@@ -1,6 +1,4 @@
-using System.Text.Json;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Manages conversation messages with token-based pruning.
@@ -48,9 +46,10 @@ internal sealed class ConversationHistory
                 }
 
                 // Build a summary from the first tool result
-                var summary = _messages[i + 1].Content?.Length > 100
-                    ? $"[Tool result: {_messages[i + 1].Content[..100]}...]"
-                    : $"[Tool result: {_messages[i + 1].Content}]";
+                var toolResultContent = _messages[i + 1].Content ?? string.Empty;
+                var summary = toolResultContent.Length > 100
+                    ? $"[Tool result: {toolResultContent[..100]}...]"
+                    : $"[Tool result: {toolResultContent}]";
                 if (toolCount > 1) summary += $" (+{toolCount - 1} more)";
 
                 // Replace assistant with summary (strip tool_calls), remove all tool messages

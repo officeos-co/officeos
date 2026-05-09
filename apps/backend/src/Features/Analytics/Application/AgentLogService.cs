@@ -1,6 +1,4 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Analytics;
+namespace OffceOs.Application.Features.Analytics;
 
 internal sealed class AgentLogService : IAgentLogService
 {

@@ -1,12 +1,12 @@
-namespace EnterpriseAgentOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Management;
 
 internal sealed class BillingGuard : IBillingGuard
 {
-    private readonly IDistributedCache _cache;
+    private readonly IDistributedCache _distributedCache;
     private readonly IAgentRepository _agentRepository;
-    private readonly IUserSubscriptionRepository _subscriptionRepository;
+    private readonly IUserSubscriptionRepository _userSubscriptionRepository;
     private readonly ILogger<BillingGuard> _logger;
-    private readonly BillingPolicyConfig _policy;
+    private readonly BillingPolicyConfig _billingPolicyConfig;
 
     private static readonly DistributedCacheEntryOptions CacheOptions = new()
     {
@@ -20,19 +20,19 @@ internal sealed class BillingGuard : IBillingGuard
         ILogger<BillingGuard> logger,
         BillingPolicyConfig policy)
     {
-        _cache = cache;
+        _distributedCache = cache;
         _agentRepository = agentRepo;
-        _subscriptionRepository = subRepo;
+        _userSubscriptionRepository = subRepo;
         _logger = logger;
-        _policy = policy;
+        _billingPolicyConfig = policy;
     }
 
     public async Task<BillingQuotaCheckResult> CheckQuotaAsync(Guid agentId, CancellationToken ct = default)
     {
-        if (!_policy.EnforceUsageLimits)
+        if (!_billingPolicyConfig.EnforceUsageLimits)
             return BillingQuotaCheckResult.Skipped("Usage limits are disabled for this environment.");
 
-        var cached = await _cache.GetStringAsync($"billing_status:{agentId}", ct);
+        var cached = await _distributedCache.GetStringAsync($"billing_status:{agentId}", ct);
         if (cached is not null)
         {
             return cached == "limit_reached"
@@ -45,9 +45,9 @@ internal sealed class BillingGuard : IBillingGuard
 
     public async Task RefreshCacheAsync(Guid agentId, CancellationToken ct = default)
     {
-        if (!_policy.EnforceUsageLimits)
+        if (!_billingPolicyConfig.EnforceUsageLimits)
         {
-            await _cache.SetStringAsync($"billing_status:{agentId}", "ok", CacheOptions, ct);
+            await _distributedCache.SetStringAsync($"billing_status:{agentId}", "ok", CacheOptions, ct);
             return;
         }
 
@@ -62,11 +62,11 @@ internal sealed class BillingGuard : IBillingGuard
         if (agent.OwnerId is null)
             throw new InvalidOperationException($"Cannot check billing because agent {agentId} has no owner.");
 
-        var sub = await _subscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
+        var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
         if (sub is null)
         {
             sub = UserSubscription.CreateDefaultFree(agent.OwnerId.Value);
-            await _subscriptionRepository.AddAsync(sub, ct);
+            await _userSubscriptionRepository.AddAsync(sub, ct);
             _logger.LogWarning(
                 "Created missing free subscription during billing guard check for agent {AgentId} user {UserId}",
                 agentId, agent.OwnerId.Value);
@@ -76,7 +76,7 @@ internal sealed class BillingGuard : IBillingGuard
         var exceeded = budget.OverBudget && !sub.OverageEnabled;
         var status = exceeded ? "limit_reached" : "ok";
 
-        await _cache.SetStringAsync($"billing_status:{agentId}", status, CacheOptions, ct);
+        await _distributedCache.SetStringAsync($"billing_status:{agentId}", status, CacheOptions, ct);
 
         if (exceeded)
             _logger.LogWarning("Agent {AgentId} (user {UserId}) quota exceeded: {Used}/{Budget} credits",

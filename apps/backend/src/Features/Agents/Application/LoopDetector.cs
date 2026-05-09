@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>
 /// Detects repetitive tool call patterns to prevent infinite loops.

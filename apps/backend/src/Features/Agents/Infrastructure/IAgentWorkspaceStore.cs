@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal interface IAgentWorkspaceStore
 {

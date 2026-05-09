@@ -7,7 +7,7 @@ When changing code, apply these conventions proactively rather than only satisfy
 ## Project Layout
 
 - `src`: the single backend project and application host.
-- `tests/EnterpriseAgentOs.Api.Tests`: backend tests.
+- `tests/OffceOs.Tests`: backend tests.
 
 Only these top-level feature folders are allowed under `src/Features`:
 
@@ -184,7 +184,7 @@ If a new `Dto` appears under `Features/*/Domain`, treat it as a failing architec
 - MediatR notification handlers belong in `Features/<Feature>/EventHandlers`.
 - Event handlers are wiring, not business logic. They should translate the event into calls to Application services, infrastructure ports, publishers, or background work.
 - Do not put domain invariants, transport validation, repository mapping, or large orchestration flows in handlers.
-- Handler namespaces use `EnterpriseAgentOs.EventHandlers.Features.<Feature>`.
+- Handler namespaces use `OffceOs.EventHandlers.Features.<Feature>`.
 
 ## Events And Logging
 
@@ -238,7 +238,7 @@ Not allowed in Api:
 
 ## Tests
 
-- Add focused tests for behavior changes in `apps/backend/tests/EnterpriseAgentOs.Api.Tests`.
+- Add focused tests for behavior changes in `apps/backend/tests/OffceOs.Tests`.
 - Put tests under a folder matching the feature/risk area, such as `Agents`, `Billing`, or `Sandbox`.
 - Use small fakes for application-service tests.
 - Use EF in-memory only when persistence mapping is part of the behavior.
@@ -252,10 +252,10 @@ Not allowed in Api:
 Naming and layer conventions are enforced by the local Roslyn analyzer:
 
 ```text
-analyzers/EnterpriseAgentOs.Architecture.Analyzers
+analyzers/OffceOs.Architecture.Analyzers
 ```
 
-The analyzer runs during `dotnet build` through an analyzer project reference in `src/EnterpriseAgentOs.Api.csproj`.
+The analyzer runs during `dotnet build` through an analyzer project reference in `src/OffceOs.csproj`.
 
 Current diagnostics:
 
@@ -267,6 +267,8 @@ Current diagnostics:
 - `EAOS006`: Feature type names must match their layer vocabulary.
 - `EAOS007`: Feature type suffixes must be declared in the correct layer/path.
 - `EAOS008`: Public API boundary methods must not expose Application `*Request`/`*Result` types as parameters.
+- `EAOS009`: Backend source files must not declare local `using` directives; all imports live in `src/GlobalUsings.cs`.
+- `EAOS010`: Private readonly dependency fields must match the injected type name, with no shortened aliases.
 
 Layer vocabulary enforced by `EAOS006`:
 
@@ -286,6 +288,21 @@ Path placement enforced by `EAOS007`:
 - `*Handler` belongs in `EventHandlers`.
 - `*Entity` belongs in `src/Database/Models`, never under `src/Features`.
 - Public API method parameters use Api `*Input` records and map to Application `*Request` records inside the method body.
+
+Global using enforcement:
+
+- All backend source imports belong in `src/GlobalUsings.cs`.
+- Do not add local `using` directives to any file under `src` other than `GlobalUsings.cs`.
+- If a global namespace creates a collision, do not reintroduce a local import. Remove the broad global import when possible and use a fully qualified name at the call site, for example `Cronos.CronExpression` or `HotChocolate.Execution.ISourceStream<T>`.
+
+Dependency field naming enforced by `EAOS010`:
+
+- Private readonly injected dependency fields use the dependency type name without shortening.
+- Strip only the leading interface `I`, then camel-case the remaining type name.
+- Examples: `IChannelRepository _channelRepository`, `IChannelGateway _channelGateway`, `IAgentRepository _agentRepository`, `ChannelCredentialProtector _channelCredentialProtector`, `ChannelReplyContext _channelReplyContext`.
+- Framework/common exceptions keep the obvious type-derived names: `ILogger<T> _logger`, `IPublisher _publisher`, `HttpClient _httpClient`, `EaosDbContext _eaosDbContext`, `IDistributedCache _distributedCache`.
+- Avoid aliases such as `_repo`, `_db`, `_agents`, `_gateway`, `_protector`, `_events`, `_cache`, `_http`, `_browser`, or `_runtime`.
+
 
 ## Running
 

@@ -1,16 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Integrations;
+namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public IntegrationCredentialRepository(EaosDbContext db) => _db = db;
+    public IntegrationCredentialRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IntegrationCredentialRecord?> GetByAsync(IntegrationCredentialFilter filter, CancellationToken ct = default)
     {
-        var query = _db.IntegrationCredentials.AsNoTracking().AsQueryable();
+        var query = _eaosDbContext.IntegrationCredentials.AsNoTracking().AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(c => c.Id == filter.Id.Value);
@@ -34,7 +32,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
 
     public async Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct)
     {
-        var existing = await _db.IntegrationCredentials
+        var existing = await _eaosDbContext.IntegrationCredentials
             .FirstOrDefaultAsync(c => c.OwnerId == credential.OwnerId && c.IntegrationName == credential.IntegrationName, ct);
         if (existing is not null)
         {
@@ -43,7 +41,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
         }
         else
         {
-            _db.IntegrationCredentials.Add(new IntegrationCredentialEntity
+            _eaosDbContext.IntegrationCredentials.Add(new IntegrationCredentialEntity
             {
                 Id = credential.Id,
                 OwnerId = credential.OwnerId,
@@ -52,12 +50,12 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
                 ConfiguredAt = credential.ConfiguredAt,
             });
         }
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(Guid ownerId, string integrationName, CancellationToken ct)
     {
-        await _db.IntegrationCredentials
+        await _eaosDbContext.IntegrationCredentials
             .Where(c => c.OwnerId == ownerId && c.IntegrationName == integrationName)
             .ExecuteDeleteAsync(ct);
     }

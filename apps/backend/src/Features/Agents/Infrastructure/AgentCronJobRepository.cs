@@ -1,6 +1,4 @@
-using Cronos;
-
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class AgentCronJobRepository : IAgentCronJobRepository
 {
@@ -88,7 +86,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
             var next = cron.GetNextOccurrence(DateTime.UtcNow, inclusive: false);
             if (next.HasValue) record.SetNextRun(next.Value);
         }
-        catch (CronFormatException) { /* will be caught later by scheduler */ }
+        catch (Cronos.CronFormatException) { /* will be caught later by scheduler */ }
 
         _eaosDbContext.AgentCronJobs.Add(ToAgentCronJobEntity(record));
         await _eaosDbContext.SaveChangesAsync(ct);

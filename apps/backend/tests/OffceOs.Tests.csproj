@@ -4,10 +4,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-    <AssemblyName>EnterpriseAgentOs.Api.Tests</AssemblyName>
+    <AssemblyName>OffceOs.Tests</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EnterpriseAgentOs.Api.csproj" />
+    <ProjectReference Include="..\src\OffceOs.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

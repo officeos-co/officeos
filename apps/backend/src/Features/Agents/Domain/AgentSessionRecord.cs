@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Agents;
 
 /// <summary>
 /// Represents an agent conversation session (OpenClaw-style).

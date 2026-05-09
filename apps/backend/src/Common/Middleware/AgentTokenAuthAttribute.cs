@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Common.Middleware;
+namespace OffceOs.Api.Common.Middleware;
 
 /// <summary>
 /// Validates <c>Authorization: Bearer &lt;agent-uuid&gt;</c> by looking up

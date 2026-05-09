@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Analytics;
+namespace OffceOs.Domain.Features.Analytics;
 
 public sealed record GlobalLogRow(AgentLogRecord Log, string AgentName);
 

@@ -1,14 +1,9 @@
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Diagnostics;
-using ModelContextProtocol.Client;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed partial class IntegrationTool : IAgentTool
 {
     private readonly McpClientTool _runtimeTool;
-    private readonly McpClient _client;
+    private readonly McpClient _mcpClient;
 
     public string Name { get; }
     public ToolSchema Schema { get; }
@@ -19,7 +14,7 @@ internal sealed partial class IntegrationTool : IAgentTool
         // NativeHandle is IntegrationNativeHandle from Infrastructure
         dynamic handle = discovered.NativeHandle;
         _runtimeTool = (McpClientTool)handle.Tool;
-        _client = (McpClient)handle.Client;
+        _mcpClient = (McpClient)handle.Client;
 
         Schema = CreateSchema(discovered);
         Name = Schema.Name;
@@ -34,7 +29,7 @@ internal sealed partial class IntegrationTool : IAgentTool
                 ? args.Deserialize<Dictionary<string, object?>>() ?? new()
                 : new Dictionary<string, object?>();
 
-            var response = await _client.CallToolAsync(_runtimeTool.Name, argsDict, cancellationToken: ct);
+            var response = await _mcpClient.CallToolAsync(_runtimeTool.Name, argsDict, cancellationToken: ct);
             var output = string.Join("\n", response.Content
                 .OfType<ModelContextProtocol.Protocol.TextContentBlock>()
                 .Select(c => c.Text ?? ""));
@@ -220,7 +215,7 @@ internal sealed class LazyIntegrationConnection : IAsyncDisposable
     private readonly IntegrationDefinitionRecord _server;
     private readonly Func<string, Task<Dictionary<string, string>>> _credentialLoader;
     private readonly IIntegrationClientManager _integrationClientManager;
-    private readonly TurnEventPublisher _events;
+    private readonly TurnEventPublisher _turnEventPublisher;
     private readonly Guid _agentId;
     private readonly string _correlationId;
     private readonly object _gate = new();
@@ -237,7 +232,7 @@ internal sealed class LazyIntegrationConnection : IAsyncDisposable
         _server = server;
         _credentialLoader = credentialLoader;
         _integrationClientManager = integrationClientManager;
-        _events = events;
+        _turnEventPublisher = events;
         _agentId = agentId;
         _correlationId = correlationId;
     }
@@ -264,7 +259,7 @@ internal sealed class LazyIntegrationConnection : IAsyncDisposable
     {
         var credentialStart = Stopwatch.GetTimestamp();
         var credentials = await _credentialLoader(_server.Name);
-        await _events.PublishDiagnosticAsync(
+        await _turnEventPublisher.PublishDiagnosticAsync(
             _agentId,
             _correlationId,
             $"Tool setup: integration credentials loaded ({_server.Name})",
@@ -273,7 +268,7 @@ internal sealed class LazyIntegrationConnection : IAsyncDisposable
 
         var connectStart = Stopwatch.GetTimestamp();
         var result = await _integrationClientManager.ConnectAsync(_server, credentials, ct);
-        await _events.PublishDiagnosticAsync(
+        await _turnEventPublisher.PublishDiagnosticAsync(
             _agentId,
             _correlationId,
             $"Tool setup: integration connected ({_server.Name}, {result.Tools.Count} tools)",

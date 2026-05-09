@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Integrations;
+namespace OffceOs.Domain.Features.Integrations;
 
 public static class IntegrationDefinitionProvider
 {
@@ -451,7 +451,7 @@ public static class IntegrationDefinitionProvider
         {
             Name = "google-docs",
             Title = "Google Docs",
-            Description = "Create, read, and edit Google Docs through the community google-docs-mcp-server package. EnterpriseAgentOs launches it as a normal self-contained integration and adapts the existing Google OAuth refresh token into the credentials.json and token.json files that the package expects.",
+            Description = "Create, read, and edit Google Docs through the community google-docs-mcp-server package. OffceOs launches it as a normal self-contained integration and adapts the existing Google OAuth refresh token into the credentials.json and token.json files that the package expects.",
             Subtitle = "Create and edit Google Docs",
             AuthorName = "NoManNayeem",
             AuthorUrl = "https://github.com/NoManNayeem",

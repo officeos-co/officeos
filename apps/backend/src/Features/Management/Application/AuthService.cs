@@ -1,7 +1,4 @@
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-
-namespace EnterpriseAgentOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Management;
 
 internal sealed class AuthService : IAuthService
 {
@@ -12,7 +9,7 @@ internal sealed class AuthService : IAuthService
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IDistributedCache _cache;
+    private readonly IDistributedCache _distributedCache;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -33,7 +30,7 @@ internal sealed class AuthService : IAuthService
         _oauthTokenRepository = oauthTokens;
         _credentialProtector = credentialProtector;
         _httpClientFactory = httpFactory;
-        _cache = cache;
+        _distributedCache = cache;
         _logger = logger;
     }
 
@@ -196,7 +193,7 @@ internal sealed class AuthService : IAuthService
         // Fetch user profile
         var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
         userRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        userRequest.Headers.UserAgent.ParseAdd("EnterpriseAgentOs");
+        userRequest.Headers.UserAgent.ParseAdd("OffceOs");
         var userResponse = await client.SendAsync(userRequest, ct);
         if (!userResponse.IsSuccessStatusCode)
             throw new InvalidOperationException("Failed to fetch your GitHub profile.");
@@ -215,7 +212,7 @@ internal sealed class AuthService : IAuthService
         {
             var emailsRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails");
             emailsRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            emailsRequest.Headers.UserAgent.ParseAdd("EnterpriseAgentOs");
+            emailsRequest.Headers.UserAgent.ParseAdd("OffceOs");
             var emailsResponse = await client.SendAsync(emailsRequest, ct);
             if (emailsResponse.IsSuccessStatusCode)
             {
@@ -279,7 +276,7 @@ internal sealed class AuthService : IAuthService
             notificationPrefsJson,
             preferences,
             ct);
-        await _cache.RemoveAsync($"auth:me:{userId}", ct);
+        await _distributedCache.RemoveAsync($"auth:me:{userId}", ct);
         return updated;
     }
 
@@ -290,7 +287,7 @@ internal sealed class AuthService : IAuthService
 
         var tokenHash = SessionTokenHasher.Hash(sessionToken);
         await _sessionRepository.DeleteAsync(tokenHash, ct);
-        await _cache.RemoveAsync($"session:{tokenHash[..16]}", ct);
+        await _distributedCache.RemoveAsync($"session:{tokenHash[..16]}", ct);
         return true;
     }
 

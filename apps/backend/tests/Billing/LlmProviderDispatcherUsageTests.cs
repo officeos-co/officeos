@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using EnterpriseAgentOs.Domain.Common.Services;
-using EnterpriseAgentOs.Configuration;
-using EnterpriseAgentOs.Infrastructure.Features.Agents;
+using OffceOs.Domain.Common.Services;
+using OffceOs.Configuration;
+using OffceOs.Infrastructure.Features.Agents;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Billing;
+namespace OffceOs.Tests.Billing;
 
 public sealed class LlmProviderDispatcherUsageTests
 {

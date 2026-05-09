@@ -1,6 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
-
-namespace EnterpriseAgentOs.Extensions;
+namespace OffceOs.Extensions;
 
 public static class ApplicationServiceCollectionExtensions
 {

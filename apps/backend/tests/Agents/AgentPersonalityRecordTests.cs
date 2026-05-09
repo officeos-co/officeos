@@ -1,7 +1,7 @@
-using EnterpriseAgentOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Agents;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Agents;
+namespace OffceOs.Tests.Agents;
 
 public sealed class AgentPersonalityRecordTests
 {

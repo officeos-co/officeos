@@ -1,21 +1,21 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class AgentRunRepository : IAgentRunRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentRunRepository(EaosDbContext db) => _db = db;
+    public AgentRunRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<AgentRunRecord> CreateAsync(AgentRunRecord run, CancellationToken ct = default)
     {
-        _db.AgentRuns.Add(ToEntity(run));
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.AgentRuns.Add(ToEntity(run));
+        await _eaosDbContext.SaveChangesAsync(ct);
         return run;
     }
 
     public async Task<AgentRunRecord?> GetByAsync(AgentRunFilter filter, CancellationToken ct = default)
     {
-        var query = _db.AgentRuns.AsNoTracking().AsQueryable();
+        var query = _eaosDbContext.AgentRuns.AsNoTracking().AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(r => r.Id == filter.Id.Value);
@@ -35,7 +35,7 @@ internal sealed class AgentRunRepository : IAgentRunRepository
 
     public async Task<IReadOnlyList<AgentRunRecord>> ListForAgentAsync(Guid agentId, Guid? parentRunId = null, CancellationToken ct = default)
     {
-        var query = _db.AgentRuns.AsNoTracking().Where(r => r.AgentId == agentId);
+        var query = _eaosDbContext.AgentRuns.AsNoTracking().Where(r => r.AgentId == agentId);
         if (parentRunId.HasValue)
             query = query.Where(r => r.ParentRunId == parentRunId.Value);
 
@@ -45,7 +45,7 @@ internal sealed class AgentRunRepository : IAgentRunRepository
 
     public async Task UpdateAsync(AgentRunRecord run, CancellationToken ct = default)
     {
-        var entity = await _db.AgentRuns.FirstOrDefaultAsync(r => r.Id == run.Id, ct);
+        var entity = await _eaosDbContext.AgentRuns.FirstOrDefaultAsync(r => r.Id == run.Id, ct);
         if (entity is null) return;
 
         entity.Status = run.Status;
@@ -53,7 +53,7 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         entity.Error = run.Error;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.CompletedAt = run.CompletedAt;
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     private static AgentRunRecord ToRecord(AgentRunEntity e) => new()

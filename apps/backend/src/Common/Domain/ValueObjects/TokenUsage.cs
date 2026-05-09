@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Common.ValueObjects;
 
 /// <summary>
 /// Captures token consumption and latency for a single LLM interaction.

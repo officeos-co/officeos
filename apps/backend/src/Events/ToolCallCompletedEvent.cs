@@ -1,3 +1,3 @@
-namespace EnterpriseAgentOs.Domain.Events;
+namespace OffceOs.Domain.Events;
 
 public sealed record ToolCallCompletedEvent(Guid AgentId, string CorrelationId, string ToolName, bool Success, string Output, int DurationMs) : DomainEvent;

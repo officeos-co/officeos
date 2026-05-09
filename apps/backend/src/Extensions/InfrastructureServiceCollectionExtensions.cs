@@ -1,8 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using EnterpriseAgentOs.Infrastructure.Features.Agents.Adapters;
-
-namespace EnterpriseAgentOs.Extensions;
+namespace OffceOs.Extensions;
 
 public static class InfrastructureServiceCollectionExtensions
 {

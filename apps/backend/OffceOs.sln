@@ -5,15 +5,15 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Api.Tests", "tests\EnterpriseAgentOs.Api.Tests\EnterpriseAgentOs.Api.Tests.csproj", "{A6E31A2D-7B73-4410-95B3-D069D3D2FA26}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OffceOs.Tests", "tests\OffceOs.Tests.csproj", "{A6E31A2D-7B73-4410-95B3-D069D3D2FA26}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Api", "src\EnterpriseAgentOs.Api.csproj", "{06737B0B-0A74-4CBB-9C6F-A9E5A1C668C8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OffceOs", "src\OffceOs.csproj", "{06737B0B-0A74-4CBB-9C6F-A9E5A1C668C8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "analyzers", "analyzers", "{F883AD26-E2D9-0064-49F2-B333EF800629}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnterpriseAgentOs.Architecture.Analyzers", "analyzers\EnterpriseAgentOs.Architecture.Analyzers\EnterpriseAgentOs.Architecture.Analyzers.csproj", "{493C317F-E096-4FDC-932D-40382C06BF35}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OffceOs.Architecture.Analyzers", "analyzers\OffceOs.Architecture.Analyzers.csproj", "{493C317F-E096-4FDC-932D-40382C06BF35}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

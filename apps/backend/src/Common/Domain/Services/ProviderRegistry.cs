@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Common.Services;
+namespace OffceOs.Domain.Common.Services;
 
 /// <summary>
 /// Single source of truth for all supported LLM providers, their models, and metadata.

@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Application.Features.Analytics;
+namespace OffceOs.Application.Features.Analytics;
 
 public sealed record AgentLogProjection(
     Guid Id,

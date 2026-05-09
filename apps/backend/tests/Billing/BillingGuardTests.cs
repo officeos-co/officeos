@@ -1,13 +1,13 @@
-using EnterpriseAgentOs.Domain.Common.ValueObjects;
-using EnterpriseAgentOs.Domain.Features.Agents;
-using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Application.Features.Management;
-using EnterpriseAgentOs.Configuration;
+using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Application.Features.Management;
+using OffceOs.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Billing;
+namespace OffceOs.Tests.Billing;
 
 public sealed class BillingGuardTests
 {

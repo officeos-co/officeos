@@ -1,5 +1,5 @@
 
-namespace EnterpriseAgentOs.Domain.Common.Services;
+namespace OffceOs.Domain.Common.Services;
 
 /// <summary>
 /// Pure domain service that composes the system prompt from domain models.

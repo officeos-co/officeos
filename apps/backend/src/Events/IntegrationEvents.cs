@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Events;
+namespace OffceOs.Domain.Events;
 
 public sealed record IntegrationConnectionCreatedEvent(Guid ConnectionId, string Provider, string WorkspaceName) : DomainEvent;
 

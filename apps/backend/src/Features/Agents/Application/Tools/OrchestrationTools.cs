@@ -1,7 +1,4 @@
-using System.Collections.Concurrent;
-using Cronos;
-
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class AgentTaskStore
 {
@@ -105,16 +102,16 @@ internal sealed class AskUserQuestionTool : IAgentTool
 
 internal sealed class TaskCreateTool : IAgentTool
 {
-    private readonly AgentTaskStore _store;
+    private readonly AgentTaskStore _agentTaskStore;
     private readonly Guid _agentId;
-    public TaskCreateTool(AgentTaskStore store, Guid agentId) { _store = store; _agentId = agentId; }
+    public TaskCreateTool(AgentTaskStore store, Guid agentId) { _agentTaskStore = store; _agentId = agentId; }
     public string Name => "task_create";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public ToolSchema Schema => new("task_create", "Create a task in the current agent task list.",
         new { type = "object", properties = new { subject = new { type = "string" }, description = new { type = "string" }, active_form = new { type = "string" } }, required = new[] { "subject", "description" } });
     public Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var task = _store.Create(_agentId, args.GetProperty("subject").GetString() ?? "", args.GetProperty("description").GetString() ?? "", args.TryGetProperty("active_form", out var af) ? af.GetString() : null);
+        var task = _agentTaskStore.Create(_agentId, args.GetProperty("subject").GetString() ?? "", args.GetProperty("description").GetString() ?? "", args.TryGetProperty("active_form", out var af) ? af.GetString() : null);
         return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, FormatTask(task)));
     }
     internal static string FormatTask(AgentTaskItem t) => $"#{t.Id} [{t.Status}] {t.Subject}" + (string.IsNullOrWhiteSpace(t.Owner) ? "" : $" ({t.Owner})") + (t.BlockedBy.Count > 0 ? $" [blocked by {string.Join(", ", t.BlockedBy.Select(id => "#" + id))}]" : "");
@@ -122,9 +119,9 @@ internal sealed class TaskCreateTool : IAgentTool
 
 internal sealed class TaskListTool : IAgentTool
 {
-    private readonly AgentTaskStore _store;
+    private readonly AgentTaskStore _agentTaskStore;
     private readonly Guid _agentId;
-    public TaskListTool(AgentTaskStore store, Guid agentId) { _store = store; _agentId = agentId; }
+    public TaskListTool(AgentTaskStore store, Guid agentId) { _agentTaskStore = store; _agentId = agentId; }
     public string Name => "task_list";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public bool IsReadOnly => true;
@@ -132,7 +129,7 @@ internal sealed class TaskListTool : IAgentTool
     public ToolSchema Schema => new("task_list", "List current agent tasks.", new { type = "object", properties = new { } });
     public Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var tasks = _store.List(_agentId);
+        var tasks = _agentTaskStore.List(_agentId);
         var output = tasks.Count == 0 ? "No tasks found." : string.Join("\n", tasks.Select(TaskCreateTool.FormatTask));
         return Task.FromResult<AgentResult<ToolResult>>(new ToolResult(true, output));
     }
@@ -140,9 +137,9 @@ internal sealed class TaskListTool : IAgentTool
 
 internal sealed class TaskGetTool : IAgentTool
 {
-    private readonly AgentTaskStore _store;
+    private readonly AgentTaskStore _agentTaskStore;
     private readonly Guid _agentId;
-    public TaskGetTool(AgentTaskStore store, Guid agentId) { _store = store; _agentId = agentId; }
+    public TaskGetTool(AgentTaskStore store, Guid agentId) { _agentTaskStore = store; _agentId = agentId; }
     public string Name => "task_get";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public bool IsReadOnly => true;
@@ -150,7 +147,7 @@ internal sealed class TaskGetTool : IAgentTool
     public ToolSchema Schema => new("task_get", "Get full task details by ID.", new { type = "object", properties = new { task_id = new { type = "string" } }, required = new[] { "task_id" } });
     public Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var task = _store.Get(_agentId, args.GetProperty("task_id").GetString() ?? "");
+        var task = _agentTaskStore.Get(_agentId, args.GetProperty("task_id").GetString() ?? "");
         return Task.FromResult<AgentResult<ToolResult>>(task is null
             ? new ToolResult(false, "", "Task not found.")
             : new ToolResult(true, JsonSerializer.Serialize(task, new JsonSerializerOptions { WriteIndented = true })));
@@ -159,9 +156,9 @@ internal sealed class TaskGetTool : IAgentTool
 
 internal sealed class TaskUpdateTool : IAgentTool
 {
-    private readonly AgentTaskStore _store;
+    private readonly AgentTaskStore _agentTaskStore;
     private readonly Guid _agentId;
-    public TaskUpdateTool(AgentTaskStore store, Guid agentId) { _store = store; _agentId = agentId; }
+    public TaskUpdateTool(AgentTaskStore store, Guid agentId) { _agentTaskStore = store; _agentId = agentId; }
     public string Name => "task_update";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public ToolSchema Schema => new("task_update", "Update a task status, owner, details, or dependencies.",
@@ -184,7 +181,7 @@ internal sealed class TaskUpdateTool : IAgentTool
     public Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
         var id = args.GetProperty("task_id").GetString() ?? "";
-        var task = _store.Update(_agentId, id, t =>
+        var task = _agentTaskStore.Update(_agentId, id, t =>
         {
             if (args.TryGetProperty("status", out var s)) t.Status = s.GetString() ?? t.Status;
             if (args.TryGetProperty("subject", out var sub)) t.Subject = sub.GetString() ?? t.Subject;
@@ -211,9 +208,9 @@ internal sealed class TaskUpdateTool : IAgentTool
 
 internal sealed class CronCreateTool : IAgentTool
 {
-    private readonly IAgentCronJobRepository _repo;
+    private readonly IAgentCronJobRepository _agentCronJobRepository;
     private readonly Guid _agentId;
-    public CronCreateTool(IAgentCronJobRepository repo, Guid agentId) { _repo = repo; _agentId = agentId; }
+    public CronCreateTool(IAgentCronJobRepository repo, Guid agentId) { _agentCronJobRepository = repo; _agentId = agentId; }
     public string Name => "cron_create";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public ToolSchema Schema => new("cron_create", "Schedule a prompt to run later using a five-field cron expression in UTC.",
@@ -225,53 +222,53 @@ internal sealed class CronCreateTool : IAgentTool
     }
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var job = await _repo.CreateAsync(_agentId, args.GetProperty("name").GetString() ?? "", args.GetProperty("expression").GetString() ?? "", args.GetProperty("prompt").GetString() ?? "", ct);
+        var job = await _agentCronJobRepository.CreateAsync(_agentId, args.GetProperty("name").GetString() ?? "", args.GetProperty("expression").GetString() ?? "", args.GetProperty("prompt").GetString() ?? "", ct);
         return new ToolResult(true, $"Created cron job {job.Id} '{job.Name}' next_run={job.NextRunAt:O}");
     }
 }
 
 internal sealed class CronListTool : IAgentTool
 {
-    private readonly IAgentCronJobRepository _repo;
+    private readonly IAgentCronJobRepository _agentCronJobRepository;
     private readonly Guid _agentId;
-    public CronListTool(IAgentCronJobRepository repo, Guid agentId) { _repo = repo; _agentId = agentId; }
+    public CronListTool(IAgentCronJobRepository repo, Guid agentId) { _agentCronJobRepository = repo; _agentId = agentId; }
     public string Name => "cron_list";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public bool IsReadOnly => true;
     public ToolSchema Schema => new("cron_list", "List scheduled cron jobs for this agent.", new { type = "object", properties = new { } });
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var jobs = await _repo.ListAsync(_agentId, ct);
+        var jobs = await _agentCronJobRepository.ListAsync(_agentId, ct);
         return new ToolResult(true, jobs.Count == 0 ? "No cron jobs found." : string.Join("\n", jobs.Select(j => $"{j.Id} [{(j.Enabled ? "enabled" : "disabled")}] {j.Name} {j.Expression} next={j.NextRunAt:O}")));
     }
 }
 
 internal sealed class CronDeleteTool : IAgentTool
 {
-    private readonly IAgentCronJobRepository _repo;
+    private readonly IAgentCronJobRepository _agentCronJobRepository;
     private readonly Guid _agentId;
-    public CronDeleteTool(IAgentCronJobRepository repo, Guid agentId) { _repo = repo; _agentId = agentId; }
+    public CronDeleteTool(IAgentCronJobRepository repo, Guid agentId) { _agentCronJobRepository = repo; _agentId = agentId; }
     public string Name => "cron_delete";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public ToolSchema Schema => new("cron_delete", "Delete a scheduled cron job by ID.", new { type = "object", properties = new { job_id = new { type = "string" } }, required = new[] { "job_id" } });
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
         if (!Guid.TryParse(args.GetProperty("job_id").GetString(), out var id)) return new ToolResult(false, "", "Invalid job_id.");
-        var job = await _repo.GetByAsync(new AgentCronJobFilter { Id = id }, ct);
+        var job = await _agentCronJobRepository.GetByAsync(new AgentCronJobFilter { Id = id }, ct);
         if (job is null || job.AgentId != _agentId) return new ToolResult(false, "", "Cron job not found.");
-        var deleted = await _repo.DeleteAsync(id, ct);
+        var deleted = await _agentCronJobRepository.DeleteAsync(id, ct);
         return new ToolResult(deleted, deleted ? $"Deleted cron job {id}." : "", deleted ? null : "Cron job not found.");
     }
 }
 
 internal sealed class AgentSpawnTool : IAgentTool
 {
-    private readonly IAgentRunRepository _runs;
+    private readonly IAgentRunRepository _agentRunRepository;
     private readonly Guid _agentId;
 
     public AgentSpawnTool(IAgentRunRepository runs, Guid agentId)
     {
-        _runs = runs;
+        _agentRunRepository = runs;
         _agentId = agentId;
     }
 
@@ -300,7 +297,7 @@ internal sealed class AgentSpawnTool : IAgentTool
         if (mode is not ("subagent" or "fork"))
             return new ToolResult(false, "", "mode must be subagent or fork.");
 
-        var run = await _runs.CreateAsync(new AgentRunRecord
+        var run = await _agentRunRepository.CreateAsync(new AgentRunRecord
         {
             AgentId = _agentId,
             ParentRunId = AgentRunContext.RunId,

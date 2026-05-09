@@ -1,25 +1,25 @@
-namespace EnterpriseAgentOs.Application.Features.Analytics;
+namespace OffceOs.Application.Features.Analytics;
 
 internal sealed class UsageAnalyticsService : IUsageAnalyticsService
 {
-    private readonly IUserBillingService _userBilling;
+    private readonly IUserBillingService _userBillingService;
     private readonly IAgentLogRepository _agentLogRepository;
-    private readonly IHostEnvironment _env;
+    private readonly IHostEnvironment _hostEnvironment;
 
     public UsageAnalyticsService(
         IUserBillingService userBilling,
         IAgentLogRepository agentLogRepository,
         IHostEnvironment env)
     {
-        _userBilling = userBilling;
+        _userBillingService = userBilling;
         _agentLogRepository = agentLogRepository;
-        _env = env;
+        _hostEnvironment = env;
     }
 
     public async Task<UsageAnalyticsResult> GetForUserAsync(Guid userId, UsageAnalyticsRequest input, CancellationToken ct = default)
     {
         var (from, toExclusive) = NormalizeRange(input.From, input.To);
-        var sub = await _userBilling.GetSubscriptionAsync(userId, ct);
+        var sub = await _userBillingService.GetSubscriptionAsync(userId, ct);
         var rows = await _agentLogRepository.ListUsageAggregatesAsync(userId, from, toExclusive, ct);
 
         var points = BuildEmptyPoints(from, toExclusive);
@@ -106,7 +106,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
             included,
             onDemand,
             "USD",
-            _env.IsDevelopment());
+            _hostEnvironment.IsDevelopment());
     }
 
     private static decimal PlanMonthlyCents(SubscriptionPlan plan, BillingCycle cycle) =>

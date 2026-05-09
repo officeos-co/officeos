@@ -1,11 +1,11 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
 {
     private const string ArchivePath = "/tmp/eaos-workspace.tar.gz";
-    private readonly WorkspaceStorageConfig _config;
-    private readonly PodExecutorClient _executor;
-    private readonly IAmazonS3 _s3;
+    private readonly WorkspaceStorageConfig _workspaceStorageConfig;
+    private readonly PodExecutorClient _podExecutorClient;
+    private readonly IAmazonS3 _amazonS3;
     private readonly ILogger<S3AgentWorkspaceStore> _logger;
     private bool _bucketChecked;
 
@@ -14,15 +14,15 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
         PodExecutorClient executor,
         ILogger<S3AgentWorkspaceStore> logger)
     {
-        _config = config;
-        _executor = executor;
+        _workspaceStorageConfig = config;
+        _podExecutorClient = executor;
         _logger = logger;
-        _s3 = new AmazonS3Client(
-            _config.AccessKey,
-            _config.SecretKey,
+        _amazonS3 = new AmazonS3Client(
+            _workspaceStorageConfig.AccessKey,
+            _workspaceStorageConfig.SecretKey,
             new AmazonS3Config
             {
-                ServiceURL = _config.Endpoint,
+                ServiceURL = _workspaceStorageConfig.Endpoint,
                 ForcePathStyle = true,
                 AuthenticationRegion = RegionEndpoint.USEast1.SystemName,
             });
@@ -38,8 +38,8 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
             return;
         }
 
-        using var response = await _s3.GetObjectAsync(_config.Bucket, key, ct);
-        var upload = await _executor.UploadFileStreamAsync(
+        using var response = await _amazonS3.GetObjectAsync(_workspaceStorageConfig.Bucket, key, ct);
+        var upload = await _podExecutorClient.UploadFileStreamAsync(
             sandboxId,
             serviceUrl,
             ArchivePath,
@@ -49,7 +49,7 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
         if (upload.IsFailure)
             throw new InvalidOperationException(upload.Error.Message);
 
-        var extract = await _executor.ExecuteAsync(
+        var extract = await _podExecutorClient.ExecuteAsync(
             sandboxId,
             serviceUrl,
             $"mkdir -p {KubernetesAgentSandbox.WorkspacePath} && find {KubernetesAgentSandbox.WorkspacePath} -mindepth 1 -maxdepth 1 -exec rm -rf -- {{}} + && tar -C {KubernetesAgentSandbox.WorkspacePath} -xzf {ArchivePath} && rm -f {ArchivePath}",
@@ -66,7 +66,7 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
     public async Task CheckpointAsync(string sandboxId, string serviceUrl, CancellationToken ct = default)
     {
         await EnsureBucketAsync(ct);
-        var pack = await _executor.ExecuteAsync(
+        var pack = await _podExecutorClient.ExecuteAsync(
             sandboxId,
             serviceUrl,
             $"tar -C {KubernetesAgentSandbox.WorkspacePath} -czf {ArchivePath} .",
@@ -77,21 +77,21 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
         if (pack.Value.ExitCode != 0)
             throw new InvalidOperationException($"Workspace checkpoint packing failed: {pack.Value.Output}");
 
-        var download = await _executor.DownloadFileStreamAsync(sandboxId, serviceUrl, ArchivePath, ct);
+        var download = await _podExecutorClient.DownloadFileStreamAsync(sandboxId, serviceUrl, ArchivePath, ct);
         if (download.IsFailure)
             throw new InvalidOperationException(download.Error.Message);
 
         await using var archiveStream = download.Value;
         var key = ObjectKey(sandboxId);
-        await _s3.PutObjectAsync(new PutObjectRequest
+        await _amazonS3.PutObjectAsync(new PutObjectRequest
         {
-            BucketName = _config.Bucket,
+            BucketName = _workspaceStorageConfig.Bucket,
             Key = key,
             InputStream = archiveStream,
             ContentType = "application/gzip",
         }, ct);
 
-        await _executor.ExecuteAsync(
+        await _podExecutorClient.ExecuteAsync(
             sandboxId,
             serviceUrl,
             $"rm -f {ArchivePath}",
@@ -107,7 +107,7 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
     {
         try
         {
-            await _s3.GetObjectMetadataAsync(_config.Bucket, key, ct);
+            await _amazonS3.GetObjectMetadataAsync(_workspaceStorageConfig.Bucket, key, ct);
             return true;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -121,12 +121,12 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
         if (_bucketChecked)
             return;
 
-        var buckets = await _s3.ListBucketsAsync(ct);
-        if (!buckets.Buckets.Any(bucket => string.Equals(bucket.BucketName, _config.Bucket, StringComparison.Ordinal)))
+        var buckets = await _amazonS3.ListBucketsAsync(ct);
+        if (!buckets.Buckets.Any(bucket => string.Equals(bucket.BucketName, _workspaceStorageConfig.Bucket, StringComparison.Ordinal)))
         {
-            await _s3.PutBucketAsync(new PutBucketRequest
+            await _amazonS3.PutBucketAsync(new PutBucketRequest
             {
-                BucketName = _config.Bucket,
+                BucketName = _workspaceStorageConfig.Bucket,
             }, ct);
         }
 

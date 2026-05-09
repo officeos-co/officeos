@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Common;
+namespace OffceOs.Api.Common;
 
 public class GraphQLQueries
 {

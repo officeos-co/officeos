@@ -1,6 +1,4 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Analytics;
+namespace OffceOs.EventHandlers.Features.Analytics;
 
 internal sealed class LogChannelInboundHandler : INotificationHandler<ChannelMessageRoutedEvent>
 {

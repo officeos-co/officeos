@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 /// <summary>
 /// Injects Anthropic prompt-caching breakpoints into an OpenAI-format request body.

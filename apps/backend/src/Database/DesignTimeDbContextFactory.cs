@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore.Design;
-
-namespace EnterpriseAgentOs.Database;
+namespace OffceOs.Database;
 
 /// <summary>
 /// Design-time factory so EF Core tools can create a DbContext without a running ASP.NET host.

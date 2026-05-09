@@ -126,14 +126,14 @@ Directory.CreateDirectory(dpKeyDir);
 builder.Services
     .AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir))
-    .SetApplicationName("EnterpriseAgentOs.Api");
+    .SetApplicationName("OffceOs");
 
 // DI — each layer registers its own services
 var connectionString = Require("ConnectionString", "CONNECTION_STRING");
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddApplication();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
-    typeof(EnterpriseAgentOs.Extensions.ApplicationServiceCollectionExtensions).Assembly,
+    typeof(OffceOs.Extensions.ApplicationServiceCollectionExtensions).Assembly,
     typeof(Program).Assembly));
 
 var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");

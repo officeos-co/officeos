@@ -1,14 +1,14 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class AgentResourceRepository : IAgentResourceRepository
 {
-    private readonly EaosDbContext _db;
+    private readonly EaosDbContext _eaosDbContext;
 
-    public AgentResourceRepository(EaosDbContext db) => _db = db;
+    public AgentResourceRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<BrowserResourceRecord>> ListBrowserResourcesAsync(Guid ownerId, CancellationToken ct = default)
     {
-        var entities = await _db.BrowserResources
+        var entities = await _eaosDbContext.BrowserResources
             .AsNoTracking()
             .Where(r => r.OwnerId == ownerId)
             .OrderByDescending(r => r.UpdatedAt)
@@ -18,7 +18,7 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
 
     public async Task<BrowserResourceRecord?> GetBrowserResourceAsync(Guid id, Guid ownerId, CancellationToken ct = default)
     {
-        var entity = await _db.BrowserResources
+        var entity = await _eaosDbContext.BrowserResources
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id && r.OwnerId == ownerId, ct);
         return entity is null ? null : ToBrowserRecord(entity);
@@ -27,37 +27,37 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
     public async Task<BrowserResourceRecord> CreateBrowserResourceAsync(BrowserResourceRecord resource, CancellationToken ct = default)
     {
         var entity = ToBrowserEntity(resource);
-        _db.BrowserResources.Add(entity);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.BrowserResources.Add(entity);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return ToBrowserRecord(entity);
     }
 
     public async Task<bool> DeleteBrowserResourceAsync(Guid id, Guid ownerId, CancellationToken ct = default)
     {
-        var entity = await _db.BrowserResources
+        var entity = await _eaosDbContext.BrowserResources
             .FirstOrDefaultAsync(r => r.Id == id && r.OwnerId == ownerId, ct);
         if (entity is null) return false;
 
-        await _db.AgentSessionResourceAttachments
+        await _eaosDbContext.AgentSessionResourceAttachments
             .Where(a => a.ResourceType == AgentResourceKinds.Browser && a.ResourceId == id)
             .ExecuteDeleteAsync(ct);
-        _db.BrowserResources.Remove(entity);
-        await _db.SaveChangesAsync(ct);
+        _eaosDbContext.BrowserResources.Remove(entity);
+        await _eaosDbContext.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task SetBrowserCurrentAgentAsync(Guid browserResourceId, Guid agentId, CancellationToken ct = default)
     {
-        var entity = await _db.BrowserResources.FirstOrDefaultAsync(r => r.Id == browserResourceId, ct);
+        var entity = await _eaosDbContext.BrowserResources.FirstOrDefaultAsync(r => r.Id == browserResourceId, ct);
         if (entity is null) return;
         entity.CurrentAgentId = agentId;
         entity.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task AttachToSessionAsync(AgentSessionResourceAttachmentRecord attachment, CancellationToken ct = default)
     {
-        var existing = await _db.AgentSessionResourceAttachments.FirstOrDefaultAsync(
+        var existing = await _eaosDbContext.AgentSessionResourceAttachments.FirstOrDefaultAsync(
             a => a.SessionId == attachment.SessionId
                 && a.ResourceType == attachment.ResourceType
                 && a.ResourceId == attachment.ResourceId,
@@ -65,7 +65,7 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
 
         if (existing is null)
         {
-            _db.AgentSessionResourceAttachments.Add(ToAttachmentEntity(attachment));
+            _eaosDbContext.AgentSessionResourceAttachments.Add(ToAttachmentEntity(attachment));
         }
         else
         {
@@ -73,12 +73,12 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
             existing.Instructions = attachment.Instructions;
         }
 
-        await _db.SaveChangesAsync(ct);
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentRecord>> ListSessionAttachmentsAsync(Guid sessionId, CancellationToken ct = default)
     {
-        var entities = await _db.AgentSessionResourceAttachments
+        var entities = await _eaosDbContext.AgentSessionResourceAttachments
             .AsNoTracking()
             .Where(a => a.SessionId == sessionId)
             .OrderBy(a => a.CreatedAt)
@@ -88,10 +88,10 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
 
     public async Task<AgentSessionResourceAttachmentRecord?> GetActiveMemoryStoreAttachmentAsync(Guid agentId, CancellationToken ct = default)
     {
-        var entity = await _db.AgentSessionResourceAttachments
+        var entity = await _eaosDbContext.AgentSessionResourceAttachments
             .AsNoTracking()
             .Join(
-                _db.AgentSessions.AsNoTracking(),
+                _eaosDbContext.AgentSessions.AsNoTracking(),
                 attachment => attachment.SessionId,
                 session => session.Id,
                 (attachment, session) => new { attachment, session })

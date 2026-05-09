@@ -1,6 +1,4 @@
-using EnterpriseAgentOs.Database.Models;
-
-namespace EnterpriseAgentOs.Database;
+namespace OffceOs.Database;
 
 public sealed class EaosDbContext : DbContext
 {

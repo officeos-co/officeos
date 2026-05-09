@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Common.Middleware;
+namespace OffceOs.Api.Common.Middleware;
 
 public sealed class SessionAuthMiddleware
 {

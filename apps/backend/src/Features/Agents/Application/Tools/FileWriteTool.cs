@@ -1,10 +1,10 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>Write a file after reading existing contents.</summary>
 internal sealed class FileWriteTool : IAgentTool
 {
-    private readonly ToolExecutionContext _context;
-    public FileWriteTool(ToolExecutionContext context) => _context = context;
+    private readonly ToolExecutionContext _toolExecutionContext;
+    public FileWriteTool(ToolExecutionContext context) => _toolExecutionContext = context;
 
     public string Name => "file_write";
     public AgentToolKind Kind => AgentToolKind.Write;
@@ -27,8 +27,8 @@ internal sealed class FileWriteTool : IAgentTool
         if (string.IsNullOrWhiteSpace(path))
             return ToolValidationResult.Invalid("file_write path is required.");
 
-        var exists = await _context.Sandbox.ExecuteAsync(_context.SandboxId, _context.ServiceUrl, $"test -e {ToolShell.Escape(path)}", TimeSpan.FromSeconds(10), ct);
-        if (exists.IsSuccess && exists.Value.ExitCode == 0 && !_context.WasFileRead(path))
+        var exists = await _toolExecutionContext.Sandbox.ExecuteAsync(_toolExecutionContext.SandboxId, _toolExecutionContext.ServiceUrl, $"test -e {ToolShell.Escape(path)}", TimeSpan.FromSeconds(10), ct);
+        if (exists.IsSuccess && exists.Value.ExitCode == 0 && !_toolExecutionContext.WasFileRead(path))
             return ToolValidationResult.Invalid($"file_write refused to overwrite {path}; read the existing file with file_read first.");
 
         return ToolValidationResult.Valid;
@@ -41,7 +41,7 @@ internal sealed class FileWriteTool : IAgentTool
         var payload = ToolShell.Base64(content);
 
         var cmd = $"mkdir -p \"$(dirname {ToolShell.Escape(path)})\" && printf %s {ToolShell.Escape(payload)} | base64 -d > {ToolShell.Escape(path)}";
-        var execResult = await _context.Sandbox.ExecuteAsync(_context.SandboxId, _context.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
+        var execResult = await _toolExecutionContext.Sandbox.ExecuteAsync(_toolExecutionContext.SandboxId, _toolExecutionContext.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
         if (execResult.IsFailure)
             return new AgentError(AgentErrorCategory.ToolExecution, $"file_write: {execResult.Error.Message}", execResult.Error.Detail);
 

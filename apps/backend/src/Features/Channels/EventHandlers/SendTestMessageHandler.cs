@@ -1,23 +1,20 @@
-using MediatR;
-using EnterpriseAgentOs.Application.Features;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Channels;
+namespace OffceOs.EventHandlers.Features.Channels;
 
 internal sealed class SendTestMessageHandler : INotificationHandler<ChannelCredsStoredEvent>
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<SendTestMessageHandler> _logger;
 
     public SendTestMessageHandler(IServiceScopeFactory scopeFactory, ILogger<SendTestMessageHandler> logger)
     {
-        _scopeFactory = scopeFactory;
+        _serviceScopeFactory = scopeFactory;
         _logger = logger;
     }
 
     public Task Handle(ChannelCredsStoredEvent notification, CancellationToken ct)
     {
         BackgroundWork.Run<IChannelService>(
-            _scopeFactory,
+            _serviceScopeFactory,
             svc => svc.SendTestMessageAsync(notification.ConnectionId, CancellationToken.None),
             _logger,
             delay: TimeSpan.FromSeconds(5));

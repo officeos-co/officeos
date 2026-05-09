@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Management;
 
 /// <summary>
 /// One granted OAuth2 scope per provider token. Child of OAuthTokenRecord.

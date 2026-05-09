@@ -1,20 +1,18 @@
-using MediatR;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Analytics;
+namespace OffceOs.EventHandlers.Features.Analytics;
 
 internal sealed class PostHogAnalyticsHandler :
     INotificationHandler<AgentCreatedEvent>,
     INotificationHandler<AgentDeletedEvent>
 {
-    private readonly IPostHogService _postHog;
+    private readonly IPostHogService _postHogService;
 
-    public PostHogAnalyticsHandler(IPostHogService postHog) => _postHog = postHog;
+    public PostHogAnalyticsHandler(IPostHogService postHog) => _postHogService = postHog;
 
     public async Task Handle(AgentCreatedEvent notification, CancellationToken ct)
     {
         if (notification.OwnerId is null) return;
 
-        await _postHog.CaptureAsync(
+        await _postHogService.CaptureAsync(
             notification.OwnerId.Value.ToString(),
             "agent_created",
             new Dictionary<string, object?>
@@ -30,7 +28,7 @@ internal sealed class PostHogAnalyticsHandler :
     {
         if (notification.OwnerId is null) return;
 
-        await _postHog.CaptureAsync(
+        await _postHogService.CaptureAsync(
             notification.OwnerId.Value.ToString(),
             "agent_deleted",
             new Dictionary<string, object?> { ["agent_id"] = notification.AgentId },

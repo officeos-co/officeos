@@ -1,11 +1,11 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 /// <summary>Read a file with line numbers.</summary>
 internal sealed class FileReadTool : IAgentTool
 {
     private const int DefaultLimit = 2000;
-    private readonly ToolExecutionContext _context;
-    public FileReadTool(ToolExecutionContext context) => _context = context;
+    private readonly ToolExecutionContext _toolExecutionContext;
+    public FileReadTool(ToolExecutionContext context) => _toolExecutionContext = context;
 
     public string Name => "file_read";
     public AgentToolKind Kind => AgentToolKind.Read;
@@ -31,14 +31,14 @@ internal sealed class FileReadTool : IAgentTool
         var limit = args.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 10_000) : DefaultLimit;
 
         var cmd = $"if [ -d {ToolShell.Escape(path)} ]; then echo 'Error: path is a directory' >&2; exit 2; fi; cat -n {ToolShell.Escape(path)} | sed -n '{offset},{offset + limit - 1}p'";
-        var execResult = await _context.Sandbox.ExecuteAsync(_context.SandboxId, _context.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
+        var execResult = await _toolExecutionContext.Sandbox.ExecuteAsync(_toolExecutionContext.SandboxId, _toolExecutionContext.ServiceUrl, cmd, TimeSpan.FromSeconds(30), ct);
         if (execResult.IsFailure)
             return new AgentError(AgentErrorCategory.ToolExecution, $"file_read: {execResult.Error.Message}", execResult.Error.Detail);
 
         var (output, exitCode) = execResult.Value;
         if (exitCode == 0)
         {
-            _context.MarkFileRead(path);
+            _toolExecutionContext.MarkFileRead(path);
             return new ToolResult(true, string.IsNullOrEmpty(output) ? "[empty file]" : output);
         }
 

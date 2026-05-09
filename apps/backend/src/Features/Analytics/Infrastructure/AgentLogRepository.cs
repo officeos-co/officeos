@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Analytics;
+namespace OffceOs.Infrastructure.Features.Analytics;
 
 internal sealed class AgentLogRepository : IAgentLogRepository
 {

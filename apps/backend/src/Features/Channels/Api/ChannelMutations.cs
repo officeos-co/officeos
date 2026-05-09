@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Channels;
+namespace OffceOs.Api.Features.Channels;
 
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class ChannelMutations

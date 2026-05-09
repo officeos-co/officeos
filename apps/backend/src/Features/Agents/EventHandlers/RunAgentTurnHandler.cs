@@ -1,23 +1,20 @@
-using MediatR;
-using EnterpriseAgentOs.Application.Features;
-
-namespace EnterpriseAgentOs.EventHandlers.Features.Agents;
+namespace OffceOs.EventHandlers.Features.Agents;
 
 internal sealed class RunAgentTurnHandler : INotificationHandler<MessageReceivedEvent>
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<RunAgentTurnHandler> _logger;
 
     public RunAgentTurnHandler(IServiceScopeFactory scopeFactory, ILogger<RunAgentTurnHandler> logger)
     {
-        _scopeFactory = scopeFactory;
+        _serviceScopeFactory = scopeFactory;
         _logger = logger;
     }
 
     public Task Handle(MessageReceivedEvent notification, CancellationToken ct)
     {
         BackgroundWork.Run<AgentTurnService>(
-            _scopeFactory,
+            _serviceScopeFactory,
             async svc =>
             {
                 await svc.RunTurnAsync(

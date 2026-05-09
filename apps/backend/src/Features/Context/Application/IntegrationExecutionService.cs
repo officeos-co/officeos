@@ -1,15 +1,11 @@
-using System.Diagnostics;
-using System.Text.Json.Nodes;
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Context;
+namespace OffceOs.Application.Features.Context;
 
 internal sealed class IntegrationExecutionService : IIntegrationExecutionService
 {
-    private readonly IIntegrationConnectionRepository _connections;
-    private readonly IIntegrationIndexedRecordRepository _records;
-    private readonly IIntegrationRequestHistoryRepository _history;
-    private readonly GitHubIntegrationClient _github;
+    private readonly IIntegrationConnectionRepository _integrationConnectionRepository;
+    private readonly IIntegrationIndexedRecordRepository _integrationIndexedRecordRepository;
+    private readonly IIntegrationRequestHistoryRepository _integrationRequestHistoryRepository;
+    private readonly GitHubIntegrationClient _gitHubIntegrationClient;
     private readonly IPublisher _publisher;
 
     public IntegrationExecutionService(
@@ -19,10 +15,10 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         GitHubIntegrationClient github,
         IPublisher publisher)
     {
-        _connections = connections;
-        _records = records;
-        _history = history;
-        _github = github;
+        _integrationConnectionRepository = connections;
+        _integrationIndexedRecordRepository = records;
+        _integrationRequestHistoryRepository = history;
+        _gitHubIntegrationClient = github;
         _publisher = publisher;
     }
 
@@ -34,7 +30,7 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         string? error = null;
         try
         {
-            var connection = await _connections.GetByAsync(new IntegrationConnectionFilter { Id = request.SourceId }, ct)
+            var connection = await _integrationConnectionRepository.GetByAsync(new IntegrationConnectionFilter { Id = request.SourceId }, ct)
                 ?? throw new InvalidOperationException("Integration connector source_id was not found.");
             if (connection.Provider != IntegrationProviderType.GitHub)
                 throw new InvalidOperationException($"Unsupported Integration provider '{connection.Provider}'.");
@@ -64,7 +60,7 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         finally
         {
             var durationMs = ElapsedMs(started);
-            await _history.AddAsync(new IntegrationRequestHistoryRecord
+            await _integrationRequestHistoryRepository.AddAsync(new IntegrationRequestHistoryRecord
             {
                 ConnectionId = request.SourceId,
                 Type = type,
@@ -88,7 +84,7 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         var query = ExtractSearchQuery(request.Params);
         var cursor = ReadString(request.Params, "cursor");
         var limit = ReadInt(request.Params, "limit") ?? ReadInt(request.Params, "per_page") ?? 20;
-        var page = await _records.SearchAsync(new IntegrationIndexedRecordFilter
+        var page = await _integrationIndexedRecordRepository.SearchAsync(new IntegrationIndexedRecordFilter
         {
             ConnectionId = connection.Id,
             Entity = request.Entity,
@@ -123,7 +119,7 @@ internal sealed class IntegrationExecutionService : IIntegrationExecutionService
         int durationMs,
         CancellationToken ct)
     {
-        var result = await _github.ExecuteDirectAsync(connection.CreatedById, request.Entity, request.Action, request.Params, ct);
+        var result = await _gitHubIntegrationClient.ExecuteDirectAsync(connection.CreatedById, request.Entity, request.Action, request.Params, ct);
         object projected = result.ValueKind == JsonValueKind.Array
             ? result.EnumerateArray()
                 .Select(row => ProjectFields(JsonNode.Parse(row.GetRawText()) as JsonObject ?? new JsonObject(), request.SelectFields))

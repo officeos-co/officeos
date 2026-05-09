@@ -1,17 +1,13 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using MediatR;
-
-namespace EnterpriseAgentOs.Application.Features.Context;
+namespace OffceOs.Application.Features.Context;
 
 internal sealed class IntegrationIndexingService
 {
-    private readonly IIntegrationConnectionRepository _connections;
-    private readonly IIntegrationIndexEntityStatusRepository _entityStatuses;
-    private readonly IIntegrationIndexJobRepository _jobs;
-    private readonly IIntegrationIndexedRecordRepository _records;
-    private readonly IIntegrationActivityRepository _activity;
-    private readonly GitHubIntegrationClient _github;
+    private readonly IIntegrationConnectionRepository _integrationConnectionRepository;
+    private readonly IIntegrationIndexEntityStatusRepository _integrationIndexEntityStatusRepository;
+    private readonly IIntegrationIndexJobRepository _integrationIndexJobRepository;
+    private readonly IIntegrationIndexedRecordRepository _integrationIndexedRecordRepository;
+    private readonly IIntegrationActivityRepository _integrationActivityRepository;
+    private readonly GitHubIntegrationClient _gitHubIntegrationClient;
     private readonly IPublisher _publisher;
     private readonly ILogger<IntegrationIndexingService> _logger;
 
@@ -25,37 +21,37 @@ internal sealed class IntegrationIndexingService
         IPublisher publisher,
         ILogger<IntegrationIndexingService> logger)
     {
-        _connections = connections;
-        _entityStatuses = entityStatuses;
-        _jobs = jobs;
-        _records = records;
-        _activity = activity;
-        _github = github;
+        _integrationConnectionRepository = connections;
+        _integrationIndexEntityStatusRepository = entityStatuses;
+        _integrationIndexJobRepository = jobs;
+        _integrationIndexedRecordRepository = records;
+        _integrationActivityRepository = activity;
+        _gitHubIntegrationClient = github;
         _publisher = publisher;
         _logger = logger;
     }
 
     public async Task<bool> ProcessOneAsync(CancellationToken ct)
     {
-        var job = await _jobs.DequeueAsync(ct);
+        var job = await _integrationIndexJobRepository.DequeueAsync(ct);
         if (job is null) return false;
 
         var recordsIndexed = 0;
         try
         {
-            var connection = await _connections.GetByAsync(new IntegrationConnectionFilter { Id = job.ConnectionId }, ct)
+            var connection = await _integrationConnectionRepository.GetByAsync(new IntegrationConnectionFilter { Id = job.ConnectionId }, ct)
                 ?? throw new InvalidOperationException("Integration connection not found.");
             var repositories = ParseStringArray(connection.RepositoriesJson);
             var entities = ParseStringArray(connection.EntitiesJson);
 
-            await _connections.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Indexing, null, ct);
+            await _integrationConnectionRepository.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Indexing, null, ct);
             await LogActivityAsync(connection.Id, "index_started", null, "Indexing started.", new { JobId = job.Id }, true, ct);
-            await _records.DeleteForConnectionAsync(connection.Id, ct);
+            await _integrationIndexedRecordRepository.DeleteForConnectionAsync(connection.Id, ct);
             await LogActivityAsync(connection.Id, "records_cleared", null, "Previous indexed records cleared.", new { JobId = job.Id }, true, ct);
 
             foreach (var entity in entities)
             {
-                await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
+                await _integrationIndexEntityStatusRepository.UpsertAsync(new IntegrationIndexEntityStatusRecord
                 {
                     ConnectionId = connection.Id,
                     Entity = entity,
@@ -75,7 +71,7 @@ internal sealed class IntegrationIndexingService
                         JobId = job.Id,
                         Repository = repository,
                     }, true, ct);
-                    var rows = await _github.FetchEntityAsync(connection.CreatedById, entity, repository, perPage: 100, ct);
+                    var rows = await _gitHubIntegrationClient.FetchEntityAsync(connection.CreatedById, entity, repository, perPage: 100, ct);
                     entityRecords.AddRange(rows.Select(row => ToIndexedRecord(connection.Id, entity, repository, row)));
                     await LogActivityAsync(connection.Id, "repository_fetch_completed", entity, $"Fetched {rows.Count} {DisplayEntity(entity)} from {repository}.", new
                     {
@@ -86,10 +82,10 @@ internal sealed class IntegrationIndexingService
                 }
 
                 if (entityRecords.Count > 0)
-                    await _records.UpsertManyAsync(entityRecords, ct);
+                    await _integrationIndexedRecordRepository.UpsertManyAsync(entityRecords, ct);
                 recordsIndexed += entityRecords.Count;
 
-                await _entityStatuses.UpsertAsync(new IntegrationIndexEntityStatusRecord
+                await _integrationIndexEntityStatusRepository.UpsertAsync(new IntegrationIndexEntityStatusRecord
                 {
                     ConnectionId = connection.Id,
                     Entity = entity,
@@ -104,8 +100,8 @@ internal sealed class IntegrationIndexingService
                 }, true, ct);
             }
 
-            await _connections.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Ready, null, ct);
-            await _jobs.UpdateAsync(new IntegrationIndexJobRecord
+            await _integrationConnectionRepository.SetStatusAsync(connection.Id, IntegrationConnectionStatus.Ready, null, ct);
+            await _integrationIndexJobRepository.UpdateAsync(new IntegrationIndexJobRecord
             {
                 Id = job.Id,
                 ConnectionId = job.ConnectionId,
@@ -126,8 +122,8 @@ internal sealed class IntegrationIndexingService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Integration index job {JobId} failed", job.Id);
-            await _connections.SetStatusAsync(job.ConnectionId, IntegrationConnectionStatus.Failed, ex.Message, ct);
-            await _jobs.UpdateAsync(new IntegrationIndexJobRecord
+            await _integrationConnectionRepository.SetStatusAsync(job.ConnectionId, IntegrationConnectionStatus.Failed, ex.Message, ct);
+            await _integrationIndexJobRepository.UpdateAsync(new IntegrationIndexJobRecord
             {
                 Id = job.Id,
                 ConnectionId = job.ConnectionId,
@@ -216,7 +212,7 @@ internal sealed class IntegrationIndexingService
         object? details,
         bool success,
         CancellationToken ct)
-        => _activity.AddAsync(new IntegrationActivityRecord
+        => _integrationActivityRepository.AddAsync(new IntegrationActivityRecord
         {
             ConnectionId = connectionId,
             Type = type,
@@ -233,12 +229,12 @@ internal sealed class IntegrationIndexingService
 internal sealed class IntegrationIndexSchedulerService : BackgroundService
 {
     private static readonly TimeSpan IdleDelay = TimeSpan.FromSeconds(10);
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<IntegrationIndexSchedulerService> _logger;
 
     public IntegrationIndexSchedulerService(IServiceScopeFactory scopeFactory, ILogger<IntegrationIndexSchedulerService> logger)
     {
-        _scopeFactory = scopeFactory;
+        _serviceScopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -249,7 +245,7 @@ internal sealed class IntegrationIndexSchedulerService : BackgroundService
         {
             try
             {
-                using var scope = _scopeFactory.CreateScope();
+                using var scope = _serviceScopeFactory.CreateScope();
                 var indexing = scope.ServiceProvider.GetRequiredService<IntegrationIndexingService>();
                 var processed = await indexing.ProcessOneAsync(stoppingToken);
                 if (!processed)

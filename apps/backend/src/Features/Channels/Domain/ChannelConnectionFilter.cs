@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Channels;
+namespace OffceOs.Domain.Features.Channels;
 
 public sealed record ChannelConnectionFilter
 {

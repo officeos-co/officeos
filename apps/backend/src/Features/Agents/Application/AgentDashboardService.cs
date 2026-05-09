@@ -1,17 +1,17 @@
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Agents;
 
 internal sealed class AgentDashboardService : IAgentDashboardService
 {
-    private readonly IAgentService _agents;
+    private readonly IAgentService _agentService;
     private readonly IAgentRepository _agentRepository;
-    private readonly IAgentSessionRepository _sessions;
-    private readonly IAgentResourceRepository _resources;
-    private readonly IMemoryStoreRepository _memoryStores;
+    private readonly IAgentSessionRepository _agentSessionRepository;
+    private readonly IAgentResourceRepository _agentResourceRepository;
+    private readonly IMemoryStoreRepository _memoryStoreRepository;
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelService _channelService;
-    private readonly IBrowserService _browser;
-    private readonly IAgentToolPermissionRepository _permissions;
-    private readonly IAgentRunRepository _runs;
+    private readonly IBrowserService _browserService;
+    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
+    private readonly IAgentRunRepository _agentRunRepository;
 
     public AgentDashboardService(
         IAgentService agents,
@@ -25,34 +25,34 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         IAgentToolPermissionRepository permissions,
         IAgentRunRepository runs)
     {
-        _agents = agents;
+        _agentService = agents;
         _agentRepository = agentRepository;
-        _sessions = sessions;
-        _resources = resources;
-        _memoryStores = memoryStores;
+        _agentSessionRepository = sessions;
+        _agentResourceRepository = resources;
+        _memoryStoreRepository = memoryStores;
         _channelRepository = channelRepository;
         _channelService = channelService;
-        _browser = browser;
-        _permissions = permissions;
-        _runs = runs;
+        _browserService = browser;
+        _agentToolPermissionRepository = permissions;
+        _agentRunRepository = runs;
     }
 
     public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
     {
-        var agent = await _agents.CreateAsync(
+        var agent = await _agentService.CreateAsync(
             new CreateAgentRequest(request.Name, request.Provider, request.Model, request.Prompt),
             ownerId,
             ct);
 
         if (request.Resources is { Count: > 0 })
         {
-            var resourceSession = await _sessions.GetByAsync(
+            var resourceSession = await _agentSessionRepository.GetByAsync(
                 new AgentSessionFilter { AgentId = agent.Id, Status = SessionStatus.Active },
                 ct);
             if (resourceSession is null)
             {
                 resourceSession = AgentSessionRecord.Create(agent.Id);
-                await _sessions.CreateAsync(resourceSession, ct);
+                await _agentSessionRepository.CreateAsync(resourceSession, ct);
             }
 
             foreach (var resource in request.Resources)
@@ -60,7 +60,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
                 var resourceType = NormalizeResourceType(resource.ResourceType);
                 await EnsureResourceExistsAsync(resourceType, resource.ResourceId, ownerId, ct);
 
-                await _resources.AttachToSessionAsync(new AgentSessionResourceAttachmentRecord
+                await _agentResourceRepository.AttachToSessionAsync(new AgentSessionResourceAttachmentRecord
                 {
                     AgentId = agent.Id,
                     SessionId = resourceSession.Id,
@@ -71,7 +71,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
                 }, ct);
 
                 if (resourceType == AgentResourceKinds.Browser)
-                    await _resources.SetBrowserCurrentAgentAsync(resource.ResourceId, agent.Id, ct);
+                    await _agentResourceRepository.SetBrowserCurrentAgentAsync(resource.ResourceId, agent.Id, ct);
                 if (resourceType == AgentResourceKinds.Channel)
                     await _channelService.BindAgentAsync(agent.Id, resource.ResourceId, null, ct);
             }
@@ -85,7 +85,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
             ? request.BootstrapMessage
             : request.Prompt;
 
-        await _agents.InitializeAgentAsync(
+        await _agentService.InitializeAgentAsync(
             agent.Id,
             ownerId,
             new AgentInitRequest(toolNames, request.ToolPermissions, request.ChannelSlugs, bootstrap),
@@ -99,7 +99,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         if (!await AgentIsOwnedAsync(id, ownerId, ct))
             return null;
 
-        return await _agents.PatchAsync(id, request, ct);
+        return await _agentService.PatchAsync(id, request, ct);
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct = default)
@@ -107,8 +107,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         if (!await AgentIsOwnedAsync(id, ownerId, ct))
             return false;
 
-        await _browser.StopAsync(id, ct);
-        return await _agents.DeleteAsync(id, ct);
+        await _browserService.StopAsync(id, ct);
+        return await _agentService.DeleteAsync(id, ct);
     }
 
     public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(
@@ -117,7 +117,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         CancellationToken ct = default)
     {
         await EnsureAgentOwnedAsync(agentId, ownerId, ct);
-        return await _permissions.ListForAgentAsync(agentId, ct);
+        return await _agentToolPermissionRepository.ListForAgentAsync(agentId, ct);
     }
 
     public async Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(
@@ -127,13 +127,13 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         CancellationToken ct = default)
     {
         await EnsureAgentOwnedAsync(agentId, ownerId, ct);
-        return await _runs.ListForAgentAsync(agentId, parentRunId, ct);
+        return await _agentRunRepository.ListForAgentAsync(agentId, parentRunId, ct);
     }
 
     public async Task SetToolPermissionAsync(Guid ownerId, Guid agentId, string skill, string tool, ToolPermission mode, CancellationToken ct = default)
     {
         await EnsureAgentOwnedAsync(agentId, ownerId, ct);
-        await _permissions.UpsertAsync(agentId, skill, tool, mode, ct);
+        await _agentToolPermissionRepository.UpsertAsync(agentId, skill, tool, mode, ct);
     }
 
     public async Task<IReadOnlyList<AgentToolPermissionRecord>> SetToolPermissionsAsync(
@@ -143,7 +143,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         CancellationToken ct = default)
     {
         await EnsureAgentOwnedAsync(agentId, ownerId, ct);
-        await _permissions.SetManyAsync(agentId, rows, ct);
+        await _agentToolPermissionRepository.SetManyAsync(agentId, rows, ct);
         return rows;
     }
 
@@ -163,8 +163,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     {
         var exists = resourceType switch
         {
-            AgentResourceKinds.Browser => await _resources.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
-            AgentResourceKinds.MemoryStore => await _memoryStores.GetAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceKinds.Browser => await _agentResourceRepository.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceKinds.MemoryStore => await _memoryStoreRepository.GetAsync(resourceId, ownerId, ct) is not null,
             AgentResourceKinds.Channel => await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
             {
                 Id = resourceId,

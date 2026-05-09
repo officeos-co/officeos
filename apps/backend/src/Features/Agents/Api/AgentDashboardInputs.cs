@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Agents;
+namespace OffceOs.Api.Features.Agents;
 
 public sealed record CreateAgentInput(
     string Name,

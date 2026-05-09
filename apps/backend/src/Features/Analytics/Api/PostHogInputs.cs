@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Analytics;
+namespace OffceOs.Api.Features.Analytics;
 
 // One input record per tracked use-case in dashboard. Keep them flat and
 // strongly typed — the goal is to make the GraphQL schema the source of truth

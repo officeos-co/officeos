@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
-
-namespace EnterpriseAgentOs.Domain.Features.Channels;
+namespace OffceOs.Domain.Features.Channels;
 
 /// <summary>
 /// In-memory store that maps a turn's correlationId to the channel it should
