@@ -11,6 +11,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     private readonly IChannelService _channelService;
     private readonly IBrowserService _browser;
     private readonly IAgentToolPermissionRepository _permissions;
+    private readonly IAgentRunRepository _runs;
 
     public AgentDashboardService(
         IAgentService agents,
@@ -21,7 +22,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         IChannelRepository channelRepository,
         IChannelService channelService,
         IBrowserService browser,
-        IAgentToolPermissionRepository permissions)
+        IAgentToolPermissionRepository permissions,
+        IAgentRunRepository runs)
     {
         _agents = agents;
         _agentRepository = agentRepository;
@@ -32,6 +34,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _channelService = channelService;
         _browser = browser;
         _permissions = permissions;
+        _runs = runs;
     }
 
     public async Task<AgentDto> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
@@ -106,6 +109,25 @@ internal sealed class AgentDashboardService : IAgentDashboardService
 
         await _browser.StopAsync(id, ct);
         return await _agents.DeleteAsync(id, ct);
+    }
+
+    public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(
+        Guid ownerId,
+        Guid agentId,
+        CancellationToken ct = default)
+    {
+        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        return await _permissions.ListForAgentAsync(agentId, ct);
+    }
+
+    public async Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(
+        Guid ownerId,
+        Guid agentId,
+        Guid? parentRunId,
+        CancellationToken ct = default)
+    {
+        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        return await _runs.ListForAgentAsync(agentId, parentRunId, ct);
     }
 
     public async Task SetToolPermissionAsync(Guid ownerId, Guid agentId, string skill, string tool, ToolPermission mode, CancellationToken ct = default)

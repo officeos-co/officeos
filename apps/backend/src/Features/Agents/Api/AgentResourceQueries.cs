@@ -24,10 +24,11 @@ public class AgentResourceQueries
 
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentPayload>> GetAgentSessionResourceAttachments(
         Guid sessionId,
-        [Service] IAgentResourceRepository resources,
+        [Service] UserContext user,
+        [Service] IAgentResourceService resources,
         CancellationToken ct)
     {
-        var rows = await resources.ListSessionAttachmentsAsync(sessionId, ct);
+        var rows = await resources.ListSessionAttachmentsAsync(sessionId, user.Id, ct);
         return rows.Select(ToPayload).ToList();
     }
 

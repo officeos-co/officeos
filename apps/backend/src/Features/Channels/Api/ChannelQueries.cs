@@ -56,10 +56,11 @@ public class ChannelQueries
     [GraphQLDescription("Lists all channel bindings for a specific agent showing which channels the agent listens on.")]
     public async Task<IReadOnlyList<AgentChannelBindingGqlDto>> GetAgentChannelBindings(
         Guid agentId,
-        [Service] IChannelRepository repo,
+        [Service] UserContext user,
+        [Service] IChannelService channels,
         CancellationToken ct)
     {
-        var rows = await repo.ListBindingsAsync(agentId, ct);
+        var rows = await channels.ListBindingsForOwnedAgentAsync(agentId, user.Id, ct);
         return rows.Select(ChannelGraphQLMapper.ToDto).ToList();
     }
 }

@@ -44,10 +44,11 @@ public class AgentQueries
     [GraphQLDescription("Returns explicit allow/deny tool permission overrides for an agent.")]
     public async Task<IReadOnlyList<ToolPermissionPayload>> GetAgentToolPermissions(
         Guid agentId,
-        [Service] IAgentToolPermissionRepository permissions,
+        [Service] UserContext user,
+        [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
-        var rows = await permissions.ListForAgentAsync(agentId, ct);
+        var rows = await agents.ListToolPermissionsAsync(user.Id, agentId, ct);
         return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
     }
 
@@ -64,9 +65,10 @@ public class AgentQueries
     public async Task<IReadOnlyList<AgentRunRecord>> GetAgentRuns(
         Guid agentId,
         Guid? parentRunId,
-        [Service] IAgentRunRepository runs,
+        [Service] UserContext user,
+        [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
-        return await runs.ListForAgentAsync(agentId, parentRunId, ct);
+        return await agents.ListRunsAsync(user.Id, agentId, parentRunId, ct);
     }
 }
