@@ -2,10 +2,10 @@ namespace OffceOs.Application.Features.Analytics;
 
 public interface IAgentLogService
 {
-    IQueryable<AgentLogProjection> AgentLogs(Guid agentId);
-    IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId);
-    IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters);
-    IQueryable<AuditEntry> AuditLog(Guid agentId);
+    IQueryable<AgentLogProjection> AgentLogs(Guid agentId, Guid? workspaceId = null);
+    IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId, Guid? workspaceId = null);
+    IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters, Guid? workspaceId = null);
+    IQueryable<AuditEntry> AuditLog(Guid agentId, Guid? workspaceId = null);
     Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default);
     Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersRequest filters, CancellationToken ct = default);

@@ -77,7 +77,7 @@ internal sealed class AgentService : IAgentService
         return record;
     }
 
-    public async Task<AgentRecord> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, CancellationToken ct = default)
+    public async Task<AgentRecord> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, Guid? workspaceId = null, CancellationToken ct = default)
     {
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
@@ -88,7 +88,7 @@ internal sealed class AgentService : IAgentService
                 $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
         }
 
-        var record = AgentRecord.Create(request.Name, request.Provider, request.Model, ownerId, request.Prompt);
+        var record = AgentRecord.Create(request.Name, request.Provider, request.Model, ownerId, request.Prompt, workspaceId);
 
         await _agentRepository.AddAsync(record, ct);
 
@@ -180,7 +180,8 @@ internal sealed class AgentService : IAgentService
 
         if (init.ToolNames is { Count: > 0 })
         {
-            var servers = await _integrationDefinitionService.ListAsync(userId, ct);
+            var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = userId }, ct);
+            var servers = await _integrationDefinitionService.ListAsync(userId, agent?.WorkspaceId, ct);
             var names = servers.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var toolName in init.ToolNames)
             {

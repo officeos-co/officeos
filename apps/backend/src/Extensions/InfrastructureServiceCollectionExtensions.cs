@@ -25,6 +25,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IMemoryStoreRepository, MemoryStoreRepository>();
         services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddScoped<IAgentLogRepository, AgentLogRepository>();

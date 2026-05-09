@@ -40,6 +40,7 @@ public sealed class AgentLogRecord
     public Guid Id { get; init; } = Guid.NewGuid();
 
     public Guid? AgentId { get; init; }
+    public Guid? WorkspaceId { get; init; }
     public AgentRecord? Agent { get; init; }
 
     public DateTime Time { get; init; } = DateTime.UtcNow;

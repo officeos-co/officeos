@@ -11,6 +11,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<OAuthTokenEntity> OAuthTokens => Set<OAuthTokenEntity>();
     public DbSet<OAuthGrantedScopeEntity> OAuthGrantedScopes => Set<OAuthGrantedScopeEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<WorkspaceEntity> Workspaces => Set<WorkspaceEntity>();
     public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
     public DbSet<DeviceCodeEntity> DeviceCodes => Set<DeviceCodeEntity>();
     public DbSet<BrowserSessionEntity> BrowserSessions => Set<BrowserSessionEntity>();
@@ -50,6 +51,7 @@ public sealed class EaosDbContext : DbContext
         modelBuilder.Entity<AgentEntity>(e =>
         {
             e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.OwnerId, a.WorkspaceId });
             e.Property(a => a.Name).IsRequired().HasMaxLength(200);
             e.Property(a => a.Provider).IsRequired().HasMaxLength(64);
             e.Property(a => a.Status).IsRequired().HasMaxLength(32);
@@ -57,6 +59,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.ServiceUrl).HasMaxLength(256);
             e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
             e.Property(a => a.Prompt).HasColumnType("text");
+            e.HasOne(a => a.Workspace).WithMany().HasForeignKey(a => a.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<OAuthTokenEntity>(e =>
@@ -84,6 +87,15 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(u => u.Id);
             e.HasIndex(u => u.GoogleSubjectId).IsUnique();
             e.HasIndex(u => u.Email).IsUnique();
+            e.HasOne(u => u.CurrentWorkspace).WithMany().HasForeignKey(u => u.CurrentWorkspaceId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WorkspaceEntity>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.HasIndex(w => new { w.UserId, w.Name }).IsUnique();
+            e.Property(w => w.Name).IsRequired().HasMaxLength(200);
+            e.HasOne(w => w.User).WithMany().HasForeignKey(w => w.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SessionEntity>(e =>
@@ -133,9 +145,11 @@ public sealed class EaosDbContext : DbContext
         modelBuilder.Entity<ChannelConnectionEntity>(e =>
         {
             e.HasKey(c => c.Id);
+            e.HasIndex(c => new { c.CreatedById, c.WorkspaceId });
             e.Property(c => c.ChannelType).IsRequired().HasMaxLength(32);
             e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
             e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById);
+            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentChannelBindingEntity>(e =>
@@ -170,12 +184,14 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(l => l.Id);
             e.HasIndex(l => l.AgentId);
+            e.HasIndex(l => l.WorkspaceId);
             e.HasIndex(l => l.ChannelConnectionId);
             e.HasIndex(l => new { l.AgentId, l.Time });
             e.HasIndex(l => l.CorrelationId);
             e.Property(l => l.Content).HasColumnType("text");
             e.Property(l => l.Type).HasConversion<string>().HasMaxLength(32);
             e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).IsRequired(false).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.Workspace).WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentToolPermissionEntity>(e =>
@@ -259,6 +275,7 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.AgentId);
+            e.HasIndex(r => r.WorkspaceId);
             e.HasIndex(r => r.ParentRunId);
             e.HasIndex(r => r.Status);
             e.Property(r => r.Kind).IsRequired().HasMaxLength(16);
@@ -271,15 +288,20 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(r => r.Agent).WithMany()
                 .HasForeignKey(r => r.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Workspace).WithMany()
+                .HasForeignKey(r => r.WorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BrowserResourceEntity>(e =>
         {
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.OwnerId);
+            e.HasIndex(r => new { r.OwnerId, r.WorkspaceId });
             e.HasIndex(r => r.CurrentAgentId);
             e.Property(r => r.DisplayName).IsRequired().HasMaxLength(200);
             e.HasOne(r => r.Owner).WithMany().HasForeignKey(r => r.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Workspace).WithMany().HasForeignKey(r => r.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(r => r.CurrentAgent).WithMany().HasForeignKey(r => r.CurrentAgentId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -287,8 +309,10 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => s.OwnerId);
+            e.HasIndex(s => new { s.OwnerId, s.WorkspaceId });
             e.Property(s => s.DisplayName).IsRequired().HasMaxLength(200);
             e.HasOne(s => s.Owner).WithMany().HasForeignKey(s => s.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Workspace).WithMany().HasForeignKey(s => s.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<MemoryStoreEntryEntity>(e =>
@@ -316,8 +340,8 @@ public sealed class EaosDbContext : DbContext
         {
             e.ToTable("Integrations");
             e.HasKey(s => s.Id);
-            e.HasIndex(s => new { s.OwnerId, s.Name }).IsUnique();
-            e.HasIndex(s => s.OwnerId);
+            e.HasIndex(s => new { s.OwnerId, s.WorkspaceId, s.Name }).IsUnique();
+            e.HasIndex(s => new { s.OwnerId, s.WorkspaceId });
             e.Property(s => s.Name).IsRequired().HasMaxLength(64);
             e.Property(s => s.Provider).HasMaxLength(64);
             e.Property(s => s.Title).IsRequired().HasMaxLength(128);
@@ -336,6 +360,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.ToolsJson).HasColumnType("jsonb");
             e.Property(s => s.CapabilitiesJson).HasColumnType("jsonb");
             e.Property(s => s.EntitiesJson).HasColumnType("jsonb");
+            e.HasOne<WorkspaceEntity>().WithMany().HasForeignKey(s => s.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentIntegrationEntity>(e =>
@@ -352,10 +377,11 @@ public sealed class EaosDbContext : DbContext
             e.ToTable("IntegrationCredentials");
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.OwnerId);
-            e.HasIndex(c => new { c.OwnerId, c.IntegrationName }).IsUnique();
+            e.HasIndex(c => new { c.OwnerId, c.WorkspaceId, c.IntegrationName }).IsUnique();
             e.Property(c => c.IntegrationName).IsRequired().HasMaxLength(64);
             e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
             e.HasOne<UserEntity>().WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<IntegrationConnectionEntity>(e =>
@@ -363,6 +389,7 @@ public sealed class EaosDbContext : DbContext
             e.ToTable("IntegrationConnections");
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.Provider);
+            e.HasIndex(c => new { c.CreatedById, c.WorkspaceId });
             e.Property(c => c.Provider).IsRequired().HasMaxLength(32);
             e.Property(c => c.WorkspaceName).IsRequired().HasMaxLength(128);
             e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
@@ -371,6 +398,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(c => c.Status).IsRequired().HasMaxLength(32);
             e.Property(c => c.Error).HasColumnType("text");
             e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<IntegrationIndexEntityStatusEntity>(e =>

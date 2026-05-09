@@ -30,9 +30,9 @@ internal sealed class ChannelService : IChannelService
 
     public async Task<ChannelConnectionRecord> CreateConnectionAsync(
         string channelType, string displayName, string? configJson,
-        Guid createdById, CancellationToken ct = default)
+        Guid createdById, Guid workspaceId, CancellationToken ct = default)
     {
-        var record = ChannelConnectionRecord.Create(channelType.ToChannelType(), displayName, createdById);
+        var record = ChannelConnectionRecord.Create(channelType.ToChannelType(), displayName, createdById, workspaceId);
 
         if (!string.IsNullOrWhiteSpace(configJson))
             record.EncryptedCreds = _channelCredentialProtector.Protect(configJson);
@@ -58,9 +58,9 @@ internal sealed class ChannelService : IChannelService
     }
 
     public async Task<ChannelConnectionRecord> UpdateOwnedConnectionAsync(
-        Guid id, Guid ownerId, string? displayName, bool? enabled, CancellationToken ct = default)
+        Guid id, Guid ownerId, Guid workspaceId, string? displayName, bool? enabled, CancellationToken ct = default)
     {
-        await EnsureOwnedConnectionAsync(id, ownerId, ct);
+        await EnsureOwnedConnectionAsync(id, ownerId, workspaceId, ct);
         return await UpdateConnectionAsync(id, displayName, enabled, ct);
     }
 
@@ -72,9 +72,9 @@ internal sealed class ChannelService : IChannelService
         return deleted;
     }
 
-    public async Task<bool> DeleteOwnedConnectionAsync(Guid id, Guid ownerId, CancellationToken ct = default)
+    public async Task<bool> DeleteOwnedConnectionAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        await EnsureOwnedConnectionAsync(id, ownerId, ct);
+        await EnsureOwnedConnectionAsync(id, ownerId, workspaceId, ct);
         return await DeleteConnectionAsync(id, ct);
     }
 
@@ -284,21 +284,23 @@ internal sealed class ChannelService : IChannelService
     public async Task<IReadOnlyList<AgentChannelBindingRecord>> ListBindingsForOwnedAgentAsync(
         Guid agentId,
         Guid ownerId,
+        Guid? workspaceId = null,
         CancellationToken ct = default)
     {
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId, WorkspaceId = workspaceId }, ct);
         if (agent is null)
             throw new InvalidOperationException("Agent not found.");
 
         return await _channelRepository.ListBindingsAsync(agentId, ct);
     }
 
-    private async Task EnsureOwnedConnectionAsync(Guid id, Guid ownerId, CancellationToken ct)
+    private async Task EnsureOwnedConnectionAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
         var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
         {
             Id = id,
             CreatedById = ownerId,
+            WorkspaceId = workspaceId,
         }, ct);
 
         if (connection is null)

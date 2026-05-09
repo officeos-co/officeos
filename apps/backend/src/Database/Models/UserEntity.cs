@@ -14,4 +14,6 @@ public sealed class UserEntity
     public string? Timezone { get; set; }
     public string? NotificationPrefsJson { get; set; }
     public string? Preferences { get; set; }
+    public Guid? CurrentWorkspaceId { get; set; }
+    public WorkspaceEntity? CurrentWorkspace { get; set; }
 }

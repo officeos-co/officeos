@@ -24,6 +24,9 @@ internal sealed class ChannelRepository : IChannelRepository
         if (filter?.CreatedById is { } createdById)
             query = query.Where(c => c.CreatedById == createdById);
 
+        if (filter?.WorkspaceId is { } workspaceId)
+            query = query.Where(c => c.WorkspaceId == workspaceId);
+
         var entities = await query.OrderBy(c => c.CreatedAt).ToListAsync(ct);
         return entities.Select(ToChannelConnectionRecord).ToList();
     }
@@ -40,6 +43,9 @@ internal sealed class ChannelRepository : IChannelRepository
 
         if (filter.CreatedById.HasValue)
             query = query.Where(c => c.CreatedById == filter.CreatedById.Value);
+
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(c => c.WorkspaceId == filter.WorkspaceId.Value);
 
         var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToChannelConnectionRecord(entity);
@@ -178,6 +184,7 @@ internal sealed class ChannelRepository : IChannelRepository
         Enabled = e.Enabled,
         CreatedAt = e.CreatedAt,
         CreatedById = e.CreatedById,
+        WorkspaceId = e.WorkspaceId,
         EncryptedCreds = e.EncryptedCreds,
     };
 
@@ -189,6 +196,7 @@ internal sealed class ChannelRepository : IChannelRepository
         Enabled = r.Enabled,
         CreatedAt = r.CreatedAt,
         CreatedById = r.CreatedById,
+        WorkspaceId = r.WorkspaceId,
         EncryptedCreds = r.EncryptedCreds,
     };
 
@@ -198,6 +206,7 @@ internal sealed class ChannelRepository : IChannelRepository
         e.DisplayName = r.DisplayName;
         e.Enabled = r.Enabled;
         e.CreatedById = r.CreatedById;
+        e.WorkspaceId = r.WorkspaceId;
         e.EncryptedCreds = r.EncryptedCreds;
     }
 

@@ -5,7 +5,8 @@ public sealed record CreateGitHubIntegrationConnectionRequest(
     string DisplayName,
     IReadOnlyList<string> Repositories,
     IReadOnlyList<string> Entities,
-    Guid CreatedById);
+    Guid CreatedById,
+    Guid WorkspaceId);
 
 public sealed record UpdateGitHubIntegrationConnectionRequest(
     Guid Id,

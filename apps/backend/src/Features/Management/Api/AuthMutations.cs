@@ -36,7 +36,8 @@ public class AuthMutations
             updated.DisplayName,
             updated.Timezone,
             updated.NotificationPrefsJson,
-            updated.Preferences);
+            updated.Preferences,
+            updated.CurrentWorkspaceId);
     }
 
     [GraphQLDescription("Clears the current dashboard session cookie. Returns true if a session was deleted.")]

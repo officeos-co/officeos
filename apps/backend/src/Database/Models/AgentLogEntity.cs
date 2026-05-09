@@ -4,6 +4,7 @@ public sealed class AgentLogEntity
 {
     public Guid Id { get; set; }
     public Guid? AgentId { get; set; }
+    public Guid? WorkspaceId { get; set; }
     public DateTime Time { get; set; }
     public AgentLogType Type { get; set; }
     public string? Tool { get; set; }
@@ -18,4 +19,5 @@ public sealed class AgentLogEntity
     public Guid? RunId { get; set; }
     public Guid? ParentRunId { get; set; }
     public AgentEntity? Agent { get; set; }
+    public WorkspaceEntity? Workspace { get; set; }
 }

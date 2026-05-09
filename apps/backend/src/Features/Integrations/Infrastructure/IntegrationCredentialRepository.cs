@@ -16,6 +16,9 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
         if (filter.OwnerId.HasValue)
             query = query.Where(c => c.OwnerId == filter.OwnerId.Value);
 
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(c => c.WorkspaceId == filter.WorkspaceId.Value);
+
         if (!string.IsNullOrEmpty(filter.IntegrationName))
             query = query.Where(c => c.IntegrationName == filter.IntegrationName);
 
@@ -24,6 +27,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
         {
             Id = entity.Id,
             OwnerId = entity.OwnerId,
+            WorkspaceId = entity.WorkspaceId,
             IntegrationName = entity.IntegrationName,
             EncryptedCredentials = entity.EncryptedCredentials,
             ConfiguredAt = entity.ConfiguredAt,
@@ -33,7 +37,9 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
     public async Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct)
     {
         var existing = await _eaosDbContext.IntegrationCredentials
-            .FirstOrDefaultAsync(c => c.OwnerId == credential.OwnerId && c.IntegrationName == credential.IntegrationName, ct);
+            .FirstOrDefaultAsync(c => c.OwnerId == credential.OwnerId
+                && c.WorkspaceId == credential.WorkspaceId
+                && c.IntegrationName == credential.IntegrationName, ct);
         if (existing is not null)
         {
             existing.EncryptedCredentials = credential.EncryptedCredentials;
@@ -45,6 +51,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
             {
                 Id = credential.Id,
                 OwnerId = credential.OwnerId,
+                WorkspaceId = credential.WorkspaceId,
                 IntegrationName = credential.IntegrationName,
                 EncryptedCredentials = credential.EncryptedCredentials,
                 ConfiguredAt = credential.ConfiguredAt,
@@ -53,10 +60,14 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(Guid ownerId, string integrationName, CancellationToken ct)
+    public async Task DeleteAsync(Guid ownerId, string integrationName, Guid? workspaceId = null, CancellationToken ct = default)
     {
-        await _eaosDbContext.IntegrationCredentials
-            .Where(c => c.OwnerId == ownerId && c.IntegrationName == integrationName)
-            .ExecuteDeleteAsync(ct);
+        var query = _eaosDbContext.IntegrationCredentials
+            .Where(c => c.OwnerId == ownerId && c.IntegrationName == integrationName);
+
+        if (workspaceId.HasValue)
+            query = query.Where(c => c.WorkspaceId == workspaceId.Value);
+
+        await query.ExecuteDeleteAsync(ct);
     }
 }

@@ -47,6 +47,7 @@ public sealed class IntegrationConnectionRecord
     public IntegrationConnectionStatus Status { get; init; } = IntegrationConnectionStatus.NeedsAuth;
     public string? Error { get; init; }
     public Guid CreatedById { get; init; }
+    public Guid WorkspaceId { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;
     public IReadOnlyList<IntegrationIndexEntityStatusRecord> EntityStatuses { get; init; } = [];

@@ -12,6 +12,7 @@ public sealed record IntegrationDefinitionRecord
 
     public string Name { get; init; } = string.Empty;
     public Guid? OwnerId { get; init; }
+    public Guid? WorkspaceId { get; init; }
     public string Provider { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }

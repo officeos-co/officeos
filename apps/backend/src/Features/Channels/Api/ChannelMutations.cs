@@ -6,29 +6,32 @@ public class ChannelMutations
     private static async Task InvalidateChannelCachesAsync(
         IDistributedCache cache,
         Guid userId,
+        Guid workspaceId,
         Guid? connectionId,
         CancellationToken ct)
     {
-        await cache.RemoveAsync($"channels:list:{userId}", ct);
+        await cache.RemoveAsync($"channels:list:{userId}:workspace:{workspaceId}", ct);
         if (connectionId.HasValue)
-            await cache.RemoveAsync($"channels:{connectionId.Value}:user:{userId}", ct);
+            await cache.RemoveAsync($"channels:{connectionId.Value}:user:{userId}:workspace:{workspaceId}", ct);
     }
 
     [GraphQLDescription("Creates a new channel connection (e.g. Slack bot, Telegram bot). ConfigJson contains the encrypted credentials payload.")]
     public async Task<ChannelConnectionPayload> CreateChannelConnection(
         CreateChannelConnectionInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         try
         {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
             var created = await channelService.CreateConnectionAsync(
                 input.ChannelType, input.DisplayName, input.ConfigJson,
-                user.Id, ct);
+                user.Id, workspace.Id, ct);
 
-            await InvalidateChannelCachesAsync(cache, user.Id, null, ct);
+            await InvalidateChannelCachesAsync(cache, user.Id, workspace.Id, null, ct);
             return ChannelGraphQLMapper.ToPayload(created);
         }
         catch (InvalidOperationException ex)
@@ -43,16 +46,18 @@ public class ChannelMutations
         Guid id,
         UpdateChannelConnectionInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         try
         {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
             var updated = await channelService.UpdateOwnedConnectionAsync(
-                id, user.Id, input.DisplayName, input.Enabled, ct);
+                id, user.Id, workspace.Id, input.DisplayName, input.Enabled, ct);
 
-            await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
+            await InvalidateChannelCachesAsync(cache, user.Id, workspace.Id, id, ct);
             return ChannelGraphQLMapper.ToPayload(updated);
         }
         catch (InvalidOperationException ex)
@@ -66,14 +71,16 @@ public class ChannelMutations
     public async Task<bool> DeleteChannelConnection(
         Guid id,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         try
         {
-            var result = await channelService.DeleteOwnedConnectionAsync(id, user.Id, ct);
-            await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            var result = await channelService.DeleteOwnedConnectionAsync(id, user.Id, workspace.Id, ct);
+            await InvalidateChannelCachesAsync(cache, user.Id, workspace.Id, id, ct);
             return result;
         }
         catch (InvalidOperationException ex)
