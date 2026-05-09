@@ -20,6 +20,8 @@ Each feature owns its local layers:
 - `Infrastructure`: EF repository implementations, external adapters/clients, provider dispatch, security wrappers, and feature infrastructure.
 - `Api`: GraphQL queries/mutations/subscriptions, REST/minimal endpoints/controllers, API input/payload types, auth/transport validation.
 
+Feature layer folders are intentionally flat. Do not add bucket subfolders such as `Records`, `Interfaces`, `Dtos`, `Services`, `Repositories`, `Adapters`, `Queries`, `Mutations`, `Types`, or subdomain folders by default. Use strong file/type names such as `AgentRunRepository.cs`, `MemoryStoreMutations.cs`, `McpServerRecord.cs`, and `BrowserScreenshotTool.cs`.
+
 Shared code lives under:
 
 - `src/Common/Domain`
@@ -34,7 +36,7 @@ Shared code lives under:
 
 Do not create top-level feature folders named `Atlas`, `Data`, `Mcp`, `Billing`, `Auth`, `Browser`, or `Channels`.
 
-Agents subdomains:
+Agents subdomains are expressed through strong type and file names, not nested folders:
 
 - `Core`: agent identity, status, ownership, provider/model settings.
 - `Runtime`: agent runs, sessions, turn lifecycle, session context.
@@ -117,7 +119,7 @@ Avoid broad bucket files such as `Types.cs`, `Records.cs`, and `Repositories.cs`
 
 Domain DTOs are exceptional.
 
-- GraphQL-only shape: put it in the feature's `Api/Types`.
+- GraphQL-only shape: put it in the feature's `Api` layer.
 - Use-case request/result: put it in the feature's `Application`.
 - Persistence model: keep it as an Infrastructure `*Entity`.
 - Business record: keep it as a Domain `*Record`.
