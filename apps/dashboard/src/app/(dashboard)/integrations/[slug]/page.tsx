@@ -91,6 +91,7 @@ export default function IntegrationDetailPage({
     return notFound();
   }
 
+  const currentIntegration = integration;
   const tabs = integration.isIndexable ? INDEXABLE_TABS : BASE_TABS;
   const tab = tabs.some((candidate) => candidate.key === requestedTab)
     ? (requestedTab as TabKey)
@@ -102,17 +103,19 @@ export default function IntegrationDetailPage({
   const authLabel = integration.oauthProvider ?? (hasCredentialFields ? "credentials" : "none");
 
   async function handleSaveCredentials(values: Record<string, string>) {
-    await setCredentials(integration.name, values);
+    await setCredentials(currentIntegration.name, values);
   }
 
   function handleOAuthConnect() {
-    if (!integration.oauthProvider) return;
-    window.location.assign(buildOAuthUrl(integration.oauthProvider, `/integrations/${integration.name}`));
+    if (!currentIntegration.oauthProvider) return;
+    window.location.assign(
+      buildOAuthUrl(currentIntegration.oauthProvider, `/integrations/${currentIntegration.name}`),
+    );
   }
 
   async function handleUninstall() {
-    if (integration.isBuiltin) return;
-    await deleteIntegration(integration.name);
+    if (currentIntegration.isBuiltin) return;
+    await deleteIntegration(currentIntegration.name);
     router.push("/integrations");
   }
 

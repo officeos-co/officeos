@@ -36,12 +36,6 @@ export type GdprExport = {
     durationMs: number
     timestamp: string
   }>
-  skillCredentials: Array<{
-    id: string
-    skillName: string
-    enabled: boolean
-    configuredAt: string | null
-  }>
 }
 
 const EXPORT_MY_DATA = gql`
@@ -51,7 +45,6 @@ const EXPORT_MY_DATA = gql`
       agents { id name provider model status createdAt }
       conversations { id agentId role content sessionId createdAt }
       auditEntries { id agentId skillName action paramsJson resultSummary durationMs timestamp }
-      skillCredentials { id skillName enabled configuredAt }
     }
   }
 `

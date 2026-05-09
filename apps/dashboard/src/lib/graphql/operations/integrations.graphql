@@ -1,5 +1,88 @@
-query McpServers {
-  mcpServers {
+query Integrations {
+  integrations {
+    id
+    name
+    provider
+    title
+    description
+    transportType
+    command
+    args
+    url
+    logo
+    category
+    credentialFieldsJson
+    oauthProvider
+    oauthScopesJson
+    oauthConfigured
+    credentialConfigured
+    subtitle
+    authorName
+    authorUrl
+    documentationUrl
+    repositoryUrl
+    toolsJson
+    capabilitiesJson
+    entities
+    isBuiltin
+    createdAt
+  }
+}
+
+query Integration($name: String!) {
+  integration(name: $name) {
+    id
+    name
+    provider
+    title
+    description
+    transportType
+    command
+    args
+    url
+    logo
+    category
+    credentialFieldsJson
+    oauthProvider
+    oauthScopesJson
+    oauthConfigured
+    credentialConfigured
+    subtitle
+    authorName
+    authorUrl
+    documentationUrl
+    repositoryUrl
+    toolsJson
+    capabilitiesJson
+    entities
+    isBuiltin
+    createdAt
+  }
+}
+
+query AgentIntegrations($agentId: UUID!) {
+  agentIntegrations(agentId: $agentId) {
+    id
+    name
+    provider
+    title
+    description
+    transportType
+    logo
+    category
+    credentialFieldsJson
+    oauthProvider
+    oauthScopesJson
+    oauthConfigured
+    credentialConfigured
+    capabilitiesJson
+    entities
+    isBuiltin
+  }
+}
+
+mutation RegisterIntegration($input: RegisterIntegrationInput!) {
+  registerIntegration(input: $input) {
     id
     name
     title
@@ -15,73 +98,38 @@ query McpServers {
     oauthScopesJson
     oauthConfigured
     credentialConfigured
+    subtitle
+    authorName
+    authorUrl
+    documentationUrl
+    repositoryUrl
+    toolsJson
     isBuiltin
     createdAt
   }
 }
 
-query McpServer($name: String!) {
-  mcpServer(name: $name) {
-    id
-    name
-    title
-    description
-    transportType
-    command
-    args
-    url
-    logo
-    category
-    credentialFieldsJson
-    oauthProvider
-    oauthScopesJson
-    oauthConfigured
-    credentialConfigured
-    isBuiltin
-    createdAt
-  }
+mutation DeleteIntegration($name: String!) {
+  deleteIntegration(name: $name)
 }
 
-query AgentMcpServers($agentId: UUID!) {
-  agentMcpServers(agentId: $agentId) {
-    id
-    name
-    title
-    description
-    transportType
-    logo
-    category
-    credentialFieldsJson
-    oauthProvider
-    oauthScopesJson
-    oauthConfigured
-    credentialConfigured
-    isBuiltin
-  }
+mutation AssignIntegrationToAgent($agentId: UUID!, $integrationName: String!) {
+  assignIntegrationToAgent(agentId: $agentId, integrationName: $integrationName)
 }
 
-mutation RegisterMcpServer($input: RegisterMcpServerInput!) {
-  registerMcpServer(input: $input) {
-    id
-    name
-    title
-    description
-    transportType
-  }
+mutation UnassignIntegrationFromAgent(
+  $agentId: UUID!
+  $integrationName: String!
+) {
+  unassignIntegrationFromAgent(
+    agentId: $agentId
+    integrationName: $integrationName
+  )
 }
 
-mutation DeleteMcpServer($name: String!) {
-  deleteMcpServer(name: $name)
-}
-
-mutation AssignMcpServerToAgent($agentId: UUID!, $serverName: String!) {
-  assignMcpServerToAgent(agentId: $agentId, serverName: $serverName)
-}
-
-mutation UnassignMcpServerFromAgent($agentId: UUID!, $serverName: String!) {
-  unassignMcpServerFromAgent(agentId: $agentId, serverName: $serverName)
-}
-
-mutation SaveMcpCredential($serverName: String!, $fields: [CredentialFieldInput!]!) {
-  saveMcpCredential(serverName: $serverName, fields: $fields)
+mutation SaveIntegrationCredential(
+  $integrationName: String!
+  $fields: [CredentialFieldInput!]!
+) {
+  saveIntegrationCredential(integrationName: $integrationName, fields: $fields)
 }

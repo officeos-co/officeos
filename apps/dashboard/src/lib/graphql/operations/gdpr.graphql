@@ -33,12 +33,6 @@ query ExportMyData {
       durationMs
       timestamp
     }
-    skillCredentials {
-      id
-      skillName
-      enabled
-      configuredAt
-    }
   }
 }
 
