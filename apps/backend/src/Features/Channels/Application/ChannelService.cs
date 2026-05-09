@@ -7,6 +7,7 @@ internal sealed class ChannelService : IChannelService
 {
     private readonly IChannelRepository _repo;
     private readonly IChannelGateway _gateway;
+    private readonly IAgentRepository _agents;
     private readonly ChannelCredentialProtector _protector;
     private readonly IPublisher _publisher;
     private readonly ChannelReplyContext _replyContext;
@@ -15,6 +16,7 @@ internal sealed class ChannelService : IChannelService
     public ChannelService(
         IChannelRepository repo,
         IChannelGateway gateway,
+        IAgentRepository agents,
         ChannelCredentialProtector protector,
         IPublisher publisher,
         ChannelReplyContext replyContext,
@@ -22,6 +24,7 @@ internal sealed class ChannelService : IChannelService
     {
         _repo = repo;
         _gateway = gateway;
+        _agents = agents;
         _protector = protector;
         _publisher = publisher;
         _replyContext = replyContext;
@@ -279,6 +282,18 @@ internal sealed class ChannelService : IChannelService
             await _gateway.ReloadAsync(ct);
 
         await _publisher.Publish(new ChannelCredsStoredEvent(connectionId), ct);
+    }
+
+    public async Task<IReadOnlyList<AgentChannelBindingRecord>> ListBindingsForOwnedAgentAsync(
+        Guid agentId,
+        Guid ownerId,
+        CancellationToken ct = default)
+    {
+        var agent = await _agents.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct);
+        if (agent is null)
+            throw new InvalidOperationException("Agent not found.");
+
+        return await _repo.ListBindingsAsync(agentId, ct);
     }
 
     private async Task EnsureOwnedConnectionAsync(Guid id, Guid ownerId, CancellationToken ct)
