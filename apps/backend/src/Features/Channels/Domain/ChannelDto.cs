@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents;
+namespace EnterpriseAgentOs.Domain.Features.Channels;
 
 // ---------- Channel Connection DTOs ----------
 

@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Analytics;
+namespace EnterpriseAgentOs.Application.Features.Channels;
 
 internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageOutEvent>
 {

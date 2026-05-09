@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents;
+namespace EnterpriseAgentOs.Infrastructure.Features.Channels;
 
 /// <summary>
 /// HTTP proxy to the channel sidecar (same K8s pod, localhost:3100).

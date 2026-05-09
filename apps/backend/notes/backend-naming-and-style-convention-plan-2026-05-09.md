@@ -21,11 +21,16 @@ Second layout pass completed on 2026-05-09:
 - Bucket folders such as `Records`, `Interfaces`, `Dtos`, `Services`, `Repositories`, `Adapters`, `Queries`, `Mutations`, `Types`, `Endpoints`, and subdomain wrappers were removed from feature layers.
 - The convention is now strong file/type naming over deep folder nesting.
 
+Third layout pass completed on 2026-05-09:
+
+- `Channels` was split out from `Agents` as its own top-level feature.
+- Agent tool code received the only nested-folder exception: `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
+
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
 - Some stale type names remain around MCP/context (`Integration*`, `Atlas*`). These should be renamed in a follow-up semantic cleanup.
-- Domain DTO folders still exist and need classification/migration.
+- Domain `*Dto` type names still need classification/migration.
 - Repository interfaces still need the filter-based simplification pass.
 - Existing nullable warnings remain.
 
@@ -36,7 +41,7 @@ Move the backend toward a single-project, feature-first modular monolith that is
 The desired architecture is:
 
 - One backend `.csproj`.
-- Three top-level product features: `Agents`, `Analytics`, `Management`.
+- Four top-level product features: `Agents`, `Channels`, `Analytics`, `Management`.
 - Inside each feature, keep the clean architecture boundaries: `Domain`, `Application`, `Infrastructure`, `Api`.
 - Centralized database code under `src/Database`, because EF context, models, and migrations are shared by the application.
 
@@ -52,6 +57,11 @@ Target high-level tree:
 src
 ├── Features
 │   ├── Agents
+│   │   ├── Domain
+│   │   ├── Application
+│   │   ├── Infrastructure
+│   │   └── Api
+│   ├── Channels
 │   │   ├── Domain
 │   │   ├── Application
 │   │   ├── Infrastructure
@@ -86,6 +96,7 @@ The old four-project split has been collapsed. New backend code should live dire
 Only these top-level features are allowed:
 
 - `Agents`
+- `Channels`
 - `Analytics`
 - `Management`
 
@@ -97,9 +108,8 @@ Do not create top-level feature folders named:
 - `Billing`
 - `Auth`
 - `Browser`
-- `Channels`
 
-Those are subdomains inside one of the three product features.
+Those are subdomains inside one of the product features.
 
 ## Agents Subdomains
 
@@ -111,6 +121,8 @@ Recommended Agents shape:
 Features/Agents
 ├── Domain
 ├── Application
+│   ├── Tools
+│   └── BrowserTools
 ├── Infrastructure
 └── Api
 ```
@@ -120,12 +132,13 @@ Subdomain meanings:
 - `Core`: agent identity, status, ownership, provider/model settings.
 - `Runtime`: agent runs, sessions, turn lifecycle, session context.
 - `Tools`: built-in tools, tool permissions, tool catalog contracts.
-- `Channels`: Telegram/Slack/WhatsApp/Teams bindings and channel connections.
 - `Mcp`: MCP servers, credentials, agent assignments, discovered tools.
 - `Memory`: agent memory stores and entries. This replaces top-level `Data`.
 - `Context`: indexed external context/connectors currently called Atlas. This replaces top-level `Atlas`.
 - `Browser`: browser runtime/session records and browser-specific contracts.
 - `Scheduling`: cron jobs and scheduled runs.
+
+Channels owns Telegram/Slack/WhatsApp/Teams-style connections, credentials, agent bindings, inbound routing, sidecar delivery, and channel GraphQL/endpoints.
 
 ## Layer Boundaries Inside A Feature
 
@@ -376,9 +389,9 @@ tests/EnterpriseAgentOs.Api.Tests/Architecture
 
 Required tests:
 
-- Only top-level feature folders are `Agents`, `Analytics`, `Management`.
+- Only top-level feature folders are `Agents`, `Channels`, `Analytics`, `Management`.
 - Each feature has explicit `Domain`, `Application`, `Infrastructure`, and `Api` folders when it contains that layer.
-- Feature layer folders do not contain nested bucket folders unless explicitly allowlisted.
+- Feature layer folders do not contain nested bucket folders unless explicitly allowlisted. Current allowlist: `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - No namespace contains `Features.Agents.Integrations`.
 - No namespace contains top-level `Features.Atlas`, `Features.Data`, or `Features.Mcp`.
 - Domain namespaces do not reference Api or Infrastructure namespaces.
@@ -396,12 +409,13 @@ Also add:
 ## Acceptance Criteria
 
 - There is one backend `.csproj`.
-- The only top-level feature folders are `Agents`, `Analytics`, and `Management`.
+- The only top-level feature folders are `Agents`, `Channels`, `Analytics`, and `Management`.
 - Each feature owns its `Domain`, `Application`, `Infrastructure`, and `Api` code locally.
-- Feature layers are flat; new separation is done with strong file/type names.
+- Feature layers are flat; new separation is done with strong file/type names, except `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - `Atlas`, `Data`, and `Mcp` do not exist as top-level feature folders.
 - A new contributor can understand agent behavior by opening `Features/Agents`.
-- Memory, MCP, browser, channels, scheduling, and context are discoverable as Agents subdomains.
+- A new contributor can understand channel behavior by opening `Features/Channels`.
+- Memory, MCP, browser, scheduling, and context are discoverable as Agents subdomains.
 - Domain DTOs are removed or explicitly justified.
 - Repository interfaces use filters and have no duplicate scope-specific methods.
 - `dotnet build` and `dotnet test` pass.

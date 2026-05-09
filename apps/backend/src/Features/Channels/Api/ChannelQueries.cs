@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Api.Features.Agents;
+namespace EnterpriseAgentOs.Api.Features.Channels;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class ChannelQueries
