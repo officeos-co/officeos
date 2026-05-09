@@ -17,18 +17,18 @@ namespace EnterpriseAgentOs.Application.Features.Agents;
 /// </remarks>
 internal sealed class ToolExecutionLoop
 {
-    private readonly IIntegrationDefinitionService _mcpServerService;
+    private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly ToolRegistryFactory _toolRegistryFactory;
     private readonly IAgentSandbox _sandbox;
     private readonly TurnEventPublisher _events;
 
     public ToolExecutionLoop(
-        IIntegrationDefinitionService mcpServerService,
+        IIntegrationDefinitionService integrationDefinitionService,
         ToolRegistryFactory toolRegistryFactory,
         IAgentSandbox sandbox,
         TurnEventPublisher events)
     {
-        _mcpServerService = mcpServerService;
+        _integrationDefinitionService = integrationDefinitionService;
         _toolRegistryFactory = toolRegistryFactory;
         _sandbox = sandbox;
         _events = events;
@@ -36,13 +36,13 @@ internal sealed class ToolExecutionLoop
 
     public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, string correlationId, CancellationToken ct)
     {
-        var mcpListStart = Stopwatch.GetTimestamp();
-        var mcpServers = await _mcpServerService.ListForAgentAsync(agent.Id, agent.OwnerId, ct);
+        var integrationListStart = Stopwatch.GetTimestamp();
+        var integrations = await _integrationDefinitionService.ListForAgentAsync(agent.Id, agent.OwnerId, ct);
         await _events.PublishDiagnosticAsync(
             agent.Id,
             correlationId,
-            $"Tool setup: listed MCP servers ({mcpServers.Count})",
-            ElapsedMs(mcpListStart),
+            $"Tool setup: listed integrations ({integrations.Count})",
+            ElapsedMs(integrationListStart),
             ct);
 
         var registryStart = Stopwatch.GetTimestamp();
@@ -52,8 +52,8 @@ internal sealed class ToolExecutionLoop
             agent.ServiceUrl ?? string.Empty,
             agent.Id,
             correlationId,
-            mcpServers,
-            integrationName => _mcpServerService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, ct),
+            integrations,
+            integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, ct),
             ct);
         await _events.PublishDiagnosticAsync(
             agent.Id,

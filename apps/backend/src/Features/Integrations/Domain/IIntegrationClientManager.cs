@@ -1,20 +1,20 @@
-namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Domain.Features.Integrations;
 
 /// <summary>
-/// Manages connections to MCP servers. Returns raw MCP tool metadata.
+/// Manages connections to integrations. Returns raw integration tool metadata.
 /// The Application layer wraps these as IAgentTool instances.
 /// </summary>
-public interface IMcpClientManager
+public interface IIntegrationClientManager
 {
-    Task<McpConnectionResult> ConnectAsync(
+    Task<IntegrationConnectionResult> ConnectAsync(
         IntegrationDefinitionRecord server,
         Dictionary<string, string> credentials,
         CancellationToken ct = default);
 }
 
-public sealed class McpConnectionResult : IAsyncDisposable
+public sealed class IntegrationConnectionResult : IAsyncDisposable
 {
-    public IReadOnlyList<McpDiscoveredTool> Tools { get; init; } = [];
+    public IReadOnlyList<IntegrationDiscoveredTool> Tools { get; init; } = [];
     public object? NativeClient { get; init; }
     public IAsyncDisposable? Connection { get; init; }
 
@@ -26,10 +26,10 @@ public sealed class McpConnectionResult : IAsyncDisposable
 }
 
 /// <summary>
-/// A tool discovered from an MCP server. Holds an opaque reference
+/// A tool discovered from an integration. Holds an opaque reference
 /// so the Application layer can create an IAgentTool wrapper.
 /// </summary>
-public sealed class McpDiscoveredTool
+public sealed class IntegrationDiscoveredTool
 {
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }

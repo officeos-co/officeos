@@ -1,8 +1,6 @@
-using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Domain.Features.Integrations;
 
-namespace EnterpriseAgentOs.Domain.Common.Services;
-
-public static class IntegrationDefinitionCatalog
+public static class IntegrationDefinitionProvider
 {
     public static readonly string[] GitHubEntities = ["repositories", "issues", "pull_requests", "commits"];
 
@@ -20,7 +18,7 @@ public static class IntegrationDefinitionCatalog
             Name = "github",
             Provider = "github",
             Title = "GitHub",
-            Description = "GitHub integration with live MCP actions and indexable repository, issue, pull request, and commit knowledge.",
+            Description = "GitHub integration with live actions and indexable repository, issue, pull request, and commit knowledge.",
             Subtitle = "Manage and index repositories, issues, and pull requests",
             AuthorName = "Anthropic",
             AuthorUrl = "https://github.com/modelcontextprotocol",
@@ -34,7 +32,7 @@ public static class IntegrationDefinitionCatalog
             Category = "developer",
             OauthProvider = "github",
             OauthScopesJson = """["user:email","repo","read:org"]""",
-            CapabilitiesJson = """[{"type":"tools","name":"GitHub integration tools","description":"Live GitHub API actions through MCP"},{"type":"indexing","name":"Indexed GitHub knowledge","description":"Search indexed repositories, issues, pull requests, and commits"}]""",
+            CapabilitiesJson = """[{"type":"tools","name":"GitHub integration tools","description":"Live GitHub API actions through the integration runtime"},{"type":"indexing","name":"Indexed GitHub knowledge","description":"Search indexed repositories, issues, pull requests, and commits"}]""",
             Entities = GitHubEntities,
             IsBuiltin = true,
         },
@@ -463,7 +461,7 @@ public static class IntegrationDefinitionCatalog
             ToolsJson = """[{"name":"check_auth_status","description":"Check Google Docs authentication status"},{"name":"create_document","description":"Create a new Google Doc"},{"name":"create_formatted_document","description":"Create a Google Doc with formatted content"},{"name":"read_document","description":"Read a Google Doc"},{"name":"search_documents","description":"Search Google Docs"},{"name":"append_text","description":"Append text to a Google Doc"},{"name":"insert_text","description":"Insert text at a position"},{"name":"delete_text","description":"Delete text from a document"},{"name":"replace_text","description":"Replace text in a document"},{"name":"format_text","description":"Apply text formatting"},{"name":"apply_heading","description":"Apply heading styles"},{"name":"set_alignment","description":"Set paragraph alignment"},{"name":"insert_table","description":"Insert a table"},{"name":"insert_page_break","description":"Insert a page break"},{"name":"find_and_replace","description":"Find and replace text"},{"name":"insert_image_from_url","description":"Insert an image from a URL"}]""",
             TransportType = IntegrationTransportType.Stdio,
             Command = "node",
-            Args = """["eaos://scripts/google-docs-mcp-oauth-adapter.mjs"]""",
+            Args = """["eaos://scripts/google-docs-integration-oauth-adapter.mjs"]""",
             Category = "productivity",
             OauthProvider = "google",
             OauthScopesJson = """["https://www.googleapis.com/auth/documents","https://www.googleapis.com/auth/drive"]""",

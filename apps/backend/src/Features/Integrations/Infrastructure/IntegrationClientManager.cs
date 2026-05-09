@@ -2,20 +2,20 @@ using System.Text.Json;
 using ModelContextProtocol.Client;
 using Microsoft.Extensions.Logging;
 
-namespace EnterpriseAgentOs.Infrastructure.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Infrastructure.Features.Integrations;
 
-internal sealed class McpClientManager : IMcpClientManager
+internal sealed class IntegrationClientManager : IIntegrationClientManager
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<McpClientManager> _logger;
+    private readonly ILogger<IntegrationClientManager> _logger;
 
-    public McpClientManager(ILoggerFactory loggerFactory, ILogger<McpClientManager> logger)
+    public IntegrationClientManager(ILoggerFactory loggerFactory, ILogger<IntegrationClientManager> logger)
     {
         _loggerFactory = loggerFactory;
         _logger = logger;
     }
 
-    public async Task<McpConnectionResult> ConnectAsync(
+    public async Task<IntegrationConnectionResult> ConnectAsync(
         IntegrationDefinitionRecord server,
         Dictionary<string, string> credentials,
         CancellationToken ct)
@@ -30,9 +30,9 @@ internal sealed class McpClientManager : IMcpClientManager
             };
 
             var client = await McpClient.CreateAsync(transport, loggerFactory: _loggerFactory, cancellationToken: ct);
-            var mcpTools = await client.ListToolsAsync(cancellationToken: ct);
+            var integrationTools = await client.ListToolsAsync(cancellationToken: ct);
 
-            var tools = mcpTools.Select(t => new McpDiscoveredTool
+            var tools = integrationTools.Select(t => new IntegrationDiscoveredTool
             {
                 Name = t.Name,
                 Description = t.Description,
@@ -40,19 +40,19 @@ internal sealed class McpClientManager : IMcpClientManager
                     ? t.JsonSchema.GetRawText()
                     : null,
                 IntegrationName = server.Name,
-                NativeHandle = new McpNativeHandle(t, client),
+                NativeHandle = new IntegrationNativeHandle(t, client),
             }).ToList();
 
             _logger.LogInformation(
-                "Connected to MCP server {Server} ({Transport}), discovered {Count} tools",
+                "Connected to integration {Server} ({Transport}), discovered {Count} tools",
                 server.Name, server.TransportType, tools.Count);
 
-            return new McpConnectionResult { Tools = tools, NativeClient = client, Connection = client };
+            return new IntegrationConnectionResult { Tools = tools, NativeClient = client, Connection = client };
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to connect to MCP server {Server}", server.Name);
-            return new McpConnectionResult();
+            _logger.LogWarning(ex, "Failed to connect to integration {Server}", server.Name);
+            return new IntegrationConnectionResult();
         }
     }
 
@@ -64,9 +64,9 @@ internal sealed class McpClientManager : IMcpClientManager
 
         return new StdioClientTransport(new StdioClientTransportOptions
         {
-            Command = server.Command ?? throw new ArgumentException($"MCP server '{server.Name}' has no command"),
+            Command = server.Command ?? throw new ArgumentException($"integration '{server.Name}' has no command"),
             Arguments = ResolveStdioArguments(args),
-            EnvironmentVariables = credentials,
+            EnvironmentVariables = credentials.ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value),
             Name = server.Name,
         });
     }
@@ -100,7 +100,7 @@ internal sealed class McpClientManager : IMcpClientManager
 
     private HttpClientTransport CreateHttpTransport(IntegrationDefinitionRecord server, Dictionary<string, string> credentials)
     {
-        var url = server.Url ?? throw new ArgumentException($"MCP server '{server.Name}' has no URL");
+        var url = server.Url ?? throw new ArgumentException($"integration '{server.Name}' has no URL");
         return new HttpClientTransport(new HttpClientTransportOptions
         {
             Endpoint = new Uri(url),
@@ -110,4 +110,4 @@ internal sealed class McpClientManager : IMcpClientManager
 }
 
 /// <summary>Carries the SDK tool + client reference through the domain boundary.</summary>
-internal sealed record McpNativeHandle(McpClientTool Tool, McpClient Client);
+internal sealed record IntegrationNativeHandle(McpClientTool Tool, McpClient Client);

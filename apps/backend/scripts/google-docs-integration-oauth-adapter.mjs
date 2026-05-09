@@ -5,7 +5,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const packageSpec = process.env.GOOGLE_DOCS_MCP_PACKAGE ?? 'github:NoManNayeem/google-docs-mcp-server';
+const packageSpec = process.env.GOOGLE_DOCS_INTEGRATION_PACKAGE ?? 'github:NoManNayeem/google-docs-mcp-server';
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
@@ -14,11 +14,11 @@ const tokenScope =
   'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive';
 
 if (!clientId || !clientSecret || !refreshToken) {
-  console.error('google-docs MCP adapter requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.');
+  console.error('google-docs integration adapter requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.');
   process.exit(1);
 }
 
-const workDir = await mkdtemp(path.join(tmpdir(), 'eaos-google-docs-mcp-'));
+const workDir = await mkdtemp(path.join(tmpdir(), 'eaos-google-docs-integration-'));
 let cleanedUp = false;
 
 async function cleanup() {
@@ -164,7 +164,7 @@ async function main() {
 }
 
 main().catch(async error => {
-  console.error(`google-docs MCP adapter failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`google-docs integration adapter failed: ${error instanceof Error ? error.message : String(error)}`);
   await cleanup();
   process.exit(1);
 });
