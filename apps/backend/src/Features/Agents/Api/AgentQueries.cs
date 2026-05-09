@@ -5,14 +5,14 @@ public class AgentQueries
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
     [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
-    public async Task<IReadOnlyList<AgentDto>> GetAgents(
+    public async Task<IReadOnlyList<AgentResult>> GetAgents(
         [Service] UserContext user,
         [Service] IAgentService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         var listCacheKey = AgentCacheKeys.DashboardList(user.Id);
-        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentDto>>(listCacheKey, ct);
+        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentResult>>(listCacheKey, ct);
         if (cached is not null)
             return cached;
 

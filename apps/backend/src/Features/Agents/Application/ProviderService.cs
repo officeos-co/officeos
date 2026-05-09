@@ -16,19 +16,19 @@ internal sealed class ProviderService : IProviderService
         _customLlmProviderConfig = customLlmProviderConfig;
     }
 
-    public Task<IReadOnlyList<ProviderDto>> ListAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<ProviderResult>> ListAsync(CancellationToken ct = default)
     {
         var list = ProviderRegistry.DashboardProviders
-            .Select(def => new ProviderDto(
+            .Select(def => new ProviderResult(
                 DeterministicGuid(def.Slug),
                 def.Slug,
                 def.DisplayName,
                 HasPlatformKey(def.Slug),
                 null,
-                def.Models.Select(m => new ProviderModelDto(m.Id, m.DisplayName, m.CostWeight)).ToList()))
+                def.Models.Select(m => new ProviderModelResult(m.Id, m.DisplayName, m.CostWeight)).ToList()))
             .ToList();
 
-        list.Add(new ProviderDto(
+        list.Add(new ProviderResult(
             DeterministicGuid(ProviderRegistry.CustomProviderSlug),
             ProviderRegistry.CustomProviderSlug,
             _customLlmProviderConfig.EffectiveDisplayName,
@@ -36,7 +36,7 @@ internal sealed class ProviderService : IProviderService
             null,
             GetCustomModels()));
 
-        return Task.FromResult<IReadOnlyList<ProviderDto>>(list);
+        return Task.FromResult<IReadOnlyList<ProviderResult>>(list);
     }
 
     public Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
@@ -53,11 +53,11 @@ internal sealed class ProviderService : IProviderService
     private bool HasPlatformKey(string name) =>
         _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName) is not null;
 
-    private IReadOnlyList<ProviderModelDto> GetCustomModels() =>
+    private IReadOnlyList<ProviderModelResult> GetCustomModels() =>
         _customLlmProviderConfig.IsConfigured
             ? new[]
             {
-                new ProviderModelDto(
+                new ProviderModelResult(
                     _customLlmProviderConfig.ModelId.Trim(),
                     _customLlmProviderConfig.EffectiveModelDisplayName,
                     _customLlmProviderConfig.EffectiveCostWeight),

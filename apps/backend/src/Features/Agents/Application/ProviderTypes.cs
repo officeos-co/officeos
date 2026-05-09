@@ -10,7 +10,7 @@ public sealed record ProviderGqlDto(
 
 internal static class ProviderGraphQLMapper
 {
-    public static ProviderGqlDto ToDto(ProviderDto p) =>
+    public static ProviderGqlDto ToDto(ProviderResult p) =>
         new(p.Id, p.Name, p.DisplayName, p.Configured, p.ConfiguredAt,
             p.Models.Select(m => m.Id).ToList());
 }

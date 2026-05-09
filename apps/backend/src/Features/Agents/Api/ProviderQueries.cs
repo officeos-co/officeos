@@ -50,7 +50,7 @@ public class ProviderQueries
         {
             models.Insert(0, (
                 "anthropic",
-                new ProviderModelDto(
+                new ProviderModelResult(
                     ProviderRegistry.DefaultModel,
                     ProviderRegistry.GetDisplayName(ProviderRegistry.DefaultModel),
                     0)));

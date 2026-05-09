@@ -44,11 +44,21 @@ Sixth layout pass completed on 2026-05-09:
 - GraphQL registration extensions moved to root `src/Extensions`.
 - Configuration classes moved to root `src/Configuration`.
 
+Seventh architecture pass completed on 2026-05-09:
+
+- Domain `*Dto` files were removed.
+- Use-case request/result records moved to Application, for example `CreateAgentRequest`, `AgentResult`, `ProviderResult`, analytics result shapes, and GDPR export shapes.
+- GraphQL/HTTP input and payload records moved to Api where they are transport-only.
+- Application service contracts that describe use cases moved out of Domain into Application.
+- Multi-step API workflows were moved behind Application services: agent dashboard provisioning, cron jobs, sessions, resources, memory store writes, auth profile/logout, and organization overview.
+- API methods may still call Domain repositories directly for simple owner-scoped reads, but writes and orchestration now belong in Application services.
+- `ChannelRepository.ListConnectionsAsync` now accepts `ChannelConnectionFilter`, removing in-memory owner filtering from the API.
+- The backend builds successfully with `dotnet build src/EnterpriseAgentOs.Api.csproj --no-restore`.
+
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
-- Some stale broad type names remain around MCP/context (`Integration*`, `*Types`, `*Dto`). These should be tightened in a follow-up semantic cleanup.
-- Domain `*Dto` type names still need classification/migration.
+- Some stale broad type names remain around MCP/context (`Integration*`, `*Types`). These should be tightened in a follow-up semantic cleanup.
 - Repository interfaces still need the filter-based simplification pass.
 - Existing nullable warnings remain.
 
@@ -182,7 +192,7 @@ Domain owns:
 - Business records.
 - Value objects.
 - Repository interfaces.
-- Domain service interfaces.
+- Domain service interfaces only for true domain abstractions, not application use-case orchestration.
 - Domain events.
 - Filters used by repositories.
 - Validation and invariant helpers that are true business rules.
@@ -192,6 +202,7 @@ Application owns:
 - Use-case services.
 - Background jobs.
 - Request/result records for use cases.
+- Application service contracts for use cases, for example `IAgentService`, `IAgentDashboardService`, `IProviderService`, `IAgentLogService`, and `IGdprService`.
 - Policies that orchestrate domain behavior.
 - Tool execution orchestration.
 
@@ -222,6 +233,7 @@ Api owns:
 - API input and payload types.
 - Transport validation and authorization.
 - Mapping between transport types and application requests/results.
+- Direct repository calls only for simple owner-scoped reads with no workflow, side effects, or policy decisions.
 
 One project removes project-reference enforcement, so architecture tests must enforce these boundaries by namespace/folder rules.
 
@@ -254,7 +266,7 @@ Domain:
 - `*Record`: persistent business record loaded/saved by repositories.
 - `*Filter`: repository query filter.
 - `I*Repository`: persistence port implemented in the feature's Infrastructure folder.
-- `I*Service`: domain/application-facing service contract only when a real abstraction is needed.
+- `I*Service`: only for real domain-facing abstractions. Do not put use-case service contracts in Domain.
 - `*Event`: lifecycle fact published through MediatR.
 - Value objects keep direct names, for example `Email`, `ToolKey`, `CronExpression`.
 
@@ -263,6 +275,7 @@ Application:
 - `*Request`: use-case input.
 - `*Result`: use-case output.
 - `*Service`: use-case orchestration.
+- `*Contracts`: tight file grouping for application service interfaces plus their request/result records when those types are only useful together.
 - `*Policy`: application decision rules.
 
 EventHandlers:
@@ -273,6 +286,7 @@ Api:
 
 - `*Input`: GraphQL/HTTP input.
 - `*Payload`: GraphQL/HTTP output.
+- `*GqlDto`: tolerated only as an existing GraphQL projection name; prefer `*Payload` for new code.
 - `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`.
 
 Infrastructure:
@@ -290,11 +304,46 @@ Database:
 
 Avoid:
 
-- `Dto` in Domain unless it is a stable domain contract and not tied to GraphQL, HTTP, EF, or one use case.
+- `Dto` in Domain. Use `*Record`, `*Filter`, value-object names, or a clearer business contract name.
 - Generic `Integration*` names unless the type truly covers more than MCP and context connectors.
 - Broad files named `Types.cs`, `Records.cs`, or `Repositories.cs`.
 - Duplicate layer files like `AgentTypes.cs` in multiple places.
 - Bucket folders named `Records`, `Interfaces`, `Dtos`, `Services`, `Repositories`, `Adapters`, `Queries`, `Mutations`, `Types`, or subdomain wrappers inside feature layers.
+
+## API/Application Boundary
+
+Do not add empty Application services just to forward one repository method, but do not let API methods become use-case orchestration.
+
+Allowed in Api:
+
+- Simple owner-scoped reads.
+- Transport input validation.
+- Mapping Api `*Input` to Application `*Request`.
+- Mapping Application `*Result` or Domain `*Record` to Api `*Payload`.
+- GraphQL/HTTP error translation.
+- Cache invalidation for GraphQL dashboard response caches.
+
+Not allowed in Api:
+
+- Writes directly to repositories.
+- Multi-step workflows.
+- Ownership checks that require more than passing `UserContext.Id` into a repository filter.
+- Domain event publishing.
+- Agent runtime/session/tool orchestration.
+- Gateway reloads, credential protection, log append/send behavior, provider validation, billing checks, or policy decisions.
+
+Examples:
+
+```csharp
+// OK: simple owner-scoped read.
+var row = await memoryStores.GetAsync(id, user.Id, ct);
+return row is null ? null : ToPayload(row);
+
+// Not OK: workflow belongs in Application.
+await repository.SaveAsync(record, ct);
+await publisher.Publish(new AgentUpdatedEvent(record.Id), ct);
+await cache.RemoveAsync(cacheKey, ct);
+```
 
 ## Repository Style
 
@@ -381,7 +430,7 @@ Do not keep broad bucket files like:
 
 ## Domain DTO Policy
 
-Most current Domain DTOs should move.
+Domain DTOs are not allowed by default. The current Domain DTO cleanup is complete.
 
 Rules:
 
@@ -389,9 +438,9 @@ Rules:
 - Use-case request/result: move to the feature's `Application`.
 - Persistence model: keep as Infrastructure `*Entity`.
 - Business record: keep as Domain `*Record`.
-- Cross-layer stable business contract: may stay in Domain, but avoid the suffix `Dto` if a better domain name exists.
+- Cross-layer stable business contract: may stay in Domain only when it is a real business concept; avoid the suffix `Dto`.
 
-The first cleanup target is now the current `*Dto` type names that remain in flat Domain layers.
+If a new `Dto` appears under `Features/*/Domain`, treat it as a failing architecture review unless there is an explicit documented exception.
 
 ## Remaining Semantic Rename Targets
 
@@ -415,7 +464,7 @@ The physical feature cleanup is complete. Rename public types that still carry o
 1. Freeze the desired convention in this note and `AGENTS.md`.
 2. Keep the single-project target folder structure.
 3. Keep feature layers flat and rely on strong names.
-4. Rename stale broad `Integration*`, `*Types`, and `*Dto` names where they no longer describe the owning feature.
+4. Rename stale broad `Integration*` and `*Types` names where they no longer describe the owning feature.
 5. Simplify repository interfaces with filter records.
 6. Add architecture tests that enforce the final shape.
 7. Run build/tests and enable architecture tests as required CI checks.
@@ -437,9 +486,12 @@ Required tests:
 - No namespace contains top-level `Features.Atlas`, `Features.Data`, or `Features.Mcp`.
 - Domain namespaces do not reference Api or Infrastructure namespaces.
 - Api types are not used by Domain or Infrastructure.
+- Domain does not contain files named `*Dto.cs` or types ending in `Dto`.
+- Domain service interfaces do not depend on Application request/result types.
+- API mutation methods do not inject repositories except for simple read validation; writes go through Application services.
 - Infrastructure repository methods do not expose `*Entity` types.
 - Repository implementation files contain one repository class.
-- Domain `*Dto` type names are empty or explicitly allowlisted.
+- Domain `*Dto` type names are empty.
 
 Also add:
 
@@ -458,7 +510,10 @@ Also add:
 - A new contributor can understand channel behavior by opening `Features/Channels`.
 - A new contributor can understand memory and integration indexing behavior by opening `Features/Context`.
 - MCP, browser, scheduling, and runtime are discoverable as Agents subdomains.
-- Domain DTOs are removed or explicitly justified.
+- Domain DTOs are removed.
+- Use-case request/result records live in Application.
+- GraphQL/HTTP input/payload records live in Api.
+- API writes and multi-step workflows go through Application services.
 - Repository interfaces use filters and have no duplicate scope-specific methods.
 - `dotnet build` and `dotnet test` pass.
 - Architecture tests enforce the convention.

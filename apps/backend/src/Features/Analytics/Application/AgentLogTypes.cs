@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Analytics;
+namespace EnterpriseAgentOs.Application.Features.Analytics;
 
 public sealed record AgentLogDto(
     Guid Id,
