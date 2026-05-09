@@ -18,6 +18,7 @@ Each feature owns its local layers:
 
 - `Domain`: business records, value objects, repository/service interfaces, filters, domain events, and invariants.
 - `Application`: use-case services, MediatR handlers, background jobs, policies, request/result records, and orchestration.
+- `EventHandlers`: MediatR notification handlers and internal event wiring. Keep these thin; delegate behavior to Application services.
 - `Infrastructure`: EF repository implementations, external adapters/clients, provider dispatch, security wrappers, and feature infrastructure.
 - `Api`: GraphQL queries/mutations/subscriptions, REST/minimal endpoints/controllers, API input/payload types, auth/transport validation.
 
@@ -82,6 +83,9 @@ Application:
 - `*Result`: use-case output.
 - `*Service`: use-case orchestration.
 - `*Policy`: application decision rules.
+
+EventHandlers:
+
 - `*Handler`: MediatR event handler.
 
 Api:
@@ -137,15 +141,22 @@ Domain DTOs are exceptional.
 - Application services orchestrate collaborators; they should not know transport details or database schema details.
 - Keep responsibilities narrow. If a service owns only a specific part of the agent loop, respect that boundary.
 - The agent turn loop is intentionally split across `AgentTurnService`, `AgentRunLifecycle`, `TurnEventPublisher`, `TurnContextBuilder`, `BillingCheckpoint`, `LlmTurnExecutor`, and `ToolExecutionLoop`.
-- Use MediatR domain events for lifecycle changes where possible. Application services publish events; handlers react in Application.
+- Use MediatR domain events for lifecycle changes where possible. Application services publish events; handlers react in EventHandlers.
 - Prefer explicit result records or `AgentResult<T>` for expected business outcomes.
 - Register application services in `ApplicationServiceRegistration.AddApplication`.
 - Internal implementation classes should generally be `internal sealed`.
 
+## Event Handlers
+
+- MediatR notification handlers belong in `Features/<Feature>/EventHandlers`.
+- Event handlers are wiring, not business logic. They should translate the event into calls to Application services, infrastructure ports, publishers, or background work.
+- Do not put domain invariants, transport validation, repository mapping, or large orchestration flows in handlers.
+- Handler namespaces use `EnterpriseAgentOs.EventHandlers.Features.<Feature>`.
+
 ## Events And Logging
 
 - Domain events represent lifecycle facts: agent creation/update/deletion, turn start/completion/diagnostics, pod connection, LLM usage, tool calls/results, message in/out, channel routing, compaction, and errors.
-- Put event side effects in Application handlers.
+- Put event side effects in EventHandlers.
 - Agent interactions are structured log entries, not chat messages. Preserve typed log semantics such as `MessageIn`, `ToolCall`, `ToolResult`, `MessageOut`, `System`, and typed error categories.
 - Use `AgentLogRecord` factory methods when they match the entry being created.
 - Serilog/`ILogger` is for operational diagnostics, not the agent timeline.

@@ -1,7 +1,7 @@
 using MediatR;
 using EnterpriseAgentOs.Application.Features.Agents;
 
-namespace EnterpriseAgentOs.Application.Features.Analytics;
+namespace EnterpriseAgentOs.EventHandlers.Features.Analytics;
 
 internal sealed class TurnLoggingHandler :
     INotificationHandler<TurnStartedEvent>,
