@@ -1,6 +1,7 @@
 using MediatR;
+using EnterpriseAgentOs.Application.Features;
 
-namespace EnterpriseAgentOs.Application.Features.Agents;
+namespace EnterpriseAgentOs.EventHandlers.Features.Agents;
 
 internal sealed class RunAgentTurnHandler : INotificationHandler<MessageReceivedEvent>
 {

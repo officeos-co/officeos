@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Agents.Handlers;
+namespace EnterpriseAgentOs.EventHandlers.Features.Agents;
 
 internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedEvent>
 {

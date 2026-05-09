@@ -26,6 +26,11 @@ Third layout pass completed on 2026-05-09:
 - `Channels` was split out from `Agents` as its own top-level feature.
 - Agent tool code received the only nested-folder exception: `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 
+Fourth layout pass completed on 2026-05-09:
+
+- MediatR notification handlers were moved out of Application into `Features/<Feature>/EventHandlers`.
+- Handler namespaces now use `EnterpriseAgentOs.EventHandlers.Features.<Feature>`.
+
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
@@ -42,7 +47,7 @@ The desired architecture is:
 
 - One backend `.csproj`.
 - Four top-level product features: `Agents`, `Channels`, `Analytics`, `Management`.
-- Inside each feature, keep the clean architecture boundaries: `Domain`, `Application`, `Infrastructure`, `Api`.
+- Inside each feature, keep the clean architecture boundaries: `Domain`, `Application`, `EventHandlers`, `Infrastructure`, `Api`.
 - Centralized database code under `src/Database`, because EF context, models, and migrations are shared by the application.
 
 This keeps the separation that matters, but makes feature work local. When working on Agents, the agent domain records, application services, repositories, GraphQL types, and endpoints should be near each other.
@@ -59,21 +64,25 @@ src
 │   ├── Agents
 │   │   ├── Domain
 │   │   ├── Application
+│   │   ├── EventHandlers
 │   │   ├── Infrastructure
 │   │   └── Api
 │   ├── Channels
 │   │   ├── Domain
 │   │   ├── Application
+│   │   ├── EventHandlers
 │   │   ├── Infrastructure
 │   │   └── Api
 │   ├── Analytics
 │   │   ├── Domain
 │   │   ├── Application
+│   │   ├── EventHandlers
 │   │   ├── Infrastructure
 │   │   └── Api
 │   └── Management
 │       ├── Domain
 │       ├── Application
+│       ├── EventHandlers
 │       ├── Infrastructure
 │       └── Api
 ├── Common
@@ -123,6 +132,7 @@ Features/Agents
 ├── Application
 │   ├── Tools
 │   └── BrowserTools
+├── EventHandlers
 ├── Infrastructure
 └── Api
 ```
@@ -157,11 +167,16 @@ Domain owns:
 Application owns:
 
 - Use-case services.
-- MediatR handlers.
 - Background jobs.
 - Request/result records for use cases.
 - Policies that orchestrate domain behavior.
 - Tool execution orchestration.
+
+EventHandlers owns:
+
+- MediatR notification handlers.
+- Internal event wiring.
+- Thin event-to-application-service delegation.
 
 Infrastructure owns:
 
@@ -226,6 +241,9 @@ Application:
 - `*Result`: use-case output.
 - `*Service`: use-case orchestration.
 - `*Policy`: application decision rules.
+
+EventHandlers:
+
 - `*Handler`: MediatR event handler.
 
 Api:
@@ -390,7 +408,7 @@ tests/EnterpriseAgentOs.Api.Tests/Architecture
 Required tests:
 
 - Only top-level feature folders are `Agents`, `Channels`, `Analytics`, `Management`.
-- Each feature has explicit `Domain`, `Application`, `Infrastructure`, and `Api` folders when it contains that layer.
+- Each feature has explicit `Domain`, `Application`, `EventHandlers`, `Infrastructure`, and `Api` folders when it contains that layer.
 - Feature layer folders do not contain nested bucket folders unless explicitly allowlisted. Current allowlist: `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - No namespace contains `Features.Agents.Integrations`.
 - No namespace contains top-level `Features.Atlas`, `Features.Data`, or `Features.Mcp`.
@@ -410,7 +428,7 @@ Also add:
 
 - There is one backend `.csproj`.
 - The only top-level feature folders are `Agents`, `Channels`, `Analytics`, and `Management`.
-- Each feature owns its `Domain`, `Application`, `Infrastructure`, and `Api` code locally.
+- Each feature owns its `Domain`, `Application`, `EventHandlers`, `Infrastructure`, and `Api` code locally.
 - Feature layers are flat; new separation is done with strong file/type names, except `Agents/Application/Tools` and `Agents/Application/BrowserTools`.
 - `Atlas`, `Data`, and `Mcp` do not exist as top-level feature folders.
 - A new contributor can understand agent behavior by opening `Features/Agents`.
