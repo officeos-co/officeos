@@ -251,6 +251,7 @@ var dashboardGql = builder.Services
     .AddQueryType<GraphQLQueries>()
     .AddMutationType<GraphQLMutations>()
     .AddSubscriptionType<GraphQLSubscriptions>()
+    .AddTypes()
     .AddInMemorySubscriptions()
     .ModifyPagingOptions(options =>
     {
@@ -259,9 +260,8 @@ var dashboardGql = builder.Services
         options.IncludeTotalCount = true;
         options.IncludeNodesField = true;
     });
-GraphQLRegistrationExtensions.AddDomainTypeExtensions(
-    dashboardGql, typeof(Program).Assembly)
-    .RequireDashboardSession()
+dashboardGql
+    .UseField<DashboardAuthMiddleware>()
     .DisableIntrospection(false);
 
 // CORS
