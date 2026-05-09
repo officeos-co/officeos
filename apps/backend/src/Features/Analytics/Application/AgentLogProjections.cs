@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Application.Features.Analytics;
 
-public sealed record AgentLogDto(
+public sealed record AgentLogProjection(
     Guid Id,
     Guid? AgentId,
     string? AgentName,
@@ -23,31 +23,31 @@ public sealed record GlobalLogFiltersInput(
     int Skip = 0,
     int Limit = 50);
 
-public sealed record GlobalLogsPage(IReadOnlyList<AgentLogDto> Items, int Total);
+public sealed record GlobalLogsPage(IReadOnlyList<AgentLogProjection> Items, int Total);
 
 public sealed record UsageAnalyticsInput(
     DateTime From,
     DateTime To);
 
-public sealed record UsageAnalyticsPointDto(
+public sealed record UsageAnalyticsPoint(
     DateTime Date,
     long Tokens,
     long Credits);
 
-public sealed record UsageCostBreakdownDto(
+public sealed record UsageCostBreakdown(
     long TotalCents,
     long IncludedCents,
     long OnDemandCents,
     string Currency,
     bool Estimated);
 
-public sealed record UsageAnalyticsDto(
+public sealed record UsageAnalyticsResult(
     DateTime From,
     DateTime To,
     long TotalTokens,
     long TotalCredits,
-    UsageCostBreakdownDto Cost,
-    IReadOnlyList<UsageAnalyticsPointDto> Points);
+    UsageCostBreakdown Cost,
+    IReadOnlyList<UsageAnalyticsPoint> Points);
 
 public sealed record AppendAgentLogInput(
     Guid AgentId,
@@ -74,7 +74,7 @@ public sealed record AuditLogPage(IReadOnlyList<AuditEntry> Items, int Total);
 
 public static class AgentLogMapper
 {
-    public static AgentLogDto ToDto(this AgentLogRecord r, string? agentName = null) => new(
+    public static AgentLogProjection ToProjection(this AgentLogRecord r, string? agentName = null) => new(
         r.Id, r.AgentId, agentName, r.Time, r.Type,
         r.Tool, r.Integration, r.Channel, r.ChannelConnectionId, r.Content,
         r.Usage.DurationMs, r.Usage.InputTokens, r.Usage.OutputTokens, r.CorrelationId);

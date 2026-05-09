@@ -2,9 +2,9 @@ namespace EnterpriseAgentOs.Application.Features.Analytics;
 
 public interface IAgentLogService
 {
-    IQueryable<AgentLogDto> AgentLogs(Guid agentId);
-    IQueryable<AgentLogDto> ChannelLogs(Guid channelConnectionId);
-    IQueryable<AgentLogDto> GlobalLogs(GlobalLogFiltersInput filters);
+    IQueryable<AgentLogProjection> AgentLogs(Guid agentId);
+    IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId);
+    IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersInput filters);
     IQueryable<AuditEntry> AuditLog(Guid agentId);
     Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default);
@@ -19,5 +19,5 @@ public interface IAgentLogService
 
 public interface IUsageAnalyticsService
 {
-    Task<UsageAnalyticsDto> GetForUserAsync(Guid userId, UsageAnalyticsInput input, CancellationToken ct = default);
+    Task<UsageAnalyticsResult> GetForUserAsync(Guid userId, UsageAnalyticsInput input, CancellationToken ct = default);
 }

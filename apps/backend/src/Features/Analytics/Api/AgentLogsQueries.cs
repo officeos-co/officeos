@@ -3,18 +3,18 @@ namespace EnterpriseAgentOs.Api.Features.Analytics;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentLogsQueries
 {
-    [UsePaging(typeof(AgentLogDto), IncludeTotalCount = true, MaxPageSize = 500, DefaultPageSize = 100)]
+    [UsePaging(typeof(AgentLogProjection), IncludeTotalCount = true, MaxPageSize = 500, DefaultPageSize = 100)]
     [GraphQLDescription("Returns log entries for a specific agent using HotChocolate cursor pagination.")]
-    public IQueryable<AgentLogDto> GetAgentLogs(
+    public IQueryable<AgentLogProjection> GetAgentLogs(
         Guid agentId,
         [Service] IAgentLogService logs)
     {
         return logs.AgentLogs(agentId);
     }
 
-    [UsePaging(typeof(AgentLogDto), IncludeTotalCount = true, MaxPageSize = 500, DefaultPageSize = 100)]
+    [UsePaging(typeof(AgentLogProjection), IncludeTotalCount = true, MaxPageSize = 500, DefaultPageSize = 100)]
     [GraphQLDescription("Returns log entries for a specific channel connection using HotChocolate cursor pagination.")]
-    public async Task<IQueryable<AgentLogDto>> GetChannelLogs(
+    public async Task<IQueryable<AgentLogProjection>> GetChannelLogs(
         Guid channelConnectionId,
         [Service] UserContext user,
         [Service] IChannelRepository channels,

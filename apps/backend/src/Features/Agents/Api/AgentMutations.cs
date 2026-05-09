@@ -10,7 +10,7 @@ public class AgentSchemaMutations
     /// Forwards a log entry from the agent pod to the backend timeline.
     /// </summary>
     [GraphQLDescription("Forwards a log entry from the agent pod to the backend timeline. Called by the agent runtime, not the dashboard.")]
-    public async Task<AgentLogDto> ForwardLog(
+    public async Task<AgentLogProjection> ForwardLog(
         ForwardLogInput input,
         [Service] IHttpContextAccessor httpContextAccessor,
         [Service] IAgentLogService logs,
@@ -40,7 +40,7 @@ public class AgentSchemaMutations
         };
 
         var saved = await logs.AppendAsync(record, ct);
-        return AgentLogMapper.ToDto(saved);
+        return AgentLogMapper.ToProjection(saved);
     }
 }
 

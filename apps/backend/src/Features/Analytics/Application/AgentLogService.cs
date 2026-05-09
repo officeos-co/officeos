@@ -29,20 +29,20 @@ internal sealed class AgentLogService : IAgentLogService
         _logger = logger;
     }
 
-    public IQueryable<AgentLogDto> AgentLogs(Guid agentId) =>
-        ToDtoQuery(
+    public IQueryable<AgentLogProjection> AgentLogs(Guid agentId) =>
+        ToProjectionQuery(
             _agentLogRepository.Query(new AgentLogFilter { AgentId = agentId })
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
-    public IQueryable<AgentLogDto> ChannelLogs(Guid channelConnectionId) =>
-        ToDtoQuery(
+    public IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId) =>
+        ToProjectionQuery(
             _agentLogRepository.Query(new AgentLogFilter { ChannelConnectionId = channelConnectionId })
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
-    public IQueryable<AgentLogDto> GlobalLogs(GlobalLogFiltersInput filters) =>
-        ToDtoQuery(
+    public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersInput filters) =>
+        ToProjectionQuery(
             _agentLogRepository.Query(new AgentLogFilter
                 {
                     Search = filters.Search,
@@ -111,7 +111,7 @@ internal sealed class AgentLogService : IAgentLogService
             filter,
             new AgentLogListOptions { Skip = skip, Limit = limit, Sort = AgentLogSort.TimeDescending },
             ct);
-        var items = rows.Select(r => r.ToDto(r.Agent?.Name ?? "(unbound)")).ToList();
+        var items = rows.Select(r => r.ToProjection(r.Agent?.Name ?? "(unbound)")).ToList();
         return new GlobalLogsPage(items, total);
     }
 
@@ -120,7 +120,7 @@ internal sealed class AgentLogService : IAgentLogService
         var saved = await _agentLogRepository.AppendAsync(record, ct);
         if (saved.AgentId is { } agentId)
         {
-            await _topicEventSender.SendAsync(AgentLogTopics.AgentLogAppended(agentId), saved.ToDto(), ct);
+            await _topicEventSender.SendAsync(AgentLogTopics.AgentLogAppended(agentId), saved.ToProjection(), ct);
         }
         return saved;
     }
@@ -238,8 +238,8 @@ internal sealed class AgentLogService : IAgentLogService
         return SecretKeySubstrings.Any(s => lower.Contains(s));
     }
 
-    private static IQueryable<AgentLogDto> ToDtoQuery(IQueryable<AgentLogRecord> query) =>
-        query.Select(log => new AgentLogDto(
+    private static IQueryable<AgentLogProjection> ToProjectionQuery(IQueryable<AgentLogRecord> query) =>
+        query.Select(log => new AgentLogProjection(
             log.Id,
             log.AgentId,
             log.Agent == null ? null : log.Agent.Name,

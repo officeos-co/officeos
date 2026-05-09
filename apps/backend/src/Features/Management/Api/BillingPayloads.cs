@@ -1,6 +1,6 @@
 namespace EnterpriseAgentOs.Api.Features.Management;
 
-public sealed record UserSubscriptionDto(
+public sealed record UserSubscriptionPayload(
     Guid Id,
     Guid UserId,
     string Plan,
@@ -15,7 +15,7 @@ public sealed record UserSubscriptionDto(
     DateTime PeriodEnd,
     bool IsActive);
 
-public sealed record OrgSubscriptionDto(
+public sealed record OrgSubscriptionPayload(
     Guid Id,
     string OrganizationId,
     string Plan,
@@ -29,18 +29,18 @@ public sealed record OrgSubscriptionDto(
     DateTime PeriodEnd,
     bool IsActive);
 
-public sealed record PlanLimitsDto(
+public sealed record PlanLimitsPayload(
     PlanLimit IndividualFree,
     PlanLimit IndividualPro,
     PlanLimit OrgFree,
     PlanLimit OrgTeam);
 
-public sealed record ModelCostWeightDto(
+public sealed record ModelCostWeightPayload(
     string Model,
     int Weight);
 
 /// <summary>Dashboard-facing subscribe response — returns the Stripe checkout URL.</summary>
-public sealed record SubscribeResultDto(
+public sealed record SubscribeResultPayload(
     string CheckoutUrl);
 
 /// <summary>
@@ -48,7 +48,7 @@ public sealed record SubscribeResultDto(
 /// old "extra usage auto-reload" knob with a simple `extraUsageEnabled`
 /// on/off toggle (backed by Stripe metered overage item).
 /// </summary>
-public sealed record PlanPriceDto(
+public sealed record PlanPricePayload(
     string Plan,
     long MonthlyAmountCents,
     long YearlyAmountCents,

@@ -15,7 +15,7 @@ public class ChannelMutations
     }
 
     [GraphQLDescription("Creates a new channel connection (e.g. Slack bot, Telegram bot). ConfigJson contains the encrypted credentials payload.")]
-    public async Task<ChannelConnectionGqlDto> CreateChannelConnection(
+    public async Task<ChannelConnectionPayload> CreateChannelConnection(
         CreateChannelConnectionInput input,
         [Service] UserContext user,
         [Service] IChannelService channelService,
@@ -29,7 +29,7 @@ public class ChannelMutations
                 user.Id, ct);
 
             await InvalidateChannelCachesAsync(cache, user.Id, null, ct);
-            return ChannelGraphQLMapper.ToDto(created);
+            return ChannelGraphQLMapper.ToPayload(created);
         }
         catch (InvalidOperationException ex)
         {
@@ -39,7 +39,7 @@ public class ChannelMutations
     }
 
     [GraphQLDescription("Updates display name and/or enabled status of an existing channel connection.")]
-    public async Task<ChannelConnectionGqlDto> UpdateChannelConnection(
+    public async Task<ChannelConnectionPayload> UpdateChannelConnection(
         Guid id,
         UpdateChannelConnectionInput input,
         [Service] UserContext user,
@@ -53,7 +53,7 @@ public class ChannelMutations
                 id, user.Id, input.DisplayName, input.Enabled, ct);
 
             await InvalidateChannelCachesAsync(cache, user.Id, id, ct);
-            return ChannelGraphQLMapper.ToDto(updated);
+            return ChannelGraphQLMapper.ToPayload(updated);
         }
         catch (InvalidOperationException ex)
         {
@@ -84,7 +84,7 @@ public class ChannelMutations
     }
 
     [GraphQLDescription("Binds a channel connection to an agent so it receives messages from that channel. Optional config specifies platform/thread IDs.")]
-    public Task<AgentChannelBindingGqlDto> BindChannelToAgent(
+    public Task<AgentChannelBindingPayload> BindChannelToAgent(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput? config,
@@ -113,7 +113,7 @@ public class ChannelMutations
     }
 
     [GraphQLDescription("Updates the routing config (platformId, threadId) on an existing agent-channel binding.")]
-    public Task<AgentChannelBindingGqlDto> UpdateChannelBindingConfig(
+    public Task<AgentChannelBindingPayload> UpdateChannelBindingConfig(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput config,

@@ -18,7 +18,7 @@ public class BillingMutations
             .Build());
 
     [GraphQLDescription("Initiates a Stripe Checkout session for the given plan (free or pro) and billing cycle (monthly or yearly). Returns the checkout URL.")]
-    public async Task<SubscribeResultDto> SubscribeUser(
+    public async Task<SubscribeResultPayload> SubscribeUser(
         string plan,
         string billingCycle,
         [Service] UserContext user,
@@ -58,11 +58,11 @@ public class BillingMutations
         var checkoutUrl = await userBilling.CreateCheckoutSessionAsync(
             user.Id, user.Email, plan, billingCycle, ct);
         await InvalidateBillingCacheAsync(cache, user.Id, ct);
-        return new SubscribeResultDto(checkoutUrl);
+        return new SubscribeResultPayload(checkoutUrl);
     }
 
     [GraphQLDescription("Cancels the user's subscription by disabling overage. Returns the updated subscription state.")]
-    public async Task<UserSubscriptionDto> CancelUserSubscription(
+    public async Task<UserSubscriptionPayload> CancelUserSubscription(
         [Service] UserContext user,
         [Service] IUserBillingService userBilling,
         [Service] IDistributedCache cache,
@@ -80,7 +80,7 @@ public class BillingMutations
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         await InvalidateBillingCacheAsync(cache, user.Id, ct);
-        return new UserSubscriptionDto(
+        return new UserSubscriptionPayload(
             sub.Id, sub.UserId, sub.Plan.ToStorageString(), sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,
@@ -116,7 +116,7 @@ public class BillingMutations
 
     [GraphQLDescription("Deprecated: use setExtraUsageEnabled. Toggles overage and returns full subscription state.")]
     [Obsolete("Use setExtraUsageEnabled. Kept for backwards compatibility.")]
-    public async Task<UserSubscriptionDto> ToggleOverage(
+    public async Task<UserSubscriptionPayload> ToggleOverage(
         bool enabled,
         [Service] UserContext user,
         [Service] IUserBillingService userBilling,
@@ -135,7 +135,7 @@ public class BillingMutations
         var sub = await userBilling.GetSubscriptionAsync(user.Id, ct);
         var (remaining, overBudget) = await userBilling.CheckCreditBudgetAsync(user.Id, ct);
         await InvalidateBillingCacheAsync(cache, user.Id, ct);
-        return new UserSubscriptionDto(
+        return new UserSubscriptionPayload(
             sub.Id, sub.UserId, sub.Plan.ToStorageString(), sub.BillingCycle.ToStorageString(),
             sub.ConcurrentAgentLimit, sub.CreditBudgetPerMonth,
             sub.CreditsUsedThisMonth, remaining, overBudget,
