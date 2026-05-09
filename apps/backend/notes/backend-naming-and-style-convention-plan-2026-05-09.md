@@ -15,6 +15,12 @@ Initial refactor pass completed on 2026-05-09:
 - `AGENTS.md` was rewritten to describe the feature-first single-project convention.
 - The solution builds successfully with `dotnet build EnterpriseAgentOs.sln`.
 
+Second layout pass completed on 2026-05-09:
+
+- Feature layer folders were flattened. Files now live directly in `Features/<Feature>/<Layer>`.
+- Bucket folders such as `Records`, `Interfaces`, `Dtos`, `Services`, `Repositories`, `Adapters`, `Queries`, `Mutations`, `Types`, `Endpoints`, and subdomain wrappers were removed from feature layers.
+- The convention is now strong file/type naming over deep folder nesting.
+
 Remaining cleanup:
 
 - Namespaces still mostly use the old project-first names (`EnterpriseAgentOs.Domain.*`, `EnterpriseAgentOs.Application.*`, `EnterpriseAgentOs.Infrastructure.*`) to keep the big move compiling. Database namespaces were moved to `EnterpriseAgentOs.Database`.
@@ -35,6 +41,8 @@ The desired architecture is:
 - Centralized database code under `src/Database`, because EF context, models, and migrations are shared by the application.
 
 This keeps the separation that matters, but makes feature work local. When working on Agents, the agent domain records, application services, repositories, GraphQL types, and endpoints should be near each other.
+
+The feature layers are intentionally flat. Domain concepts are separated by names, not by nested `Records`/`Interfaces`/subdomain folders.
 
 ## Target Shape
 
@@ -95,42 +103,16 @@ Those are subdomains inside one of the three product features.
 
 ## Agents Subdomains
 
-Agents is large, so it needs subfolders. These are not top-level domains.
+Agents is large, but it should stay flat inside each layer. These are conceptual subdomains, expressed through strong file/type prefixes rather than nested folders.
 
 Recommended Agents shape:
 
 ```text
 Features/Agents
 ├── Domain
-│   ├── Core
-│   ├── Runtime
-│   ├── Tools
-│   ├── Channels
-│   ├── Mcp
-│   ├── Memory
-│   ├── Context
-│   ├── Browser
-│   └── Scheduling
 ├── Application
-│   ├── Core
-│   ├── Runtime
-│   ├── Tools
-│   ├── Channels
-│   ├── Mcp
-│   ├── Memory
-│   ├── Context
-│   ├── Browser
-│   └── Scheduling
 ├── Infrastructure
-│   ├── Repositories
-│   ├── Adapters
-│   └── Configuration
 └── Api
-    ├── Queries
-    ├── Mutations
-    ├── Subscriptions
-    ├── Endpoints
-    └── Types
 ```
 
 Subdomain meanings:
@@ -194,16 +176,16 @@ One project removes project-reference enforcement, so architecture tests must en
 
 ## Namespace Convention
 
-Use namespaces that mirror the feature-first layout:
+Use namespaces that mirror the flat feature/layer layout:
 
 ```csharp
-EnterpriseAgentOs.Features.Agents.Domain.Core
-EnterpriseAgentOs.Features.Agents.Application.Runtime
-EnterpriseAgentOs.Features.Agents.Infrastructure.Repositories
-EnterpriseAgentOs.Features.Agents.Api.Mutations
+EnterpriseAgentOs.Features.Agents.Domain
+EnterpriseAgentOs.Features.Agents.Application
+EnterpriseAgentOs.Features.Agents.Infrastructure
+EnterpriseAgentOs.Features.Agents.Api
 
 EnterpriseAgentOs.Features.Analytics.Domain
-EnterpriseAgentOs.Features.Management.Application.Billing
+EnterpriseAgentOs.Features.Management.Application
 ```
 
 Avoid namespaces like:
@@ -258,6 +240,7 @@ Avoid:
 - Generic `Integration*` names unless the type truly covers more than MCP and context connectors.
 - Broad files named `Types.cs`, `Records.cs`, or `Repositories.cs`.
 - Duplicate layer files like `AgentTypes.cs` in multiple places.
+- Bucket folders named `Records`, `Interfaces`, `Dtos`, `Services`, `Repositories`, `Adapters`, `Queries`, `Mutations`, `Types`, or subdomain wrappers inside feature layers.
 
 ## Repository Style
 
@@ -348,23 +331,17 @@ Most current Domain DTOs should move.
 
 Rules:
 
-- GraphQL-only shape: move to the feature's `Api/Types`.
+- GraphQL-only shape: move to the feature's `Api` layer.
 - Use-case request/result: move to the feature's `Application`.
 - Persistence model: keep as Infrastructure `*Entity`.
 - Business record: keep as Domain `*Record`.
 - Cross-layer stable business contract: may stay in Domain, but avoid the suffix `Dto` if a better domain name exists.
 
-The first cleanup target should be the current `Domain/features/Agents/Dtos` folder.
+The first cleanup target is now the current `*Dto` type names that remain in flat Domain layers.
 
-## Top-Level Feature Cleanup
+## Remaining Semantic Rename Targets
 
-Move current feature folders as follows:
-
-- Current `Atlas` -> `Features/Agents/{Domain,Application,Infrastructure,Api}/Context`.
-- Current `Data` -> `Features/Agents/{Domain,Application,Infrastructure,Api}/Memory`.
-- Current `Mcp` -> `Features/Agents/{Domain,Application,Infrastructure,Api}/Mcp`.
-
-Rename public types while moving:
+The physical feature cleanup is complete. Rename public types that still carry old concepts:
 
 - `IntegrationDefinitionRecord` -> `McpServerRecord`
 - `IntegrationTransportType` -> `McpTransportType`
@@ -382,15 +359,12 @@ Rename public types while moving:
 ## Migration Order
 
 1. Freeze the desired convention in this note and `AGENTS.md`.
-2. Add architecture tests that describe the final shape, even if initially skipped or marked pending.
-3. Create the single-project target folder structure.
-4. Move `Agents` code feature-first while preserving behavior.
-5. Move `Mcp`, `Data`, and `Atlas` under `Agents` subdomains and rename stale `Integration*` types.
-6. Move `Analytics` code feature-first.
-7. Move `Management` code feature-first.
-8. Collapse shared code into `Common/{Domain,Infrastructure,Api}` only when it is genuinely shared.
-9. Remove the old projects from the solution after all code has moved.
-10. Run build/tests and enable architecture tests as required CI checks.
+2. Keep the single-project target folder structure.
+3. Keep feature layers flat and rely on strong names.
+4. Rename stale `Atlas*`, `Integration*`, and broad `*Types`/`*Dto` names.
+5. Simplify repository interfaces with filter records.
+6. Add architecture tests that enforce the final shape.
+7. Run build/tests and enable architecture tests as required CI checks.
 
 ## Enforcement
 
@@ -404,13 +378,14 @@ Required tests:
 
 - Only top-level feature folders are `Agents`, `Analytics`, `Management`.
 - Each feature has explicit `Domain`, `Application`, `Infrastructure`, and `Api` folders when it contains that layer.
+- Feature layer folders do not contain nested bucket folders unless explicitly allowlisted.
 - No namespace contains `Features.Agents.Integrations`.
 - No namespace contains top-level `Features.Atlas`, `Features.Data`, or `Features.Mcp`.
 - Domain namespaces do not reference Api or Infrastructure namespaces.
 - Api types are not used by Domain or Infrastructure.
 - Infrastructure repository methods do not expose `*Entity` types.
 - Repository implementation files contain one repository class.
-- Domain `Dtos` folder is empty or explicitly allowlisted.
+- Domain `*Dto` type names are empty or explicitly allowlisted.
 
 Also add:
 
@@ -423,6 +398,7 @@ Also add:
 - There is one backend `.csproj`.
 - The only top-level feature folders are `Agents`, `Analytics`, and `Management`.
 - Each feature owns its `Domain`, `Application`, `Infrastructure`, and `Api` code locally.
+- Feature layers are flat; new separation is done with strong file/type names.
 - `Atlas`, `Data`, and `Mcp` do not exist as top-level feature folders.
 - A new contributor can understand agent behavior by opening `Features/Agents`.
 - Memory, MCP, browser, channels, scheduling, and context are discoverable as Agents subdomains.
