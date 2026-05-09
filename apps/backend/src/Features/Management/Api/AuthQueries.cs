@@ -28,7 +28,8 @@ public class AuthQueries
             record.DisplayName,
             record.Timezone,
             record.NotificationPrefsJson,
-            record.Preferences);
+            record.Preferences,
+            record.CurrentWorkspaceId);
 
         await cache.SetJsonAsync(cacheKey, result, MeCacheTtl, ct);
         return result;

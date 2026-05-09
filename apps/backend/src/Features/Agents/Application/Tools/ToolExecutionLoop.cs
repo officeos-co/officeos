@@ -51,7 +51,7 @@ internal sealed class ToolExecutionLoop
             agent.Id,
             correlationId,
             integrations,
-            integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, ct),
+            integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, agent.WorkspaceId, ct),
             ct);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,

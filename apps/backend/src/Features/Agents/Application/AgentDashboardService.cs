@@ -37,11 +37,12 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _agentRunRepository = runs;
     }
 
-    public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, CancellationToken ct = default)
+    public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         var agent = await _agentService.CreateAsync(
             new CreateAgentRequest(request.Name, request.Provider, request.Model, request.Prompt),
             ownerId,
+            workspaceId,
             ct);
 
         if (request.Resources is { Count: > 0 })
@@ -58,7 +59,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
             foreach (var resource in request.Resources)
             {
                 var resourceType = NormalizeResourceType(resource.ResourceType);
-                await EnsureResourceExistsAsync(resourceType, resource.ResourceId, ownerId, ct);
+                await EnsureResourceExistsAsync(resourceType, resource.ResourceId, ownerId, workspaceId, ct);
 
                 await _agentResourceRepository.AttachToSessionAsync(new AgentSessionResourceAttachmentRecord
                 {
@@ -94,17 +95,17 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         return agent;
     }
 
-    public async Task<AgentRecord?> PatchAsync(Guid id, Guid ownerId, PatchAgentRequest request, CancellationToken ct = default)
+    public async Task<AgentRecord?> PatchAsync(Guid id, Guid ownerId, Guid workspaceId, PatchAgentRequest request, CancellationToken ct = default)
     {
-        if (!await AgentIsOwnedAsync(id, ownerId, ct))
+        if (!await AgentIsOwnedAsync(id, ownerId, workspaceId, ct))
             return null;
 
         return await _agentService.PatchAsync(id, request, ct);
     }
 
-    public async Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct = default)
+    public async Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        if (!await AgentIsOwnedAsync(id, ownerId, ct))
+        if (!await AgentIsOwnedAsync(id, ownerId, workspaceId, ct))
             return false;
 
         await _browserService.StopAsync(id, ct);
@@ -113,62 +114,66 @@ internal sealed class AgentDashboardService : IAgentDashboardService
 
     public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(
         Guid ownerId,
+        Guid workspaceId,
         Guid agentId,
         CancellationToken ct = default)
     {
-        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
         return await _agentToolPermissionRepository.ListForAgentAsync(agentId, ct);
     }
 
     public async Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(
         Guid ownerId,
+        Guid workspaceId,
         Guid agentId,
         Guid? parentRunId,
         CancellationToken ct = default)
     {
-        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
         return await _agentRunRepository.ListForAgentAsync(agentId, parentRunId, ct);
     }
 
-    public async Task SetToolPermissionAsync(Guid ownerId, Guid agentId, string skill, string tool, ToolPermission mode, CancellationToken ct = default)
+    public async Task SetToolPermissionAsync(Guid ownerId, Guid workspaceId, Guid agentId, string skill, string tool, ToolPermission mode, CancellationToken ct = default)
     {
-        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
         await _agentToolPermissionRepository.UpsertAsync(agentId, skill, tool, mode, ct);
     }
 
     public async Task<IReadOnlyList<AgentToolPermissionRecord>> SetToolPermissionsAsync(
         Guid ownerId,
+        Guid workspaceId,
         Guid agentId,
         IReadOnlyList<AgentToolPermissionRecord> rows,
         CancellationToken ct = default)
     {
-        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
         await _agentToolPermissionRepository.SetManyAsync(agentId, rows, ct);
         return rows;
     }
 
-    private async Task<bool> AgentIsOwnedAsync(Guid agentId, Guid ownerId, CancellationToken ct)
+    private async Task<bool> AgentIsOwnedAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId, WorkspaceId = workspaceId }, ct);
         return agent is not null;
     }
 
-    private async Task EnsureAgentOwnedAsync(Guid agentId, Guid ownerId, CancellationToken ct)
+    private async Task EnsureAgentOwnedAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
-        if (!await AgentIsOwnedAsync(agentId, ownerId, ct))
+        if (!await AgentIsOwnedAsync(agentId, ownerId, workspaceId, ct))
             throw new InvalidOperationException("Agent not found.");
     }
 
-    private async Task EnsureResourceExistsAsync(string resourceType, Guid resourceId, Guid ownerId, CancellationToken ct)
+    private async Task EnsureResourceExistsAsync(string resourceType, Guid resourceId, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
         var exists = resourceType switch
         {
-            AgentResourceKinds.Browser => await _agentResourceRepository.GetBrowserResourceAsync(resourceId, ownerId, ct) is not null,
-            AgentResourceKinds.MemoryStore => await _memoryStoreRepository.GetAsync(resourceId, ownerId, ct) is not null,
+            AgentResourceKinds.Browser => await _agentResourceRepository.GetBrowserResourceAsync(resourceId, ownerId, workspaceId, ct) is not null,
+            AgentResourceKinds.MemoryStore => await _memoryStoreRepository.GetAsync(resourceId, ownerId, workspaceId, ct) is not null,
             AgentResourceKinds.Channel => await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
             {
                 Id = resourceId,
                 CreatedById = ownerId,
+                WorkspaceId = workspaceId,
             }, ct) is not null,
             _ => false,
         };

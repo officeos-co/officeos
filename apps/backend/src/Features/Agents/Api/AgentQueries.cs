@@ -7,16 +7,18 @@ public class AgentQueries
     [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
     public async Task<IReadOnlyList<AgentRecord>> GetAgents(
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var listCacheKey = AgentCacheKeys.DashboardList(user.Id);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var listCacheKey = AgentCacheKeys.DashboardList(user.Id, workspace.Id);
         var cached = await cache.GetJsonAsync<IReadOnlyList<AgentRecord>>(listCacheKey, ct);
         if (cached is not null)
             return cached;
 
-        var result = await agents.ListAsync(new AgentFilter { OwnerId = user.Id }, ct);
+        var result = await agents.ListAsync(new AgentFilter { OwnerId = user.Id, WorkspaceId = workspace.Id }, ct);
         await cache.SetJsonAsync(listCacheKey, result, CacheTtl, ct);
         return result;
     }
@@ -25,16 +27,18 @@ public class AgentQueries
     public async Task<AgentRecord?> GetAgent(
         Guid id,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentRepository agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var key = AgentCacheKeys.DashboardDetail(id, user.Id);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var key = AgentCacheKeys.DashboardDetail(id, user.Id, workspace.Id);
         var cached = await cache.GetJsonAsync<AgentRecord>(key, ct);
         if (cached is not null)
             return cached;
 
-        var result = await agents.GetByAsync(new AgentFilter { Id = id, OwnerId = user.Id }, ct);
+        var result = await agents.GetByAsync(new AgentFilter { Id = id, OwnerId = user.Id, WorkspaceId = workspace.Id }, ct);
         if (result is not null)
             await cache.SetJsonAsync(key, result, CacheTtl, ct);
 
@@ -45,10 +49,12 @@ public class AgentQueries
     public async Task<IReadOnlyList<ToolPermissionPayload>> GetAgentToolPermissions(
         Guid agentId,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
-        var rows = await agents.ListToolPermissionsAsync(user.Id, agentId, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var rows = await agents.ListToolPermissionsAsync(user.Id, workspace.Id, agentId, ct);
         return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
     }
 
@@ -66,9 +72,11 @@ public class AgentQueries
         Guid agentId,
         Guid? parentRunId,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
-        return await agents.ListRunsAsync(user.Id, agentId, parentRunId, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        return await agents.ListRunsAsync(user.Id, workspace.Id, agentId, parentRunId, ct);
     }
 }

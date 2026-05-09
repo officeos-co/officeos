@@ -11,20 +11,30 @@ public sealed class IntegrationQueries
         return service.ListIntegrationDefinitionsAsync(user.Id, ct);
     }
 
-    public Task<IReadOnlyList<IntegrationConnectionRecord>> GetIntegrationConnections(
+    public async Task<IReadOnlyList<IntegrationConnectionRecord>> GetIntegrationConnections(
         IntegrationConnectionFilter? filter,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
-        return service.ListAsync(filter ?? new IntegrationConnectionFilter(), ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        return await service.ListAsync((filter ?? new IntegrationConnectionFilter()) with
+        {
+            CreatedById = user.Id,
+            WorkspaceId = workspace.Id,
+        }, ct);
     }
 
-    public Task<IntegrationConnectionRecord?> GetIntegrationConnection(
+    public async Task<IntegrationConnectionRecord?> GetIntegrationConnection(
         IntegrationConnectionFilter filter,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IIntegrationConnectionService service,
         CancellationToken ct)
     {
-        return service.GetByAsync(filter, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        return await service.GetByAsync(filter with { CreatedById = user.Id, WorkspaceId = workspace.Id }, ct);
     }
 
     public Task<IReadOnlyList<IntegrationRequestHistoryRecord>> GetIntegrationRequestHistory(

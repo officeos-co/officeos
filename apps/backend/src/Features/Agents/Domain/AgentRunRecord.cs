@@ -4,6 +4,7 @@ public sealed class AgentRunRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
+    public Guid? WorkspaceId { get; init; }
     public Guid? ParentRunId { get; init; }
     public string? ParentCorrelationId { get; init; }
     public string Kind { get; init; } = "turn";

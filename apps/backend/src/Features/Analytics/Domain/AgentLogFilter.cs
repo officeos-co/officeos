@@ -6,6 +6,7 @@ public sealed record AgentLogFilter
     public Guid? AgentId { get; init; }
     public IReadOnlyList<Guid>? AgentIds { get; init; }
     public Guid? OwnerId { get; init; }
+    public Guid? WorkspaceId { get; init; }
     public Guid? ChannelConnectionId { get; init; }
     public string? CorrelationId { get; init; }
     public IReadOnlyList<string>? CorrelationIds { get; init; }

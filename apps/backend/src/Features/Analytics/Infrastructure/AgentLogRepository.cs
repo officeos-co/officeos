@@ -24,6 +24,10 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         if (filter.OwnerId.HasValue)
             query = query.Where(l => l.Agent != null && l.Agent.OwnerId == filter.OwnerId.Value);
 
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(l => l.WorkspaceId == filter.WorkspaceId.Value
+                || (l.Agent != null && l.Agent.WorkspaceId == filter.WorkspaceId.Value));
+
         if (filter.ChannelConnectionId.HasValue)
             query = query.Where(l => l.ChannelConnectionId == filter.ChannelConnectionId.Value);
 
@@ -147,15 +151,15 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentLogs.Add(ToAgentLogEntity(record));
+        _eaosDbContext.AgentLogs.Add(await ToAgentLogEntityAsync(record, ct));
         await _eaosDbContext.SaveChangesAsync(ct);
         return record;
     }
 
     public async Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentLogs.Add(ToAgentLogEntity(toolCall));
-        _eaosDbContext.AgentLogs.Add(ToAgentLogEntity(toolResult));
+        _eaosDbContext.AgentLogs.Add(await ToAgentLogEntityAsync(toolCall, ct));
+        _eaosDbContext.AgentLogs.Add(await ToAgentLogEntityAsync(toolResult, ct));
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
@@ -179,13 +183,15 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 ? null
                 : new AgentRecord
                 {
-                    Id = log.Agent.Id,
-                    Name = log.Agent.Name,
-                    Provider = log.Agent.Provider,
-                    Model = log.Agent.Model,
-                    OwnerId = log.Agent.OwnerId,
-                },
-            Time = log.Time,
+            Id = log.Agent.Id,
+            Name = log.Agent.Name,
+            Provider = log.Agent.Provider,
+            Model = log.Agent.Model,
+            OwnerId = log.Agent.OwnerId,
+            WorkspaceId = log.Agent.WorkspaceId,
+        },
+        WorkspaceId = log.WorkspaceId,
+        Time = log.Time,
             Type = log.Type,
             Tool = log.Tool,
             Integration = log.Integration,
@@ -198,24 +204,45 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             ParentRunId = log.ParentRunId,
         });
 
-    private static AgentLogEntity ToAgentLogEntity(AgentLogRecord r) => new()
+    private async Task<AgentLogEntity> ToAgentLogEntityAsync(AgentLogRecord r, CancellationToken ct)
     {
-        Id = r.Id,
-        AgentId = r.AgentId,
-        Time = r.Time,
-        Type = r.Type,
-        Tool = r.Tool,
-        Integration = r.Integration,
-        Channel = r.Channel,
-        ChannelConnectionId = r.ChannelConnectionId,
-        Content = r.Content,
-        DurationMs = r.Usage.DurationMs,
-        InputTokens = r.Usage.InputTokens,
-        OutputTokens = r.Usage.OutputTokens,
-        CorrelationId = r.CorrelationId,
-        RunId = r.RunId,
-        ParentRunId = r.ParentRunId,
-    };
+        var workspaceId = r.WorkspaceId;
+        if (workspaceId is null && r.AgentId.HasValue)
+        {
+            workspaceId = await _eaosDbContext.Agents.AsNoTracking()
+                .Where(a => a.Id == r.AgentId.Value)
+                .Select(a => a.WorkspaceId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        if (workspaceId is null && r.ChannelConnectionId.HasValue)
+        {
+            workspaceId = await _eaosDbContext.ChannelConnections.AsNoTracking()
+                .Where(c => c.Id == r.ChannelConnectionId.Value)
+                .Select(c => c.WorkspaceId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        return new AgentLogEntity
+        {
+            Id = r.Id,
+            AgentId = r.AgentId,
+            WorkspaceId = workspaceId,
+            Time = r.Time,
+            Type = r.Type,
+            Tool = r.Tool,
+            Integration = r.Integration,
+            Channel = r.Channel,
+            ChannelConnectionId = r.ChannelConnectionId,
+            Content = r.Content,
+            DurationMs = r.Usage.DurationMs,
+            InputTokens = r.Usage.InputTokens,
+            OutputTokens = r.Usage.OutputTokens,
+            CorrelationId = r.CorrelationId,
+            RunId = r.RunId,
+            ParentRunId = r.ParentRunId,
+        };
+    }
 
     private static string ResolveUsageModel(string? loggedModel, string? agentModel)
     {

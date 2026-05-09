@@ -3,19 +3,21 @@ namespace OffceOs.Api.Features.Agents;
 [ExtendObjectType(typeof(GraphQLMutations))]
 public class AgentDashboardMutations
 {
-    private static string AgentListQueryCacheKey(Guid userId) => $"agents:dashboard:list:{userId}";
-    private static string AgentQueryCacheKey(Guid id, Guid userId) => $"agents:dashboard:{id}:user:{userId}";
+    private static string AgentListQueryCacheKey(Guid userId, Guid workspaceId) => AgentCacheKeys.DashboardList(userId, workspaceId);
+    private static string AgentQueryCacheKey(Guid id, Guid userId, Guid workspaceId) => AgentCacheKeys.DashboardDetail(id, userId, workspaceId);
 
     [GraphQLDescription("Creates a new agent with the given config. Optionally assigns skills, tool permissions, and channels.")]
     public async Task<AgentRecord> CreateAgent(
         CreateAgentInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
         try
         {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
             var agent = await agents.CreateAsync(
                 new CreateDashboardAgentRequest(
                     input.Name,
@@ -33,9 +35,10 @@ public class AgentDashboardMutations
                         resource.Instructions)).ToList(),
                     input.BootstrapMessage),
                 user.Id,
+                workspace.Id,
                 ct);
 
-            await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
+            await cache.RemoveAsync(AgentListQueryCacheKey(user.Id, workspace.Id), ct);
             return agent;
         }
         catch (InvalidOperationException ex)
@@ -53,13 +56,16 @@ public class AgentDashboardMutations
         Guid id,
         UpdateAgentInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
         var dto = await agents.PatchAsync(
             id,
             user.Id,
+            workspace.Id,
             new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
             ct);
         if (dto is null)
@@ -70,8 +76,8 @@ public class AgentDashboardMutations
                     .SetCode("NOT_FOUND")
                     .Build());
         }
-        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
-        await cache.RemoveAsync(AgentQueryCacheKey(id, user.Id), ct);
+        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id, workspace.Id), ct);
+        await cache.RemoveAsync(AgentQueryCacheKey(id, user.Id, workspace.Id), ct);
         return dto;
     }
 
@@ -79,13 +85,15 @@ public class AgentDashboardMutations
     public async Task<bool> DeleteAgent(
         Guid id,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        var result = await agents.DeleteAsync(id, user.Id, ct);
-        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id), ct);
-        await cache.RemoveAsync(AgentQueryCacheKey(id, user.Id), ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var result = await agents.DeleteAsync(id, user.Id, workspace.Id, ct);
+        await cache.RemoveAsync(AgentListQueryCacheKey(user.Id, workspace.Id), ct);
+        await cache.RemoveAsync(AgentQueryCacheKey(id, user.Id, workspace.Id), ct);
         return result;
     }
 
@@ -93,10 +101,12 @@ public class AgentDashboardMutations
     public async Task<ToolPermissionPayload> SetAgentToolPermission(
         SetAgentToolPermissionInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
-        await agents.SetToolPermissionAsync(user.Id, input.AgentId, input.Skill, input.Tool, input.Mode, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        await agents.SetToolPermissionAsync(user.Id, workspace.Id, input.AgentId, input.Skill, input.Tool, input.Mode, ct);
         return new ToolPermissionPayload(input.Skill, input.Tool, input.Mode);
     }
 
@@ -104,6 +114,7 @@ public class AgentDashboardMutations
     public async Task<IReadOnlyList<ToolPermissionPayload>> SetAgentToolPermissions(
         SetAgentToolPermissionsInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
@@ -115,7 +126,8 @@ public class AgentDashboardMutations
             Permission = e.Mode,
         }).ToList();
 
-        await agents.SetToolPermissionsAsync(user.Id, input.AgentId, rows, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        await agents.SetToolPermissionsAsync(user.Id, workspace.Id, input.AgentId, rows, ct);
         return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
     }
 }

@@ -30,6 +30,9 @@ public sealed class AgentRecord
     /// <summary>FK → UserRecord.Id. Set at creation time from the authenticated user.</summary>
     public Guid? OwnerId { get; init; }
 
+    /// <summary>FK → WorkspaceRecord.Id. Set at creation time from the current workspace.</summary>
+    public Guid? WorkspaceId { get; init; }
+
     /// <summary>
     /// Bearer token the agent pod presents back to this backend on
     /// <c>/api/agents/me/*</c>. Generated on create. Stored
@@ -68,7 +71,7 @@ public sealed class AgentRecord
 
     // ── Factory ──────────────────────────────────────────────────────────────
 
-    public static AgentRecord Create(string name, string provider, string? model, Guid? ownerId, string? prompt = null)
+    public static AgentRecord Create(string name, string provider, string? model, Guid? ownerId, string? prompt = null, Guid? workspaceId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Agent name is required.", nameof(name));
@@ -81,6 +84,7 @@ public sealed class AgentRecord
             Provider = provider.Trim().ToLowerInvariant(),
             Status = AgentStatus.Pending,
             OwnerId = ownerId,
+            WorkspaceId = workspaceId,
             Prompt = string.IsNullOrWhiteSpace(prompt) ? null : prompt,
         };
         record.ValidateAndSetModel(model);

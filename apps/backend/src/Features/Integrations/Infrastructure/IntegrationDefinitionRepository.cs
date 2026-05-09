@@ -6,35 +6,43 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
 
     public IntegrationDefinitionRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
     {
-        var entities = await _eaosDbContext.Integrations.AsNoTracking()
-            .Where(s => !s.IsBuiltin && s.OwnerId == ownerId)
-            .OrderBy(s => s.Category)
-            .ThenBy(s => s.Title)
-            .ToListAsync(ct);
+        var query = _eaosDbContext.Integrations.AsNoTracking()
+            .Where(s => !s.IsBuiltin && s.OwnerId == ownerId);
+
+        if (workspaceId.HasValue)
+            query = query.Where(s => s.WorkspaceId == workspaceId.Value);
+
+        var entities = await query.OrderBy(s => s.Category).ThenBy(s => s.Title).ToListAsync(ct);
 
         return entities.Select(ToRecord).ToList();
     }
 
-    public async Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.Integrations.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin, ct);
+        var query = _eaosDbContext.Integrations.AsNoTracking()
+            .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin);
+
+        if (workspaceId.HasValue)
+            query = query.Where(s => s.WorkspaceId == workspaceId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
 
         return entity is null ? null : ToRecord(entity);
     }
 
-    public async Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default)
+    public async Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, Guid workspaceId, IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
         var existing = await _eaosDbContext.Integrations
-            .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.Name == server.Name && !s.IsBuiltin, ct);
+            .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.WorkspaceId == workspaceId && s.Name == server.Name && !s.IsBuiltin, ct);
 
         if (existing is null)
         {
             var entity = ToEntity(server);
             entity.Id = server.Id == Guid.Empty ? Guid.NewGuid() : server.Id;
             entity.OwnerId = ownerId;
+            entity.WorkspaceId = workspaceId;
             entity.IsBuiltin = false;
             _eaosDbContext.Integrations.Add(entity);
             await _eaosDbContext.SaveChangesAsync(ct);
@@ -64,17 +72,22 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         return ToRecord(existing);
     }
 
-    public async Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default)
+    public async Task DeleteAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
     {
-        await _eaosDbContext.Integrations
-            .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin)
-            .ExecuteDeleteAsync(ct);
+        var query = _eaosDbContext.Integrations
+            .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin);
+
+        if (workspaceId.HasValue)
+            query = query.Where(s => s.WorkspaceId == workspaceId.Value);
+
+        await query.ExecuteDeleteAsync(ct);
     }
 
     private static IntegrationDefinitionRecord ToRecord(IntegrationDefinitionEntity entity) => new()
     {
         Id = entity.Id,
         OwnerId = entity.OwnerId,
+        WorkspaceId = entity.WorkspaceId,
         Name = entity.Name,
         Provider = entity.Provider,
         Title = entity.Title,
@@ -104,6 +117,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     {
         Id = server.Id,
         OwnerId = server.OwnerId,
+        WorkspaceId = server.WorkspaceId,
         Name = server.Name,
         Provider = server.Provider,
         Title = server.Title,

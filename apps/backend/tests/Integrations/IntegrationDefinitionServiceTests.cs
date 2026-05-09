@@ -14,15 +14,16 @@ namespace OffceOs.Tests.Integrations;
 public sealed class IntegrationDefinitionServiceTests
 {
     private static readonly Guid OwnerId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private static readonly Guid WorkspaceId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     [Fact]
     public async Task RegisterAsync_adds_custom_server_to_owner_catalog()
     {
         var service = CreateService();
 
-        await service.RegisterAsync(OwnerId, CustomServer());
+        await service.RegisterAsync(OwnerId, WorkspaceId, CustomServer());
 
-        var all = await service.ListAsync(OwnerId);
+        var all = await service.ListAsync(OwnerId, WorkspaceId);
         var custom = Assert.Single(all, s => s.Name == "custom-server");
         Assert.Equal("Custom Server", custom.Title);
         Assert.False(custom.IsBuiltin);
@@ -33,10 +34,10 @@ public sealed class IntegrationDefinitionServiceTests
     {
         var service = CreateService();
 
-        await service.RegisterAsync(OwnerId, CustomServer(command: "npx"));
-        await service.RegisterAsync(OwnerId, CustomServer(command: "uvx"));
+        await service.RegisterAsync(OwnerId, WorkspaceId, CustomServer(command: "npx"));
+        await service.RegisterAsync(OwnerId, WorkspaceId, CustomServer(command: "uvx"));
 
-        var custom = await service.GetAsync(OwnerId, "custom-server");
+        var custom = await service.GetAsync(OwnerId, "custom-server", WorkspaceId);
         Assert.NotNull(custom);
         Assert.Equal("uvx", custom.Command);
     }
@@ -46,12 +47,12 @@ public sealed class IntegrationDefinitionServiceTests
     {
         var service = CreateService();
 
-        await service.RegisterAsync(OwnerId, CustomServer(
+        await service.RegisterAsync(OwnerId, WorkspaceId, CustomServer(
             credentialFieldsJson:
             """[{"name":"API_KEY","label":"API Key","type":"password","required":true}]"""));
-        await service.SaveCredentialAsync(OwnerId, "custom-server", new() { ["API_KEY"] = "secret" });
+        await service.SaveCredentialAsync(OwnerId, WorkspaceId, "custom-server", new() { ["API_KEY"] = "secret" });
 
-        var custom = await service.GetAsync(OwnerId, "custom-server");
+        var custom = await service.GetAsync(OwnerId, "custom-server", WorkspaceId);
         Assert.NotNull(custom);
         Assert.True(custom.CredentialConfigured);
     }
@@ -63,11 +64,11 @@ public sealed class IntegrationDefinitionServiceTests
         var agentId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         var service = CreateService(agentServers: agents);
 
-        await service.RegisterAsync(OwnerId, CustomServer());
+        await service.RegisterAsync(OwnerId, WorkspaceId, CustomServer());
         await service.AssignToAgentAsync(agentId, "custom-server", OwnerId);
-        await service.DeleteAsync(OwnerId, "custom-server");
+        await service.DeleteAsync(OwnerId, "custom-server", WorkspaceId);
 
-        Assert.Null(await service.GetAsync(OwnerId, "custom-server"));
+        Assert.Null(await service.GetAsync(OwnerId, "custom-server", WorkspaceId));
         Assert.Empty(agents.AssignedIntegrationNames);
     }
 
@@ -107,25 +108,25 @@ public sealed class IntegrationDefinitionServiceTests
 
     private sealed class FakeIntegrationDefinitionRepository : IIntegrationDefinitionRepository
     {
-        private readonly Dictionary<(Guid OwnerId, string Name), IntegrationDefinitionRecord> _servers = new();
+        private readonly Dictionary<(Guid OwnerId, Guid? WorkspaceId, string Name), IntegrationDefinitionRecord> _servers = new();
 
-        public Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, CancellationToken ct = default)
+        public Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<IntegrationDefinitionRecord>>(
-                _servers.Where(kvp => kvp.Key.OwnerId == ownerId).Select(kvp => kvp.Value).ToList());
+                _servers.Where(kvp => kvp.Key.OwnerId == ownerId && kvp.Key.WorkspaceId == workspaceId).Select(kvp => kvp.Value).ToList());
 
-        public Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, CancellationToken ct = default)
-            => Task.FromResult(_servers.GetValueOrDefault((ownerId, name)));
+        public Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
+            => Task.FromResult(_servers.GetValueOrDefault((ownerId, workspaceId, name)));
 
-        public Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct = default)
+        public Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, Guid workspaceId, IntegrationDefinitionRecord server, CancellationToken ct = default)
         {
-            var saved = server with { OwnerId = ownerId, IsBuiltin = false };
-            _servers[(ownerId, server.Name)] = saved;
+            var saved = server with { OwnerId = ownerId, WorkspaceId = workspaceId, IsBuiltin = false };
+            _servers[(ownerId, workspaceId, server.Name)] = saved;
             return Task.FromResult(saved);
         }
 
-        public Task DeleteAsync(Guid ownerId, string name, CancellationToken ct = default)
+        public Task DeleteAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
         {
-            _servers.Remove((ownerId, name));
+            _servers.Remove((ownerId, workspaceId, name));
             return Task.CompletedTask;
         }
     }
@@ -165,25 +166,25 @@ public sealed class IntegrationDefinitionServiceTests
 
     private sealed class FakeIntegrationCredentialRepository : IIntegrationCredentialRepository
     {
-        private readonly Dictionary<(Guid OwnerId, string IntegrationName), IntegrationCredentialRecord> _credentials = new();
+        private readonly Dictionary<(Guid OwnerId, Guid? WorkspaceId, string IntegrationName), IntegrationCredentialRecord> _credentials = new();
 
         public Task<IntegrationCredentialRecord?> GetByAsync(IntegrationCredentialFilter filter, CancellationToken ct = default)
         {
             if (!filter.OwnerId.HasValue || filter.IntegrationName is null)
                 return Task.FromResult<IntegrationCredentialRecord?>(null);
 
-            return Task.FromResult(_credentials.GetValueOrDefault((filter.OwnerId.Value, filter.IntegrationName)));
+            return Task.FromResult(_credentials.GetValueOrDefault((filter.OwnerId.Value, filter.WorkspaceId, filter.IntegrationName)));
         }
 
         public Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct = default)
         {
-            _credentials[(credential.OwnerId, credential.IntegrationName)] = credential;
+            _credentials[(credential.OwnerId, credential.WorkspaceId, credential.IntegrationName)] = credential;
             return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(Guid ownerId, string integrationName, CancellationToken ct = default)
+        public Task DeleteAsync(Guid ownerId, string integrationName, Guid? workspaceId = null, CancellationToken ct = default)
         {
-            _credentials.Remove((ownerId, integrationName));
+            _credentials.Remove((ownerId, workspaceId, integrationName));
             return Task.CompletedTask;
         }
     }
@@ -198,6 +199,7 @@ public sealed class IntegrationDefinitionServiceTests
             {
                 Id = filter.Id ?? Guid.NewGuid(),
                 OwnerId = filter.OwnerId ?? OwnerId,
+                WorkspaceId = filter.WorkspaceId ?? WorkspaceId,
                 Name = "Test Agent",
                 Provider = "openai",
                 Status = AgentStatus.Running,

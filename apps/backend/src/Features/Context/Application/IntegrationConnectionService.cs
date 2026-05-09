@@ -86,6 +86,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             EntitiesJson = JsonSerializer.Serialize(entities),
             Status = hasToken ? IntegrationConnectionStatus.Indexing : IntegrationConnectionStatus.NeedsAuth,
             CreatedById = request.CreatedById,
+            WorkspaceId = request.WorkspaceId,
         };
 
         var saved = await _integrationConnectionRepository.UpsertAsync(connection, ct);
@@ -144,6 +145,7 @@ internal sealed class IntegrationConnectionService : IIntegrationConnectionServi
             Status = hasToken ? IntegrationConnectionStatus.Indexing : IntegrationConnectionStatus.NeedsAuth,
             Error = hasToken ? null : "GitHub OAuth is not connected.",
             CreatedById = existing.CreatedById,
+            WorkspaceId = existing.WorkspaceId,
             CreatedAt = existing.CreatedAt,
             UpdatedAt = DateTime.UtcNow,
         };

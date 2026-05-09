@@ -27,22 +27,23 @@ internal sealed class AgentLogService : IAgentLogService
         _logger = logger;
     }
 
-    public IQueryable<AgentLogProjection> AgentLogs(Guid agentId) =>
+    public IQueryable<AgentLogProjection> AgentLogs(Guid agentId, Guid? workspaceId = null) =>
         ToProjectionQuery(
-            _agentLogRepository.Query(new AgentLogFilter { AgentId = agentId })
+            _agentLogRepository.Query(new AgentLogFilter { AgentId = agentId, WorkspaceId = workspaceId })
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
-    public IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId) =>
+    public IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId, Guid? workspaceId = null) =>
         ToProjectionQuery(
-            _agentLogRepository.Query(new AgentLogFilter { ChannelConnectionId = channelConnectionId })
+            _agentLogRepository.Query(new AgentLogFilter { ChannelConnectionId = channelConnectionId, WorkspaceId = workspaceId })
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
-    public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters) =>
+    public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters, Guid? workspaceId = null) =>
         ToProjectionQuery(
             _agentLogRepository.Query(new AgentLogFilter
                 {
+                    WorkspaceId = workspaceId,
                     Search = filters.Search,
                     AgentName = filters.AgentName,
                     Type = filters.Type,
@@ -50,16 +51,18 @@ internal sealed class AgentLogService : IAgentLogService
                 .OrderByDescending(l => l.Time)
                 .ThenByDescending(l => l.Id));
 
-    public IQueryable<AuditEntry> AuditLog(Guid agentId)
+    public IQueryable<AuditEntry> AuditLog(Guid agentId, Guid? workspaceId = null)
     {
         var toolCalls = _agentLogRepository.Query(new AgentLogFilter
         {
             AgentId = agentId,
+            WorkspaceId = workspaceId,
             Type = AgentLogType.ToolCall,
         });
         var results = _agentLogRepository.Query(new AgentLogFilter
         {
             AgentId = agentId,
+            WorkspaceId = workspaceId,
             Type = AgentLogType.ToolResult,
         });
 
@@ -103,6 +106,7 @@ internal sealed class AgentLogService : IAgentLogService
             Search = filters.Search,
             AgentName = filters.AgentName,
             Type = filters.Type,
+            WorkspaceId = filters.WorkspaceId,
         };
         var total = await _agentLogRepository.CountAsync(filter, ct);
         var rows = await _agentLogRepository.ListAsync(

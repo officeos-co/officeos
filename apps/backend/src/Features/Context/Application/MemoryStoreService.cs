@@ -9,24 +9,26 @@ internal sealed class MemoryStoreService : IMemoryStoreService
         _memoryStoreRepository = memoryStores;
     }
 
-    public Task<MemoryStoreRecord> CreateAsync(Guid ownerId, string? displayName, CancellationToken ct = default) =>
-        _memoryStoreRepository.CreateAsync(MemoryStoreRecord.Create(ownerId, displayName ?? "Memory Store"), ct);
+    public Task<MemoryStoreRecord> CreateAsync(Guid ownerId, Guid workspaceId, string? displayName, CancellationToken ct = default) =>
+        _memoryStoreRepository.CreateAsync(MemoryStoreRecord.Create(ownerId, workspaceId, displayName ?? "Memory Store"), ct);
 
-    public Task<bool> DeleteAsync(Guid id, Guid ownerId, CancellationToken ct = default) =>
-        _memoryStoreRepository.DeleteAsync(id, ownerId, ct);
+    public Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
+        _memoryStoreRepository.DeleteAsync(id, ownerId, workspaceId, ct);
 
     public Task<MemoryStoreEntryRecord> UpsertEntryAsync(
         Guid memoryStoreId,
         Guid ownerId,
+        Guid workspaceId,
         string key,
         string content,
         CancellationToken ct = default) =>
-        _memoryStoreRepository.UpsertEntryAsync(memoryStoreId, ownerId, key, content, ct);
+        _memoryStoreRepository.UpsertEntryAsync(memoryStoreId, ownerId, workspaceId, key, content, ct);
 
     public Task<bool> DeleteEntryAsync(
         Guid memoryStoreId,
         Guid ownerId,
+        Guid workspaceId,
         string key,
         CancellationToken ct = default) =>
-        _memoryStoreRepository.DeleteEntryAsync(memoryStoreId, ownerId, key, ct);
+        _memoryStoreRepository.DeleteEntryAsync(memoryStoreId, ownerId, workspaceId, key, ct);
 }

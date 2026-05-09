@@ -5,30 +5,36 @@ public class AgentResourceQueries
 {
     public async Task<IReadOnlyList<BrowserResourcePayload>> GetBrowserResources(
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentResourceRepository resources,
         CancellationToken ct)
     {
-        var rows = await resources.ListBrowserResourcesAsync(user.Id, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var rows = await resources.ListBrowserResourcesAsync(user.Id, workspace.Id, ct);
         return rows.Select(ToPayload).ToList();
     }
 
     public async Task<BrowserResourcePayload?> GetBrowserResource(
         Guid id,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentResourceRepository resources,
         CancellationToken ct)
     {
-        var row = await resources.GetBrowserResourceAsync(id, user.Id, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var row = await resources.GetBrowserResourceAsync(id, user.Id, workspace.Id, ct);
         return row is null ? null : ToPayload(row);
     }
 
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentPayload>> GetAgentSessionResourceAttachments(
         Guid sessionId,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentResourceService resources,
         CancellationToken ct)
     {
-        var rows = await resources.ListSessionAttachmentsAsync(sessionId, user.Id, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var rows = await resources.ListSessionAttachmentsAsync(sessionId, user.Id, workspace.Id, ct);
         return rows.Select(ToPayload).ToList();
     }
 

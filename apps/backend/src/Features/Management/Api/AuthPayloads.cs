@@ -8,7 +8,8 @@ public sealed record UserPayload(
     string? DisplayName,
     string? Timezone,
     string? NotificationPrefsJson,
-    string? Preferences);
+    string? Preferences,
+    Guid? CurrentWorkspaceId);
 
 public sealed record UpdateProfileInput(
     string? Name,

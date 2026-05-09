@@ -21,7 +21,8 @@ public sealed record GlobalLogFiltersRequest(
     string? AgentName = null,
     AgentLogType? Type = null,
     int Skip = 0,
-    int Limit = 50);
+    int Limit = 50,
+    Guid? WorkspaceId = null);
 
 public sealed record GlobalLogsPage(IReadOnlyList<AgentLogProjection> Items, int Total);
 

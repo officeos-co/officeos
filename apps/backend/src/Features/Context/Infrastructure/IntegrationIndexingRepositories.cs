@@ -11,6 +11,8 @@ internal sealed class IntegrationConnectionRepository : IIntegrationConnectionRe
         var query = _eaosDbContext.IntegrationConnections.AsNoTracking().AsQueryable();
         if (filter.Id.HasValue) query = query.Where(c => c.Id == filter.Id.Value);
         if (filter.Provider.HasValue) query = query.Where(c => c.Provider == filter.Provider.Value.ToString());
+        if (filter.CreatedById.HasValue) query = query.Where(c => c.CreatedById == filter.CreatedById.Value);
+        if (filter.WorkspaceId.HasValue) query = query.Where(c => c.WorkspaceId == filter.WorkspaceId.Value);
 
         var rows = await query
             .OrderByDescending(c => c.UpdatedAt)
@@ -27,6 +29,8 @@ internal sealed class IntegrationConnectionRepository : IIntegrationConnectionRe
         var query = _eaosDbContext.IntegrationConnections.AsNoTracking().AsQueryable();
         if (filter.Id.HasValue) query = query.Where(c => c.Id == filter.Id.Value);
         if (filter.Provider.HasValue) query = query.Where(c => c.Provider == filter.Provider.Value.ToString());
+        if (filter.CreatedById.HasValue) query = query.Where(c => c.CreatedById == filter.CreatedById.Value);
+        if (filter.WorkspaceId.HasValue) query = query.Where(c => c.WorkspaceId == filter.WorkspaceId.Value);
 
         var row = await query.FirstOrDefaultAsync(ct);
         if (row is null) return null;
@@ -52,6 +56,7 @@ internal sealed class IntegrationConnectionRepository : IIntegrationConnectionRe
             existing.EntitiesJson = connection.EntitiesJson;
             existing.Status = connection.Status.ToString();
             existing.Error = connection.Error;
+            existing.WorkspaceId = connection.WorkspaceId;
             existing.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -85,6 +90,7 @@ internal sealed class IntegrationConnectionRepository : IIntegrationConnectionRe
         Status = Enum.Parse<IntegrationConnectionStatus>(e.Status),
         Error = e.Error,
         CreatedById = e.CreatedById,
+        WorkspaceId = e.WorkspaceId,
         CreatedAt = e.CreatedAt,
         UpdatedAt = e.UpdatedAt,
         EntityStatuses = statuses.Select(IntegrationIndexEntityStatusRepository.ToRecord).ToList(),
@@ -101,6 +107,7 @@ internal sealed class IntegrationConnectionRepository : IIntegrationConnectionRe
         Status = r.Status.ToString(),
         Error = r.Error,
         CreatedById = r.CreatedById,
+        WorkspaceId = r.WorkspaceId,
         CreatedAt = r.CreatedAt,
         UpdatedAt = r.UpdatedAt,
     };

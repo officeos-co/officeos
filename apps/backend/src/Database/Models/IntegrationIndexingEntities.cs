@@ -11,7 +11,9 @@ public sealed class IntegrationConnectionEntity
     public string Status { get; set; } = string.Empty;
     public string? Error { get; set; }
     public Guid CreatedById { get; set; }
+    public Guid WorkspaceId { get; set; }
     public UserEntity? CreatedBy { get; set; }
+    public WorkspaceEntity? Workspace { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

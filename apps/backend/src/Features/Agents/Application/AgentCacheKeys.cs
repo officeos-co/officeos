@@ -6,14 +6,14 @@ public static class AgentCacheKeys
     private static readonly TimeSpan ListIndexTtl = TimeSpan.FromMinutes(10);
 
     public static string List(AgentFilter filter)
-        => $"agents:list:id={filter.Id?.ToString() ?? "all"}:owner={filter.OwnerId?.ToString() ?? "all"}:deleted={filter.IncludeDeleted}";
+        => $"agents:list:id={filter.Id?.ToString() ?? "all"}:owner={filter.OwnerId?.ToString() ?? "all"}:workspace={filter.WorkspaceId?.ToString() ?? "all"}:deleted={filter.IncludeDeleted}";
 
     public static string Detail(AgentFilter filter)
-        => $"agents:detail:id={filter.Id?.ToString() ?? "any"}:owner={filter.OwnerId?.ToString() ?? "any"}:deleted={filter.IncludeDeleted}";
+        => $"agents:detail:id={filter.Id?.ToString() ?? "any"}:owner={filter.OwnerId?.ToString() ?? "any"}:workspace={filter.WorkspaceId?.ToString() ?? "any"}:deleted={filter.IncludeDeleted}";
 
-    public static string DashboardList(Guid userId) => $"agents:dashboard:list:{userId}";
+    public static string DashboardList(Guid userId, Guid workspaceId) => $"agents:dashboard:list:{userId}:workspace:{workspaceId}";
 
-    public static string DashboardDetail(Guid agentId, Guid userId) => $"agents:dashboard:{agentId}:user:{userId}";
+    public static string DashboardDetail(Guid agentId, Guid userId, Guid workspaceId) => $"agents:dashboard:{agentId}:user:{userId}:workspace:{workspaceId}";
 
     public static async Task TrackListAsync(IDistributedCache cache, string cacheKey, CancellationToken ct)
     {
@@ -31,8 +31,6 @@ public static class AgentCacheKeys
         {
             await cache.RemoveAsync(Detail(new AgentFilter { Id = agentId, OwnerId = ownerId.Value }), ct);
             await cache.RemoveAsync(Detail(new AgentFilter { Id = agentId, OwnerId = ownerId.Value, IncludeDeleted = true }), ct);
-            await cache.RemoveAsync(DashboardDetail(agentId, ownerId.Value), ct);
-            await cache.RemoveAsync(DashboardList(ownerId.Value), ct);
         }
 
         await InvalidateTrackedListsAsync(cache, ct);

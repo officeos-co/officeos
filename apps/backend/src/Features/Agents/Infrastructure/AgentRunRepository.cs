@@ -8,9 +8,10 @@ internal sealed class AgentRunRepository : IAgentRunRepository
 
     public async Task<AgentRunRecord> CreateAsync(AgentRunRecord run, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentRuns.Add(ToEntity(run));
+        var entity = await ToEntityAsync(run, ct);
+        _eaosDbContext.AgentRuns.Add(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
-        return run;
+        return ToRecord(entity);
     }
 
     public async Task<AgentRunRecord?> GetByAsync(AgentRunFilter filter, CancellationToken ct = default)
@@ -60,6 +61,7 @@ internal sealed class AgentRunRepository : IAgentRunRepository
     {
         Id = e.Id,
         AgentId = e.AgentId,
+        WorkspaceId = e.WorkspaceId,
         ParentRunId = e.ParentRunId,
         ParentCorrelationId = e.ParentCorrelationId,
         Kind = e.Kind,
@@ -74,21 +76,30 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         CompletedAt = e.CompletedAt,
     };
 
-    private static AgentRunEntity ToEntity(AgentRunRecord r) => new()
+    private async Task<AgentRunEntity> ToEntityAsync(AgentRunRecord r, CancellationToken ct)
     {
-        Id = r.Id,
-        AgentId = r.AgentId,
-        ParentRunId = r.ParentRunId,
-        ParentCorrelationId = r.ParentCorrelationId,
-        Kind = r.Kind,
-        Status = r.Status,
-        Name = r.Name,
-        Description = r.Description,
-        Prompt = r.Prompt,
-        Result = r.Result,
-        Error = r.Error,
-        CreatedAt = r.CreatedAt,
-        UpdatedAt = r.UpdatedAt,
-        CompletedAt = r.CompletedAt,
-    };
+        var workspaceId = r.WorkspaceId ?? await _eaosDbContext.Agents.AsNoTracking()
+            .Where(a => a.Id == r.AgentId)
+            .Select(a => a.WorkspaceId)
+            .FirstOrDefaultAsync(ct);
+
+        return new AgentRunEntity
+        {
+            Id = r.Id,
+            AgentId = r.AgentId,
+            WorkspaceId = workspaceId,
+            ParentRunId = r.ParentRunId,
+            ParentCorrelationId = r.ParentCorrelationId,
+            Kind = r.Kind,
+            Status = r.Status,
+            Name = r.Name,
+            Description = r.Description,
+            Prompt = r.Prompt,
+            Result = r.Result,
+            Error = r.Error,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt,
+            CompletedAt = r.CompletedAt,
+        };
+    }
 }

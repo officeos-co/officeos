@@ -5,23 +5,27 @@ public sealed class MemoryStoreQueries
 {
     public async Task<IReadOnlyList<MemoryStorePayload>> GetMemoryStores(
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IMemoryStoreRepository memoryStores,
         CancellationToken ct)
     {
-        var rows = await memoryStores.ListAsync(user.Id, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var rows = await memoryStores.ListAsync(user.Id, workspace.Id, ct);
         return rows.Select(row => ToPayload(row, null)).ToList();
     }
 
     public async Task<MemoryStorePayload?> GetMemoryStore(
         Guid id,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IMemoryStoreRepository memoryStores,
         CancellationToken ct)
     {
-        var row = await memoryStores.GetAsync(id, user.Id, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var row = await memoryStores.GetAsync(id, user.Id, workspace.Id, ct);
         if (row is null) return null;
 
-        var entries = await memoryStores.ListEntriesAsync(id, user.Id, ct);
+        var entries = await memoryStores.ListEntriesAsync(id, user.Id, workspace.Id, ct);
         return ToPayload(row, entries);
     }
 

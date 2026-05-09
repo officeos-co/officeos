@@ -44,6 +44,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
+        services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<AgentTurnService>();
 
         // Background services

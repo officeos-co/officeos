@@ -6,6 +6,7 @@ public sealed class IntegrationDefinitionMutations
     public async Task<IntegrationDefinitionRecord> RegisterIntegration(
         RegisterIntegrationInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         var transportType = Enum.TryParse<IntegrationTransportType>(input.TransportType, true, out var t)
@@ -61,7 +62,8 @@ public sealed class IntegrationDefinitionMutations
 
         try
         {
-            return await svc.RegisterAsync(user.Id, record, ct);
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            return await svc.RegisterAsync(user.Id, workspace.Id, record, ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -73,11 +75,13 @@ public sealed class IntegrationDefinitionMutations
     public async Task<bool> DeleteIntegration(
         string name,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
         try
         {
-            await svc.DeleteAsync(user.Id, name, ct);
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            await svc.DeleteAsync(user.Id, name, workspace.Id, ct);
         }
         catch (InvalidOperationException ex)
         {
@@ -114,10 +118,12 @@ public sealed class IntegrationDefinitionMutations
     public async Task<bool> SaveIntegrationCredential(
         string integrationName, List<CredentialFieldInput> fields,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
         var dict = fields.ToDictionary(f => f.Key, f => f.Value);
-        await svc.SaveCredentialAsync(user.Id, integrationName, dict, ct);
+        await svc.SaveCredentialAsync(user.Id, workspace.Id, integrationName, dict, ct);
         return true;
     }
 }

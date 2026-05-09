@@ -13,6 +13,8 @@ public sealed class AgentEntity
     public DateTime CreatedAt { get; set; }
     public bool IsDeleted { get; set; }
     public Guid? OwnerId { get; set; }
+    public Guid? WorkspaceId { get; set; }
     public string? EncryptedBackendToken { get; set; }
     public UserEntity? Owner { get; set; }
+    public WorkspaceEntity? Workspace { get; set; }
 }

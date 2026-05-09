@@ -4,6 +4,7 @@ public sealed class AgentRunEntity
 {
     public Guid Id { get; set; }
     public Guid AgentId { get; set; }
+    public Guid? WorkspaceId { get; set; }
     public Guid? ParentRunId { get; set; }
     public string? ParentCorrelationId { get; set; }
     public string Kind { get; set; } = "turn";
@@ -17,4 +18,5 @@ public sealed class AgentRunEntity
     public DateTime UpdatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public AgentEntity? Agent { get; set; }
+    public WorkspaceEntity? Workspace { get; set; }
 }

@@ -8,12 +8,15 @@ public class CronJobMutations
     public async Task<AgentCronJobRecord> CreateCronJob(
         CreateCronJobInput input,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentCronJobService jobs,
         CancellationToken ct)
     {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
         return await jobs.CreateAsync(
             new CreateAgentCronJobRequest(input.AgentId, input.Name, input.Expression, input.Prompt),
             user.Id,
+            workspace.Id,
             ct);
     }
 
@@ -22,19 +25,23 @@ public class CronJobMutations
         Guid id,
         bool enabled,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentCronJobService jobs,
         CancellationToken ct)
     {
-        return await jobs.SetEnabledAsync(id, user.Id, enabled, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        return await jobs.SetEnabledAsync(id, user.Id, workspace.Id, enabled, ct);
     }
 
     [GraphQLDescription("Permanently deletes a cron job.")]
     public async Task<bool> DeleteCronJob(
         Guid id,
         [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IAgentCronJobService jobs,
         CancellationToken ct)
     {
-        return await jobs.DeleteAsync(id, user.Id, ct);
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        return await jobs.DeleteAsync(id, user.Id, workspace.Id, ct);
     }
 }

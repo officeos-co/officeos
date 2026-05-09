@@ -125,6 +125,7 @@ internal sealed class UserRepository : IUserRepository
         Timezone = e.Timezone,
         NotificationPrefsJson = e.NotificationPrefsJson,
         Preferences = e.Preferences,
+        CurrentWorkspaceId = e.CurrentWorkspaceId,
     };
 
     private static UserEntity ToUserEntity(UserRecord r) => new()
@@ -141,5 +142,6 @@ internal sealed class UserRepository : IUserRepository
         Timezone = r.Timezone,
         NotificationPrefsJson = r.NotificationPrefsJson,
         Preferences = r.Preferences,
+        CurrentWorkspaceId = r.CurrentWorkspaceId,
     };
 }

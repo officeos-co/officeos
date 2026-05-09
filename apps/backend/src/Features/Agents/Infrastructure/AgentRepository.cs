@@ -19,6 +19,9 @@ internal sealed class AgentRepository : IAgentRepository
         if (filter.OwnerId.HasValue)
             query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
 
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
+
         if (!filter.IncludeDeleted)
             query = query.Where(a => !a.IsDeleted);
 
@@ -38,6 +41,9 @@ internal sealed class AgentRepository : IAgentRepository
 
         if (filter.OwnerId.HasValue)
             query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
 
         if (!filter.IncludeDeleted)
             query = query.Where(a => !a.IsDeleted);
@@ -90,6 +96,9 @@ internal sealed class AgentRepository : IAgentRepository
         if (filter.OwnerId.HasValue)
             query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
 
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
+
         if (!filter.IncludeDeleted)
             query = query.Where(a => !a.IsDeleted);
 
@@ -108,6 +117,9 @@ internal sealed class AgentRepository : IAgentRepository
 
         if (filter.OwnerId.HasValue)
             query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
 
         if (!filter.IncludeDeleted)
             query = query.Where(a => !a.IsDeleted);
@@ -128,6 +140,9 @@ internal sealed class AgentRepository : IAgentRepository
 
         if (filter.OwnerId.HasValue)
             query = query.Where(a => a.OwnerId == filter.OwnerId.Value);
+
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(a => a.WorkspaceId == filter.WorkspaceId.Value);
 
         if (!filter.IncludeDeleted)
             query = query.Where(a => !a.IsDeleted);
@@ -182,6 +197,7 @@ internal sealed class AgentRepository : IAgentRepository
         CreatedAt = e.CreatedAt,
         IsDeleted = e.IsDeleted,
         OwnerId = e.OwnerId,
+        WorkspaceId = e.WorkspaceId,
         EncryptedBackendToken = e.EncryptedBackendToken,
         PersonalityFiles = personalityFiles ?? [],
         Memories = memories ?? [],
@@ -203,6 +219,7 @@ internal sealed class AgentRepository : IAgentRepository
         CreatedAt = r.CreatedAt,
         IsDeleted = r.IsDeleted,
         OwnerId = r.OwnerId,
+        WorkspaceId = r.WorkspaceId,
         EncryptedBackendToken = r.EncryptedBackendToken,
     };
 
@@ -217,6 +234,7 @@ internal sealed class AgentRepository : IAgentRepository
         e.Prompt = r.Prompt;
         e.IsDeleted = r.IsDeleted;
         e.OwnerId = r.OwnerId;
+        e.WorkspaceId = r.WorkspaceId;
         e.EncryptedBackendToken = r.EncryptedBackendToken;
     }
 }
