@@ -4,10 +4,10 @@ This backend is a single-project, feature-first modular monolith. Keep clean arc
 
 ## Project Layout
 
-- `src/EnterpriseAgentOs.Api`: the single backend project and application host.
+- `src`: the single backend project and application host.
 - `tests/EnterpriseAgentOs.Api.Tests`: backend tests.
 
-Only these top-level feature folders are allowed under `src/EnterpriseAgentOs.Api/Features`:
+Only these top-level feature folders are allowed under `src/Features`:
 
 - `Agents`
 - `Analytics`
@@ -22,11 +22,13 @@ Each feature owns its local layers:
 
 Shared code lives under:
 
-- `src/EnterpriseAgentOs.Api/Common/Domain`
-- `src/EnterpriseAgentOs.Api/Common/Application`
-- `src/EnterpriseAgentOs.Api/Common/Infrastructure`
-- `src/EnterpriseAgentOs.Api/Common/Api`
-- `src/EnterpriseAgentOs.Api/Events`
+- `src/Common/Domain`
+- `src/Common/Application`
+- `src/Common/Infrastructure`
+- `src/Common/Extensions`
+- `src/Common/Middleware`
+- `src/Database`
+- `src/Events`
 
 ## Feature Ownership
 
@@ -50,10 +52,10 @@ Even though this is one project, layer boundaries still apply:
 
 - Domain must not depend on Api, Infrastructure, EF, ASP.NET, GraphQL, Redis, Stripe, Kubernetes, Docker, or hosting concepts.
 - Application may depend on Domain abstractions and injected infrastructure-facing contracts. It must not depend on EF entities, `EaosDbContext`, ASP.NET request state, GraphQL types, or database schema details.
-- Infrastructure may depend on Domain and external libraries. It maps between EF entities and Domain records.
+- Infrastructure may depend on Domain, Database, and external libraries. Repositories map between EF entities and Domain records.
 - Api may compose Application, Domain, and Infrastructure.
 - Do not pass transport DTOs into Domain records or repository interfaces.
-- Do not pass EF entities, tracked queries, or `DbContext` outside Infrastructure.
+- Do not pass EF entities, tracked queries, or `DbContext` outside Database/Infrastructure.
 
 ## Naming
 
@@ -81,16 +83,25 @@ Api:
 
 Infrastructure:
 
-- `*Entity`: EF persistence entity.
 - `*Repository`: implementation of a Domain repository.
 - `*Adapter`, `*Client`, `*Gateway`: external system implementation.
 - `*Config`: infrastructure config for external systems.
 - `*Protector`: credential/data protection implementation.
 
+Database:
+
+- `*Entity`: EF persistence entity under `src/Database/Models`.
+- `EaosDbContext`: centralized EF context under `src/Database`.
+- EF migrations live under `src/Database/Migrations`.
+
 Avoid broad bucket files such as `Types.cs`, `Records.cs`, and `Repositories.cs` once they contain more than one tight aggregate family.
 
 ## Domain And Persistence
 
+- Database is centralized under `src/Database`.
+- Database entities live under `src/Database/Models`.
+- The EF context and design-time factory live directly under `src/Database`.
+- EF migrations live under `src/Database/Migrations`.
 - Database entities stay decoupled from domain records. Repositories map EF entities to rich domain records and back.
 - Put repository filters next to their repository interfaces.
 - Repository methods should use filter records instead of primitive-heavy method variants.

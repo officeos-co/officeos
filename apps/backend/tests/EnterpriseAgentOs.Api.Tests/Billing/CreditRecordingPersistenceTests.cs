@@ -1,7 +1,7 @@
 using EnterpriseAgentOs.Application.Features.Management;
 using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Infrastructure.Common;
+using EnterpriseAgentOs.Database;
 using EnterpriseAgentOs.Infrastructure.Common.Configuration;
 using EnterpriseAgentOs.Infrastructure.Features.Agents;
 using EnterpriseAgentOs.Infrastructure.Features.Management;
