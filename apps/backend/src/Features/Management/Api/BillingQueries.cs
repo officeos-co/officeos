@@ -184,6 +184,6 @@ public class BillingQueries
         [Service] IUsageAnalyticsService usageAnalytics,
         CancellationToken ct)
     {
-        return await usageAnalytics.GetForUserAsync(user.Id, input, ct);
+        return await usageAnalytics.GetForUserAsync(user.Id, new UsageAnalyticsRequest(input.From, input.To), ct);
     }
 }

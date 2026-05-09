@@ -16,7 +16,7 @@ public sealed record AgentLogProjection(
     int? OutputTokens,
     string? CorrelationId);
 
-public sealed record GlobalLogFiltersInput(
+public sealed record GlobalLogFiltersRequest(
     string? Search = null,
     string? AgentName = null,
     AgentLogType? Type = null,
@@ -25,7 +25,7 @@ public sealed record GlobalLogFiltersInput(
 
 public sealed record GlobalLogsPage(IReadOnlyList<AgentLogProjection> Items, int Total);
 
-public sealed record UsageAnalyticsInput(
+public sealed record UsageAnalyticsRequest(
     DateTime From,
     DateTime To);
 
@@ -49,7 +49,7 @@ public sealed record UsageAnalyticsResult(
     UsageCostBreakdown Cost,
     IReadOnlyList<UsageAnalyticsPoint> Points);
 
-public sealed record AppendAgentLogInput(
+public sealed record AppendAgentLogRequest(
     Guid AgentId,
     AgentLogType Type,
     string Content,

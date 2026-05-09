@@ -184,20 +184,20 @@ internal sealed class UserBillingService : IUserBillingService
         }
     }
 
-    public async Task<IReadOnlyList<InvoicePayload>> ListInvoicesAsync(
+    public async Task<IReadOnlyList<InvoiceRecord>> ListInvoicesAsync(
         Guid userId, CancellationToken ct = default)
     {
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         if (sub?.StripeCustomerId is null)
         {
-            return Array.Empty<InvoicePayload>();
+            return Array.Empty<InvoiceRecord>();
         }
         try
         {
             var invoices = await new InvoiceService().ListAsync(
                 new InvoiceListOptions { Customer = sub.StripeCustomerId, Limit = 24 },
                 cancellationToken: ct);
-            return invoices.Data.Select(i => new InvoicePayload(
+            return invoices.Data.Select(i => new InvoiceRecord(
                 i.Id,
                 i.Created,
                 ((decimal)i.Total / 100m).ToString("0.00"),
@@ -209,7 +209,7 @@ internal sealed class UserBillingService : IUserBillingService
         catch (StripeException ex)
         {
             _logger.LogWarning(ex, "Stripe invoice list failed for user {UserId}", userId);
-            return Array.Empty<InvoicePayload>();
+            return Array.Empty<InvoiceRecord>();
         }
     }
 

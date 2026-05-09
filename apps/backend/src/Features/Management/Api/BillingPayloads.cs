@@ -68,4 +68,4 @@ public sealed record BillingPayload(
     bool ExtraUsageEnabled,
     string? PaymentBrand,
     string? PaymentLast4,
-    IReadOnlyList<InvoicePayload> Invoices);
+    IReadOnlyList<InvoiceRecord> Invoices);

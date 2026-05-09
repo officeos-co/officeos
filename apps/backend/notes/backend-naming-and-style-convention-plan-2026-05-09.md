@@ -497,6 +497,8 @@ Current diagnostics:
 - `EAOS004`: Domain must not depend on outer layers or transport/infrastructure frameworks.
 - `EAOS005`: Feature Api/Application layers must not define `*Dto` types.
 - `EAOS006`: Feature type names must match their layer vocabulary.
+- `EAOS007`: Feature type suffixes must be declared in the correct layer/path.
+- `EAOS008`: Public API boundary methods must not expose Application `*Request`/`*Result` types as parameters.
 
 Layer vocabulary enforced by `EAOS006`:
 
@@ -505,6 +507,17 @@ Layer vocabulary enforced by `EAOS006`:
 - Api: `*Input`, `*Payload`, `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`, `*Mapper`, plus bootstrap/summary payload helper names.
 - Infrastructure: `*Repository`, `*Adapter`, `*Client`, `*Gateway`, `*Config`, `*Protector`, `*Dispatcher`, `*Translator`, `*Sandbox`, `*Store`, `*Injector`, `*Router`, `*Service`, `*Manager`, `*Handle`, `*Response`.
 - EventHandlers: `*Handler`.
+
+Path placement enforced by `EAOS007`:
+
+- `*Input`, `*Payload`, `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, and `*Endpoint` belong in `Api`.
+- `*Projection`, `*Export`, and `*Policy` belong in `Application`.
+- `*Record`, `*Filter`, and `*Event` belong in `Domain`.
+- `*Request` and `*Result` belong in `Application` or `Domain`, not `Api` or `Infrastructure`.
+- `I*Repository` belongs in `Domain`; repository implementation classes belong in `Infrastructure`.
+- `*Handler` belongs in `EventHandlers`.
+- `*Entity` belongs in `src/Database/Models`, never under `src/Features`.
+- Public API method parameters use Api `*Input` records and map to Application `*Request` records inside the method body.
 
 Keep architecture tests only for behavior that cannot be checked cheaply at compile time. Static analyzer rules should cover naming, forbidden dependencies, and direct injection conventions.
 

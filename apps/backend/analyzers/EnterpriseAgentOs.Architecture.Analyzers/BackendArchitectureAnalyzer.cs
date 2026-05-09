@@ -57,6 +57,22 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor LayerPlacementRule = new(
+        "EAOS007",
+        "Feature type suffix must be declared in the correct layer",
+        "Type '{0}' uses suffix '{1}', which belongs under {2}, not {3}",
+        "EnterpriseAgentOs.Architecture",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor ApiBoundaryRequestRule = new(
+        "EAOS008",
+        "API boundary must not expose Application request/result types",
+        "API parameter '{0}' exposes '{1}'; define an Api *Input type and map it to the Application request inside the method",
+        "EnterpriseAgentOs.Architecture",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private static readonly string[] ForbiddenDomainNamespaces =
     [
         "EnterpriseAgentOs.Api",
@@ -77,7 +93,6 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         "Result",
         "Request",
         "Response",
-        "Payload",
         "Config",
         "Message",
         "Context",
@@ -125,8 +140,6 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         "Request",
         "Result",
         "Policy",
-        "Input",
-        "Payload",
         "Projection",
         "Entry",
         "Item",
@@ -173,7 +186,6 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
     [
         "Input",
         "Payload",
-        "Request",
         "Queries",
         "Mutations",
         "Subscriptions",
@@ -213,7 +225,9 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
             ApiMutationRepositoryInjectionRule,
             DomainForbiddenDependencyRule,
             FeatureDtoTypeRule,
-            LayerNamingRule);
+            LayerNamingRule,
+            LayerPlacementRule,
+            ApiBoundaryRequestRule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -291,12 +305,13 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         }
 
         AnalyzeLayerNaming(context, typeSymbol, filePath, location);
+        AnalyzeLayerPlacement(context, typeSymbol, filePath, location);
     }
 
     private static void AnalyzeParameter(SyntaxNodeAnalysisContext context)
     {
         var filePath = NormalizePath(context.Node.SyntaxTree.FilePath);
-        if (!IsInLayer(filePath, "Api") || !Path.GetFileName(filePath).EndsWith("Mutations.cs", StringComparison.Ordinal))
+        if (!IsInLayer(filePath, "Api"))
             return;
 
         var parameter = (ParameterSyntax)context.Node;
@@ -304,15 +319,47 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
             return;
 
         var typeSymbol = context.SemanticModel.GetTypeInfo(parameter.Type, context.CancellationToken).Type;
-        if (typeSymbol is null || !IsRepositoryType(typeSymbol))
+        if (typeSymbol is null)
             return;
 
-        context.ReportDiagnostic(Diagnostic.Create(
-            ApiMutationRepositoryInjectionRule,
-            parameter.GetLocation(),
-            parameter.Identifier.ValueText,
-            typeSymbol.Name));
+        if (Path.GetFileName(filePath).EndsWith("Mutations.cs", StringComparison.Ordinal) && IsRepositoryType(typeSymbol))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                ApiMutationRepositoryInjectionRule,
+                parameter.GetLocation(),
+                parameter.Identifier.ValueText,
+                typeSymbol.Name));
+        }
+
+        if (IsApiBoundaryParameter(context, parameter)
+            && (typeSymbol.Name.EndsWith("Request", StringComparison.Ordinal)
+            || typeSymbol.Name.EndsWith("Result", StringComparison.Ordinal))
+            && !IsFrameworkParameter(typeSymbol))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                ApiBoundaryRequestRule,
+                parameter.GetLocation(),
+                parameter.Identifier.ValueText,
+                typeSymbol.Name));
+        }
     }
+
+    private static bool IsApiBoundaryParameter(SyntaxNodeAnalysisContext context, ParameterSyntax parameter)
+    {
+        var method = parameter.FirstAncestorOrSelf<MethodDeclarationSyntax>();
+        if (method is null)
+            return false;
+
+        var methodSymbol = context.SemanticModel.GetDeclaredSymbol(method, context.CancellationToken);
+        if (methodSymbol?.DeclaredAccessibility is not Accessibility.Public)
+            return false;
+
+        return methodSymbol.ContainingType?.DeclaredAccessibility is Accessibility.Public;
+    }
+
+    private static bool IsFrameworkParameter(ITypeSymbol typeSymbol) =>
+        typeSymbol.ContainingNamespace.ToDisplayString().StartsWith("Microsoft.", StringComparison.Ordinal)
+        || typeSymbol.ContainingNamespace.ToDisplayString().StartsWith("System.", StringComparison.Ordinal);
 
     private static bool IsRepositoryType(ITypeSymbol typeSymbol)
     {
@@ -356,6 +403,73 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
             layer));
     }
 
+    private static void AnalyzeLayerPlacement(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol typeSymbol,
+        string filePath,
+        Location location)
+    {
+        if (typeSymbol.DeclaredAccessibility is Accessibility.Private)
+            return;
+
+        var layer = GetLayer(filePath);
+        if (layer is null)
+            return;
+
+        var name = typeSymbol.Name;
+        if (name.StartsWith("<", StringComparison.Ordinal))
+            return;
+
+        if (name.EndsWith("Entity", StringComparison.Ordinal))
+        {
+            ReportPlacement(context, location, name, "Entity", "src/Database/Models", layer);
+            return;
+        }
+
+        if (name.EndsWith("Repository", StringComparison.Ordinal))
+        {
+            var expected = typeSymbol.TypeKind is TypeKind.Interface ? "Domain" : "Infrastructure";
+            if (layer != expected)
+                ReportPlacement(context, location, name, "Repository", expected, layer);
+            return;
+        }
+
+        if (EndsWithAny(name, ["Record", "Filter", "Event"]))
+        {
+            var suffix = MatchingSuffix(name, ["Record", "Filter", "Event"]);
+            if (layer != "Domain")
+                ReportPlacement(context, location, name, suffix, "Domain", layer);
+            return;
+        }
+
+        if (EndsWithAny(name, ["Input", "Payload", "Queries", "Mutations", "Subscriptions", "Controller", "Endpoint"]))
+        {
+            var suffix = MatchingSuffix(name, ["Input", "Payload", "Queries", "Mutations", "Subscriptions", "Controller", "Endpoint"]);
+            if (layer != "Api")
+                ReportPlacement(context, location, name, suffix, "Api", layer);
+            return;
+        }
+
+        if (EndsWithAny(name, ["Projection", "Export", "Policy"]))
+        {
+            var suffix = MatchingSuffix(name, ["Projection", "Export", "Policy"]);
+            if (layer != "Application")
+                ReportPlacement(context, location, name, suffix, "Application", layer);
+            return;
+        }
+
+        if (EndsWithAny(name, ["Request", "Result"]))
+        {
+            var suffix = MatchingSuffix(name, ["Request", "Result"]);
+            if (layer is not ("Application" or "Domain"))
+                ReportPlacement(context, location, name, suffix, "Application or Domain", layer);
+            return;
+        }
+
+        if (name.EndsWith("Handler", StringComparison.Ordinal) && layer != "EventHandlers")
+            ReportPlacement(context, location, name, "Handler", "EventHandlers", layer);
+    }
+
     private static bool IsAllowedName(INamedTypeSymbol typeSymbol, string layer, string name)
     {
         if (typeSymbol.TypeKind is TypeKind.Interface)
@@ -387,6 +501,26 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
 
     private static bool EndsWithAny(string name, string[] suffixes) =>
         suffixes.Any(suffix => name.EndsWith(suffix, StringComparison.Ordinal));
+
+    private static string MatchingSuffix(string name, string[] suffixes) =>
+        suffixes.First(suffix => name.EndsWith(suffix, StringComparison.Ordinal));
+
+    private static void ReportPlacement(
+        SymbolAnalysisContext context,
+        Location location,
+        string typeName,
+        string suffix,
+        string expectedLayer,
+        string actualLayer)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            LayerPlacementRule,
+            location,
+            typeName,
+            suffix,
+            expectedLayer,
+            actualLayer));
+    }
 
     private static string? GetLayer(string filePath)
     {
