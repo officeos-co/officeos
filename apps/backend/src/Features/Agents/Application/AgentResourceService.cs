@@ -24,7 +24,7 @@ internal sealed class AgentResourceService : IAgentResourceService
         _agentResourceRepository.CreateBrowserResourceAsync(BrowserResourceRecord.Create(ownerId, workspaceId, displayName ?? "Browser"), ct);
 
     public Task<bool> DeleteBrowserResourceAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
-        _agentResourceRepository.DeleteBrowserResourceAsync(id, ownerId, workspaceId, ct);
+        _agentResourceRepository.DeleteBrowserResourceAsync(id, null, workspaceId, ct);
 
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentRecord>> ListSessionAttachmentsAsync(
         Guid sessionId,
@@ -36,7 +36,7 @@ internal sealed class AgentResourceService : IAgentResourceService
         if (session is null)
             throw new InvalidOperationException("Session not found.");
 
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = session.AgentId, OwnerId = ownerId, WorkspaceId = workspaceId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = session.AgentId, WorkspaceId = workspaceId }, ct);
         if (agent is null)
             throw new InvalidOperationException("Session not found.");
 

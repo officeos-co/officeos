@@ -6,21 +6,29 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
 
     public AgentResourceRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<IReadOnlyList<BrowserResourceRecord>> ListBrowserResourcesAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<BrowserResourceRecord>> ListBrowserResourcesAsync(Guid? ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        var entities = await _eaosDbContext.BrowserResources
+        var query = _eaosDbContext.BrowserResources
             .AsNoTracking()
-            .Where(r => r.OwnerId == ownerId && r.WorkspaceId == workspaceId)
+            .Where(r => r.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(r => r.OwnerId == ownerId.Value);
+
+        var entities = await query
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync(ct);
         return entities.Select(ToBrowserRecord).ToList();
     }
 
-    public async Task<BrowserResourceRecord?> GetBrowserResourceAsync(Guid id, Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
+    public async Task<BrowserResourceRecord?> GetBrowserResourceAsync(Guid id, Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.BrowserResources
             .AsNoTracking()
-            .Where(r => r.Id == id && r.OwnerId == ownerId);
+            .Where(r => r.Id == id);
+
+        if (ownerId.HasValue)
+            query = query.Where(r => r.OwnerId == ownerId.Value);
 
         if (workspaceId.HasValue)
             query = query.Where(r => r.WorkspaceId == workspaceId.Value);
@@ -37,10 +45,15 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
         return ToBrowserRecord(entity);
     }
 
-    public async Task<bool> DeleteBrowserResourceAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<bool> DeleteBrowserResourceAsync(Guid id, Guid? ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.BrowserResources
-            .FirstOrDefaultAsync(r => r.Id == id && r.OwnerId == ownerId && r.WorkspaceId == workspaceId, ct);
+        var query = _eaosDbContext.BrowserResources
+            .Where(r => r.Id == id && r.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(r => r.OwnerId == ownerId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         if (entity is null) return false;
 
         await _eaosDbContext.AgentSessionResourceAttachments

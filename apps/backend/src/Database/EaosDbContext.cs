@@ -12,6 +12,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<OAuthGrantedScopeEntity> OAuthGrantedScopes => Set<OAuthGrantedScopeEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<WorkspaceEntity> Workspaces => Set<WorkspaceEntity>();
+    public DbSet<WorkspaceMemberEntity> WorkspaceMembers => Set<WorkspaceMemberEntity>();
+    public DbSet<WorkspaceOrganizationGrantEntity> WorkspaceOrganizationGrants => Set<WorkspaceOrganizationGrantEntity>();
     public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
     public DbSet<DeviceCodeEntity> DeviceCodes => Set<DeviceCodeEntity>();
     public DbSet<BrowserSessionEntity> BrowserSessions => Set<BrowserSessionEntity>();
@@ -93,9 +95,32 @@ public sealed class EaosDbContext : DbContext
         modelBuilder.Entity<WorkspaceEntity>(e =>
         {
             e.HasKey(w => w.Id);
-            e.HasIndex(w => new { w.UserId, w.Name }).IsUnique();
+            e.HasIndex(w => new { w.OwnerUserId, w.Name });
+            e.HasIndex(w => new { w.OrganizationId, w.Name });
+            e.HasIndex(w => w.OwnerKind);
             e.Property(w => w.Name).IsRequired().HasMaxLength(200);
-            e.HasOne(w => w.User).WithMany().HasForeignKey(w => w.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(w => w.OwnerKind).IsRequired().HasMaxLength(32);
+            e.HasOne(w => w.OwnerUser).WithMany().HasForeignKey(w => w.OwnerUserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(w => w.Organization).WithMany().HasForeignKey(w => w.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkspaceMemberEntity>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => new { m.WorkspaceId, m.UserId }).IsUnique();
+            e.HasIndex(m => m.UserId);
+            e.Property(m => m.Role).IsRequired().HasMaxLength(16);
+            e.HasOne(m => m.Workspace).WithMany().HasForeignKey(m => m.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkspaceOrganizationGrantEntity>(e =>
+        {
+            e.HasKey(g => g.Id);
+            e.HasIndex(g => new { g.WorkspaceId, g.OrganizationId }).IsUnique();
+            e.Property(g => g.MaxRole).IsRequired().HasMaxLength(16);
+            e.HasOne(g => g.Workspace).WithMany().HasForeignKey(g => g.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(g => g.Organization).WithMany().HasForeignKey(g => g.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SessionEntity>(e =>
@@ -340,8 +365,8 @@ public sealed class EaosDbContext : DbContext
         {
             e.ToTable("Integrations");
             e.HasKey(s => s.Id);
-            e.HasIndex(s => new { s.OwnerId, s.WorkspaceId, s.Name }).IsUnique();
             e.HasIndex(s => new { s.OwnerId, s.WorkspaceId });
+            e.HasIndex(s => new { s.WorkspaceId, s.Name }).IsUnique();
             e.Property(s => s.Name).IsRequired().HasMaxLength(64);
             e.Property(s => s.Provider).HasMaxLength(64);
             e.Property(s => s.Title).IsRequired().HasMaxLength(128);
@@ -377,7 +402,7 @@ public sealed class EaosDbContext : DbContext
             e.ToTable("IntegrationCredentials");
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.OwnerId);
-            e.HasIndex(c => new { c.OwnerId, c.WorkspaceId, c.IntegrationName }).IsUnique();
+            e.HasIndex(c => new { c.WorkspaceId, c.IntegrationName }).IsUnique();
             e.Property(c => c.IntegrationName).IsRequired().HasMaxLength(64);
             e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
             e.HasOne<UserEntity>().WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);

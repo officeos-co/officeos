@@ -10,7 +10,7 @@ public sealed class MemoryStoreQueries
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var rows = await memoryStores.ListAsync(user.Id, workspace.Id, ct);
+        var rows = await memoryStores.ListAsync(null, workspace.Id, ct);
         return rows.Select(row => ToPayload(row, null)).ToList();
     }
 
@@ -22,10 +22,10 @@ public sealed class MemoryStoreQueries
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var row = await memoryStores.GetAsync(id, user.Id, workspace.Id, ct);
+        var row = await memoryStores.GetAsync(id, null, workspace.Id, ct);
         if (row is null) return null;
 
-        var entries = await memoryStores.ListEntriesAsync(id, user.Id, workspace.Id, ct);
+        var entries = await memoryStores.ListEntriesAsync(id, null, workspace.Id, ct);
         return ToPayload(row, entries);
     }
 

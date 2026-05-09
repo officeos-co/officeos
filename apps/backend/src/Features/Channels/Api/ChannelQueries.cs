@@ -21,7 +21,7 @@ public class ChannelQueries
         if (cached is not null)
             return cached;
 
-        var rows = await repo.ListConnectionsAsync(new ChannelConnectionFilter { CreatedById = user.Id, WorkspaceId = workspace.Id }, ct);
+        var rows = await repo.ListConnectionsAsync(new ChannelConnectionFilter { WorkspaceId = workspace.Id }, ct);
         var result = rows.Select(ChannelGraphQLMapper.ToPayload).ToList();
 
         await cache.SetJsonAsync(listKey, (IReadOnlyList<ChannelConnectionPayload>)result, ChannelCacheTtl, ct);
@@ -43,7 +43,7 @@ public class ChannelQueries
         if (cached is not null)
             return cached;
 
-        var row = await repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = id, CreatedById = user.Id, WorkspaceId = workspace.Id }, ct);
+        var row = await repo.GetConnectionByAsync(new ChannelConnectionFilter { Id = id, WorkspaceId = workspace.Id }, ct);
         if (row is null) return null;
         var dto = ChannelGraphQLMapper.ToPayload(row);
 

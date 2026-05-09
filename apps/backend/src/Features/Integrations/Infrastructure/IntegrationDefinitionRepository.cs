@@ -9,10 +9,12 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.Integrations.AsNoTracking()
-            .Where(s => !s.IsBuiltin && s.OwnerId == ownerId);
+            .Where(s => !s.IsBuiltin);
 
         if (workspaceId.HasValue)
             query = query.Where(s => s.WorkspaceId == workspaceId.Value);
+        else
+            query = query.Where(s => s.OwnerId == ownerId);
 
         var entities = await query.OrderBy(s => s.Category).ThenBy(s => s.Title).ToListAsync(ct);
 
@@ -22,10 +24,12 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     public async Task<IntegrationDefinitionRecord?> GetByNameAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.Integrations.AsNoTracking()
-            .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin);
+            .Where(s => s.Name == name && !s.IsBuiltin);
 
         if (workspaceId.HasValue)
             query = query.Where(s => s.WorkspaceId == workspaceId.Value);
+        else
+            query = query.Where(s => s.OwnerId == ownerId);
 
         var entity = await query.FirstOrDefaultAsync(ct);
 
@@ -35,7 +39,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     public async Task<IntegrationDefinitionRecord> UpsertAsync(Guid ownerId, Guid workspaceId, IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
         var existing = await _eaosDbContext.Integrations
-            .FirstOrDefaultAsync(s => s.OwnerId == ownerId && s.WorkspaceId == workspaceId && s.Name == server.Name && !s.IsBuiltin, ct);
+            .FirstOrDefaultAsync(s => s.WorkspaceId == workspaceId && s.Name == server.Name && !s.IsBuiltin, ct);
 
         if (existing is null)
         {
@@ -75,10 +79,12 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
     public async Task DeleteAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.Integrations
-            .Where(s => s.OwnerId == ownerId && s.Name == name && !s.IsBuiltin);
+            .Where(s => s.Name == name && !s.IsBuiltin);
 
         if (workspaceId.HasValue)
             query = query.Where(s => s.WorkspaceId == workspaceId.Value);
+        else
+            query = query.Where(s => s.OwnerId == ownerId);
 
         await query.ExecuteDeleteAsync(ct);
     }

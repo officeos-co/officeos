@@ -180,7 +180,7 @@ internal sealed class AgentService : IAgentService
 
         if (init.ToolNames is { Count: > 0 })
         {
-            var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = userId }, ct);
+            var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
             var servers = await _integrationDefinitionService.ListAsync(userId, agent?.WorkspaceId, ct);
             var names = servers.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var toolName in init.ToolNames)

@@ -13,7 +13,7 @@ internal sealed class MemoryStoreService : IMemoryStoreService
         _memoryStoreRepository.CreateAsync(MemoryStoreRecord.Create(ownerId, workspaceId, displayName ?? "Memory Store"), ct);
 
     public Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
-        _memoryStoreRepository.DeleteAsync(id, ownerId, workspaceId, ct);
+        _memoryStoreRepository.DeleteAsync(id, null, workspaceId, ct);
 
     public Task<MemoryStoreEntryRecord> UpsertEntryAsync(
         Guid memoryStoreId,
@@ -22,7 +22,7 @@ internal sealed class MemoryStoreService : IMemoryStoreService
         string key,
         string content,
         CancellationToken ct = default) =>
-        _memoryStoreRepository.UpsertEntryAsync(memoryStoreId, ownerId, workspaceId, key, content, ct);
+        _memoryStoreRepository.UpsertEntryAsync(memoryStoreId, null, workspaceId, key, content, ct);
 
     public Task<bool> DeleteEntryAsync(
         Guid memoryStoreId,
@@ -30,5 +30,5 @@ internal sealed class MemoryStoreService : IMemoryStoreService
         Guid workspaceId,
         string key,
         CancellationToken ct = default) =>
-        _memoryStoreRepository.DeleteEntryAsync(memoryStoreId, ownerId, workspaceId, key, ct);
+        _memoryStoreRepository.DeleteEntryAsync(memoryStoreId, null, workspaceId, key, ct);
 }

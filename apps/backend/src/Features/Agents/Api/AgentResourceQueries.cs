@@ -10,7 +10,7 @@ public class AgentResourceQueries
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var rows = await resources.ListBrowserResourcesAsync(user.Id, workspace.Id, ct);
+        var rows = await resources.ListBrowserResourcesAsync(null, workspace.Id, ct);
         return rows.Select(ToPayload).ToList();
     }
 
@@ -22,7 +22,7 @@ public class AgentResourceQueries
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var row = await resources.GetBrowserResourceAsync(id, user.Id, workspace.Id, ct);
+        var row = await resources.GetBrowserResourceAsync(id, null, workspace.Id, ct);
         return row is null ? null : ToPayload(row);
     }
 

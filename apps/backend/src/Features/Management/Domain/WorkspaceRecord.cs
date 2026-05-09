@@ -3,14 +3,28 @@ namespace OffceOs.Domain.Features.Management;
 public sealed class WorkspaceRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid UserId { get; init; }
+    public WorkspaceOwnerKind OwnerKind { get; init; } = WorkspaceOwnerKind.Personal;
+    public Guid? OwnerUserId { get; init; }
+    public Guid? OrganizationId { get; init; }
     public string Name { get; set; } = string.Empty;
+    public bool IsDefault { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public WorkspaceRole? Role { get; init; }
 
-    public static WorkspaceRecord Create(Guid userId, string? name) => new()
+    public static WorkspaceRecord CreatePersonal(Guid userId, string? name, bool isDefault = false) => new()
     {
-        UserId = userId,
+        OwnerKind = WorkspaceOwnerKind.Personal,
+        OwnerUserId = userId,
+        IsDefault = isDefault,
+        Name = NormalizeName(name),
+    };
+
+    public static WorkspaceRecord CreateOrganization(Guid organizationId, string? name, bool isDefault = false) => new()
+    {
+        OwnerKind = WorkspaceOwnerKind.Organization,
+        OrganizationId = organizationId,
+        IsDefault = isDefault,
         Name = NormalizeName(name),
     };
 

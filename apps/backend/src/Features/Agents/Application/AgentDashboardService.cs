@@ -153,7 +153,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
 
     private async Task<bool> AgentIsOwnedAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId, WorkspaceId = workspaceId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspaceId }, ct);
         return agent is not null;
     }
 
@@ -167,12 +167,11 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     {
         var exists = resourceType switch
         {
-            AgentResourceKinds.Browser => await _agentResourceRepository.GetBrowserResourceAsync(resourceId, ownerId, workspaceId, ct) is not null,
-            AgentResourceKinds.MemoryStore => await _memoryStoreRepository.GetAsync(resourceId, ownerId, workspaceId, ct) is not null,
+            AgentResourceKinds.Browser => await _agentResourceRepository.GetBrowserResourceAsync(resourceId, null, workspaceId, ct) is not null,
+            AgentResourceKinds.MemoryStore => await _memoryStoreRepository.GetAsync(resourceId, null, workspaceId, ct) is not null,
             AgentResourceKinds.Channel => await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
             {
                 Id = resourceId,
-                CreatedById = ownerId,
                 WorkspaceId = workspaceId,
             }, ct) is not null,
             _ => false,

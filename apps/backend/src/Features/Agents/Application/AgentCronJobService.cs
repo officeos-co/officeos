@@ -12,10 +12,10 @@ internal sealed class AgentCronJobService : IAgentCronJobService
     }
 
     public Task<IReadOnlyList<AgentCronJobWithAgentRecord>> ListForOwnerAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
-        _agentCronJobRepository.ListForOwnerAsync(ownerId, workspaceId, ct);
+        _agentCronJobRepository.ListForOwnerAsync(null, workspaceId, ct);
 
     public Task<AgentCronJobWithAgentRecord?> GetForOwnerAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
-        _agentCronJobRepository.GetForOwnerAsync(id, ownerId, workspaceId, ct);
+        _agentCronJobRepository.GetForOwnerAsync(id, null, workspaceId, ct);
 
     public async Task<IReadOnlyList<AgentCronJobRecord>> ListForAgentAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
@@ -31,7 +31,7 @@ internal sealed class AgentCronJobService : IAgentCronJobService
 
     public async Task<bool> SetEnabledAsync(Guid id, Guid ownerId, Guid workspaceId, bool enabled, CancellationToken ct = default)
     {
-        var job = await _agentCronJobRepository.GetForOwnerAsync(id, ownerId, workspaceId, ct);
+        var job = await _agentCronJobRepository.GetForOwnerAsync(id, null, workspaceId, ct);
         if (job is null) return false;
 
         await _agentCronJobRepository.SetEnabledAsync(id, enabled, ct);
@@ -40,7 +40,7 @@ internal sealed class AgentCronJobService : IAgentCronJobService
 
     public async Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        var job = await _agentCronJobRepository.GetForOwnerAsync(id, ownerId, workspaceId, ct);
+        var job = await _agentCronJobRepository.GetForOwnerAsync(id, null, workspaceId, ct);
         if (job is null) return false;
 
         return await _agentCronJobRepository.DeleteAsync(id, ct);
@@ -48,7 +48,7 @@ internal sealed class AgentCronJobService : IAgentCronJobService
 
     private async Task EnsureAgentOwnedAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId, WorkspaceId = workspaceId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspaceId }, ct);
         if (agent is null)
             throw new InvalidOperationException("Agent not found.");
     }
