@@ -15,7 +15,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         return entities.Select(ToAgentCronJobRecord).ToList();
     }
 
-    public async Task<IReadOnlyList<AgentCronJobWithAgentRecord>> ListForOwnerAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AgentCronJobWithAgentRecord>> ListForOwnerAsync(Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.AgentCronJobs
             .AsNoTracking()
@@ -24,7 +24,10 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
                 job => job.AgentId,
                 agent => agent.Id,
                 (job, agent) => new { job, agent })
-            .Where(row => row.agent.OwnerId == ownerId && !row.agent.IsDeleted);
+            .Where(row => !row.agent.IsDeleted);
+
+        if (ownerId.HasValue)
+            query = query.Where(row => row.agent.OwnerId == ownerId.Value);
 
         if (workspaceId.HasValue)
             query = query.Where(row => row.agent.WorkspaceId == workspaceId.Value);
@@ -63,7 +66,7 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
         return entity is null ? null : ToAgentCronJobRecord(entity);
     }
 
-    public async Task<AgentCronJobWithAgentRecord?> GetForOwnerAsync(Guid id, Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
+    public async Task<AgentCronJobWithAgentRecord?> GetForOwnerAsync(Guid id, Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.AgentCronJobs
             .AsNoTracking()
@@ -72,7 +75,10 @@ internal sealed class AgentCronJobRepository : IAgentCronJobRepository
                 job => job.AgentId,
                 agent => agent.Id,
                 (job, agent) => new { job, agent })
-            .Where(row => row.job.Id == id && row.agent.OwnerId == ownerId && !row.agent.IsDeleted);
+            .Where(row => row.job.Id == id && !row.agent.IsDeleted);
+
+        if (ownerId.HasValue)
+            query = query.Where(row => row.agent.OwnerId == ownerId.Value);
 
         if (workspaceId.HasValue)
             query = query.Where(row => row.agent.WorkspaceId == workspaceId.Value);

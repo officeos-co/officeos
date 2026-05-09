@@ -18,7 +18,7 @@ public class AgentQueries
         if (cached is not null)
             return cached;
 
-        var result = await agents.ListAsync(new AgentFilter { OwnerId = user.Id, WorkspaceId = workspace.Id }, ct);
+        var result = await agents.ListAsync(new AgentFilter { WorkspaceId = workspace.Id }, ct);
         await cache.SetJsonAsync(listCacheKey, result, CacheTtl, ct);
         return result;
     }
@@ -38,7 +38,7 @@ public class AgentQueries
         if (cached is not null)
             return cached;
 
-        var result = await agents.GetByAsync(new AgentFilter { Id = id, OwnerId = user.Id, WorkspaceId = workspace.Id }, ct);
+        var result = await agents.GetByAsync(new AgentFilter { Id = id, WorkspaceId = workspace.Id }, ct);
         if (result is not null)
             await cache.SetJsonAsync(key, result, CacheTtl, ct);
 

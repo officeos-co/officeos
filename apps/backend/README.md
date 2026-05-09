@@ -7,6 +7,10 @@ dotnet test tests/OffceOs.Tests.csproj --no-restore
 ```
 
 ```bash
+dotnet test analyzers/OffceOs.Architecture.Analyzers.csproj --no-restore
+```
+
+```bash
 dotnet build OffceOs.sln --no-restore
 ```
 

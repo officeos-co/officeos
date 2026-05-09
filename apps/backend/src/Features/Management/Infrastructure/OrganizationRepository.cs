@@ -36,6 +36,7 @@ internal sealed class OrganizationRepository : IOrganizationRepository
             CreatedAt = DateTime.UtcNow,
         });
         await _eaosDbContext.SaveChangesAsync(ct);
+        await EnsureOrganizationDefaultWorkspaceAsync(orgEntity.Id, ownerUserId, ct);
         return ToOrganizationRecord(orgEntity);
     }
 
@@ -70,11 +71,23 @@ internal sealed class OrganizationRepository : IOrganizationRepository
     {
         var existing = await _eaosDbContext.OrgMembers
             .FirstOrDefaultAsync(m => m.OrganizationId == member.OrganizationId && m.Email == member.Email, ct);
-        if (existing is not null) return ToOrgMemberRecord(existing);
+        if (existing is not null)
+        {
+            await EnsureDefaultWorkspaceMembershipAsync(existing.OrganizationId, existing.UserId, ct);
+            return ToOrgMemberRecord(existing);
+        }
+
+        var user = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == member.Email, ct);
+        if (user is not null)
+        {
+            member.UserId = user.Id;
+            member.Status = MemberStatus.Active;
+        }
 
         var entity = ToOrgMemberEntity(member);
         _eaosDbContext.OrgMembers.Add(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
+        await EnsureDefaultWorkspaceMembershipAsync(entity.OrganizationId, entity.UserId, ct);
         return ToOrgMemberRecord(entity);
     }
 
@@ -96,6 +109,89 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         await _eaosDbContext.SaveChangesAsync(ct);
         return ToOrganizationRecord(entity);
     }
+
+    private async Task EnsureOrganizationDefaultWorkspaceAsync(Guid organizationId, Guid ownerUserId, CancellationToken ct)
+    {
+        var workspace = await _eaosDbContext.Workspaces
+            .FirstOrDefaultAsync(w => w.OrganizationId == organizationId && w.IsDefault, ct);
+
+        if (workspace is null)
+        {
+            var organization = await _eaosDbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == organizationId, ct);
+            workspace = new WorkspaceEntity
+            {
+                Id = Guid.NewGuid(),
+                OwnerKind = WorkspaceOwnerKind.Organization.ToStorageString(),
+                OrganizationId = organizationId,
+                Name = organization?.Name ?? "Organization",
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            _eaosDbContext.Workspaces.Add(workspace);
+            await _eaosDbContext.SaveChangesAsync(ct);
+        }
+
+        await EnsureWorkspaceMembershipAsync(workspace.Id, ownerUserId, WorkspaceRole.Owner, ct);
+    }
+
+    private async Task EnsureDefaultWorkspaceMembershipAsync(Guid organizationId, Guid? userId, CancellationToken ct)
+    {
+        if (!userId.HasValue)
+            return;
+
+        var workspace = await _eaosDbContext.Workspaces
+            .FirstOrDefaultAsync(w => w.OrganizationId == organizationId && w.IsDefault, ct);
+
+        if (workspace is null)
+        {
+            var organization = await _eaosDbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == organizationId, ct);
+            if (organization is null)
+                return;
+
+            await EnsureOrganizationDefaultWorkspaceAsync(organizationId, organization.OwnerUserId, ct);
+            workspace = await _eaosDbContext.Workspaces
+                .FirstOrDefaultAsync(w => w.OrganizationId == organizationId && w.IsDefault, ct);
+        }
+
+        if (workspace is null)
+            return;
+
+        await EnsureWorkspaceMembershipAsync(workspace.Id, userId.Value, WorkspaceRole.Editor, ct);
+    }
+
+    private async Task EnsureWorkspaceMembershipAsync(Guid workspaceId, Guid userId, WorkspaceRole role, CancellationToken ct)
+    {
+        var existing = await _eaosDbContext.WorkspaceMembers
+            .FirstOrDefaultAsync(m => m.WorkspaceId == workspaceId && m.UserId == userId, ct);
+
+        if (existing is null)
+        {
+            _eaosDbContext.WorkspaceMembers.Add(new WorkspaceMemberEntity
+            {
+                Id = Guid.NewGuid(),
+                WorkspaceId = workspaceId,
+                UserId = userId,
+                Role = role.ToStorageString(),
+                CreatedAt = DateTime.UtcNow,
+            });
+        }
+        else if (RoleRank(existing.Role.ToWorkspaceRole()) < RoleRank(role))
+        {
+            existing.Role = role.ToStorageString();
+        }
+
+        await _eaosDbContext.SaveChangesAsync(ct);
+    }
+
+    private static int RoleRank(WorkspaceRole role) => role switch
+    {
+        WorkspaceRole.Owner => 4,
+        WorkspaceRole.Admin => 3,
+        WorkspaceRole.Editor => 2,
+        WorkspaceRole.Viewer => 1,
+        _ => 0,
+    };
 
     // ── Mapping ──────────────────────────────────────────────────────
 

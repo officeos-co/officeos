@@ -3,10 +3,17 @@ namespace OffceOs.Application.Features.Management;
 internal sealed class OrganizationService : IOrganizationService
 {
     private readonly IOrganizationRepository _organizationRepository;
+    private readonly IWorkspaceRepository _workspaceRepository;
+    private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
 
-    public OrganizationService(IOrganizationRepository organizationRepository)
+    public OrganizationService(
+        IOrganizationRepository organizationRepository,
+        IWorkspaceRepository workspaceRepository,
+        IWorkspaceMemberRepository workspaceMemberRepository)
     {
         _organizationRepository = organizationRepository;
+        _workspaceRepository = workspaceRepository;
+        _workspaceMemberRepository = workspaceMemberRepository;
     }
 
     public async Task<OrganizationOverview> GetOverviewAsync(
@@ -14,6 +21,7 @@ internal sealed class OrganizationService : IOrganizationService
         CancellationToken ct = default)
     {
         var org = await _organizationRepository.GetOrCreateDefaultAsync(callerUserId, callerEmail, callerName, ct);
+        await _workspaceRepository.EnsureOrganizationDefaultAsync(org.Id, org.OwnerUserId, ct);
         var members = await _organizationRepository.ListMembersAsync(org.Id, ct);
         return new OrganizationOverview(org, members);
     }
@@ -51,6 +59,13 @@ internal sealed class OrganizationService : IOrganizationService
 
         if (target.Role == OrgRole.Owner)
             throw new InvalidOperationException("Cannot remove the owner.");
+
+        if (target.UserId.HasValue)
+        {
+            await _workspaceMemberRepository.DeleteAsync(
+                new WorkspaceMemberFilter { UserId = target.UserId.Value, OrganizationId = org.Id },
+                ct);
+        }
 
         return await _organizationRepository.RemoveMemberAsync(memberId, ct);
     }

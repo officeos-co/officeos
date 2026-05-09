@@ -14,7 +14,7 @@ public class AgentLogsQueries
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var agent = await agents.GetByAsync(new AgentFilter { Id = agentId, OwnerId = user.Id, WorkspaceId = workspace.Id }, ct);
+        var agent = await agents.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspace.Id }, ct);
         if (agent is null)
             throw new GraphQLException(ErrorBuilder.New().SetMessage("Agent not found.").SetCode("NOT_FOUND").Build());
 
@@ -77,7 +77,7 @@ public class AgentLogsQueries
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var agent = await agents.GetByAsync(new AgentFilter { Id = agentId, OwnerId = user.Id, WorkspaceId = workspace.Id }, ct);
+        var agent = await agents.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspace.Id }, ct);
         if (agent is null)
             throw new GraphQLException(ErrorBuilder.New().SetMessage("Agent not found.").SetCode("NOT_FOUND").Build());
 

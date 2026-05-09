@@ -287,7 +287,7 @@ internal sealed class ChannelService : IChannelService
         Guid? workspaceId = null,
         CancellationToken ct = default)
     {
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, OwnerId = ownerId, WorkspaceId = workspaceId }, ct);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspaceId }, ct);
         if (agent is null)
             throw new InvalidOperationException("Agent not found.");
 
@@ -299,7 +299,6 @@ internal sealed class ChannelService : IChannelService
         var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
         {
             Id = id,
-            CreatedById = ownerId,
             WorkspaceId = workspaceId,
         }, ct);
 

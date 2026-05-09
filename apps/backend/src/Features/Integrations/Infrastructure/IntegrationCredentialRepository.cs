@@ -13,7 +13,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
         if (filter.Id.HasValue)
             query = query.Where(c => c.Id == filter.Id.Value);
 
-        if (filter.OwnerId.HasValue)
+        if (filter.OwnerId.HasValue && !filter.WorkspaceId.HasValue)
             query = query.Where(c => c.OwnerId == filter.OwnerId.Value);
 
         if (filter.WorkspaceId.HasValue)
@@ -37,8 +37,7 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
     public async Task UpsertAsync(IntegrationCredentialRecord credential, CancellationToken ct)
     {
         var existing = await _eaosDbContext.IntegrationCredentials
-            .FirstOrDefaultAsync(c => c.OwnerId == credential.OwnerId
-                && c.WorkspaceId == credential.WorkspaceId
+            .FirstOrDefaultAsync(c => c.WorkspaceId == credential.WorkspaceId
                 && c.IntegrationName == credential.IntegrationName, ct);
         if (existing is not null)
         {
@@ -63,10 +62,12 @@ internal sealed class IntegrationCredentialRepository : IIntegrationCredentialRe
     public async Task DeleteAsync(Guid ownerId, string integrationName, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.IntegrationCredentials
-            .Where(c => c.OwnerId == ownerId && c.IntegrationName == integrationName);
+            .Where(c => c.IntegrationName == integrationName);
 
         if (workspaceId.HasValue)
             query = query.Where(c => c.WorkspaceId == workspaceId.Value);
+        else
+            query = query.Where(c => c.OwnerId == ownerId);
 
         await query.ExecuteDeleteAsync(ct);
     }

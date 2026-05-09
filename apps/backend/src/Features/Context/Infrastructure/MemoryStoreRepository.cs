@@ -6,21 +6,29 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 
     public MemoryStoreRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<IReadOnlyList<MemoryStoreRecord>> ListAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<MemoryStoreRecord>> ListAsync(Guid? ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        var entities = await _eaosDbContext.MemoryStores
+        var query = _eaosDbContext.MemoryStores
             .AsNoTracking()
-            .Where(s => s.OwnerId == ownerId && s.WorkspaceId == workspaceId)
+            .Where(s => s.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(s => s.OwnerId == ownerId.Value);
+
+        var entities = await query
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(ct);
         return entities.Select(ToRecord).ToList();
     }
 
-    public async Task<MemoryStoreRecord?> GetAsync(Guid id, Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
+    public async Task<MemoryStoreRecord?> GetAsync(Guid id, Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default)
     {
         var query = _eaosDbContext.MemoryStores
             .AsNoTracking()
-            .Where(s => s.Id == id && s.OwnerId == ownerId);
+            .Where(s => s.Id == id);
+
+        if (ownerId.HasValue)
+            query = query.Where(s => s.OwnerId == ownerId.Value);
 
         if (workspaceId.HasValue)
             query = query.Where(s => s.WorkspaceId == workspaceId.Value);
@@ -37,10 +45,15 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         return ToRecord(entity);
     }
 
-    public async Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<bool> DeleteAsync(Guid id, Guid? ownerId, Guid workspaceId, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.MemoryStores
-            .FirstOrDefaultAsync(s => s.Id == id && s.OwnerId == ownerId && s.WorkspaceId == workspaceId, ct);
+        var query = _eaosDbContext.MemoryStores
+            .Where(s => s.Id == id && s.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(s => s.OwnerId == ownerId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
         if (entity is null) return false;
 
         await _eaosDbContext.AgentSessionResourceAttachments
@@ -53,13 +66,11 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 
     public async Task<IReadOnlyList<MemoryStoreEntryRecord>> ListEntriesAsync(
         Guid memoryStoreId,
-        Guid ownerId,
+        Guid? ownerId,
         Guid workspaceId,
         CancellationToken ct = default)
     {
-        var ownsStore = await _eaosDbContext.MemoryStores.AnyAsync(
-            s => s.Id == memoryStoreId && s.OwnerId == ownerId && s.WorkspaceId == workspaceId,
-            ct);
+        var ownsStore = await StoreExistsAsync(memoryStoreId, ownerId, workspaceId, ct);
         if (!ownsStore) return [];
 
         return await ListEntriesForStoreAsync(memoryStoreId, ct);
@@ -67,25 +78,21 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 
     public async Task<MemoryStoreEntryRecord> UpsertEntryAsync(
         Guid memoryStoreId,
-        Guid ownerId,
+        Guid? ownerId,
         Guid workspaceId,
         string key,
         string content,
         CancellationToken ct = default)
     {
-        var ownsStore = await _eaosDbContext.MemoryStores.AnyAsync(
-            s => s.Id == memoryStoreId && s.OwnerId == ownerId && s.WorkspaceId == workspaceId,
-            ct);
+        var ownsStore = await StoreExistsAsync(memoryStoreId, ownerId, workspaceId, ct);
         if (!ownsStore) throw new InvalidOperationException("Memory store not found.");
 
         return await UpsertEntryForStoreAsync(memoryStoreId, key, content, ct);
     }
 
-    public async Task<bool> DeleteEntryAsync(Guid memoryStoreId, Guid ownerId, Guid workspaceId, string key, CancellationToken ct = default)
+    public async Task<bool> DeleteEntryAsync(Guid memoryStoreId, Guid? ownerId, Guid workspaceId, string key, CancellationToken ct = default)
     {
-        var ownsStore = await _eaosDbContext.MemoryStores.AnyAsync(
-            s => s.Id == memoryStoreId && s.OwnerId == ownerId && s.WorkspaceId == workspaceId,
-            ct);
+        var ownsStore = await StoreExistsAsync(memoryStoreId, ownerId, workspaceId, ct);
         if (!ownsStore) return false;
 
         return await DeleteEntryForStoreAsync(memoryStoreId, key, ct);
@@ -145,6 +152,18 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         _eaosDbContext.MemoryStoreEntries.Remove(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
         return true;
+    }
+
+    private async Task<bool> StoreExistsAsync(Guid memoryStoreId, Guid? ownerId, Guid workspaceId, CancellationToken ct)
+    {
+        var query = _eaosDbContext.MemoryStores
+            .AsNoTracking()
+            .Where(s => s.Id == memoryStoreId && s.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(s => s.OwnerId == ownerId.Value);
+
+        return await query.AnyAsync(ct);
     }
 
     private static MemoryStoreRecord ToRecord(MemoryStoreEntity e) => new()
