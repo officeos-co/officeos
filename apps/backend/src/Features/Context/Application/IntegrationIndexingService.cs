@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Application.Features.Context;
 
 internal sealed class IntegrationIndexingService
 {

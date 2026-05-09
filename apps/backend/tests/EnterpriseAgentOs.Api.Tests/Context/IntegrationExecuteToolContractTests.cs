@@ -1,11 +1,11 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Application.Features.Agents.Integrations;
-using EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+using EnterpriseAgentOs.Application.Features.Agents;
+using EnterpriseAgentOs.Domain.Features.Context;
 using Xunit;
 
-namespace EnterpriseAgentOs.Api.Tests.Atlas;
+namespace EnterpriseAgentOs.Api.Tests.Context;
 
-public sealed class AtlasConnectorExecuteContractTests
+public sealed class IntegrationExecuteToolContractTests
 {
     [Fact]
     public void Connector_execute_tool_schema_matches_context_interface()

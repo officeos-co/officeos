@@ -60,7 +60,7 @@ public static class InfrastructureServiceRegistration
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient<IBrowserRuntimeClient, AutoBrowserRuntimeClient>();
-        services.AddHttpClient("github-atlas", client =>
+        services.AddHttpClient("github-integration-indexing", client =>
         {
             client.BaseAddress = new Uri("https://api.github.com/");
             client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeOS-Integration/1.0");

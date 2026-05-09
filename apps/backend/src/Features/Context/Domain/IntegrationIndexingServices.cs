@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace EnterpriseAgentOs.Domain.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Domain.Features.Context;
 
 public sealed record CreateGitHubIntegrationConnectionRequest(
     string WorkspaceName,

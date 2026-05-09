@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Domain.Features.Data;
+namespace EnterpriseAgentOs.Domain.Features.Context;
 
 public interface IMemoryStoreRepository
 {

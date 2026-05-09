@@ -1,4 +1,4 @@
-namespace EnterpriseAgentOs.Infrastructure.Features.Data;
+namespace EnterpriseAgentOs.Infrastructure.Features.Context;
 
 internal sealed class MemoryStoreRepository : IMemoryStoreRepository
 {

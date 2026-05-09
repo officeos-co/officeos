@@ -11,6 +11,7 @@ Only these top-level feature folders are allowed under `src/Features`:
 
 - `Agents`
 - `Channels`
+- `Context`
 - `Analytics`
 - `Management`
 
@@ -50,11 +51,12 @@ Agents subdomains are expressed through strong type and file names, not nested f
 - `Tools`: built-in tools, tool permissions, tool catalog contracts.
 - `Mcp`: MCP servers, credentials, agent assignments, discovered tools.
 - `Memory`: agent memory stores and entries. This replaces top-level `Data`.
-- `Context`: indexed external context/connectors. This replaces top-level `Atlas`.
 - `Browser`: browser runtime/session records and browser-specific contracts.
 - `Scheduling`: cron jobs and scheduled runs.
 
 Channels owns channel connections, credentials, bindings, inbound routing, sidecar delivery, and channel GraphQL/endpoints.
+
+Context owns markdown-style memory stores, memory entries, external integration connections, integration indexing, indexed records, and integration execution.
 
 ## Dependency Rules
 

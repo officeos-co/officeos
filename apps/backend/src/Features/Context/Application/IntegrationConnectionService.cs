@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Application.Features.Context;
 
 internal sealed class IntegrationConnectionService : IIntegrationConnectionService
 {

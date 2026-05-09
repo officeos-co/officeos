@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json.Nodes;
 
-namespace EnterpriseAgentOs.Application.Features.Agents.Integrations;
+namespace EnterpriseAgentOs.Application.Features.Context;
 
 internal sealed class GitHubIntegrationClient
 {
@@ -99,7 +99,7 @@ internal sealed class GitHubIntegrationClient
     {
         var token = await GetAccessTokenAsync(userId, ct)
             ?? throw new InvalidOperationException("GitHub OAuth is not connected.");
-        var client = _httpClientFactory.CreateClient("github-atlas");
+        var client = _httpClientFactory.CreateClient("github-integration-indexing");
         using var request = new HttpRequestMessage(method, path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await client.SendAsync(request, ct);
