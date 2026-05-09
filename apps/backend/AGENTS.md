@@ -18,7 +18,7 @@ Only these top-level feature folders are allowed under `src/Features`:
 Each feature owns its local layers:
 
 - `Domain`: business records, value objects, repository/service interfaces, filters, domain events, and invariants.
-- `Application`: use-case services, MediatR handlers, background jobs, policies, request/result records, and orchestration.
+- `Application`: use-case services, background jobs, policies, request/result records, and orchestration.
 - `EventHandlers`: MediatR notification handlers and internal event wiring. Keep these thin; delegate behavior to Application services.
 - `Infrastructure`: EF repository implementations, external adapters/clients, provider dispatch, security wrappers, and feature infrastructure.
 - `Api`: GraphQL queries/mutations/subscriptions, REST/minimal endpoints/controllers, API input/payload types, auth/transport validation.
@@ -67,7 +67,7 @@ Even though this is one project, layer boundaries still apply:
 - Application may depend on Domain abstractions and injected infrastructure-facing contracts. It must not depend on EF entities, `EaosDbContext`, ASP.NET request state, GraphQL types, or database schema details.
 - Infrastructure may depend on Domain, Database, and external libraries. Repositories map between EF entities and Domain records.
 - Api may compose Application, Domain, and Infrastructure.
-- Do not pass transport DTOs into Domain records or repository interfaces.
+- Do not pass transport `*Input`/`*Payload` types into Domain records or repository interfaces.
 - Do not pass EF entities, tracked queries, or `DbContext` outside Database/Infrastructure.
 
 ## Naming
@@ -77,14 +77,16 @@ Domain:
 - `*Record`: persistent business record loaded/saved by repositories.
 - `*Filter`: repository query filter.
 - `I*Repository`: persistence port implemented by Infrastructure.
-- `I*Service`: domain/application-facing service contract only when a real abstraction is needed.
+- `I*Service`: only for real domain-facing abstractions. Do not put use-case service contracts in Domain.
 - `*Event`: lifecycle fact published through MediatR.
+- Value objects keep direct names, for example `Email`, `ToolKey`, or `CronExpression`.
 
 Application:
 
-- `*Request`: use-case input.
-- `*Result`: use-case output.
+- `*Request`: use-case input only when a method has a real command/workflow boundary; otherwise prefer explicit parameters.
+- `*Result`: use-case output only when returning a Domain record would be wrong or incomplete.
 - `*Service`: use-case orchestration.
+- `*Contracts`: tight file grouping for application service interfaces plus their request/result records when those types are only useful together.
 - `*Policy`: application decision rules.
 
 EventHandlers:
@@ -96,6 +98,7 @@ Api:
 - `*Input`: GraphQL/HTTP input.
 - `*Payload`: GraphQL/HTTP output.
 - `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`.
+- `*Mapper`: API-only mapping helper.
 
 Infrastructure:
 
@@ -110,7 +113,13 @@ Database:
 - `EaosDbContext`: centralized EF context under `src/Database`.
 - EF migrations live under `src/Database/Migrations`.
 
-Avoid broad bucket files such as `Types.cs`, `Records.cs`, and `Repositories.cs` once they contain more than one tight aggregate family.
+Avoid:
+
+- `Dto` anywhere under feature Api/Application/Domain. Use `*Input`, `*Payload`, `*Request`, `*Result`, `*Projection`, `*Record`, `*Filter`, or a clearer business contract name.
+- Generic `Integration*` names unless the type truly covers more than MCP and context connectors.
+- Broad files named `Types.cs`, `Records.cs`, or `Repositories.cs`.
+- Duplicate layer files like `AgentTypes.cs` in multiple places.
+- Bucket folders named `Records`, `Interfaces`, `Dtos`, `Services`, `Repositories`, `Adapters`, `Queries`, `Mutations`, `Types`, or subdomain wrappers inside feature layers.
 
 ## Domain And Persistence
 
@@ -131,13 +140,15 @@ Avoid broad bucket files such as `Types.cs`, `Records.cs`, and `Repositories.cs`
 
 ## Domain DTO Policy
 
-Domain DTOs are exceptional.
+Domain DTOs are not allowed by default.
 
 - GraphQL-only shape: put it in the feature's `Api` layer.
 - Use-case request/result: put it in the feature's `Application`.
-- Persistence model: keep it as an Infrastructure `*Entity`.
+- Persistence model: keep it as a Database `*Entity` under `src/Database/Models`.
 - Business record: keep it as a Domain `*Record`.
 - Stable cross-layer business contract: may stay in Domain, but avoid the suffix `Dto` if a better domain name exists.
+
+If a new `Dto` appears under `Features/*/Domain`, treat it as a failing architecture review unless there is an explicit documented exception.
 
 ## Application Services
 
@@ -145,7 +156,10 @@ Domain DTOs are exceptional.
 - Keep responsibilities narrow. If a service owns only a specific part of the agent loop, respect that boundary.
 - The agent turn loop is intentionally split across `AgentTurnService`, `AgentRunLifecycle`, `TurnEventPublisher`, `TurnContextBuilder`, `BillingCheckpoint`, `LlmTurnExecutor`, and `ToolExecutionLoop`.
 - Use MediatR domain events for lifecycle changes where possible. Application services publish events; handlers react in EventHandlers.
-- Prefer explicit result records or `AgentResult<T>` for expected business outcomes.
+- Return Domain records from Application services when the record is already safe and accurate for the use case.
+- Add `*Result` only for composed data, external-provider response shapes, calculations, or when exposing the Domain record would leak data or couple the caller to an aggregate it does not need.
+- Add `*Request` only when a use case has enough command data or workflow semantics to justify naming it.
+- Prefer `AgentResult<T>` for expected success/failure business outcomes.
 - Register application services in `ApplicationServiceCollectionExtensions.AddApplication`.
 - Internal implementation classes should generally be `internal sealed`.
 
@@ -168,9 +182,34 @@ Domain DTOs are exceptional.
 
 - GraphQL query/mutation/subscription classes belong in the feature's `Api` folder and extend `GraphQLQueries`, `GraphQLMutations`, or `GraphQLSubscriptions`.
 - API methods authenticate/authorize through existing auth context helpers or middleware.
-- API classes translate GraphQL/HTTP input into Application request records and translate Application results into API payloads.
+- API classes translate Api `*Input` records into Application `*Request` records and translate Application `*Result` or Domain `*Record` values into Api `*Payload` only when transport needs a different response shape.
+- Public API method parameters must not expose Application `*Request` or `*Result` types directly.
 - Throw `GraphQLException` with explicit codes for transport validation/not-found errors at the GraphQL boundary.
-- GraphQL DTOs should be stable and explicit.
+- GraphQL DTOs are not allowed by suffix; use stable explicit `*Input` and `*Payload` names.
+- Simple owner-scoped reads are allowed in Api.
+- Writes, multi-step workflows, domain event publishing, agent runtime/session/tool orchestration, credential protection, provider validation, billing checks, gateway reloads, and policy decisions belong in Application.
+
+## API/Application Boundary
+
+Do not add empty Application services just to forward one repository method, but do not let API methods become use-case orchestration.
+
+Allowed in Api:
+
+- Simple owner-scoped reads.
+- Transport input validation.
+- Mapping Api `*Input` to Application `*Request`.
+- Mapping Application `*Result` or Domain `*Record` to Api `*Payload`.
+- GraphQL/HTTP error translation.
+- Cache invalidation for GraphQL dashboard response caches.
+
+Not allowed in Api:
+
+- Writes directly to repositories.
+- Multi-step workflows.
+- Ownership checks that require more than passing `UserContext.Id` into a repository filter.
+- Domain event publishing.
+- Agent runtime/session/tool orchestration.
+- Gateway reloads, credential protection, log append/send behavior, provider validation, billing checks, or policy decisions.
 
 ## Infrastructure
 
@@ -191,6 +230,46 @@ Domain DTOs are exceptional.
 - For billing changes, test quota allowed/exceeded, enabled/disabled policy, and recording consistency.
 - For tool changes, test registration/catalog behavior, validation, permission/deferred loading behavior, and runtime call shape.
 - For repository or schema changes, test mapping and persistence behavior, not EF internals.
+
+## Static Analysis
+
+Naming and layer conventions are enforced by the local Roslyn analyzer:
+
+```text
+analyzers/EnterpriseAgentOs.Architecture.Analyzers
+```
+
+The analyzer runs during `dotnet build` through an analyzer project reference in `src/EnterpriseAgentOs.Api.csproj`.
+
+Current diagnostics:
+
+- `EAOS001`: Domain must not define `*Dto` types.
+- `EAOS002`: Feature layers must not use broad `*Types.cs` files.
+- `EAOS003`: API mutations must not inject repositories; call Application services for use cases.
+- `EAOS004`: Domain must not depend on outer layers or transport/infrastructure frameworks.
+- `EAOS005`: Feature Api/Application layers must not define `*Dto` types.
+- `EAOS006`: Feature type names must match their layer vocabulary.
+- `EAOS007`: Feature type suffixes must be declared in the correct layer/path.
+- `EAOS008`: Public API boundary methods must not expose Application `*Request`/`*Result` types as parameters.
+
+Layer vocabulary enforced by `EAOS006`:
+
+- Domain: `*Record`, `*Filter`, `*Event`, `*Result`, `*Request`, `*Response`, `*Config`, `*Message`, `*Context`, `*Definition`, `*Provider`, `*Kinds`, `*State`, `*Descriptor`, `*Tool`, `*Deployment`, `*Row`, `*Options`, `*Page`, `*Overview`, `*Exception`, `*Subscription`, `*Limit`, and `I*Repository`/`I*Service`/explicit domain ports.
+- Application: `*Service`, `*Request`, `*Result`, `*Policy`, `*Projection`, `*Entry`, `*Item`, `*Export`, `*Context`, `*Builder`, `*Executor`, `*Publisher`, `*Resolver`, `*Parser`, `*Detector`, `*Checkpoint`, `*Guard`, `*Lifecycle`, `*Scope`, `*Loop`, `*Session`, `*Connection`, `*Tool`, `*Registry`, `*Factory`, `*Store`, and closely named orchestration helpers.
+- Api: `*Input`, `*Payload`, `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`, `*Mapper`, plus bootstrap/summary payload helper names.
+- Infrastructure: `*Repository`, `*Adapter`, `*Client`, `*Gateway`, `*Config`, `*Protector`, `*Dispatcher`, `*Translator`, `*Sandbox`, `*Store`, `*Injector`, `*Router`, `*Service`, `*Manager`, `*Handle`, `*Response`.
+- EventHandlers: `*Handler`.
+
+Path placement enforced by `EAOS007`:
+
+- `*Input`, `*Payload`, `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, and `*Endpoint` belong in `Api`.
+- `*Projection`, `*Export`, and `*Policy` belong in `Application`.
+- `*Record`, `*Filter`, and `*Event` belong in `Domain`.
+- `*Request` and `*Result` belong in `Application` or `Domain`, not `Api` or `Infrastructure`.
+- `I*Repository` belongs in `Domain`; repository implementation classes belong in `Infrastructure`.
+- `*Handler` belongs in `EventHandlers`.
+- `*Entity` belongs in `src/Database/Models`, never under `src/Features`.
+- Public API method parameters use Api `*Input` records and map to Application `*Request` records inside the method body.
 
 ## Running
 
