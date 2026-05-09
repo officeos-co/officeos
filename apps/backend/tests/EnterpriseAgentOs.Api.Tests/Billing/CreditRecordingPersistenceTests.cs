@@ -2,7 +2,7 @@ using EnterpriseAgentOs.Application.Features.Management;
 using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Features.Management;
 using EnterpriseAgentOs.Database;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+using EnterpriseAgentOs.Configuration;
 using EnterpriseAgentOs.Infrastructure.Features.Agents;
 using EnterpriseAgentOs.Infrastructure.Features.Management;
 using Microsoft.EntityFrameworkCore;

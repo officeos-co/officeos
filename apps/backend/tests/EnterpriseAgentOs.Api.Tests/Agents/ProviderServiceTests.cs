@@ -1,6 +1,6 @@
 using EnterpriseAgentOs.Application.Features.Agents;
 using EnterpriseAgentOs.Domain.Common.Services;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+using EnterpriseAgentOs.Configuration;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 

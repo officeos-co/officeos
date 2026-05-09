@@ -3,7 +3,7 @@ using EnterpriseAgentOs.Domain.Common.Services;
 using EnterpriseAgentOs.Domain.Common.ValueObjects;
 using EnterpriseAgentOs.Domain.Features.Agents;
 using EnterpriseAgentOs.Domain.Features.Management;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+using EnterpriseAgentOs.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 

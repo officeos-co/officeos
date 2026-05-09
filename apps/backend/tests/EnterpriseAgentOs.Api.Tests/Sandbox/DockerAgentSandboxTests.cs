@@ -1,5 +1,5 @@
 using System.Text.Json;
-using EnterpriseAgentOs.Infrastructure.Common.Configuration;
+using EnterpriseAgentOs.Configuration;
 using EnterpriseAgentOs.Infrastructure.Features.Agents;
 using Xunit;
 

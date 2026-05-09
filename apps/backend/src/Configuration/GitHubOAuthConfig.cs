@@ -1,6 +1,6 @@
-namespace EnterpriseAgentOs.Infrastructure.Common.Configuration;
+namespace EnterpriseAgentOs.Configuration;
 
-public sealed class GoogleOAuthConfig
+public sealed class GitHubOAuthConfig
 {
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
