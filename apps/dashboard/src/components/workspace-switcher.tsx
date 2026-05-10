@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { gql, useMutation, useQuery } from "@apollo/client";
 import {
   BoxIcon,
+  Building2Icon,
   CheckIcon,
   ChevronDownIcon,
   PlusIcon,
+  UserIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,43 +27,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
-import { apolloClient } from "@/lib/graphql/client";
+import {
+  useCreateOrganizationWorkspace,
+  useCreateWorkspace,
+  useSwitchWorkspace,
+  useWorkspaces,
+  type WorkspacePayload,
+} from "@/features/manage";
 
-type Workspace = {
-  id: string;
-  name: string;
-};
-
-const WORKSPACES_QUERY = gql`
-  query Workspaces {
-    workspaces {
-      id
-      name
-    }
-    currentWorkspace {
-      id
-      name
-    }
-  }
-`;
-
-const SWITCH_WORKSPACE = gql`
-  mutation SwitchWorkspace($id: UUID!) {
-    switchWorkspace(id: $id) {
-      id
-      name
-    }
-  }
-`;
-
-const CREATE_WORKSPACE = gql`
-  mutation CreateWorkspace($input: CreateWorkspaceInput!) {
-    createWorkspace(input: $input) {
-      id
-      name
-    }
-  }
-`;
+type CreateScope = "personal" | "organization";
 
 export function WorkspaceSwitcher() {
   const { state } = useSidebar();
@@ -70,35 +43,47 @@ export function WorkspaceSwitcher() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [search, setSearch] = React.useState("");
+  const [createScope, setCreateScope] = React.useState<CreateScope>("personal");
 
-  const { data, loading } = useQuery<{
-    workspaces: Workspace[];
-    currentWorkspace: Workspace;
-  }>(WORKSPACES_QUERY);
-
-  const [switchWorkspace] = useMutation(SWITCH_WORKSPACE);
-  const [createWorkspace, { loading: creating }] = useMutation(CREATE_WORKSPACE);
-
-  const current = data?.currentWorkspace;
-  const workspaces = data?.workspaces ?? [];
+  const { workspaces, currentWorkspace: current, loading } = useWorkspaces();
+  const { switchWorkspace } = useSwitchWorkspace();
+  const { createWorkspace, loading: creatingPersonal } = useCreateWorkspace();
+  const { createOrganizationWorkspace, loading: creatingOrganization } =
+    useCreateOrganizationWorkspace();
+  const creating = creatingPersonal || creatingOrganization;
+  const canCreateOrganizationWorkspace =
+    current?.ownerKind === "organization" &&
+    current.organizationId &&
+    (current.role === "Owner" || current.role === "Admin");
   const visibleWorkspaces = workspaces.filter((workspace) =>
     workspace.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const personalWorkspaces = visibleWorkspaces.filter(
+    (workspace) => workspace.ownerKind === "personal",
+  );
+  const organizationWorkspaces = visibleWorkspaces.filter(
+    (workspace) => workspace.ownerKind === "organization",
   );
 
   async function handleSwitch(id: string) {
     if (id === current?.id) return;
-    await switchWorkspace({ variables: { id } });
-    await apolloClient.resetStore();
+    await switchWorkspace(id);
   }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-    await createWorkspace({ variables: { input: { name: trimmed } } });
+    if (createScope === "organization" && current?.organizationId) {
+      await createOrganizationWorkspace({
+        organizationId: current.organizationId,
+        name: trimmed,
+      });
+    } else {
+      await createWorkspace(trimmed);
+    }
     setName("");
     setCreateOpen(false);
-    await apolloClient.resetStore();
   }
 
   if (collapsed) return null;
@@ -118,9 +103,13 @@ export function WorkspaceSwitcher() {
             />
           }
         >
-          <BoxIcon className="size-4 shrink-0 text-primary" />
+          {current?.ownerKind === "organization" ? (
+            <Building2Icon className="size-4 shrink-0 text-primary" />
+          ) : (
+            <BoxIcon className="size-4 shrink-0 text-primary" />
+          )}
           <span className="min-w-0 flex-1 truncate">
-            {loading ? "Workspace" : current?.name ?? "Default"}
+            {loading ? "Workspace" : (current?.name ?? "Default")}
           </span>
           <ChevronDownIcon className="size-4 shrink-0 opacity-60" />
         </DropdownMenuTrigger>
@@ -140,37 +129,53 @@ export function WorkspaceSwitcher() {
             />
           </div>
           <div className="max-h-56 overflow-y-auto px-1 pb-1">
-            {visibleWorkspaces.map((workspace) => (
-              <DropdownMenuItem
-                key={workspace.id}
-                onClick={() => void handleSwitch(workspace.id)}
-                className="h-9 gap-2"
-              >
-                <BoxIcon className="size-4 text-primary" />
-                <span className="min-w-0 flex-1 truncate">
-                  {workspace.name}
-                </span>
-                {workspace.id === current?.id && (
-                  <CheckIcon className="size-4 text-primary" />
-                )}
-              </DropdownMenuItem>
-            ))}
+            <WorkspaceGroup
+              label="Personal"
+              workspaces={personalWorkspaces}
+              currentId={current?.id}
+              onSwitch={handleSwitch}
+            />
+            <WorkspaceGroup
+              label="Organizations"
+              workspaces={organizationWorkspaces}
+              currentId={current?.id}
+              onSwitch={handleSwitch}
+            />
           </div>
           <DropdownMenuSeparator className="my-0" />
           <DropdownMenuItem
-            onClick={() => setCreateOpen(true)}
+            onClick={() => {
+              setCreateScope("personal");
+              setCreateOpen(true);
+            }}
             className="m-1 h-9 gap-2"
           >
             <PlusIcon className="size-4" />
             <span>Create workspace</span>
           </DropdownMenuItem>
+          {canCreateOrganizationWorkspace && (
+            <DropdownMenuItem
+              onClick={() => {
+                setCreateScope("organization");
+                setCreateOpen(true);
+              }}
+              className="m-1 h-9 gap-2"
+            >
+              <Building2Icon className="size-4" />
+              <span>Create org workspace</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Workspace</DialogTitle>
+            <DialogTitle>
+              {createScope === "organization"
+                ? "New organization workspace"
+                : "New workspace"}
+            </DialogTitle>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleCreate}>
             <Input
@@ -188,5 +193,49 @@ export function WorkspaceSwitcher() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function WorkspaceGroup({
+  label,
+  workspaces,
+  currentId,
+  onSwitch,
+}: {
+  label: string;
+  workspaces: WorkspacePayload[];
+  currentId?: string;
+  onSwitch: (id: string) => Promise<void>;
+}) {
+  if (workspaces.length === 0) return null;
+
+  return (
+    <div className="py-1">
+      <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+        {label}
+      </div>
+      {workspaces.map((workspace) => (
+        <DropdownMenuItem
+          key={workspace.id}
+          onClick={() => void onSwitch(workspace.id)}
+          className="h-9 gap-2"
+        >
+          {workspace.ownerKind === "organization" ? (
+            <Building2Icon className="size-4 text-primary" />
+          ) : (
+            <UserIcon className="size-4 text-primary" />
+          )}
+          <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
+          {workspace.role && workspace.ownerKind === "organization" && (
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+              {workspace.role}
+            </span>
+          )}
+          {workspace.id === currentId && (
+            <CheckIcon className="size-4 text-primary" />
+          )}
+        </DropdownMenuItem>
+      ))}
+    </div>
   );
 }
