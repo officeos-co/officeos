@@ -7,6 +7,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private readonly IIntegrationDefinitionRepository _integrationDefinitionRepository;
     private readonly IIntegrationCredentialRepository _integrationCredentialRepository;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
+    private readonly IIntegrationDeploymentRepository _integrationDeploymentRepository;
+    private readonly IWorkspaceRepository _workspaceRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly GoogleOAuthConfig _googleOAuthConfig;
     private readonly ILogger<IntegrationDefinitionService> _logger;
@@ -19,13 +21,17 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         IOAuthTokenRepository oauthTokens,
         CredentialProtector protector,
         GoogleOAuthConfig googleOAuthConfig,
-        ILogger<IntegrationDefinitionService> logger)
+        ILogger<IntegrationDefinitionService> logger,
+        IIntegrationDeploymentRepository integrationDeploymentRepository,
+        IWorkspaceRepository workspaceRepository)
     {
         _agentIntegrationRepository = agentIntegrations;
         _agentRepository = agentRepository;
         _integrationDefinitionRepository = definitions;
         _integrationCredentialRepository = credentials;
         _oauthTokenRepository = oauthTokens;
+        _integrationDeploymentRepository = integrationDeploymentRepository;
+        _workspaceRepository = workspaceRepository;
         _credentialProtector = protector;
         _googleOAuthConfig = googleOAuthConfig;
         _logger = logger;
@@ -39,6 +45,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         var server = IntegrationDefinitionProvider.GetBuiltin(name)
             ?? await _integrationDefinitionRepository.GetByNameAsync(ownerId, name, workspaceId, ct);
         if (server is null) return null;
+        if (!await IsAvailableInWorkspaceAsync(server.Name, workspaceId, ct))
+            return null;
 
         return (await WithConnectionStatusAsync(ownerId, workspaceId, [server], ct)).FirstOrDefault();
     }
@@ -49,6 +57,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             throw new InvalidOperationException($"integration '{server.Name}' is built in and cannot be overwritten.");
 
         var saved = await _integrationDefinitionRepository.UpsertAsync(ownerId, workspaceId, CopyAsCustom(ownerId, workspaceId, server), ct);
+        await EnsureDeploymentForRegisteredWorkspaceAsync(ownerId, workspaceId, saved.Name, ct);
         return (await WithConnectionStatusAsync(ownerId, workspaceId, [saved], ct)).First();
     }
 
@@ -89,6 +98,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             ?? throw new InvalidOperationException($"agent '{agentId}' has no owner.");
         var server = await GetAsync(effectiveOwnerId, integrationName, agent.WorkspaceId, ct)
             ?? throw new InvalidOperationException($"integration '{integrationName}' was not found.");
+        if (!await IsAvailableInWorkspaceAsync(server.Name, agent.WorkspaceId, ct))
+            throw new InvalidOperationException($"integration '{integrationName}' is not deployed to this workspace.");
 
         await _agentIntegrationRepository.AssignAsync(agentId, server.Name, ct);
         _logger.LogInformation("Assigned integration {Integration} to agent {AgentId}", server.Name, agentId);
@@ -350,11 +361,73 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private async Task<IReadOnlyList<IntegrationDefinitionRecord>> OrderedCatalogAsync(Guid ownerId, Guid? workspaceId, CancellationToken ct)
     {
         var custom = await _integrationDefinitionRepository.ListAsync(ownerId, workspaceId, ct);
-        return OrderedBuiltins()
+        var ordered = OrderedBuiltins()
             .Concat(custom)
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)
             .ToList();
+        return await FilterCatalogForWorkspaceAsync(ordered, workspaceId, ct);
+    }
+
+    private async Task<IReadOnlyList<IntegrationDefinitionRecord>> FilterCatalogForWorkspaceAsync(
+        IReadOnlyList<IntegrationDefinitionRecord> catalog,
+        Guid? workspaceId,
+        CancellationToken ct)
+    {
+        if (!workspaceId.HasValue)
+            return catalog;
+
+        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId.Value }, ct);
+        if (workspace?.OrganizationId is null)
+            return catalog;
+
+        var deployments = await _integrationDeploymentRepository.ListAsync(
+            new IntegrationDeploymentFilter { WorkspaceId = workspaceId.Value, Enabled = true },
+            ct);
+        if (deployments.Count == 0)
+            return catalog.Where(integration => integration.IsBuiltin).ToList();
+
+        var deployed = deployments.Select(d => d.IntegrationName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return catalog.Where(integration => integration.IsBuiltin || deployed.Contains(integration.Name)).ToList();
+    }
+
+    private async Task<bool> IsAvailableInWorkspaceAsync(string integrationName, Guid? workspaceId, CancellationToken ct)
+    {
+        if (!workspaceId.HasValue)
+            return true;
+
+        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId.Value }, ct);
+        if (workspace?.OrganizationId is null)
+            return true;
+
+        if (IntegrationDefinitionProvider.GetBuiltin(integrationName) is not null)
+            return true;
+
+        var deployment = await _integrationDeploymentRepository.GetByAsync(
+            new IntegrationDeploymentFilter
+            {
+                WorkspaceId = workspaceId.Value,
+                IntegrationName = integrationName,
+                Enabled = true,
+            },
+            ct);
+        return deployment is not null;
+    }
+
+    private async Task EnsureDeploymentForRegisteredWorkspaceAsync(Guid ownerId, Guid workspaceId, string integrationName, CancellationToken ct)
+    {
+        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct);
+        if (workspace?.OrganizationId is null)
+            return;
+
+        await _integrationDeploymentRepository.UpsertAsync(new IntegrationDeploymentRecord
+        {
+            OrganizationId = workspace.OrganizationId.Value,
+            WorkspaceId = workspaceId,
+            IntegrationName = integrationName,
+            CreatedById = ownerId,
+            Enabled = true,
+        }, ct);
     }
 
     private static IReadOnlyList<IntegrationDefinitionRecord> OrderedBuiltins()

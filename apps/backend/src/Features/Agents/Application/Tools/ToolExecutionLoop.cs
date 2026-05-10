@@ -49,6 +49,7 @@ internal sealed class ToolExecutionLoop
             agent.PodName ?? string.Empty,
             agent.ServiceUrl ?? string.Empty,
             agent.Id,
+            agent.WorkspaceId,
             correlationId,
             integrations,
             integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, agent.WorkspaceId, ct),

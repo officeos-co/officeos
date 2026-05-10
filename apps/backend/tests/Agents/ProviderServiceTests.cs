@@ -1,7 +1,15 @@
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Common.Services;
 using OffceOs.Configuration;
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Infrastructure.Common.Security;
+using OffceOs.Infrastructure.Features.Management;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -11,7 +19,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task ListAsync_marks_only_platform_providers_with_keys_as_configured()
     {
-        var service = new ProviderService(
+        var service = CreateService(
             new PlatformKeysConfig { OpenAiApiKey = "openai-key" },
             new CustomLlmProviderConfig());
 
@@ -44,7 +52,7 @@ public sealed class ProviderServiceTests
             configuration.GetSection("PlatformKeys").Bind(platformKeys);
             configuration.GetSection("CustomLlmProvider").Bind(customProvider);
 
-            var service = new ProviderService(platformKeys, customProvider);
+            var service = CreateService(platformKeys, customProvider);
             var providers = await service.ListAsync();
 
             Assert.True(Assert.Single(providers, p => p.Name == "openai").Configured);
@@ -62,7 +70,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task ListAsync_includes_configured_custom_provider_with_configured_model()
     {
-        var service = new ProviderService(
+        var service = CreateService(
             new PlatformKeysConfig(),
             new CustomLlmProviderConfig
             {
@@ -87,7 +95,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task ListAsync_includes_unconfigured_custom_provider_without_models()
     {
-        var service = new ProviderService(
+        var service = CreateService(
             new PlatformKeysConfig(),
             new CustomLlmProviderConfig { BaseUrl = "http://localhost:11434/v1" });
 
@@ -102,7 +110,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task GetApiKeyForDispatchAsync_returns_empty_string_for_configured_custom_provider_without_key()
     {
-        var service = new ProviderService(
+        var service = CreateService(
             new PlatformKeysConfig(),
             new CustomLlmProviderConfig
             {
@@ -113,5 +121,78 @@ public sealed class ProviderServiceTests
         var key = await service.GetApiKeyForDispatchAsync(ProviderRegistry.CustomProviderSlug);
 
         Assert.Equal(string.Empty, key);
+    }
+
+    [Fact]
+    public async Task Workspace_provider_profiles_override_platform_provider_list_and_key()
+    {
+        await using var db = CreateDb();
+        var userId = Guid.NewGuid();
+        var organizationId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-keys-{Guid.NewGuid():N}"))));
+        db.Users.Add(new UserEntity { Id = userId, Email = "owner@example.com", Name = "Owner", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
+        db.Organizations.Add(new OrganizationEntity { Id = organizationId, Name = "Acme", OwnerUserId = userId, CreatedAt = DateTime.UtcNow });
+        db.Workspaces.Add(new WorkspaceEntity
+        {
+            Id = workspaceId,
+            OrganizationId = organizationId,
+            OwnerKind = WorkspaceOwnerKind.Organization.ToStorageString(),
+            Name = "Ops",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        db.OrganizationProviderProfiles.Add(new OrganizationProviderProfileEntity
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Provider = "openai",
+            DisplayName = "Org OpenAI",
+            AllowedModelsJson = """["gpt-4o-mini"]""",
+            EncryptedApiKey = protector.Protect(new Dictionary<string, string> { ["apiKey"] = "org-key" }),
+            Enabled = true,
+            ConfiguredAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = new ProviderService(
+            new PlatformKeysConfig { AnthropicApiKey = "platform-anthropic" },
+            new CustomLlmProviderConfig(),
+            new OrganizationProviderProfileRepository(db),
+            new WorkspaceRepository(db),
+            protector);
+
+        var providers = await service.ListForWorkspaceAsync(workspaceId);
+        var key = await service.GetApiKeyForDispatchAsync("openai", workspaceId);
+        var openAi = Assert.Single(providers);
+
+        Assert.Equal("openai", openAi.Name);
+        Assert.Equal("Org OpenAI", openAi.DisplayName);
+        Assert.Equal("gpt-4o-mini", Assert.Single(openAi.Models).Id);
+        Assert.Equal("org-key", key);
+        Assert.True(await service.IsModelAllowedAsync("openai", "gpt-4o-mini", workspaceId));
+        Assert.False(await service.IsModelAllowedAsync("anthropic", "claude-sonnet-4-5", workspaceId));
+    }
+
+    private static EaosDbContext CreateDb()
+    {
+        var options = new DbContextOptionsBuilder<EaosDbContext>()
+            .UseInMemoryDatabase($"provider-service-{Guid.NewGuid():N}")
+            .Options;
+        return new EaosDbContext(options);
+    }
+
+    private static ProviderService CreateService(PlatformKeysConfig platformKeysConfig, CustomLlmProviderConfig customLlmProviderConfig)
+    {
+        var db = CreateDb();
+        var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-keys-{Guid.NewGuid():N}"))));
+        return new ProviderService(
+            platformKeysConfig,
+            customLlmProviderConfig,
+            new OrganizationProviderProfileRepository(db),
+            new WorkspaceRepository(db),
+            protector);
     }
 }

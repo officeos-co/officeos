@@ -114,6 +114,7 @@ internal sealed class ToolRegistryFactory
     private readonly IIntegrationClientManager _integrationClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
+    private readonly IOrganizationPolicyService _organizationPolicyService;
     private readonly IIntegrationExecutionService _integrationExecutionService;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly ILogger<ToolRegistryFactory> _logger;
@@ -126,6 +127,7 @@ internal sealed class ToolRegistryFactory
         IIntegrationClientManager integrationClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
         IAgentToolPermissionRepository permissionRepository,
+        IOrganizationPolicyService organizationPolicyService,
         IIntegrationExecutionService integrationExecution,
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
@@ -137,6 +139,7 @@ internal sealed class ToolRegistryFactory
         _integrationClientManager = integrationClientManager;
         _browserToolContextFactory = browserToolContextFactory;
         _agentToolPermissionRepository = permissionRepository;
+        _organizationPolicyService = organizationPolicyService;
         _integrationExecutionService = integrationExecution;
         _turnEventPublisher = events;
         _logger = logger;
@@ -147,6 +150,7 @@ internal sealed class ToolRegistryFactory
         string sandboxId,
         string serviceUrl,
         Guid agentId,
+        Guid? workspaceId,
         string correlationId,
         IReadOnlyList<IntegrationDefinitionRecord> integrations,
             Func<string, Task<Dictionary<string, string>>> credentialLoader,
@@ -295,6 +299,10 @@ internal sealed class ToolRegistryFactory
             integrationConnections.Add(result);
         }
 
+        var policy = await _organizationPolicyService.GetEffectiveForWorkspaceAsync(workspaceId, ct);
+        if (policy is not null)
+            tools = tools.Where(tool => IsAllowedByOrganizationPolicy(tool, policy)).ToList();
+
         var resolver = new AgentToolPermissionResolver(permissions);
         tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
@@ -319,6 +327,63 @@ internal sealed class ToolRegistryFactory
             indexable.Contains(permission.SkillName)
             && string.Equals(permission.ToolName, IntegrationIndexAccess.ToolName, StringComparison.Ordinal)
             && permission.Permission == ToolPermission.Allow);
+    }
+
+    private static bool IsAllowedByOrganizationPolicy(IAgentTool tool, OrganizationPolicyProfileRecord policy)
+    {
+        var key = ToolKey.Parse(tool.PermissionScope);
+        var scope = $"{key.SkillName}:{key.ToolName}";
+        var deniedTools = ParseStringSet(policy.DeniedToolsJson);
+        var allowedTools = ParseStringSet(policy.AllowedToolsJson);
+        var deniedIntegrations = ParseStringSet(policy.DeniedIntegrationsJson);
+        var allowedIntegrations = ParseStringSet(policy.AllowedIntegrationsJson);
+
+        if (tool.Name.StartsWith("browser__", StringComparison.Ordinal) && !policy.BrowserToolsEnabled)
+            return false;
+
+        if (tool.Kind is AgentToolKind.Network && !policy.NetworkToolsEnabled)
+            return false;
+
+        if (tool.Name.Equals("shell", StringComparison.Ordinal) && !policy.ShellToolsEnabled)
+            return false;
+
+        if (tool.Name is "file_write" or "file_edit" && !policy.FileWriteToolsEnabled)
+            return false;
+
+        if (deniedTools.Contains(scope) || deniedTools.Contains($"{key.SkillName}:") || deniedTools.Contains(tool.Name))
+            return false;
+
+        if (tool.Kind is AgentToolKind.Integration)
+        {
+            if (deniedIntegrations.Contains(key.SkillName))
+                return false;
+            if (allowedIntegrations.Count > 0 && !allowedIntegrations.Contains(key.SkillName))
+                return false;
+        }
+
+        return allowedTools.Count == 0 || allowedTools.Contains(scope) || allowedTools.Contains($"{key.SkillName}:") || allowedTools.Contains(tool.Name);
+    }
+
+    private static HashSet<string> ParseStringSet(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
+            return parsed.ValueKind == JsonValueKind.Array
+                ? parsed.EnumerateArray()
+                    .Select(value => value.GetString())
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value!)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     private static IEnumerable<IntegrationCatalogTool> ParseIntegrationCatalogTools(IntegrationDefinitionRecord server)

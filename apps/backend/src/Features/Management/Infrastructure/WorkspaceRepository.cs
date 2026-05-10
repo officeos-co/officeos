@@ -66,9 +66,25 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
                 (g, w) => new { Grant = g, Workspace = w })
             .ToListAsync(ct);
 
+        var groupGranted = await _eaosDbContext.AccessGroupMembers
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Join(
+                _eaosDbContext.AccessGroupWorkspaceGrants.AsNoTracking(),
+                m => m.AccessGroupId,
+                g => g.AccessGroupId,
+                (m, g) => g)
+            .Join(
+                _eaosDbContext.Workspaces.AsNoTracking(),
+                g => g.WorkspaceId,
+                w => w.Id,
+                (g, w) => new { Grant = g, Workspace = w })
+            .ToListAsync(ct);
+
         var records = direct
             .Select(row => ToRecord(row.Workspace, row.Member.Role.ToWorkspaceRole()))
             .Concat(granted.Select(row => ToRecord(row.Workspace, row.Grant.MaxRole.ToWorkspaceRole())))
+            .Concat(groupGranted.Select(row => ToRecord(row.Workspace, row.Grant.Role.ToWorkspaceRole())))
             .GroupBy(w => w.Id)
             .Select(g => g.OrderByDescending(w => RoleRank(w.Role ?? WorkspaceRole.Viewer)).First())
             .OrderBy(w => w.OwnerKind)
@@ -122,6 +138,28 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
         if (direct is not null)
             return ToRecord(direct.Workspace, direct.Member.Role.ToWorkspaceRole());
+
+        var groupGrants = await _eaosDbContext.AccessGroupMembers
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Join(
+                _eaosDbContext.AccessGroupWorkspaceGrants.AsNoTracking().Where(g => g.WorkspaceId == workspaceId),
+                m => m.AccessGroupId,
+                g => g.AccessGroupId,
+                (m, g) => g)
+            .Join(
+                _eaosDbContext.Workspaces.AsNoTracking(),
+                g => g.WorkspaceId,
+                w => w.Id,
+                (g, w) => new { Grant = g, Workspace = w })
+            .ToListAsync(ct);
+
+        var groupGrant = groupGrants
+            .OrderByDescending(row => RoleRank(row.Grant.Role.ToWorkspaceRole()))
+            .FirstOrDefault();
+
+        if (groupGrant is not null)
+            return ToRecord(groupGrant.Workspace, groupGrant.Grant.Role.ToWorkspaceRole());
 
         var grant = await _eaosDbContext.OrgMembers
             .AsNoTracking()

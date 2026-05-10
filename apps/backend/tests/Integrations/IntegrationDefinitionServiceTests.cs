@@ -89,7 +89,9 @@ public sealed class IntegrationDefinitionServiceTests
             new FakeOAuthTokenRepository(),
             protector,
             new GoogleOAuthConfig(),
-            NullLogger<IntegrationDefinitionService>.Instance);
+            NullLogger<IntegrationDefinitionService>.Instance,
+            new FakeIntegrationDeploymentRepository(),
+            new FakeWorkspaceRepository());
     }
 
     private static IntegrationDefinitionRecord CustomServer(
@@ -219,5 +221,64 @@ public sealed class IntegrationDefinitionServiceTests
 
         public Task UpsertAsync(OAuthTokenRecord token, CancellationToken ct = default)
             => Task.CompletedTask;
+    }
+
+    private sealed class FakeIntegrationDeploymentRepository : IIntegrationDeploymentRepository
+    {
+        public Task<IReadOnlyList<IntegrationDeploymentRecord>> ListAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<IntegrationDeploymentRecord>>([]);
+
+        public Task<IntegrationDeploymentRecord?> GetByAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<IntegrationDeploymentRecord?>(null);
+
+        public Task<IntegrationDeploymentRecord> UpsertAsync(IntegrationDeploymentRecord record, CancellationToken ct = default) =>
+            Task.FromResult(record);
+
+        public Task<bool> DeleteAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
+            Task.FromResult(false);
+    }
+
+    private sealed class FakeWorkspaceRepository : IWorkspaceRepository
+    {
+        public Task<IReadOnlyList<WorkspaceRecord>> ListAsync(WorkspaceFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<WorkspaceRecord>>([]);
+
+        public Task<IReadOnlyList<WorkspaceRecord>> ListAccessibleAsync(Guid userId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<WorkspaceRecord>>([]);
+
+        public Task<WorkspaceRecord?> GetByAsync(WorkspaceFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<WorkspaceRecord?>(new WorkspaceRecord
+            {
+                Id = filter.Id ?? WorkspaceId,
+                OwnerKind = WorkspaceOwnerKind.Personal,
+                OwnerUserId = OwnerId,
+                Name = "Personal",
+            });
+
+        public Task<WorkspaceRecord?> GetAccessibleAsync(Guid userId, Guid workspaceId, CancellationToken ct = default) =>
+            GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct);
+
+        public Task<WorkspaceRecord> SaveAsync(WorkspaceRecord record, CancellationToken ct = default) =>
+            Task.FromResult(record);
+
+        public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default) => Task.FromResult(false);
+
+        public Task<WorkspaceRecord> EnsurePersonalDefaultAsync(Guid userId, CancellationToken ct = default) =>
+            Task.FromResult(WorkspaceRecord.CreatePersonal(userId, "Default", true));
+
+        public Task<WorkspaceRecord> EnsureOrganizationDefaultAsync(Guid organizationId, Guid ownerUserId, CancellationToken ct = default) =>
+            Task.FromResult(WorkspaceRecord.CreateOrganization(organizationId, "Organization", true));
+
+        public Task<WorkspaceRecord> GetCurrentAsync(Guid userId, CancellationToken ct = default) =>
+            EnsurePersonalDefaultAsync(userId, ct);
+
+        public Task SetCurrentAsync(Guid userId, Guid workspaceId, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
+        public Task<WorkspaceOrganizationGrantRecord> UpsertOrganizationGrantAsync(WorkspaceOrganizationGrantRecord record, CancellationToken ct = default) =>
+            Task.FromResult(record);
+
+        public Task<bool> DeleteOrganizationGrantAsync(Guid workspaceId, Guid organizationId, CancellationToken ct = default) =>
+            Task.FromResult(false);
     }
 }

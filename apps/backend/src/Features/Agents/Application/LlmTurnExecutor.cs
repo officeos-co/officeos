@@ -69,7 +69,7 @@ internal sealed class LlmTurnExecutor
 
         var provider = agent.Provider;
         var providerKeyStart = Stopwatch.GetTimestamp();
-        var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
+        var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, agent.WorkspaceId, ct);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
             correlationId,

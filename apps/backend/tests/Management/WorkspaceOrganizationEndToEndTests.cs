@@ -136,12 +136,37 @@ public sealed class WorkspaceOrganizationEndToEndTests
         Assert.Equal(memberId, orgAgents[0].OwnerId);
     }
 
+    [Fact]
+    public async Task Access_groups_grant_workspace_access_without_direct_workspace_membership()
+    {
+        await using var db = CreateDb();
+        var ownerId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        await SeedUserAsync(db, ownerId, "owner@example.com");
+        await SeedUserAsync(db, memberId, "member@example.com");
+
+        var harness = CreateHarness(db);
+        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
+        await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Member");
+        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Finance");
+        var group = await harness.AccessGroups.CreateAsync(ownerId, overview.Organization.Id, "Finance");
+
+        await harness.AccessGroups.AddMemberAsync(ownerId, group.Id, memberId);
+        await harness.AccessGroups.GrantWorkspaceAsync(ownerId, group.Id, workspace.Id, "Viewer");
+
+        var workspaces = await harness.Workspaces.ListAsync(memberId);
+        var accessible = Assert.Single(workspaces, item => item.Id == workspace.Id);
+
+        Assert.Equal(WorkspaceRole.Viewer, accessible.Role);
+    }
+
     private static Harness CreateHarness(EaosDbContext db)
     {
         var cache = new InMemoryDistributedCache();
         var organizationRepository = new OrganizationRepository(db);
         var workspaceRepository = new WorkspaceRepository(db);
         var workspaceMemberRepository = new WorkspaceMemberRepository(db);
+        var accessGroupRepository = new AccessGroupRepository(db);
         var agentRepository = new AgentRepository(db);
         var channelRepository = new ChannelRepository(db);
         var integrationDefinitionRepository = new IntegrationDefinitionRepository(db);
@@ -178,6 +203,7 @@ public sealed class WorkspaceOrganizationEndToEndTests
         return new Harness(
             new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache),
             new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository),
+            new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository),
             integrationService,
             agentDashboard,
             agentRepository);
@@ -199,7 +225,9 @@ public sealed class WorkspaceOrganizationEndToEndTests
             new OAuthTokenRepository(db),
             protector,
             new GoogleOAuthConfig(),
-            NullLogger<IntegrationDefinitionService>.Instance);
+            NullLogger<IntegrationDefinitionService>.Instance,
+            new IntegrationDeploymentRepository(db),
+            new WorkspaceRepository(db));
     }
 
     private static IntegrationDefinitionRecord CustomIntegration() => new()
@@ -237,6 +265,7 @@ public sealed class WorkspaceOrganizationEndToEndTests
     private sealed record Harness(
         IWorkspaceService Workspaces,
         IOrganizationService Organizations,
+        IAccessGroupService AccessGroups,
         IIntegrationDefinitionService Integrations,
         IAgentDashboardService AgentDashboard,
         IAgentRepository Agents);
@@ -264,8 +293,17 @@ public sealed class WorkspaceOrganizationEndToEndTests
         public Task<IReadOnlyList<ProviderResult>> ListAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ProviderResult>>([]);
 
+        public Task<IReadOnlyList<ProviderResult>> ListForWorkspaceAsync(Guid? workspaceId, CancellationToken ct = default) =>
+            ListAsync(ct);
+
         public Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default) =>
             Task.FromResult<string?>("test-key");
+
+        public Task<string?> GetApiKeyForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default) =>
+            GetApiKeyForDispatchAsync(name, ct);
+
+        public Task<bool> IsModelAllowedAsync(string provider, string? model, Guid? workspaceId, CancellationToken ct = default) =>
+            Task.FromResult(true);
     }
 
     private sealed class FakeAgentDeployer : IAgentDeployer
