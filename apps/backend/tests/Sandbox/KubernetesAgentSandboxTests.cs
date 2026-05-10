@@ -1,21 +1,20 @@
 using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Tests.Shared;
 using Xunit;
 
 namespace OffceOs.Tests.Sandbox;
 
 public sealed class KubernetesAgentSandboxTests
 {
-    private static readonly Guid AgentId = Guid.Parse("11111111-2222-3333-4444-555555555555");
-
     [Fact]
     public void BuildPod_uses_pod_executor_image_workspace_and_token()
     {
-        var pod = KubernetesAgentSandbox.BuildPod(AgentId, "repo/pod-executor:test");
+        var pod = KubernetesAgentSandbox.BuildPod(TestIds.SandboxAgentId, "repo/pod-executor:test");
 
         Assert.Equal("eaos-agent-11111111", pod.Metadata.Name);
         Assert.Equal("eaos-agent-runtime", pod.Metadata.Labels["app"]);
         Assert.Equal("eaos", pod.Metadata.Labels["managed-by"]);
-        Assert.Equal(AgentId.ToString(), pod.Metadata.Labels["agent-id"]);
+        Assert.Equal(TestIds.SandboxAgentId.ToString(), pod.Metadata.Labels["agent-id"]);
 
         var container = Assert.Single(pod.Spec.Containers);
         Assert.Equal("pod-executor", container.Name);
@@ -30,13 +29,13 @@ public sealed class KubernetesAgentSandboxTests
     [Fact]
     public void BuildService_routes_to_matching_agent_pod()
     {
-        var service = KubernetesAgentSandbox.BuildService(AgentId);
+        var service = KubernetesAgentSandbox.BuildService(TestIds.SandboxAgentId);
 
         Assert.Equal("eaos-agent-11111111", service.Metadata.Name);
         Assert.Equal("eaos", service.Metadata.Labels["managed-by"]);
         Assert.Equal("ClusterIP", service.Spec.Type);
         Assert.Equal("eaos-agent-runtime", service.Spec.Selector["app"]);
-        Assert.Equal(AgentId.ToString(), service.Spec.Selector["agent-id"]);
+        Assert.Equal(TestIds.SandboxAgentId.ToString(), service.Spec.Selector["agent-id"]);
         Assert.Equal(42617, Assert.Single(service.Spec.Ports).Port);
     }
 

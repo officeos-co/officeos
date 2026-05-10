@@ -1,7 +1,6 @@
 using System.Text.Json;
 using OffceOs.Application.Features.Agents;
-using OffceOs.Domain.Common.Primitives;
-using OffceOs.Domain.Features.Agents;
+using OffceOs.Tests.Shared;
 using Xunit;
 
 namespace OffceOs.Tests.Sandbox;
@@ -104,76 +103,4 @@ public sealed class BrowserToolTests
         Assert.DoesNotContain("group: browser", deferredTools);
     }
 
-    private sealed class FakeBrowserService : IBrowserService
-    {
-        public Task<BrowserSessionState> GetOrCreateAsync(Guid agentId, CancellationToken ct = default)
-            => Task.FromResult(new BrowserSessionState(agentId, "session-1", "active", null, null, null, null, null, null));
-
-        public Task<BrowserSessionState?> GetStateAsync(Guid agentId, CancellationToken ct = default)
-            => Task.FromResult<BrowserSessionState?>(null);
-
-        public Task<BrowserSessionState> RestartAsync(Guid agentId, CancellationToken ct = default)
-            => GetOrCreateAsync(agentId, ct);
-
-        public Task StopAsync(Guid agentId, CancellationToken ct = default)
-            => Task.CompletedTask;
-
-        public Task<string?> GetViewUrlAsync(Guid agentId, CancellationToken ct = default)
-            => Task.FromResult<string?>(null);
-    }
-
-    private sealed class FakeBrowserRuntimeClient : IBrowserRuntimeClient
-    {
-        public string? LastToolName { get; private set; }
-        public Dictionary<string, object?>? LastArguments { get; private set; }
-
-        public Task<bool> IsAvailableAsync(CancellationToken ct = default)
-            => Task.FromResult(true);
-
-        public Task<BrowserSessionState?> GetSessionAsync(Guid agentId, string runtimeSessionId, CancellationToken ct = default)
-            => Task.FromResult<BrowserSessionState?>(null);
-
-        public Task<BrowserSessionState> CreateSessionAsync(Guid agentId, string name, string? authProfile, CancellationToken ct = default)
-            => Task.FromResult(new BrowserSessionState(agentId, "session-1", "active", name, null, null, null, null, null));
-
-        public Task CloseSessionAsync(string runtimeSessionId, CancellationToken ct = default)
-            => Task.CompletedTask;
-
-        public Task<IReadOnlyList<BrowserToolDescriptor>> ListToolsAsync(CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<BrowserToolDescriptor>>([]);
-
-        public Task<BrowserToolCallResult> CallToolAsync(string name, Dictionary<string, object?> arguments, CancellationToken ct = default)
-        {
-            LastToolName = name;
-            LastArguments = arguments;
-            return Task.FromResult(new BrowserToolCallResult(false, "{}"));
-        }
-    }
-
-    private sealed class FakeAgentSandbox : IAgentSandbox
-    {
-        public Task<AgentSandboxDeployment> CreateAsync(
-            Guid agentId,
-            IReadOnlyDictionary<string, string> environment,
-            IReadOnlyDictionary<string, string> metadata,
-            CancellationToken ct = default)
-            => throw new NotSupportedException();
-
-        public Task<AgentResult<AgentSandboxCommandResult>> ExecuteAsync(
-            string sandboxId,
-            string serviceUrl,
-            string command,
-            TimeSpan timeout,
-            CancellationToken ct = default)
-            => throw new NotSupportedException();
-
-        public Task<AgentResult<string>> ReadFileAsync(string sandboxId, string serviceUrl, string path, CancellationToken ct = default)
-            => throw new NotSupportedException();
-
-        public Task<AgentResult<bool>> WriteFileAsync(string sandboxId, string serviceUrl, string path, string content, CancellationToken ct = default)
-            => throw new NotSupportedException();
-
-        public Task<bool> TerminateAsync(string sandboxId, CancellationToken ct = default)
-            => throw new NotSupportedException();
-    }
 }

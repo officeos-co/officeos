@@ -1,6 +1,6 @@
 using System.Text.Json;
 using OffceOs.Application.Features.Agents;
-using OffceOs.Domain.Features.Context;
+using OffceOs.Tests.Shared;
 using Xunit;
 
 namespace OffceOs.Tests.Context;
@@ -10,7 +10,7 @@ public sealed class IntegrationExecuteToolContractTests
     [Fact]
     public void Connector_execute_tool_schema_matches_context_interface()
     {
-        var tool = new IntegrationExecuteTool(new CapturingExecutionService());
+        var tool = new IntegrationExecuteTool(new CapturingIntegrationExecutionService());
         var schema = JsonSerializer.SerializeToElement(tool.Schema.Parameters);
         var properties = schema.GetProperty("properties");
         var required = schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()!).ToArray();
@@ -30,7 +30,7 @@ public sealed class IntegrationExecuteToolContractTests
     [Fact]
     public async Task Connector_execute_tool_accepts_context_search_example()
     {
-        var execution = new CapturingExecutionService();
+        var execution = new CapturingIntegrationExecutionService();
         var tool = new IntegrationExecuteTool(execution);
         var args = JsonSerializer.SerializeToElement(new
         {
@@ -61,24 +61,4 @@ public sealed class IntegrationExecuteToolContractTests
         Assert.Equal(["name", "owner", "description", "createdAt", "updatedAt", "url"], execution.Request.SelectFields);
     }
 
-    private sealed class CapturingExecutionService : IIntegrationExecutionService
-    {
-        public IntegrationExecuteRequest? Request { get; private set; }
-
-        public Task<JsonElement> ExecuteAsync(IntegrationExecuteRequest request, CancellationToken ct = default)
-        {
-            Request = request;
-            return Task.FromResult(JsonSerializer.SerializeToElement(new
-            {
-                status = "success",
-                result = Array.Empty<object>(),
-                connector_metadata = (object?)null,
-                execution_metadata = new
-                {
-                    connector_instance_id = $"source_id:{request.SourceId}",
-                    execution_time_ms = 1,
-                },
-            }));
-        }
-    }
 }
