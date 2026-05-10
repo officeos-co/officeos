@@ -79,6 +79,14 @@ internal sealed class ProviderService : IProviderService
 
     public async Task<string?> GetApiKeyForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default)
     {
+        var auth = await GetAuthForDispatchAsync(name, workspaceId, ct);
+        return auth?.Kind is ProviderAuthKind.ApiKey or ProviderAuthKind.AwsBedrockApiKey or ProviderAuthKind.AzureApiKey
+            ? auth.Get("apiKey")
+            : null;
+    }
+
+    public async Task<ProviderAuthResult?> GetAuthForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default)
+    {
         var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
         if (organizationId.HasValue &&
             await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
@@ -92,10 +100,13 @@ internal sealed class ProviderService : IProviderService
                 },
                 ct);
             if (profile is not null)
-                return _credentialProtector.Unprotect(profile.EncryptedApiKey).GetValueOrDefault("apiKey");
+                return ToProviderAuthResult(_credentialProtector.Unprotect(profile.EncryptedApiKey));
         }
 
-        return await GetApiKeyForDispatchAsync(name, ct);
+        var apiKey = await GetApiKeyForDispatchAsync(name, ct);
+        return apiKey is null
+            ? null
+            : new ProviderAuthResult(ProviderAuthKind.ApiKey, new Dictionary<string, string> { ["apiKey"] = apiKey });
     }
 
     public async Task<bool> IsModelAllowedAsync(string provider, string? model, Guid? workspaceId, CancellationToken ct = default)
@@ -171,6 +182,15 @@ internal sealed class ProviderService : IProviderService
         {
             return [];
         }
+    }
+
+    private static ProviderAuthResult ToProviderAuthResult(IReadOnlyDictionary<string, string> credentials)
+    {
+        var kind = credentials.TryGetValue("authKind", out var authKind) && !string.IsNullOrWhiteSpace(authKind)
+            ? authKind.ToProviderAuthKind()
+            : ProviderAuthKind.ApiKey;
+
+        return new ProviderAuthResult(kind, new Dictionary<string, string>(credentials, StringComparer.OrdinalIgnoreCase));
     }
 
     private static Guid DeterministicGuid(string input)

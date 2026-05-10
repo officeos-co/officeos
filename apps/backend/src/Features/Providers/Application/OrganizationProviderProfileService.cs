@@ -38,17 +38,40 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
         bool enabled,
         CancellationToken ct = default)
     {
+        return await SaveNativeAuthAsync(
+            actorUserId,
+            organizationId,
+            provider,
+            displayName,
+            allowedModels,
+            ProviderAuthKind.ApiKey,
+            new Dictionary<string, string> { ["apiKey"] = apiKey },
+            enabled,
+            ct);
+    }
+
+    public async Task<OrganizationProviderProfileRecord> SaveNativeAuthAsync(
+        Guid actorUserId,
+        Guid organizationId,
+        string provider,
+        string displayName,
+        IReadOnlyList<string> allowedModels,
+        ProviderAuthKind authKind,
+        IReadOnlyDictionary<string, string> credentials,
+        bool enabled,
+        CancellationToken ct = default)
+    {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
         await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
         if (string.IsNullOrWhiteSpace(provider))
             throw new InvalidOperationException("Provider is required.");
-        if (string.IsNullOrWhiteSpace(apiKey))
-            throw new InvalidOperationException("Provider API key is required.");
 
         var normalizedProvider = provider.Trim().ToLowerInvariant();
         var definition = ProviderRegistry.Get(normalizedProvider);
         if (definition is null && !ProviderRegistry.IsCustomProvider(normalizedProvider))
             throw new InvalidOperationException($"Provider '{normalizedProvider}' is not supported.");
+
+        var normalizedCredentials = ValidateCredentials(normalizedProvider, authKind, credentials);
 
         var modelList = allowedModels
             .Select(model => model.Trim())
@@ -73,7 +96,7 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
             Provider = normalizedProvider,
             DisplayName = string.IsNullOrWhiteSpace(displayName) ? normalizedProvider : displayName.Trim(),
             AllowedModelsJson = JsonSerializer.Serialize(modelList),
-            EncryptedApiKey = _credentialProtector.Protect(new Dictionary<string, string> { ["apiKey"] = apiKey }),
+            EncryptedApiKey = _credentialProtector.Protect(normalizedCredentials),
             Enabled = enabled,
             ConfiguredAt = DateTime.UtcNow,
         };
@@ -95,5 +118,64 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
         var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
         if (member?.Role is not (OrgRole.Owner or OrgRole.Admin))
             throw new InvalidOperationException("Organization not found.");
+    }
+
+    private static Dictionary<string, string> ValidateCredentials(
+        string provider,
+        ProviderAuthKind authKind,
+        IReadOnlyDictionary<string, string> credentials)
+    {
+        var normalized = credentials
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Key, pair => pair.Value.Trim(), StringComparer.OrdinalIgnoreCase);
+        normalized["authKind"] = authKind.ToStorageString();
+
+        switch (provider, authKind)
+        {
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsIam):
+                Require(normalized, "awsAccessKeyId");
+                Require(normalized, "awsSecretAccessKey");
+                Require(normalized, "awsRegion");
+                break;
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsBedrockApiKey):
+                Require(normalized, "apiKey");
+                Require(normalized, "awsRegion");
+                break;
+            case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleServiceAccount):
+                Require(normalized, "serviceAccountJson");
+                Require(normalized, "projectId");
+                Require(normalized, "location");
+                break;
+            case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleApplicationDefault):
+                Require(normalized, "projectId");
+                Require(normalized, "location");
+                break;
+            case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureEntraClientSecret):
+                Require(normalized, "tenantId");
+                Require(normalized, "clientId");
+                Require(normalized, "clientSecret");
+                Require(normalized, "endpoint");
+                break;
+            case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureManagedIdentity):
+                Require(normalized, "endpoint");
+                break;
+            case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureApiKey):
+                Require(normalized, "apiKey");
+                Require(normalized, "endpoint");
+                break;
+            case (_, ProviderAuthKind.ApiKey):
+                Require(normalized, "apiKey");
+                break;
+            default:
+                throw new InvalidOperationException($"Authentication kind '{authKind.ToStorageString()}' is not supported for provider '{provider}'.");
+        }
+
+        return normalized;
+    }
+
+    private static void Require(IReadOnlyDictionary<string, string> credentials, string key)
+    {
+        if (!credentials.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            throw new InvalidOperationException($"Provider credential '{key}' is required.");
     }
 }

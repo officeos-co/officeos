@@ -114,6 +114,48 @@ public sealed class OrganizationProviderProfileServiceTests
         Assert.DoesNotContain("aws-key", saved.EncryptedApiKey);
     }
 
+    [Fact]
+    public async Task Native_cloud_auth_profiles_validate_required_fields_and_store_encrypted_payload()
+    {
+        await using var db = TestDbFactory.Create("provider-profile-service");
+        var ownerId = Guid.NewGuid();
+        var organizationId = SeedOrganization(db, ownerId, SubscriptionPlan.Enterprise);
+        var service = CreateService(db);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveNativeAuthAsync(
+                ownerId,
+                organizationId,
+                ProviderRegistry.GoogleVertexProviderSlug,
+                "Vertex",
+                ["claude-sonnet-4@20250514"],
+                ProviderAuthKind.GoogleServiceAccount,
+                new Dictionary<string, string>
+                {
+                    ["serviceAccountJson"] = "{}",
+                    ["projectId"] = "acme",
+                },
+                true));
+
+        var saved = await service.SaveNativeAuthAsync(
+            ownerId,
+            organizationId,
+            ProviderRegistry.GoogleVertexProviderSlug,
+            "Vertex",
+            ["claude-sonnet-4@20250514"],
+            ProviderAuthKind.GoogleServiceAccount,
+            new Dictionary<string, string>
+            {
+                ["serviceAccountJson"] = """{"client_email":"svc@example.com"}""",
+                ["projectId"] = "acme",
+                ["location"] = "us-east5",
+            },
+            true);
+
+        Assert.DoesNotContain("svc@example.com", saved.EncryptedApiKey);
+        Assert.DoesNotContain("acme", saved.EncryptedApiKey);
+    }
+
     private static OrganizationProviderProfileService CreateService(EaosDbContext db)
     {
         var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-profile-keys-{Guid.NewGuid():N}"))));

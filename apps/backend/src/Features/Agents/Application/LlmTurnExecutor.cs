@@ -4,18 +4,17 @@ namespace OffceOs.Application.Features.Agents;
 /// Executes one streamed LLM call inside an agent turn.
 /// </summary>
 /// <remarks>
-/// <para><strong>Responsible for:</strong> building the request, resolving the provider API key,
-/// dispatching the model call, parsing the stream, and returning normalized usage with assistant
-/// content and tool calls.</para>
+/// <para><strong>Responsible for:</strong> building the request, dispatching the provider call through
+/// the Providers feature, parsing the stream, and returning normalized usage with assistant content
+/// and tool calls.</para>
 /// <para><strong>Responsible only for:</strong> LLM call execution. It does not record billing,
 /// publish turn events, execute tools, persist runs, or decide turn completion.</para>
-/// <para><strong>Acceptance criteria:</strong> this class should change only when LLM dispatch flow,
-/// provider key lookup, provider error handling, or LLM-call result shape changes.</para>
+/// <para><strong>Acceptance criteria:</strong> this class should change only when LLM request building,
+/// stream parsing, usage resolution, or LLM-call result shape changes.</para>
 /// </remarks>
 internal sealed class LlmTurnExecutor
 {
-    private readonly LlmProviderDispatcher _llmProviderDispatcher;
-    private readonly IProviderService _providerService;
+    private readonly IProviderDispatchService _providerDispatchService;
     private readonly LlmRequestBuilder _llmRequestBuilder;
     private readonly SseResponseParser _sseResponseParser;
     private readonly UsageResolver _usageResolver;
@@ -23,16 +22,14 @@ internal sealed class LlmTurnExecutor
     private readonly ILogger<LlmTurnExecutor> _logger;
 
     public LlmTurnExecutor(
-        LlmProviderDispatcher llmProviderDispatcher,
-        IProviderService providerService,
+        IProviderDispatchService providerDispatchService,
         LlmRequestBuilder requestBuilder,
         SseResponseParser sseResponseParser,
         UsageResolver usageResolver,
         TurnEventPublisher events,
         ILogger<LlmTurnExecutor> logger)
     {
-        _llmProviderDispatcher = llmProviderDispatcher;
-        _providerService = providerService;
+        _providerDispatchService = providerDispatchService;
         _llmRequestBuilder = requestBuilder;
         _sseResponseParser = sseResponseParser;
         _usageResolver = usageResolver;
@@ -67,22 +64,8 @@ internal sealed class LlmTurnExecutor
                 requestBody.GetRawText());
         }
 
-        var provider = agent.Provider;
-        var providerKeyStart = Stopwatch.GetTimestamp();
-        var apiKey = await _providerService.GetApiKeyForDispatchAsync(provider, agent.WorkspaceId, ct);
-        await _turnEventPublisher.PublishDiagnosticAsync(
-            agent.Id,
-            correlationId,
-            $"LLM iteration {iteration}: provider key loaded",
-            ElapsedMs(providerKeyStart),
-            ct);
-        if (apiKey is null)
-        {
-            return new AgentError(AgentErrorCategory.Configuration, $"Provider '{provider}' has no API key configured.");
-        }
-
         var llmStart = Stopwatch.GetTimestamp();
-        var llmResult = await _llmProviderDispatcher.DispatchAsync(provider, apiKey, agent.Model ?? "auto", requestBody, ct);
+        var llmResult = await _providerDispatchService.DispatchAsync(agent.Provider, agent.WorkspaceId, agent.Model ?? "auto", requestBody, ct);
         if (llmResult.IsFailure)
         {
             await _turnEventPublisher.PublishDiagnosticAsync(

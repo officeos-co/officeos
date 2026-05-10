@@ -87,6 +87,14 @@ internal static class ArchitectureDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor ApplicationInterfaceFileRule = new(
+        "EAOS011",
+        "Application service interfaces must live in dedicated contract files",
+        "Application interface '{0}' must be declared in '{1}', not implementation file '{2}'",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly ImmutableArray<DiagnosticDescriptor> All = ImmutableArray.Create(
         DomainDtoTypeRule,
         BroadTypesFileRule,
@@ -97,5 +105,6 @@ internal static class ArchitectureDiagnostics
         LayerPlacementRule,
         ApiBoundaryRequestRule,
         GlobalUsingOnlyRule,
-        DependencyFieldNamingRule);
+        DependencyFieldNamingRule,
+        ApplicationInterfaceFileRule);
 }

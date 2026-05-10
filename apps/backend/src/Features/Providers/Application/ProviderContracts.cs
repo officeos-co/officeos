@@ -10,6 +10,7 @@ public interface IProviderService
     /// </summary>
     Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default);
     Task<string?> GetApiKeyForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default);
+    Task<ProviderAuthResult?> GetAuthForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default);
     Task<bool> IsModelAllowedAsync(string provider, string? model, Guid? workspaceId, CancellationToken ct = default);
 }
 

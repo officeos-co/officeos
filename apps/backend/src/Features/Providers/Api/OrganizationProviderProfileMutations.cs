@@ -11,15 +11,27 @@ public sealed class OrganizationProviderProfileMutations
     {
         try
         {
-            var profile = await organizationProviderProfileService.SaveAsync(
-                user.Id,
-                input.OrganizationId,
-                input.Provider,
-                input.DisplayName,
-                input.AllowedModels,
-                input.ApiKey,
-                input.Enabled,
-                ct);
+            var profile = string.IsNullOrWhiteSpace(input.AuthKind)
+                ? await organizationProviderProfileService.SaveAsync(
+                    user.Id,
+                    input.OrganizationId,
+                    input.Provider,
+                    input.DisplayName,
+                    input.AllowedModels,
+                    input.ApiKey,
+                    input.Enabled,
+                    ct)
+                : await organizationProviderProfileService.SaveNativeAuthAsync(
+                    user.Id,
+                    input.OrganizationId,
+                    input.Provider,
+                    input.DisplayName,
+                    input.AllowedModels,
+                    input.AuthKind.ToProviderAuthKind(),
+                    input.Credentials?.ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase)
+                        ?? new Dictionary<string, string>(),
+                    input.Enabled,
+                    ct);
             return OrganizationProviderProfileGraphQLMapper.ToPayload(profile);
         }
         catch (InvalidOperationException ex)

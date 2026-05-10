@@ -48,6 +48,7 @@ public static class InfrastructureServiceCollectionExtensions
         // Adapters
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();
         services.AddScoped<LlmProviderDispatcher>();
+        services.AddScoped<ICloudProviderTokenService, CloudProviderTokenService>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IStripeMeteringService, StripeMeteringService>();
         // Adapters - integrations

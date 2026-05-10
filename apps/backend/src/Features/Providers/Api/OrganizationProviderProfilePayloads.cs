@@ -15,7 +15,13 @@ public sealed record SaveOrganizationProviderProfileInput(
     string DisplayName,
     IReadOnlyList<string> AllowedModels,
     string ApiKey,
-    bool Enabled);
+    bool Enabled,
+    string? AuthKind,
+    IReadOnlyList<ProviderCredentialInput>? Credentials);
+
+public sealed record ProviderCredentialInput(
+    string Key,
+    string Value);
 
 internal static class OrganizationProviderProfileGraphQLMapper
 {

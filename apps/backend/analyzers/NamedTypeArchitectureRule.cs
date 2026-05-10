@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace OffceOs.Architecture.Analyzers;
@@ -38,6 +39,7 @@ internal sealed class NamedTypeArchitectureRule : IArchitectureRule
 
         AnalyzeLayerNaming(context, typeSymbol, filePath, location);
         AnalyzeLayerPlacement(context, typeSymbol, filePath, location);
+        AnalyzeApplicationInterfaceFile(context, typeSymbol, filePath, location);
     }
 
     private static void AnalyzeLayerNaming(
@@ -136,6 +138,45 @@ internal sealed class NamedTypeArchitectureRule : IArchitectureRule
 
         if (name.EndsWith("Handler", StringComparison.Ordinal) && layer != "EventHandlers")
             ReportPlacement(context, location, name, "Handler", "EventHandlers", layer);
+    }
+
+    private static void AnalyzeApplicationInterfaceFile(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol typeSymbol,
+        string filePath,
+        Location location)
+    {
+        if (!ArchitecturePaths.IsInLayer(filePath, "Application"))
+            return;
+
+        if (typeSymbol.TypeKind is not TypeKind.Interface)
+            return;
+
+        if (typeSymbol.DeclaredAccessibility is not Accessibility.Public)
+            return;
+
+        if (!typeSymbol.Name.EndsWith("Service", StringComparison.Ordinal))
+            return;
+
+        var syntax = typeSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken);
+        var root = syntax?.SyntaxTree.GetRoot(context.CancellationToken);
+        if (root is null)
+            return;
+
+        var declaresImplementationClass = root
+            .DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Any(classDeclaration => classDeclaration.Identifier.ValueText != typeSymbol.Name);
+        if (!declaresImplementationClass)
+            return;
+
+        var fileName = Path.GetFileName(filePath);
+        context.ReportDiagnostic(Diagnostic.Create(
+            ArchitectureDiagnostics.ApplicationInterfaceFileRule,
+            location,
+            typeSymbol.Name,
+            "a dedicated I*Service.cs or focused *Contracts.cs file without an implementation class",
+            fileName));
     }
 
     private static void ReportPlacement(
