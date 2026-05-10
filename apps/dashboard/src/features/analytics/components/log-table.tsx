@@ -9,9 +9,9 @@ import {
   TableHead,
   TableCell,
   TableSelectionCell,
-} from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
+} from "@/ui/table";
+import { Skeleton } from "@/ui/skeleton";
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip";
 import { cn } from "@/lib/utils";
 import {
   TerminalIcon,

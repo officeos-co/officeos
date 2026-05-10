@@ -2,10 +2,10 @@
 
 import * as React from "react";
 
-import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
-import { TeamSwitcher } from "@/components/team-switcher";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { NavMain } from "./nav-main";
+import { NavUser } from "./nav-user";
+import { TeamSwitcher } from "./team-switcher";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
+} from "@/ui/sidebar";
 import {
   BotIcon,
   ActivityIcon,

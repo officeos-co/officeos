@@ -3,18 +3,18 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SearchInput } from "@/components/ui/search-input";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
+import { EmptyState } from "@/ui/empty-state";
+import { SearchInput } from "@/ui/search-input";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/ui/dialog";
 import {
   Table,
   TableBody,
@@ -25,15 +25,15 @@ import {
   TableSelectionCell,
   TableSelectionHead,
   TableSelectionToolbar,
-} from "@/components/ui/table";
+} from "@/ui/table";
 import {
   ChannelOnboardingDialog,
   useChannelConnections,
   useDeleteChannelConnection,
 } from "@/features/agents";
 import { useAnalytics } from "@/features/analytics";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { Channel } from "@/features/agents/data/channels";
+import { Skeleton } from "@/ui/skeleton";
+import type { Channel } from "@/features/agents";
 
 export default function ChannelsPage() {
   const router = useRouter();

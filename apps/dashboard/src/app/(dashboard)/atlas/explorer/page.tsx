@@ -3,18 +3,18 @@
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { DataPagination } from "@/components/ui/data-pagination";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SearchInput } from "@/components/ui/search-input";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { DataPagination } from "@/ui/data-pagination";
+import { EmptyState } from "@/ui/empty-state";
+import { SearchInput } from "@/ui/search-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/ui/select";
 import {
   Table,
   TableBody,
@@ -22,7 +22,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/ui/table";
 import {
   type AtlasConnection,
   type AtlasIndexedRecord,

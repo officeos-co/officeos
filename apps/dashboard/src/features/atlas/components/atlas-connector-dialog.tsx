@@ -2,16 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { CheckIcon, DatabaseIcon, GlobeIcon } from "lucide-react";
-import { getDialogWidthClassName } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
+import { getDialogWidthClassName } from "@/shell/page-container";
+import { Button } from "@/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { SearchInput } from "@/components/ui/search-input";
+} from "@/ui/dialog";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
+import { SearchInput } from "@/ui/search-input";
 import type { AtlasConnectorType } from "@/features/atlas";
 import { buildOAuthUrl } from "@/lib/auth-url";
 import { cn } from "@/lib/utils";

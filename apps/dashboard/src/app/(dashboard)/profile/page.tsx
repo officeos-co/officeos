@@ -2,23 +2,23 @@
 
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { PageContainer } from "@/components/page-container"
-import { Button } from "@/components/ui/button"
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
+import { PageHeader } from "@/shell/page-header"
+import { PageContainer } from "@/shell/page-container"
+import { Button } from "@/ui/button"
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip"
+import { Input } from "@/ui/input"
+import { Label } from "@/ui/label"
+import { Textarea } from "@/ui/textarea"
+import { Switch } from "@/ui/switch"
+import { Separator } from "@/ui/separator"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/ui/select"
+import { Skeleton } from "@/ui/skeleton"
 import { useProfile, useUpdateProfile, type NotificationPrefs } from "@/features/manage"
 
 export default function ProfilePage() {

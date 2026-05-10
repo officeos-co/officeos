@@ -1,24 +1,23 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/ui/button"
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip"
+import { Input } from "@/ui/input"
+import { Label } from "@/ui/label"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/ui/dialog"
 import type { CredentialField } from "../data/integrations"
 
 export function CredentialDialog({
   open,
   onOpenChange,
   name,
-  slug,
   logo,
   credentials,
   onSave,

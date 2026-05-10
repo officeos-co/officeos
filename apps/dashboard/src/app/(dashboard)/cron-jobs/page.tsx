@@ -7,10 +7,10 @@ import {
   HeartPulseIcon,
   Trash2Icon,
 } from "lucide-react";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
+import { EmptyState } from "@/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -18,17 +18,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/ui/dialog";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchInput } from "@/components/ui/search-input";
+} from "@/ui/select";
+import { SearchInput } from "@/ui/search-input";
 import {
   Table,
   TableBody,
@@ -39,8 +39,8 @@ import {
   TableSelectionCell,
   TableSelectionHead,
   TableSelectionToolbar,
-} from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/ui/table";
+import { Textarea } from "@/ui/textarea";
 import {
   describeCronExpression,
   isHeartbeatCron,
@@ -48,9 +48,7 @@ import {
   useAllCronJobs,
 } from "@/features/agents";
 
-type Frequency = "heartbeat" | "hourly" | "daily";
-
-function expressionFor(frequency: Frequency) {
+function expressionFor(frequency: "heartbeat" | "hourly" | "daily") {
   if (frequency === "heartbeat") return "*/30 * * * *";
   if (frequency === "hourly") return "0 * * * *";
   return "0 9 * * *";
@@ -66,7 +64,8 @@ export default function CronJobsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [agentId, setAgentId] = useState("");
   const [name, setName] = useState("");
-  const [frequency, setFrequency] = useState<Frequency>("daily");
+  const [frequency, setFrequency] =
+    useState<"heartbeat" | "hourly" | "daily">("daily");
   const [prompt, setPrompt] = useState("");
   const selectedAgent = agents.find((agent) => agent.id === agentId);
 
@@ -276,7 +275,8 @@ export default function CronJobsPage() {
               <Select
                 value={frequency}
                 onValueChange={(value) =>
-                  value && setFrequency(value as Frequency)
+                  value &&
+                    setFrequency(value as "heartbeat" | "hourly" | "daily")
                 }
               >
                 <SelectTrigger>

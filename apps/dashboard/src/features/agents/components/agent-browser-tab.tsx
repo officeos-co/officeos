@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAgentBrowser } from "@/features/agents/api/useAgentBrowser";
+import { Button } from "@/ui/button";
+import { Skeleton } from "@/ui/skeleton";
+import { useAgentBrowser } from "../api/useAgentBrowser";
 import {
   ExternalLinkIcon,
   MonitorIcon,

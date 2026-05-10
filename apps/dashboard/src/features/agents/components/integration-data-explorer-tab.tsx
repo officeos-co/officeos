@@ -1,16 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/ui/button";
+import { EmptyState } from "@/ui/empty-state";
+import { SearchInput } from "@/ui/search-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/ui/select";
 import {
   Table,
   TableBody,
@@ -18,8 +18,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import type { McpServer } from "@/features/agents/data/integrations";
+} from "@/ui/table";
+import type { McpServer } from "@/features/agents";
 import {
   type AtlasConnection,
   parseJsonArray,

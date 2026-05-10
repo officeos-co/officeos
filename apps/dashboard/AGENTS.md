@@ -7,8 +7,8 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 - `src/app`: Next.js routes, route layouts, loading states, global providers, metadata, and global CSS.
 - `src/app/(dashboard)`: authenticated operator routes. This route group does not appear in URLs; pages here are wrapped by the dashboard layout, sidebar, analytics pageview, and auth guard.
 - `src/app/login` and `src/app/pricing`: public routes outside the authenticated dashboard shell.
-- `src/components`: app-wide reusable components such as the sidebar, navigation, page header/container, log table, catalog cards, auth guard, and analytics pageview.
-- `src/components/ui`: design-system primitives and small generic controls. These wrap Base UI/shadcn-style primitives, Tailwind variants, and low-level UI behavior.
+- `src/ui`: flat design-system primitives and small generic controls. These wrap Base UI/shadcn-style primitives, Tailwind variants, and low-level UI behavior.
+- `src/shell`: flat dashboard shell/chrome components such as the sidebar, navigation, page header/container, auth guard, analytics pageview, and workspace switchers.
 - `src/features/agents`: agent management, agent detail tabs, sessions, models, MCP server/integration catalog, channels, credentials, browser, cron, logs, and memory.
 - `src/features/analytics`: logs, usage, analytics queries, and analytics-facing view models.
 - `src/features/manage`: organization, profile, billing, pricing, providers, GDPR, and login form behavior.
@@ -23,11 +23,20 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 - Route pages in `src/app/**/page.tsx` should compose feature hooks/components, route params, URL state, page headers, and page-level loading/empty states. Do not turn route files into API clients or broad feature libraries.
 - Feature-specific components belong under `src/features/<feature>/components`. Put agent tab panels, credential dialogs, MCP/channel cards, and feature dialogs there.
 - Feature-specific data access belongs under `src/features/<feature>/api` as `useX.ts` hooks. Pages and components should call these hooks instead of importing Apollo directly.
-- Feature-specific static catalogs, stable feature types, and feature-only data shapes belong under `src/features/<feature>/data` or a small feature-root helper file when that is the existing local pattern, such as `model-tooltips.ts`.
-- Shared layout and shell components belong under `src/components`. Move a component here only when it is genuinely reusable across features.
-- Shared UI primitives belong under `src/components/ui`. Keep this folder generic: buttons, tables, dialogs, selects, tooltips, badges, inputs, skeletons, pagination, sidebar primitives. Do not put agent, billing, provider, channel, MCP, or analytics-specific logic here.
+- Feature-specific static catalogs, stable feature types, and feature-only data shapes belong under `src/features/<feature>/data`.
+- Shared layout and shell components belong under `src/shell`. Keep this folder flat and limited to dashboard frame/chrome behavior.
+- Shared UI primitives belong under `src/ui`. Keep this folder flat and generic: buttons, tables, dialogs, selects, tooltips, badges, inputs, skeletons, pagination, sidebar primitives. Do not put agent, billing, provider, channel, MCP, or analytics-specific logic here.
+- Do not add files under `src/components`; that lane is deprecated. New files must go to `src/ui`, `src/shell`, or `src/features/<feature>/components`.
 - Each feature exports its public surface from `src/features/<feature>/index.ts`. Route files should prefer the feature barrel when the hook/component is already exported. Inside a feature, use relative imports for nearby private files.
-- Do not make one feature depend on another feature's private folders. If two features need the same concept, move the smallest shared type/helper to `src/types`, `src/hooks`, `src/lib`, or a shared component.
+- Do not make one feature depend on another feature's private folders. If two features need the same concept, move the smallest shared type/helper to `src/types`, `src/hooks`, `src/lib`, `src/ui`, or `src/shell`.
+
+## Flat Folder Rules
+
+- Feature roots may contain only `api`, `components`, `hooks`, `data`, `types.ts`, and `index.ts`.
+- Feature `api`, `components`, `hooks`, and `data` folders must stay flat. Do not add bucket folders such as `dialogs`, `tabs`, `tables`, `forms`, `cards`, `queries`, `mutations`, `types`, `utils`, `helpers`, or `shared`.
+- Use strong file names instead of nested folders, such as `agent-create-dialog.tsx`, `integration-tools-tab.tsx`, and `useAgentBindings.ts`.
+- If a feature folder becomes too broad, split the product/domain into a new top-level feature instead of adding nested subdomain folders.
+- `src/ui`, `src/shell`, `src/hooks`, `src/contexts`, and `src/types` must stay flat.
 
 ## Where Types Go
 
@@ -63,8 +72,8 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 
 ## Components And Styling
 
-- Use `PageHeader` and `PageContainer` for standard page chrome and width constraints. Choose the existing widths: `full`, `wide`, `thin`, or `narrow`.
-- Use primitives from `src/components/ui` before adding custom controls. Buttons, selects, dropdown menus, dialogs, tables, inputs, skeletons, badges, tooltips, pagination, and empty states already exist.
+- Use `PageHeader` and `PageContainer` from `src/shell` for standard page chrome and width constraints. Choose the existing widths: `full`, `wide`, `thin`, or `narrow`.
+- Use primitives from `src/ui` before adding custom controls. Buttons, selects, dropdown menus, dialogs, tables, inputs, skeletons, badges, tooltips, pagination, and empty states already exist.
 - Use `lucide-react` icons in controls and state indicators when an icon exists.
 - Compose class names with `cn` from `src/lib/utils` when classes are conditional or merged with props.
 - Use Tailwind tokens from `globals.css`: `background`, `foreground`, `card`, `muted`, `border`, `primary`, `destructive`, `sidebar`, and chart tokens. Do not hard-code one-off theme systems in components.

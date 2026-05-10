@@ -13,10 +13,10 @@ import {
   syntaxHighlighting,
 } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
+import { Skeleton } from "@/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   type AtlasIndexedRecord,

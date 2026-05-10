@@ -1,8 +1,8 @@
 "use client"
 
 import type { Channel } from "../data/channels"
-import { WithTooltip } from "@/components/ui/help-tooltip"
-import { CatalogCard } from "@/components/catalog-card"
+import { WithTooltip } from "@/ui/help-tooltip"
+import { CatalogCard } from "@/ui/catalog-card"
 import { PlugIcon, CheckIcon, RadioIcon } from "lucide-react"
 
 type ChannelCardProps = {

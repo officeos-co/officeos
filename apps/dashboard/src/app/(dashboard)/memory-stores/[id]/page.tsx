@@ -4,9 +4,9 @@ import { FormEvent, use, useMemo, useState } from "react";
 import Link from "next/link";
 import { FilePlusIcon, FolderPlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,21 +14,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "@/ui/dialog";
+import { Input } from "@/ui/input";
 import {
   directoryMarkerKey,
   ensureMarkdownFileName,
   isDirectoryMarkerKey,
   joinMemoryPath,
   markdownPlaceholder,
+  type MemoryStoreEntry,
   MemoryStoreDetail,
   normalizeMemoryPath,
   useMemoryStore,
   useUpsertMemoryStoreEntry,
 } from "@/features/agents";
 
-type CreateMode = "directory" | "file";
+const EMPTY_MEMORY_STORE_ENTRIES: MemoryStoreEntry[] = [];
 
 function graphQLErrorMessage(error: unknown, fallback: string) {
   if (
@@ -54,8 +55,9 @@ export default function MemoryStoreDetailPage({
     useUpsertMemoryStoreEntry();
   const [selectedKey, setSelectedKey] = useState("");
   const [selectedDirectory, setSelectedDirectory] = useState("");
-  const [createMode, setCreateMode] = useState<CreateMode | null>(null);
-  const entries = memoryStore?.entries ?? [];
+  const [createMode, setCreateMode] =
+    useState<"directory" | "file" | null>(null);
+  const entries = memoryStore?.entries ?? EMPTY_MEMORY_STORE_ENTRIES;
   const existingKeys = useMemo(
     () => new Set(entries.map((entry) => normalizeMemoryPath(entry.key))),
     [entries],
@@ -188,7 +190,7 @@ function CreateMemoryEntryDialog({
   onOpenChange,
   onCreate,
 }: {
-  mode: CreateMode | null;
+  mode: "directory" | "file" | null;
   selectedDirectory: string;
   loading: boolean;
   onOpenChange: (open: boolean) => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import type { AgentLog } from "@/types/logs";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ui/button";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";

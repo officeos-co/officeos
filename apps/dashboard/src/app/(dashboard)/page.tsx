@@ -7,13 +7,13 @@ import {
   Clock3Icon,
   PlayCircleIcon,
 } from "lucide-react";
-import { OverviewCard, OverviewCardGrid } from "@/components/overview-card";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { OverviewCard, OverviewCardGrid } from "@/ui/overview-card";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
+import { EmptyState } from "@/ui/empty-state";
+import { Skeleton } from "@/ui/skeleton";
+import { StatusBadge } from "@/ui/status-badge";
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/ui/table";
 import { useAgents } from "@/features/agents";
 
 export default function Home() {

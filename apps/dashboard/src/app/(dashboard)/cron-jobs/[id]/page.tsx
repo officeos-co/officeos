@@ -4,10 +4,10 @@ import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HeartPulseIcon, Trash2Icon } from "lucide-react";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
+import { Switch } from "@/ui/switch";
 import {
   describeCronExpression,
   isHeartbeatCron,

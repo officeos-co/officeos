@@ -3,19 +3,19 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { PageHeader } from "@/components/page-header"
-import { PageContainer } from "@/components/page-container"
-import { Button } from "@/components/ui/button"
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
+import { PageHeader } from "@/shell/page-header"
+import { PageContainer } from "@/shell/page-container"
+import { Button } from "@/ui/button"
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip"
+import { Switch } from "@/ui/switch"
+import { Separator } from "@/ui/separator"
 import {
   SparklesIcon,
   CreditCardIcon,
   CalendarIcon,
   ExternalLinkIcon,
 } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/ui/skeleton"
 
 import { useBilling, useSetExtraUsageEnabled } from "@/features/manage"
 

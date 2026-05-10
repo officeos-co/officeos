@@ -2,13 +2,13 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip"
 import {
   PermissionModeSelect,
   type PermissionMode,
-} from "@/components/ui/permission-mode-select"
-import type { Tool } from "@/features/agents/data/integrations"
-import type { Channel, ChannelPermissions } from "@/features/agents/data/channels"
+} from "@/ui/permission-mode-select"
+import type { Tool } from "@/features/agents"
+import type { Channel, ChannelPermissions } from "@/features/agents"
 import {
   ChevronDownIcon,
   ChevronRightIcon,

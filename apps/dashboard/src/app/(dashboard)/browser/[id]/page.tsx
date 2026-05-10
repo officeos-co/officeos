@@ -2,10 +2,10 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { AgentBrowserTab } from "@/features/agents/components/agent-browser-tab";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
+import { AgentBrowserTab } from "@/features/agents";
 import { useBrowserResource } from "@/features/agents";
 
 export default function BrowserResourceDetailPage({

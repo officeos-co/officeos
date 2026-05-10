@@ -1,18 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/ui/button"
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip"
+import { Input } from "@/ui/input"
+import { Label } from "@/ui/label"
+import { Textarea } from "@/ui/textarea"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog"
+} from "@/ui/dialog"
 import type { Channel } from "../data/channels"
 import { useCreateChannelConnection } from "../api/useChannels"
 import {

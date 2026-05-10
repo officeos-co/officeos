@@ -6,10 +6,7 @@ import { toast } from "sonner"
 import { Check, ArrowLeft, Leaf, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isDevelopment } from "@/lib/env"
-import { useBilling, usePlanLimits, usePlanPrices, useSubscribe } from "@/features/manage"
-
-type Tab = "individual" | "team"
-type Billing = "monthly" | "yearly"
+import { useBilling, usePlanLimits, usePlanPrices } from "@/features/manage"
 
 function formatCredits(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}M`
@@ -28,12 +25,11 @@ function formatPrice(cents: number) {
 
 export default function PricingPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>("individual")
-  const [billing, setBilling] = useState<Billing>("monthly")
+  const [tab, setTab] = useState<"individual" | "team">("individual")
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly")
   const { billing: currentBilling, loading: billingLoading, error: billingError } = useBilling()
   const { planLimits, loading: limitsLoading, error: limitsError } = usePlanLimits()
   const { prices, loading: pricesLoading, error: pricesError } = usePlanPrices()
-  const { subscribe, loading: subscribing } = useSubscribe()
 
   const loading = billingLoading || limitsLoading || pricesLoading
 
@@ -128,11 +124,6 @@ export default function PricingPage() {
     : []
 
   const plans = tab === "individual" ? individualPlans : teamPlans
-
-  async function handleSubscribe(plan: string) {
-    const url = await subscribe(plan, billing)
-    if (url) window.location.href = url
-  }
 
   return (
     <div className="min-h-screen bg-background">

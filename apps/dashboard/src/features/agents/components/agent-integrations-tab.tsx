@@ -3,32 +3,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { EmptyState } from "@/components/ui/empty-state";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
-import { Label } from "@/components/ui/label";
-import { SearchInput } from "@/components/ui/search-input";
+import { EmptyState } from "@/ui/empty-state";
+import { HelpTooltip } from "@/ui/help-tooltip";
+import { Label } from "@/ui/label";
+import { SearchInput } from "@/ui/search-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/ui/select";
 import {
   ToolPermissionCard,
   type ToolPermission,
-} from "@/components/permission-cards";
+} from "@/features/agents";
 import {
   useIntegrations,
   sortIntegrations,
-} from "@/features/agents/api/useIntegrations";
-import { useAgentBindings } from "@/features/agents/api/useAgentBindings";
+} from "../api/useIntegrations";
+import { useAgentBindings } from "../api/useAgentBindings";
 import {
   useAgentToolCatalog,
   useAgentToolPermissions,
   useSetAgentToolPermissions,
-} from "@/features/agents/api/useAgents";
-import type { McpServer } from "@/features/agents/data/integrations";
+} from "../api/useAgents";
+import type { McpServer } from "@/features/agents";
 import {
   type AtlasConnection,
   parseJsonArray,
@@ -42,7 +42,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/ui/table";
 import {
   AlertTriangleIcon,
   DatabaseIcon,

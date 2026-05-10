@@ -3,9 +3,9 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { cn } from "@/lib/utils";
-import { PermissionModeSelect } from "@/components/ui/permission-mode-select";
-import type { PermissionMode } from "@/components/ui/permission-mode-select";
-import type { McpServer } from "@/features/agents/data/integrations";
+import { PermissionModeSelect } from "@/ui/permission-mode-select";
+import type { PermissionMode } from "@/ui/permission-mode-select";
+import type { McpServer } from "@/features/agents";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
 export function IntegrationToolsTab({

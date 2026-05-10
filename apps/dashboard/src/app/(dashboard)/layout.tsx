@@ -1,9 +1,9 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { AnalyticsPageview } from "@/components/analytics-pageview";
-import { AuthGuard } from "@/components/auth-guard";
+import { AppSidebar } from "@/shell/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/ui/sidebar";
+import { AnalyticsPageview } from "@/shell/analytics-pageview";
+import { AuthGuard } from "@/shell/auth-guard";
 
 export default function DashboardLayout({
   children,
