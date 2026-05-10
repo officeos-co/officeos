@@ -16,23 +16,63 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  Building2Icon,
+  PlusIcon,
+  ShieldIcon,
+  Trash2Icon,
+  UserPlusIcon,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAuthContext } from "@/contexts/AuthContext";
+import {
+  type WorkspaceRole,
   useOrganization,
   useInviteMember,
   useRemoveMember,
   useRenameOrg,
+  useWorkspaces,
+  useCreateOrganizationWorkspace,
+  useDeleteWorkspace,
+  useAddWorkspaceMember,
+  useUpdateWorkspaceMemberRole,
+  useGrantWorkspaceToOrganization,
+  useRevokeWorkspaceOrganizationGrant,
 } from "@/features/manage";
 
 export default function TeamPage() {
+  const { user } = useAuthContext();
   const { organization, loading, error } = useOrganization();
+  const { workspaces } = useWorkspaces();
   const { inviteMember } = useInviteMember();
   const { removeMember } = useRemoveMember();
   const { renameOrg } = useRenameOrg();
+  const { createOrganizationWorkspace } = useCreateOrganizationWorkspace();
+  const { deleteWorkspace } = useDeleteWorkspace();
+  const { addWorkspaceMember } = useAddWorkspaceMember();
+  const { updateWorkspaceMemberRole } = useUpdateWorkspaceMemberRole();
+  const { grantWorkspaceToOrganization } = useGrantWorkspaceToOrganization();
+  const { revokeWorkspaceOrganizationGrant } =
+    useRevokeWorkspaceOrganizationGrant();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"Admin" | "Member">("Member");
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [accessWorkspaceId, setAccessWorkspaceId] = useState("");
+  const [accessUserId, setAccessUserId] = useState("");
+  const [accessRole, setAccessRole] = useState<WorkspaceRole>("Editor");
+  const [grantWorkspaceId, setGrantWorkspaceId] = useState("");
+  const [grantOrganizationId, setGrantOrganizationId] = useState("");
+  const [grantRole, setGrantRole] = useState<WorkspaceRole>("Viewer");
   const [orgName, setOrgName] = useState("");
   const serverName = organization?.name ?? "";
   if (orgName === "" && serverName !== "") setOrgName(serverName);
@@ -44,8 +84,9 @@ export default function TeamPage() {
 
   async function handleInvite() {
     if (!inviteEmail.includes("@")) return;
-    await inviteMember({ email: inviteEmail, role: "Member" });
+    await inviteMember({ email: inviteEmail, role: inviteRole });
     setInviteEmail("");
+    setInviteRole("Member");
     setInviteOpen(false);
   }
 
@@ -57,6 +98,56 @@ export default function TeamPage() {
     if (organization && orgName && orgName !== organization.name) {
       await renameOrg(orgName);
     }
+  }
+
+  async function handleCreateWorkspace() {
+    const trimmed = workspaceName.trim();
+    if (!organization || !trimmed) return;
+    await createOrganizationWorkspace({
+      organizationId: organization.id,
+      name: trimmed,
+    });
+    setWorkspaceName("");
+    setWorkspaceOpen(false);
+    toast.success("Workspace created");
+  }
+
+  async function handleDeleteWorkspace(id: string) {
+    await deleteWorkspace(id);
+    toast.success("Workspace deleted");
+  }
+
+  async function handleSetAccess() {
+    if (!accessWorkspaceId || !accessUserId) return;
+    await addWorkspaceMember({
+      workspaceId: accessWorkspaceId,
+      userId: accessUserId,
+      role: accessRole,
+    });
+    await updateWorkspaceMemberRole({
+      workspaceId: accessWorkspaceId,
+      userId: accessUserId,
+      role: accessRole,
+    });
+    toast.success("Workspace access updated");
+  }
+
+  async function handleGrantOrganization() {
+    if (!grantWorkspaceId || !grantOrganizationId) return;
+    await grantWorkspaceToOrganization({
+      workspaceId: grantWorkspaceId,
+      organizationId: grantOrganizationId,
+      maxRole: grantRole,
+    });
+    setGrantOrganizationId("");
+    toast.success("Workspace grant saved");
+  }
+
+  async function handleRevokeOrganizationGrant() {
+    if (!grantWorkspaceId || !grantOrganizationId) return;
+    await revokeWorkspaceOrganizationGrant(grantWorkspaceId, grantOrganizationId);
+    setGrantOrganizationId("");
+    toast.success("Workspace grant revoked");
   }
 
   if (loading && !organization) {
@@ -104,6 +195,19 @@ export default function TeamPage() {
   }
 
   const members = organization.members;
+  const activeMembers = members.filter((member) => member.userId);
+  const orgWorkspaces = workspaces.filter(
+    (workspace) => workspace.organizationId === organization.id,
+  );
+  const currentOrgMember = members.find((member) => member.userId === user?.id);
+  const isOrgAdmin =
+    currentOrgMember?.role === "Owner" || currentOrgMember?.role === "Admin";
+  const selectedAccessWorkspace = orgWorkspaces.find(
+    (workspace) => workspace.id === accessWorkspaceId,
+  );
+  const selectedGrantWorkspace = orgWorkspaces.find(
+    (workspace) => workspace.id === grantWorkspaceId,
+  );
 
   return (
     <>
@@ -114,7 +218,7 @@ export default function TeamPage() {
         action={
           <WithTooltip tooltip="Invite a teammate into this organization. Member access can be reviewed here.">
             <Button size="sm" onClick={() => setInviteOpen(true)}>
-              <PlusIcon className="size-3.5" />
+              <UserPlusIcon className="size-3.5" />
               Invite member
             </Button>
           </WithTooltip>
@@ -136,6 +240,169 @@ export default function TeamPage() {
               onChange={(e) => setOrgName(e.target.value)}
               onBlur={handleRenameBlur}
             />
+          </div>
+        </section>
+
+        <Separator />
+
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">
+              Workspaces ({orgWorkspaces.length})
+            </h3>
+            {isOrgAdmin && (
+              <WithTooltip tooltip="Create a workspace owned by this organization.">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setWorkspaceOpen(true)}
+                >
+                  <PlusIcon className="size-3.5" />
+                  New workspace
+                </Button>
+              </WithTooltip>
+            )}
+          </div>
+          <div className="divide-y rounded-md border">
+            {orgWorkspaces.length === 0 ? (
+              <div className="px-3 py-6 text-sm text-muted-foreground">
+                No organization workspaces available.
+              </div>
+            ) : (
+              orgWorkspaces.map((workspace) => (
+                <div
+                  key={workspace.id}
+                  className="flex min-h-12 items-center gap-3 px-3 py-2"
+                >
+                  <Building2Icon className="size-4 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">
+                        {workspace.name}
+                      </span>
+                      {workspace.isDefault && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                          default
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {workspace.role ?? "No role"}
+                    </div>
+                  </div>
+                  {isOrgAdmin && !workspace.isDefault && (
+                    <WithTooltip tooltip="Delete this workspace and its scoped resources.">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteWorkspace(workspace.id)}
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </WithTooltip>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <Separator />
+
+        <section>
+          <h3 className="mb-3 text-sm font-semibold">Workspace access</h3>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_140px_auto]">
+            <Select
+              value={accessWorkspaceId || undefined}
+              onValueChange={(value) => value && setAccessWorkspaceId(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Workspace">
+                  {selectedAccessWorkspace?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {orgWorkspaces.map((workspace) => (
+                  <SelectItem key={workspace.id} value={workspace.id}>
+                    {workspace.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={accessUserId || undefined}
+              onValueChange={(value) => value && setAccessUserId(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Member">
+                  {activeMembers.find((member) => member.userId === accessUserId)
+                    ?.email}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {activeMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.userId!}>
+                    {member.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <WorkspaceRoleSelect value={accessRole} onChange={setAccessRole} />
+            <Button
+              size="sm"
+              onClick={handleSetAccess}
+              disabled={!isOrgAdmin || !accessWorkspaceId || !accessUserId}
+            >
+              <ShieldIcon className="size-3.5" />
+              Set access
+            </Button>
+          </div>
+        </section>
+
+        <Separator />
+
+        <section>
+          <h3 className="mb-3 text-sm font-semibold">External organization access</h3>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_140px_auto_auto]">
+            <Select
+              value={grantWorkspaceId || undefined}
+              onValueChange={(value) => value && setGrantWorkspaceId(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Workspace">
+                  {selectedGrantWorkspace?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {orgWorkspaces.map((workspace) => (
+                  <SelectItem key={workspace.id} value={workspace.id}>
+                    {workspace.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={grantOrganizationId}
+              onChange={(event) => setGrantOrganizationId(event.target.value)}
+              placeholder="Organization ID"
+            />
+            <WorkspaceRoleSelect value={grantRole} onChange={setGrantRole} />
+            <Button
+              size="sm"
+              onClick={handleGrantOrganization}
+              disabled={!isOrgAdmin || !grantWorkspaceId || !grantOrganizationId}
+            >
+              Grant
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRevokeOrganizationGrant}
+              disabled={!isOrgAdmin || !grantWorkspaceId || !grantOrganizationId}
+            >
+              Revoke
+            </Button>
           </div>
         </section>
 
@@ -226,6 +493,23 @@ export default function TeamPage() {
                 placeholder="colleague@company.com"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>Organization role</Label>
+              <Select
+                value={inviteRole}
+                onValueChange={(value) =>
+                  value && setInviteRole(value as "Admin" | "Member")
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Member">Member</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button
@@ -247,6 +531,67 @@ export default function TeamPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={workspaceOpen} onOpenChange={setWorkspaceOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Create organization workspace</DialogTitle>
+            <DialogDescription>
+              Resources and integrations in this workspace are scoped to this
+              organization workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Label>Workspace name</Label>
+            <Input
+              autoFocus
+              value={workspaceName}
+              onChange={(event) => setWorkspaceName(event.target.value)}
+              placeholder="Operations"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWorkspaceOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleCreateWorkspace}
+              disabled={!workspaceName.trim()}
+            >
+              Create
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+function WorkspaceRoleSelect({
+  value,
+  onChange,
+}: {
+  value: WorkspaceRole;
+  onChange: (value: WorkspaceRole) => void;
+}) {
+  return (
+    <Select
+      value={value}
+      onValueChange={(next) => next && onChange(next as WorkspaceRole)}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="Viewer">Viewer</SelectItem>
+        <SelectItem value="Editor">Editor</SelectItem>
+        <SelectItem value="Admin">Admin</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }

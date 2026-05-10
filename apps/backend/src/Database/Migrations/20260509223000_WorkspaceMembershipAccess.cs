@@ -29,6 +29,14 @@ namespace OffceOs.Database.Migrations
                 table: "Workspaces",
                 newName: "OwnerUserId");
 
+            migrationBuilder.AlterColumn<Guid>(
+                name: "OwnerUserId",
+                table: "Workspaces",
+                type: "uuid",
+                nullable: true,
+                oldClrType: typeof(Guid),
+                oldType: "uuid");
+
             migrationBuilder.AddColumn<bool>(
                 name: "IsDefault",
                 table: "Workspaces",
@@ -316,6 +324,15 @@ namespace OffceOs.Database.Migrations
                 name: "OwnerUserId",
                 table: "Workspaces",
                 newName: "UserId");
+
+            migrationBuilder.AlterColumn<Guid>(
+                name: "UserId",
+                table: "Workspaces",
+                type: "uuid",
+                nullable: false,
+                oldClrType: typeof(Guid),
+                oldType: "uuid",
+                oldNullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Workspaces_UserId_Name",

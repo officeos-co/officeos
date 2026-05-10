@@ -46,12 +46,14 @@ import {
   useSaveIntegrationCredential,
 } from "@/features/agents";
 import { useIntegrationConnections } from "@/features/atlas";
+import { useWorkspaces } from "@/features/manage";
 import type { McpServer } from "@/features/agents/data/integrations";
 import { buildOAuthUrl } from "@/lib/auth-url";
 
 export default function IntegrationsPage() {
   const router = useRouter();
   const { integrations, loading } = useIntegrations();
+  const { currentWorkspace } = useWorkspaces();
   const { connections } = useIntegrationConnections({ pollInterval: 5000 });
   const setCredentials = useSaveIntegrationCredential();
   const deleteIntegration = useDeleteIntegration();
@@ -133,7 +135,11 @@ export default function IntegrationsPage() {
       <PageHeader
         group="Managed Agents"
         page="Integrations"
-        subtitle="Configure connected integrations, tools, and indexed knowledge for agents."
+        subtitle={
+          currentWorkspace
+            ? `Configure integrations for ${currentWorkspace.name}.`
+            : "Configure integrations for the current workspace."
+        }
         width="wide"
         action={
           <div className="flex items-center gap-2">
