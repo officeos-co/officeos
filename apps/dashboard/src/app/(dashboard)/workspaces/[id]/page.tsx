@@ -23,6 +23,8 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 import {
   canAdministerWorkspace,
+  organizationRoleLabel,
+  organizationRoleTooltip,
   type OrgMember,
   type WorkspacePayload,
   WorkspaceRole,
@@ -197,9 +199,12 @@ function WorkspaceMembersSection({
                   {member.email}
                 </TableCell>
                 <TableCell>
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                          {member.role}
-                        </span>
+                  <span
+                    title={organizationRoleTooltip(member.role)}
+                    className="rounded bg-muted px-1.5 py-0.5 text-xs"
+                  >
+                    {organizationRoleLabel(member.role)}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Select
@@ -244,12 +249,6 @@ function WorkspaceMembersSection({
                         title={WORKSPACE_ROLE_TOOLTIPS[WorkspaceRole.Admin]}
                       >
                         {WorkspaceRole.Admin}
-                      </SelectItem>
-                      <SelectItem
-                        value={WorkspaceRole.Owner}
-                        title={WORKSPACE_ROLE_TOOLTIPS[WorkspaceRole.Owner]}
-                      >
-                        {WorkspaceRole.Owner}
                       </SelectItem>
                     </SelectContent>
                   </Select>

@@ -34,6 +34,30 @@ public class OrganizationsMutations
         }
     }
 
+    [GraphQLDescription("Accepts a pending organization invitation for the authenticated user's email.")]
+    public async Task<OrgMemberRecord> AcceptOrganizationInvite(
+        Guid memberId,
+        [Service] UserContext user,
+        [Service] IOrganizationService orgService,
+        [Service] IDistributedCache cache,
+        CancellationToken ct)
+    {
+        try
+        {
+            var member = await orgService.AcceptInviteAsync(user.Id, user.Email, memberId, ct);
+            await cache.RemoveAsync($"org:dashboard:{user.Id}", ct);
+            await cache.RemoveAsync($"auth:me:{user.Id}", ct);
+            return member;
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(ErrorBuilder.New()
+                .SetMessage(ex.Message)
+                .SetCode("BAD_INPUT")
+                .Build());
+        }
+    }
+
     [GraphQLDescription("Removes a member from the organization. Only the org owner can remove.")]
     public async Task<bool> RemoveMember(
         Guid memberId,

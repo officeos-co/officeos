@@ -21,6 +21,7 @@ public static class OrganizationAuditKinds
 
     public const string OrganizationRenamed = "organization.renamed";
     public const string OrganizationMemberInvited = "organization.member.invited";
+    public const string OrganizationMemberInviteAccepted = "organization.member.invite_accepted";
     public const string OrganizationMemberRemoved = "organization.member.removed";
     public const string WorkspaceCreated = "workspace.created";
     public const string WorkspaceUpdated = "workspace.updated";

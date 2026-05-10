@@ -9,6 +9,7 @@ internal sealed class UserRepository : IUserRepository
     public async Task<UserRecord> UpsertByGoogleSubjectAsync(
         string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
+        email = NormalizeEmail(email);
         var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
         if (entity is null)
         {
@@ -38,6 +39,7 @@ internal sealed class UserRepository : IUserRepository
     public async Task<UserRecord> UpsertByGitHubSubjectAsync(
         string gitHubSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
+        email = NormalizeEmail(email);
         var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GitHubSubjectId == gitHubSubjectId, ct);
         if (entity is null)
         {
@@ -72,7 +74,7 @@ internal sealed class UserRepository : IUserRepository
             query = query.Where(u => u.Id == filter.Id.Value);
 
         if (!string.IsNullOrEmpty(filter.Email))
-            query = query.Where(u => u.Email == filter.Email);
+            query = query.Where(u => u.Email == NormalizeEmail(filter.Email));
 
         if (!string.IsNullOrEmpty(filter.GoogleSubjectId))
             query = query.Where(u => u.GoogleSubjectId == filter.GoogleSubjectId);
@@ -144,4 +146,6 @@ internal sealed class UserRepository : IUserRepository
         Preferences = r.Preferences,
         CurrentWorkspaceId = r.CurrentWorkspaceId,
     };
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }

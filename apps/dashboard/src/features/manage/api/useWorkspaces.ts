@@ -6,7 +6,6 @@ import { apolloClient } from "@/lib/graphql/client";
 export type WorkspaceOwnerKind = "personal" | "organization";
 
 export enum WorkspaceRole {
-  Owner = "Owner",
   Admin = "Admin",
   Editor = "Editor",
   Viewer = "Viewer",
@@ -221,15 +220,11 @@ export function useCanManageWorkspaceFeatures(): {
 }
 
 export function canEditWorkspace(role?: WorkspaceRole | null) {
-  return (
-    role === WorkspaceRole.Owner ||
-    role === WorkspaceRole.Admin ||
-    role === WorkspaceRole.Editor
-  );
+  return role === WorkspaceRole.Admin || role === WorkspaceRole.Editor;
 }
 
 export function canAdministerWorkspace(role?: WorkspaceRole | null) {
-  return role === WorkspaceRole.Owner || role === WorkspaceRole.Admin;
+  return role === WorkspaceRole.Admin;
 }
 
 export function useWorkspaceMembers(workspaceId?: string | null): {

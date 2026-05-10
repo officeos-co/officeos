@@ -26,4 +26,23 @@ public class OrganizationsQueries
         await cache.SetJsonAsync(cacheKey, result, OrgCacheTtl, ct);
         return result;
     }
+
+    [GraphQLDescription("Returns pending organization invitations for the authenticated user's email.")]
+    public async Task<IReadOnlyList<OrganizationInvitePayload>> PendingOrganizationInvites(
+        [Service] UserContext user,
+        [Service] IOrganizationService orgs,
+        CancellationToken ct)
+    {
+        var invites = await orgs.ListPendingInvitesAsync(user.Id, user.Email, ct);
+        return invites.Select(ToPayload).ToList();
+    }
+
+    private static OrganizationInvitePayload ToPayload(OrganizationInviteRecord invite)
+        => new(
+            invite.Id,
+            invite.OrganizationId,
+            invite.OrganizationName,
+            invite.Email,
+            invite.Role.ToString(),
+            invite.CreatedAt);
 }

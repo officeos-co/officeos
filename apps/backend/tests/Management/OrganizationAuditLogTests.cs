@@ -30,7 +30,7 @@ public sealed class OrganizationAuditLogTests
             publisher);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "not-an-email", "Member"));
+            service.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "not-an-email", "Editor"));
         Assert.Empty(publisher.Notifications);
 
         var member = await service.InviteMemberAsync(
@@ -61,7 +61,8 @@ public sealed class OrganizationAuditLogTests
 
         await handler.Handle(new OrganizationRenamedEvent(organizationId, ownerId, "Old", "New"), CancellationToken.None);
         await handler.Handle(new OrganizationMemberInvitedEvent(organizationId, ownerId, Guid.NewGuid(), "member@example.com", "Admin"), CancellationToken.None);
-        await handler.Handle(new OrganizationMemberRemovedEvent(organizationId, ownerId, Guid.NewGuid(), Guid.NewGuid(), "member@example.com", "Member"), CancellationToken.None);
+        await handler.Handle(new OrganizationMemberInviteAcceptedEvent(organizationId, ownerId, Guid.NewGuid(), "member@example.com", "Admin"), CancellationToken.None);
+        await handler.Handle(new OrganizationMemberRemovedEvent(organizationId, ownerId, Guid.NewGuid(), Guid.NewGuid(), "member@example.com", "Editor"), CancellationToken.None);
         await handler.Handle(new OrganizationWorkspaceCreatedEvent(organizationId, ownerId, workspaceId, "Ops"), CancellationToken.None);
         await handler.Handle(new WorkspaceUpdatedEvent(organizationId, ownerId, workspaceId, "Ops", "Platform"), CancellationToken.None);
         await handler.Handle(new WorkspaceDeletedEvent(organizationId, ownerId, workspaceId, "Platform"), CancellationToken.None);
@@ -90,6 +91,7 @@ public sealed class OrganizationAuditLogTests
         {
             [OrganizationAuditKinds.OrganizationRenamed] = (OrganizationAuditKinds.Organization, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.OrganizationMemberInvited] = (OrganizationAuditKinds.OrganizationMember, OrganizationAuditKinds.Success),
+            [OrganizationAuditKinds.OrganizationMemberInviteAccepted] = (OrganizationAuditKinds.OrganizationMember, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.OrganizationMemberRemoved] = (OrganizationAuditKinds.OrganizationMember, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.WorkspaceCreated] = (OrganizationAuditKinds.Workspace, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.WorkspaceUpdated] = (OrganizationAuditKinds.Workspace, OrganizationAuditKinds.Success),
@@ -114,7 +116,7 @@ public sealed class OrganizationAuditLogTests
             [OrganizationAuditKinds.AgentToolPolicyDenied] = (OrganizationAuditKinds.Tool, OrganizationAuditKinds.Denied),
         };
 
-        Assert.Equal(24, rows.Count);
+        Assert.Equal(25, rows.Count);
         foreach (var (action, expectation) in expected)
         {
             var row = byAction[action];
@@ -206,7 +208,7 @@ public sealed class OrganizationAuditLogTests
             OrganizationId = organizationId,
             UserId = memberId,
             Email = "member@example.com",
-            Role = OrgRole.Member.ToString(),
+            Role = OrgRole.Editor.ToString(),
             Status = MemberStatus.Active.ToStorageString(),
             CreatedAt = DateTime.UtcNow,
         });

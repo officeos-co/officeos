@@ -14,7 +14,13 @@ public interface IOrganizationRepository
         Guid organizationId,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesForEmailAsync(
+        string email,
+        CancellationToken ct = default);
+
     Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default);
+
+    Task<OrgMemberRecord> AcceptInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default);
 
     Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default);
 

@@ -6,7 +6,7 @@ public sealed class OrgMemberEntity
     public Guid OrganizationId { get; set; }
     public Guid? UserId { get; set; }
     public string Email { get; set; } = string.Empty;
-    public string Role { get; set; } = "Member";
+    public string Role { get; set; } = "Editor";
     public string Status { get; set; } = "invited";
     public DateTime CreatedAt { get; set; }
 }

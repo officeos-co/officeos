@@ -68,17 +68,19 @@ public sealed class WorkspaceOrganizationEndToEndTests
         var harness = WorkspaceTestHarness.Create(db);
         var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
         var orgDefault = await harness.Workspaces.GetCurrentAsync(ownerId);
-        var member = await harness.Organizations.InviteMemberAsync(
+        var invite = await harness.Organizations.InviteMemberAsync(
             ownerId,
             "owner@example.com",
             "Owner",
             "member@example.com",
-            "Member");
+            "Editor");
+        var member = await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", invite.Id);
 
         var memberWorkspaces = await harness.Workspaces.ListAsync(memberId);
         var memberOrgDefault = Assert.Single(memberWorkspaces, workspace => workspace.OrganizationId == overview.Organization.Id);
 
         var opsWorkspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
+        var seededOpsWorkspace = Assert.Single(await harness.Workspaces.ListAsync(memberId), workspace => workspace.Id == opsWorkspace.Id);
         var opsMembership = await harness.Workspaces.AddMemberAsync(ownerId, opsWorkspace.Id, memberId, "Viewer");
         var upgradedMembership = await harness.Workspaces.UpdateMemberRoleAsync(ownerId, opsWorkspace.Id, memberId, "Editor");
         await harness.Workspaces.SwitchAsync(memberId, opsWorkspace.Id);
@@ -110,6 +112,7 @@ public sealed class WorkspaceOrganizationEndToEndTests
 
         Assert.Equal(MemberStatus.Active, member.Status);
         Assert.Equal(WorkspaceRole.Editor, memberOrgDefault.Role);
+        Assert.Equal(WorkspaceRole.Editor, seededOpsWorkspace.Role);
         Assert.Equal(WorkspaceRole.Viewer, opsMembership.Role);
         Assert.Equal(WorkspaceRole.Editor, upgradedMembership.Role);
         Assert.NotNull(memberVisibleIntegration);
@@ -118,6 +121,38 @@ public sealed class WorkspaceOrganizationEndToEndTests
         Assert.Contains("org-docs", assignedIntegrations);
         Assert.Single(orgAgents);
         Assert.Equal(memberId, orgAgents[0].OwnerId);
+    }
+
+    [Fact]
+    public async Task Pending_invites_are_visible_after_account_creation_and_require_acceptance()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb();
+        var ownerId = Guid.NewGuid();
+        var invitedUserId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, ownerId, "owner@example.com");
+
+        var harness = WorkspaceTestHarness.Create(db);
+        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
+        var invite = await harness.Organizations.InviteMemberAsync(
+            ownerId,
+            "owner@example.com",
+            "Owner",
+            "member@example.com",
+            "Editor");
+
+        await WorkspaceTestHarness.SeedUserAsync(db, invitedUserId, "member@example.com");
+
+        var pending = await harness.Organizations.ListPendingInvitesAsync(invitedUserId, "member@example.com");
+        var workspacesBeforeAccept = await harness.Workspaces.ListAsync(invitedUserId);
+        var accepted = await harness.Organizations.AcceptInviteAsync(invitedUserId, "member@example.com", invite.Id);
+        var workspacesAfterAccept = await harness.Workspaces.ListAsync(invitedUserId);
+
+        Assert.Single(pending);
+        Assert.Equal(invite.Id, pending[0].Id);
+        Assert.DoesNotContain(workspacesBeforeAccept, workspace => workspace.OrganizationId == overview.Organization.Id);
+        Assert.Equal(MemberStatus.Active, accepted.Status);
+        Assert.Equal(invitedUserId, accepted.UserId);
+        Assert.Contains(workspacesAfterAccept, workspace => workspace.OrganizationId == overview.Organization.Id);
     }
 
     [Fact]
@@ -131,8 +166,9 @@ public sealed class WorkspaceOrganizationEndToEndTests
 
         var harness = WorkspaceTestHarness.Create(db);
         var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
-        await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Member");
         var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Finance");
+        var invite = await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Editor");
+        await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", invite.Id);
         var group = await harness.AccessGroups.CreateAsync(ownerId, overview.Organization.Id, "Finance");
 
         await harness.AccessGroups.AddMemberAsync(ownerId, group.Id, memberId);
@@ -155,7 +191,8 @@ public sealed class WorkspaceOrganizationEndToEndTests
 
         var harness = WorkspaceTestHarness.Create(db);
         var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
-        await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Member");
+        var invite = await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Editor");
+        await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", invite.Id);
         var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -175,12 +212,9 @@ public sealed class WorkspaceOrganizationEndToEndTests
                     OrganizationId = overview.Organization.Id,
                     ShellToolsEnabled = false,
                 }));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.IntegrationDeployments.DeployAsync(memberId, overview.Organization.Id, workspace.Id, "org-docs"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Integrations.RegisterAsync(memberId, workspace.Id, WorkspaceTestHarness.CustomIntegration()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.Integrations.SaveCredentialAsync(memberId, workspace.Id, "org-docs", new() { ["API_KEY"] = "secret" }));
+        await harness.IntegrationDeployments.DeployAsync(memberId, overview.Organization.Id, workspace.Id, "org-docs");
+        await harness.Integrations.RegisterAsync(memberId, workspace.Id, WorkspaceTestHarness.CustomIntegration());
+        await harness.Integrations.SaveCredentialAsync(memberId, workspace.Id, "org-docs", new() { ["API_KEY"] = "secret" });
     }
 
     [Fact]

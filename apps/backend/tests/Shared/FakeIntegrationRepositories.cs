@@ -204,7 +204,13 @@ public sealed class FakeOrganizationRepository : IOrganizationRepository
     public Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(Guid organizationId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<OrgMemberRecord>>([]);
 
+    public Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesForEmailAsync(string email, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<OrganizationInviteRecord>>([]);
+
     public Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default) => Task.FromResult(member);
+
+    public Task<OrgMemberRecord> AcceptInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default) =>
+        Task.FromResult(new OrgMemberRecord { Id = memberId, UserId = userId, Email = email, Status = MemberStatus.Active });
 
     public Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default) => Task.FromResult(false);
 

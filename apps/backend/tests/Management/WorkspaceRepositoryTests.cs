@@ -27,8 +27,8 @@ public sealed class WorkspaceRepositoryTests
 
         var rows = await repository.ListAccessibleAsync(userId);
 
-        Assert.Contains(rows, row => row.Id == personal.Id && row.OwnerKind == WorkspaceOwnerKind.Personal && row.Role == WorkspaceRole.Owner);
-        Assert.Contains(rows, row => row.Id == organization.Id && row.OwnerKind == WorkspaceOwnerKind.Organization && row.Role == WorkspaceRole.Owner);
+        Assert.Contains(rows, row => row.Id == personal.Id && row.OwnerKind == WorkspaceOwnerKind.Personal && row.Role == WorkspaceRole.Admin);
+        Assert.Contains(rows, row => row.Id == organization.Id && row.OwnerKind == WorkspaceOwnerKind.Organization && row.Role == WorkspaceRole.Admin);
     }
 
     [Fact]
