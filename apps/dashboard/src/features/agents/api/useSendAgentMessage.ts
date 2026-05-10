@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { gql, useMutation, useApolloClient } from "@apollo/client"
+import { gql, useMutation, useApolloClient } from "@apollo/client";
 
 const SEND_MESSAGE = gql`
   mutation SendAgentMessage($agentId: UUID!, $content: String!) {
@@ -9,7 +9,7 @@ const SEND_MESSAGE = gql`
       content
     }
   }
-`
+`;
 
 const AGENT_LOGS_QUERY = gql`
   query AgentLogs($agentId: UUID!, $last: Int!) {
@@ -29,16 +29,16 @@ const AGENT_LOGS_QUERY = gql`
       }
     }
   }
-`
+`;
 
 export function useSendAgentMessage() {
-  const [fn, state] = useMutation(SEND_MESSAGE)
-  const client = useApolloClient()
+  const [fn, state] = useMutation(SEND_MESSAGE);
+  const client = useApolloClient();
 
   return {
     sendAgentMessage: async (agentId: string, content: string) => {
-      const optimisticId = `msg_optimistic_${Date.now().toString(36)}`
-      const now = new Date().toISOString()
+      const optimisticId = `msg_optimistic_${Date.now().toString(36)}`;
+      const now = new Date().toISOString();
 
       const optimisticLog = {
         __typename: "AgentLog",
@@ -53,7 +53,7 @@ export function useSendAgentMessage() {
         inputTokens: null,
         outputTokens: null,
         correlationId: null,
-      }
+      };
 
       try {
         client.cache.updateQuery(
@@ -64,7 +64,7 @@ export function useSendAgentMessage() {
               nodes: [...(old?.agentLogs?.nodes ?? []), optimisticLog],
             },
           }),
-        )
+        );
       } catch {
         // Cache may not have this query yet
       }
@@ -78,9 +78,9 @@ export function useSendAgentMessage() {
             content,
           },
         },
-      })
-      return data?.sendAgentMessage as { id: string; content: string }
+      });
+      return data?.sendAgentMessage as { id: string; content: string };
     },
     ...state,
-  }
+  };
 }

@@ -16,6 +16,7 @@ public enum ProviderAuthKind
     AzureEntraClientSecret,
     AzureManagedIdentity,
     AzureApiKey,
+    CodexChatGptOAuth,
 }
 
 public static class ProviderAuthKinds
@@ -36,6 +37,7 @@ public static class ProviderAuthKinds
         ProviderAuthKind.AzureEntraClientSecret => "azure_entra_client_secret",
         ProviderAuthKind.AzureManagedIdentity => "azure_managed_identity",
         ProviderAuthKind.AzureApiKey => "azure_api_key",
+        ProviderAuthKind.CodexChatGptOAuth => "codex_chatgpt_oauth",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -55,6 +57,7 @@ public static class ProviderAuthKinds
         "azure_entra_client_secret" => ProviderAuthKind.AzureEntraClientSecret,
         "azure_managed_identity" => ProviderAuthKind.AzureManagedIdentity,
         "azure_api_key" => ProviderAuthKind.AzureApiKey,
+        "codex_chatgpt_oauth" => ProviderAuthKind.CodexChatGptOAuth,
         _ => throw new ArgumentOutOfRangeException(nameof(value), $"Unknown provider auth kind: {value}"),
     };
 }

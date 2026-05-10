@@ -66,6 +66,22 @@ public sealed record ProviderModelAccessCheckInput(
     string Provider,
     string Model);
 
+public sealed record PollCodexOAuthLoginInput(
+    string LoginId);
+
+public sealed record CodexOAuthLoginPayload(
+    string LoginId,
+    string AuthUrl,
+    DateTime ExpiresAt);
+
+public sealed record CodexOAuthStatusPayload(
+    string LoginId,
+    bool Completed,
+    bool Success,
+    string? Error,
+    string? AccountEmail,
+    string? PlanType);
+
 public sealed record ProviderSetupStatusPayload(
     string Provider,
     string DisplayName,
@@ -115,6 +131,19 @@ internal static class OrganizationProviderProfileGraphQLMapper
         result.Model,
         result.Accessible,
         result.Message);
+
+    public static CodexOAuthLoginPayload ToPayload(CodexOAuthLoginResult result) => new(
+        result.LoginId,
+        result.AuthUrl,
+        result.ExpiresAt);
+
+    public static CodexOAuthStatusPayload ToPayload(CodexOAuthStatusResult result) => new(
+        result.LoginId,
+        result.Completed,
+        result.Success,
+        result.Error,
+        result.AccountEmail,
+        result.PlanType);
 
     private static IReadOnlyList<string> ParseList(string? json)
     {

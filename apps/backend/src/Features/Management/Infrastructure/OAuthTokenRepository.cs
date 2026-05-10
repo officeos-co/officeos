@@ -70,6 +70,31 @@ internal sealed class OAuthTokenRepository : IOAuthTokenRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> DeleteAsync(OAuthTokenFilter filter, CancellationToken ct = default)
+    {
+        var deleted = await BuildQuery(filter).ExecuteDeleteAsync(ct);
+        return deleted > 0;
+    }
+
+    private IQueryable<OAuthTokenEntity> BuildQuery(OAuthTokenFilter filter)
+    {
+        var query = _eaosDbContext.OAuthTokens.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(t => t.Id == filter.Id.Value);
+
+        if (filter.UserId.HasValue)
+            query = query.Where(t => t.UserId == filter.UserId.Value);
+
+        if (!string.IsNullOrEmpty(filter.Provider))
+            query = query.Where(t => t.Provider == filter.Provider);
+
+        if (!string.IsNullOrEmpty(filter.Email))
+            query = query.Where(t => t.Email == filter.Email);
+
+        return query;
+    }
+
     private static OAuthGrantedScopeEntity CreateScope(Guid tokenId, string scope) => new()
     {
         Id = Guid.NewGuid(),

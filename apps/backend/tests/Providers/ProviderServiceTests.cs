@@ -241,6 +241,63 @@ public sealed class ProviderServiceTests
     }
 
     [Fact]
+    public async Task Personal_workspace_lists_and_dispatches_personal_codex_oauth_provider()
+    {
+        await using var db = TestDbFactory.Create("provider-service");
+        var userId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-keys-{Guid.NewGuid():N}"))));
+        db.Users.Add(new UserEntity { Id = userId, Email = "owner@example.com", Name = "Owner", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
+        db.Workspaces.Add(new WorkspaceEntity
+        {
+            Id = workspaceId,
+            OwnerUserId = userId,
+            OwnerKind = WorkspaceOwnerKind.Personal.ToStorageString(),
+            Name = "Personal",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        db.OAuthTokens.Add(new OAuthTokenEntity
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Provider = OAuthProvider.OpenAiCodex.ToStorageString(),
+            EncryptedAccessToken = protector.Protect(new Dictionary<string, string>
+            {
+                ["authKind"] = ProviderAuthKind.CodexChatGptOAuth.ToStorageString(),
+                ["authJson"] = """{"tokens":"redacted"}""",
+            }),
+            Email = "codex@example.com",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var providerService = new ProviderService(
+            new PlatformKeysConfig(),
+            new CustomLlmProviderConfig(),
+            new OrganizationProviderProfileRepository(db),
+            new WorkspaceRepository(db),
+            protector,
+            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+        var service = new DevelopmentProviderService(
+            providerService,
+            new WorkspaceRepository(db),
+            new OAuthTokenRepository(db),
+            protector);
+
+        var providers = await service.ListForWorkspaceAsync(workspaceId);
+        var codex = Assert.Single(providers, provider => provider.Name == ProviderRegistry.OpenAiCodexProviderSlug);
+        var auth = await service.GetAuthForDispatchAsync(ProviderRegistry.OpenAiCodexProviderSlug, workspaceId);
+
+        Assert.True(codex.Configured);
+        Assert.Contains(codex.Models, model => model.Id == "gpt-5.5");
+        Assert.NotNull(auth);
+        Assert.Equal(ProviderAuthKind.CodexChatGptOAuth, auth.Kind);
+        Assert.Equal("""{"tokens":"redacted"}""", auth.Get("authJson"));
+    }
+
+    [Fact]
     public async Task Enterprise_workspace_lists_multiple_cloud_profiles_with_provider_scoped_model_selection()
     {
         await using var db = TestDbFactory.Create("provider-service");

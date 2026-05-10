@@ -1372,8 +1372,7 @@ namespace OffceOs.Database.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<string>("EncryptedAccessToken")
-                        .HasMaxLength(16384)
-                        .HasColumnType("character varying(16384)");
+                        .HasColumnType("text");
 
                     b.Property<string>("EncryptedRefreshToken")
                         .HasMaxLength(16384)

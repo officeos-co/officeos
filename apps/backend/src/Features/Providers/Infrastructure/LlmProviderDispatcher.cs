@@ -68,6 +68,8 @@ public sealed class LlmProviderDispatcher
 
         if (definition is null && !isConfiguredCustomProvider)
             return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
+        if (definition?.ApiFormat == ApiFormat.CodexAppServer)
+            return new AgentError(AgentErrorCategory.Configuration, $"Provider '{provider}' must be dispatched through Codex app-server.");
 
         if (isConfiguredCustomProvider && model.Equals("auto", StringComparison.OrdinalIgnoreCase))
         {

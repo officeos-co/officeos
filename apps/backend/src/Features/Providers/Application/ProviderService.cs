@@ -28,6 +28,7 @@ internal sealed class ProviderService : IProviderService
     public Task<IReadOnlyList<ProviderResult>> ListAsync(CancellationToken ct = default)
     {
         var list = ProviderRegistry.DashboardProviders
+            .Where(def => !def.Slug.Equals(ProviderRegistry.OpenAiCodexProviderSlug, StringComparison.OrdinalIgnoreCase))
             .Select(def => new ProviderResult(
                 DeterministicGuid(def.Slug),
                 def.Slug,
@@ -50,24 +51,28 @@ internal sealed class ProviderService : IProviderService
 
     public async Task<IReadOnlyList<ProviderResult>> ListForWorkspaceAsync(Guid? workspaceId, CancellationToken ct = default)
     {
-        var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
+        var workspace = await GetWorkspaceAsync(workspaceId, ct);
+        var organizationId = workspace?.OrganizationId;
         if (!organizationId.HasValue)
-            return await ListAsync(ct);
+            return RemovePersonalProviders(await ListAsync(ct));
 
         if (!await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
-            return await ListAsync(ct);
+            return RemovePersonalProviders(await ListAsync(ct));
 
         var profiles = await _organizationProviderProfileRepository.ListAsync(
             new OrganizationProviderProfileFilter { OrganizationId = organizationId.Value, Enabled = true },
             ct);
         if (profiles.Count == 0)
-            return await ListAsync(ct);
+            return RemovePersonalProviders(await ListAsync(ct));
 
         return profiles.Select(ToProviderResult).ToList();
     }
 
     public Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
     {
+        if (name.Equals(ProviderRegistry.OpenAiCodexProviderSlug, StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult<string?>(null);
+
         if (ProviderRegistry.IsCustomProvider(name))
             return Task.FromResult(_customLlmProviderConfig.IsConfigured
                 ? _customLlmProviderConfig.ApiKeyOrNull ?? string.Empty
@@ -87,7 +92,8 @@ internal sealed class ProviderService : IProviderService
 
     public async Task<ProviderAuthResult?> GetAuthForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default)
     {
-        var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
+        var workspace = await GetWorkspaceAsync(workspaceId, ct);
+        var organizationId = workspace?.OrganizationId;
         if (organizationId.HasValue &&
             await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
         {
@@ -137,14 +143,18 @@ internal sealed class ProviderService : IProviderService
             }
             : [];
 
-    private async Task<Guid?> GetOrganizationIdAsync(Guid? workspaceId, CancellationToken ct)
+    private async Task<WorkspaceRecord?> GetWorkspaceAsync(Guid? workspaceId, CancellationToken ct)
     {
         if (!workspaceId.HasValue)
             return null;
 
-        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId.Value }, ct);
-        return workspace?.OrganizationId;
+        return await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId.Value }, ct);
     }
+
+    private static IReadOnlyList<ProviderResult> RemovePersonalProviders(IReadOnlyList<ProviderResult> providers) =>
+        providers
+            .Where(provider => !provider.Name.Equals(ProviderRegistry.OpenAiCodexProviderSlug, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
     private static ProviderResult ToProviderResult(OrganizationProviderProfileRecord profile)
     {

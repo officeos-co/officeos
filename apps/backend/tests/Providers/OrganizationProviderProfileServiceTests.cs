@@ -156,6 +156,55 @@ public sealed class OrganizationProviderProfileServiceTests
         Assert.DoesNotContain("acme", saved.EncryptedApiKey);
     }
 
+    [Fact]
+    public async Task Codex_oauth_profile_is_separate_from_openai_api_key_profile()
+    {
+        await using var db = TestDbFactory.Create("provider-profile-service");
+        var ownerId = Guid.NewGuid();
+        var organizationId = SeedOrganization(db, ownerId, SubscriptionPlan.Enterprise);
+        var service = CreateService(db);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveNativeAuthAsync(
+                ownerId,
+                organizationId,
+                ProviderRegistry.OpenAiCodexProviderSlug,
+                "OpenAI Codex",
+                ProviderRegistry.GetModelIds(ProviderRegistry.OpenAiCodexProviderSlug),
+                ProviderAuthKind.ApiKey,
+                new Dictionary<string, string> { ["apiKey"] = "sk-test" },
+                true));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveNativeAuthAsync(
+                ownerId,
+                organizationId,
+                "openai",
+                "OpenAI",
+                ["gpt-4o-mini"],
+                ProviderAuthKind.CodexChatGptOAuth,
+                new Dictionary<string, string> { ["authJson"] = "{}" },
+                true));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveNativeAuthAsync(
+                ownerId,
+                organizationId,
+                ProviderRegistry.OpenAiCodexProviderSlug,
+                "OpenAI Codex",
+                ["gpt-5.5"],
+                ProviderAuthKind.CodexChatGptOAuth,
+                new Dictionary<string, string>
+                {
+                    ["authJson"] = """{"tokens":"redacted"}""",
+                    ["accountEmail"] = "codex@example.com",
+                    ["planType"] = "pro",
+                },
+                true));
+
+        Assert.Contains("personal user", ex.Message);
+    }
+
     private static OrganizationProviderProfileService CreateService(EaosDbContext db)
     {
         var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-profile-keys-{Guid.NewGuid():N}"))));

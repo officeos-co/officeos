@@ -96,6 +96,9 @@ public sealed class FakeOAuthTokenRepository : IOAuthTokenRepository
         Task.FromResult<OAuthTokenRecord?>(null);
 
     public Task UpsertAsync(OAuthTokenRecord token, CancellationToken ct = default) => Task.CompletedTask;
+
+    public Task<bool> DeleteAsync(OAuthTokenFilter filter, CancellationToken ct = default) =>
+        Task.FromResult(false);
 }
 
 public sealed class FakeIntegrationDeploymentRepository : IIntegrationDeploymentRepository
