@@ -262,7 +262,7 @@ public sealed class ProviderSetupServiceTests
         var profileRepository = new OrganizationProviderProfileRepository(db);
         var organizationRepository = new OrganizationRepository(db);
         var enterprisePolicy = new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db));
-        var profileService = new OrganizationProviderProfileService(profileRepository, organizationRepository, protector, enterprisePolicy);
+        var profileService = new OrganizationProviderProfileService(profileRepository, organizationRepository, protector, enterprisePolicy, new NoopPublisher());
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler ?? new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"))),
             NullLogger<LlmProviderDispatcher>.Instance);

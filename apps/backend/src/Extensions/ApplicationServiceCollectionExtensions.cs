@@ -25,6 +25,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ICreditRecordingService, CreditRecordingService>();
         services.AddScoped<IBillingGuard, BillingGuard>();
         services.AddScoped<IGdprService, GdprService>();
+        services.AddScoped<IOrganizationAuditLogService, OrganizationAuditLogService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
         services.AddScoped<IChannelService, ChannelService>();

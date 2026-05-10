@@ -5,15 +5,18 @@ internal sealed class OrganizationPolicyService : IOrganizationPolicyService
     private readonly IOrganizationPolicyProfileRepository _organizationPolicyProfileRepository;
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
+    private readonly IPublisher _publisher;
 
     public OrganizationPolicyService(
         IOrganizationPolicyProfileRepository organizationPolicyProfileRepository,
         IOrganizationRepository organizationRepository,
-        IWorkspaceRepository workspaceRepository)
+        IWorkspaceRepository workspaceRepository,
+        IPublisher publisher)
     {
         _organizationPolicyProfileRepository = organizationPolicyProfileRepository;
         _organizationRepository = organizationRepository;
         _workspaceRepository = workspaceRepository;
+        _publisher = publisher;
     }
 
     public async Task<OrganizationPolicyProfileRecord?> GetEffectiveForWorkspaceAsync(Guid? workspaceId, CancellationToken ct = default)
@@ -45,7 +48,19 @@ internal sealed class OrganizationPolicyService : IOrganizationPolicyService
     public async Task<OrganizationPolicyProfileRecord> UpdateAsync(Guid actorUserId, OrganizationPolicyProfileRecord profile, CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, profile.OrganizationId, ct);
-        return await _organizationPolicyProfileRepository.SaveAsync(profile, ct);
+        var saved = await _organizationPolicyProfileRepository.SaveAsync(profile, ct);
+        await _publisher.Publish(new OrganizationPolicyProfileUpdatedEvent(
+            saved.OrganizationId,
+            actorUserId,
+            saved.ShellToolsEnabled,
+            saved.FileWriteToolsEnabled,
+            saved.NetworkToolsEnabled,
+            saved.BrowserToolsEnabled,
+            CountJsonArray(saved.AllowedToolsJson),
+            CountJsonArray(saved.DeniedToolsJson),
+            CountJsonArray(saved.AllowedIntegrationsJson),
+            CountJsonArray(saved.DeniedIntegrationsJson)), ct);
+        return saved;
     }
 
     private async Task RequireOrganizationAdminAsync(Guid userId, Guid organizationId, CancellationToken ct)
@@ -54,5 +69,21 @@ internal sealed class OrganizationPolicyService : IOrganizationPolicyService
         var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
         if (member?.Role is not (OrgRole.Owner or OrgRole.Admin))
             throw new InvalidOperationException("Organization not found.");
+    }
+
+    private static int CountJsonArray(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return 0;
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
+            return parsed.ValueKind == JsonValueKind.Array ? parsed.GetArrayLength() : 0;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 }

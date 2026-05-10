@@ -160,6 +160,7 @@ internal sealed class AgentTurnService
                 await _turnEventPublisher.PublishLlmCompletedAsync(
                     agentId,
                     correlationId,
+                    agent.Provider,
                     llmTurn.Model,
                     llmTurn.DurationMs,
                     llmTurn.Usage.InputTokens,

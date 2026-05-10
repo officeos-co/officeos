@@ -80,15 +80,16 @@ public sealed record WorkspaceTestHarness(
             new AgentRunRepository(db));
 
         return new WorkspaceTestHarness(
-            new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache),
-            new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository),
-            new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository),
-            new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository),
+            new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache, new NoopPublisher()),
+            new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository, new NoopPublisher()),
+            new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
+            new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
             new OrganizationProviderProfileService(
                 organizationProviderProfileRepository,
                 organizationRepository,
                 new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}")))),
-                new ProviderEnterprisePolicy(orgSubscriptionRepository)),
+                new ProviderEnterprisePolicy(orgSubscriptionRepository),
+                new NoopPublisher()),
             new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository),
             integrationService,
             agentDashboard,

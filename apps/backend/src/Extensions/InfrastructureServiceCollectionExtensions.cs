@@ -33,6 +33,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddScoped<IAgentLogRepository, AgentLogRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IOrganizationAuditLogRepository, OrganizationAuditLogRepository>();
         services.AddScoped<IOrganizationPolicyProfileRepository, OrganizationPolicyProfileRepository>();
         services.AddScoped<IOrganizationProviderProfileRepository, OrganizationProviderProfileRepository>();
         services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();

@@ -5,15 +5,18 @@ internal sealed class OrganizationService : IOrganizationService
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
+    private readonly IPublisher _publisher;
 
     public OrganizationService(
         IOrganizationRepository organizationRepository,
         IWorkspaceRepository workspaceRepository,
-        IWorkspaceMemberRepository workspaceMemberRepository)
+        IWorkspaceMemberRepository workspaceMemberRepository,
+        IPublisher publisher)
     {
         _organizationRepository = organizationRepository;
         _workspaceRepository = workspaceRepository;
         _workspaceMemberRepository = workspaceMemberRepository;
+        _publisher = publisher;
     }
 
     public async Task<OrganizationOverview> GetOverviewAsync(
@@ -42,7 +45,14 @@ internal sealed class OrganizationService : IOrganizationService
             throw new InvalidOperationException("Role must be 'Admin' or 'Member'.");
 
         var member = OrgMemberRecord.Invite(org.Id, memberEmail, parsedRole);
-        return await _organizationRepository.AddMemberAsync(member, ct);
+        var created = await _organizationRepository.AddMemberAsync(member, ct);
+        await _publisher.Publish(new OrganizationMemberInvitedEvent(
+            org.Id,
+            callerUserId,
+            created.Id,
+            created.Email,
+            created.Role.ToString()), ct);
+        return created;
     }
 
     public async Task<bool> RemoveMemberAsync(
@@ -67,7 +77,19 @@ internal sealed class OrganizationService : IOrganizationService
                 ct);
         }
 
-        return await _organizationRepository.RemoveMemberAsync(memberId, ct);
+        var removed = await _organizationRepository.RemoveMemberAsync(memberId, ct);
+        if (removed)
+        {
+            await _publisher.Publish(new OrganizationMemberRemovedEvent(
+                org.Id,
+                callerUserId,
+                target.Id,
+                target.UserId,
+                target.Email,
+                target.Role.ToString()), ct);
+        }
+
+        return removed;
     }
 
     public async Task<OrganizationRecord> RenameAsync(
@@ -81,7 +103,10 @@ internal sealed class OrganizationService : IOrganizationService
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidOperationException("Name required.");
 
-        return await _organizationRepository.RenameAsync(org.Id, name.Trim(), ct);
+        var previousName = org.Name;
+        var renamed = await _organizationRepository.RenameAsync(org.Id, name.Trim(), ct);
+        await _publisher.Publish(new OrganizationRenamedEvent(org.Id, callerUserId, previousName, renamed.Name), ct);
+        return renamed;
     }
 
     public async Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(

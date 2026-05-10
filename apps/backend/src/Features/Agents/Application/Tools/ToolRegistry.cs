@@ -10,17 +10,26 @@ internal sealed class ToolRegistry : IAsyncDisposable
     private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
     private readonly List<IAsyncDisposable> _integrationConnections;
     private readonly ToolExecutionContext _toolExecutionContext;
+    private readonly IReadOnlyDictionary<string, string> _policyDeniedToolReasons;
+    private readonly TurnEventPublisher? _turnEventPublisher;
+    private readonly string? _correlationId;
 
     public ToolRegistry(
         List<IAgentTool> tools,
         ToolExecutionContext context,
         List<IAsyncDisposable>? integrationConnections = null,
-        IEnumerable<string>? preloadedToolNames = null)
+        IEnumerable<string>? preloadedToolNames = null,
+        IReadOnlyDictionary<string, string>? policyDeniedToolReasons = null,
+        TurnEventPublisher? turnEventPublisher = null,
+        string? correlationId = null)
     {
         _tools = tools;
         _toolExecutionContext = context;
         _integrationConnections = integrationConnections ?? [];
         _preloadedToolNames = (preloadedToolNames ?? []).ToHashSet(StringComparer.Ordinal);
+        _policyDeniedToolReasons = policyDeniedToolReasons ?? new Dictionary<string, string>();
+        _turnEventPublisher = turnEventPublisher;
+        _correlationId = correlationId;
     }
 
     public async ValueTask DisposeAsync()
@@ -80,7 +89,21 @@ internal sealed class ToolRegistry : IAsyncDisposable
     {
         var tool = _tools.FirstOrDefault(t => t.Name == toolName);
         if (tool is null)
+        {
+            if (_turnEventPublisher is not null
+                && _correlationId is not null
+                && _policyDeniedToolReasons.TryGetValue(toolName, out var reason))
+            {
+                await _turnEventPublisher.PublishToolPolicyDeniedAsync(
+                    _toolExecutionContext.AgentId,
+                    _correlationId,
+                    toolName,
+                    reason,
+                    ct);
+            }
+
             return new AgentError(AgentErrorCategory.ToolExecution, $"Unknown or denied tool: {toolName}");
+        }
 
         var validation = await tool.ValidateAsync(args, ct);
         if (!validation.IsValid)
@@ -299,16 +322,36 @@ internal sealed class ToolRegistryFactory
             integrationConnections.Add(result);
         }
 
+        var policyDeniedToolReasons = new Dictionary<string, string>(StringComparer.Ordinal);
         var policy = await _organizationPolicyService.GetEffectiveForWorkspaceAsync(workspaceId, ct);
         if (policy is not null)
-            tools = tools.Where(tool => IsAllowedByOrganizationPolicy(tool, policy)).ToList();
+        {
+            var allowedByPolicy = new List<IAgentTool>();
+            foreach (var tool in tools)
+            {
+                var denialReason = GetOrganizationPolicyDenialReason(tool, policy);
+                if (denialReason is null)
+                    allowedByPolicy.Add(tool);
+                else
+                    policyDeniedToolReasons[tool.Name] = denialReason;
+            }
+
+            tools = allowedByPolicy;
+        }
 
         var resolver = new AgentToolPermissionResolver(permissions);
         tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
 
         preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
-        return new ToolRegistry(tools, context, integrationConnections, preloadedToolNames);
+        return new ToolRegistry(
+            tools,
+            context,
+            integrationConnections,
+            preloadedToolNames,
+            policyDeniedToolReasons,
+            _turnEventPublisher,
+            correlationId);
     }
 
     private static int ElapsedMs(long startTimestamp)
@@ -329,7 +372,7 @@ internal sealed class ToolRegistryFactory
             && permission.Permission == ToolPermission.Allow);
     }
 
-    private static bool IsAllowedByOrganizationPolicy(IAgentTool tool, OrganizationPolicyProfileRecord policy)
+    private static string? GetOrganizationPolicyDenialReason(IAgentTool tool, OrganizationPolicyProfileRecord policy)
     {
         var key = ToolKey.Parse(tool.PermissionScope);
         var scope = $"{key.SkillName}:{key.ToolName}";
@@ -339,29 +382,31 @@ internal sealed class ToolRegistryFactory
         var allowedIntegrations = ParseStringSet(policy.AllowedIntegrationsJson);
 
         if (tool.Name.StartsWith("browser__", StringComparison.Ordinal) && !policy.BrowserToolsEnabled)
-            return false;
+            return "browser tools are disabled by organization policy";
 
         if (tool.Kind is AgentToolKind.Network && !policy.NetworkToolsEnabled)
-            return false;
+            return "network tools are disabled by organization policy";
 
         if (tool.Name.Equals("shell", StringComparison.Ordinal) && !policy.ShellToolsEnabled)
-            return false;
+            return "shell tools are disabled by organization policy";
 
         if (tool.Name is "file_write" or "file_edit" && !policy.FileWriteToolsEnabled)
-            return false;
+            return "file write tools are disabled by organization policy";
 
         if (deniedTools.Contains(scope) || deniedTools.Contains($"{key.SkillName}:") || deniedTools.Contains(tool.Name))
-            return false;
+            return "tool is denied by organization policy";
 
         if (tool.Kind is AgentToolKind.Integration)
         {
             if (deniedIntegrations.Contains(key.SkillName))
-                return false;
+                return "integration is denied by organization policy";
             if (allowedIntegrations.Count > 0 && !allowedIntegrations.Contains(key.SkillName))
-                return false;
+                return "integration is not allowed by organization policy";
         }
 
-        return allowedTools.Count == 0 || allowedTools.Contains(scope) || allowedTools.Contains($"{key.SkillName}:") || allowedTools.Contains(tool.Name);
+        return allowedTools.Count == 0 || allowedTools.Contains(scope) || allowedTools.Contains($"{key.SkillName}:") || allowedTools.Contains(tool.Name)
+            ? null
+            : "tool is not allowed by organization policy";
     }
 
     private static HashSet<string> ParseStringSet(string? json)

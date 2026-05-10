@@ -6,17 +6,20 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
     private readonly IOrganizationRepository _organizationRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly ProviderEnterprisePolicy _providerEnterprisePolicy;
+    private readonly IPublisher _publisher;
 
     public OrganizationProviderProfileService(
         IOrganizationProviderProfileRepository organizationProviderProfileRepository,
         IOrganizationRepository organizationRepository,
         CredentialProtector credentialProtector,
-        ProviderEnterprisePolicy providerEnterprisePolicy)
+        ProviderEnterprisePolicy providerEnterprisePolicy,
+        IPublisher publisher)
     {
         _organizationProviderProfileRepository = organizationProviderProfileRepository;
         _organizationRepository = organizationRepository;
         _credentialProtector = credentialProtector;
         _providerEnterprisePolicy = providerEnterprisePolicy;
+        _publisher = publisher;
     }
 
     public async Task<IReadOnlyList<OrganizationProviderProfileRecord>> ListAsync(Guid actorUserId, Guid organizationId, CancellationToken ct = default)
@@ -100,16 +103,34 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
             Enabled = enabled,
             ConfiguredAt = DateTime.UtcNow,
         };
-        return await _organizationProviderProfileRepository.UpsertAsync(record, ct);
+        var saved = await _organizationProviderProfileRepository.UpsertAsync(record, ct);
+        await _publisher.Publish(new OrganizationProviderProfileSavedEvent(
+            saved.OrganizationId,
+            actorUserId,
+            saved.Provider,
+            saved.DisplayName,
+            authKind.ToStorageString(),
+            modelList.Count,
+            saved.Enabled), ct);
+        return saved;
     }
 
     public async Task<bool> DeleteAsync(Guid actorUserId, Guid organizationId, string provider, CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
         await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
-        return await _organizationProviderProfileRepository.DeleteAsync(
+        var deleted = await _organizationProviderProfileRepository.DeleteAsync(
             new OrganizationProviderProfileFilter { OrganizationId = organizationId, Provider = provider.Trim().ToLowerInvariant() },
             ct);
+        if (deleted)
+        {
+            await _publisher.Publish(new OrganizationProviderProfileDeletedEvent(
+                organizationId,
+                actorUserId,
+                provider.Trim().ToLowerInvariant()), ct);
+        }
+
+        return deleted;
     }
 
     private async Task RequireOrganizationAdminAsync(Guid userId, Guid organizationId, CancellationToken ct)
