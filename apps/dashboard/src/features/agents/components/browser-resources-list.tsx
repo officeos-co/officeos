@@ -25,6 +25,7 @@ import {
   useDeleteBrowserResource,
 } from "../api/useAgentResources";
 import { ResourceCreateDialog } from "./resource-create-dialog";
+import { useCanManageWorkspaceFeatures } from "@/features/manage";
 
 export function BrowserResourcesList() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export function BrowserResourcesList() {
   const { browserResources, loading, refetch } = useBrowserResources();
   const { createBrowserResource, loading: creating } = useCreateBrowserResource();
   const { deleteBrowserResource } = useDeleteBrowserResource();
+  const { canManage } = useCanManageWorkspaceFeatures();
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase();
@@ -78,6 +80,7 @@ export function BrowserResourcesList() {
   }
 
   async function deleteSelectedResources() {
+    if (!canManage) return;
     const ids = Array.from(selectedIds);
     await Promise.all(ids.map((id) => deleteBrowserResource(id)));
     setSelectedIds(new Set());
@@ -92,7 +95,11 @@ export function BrowserResourcesList() {
         subtitle="Manage browser resources agents can mount into sessions."
         width="wide"
         action={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            size="sm"
+            disabled={!canManage}
+            onClick={() => setCreateOpen(true)}
+          >
             <PlusIcon className="size-4" />
             Create
           </Button>
@@ -109,6 +116,7 @@ export function BrowserResourcesList() {
             <Button
               variant="destructive"
               size="sm"
+              disabled={!canManage}
               onClick={deleteSelectedResources}
             >
               <Trash2Icon className="size-4" />

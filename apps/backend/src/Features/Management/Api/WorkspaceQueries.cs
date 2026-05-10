@@ -20,4 +20,24 @@ public sealed class WorkspaceQueries
         var row = await workspaces.GetCurrentAsync(user.Id, ct);
         return WorkspaceGraphQLMapper.ToPayload(row);
     }
+
+    public async Task<IReadOnlyList<WorkspaceMemberPayload>> GetWorkspaceMembers(
+        Guid workspaceId,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        CancellationToken ct)
+    {
+        var rows = await workspaces.ListMembersAsync(user.Id, workspaceId, ct);
+        return rows.Select(WorkspaceGraphQLMapper.ToPayload).ToList();
+    }
+
+    public async Task<IReadOnlyList<WorkspaceMemberPayload>> GetOrganizationWorkspaceMembers(
+        Guid organizationId,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        CancellationToken ct)
+    {
+        var rows = await workspaces.ListOrganizationMembersAsync(user.Id, organizationId, ct);
+        return rows.Select(WorkspaceGraphQLMapper.ToPayload).ToList();
+    }
 }

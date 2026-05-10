@@ -87,7 +87,7 @@ public sealed record WorkspaceTestHarness(
                 organizationRepository,
                 new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}")))),
                 new NoopPublisher()),
-            new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository),
+            new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository, workspaceMemberRepository),
             integrationService,
             agentDashboard,
             agentRepository);
@@ -144,6 +144,7 @@ public sealed record WorkspaceTestHarness(
             NullLogger<IntegrationDefinitionService>.Instance,
             new IntegrationDeploymentRepository(db),
             new WorkspaceRepository(db),
+            new WorkspaceMemberRepository(db),
             new OrganizationRepository(db));
     }
 }

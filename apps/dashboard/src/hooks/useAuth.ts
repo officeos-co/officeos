@@ -2,7 +2,6 @@
 
 import { useQuery, useMutation, gql } from "@apollo/client"
 import { apolloClient } from "@/lib/graphql/client"
-import { ME_QUERY } from "@/features/manage"
 
 export type AuthUser = {
   id: string
@@ -14,6 +13,17 @@ export type AuthUser = {
 const LOGOUT_MUTATION = gql`
   mutation Logout {
     logout
+  }
+`
+
+const ME_QUERY = gql`
+  query Me {
+    me {
+      id
+      name
+      email
+      avatarUrl
+    }
   }
 `
 

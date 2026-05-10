@@ -34,12 +34,14 @@ import { useAnalytics } from "@/features/analytics";
 import { Skeleton } from "@/ui/skeleton";
 import type { Channel } from "../data/channels";
 import { ChannelOnboardingDialog } from "./channel-onboarding-dialog";
+import { useCanManageWorkspaceFeatures } from "@/features/manage";
 
 export function ChannelsList() {
   const router = useRouter();
   const { connections, channelTypes, loading } = useChannelConnections();
   const { deleteChannelConnection } = useDeleteChannelConnection();
   const { trackChannelConnected } = useAnalytics();
+  const { canManage } = useCanManageWorkspaceFeatures();
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -92,6 +94,7 @@ export function ChannelsList() {
   }
 
   async function deleteSelectedConnections() {
+    if (!canManage) return;
     const ids = Array.from(selectedIds);
     await Promise.all(ids.map((id) => deleteChannelConnection(id)));
     setSelectedIds(new Set());
@@ -105,7 +108,11 @@ export function ChannelsList() {
         subtitle="Manage communication channels agents can mount into sessions."
         width="wide"
         action={
-          <Button size="sm" onClick={() => setPickerOpen(true)}>
+          <Button
+            size="sm"
+            disabled={!canManage}
+            onClick={() => setPickerOpen(true)}
+          >
             <PlusIcon className="size-4" />
             Add channel
           </Button>
@@ -122,6 +129,7 @@ export function ChannelsList() {
             <Button
               variant="destructive"
               size="sm"
+              disabled={!canManage}
               onClick={deleteSelectedConnections}
             >
               <Trash2Icon className="size-4" />

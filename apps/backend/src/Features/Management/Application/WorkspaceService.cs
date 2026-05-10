@@ -134,6 +134,21 @@ internal sealed class WorkspaceService : IWorkspaceService
             ?? throw new InvalidOperationException("Workspace not found.");
     }
 
+    public async Task<IReadOnlyList<WorkspaceMemberRecord>> ListMembersAsync(Guid actorUserId, Guid workspaceId, CancellationToken ct = default)
+    {
+        await RequireAccessibleAsync(actorUserId, workspaceId, ct);
+        return await _workspaceMemberRepository.ListAsync(new WorkspaceMemberFilter { WorkspaceId = workspaceId }, ct);
+    }
+
+    public async Task<IReadOnlyList<WorkspaceMemberRecord>> ListOrganizationMembersAsync(Guid actorUserId, Guid organizationId, CancellationToken ct = default)
+    {
+        var orgMembers = await _organizationRepository.ListMembersAsync(organizationId, ct);
+        if (!orgMembers.Any(member => member.UserId == actorUserId && member.Status == MemberStatus.Active))
+            throw new InvalidOperationException("Organization not found.");
+
+        return await _workspaceMemberRepository.ListAsync(new WorkspaceMemberFilter { OrganizationId = organizationId }, ct);
+    }
+
     public async Task<WorkspaceMemberRecord> AddMemberAsync(
         Guid actorUserId,
         Guid workspaceId,

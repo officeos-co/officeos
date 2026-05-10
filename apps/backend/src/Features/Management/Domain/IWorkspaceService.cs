@@ -10,6 +10,8 @@ public interface IWorkspaceService
     Task<WorkspaceRecord> SwitchAsync(Guid userId, Guid id, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid userId, Guid id, CancellationToken ct = default);
     Task<WorkspaceRecord> RequireAccessibleAsync(Guid userId, Guid workspaceId, CancellationToken ct = default);
+    Task<IReadOnlyList<WorkspaceMemberRecord>> ListMembersAsync(Guid actorUserId, Guid workspaceId, CancellationToken ct = default);
+    Task<IReadOnlyList<WorkspaceMemberRecord>> ListOrganizationMembersAsync(Guid actorUserId, Guid organizationId, CancellationToken ct = default);
     Task<WorkspaceMemberRecord> AddMemberAsync(Guid actorUserId, Guid workspaceId, Guid memberUserId, string? role, CancellationToken ct = default);
     Task<WorkspaceMemberRecord> UpdateMemberRoleAsync(Guid actorUserId, Guid workspaceId, Guid memberUserId, string? role, CancellationToken ct = default);
     Task<bool> RemoveMemberAsync(Guid actorUserId, Guid workspaceId, Guid memberUserId, CancellationToken ct = default);
