@@ -12,4 +12,24 @@ public sealed class ChannelBindingConfig
 
     /// <summary>Platform-specific thread/topic ID for threaded delivery.</summary>
     public string? ThreadId { get; set; }
+
+    public bool? RequireMention { get; set; }
+
+    public string? BotUserId { get; set; }
+
+    public string? BotMention { get; set; }
+
+    public string? ReplyToMode { get; set; }
+
+    public int? InitialHistoryLimit { get; set; }
+
+    public int? HistoryLimit { get; set; }
+
+    public IReadOnlyList<string>? AllowedSenderIds { get; set; }
+
+    public IReadOnlyList<string>? AllowedGroupIds { get; set; }
+
+    public IReadOnlyList<string>? MentionPatterns { get; set; }
+
+    public IReadOnlyList<string>? ActiveTopicIds { get; set; }
 }

@@ -9,6 +9,7 @@ internal sealed class ChannelService : IChannelService
     private readonly IPublisher _publisher;
     private readonly ChannelReplyContext _channelReplyContext;
     private readonly ILogger<ChannelService> _logger;
+    private readonly ChannelGroupContextStore _channelGroupContextStore = new();
 
     public ChannelService(
         IChannelRepository repo,
@@ -98,6 +99,7 @@ internal sealed class ChannelService : IChannelService
 
         var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
         var agentIds = new List<Guid>();
+        var inbound = ChannelInboundContext.Parse(messageText, isGroupMessage, channelId);
 
         // Log even when no agent bindings exist for this connection
         if (bindings.Count == 0)
@@ -109,20 +111,43 @@ internal sealed class ChannelService : IChannelService
                 messageText, Guid.NewGuid().ToString("N"), connectionId), ct);
         }
 
+        var loggedConnectionOnly = false;
         foreach (var binding in bindings)
         {
             var channelType = binding.ChannelConnection?.ChannelType.ToStorageString() ?? "unknown";
             var correlationId = Guid.NewGuid().ToString("N");
+            var config = ChannelRoutingPolicy.ParseBindingConfig(binding.Config);
 
-            // Always log the inbound message, even if the binding is disabled
+            if (!binding.Enabled)
+            {
+                await _publisher.Publish(new ChannelMessageRoutedEvent(
+                    binding.AgentId, AgentLogType.ChannelIn, channelType,
+                    messageText, correlationId, binding.ChannelConnectionId), ct);
+                continue;
+            }
+
+            var decision = ChannelRoutingPolicy.ShouldActivateBinding(binding, config, inbound, channelType, senderIdentifier);
+            if (!decision.Route)
+            {
+                if (decision.Buffer)
+                    _channelGroupContextStore.BufferPendingContext(binding, config, inbound, channelType);
+
+                if (!loggedConnectionOnly)
+                {
+                    await _publisher.Publish(new ChannelMessageRoutedEvent(
+                        null, AgentLogType.ChannelIn, channelType,
+                        messageText, correlationId, binding.ChannelConnectionId), ct);
+                    loggedConnectionOnly = true;
+                }
+
+                continue;
+            }
+
             await _publisher.Publish(new ChannelMessageRoutedEvent(
                 binding.AgentId, AgentLogType.ChannelIn, channelType,
                 messageText, correlationId, binding.ChannelConnectionId), ct);
 
-            if (!binding.Enabled) continue;
-
-            // Extract plain text from the Chat SDK JSON envelope
-            var plainText = ExtractPlainText(messageText);
+            var plainText = _channelGroupContextStore.BuildAgentMessageContent(binding, config, inbound, channelType);
 
             // Stash the reply target so the outbound handler can deliver
             // the response back to the same conversation — no DB, pure in-memory
@@ -354,15 +379,23 @@ internal sealed class ChannelService : IChannelService
         if (string.IsNullOrEmpty(messageText) || messageText[0] != '{')
             return messageText;
 
-        using var doc = JsonDocument.Parse(messageText);
-        if (doc.RootElement.TryGetProperty("text", out var textProp) &&
-            textProp.ValueKind == JsonValueKind.String)
+        try
         {
-            var text = textProp.GetString();
-            if (!string.IsNullOrEmpty(text))
-                return text;
+            using var doc = JsonDocument.Parse(messageText);
+            if (doc.RootElement.TryGetProperty("text", out var textProp) &&
+                textProp.ValueKind == JsonValueKind.String)
+            {
+                var text = textProp.GetString();
+                if (!string.IsNullOrEmpty(text))
+                    return text;
+            }
+        }
+        catch
+        {
+            return messageText;
         }
 
         return messageText;
     }
+
 }

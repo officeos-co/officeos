@@ -1,6 +1,6 @@
 using OffceOs.Domain.Features.Channels;
 
-namespace OffceOs.Tests.Channels;
+namespace OffceOs.Tests.Shared;
 
 internal sealed class RecordingChannelGateway : IChannelGateway
 {

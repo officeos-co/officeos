@@ -1,0 +1,95 @@
+using OffceOs.Application.Features.Channels;
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Events;
+using OffceOs.Domain.Features.Channels;
+using OffceOs.Infrastructure.Common.Security;
+using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.Channels;
+using MediatR;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+
+namespace OffceOs.Tests.Shared;
+
+internal sealed class ChannelTestHarness : IAsyncDisposable
+{
+    private ChannelTestHarness(EaosDbContext db, IPublisher publisher)
+    {
+        Db = db;
+        Publisher = publisher;
+        Gateway = new RecordingChannelGateway();
+        Service = new ChannelService(
+            new ChannelRepository(db),
+            Gateway,
+            new AgentRepository(db),
+            new ChannelCredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(
+                Path.Combine(Path.GetTempPath(), $"eaos-channel-test-keys-{Guid.NewGuid():N}")))),
+            publisher,
+            new ChannelReplyContext(),
+            NullLogger<ChannelService>.Instance);
+    }
+
+    public EaosDbContext Db { get; }
+    public IPublisher Publisher { get; }
+    public RecordingChannelGateway Gateway { get; }
+    public ChannelService Service { get; }
+    public Guid OwnerId { get; } = Guid.NewGuid();
+    public Guid WorkspaceId { get; } = Guid.NewGuid();
+
+    public IReadOnlyList<object> Notifications => Publisher switch
+    {
+        RecordingPublisher publisher => publisher.Notifications,
+        ChannelEventPersistingPublisher publisher => publisher.Notifications,
+        _ => [],
+    };
+
+    public IReadOnlyList<MessageReceivedEvent> MessageEvents =>
+        Notifications.OfType<MessageReceivedEvent>().ToList();
+
+    public static ChannelTestHarness Create(string namePrefix) =>
+        new(TestDbFactory.Create(namePrefix), new RecordingPublisher());
+
+    public static ChannelTestHarness CreatePersisting(string namePrefix)
+    {
+        var db = TestDbFactory.Create(namePrefix);
+        return new ChannelTestHarness(db, new ChannelEventPersistingPublisher(db));
+    }
+
+    public void SeedAgents(params Guid[] agentIds)
+    {
+        Db.Agents.AddRange(agentIds.Select((agentId, index) => new AgentEntity
+        {
+            Id = agentId,
+            Name = $"Agent {index}",
+            Provider = "openai",
+            Model = "gpt-4o-mini",
+            Status = "running",
+            CreatedAt = DateTime.UtcNow,
+            OwnerId = OwnerId,
+            WorkspaceId = WorkspaceId,
+        }));
+        Db.SaveChanges();
+    }
+
+    public async Task<ChannelConnectionRecord> CreateConnectionAsync(string channelType, string displayName) =>
+        await Service.CreateConnectionAsync(channelType, displayName, null, OwnerId, WorkspaceId);
+
+    public async Task BindAsync(Guid agentId, Guid connectionId, string? configJson) =>
+        await Service.BindAgentAsync(agentId, connectionId, configJson);
+
+    public void AssertNoAgentActivation(IReadOnlyList<Guid> notified, params Guid[] agentIds)
+    {
+        Assert.Empty(notified);
+        Assert.Empty(MessageEvents);
+        Assert.DoesNotContain(
+            Notifications.OfType<ChannelMessageRoutedEvent>(),
+            ev => ev.AgentId.HasValue && agentIds.Contains(ev.AgentId.Value));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Db.DisposeAsync();
+    }
+}
