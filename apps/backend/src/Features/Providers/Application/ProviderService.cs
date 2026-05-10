@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Providers;
 
 internal sealed class ProviderService : IProviderService
 {
@@ -7,19 +7,22 @@ internal sealed class ProviderService : IProviderService
     private readonly IOrganizationProviderProfileRepository _organizationProviderProfileRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly CredentialProtector _credentialProtector;
+    private readonly ProviderEnterprisePolicy _providerEnterprisePolicy;
 
     public ProviderService(
         PlatformKeysConfig platformKeys,
         CustomLlmProviderConfig customLlmProviderConfig,
         IOrganizationProviderProfileRepository organizationProviderProfileRepository,
         IWorkspaceRepository workspaceRepository,
-        CredentialProtector credentialProtector)
+        CredentialProtector credentialProtector,
+        ProviderEnterprisePolicy providerEnterprisePolicy)
     {
         _platformKeysConfig = platformKeys;
         _customLlmProviderConfig = customLlmProviderConfig;
         _organizationProviderProfileRepository = organizationProviderProfileRepository;
         _workspaceRepository = workspaceRepository;
         _credentialProtector = credentialProtector;
+        _providerEnterprisePolicy = providerEnterprisePolicy;
     }
 
     public Task<IReadOnlyList<ProviderResult>> ListAsync(CancellationToken ct = default)
@@ -48,7 +51,10 @@ internal sealed class ProviderService : IProviderService
     public async Task<IReadOnlyList<ProviderResult>> ListForWorkspaceAsync(Guid? workspaceId, CancellationToken ct = default)
     {
         var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
-        if (!organizationId.HasValue || _organizationProviderProfileRepository is null)
+        if (!organizationId.HasValue)
+            return await ListAsync(ct);
+
+        if (!await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
             return await ListAsync(ct);
 
         var profiles = await _organizationProviderProfileRepository.ListAsync(
@@ -74,7 +80,8 @@ internal sealed class ProviderService : IProviderService
     public async Task<string?> GetApiKeyForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default)
     {
         var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
-        if (organizationId.HasValue)
+        if (organizationId.HasValue &&
+            await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
         {
             var profile = await _organizationProviderProfileRepository.GetByAsync(
                 new OrganizationProviderProfileFilter

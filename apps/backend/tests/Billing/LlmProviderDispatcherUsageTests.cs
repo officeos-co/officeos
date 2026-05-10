@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using OffceOs.Domain.Common.Services;
+using OffceOs.Domain.Features.Providers;
 using OffceOs.Configuration;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Tests.Shared;

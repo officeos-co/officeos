@@ -18,6 +18,7 @@ internal static class NamingConvention
         "Definition",
         "Step",
         "Provider",
+        "Registry",
         "Access",
         "Limits",
         "Hasher",

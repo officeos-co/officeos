@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Features.Management;
+namespace OffceOs.Infrastructure.Features.Providers;
 
 internal sealed class OrganizationProviderProfileRepository : IOrganizationProviderProfileRepository
 {

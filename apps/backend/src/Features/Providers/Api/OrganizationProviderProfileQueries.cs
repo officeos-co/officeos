@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Features.Management;
+namespace OffceOs.Api.Features.Providers;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public sealed class OrganizationProviderProfileQueries

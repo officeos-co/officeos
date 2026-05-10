@@ -1,4 +1,4 @@
-using OffceOs.Domain.Common.Services;
+using OffceOs.Domain.Features.Providers;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Billing;
 using OffceOs.Configuration;

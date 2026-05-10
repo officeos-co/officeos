@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.Services;
+namespace OffceOs.Domain.Features.Providers;
 
 /// <summary>
 /// Single source of truth for all supported LLM providers, their models, and metadata.
@@ -56,6 +56,51 @@ public static class ProviderRegistry
             {
                 new ModelDefinition("grok-4", "Grok 4", CostWeight: 20, SmartRoutingTier.Standard),
             }),
+
+        new ProviderDefinition(
+            Slug: AwsBedrockProviderSlug,
+            DisplayName: "Amazon Bedrock",
+            ApiFormat: ApiFormat.Anthropic,
+            BaseUrl: "https://bedrock-runtime.aws.amazon.com",
+            PlatformKeyConfigName: null,
+            Models: new[]
+            {
+                new ModelDefinition("anthropic.claude-3-5-haiku-20241022-v1:0", "Claude 3.5 Haiku 20241022", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("anthropic.claude-sonnet-4-20250514-v1:0", "Claude Sonnet 4 20250514", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("anthropic.claude-opus-4-20250514-v1:0", "Claude Opus 4 20250514", CostWeight: 75, null),
+            },
+            EnterpriseOnly: true,
+            RequiresPinnedModels: true),
+
+        new ProviderDefinition(
+            Slug: GoogleVertexProviderSlug,
+            DisplayName: "Google Vertex AI",
+            ApiFormat: ApiFormat.Anthropic,
+            BaseUrl: "https://aiplatform.googleapis.com",
+            PlatformKeyConfigName: null,
+            Models: new[]
+            {
+                new ModelDefinition("claude-3-5-haiku@20241022", "Claude 3.5 Haiku 20241022", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("claude-sonnet-4@20250514", "Claude Sonnet 4 20250514", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("claude-opus-4@20250514", "Claude Opus 4 20250514", CostWeight: 75, null),
+            },
+            EnterpriseOnly: true,
+            RequiresPinnedModels: true),
+
+        new ProviderDefinition(
+            Slug: AzureFoundryProviderSlug,
+            DisplayName: "Microsoft Foundry",
+            ApiFormat: ApiFormat.Anthropic,
+            BaseUrl: "https://models.inference.ai.azure.com",
+            PlatformKeyConfigName: null,
+            Models: new[]
+            {
+                new ModelDefinition("claude-3-5-haiku-20241022", "Claude 3.5 Haiku 20241022", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("claude-sonnet-4-20250514", "Claude Sonnet 4 20250514", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("claude-opus-4-20250514", "Claude Opus 4 20250514", CostWeight: 75, null),
+            },
+            EnterpriseOnly: true,
+            RequiresPinnedModels: true),
 
         // Dispatch-only providers — no models exposed in dashboard, no seeding, no platform keys
         new ProviderDefinition("groq", "Groq", ApiFormat.OpenAiCompat, "https://api.groq.com/openai/v1", null, Array.Empty<ModelDefinition>()),
@@ -121,14 +166,20 @@ public static class ProviderRegistry
     public static IReadOnlyList<string> GetModelIds(string providerSlug) =>
         BySlug.TryGetValue(providerSlug, out var p) ? p.Models.Select(m => m.Id).ToList() : [];
 
+    public static bool IsEnterpriseProvider(string providerSlug) =>
+        BySlug.TryGetValue(providerSlug, out var p) && p.EnterpriseOnly;
+
     public static string? GetSmartRouteModel(string providerSlug, SmartRoutingTier tier) =>
         SmartRouteMap.GetValueOrDefault((providerSlug, tier));
 
     /// <summary>Providers that expose selectable models in the dashboard.</summary>
     public static IReadOnlyList<ProviderDefinition> DashboardProviders =>
-        All.Where(p => p.Models.Count > 0).ToList();
+        All.Where(p => p.Models.Count > 0 && !p.EnterpriseOnly).ToList();
 
     public const string DefaultModel = "auto";
+    public const string AwsBedrockProviderSlug = "aws-bedrock";
+    public const string GoogleVertexProviderSlug = "google-vertex";
+    public const string AzureFoundryProviderSlug = "azure-foundry";
 
     // ── Stable well-known config property names (referenced by PlatformKeyConfigName) ──
     // These are just string constants so Domain doesn't depend on PlatformKeysConfig.
