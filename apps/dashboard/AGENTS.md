@@ -34,7 +34,8 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 - Feature roots may contain only `api`, `components`, `hooks`, `data`, `types.ts`, and `index.ts`.
 - Feature `api`, `components`, `hooks`, and `data` folders must stay flat. Do not add bucket folders such as `dialogs`, `tabs`, `tables`, `forms`, `cards`, `queries`, `mutations`, `types`, `utils`, `helpers`, or `shared`.
 - Use strong file names instead of nested folders, such as `agent-create-dialog.tsx`, `integration-tools-tab.tsx`, and `useAgentBindings.ts`.
-- If a feature folder becomes too broad, split the product/domain into a new top-level feature instead of adding nested subdomain folders.
+- Do not split small route/resource slices into new top-level features. Keep browser resources, channels, cron jobs, integrations, memory stores, and permissions under `src/features/agents` unless they grow into a substantial independent product domain with their own API hooks, components, data, and types.
+- If a feature folder becomes too broad, prefer extracting stronger flat component/API file names first. Create a new top-level feature only when the ownership boundary is large and durable enough to justify the added navigation overhead.
 - `src/ui`, `src/shell`, `src/hooks`, and `src/contexts` must stay flat.
 
 ## Where Types Go

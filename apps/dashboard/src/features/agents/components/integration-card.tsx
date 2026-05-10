@@ -7,7 +7,7 @@ import {
   PlugIcon,
   CheckIcon,
 } from "lucide-react"
-import { CatalogCard, CatalogMeta } from "@/ui/catalog-card"
+import { CatalogCard, CatalogMeta } from "./catalog-card"
 
 type IntegrationCardProps = {
   integration: McpServer

@@ -7,7 +7,7 @@ import {
   Clock3Icon,
   PlayCircleIcon,
 } from "lucide-react";
-import { OverviewCard, OverviewCardGrid } from "@/ui/overview-card";
+import { OverviewCard, OverviewCardGrid } from "@/shell/overview-card";
 import { PageContainer } from "@/shell/page-container";
 import { PageHeader } from "@/shell/page-header";
 import { Button } from "@/ui/button";

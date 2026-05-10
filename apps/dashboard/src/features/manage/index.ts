@@ -6,3 +6,4 @@ export * from "./api/useGdpr";
 export * from "./api/useProviders";
 export * from "./api/useWorkspaces";
 export * from "./components/login-form";
+export * from "./components/providers-settings";

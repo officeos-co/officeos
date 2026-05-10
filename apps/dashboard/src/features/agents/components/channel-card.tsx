@@ -2,7 +2,7 @@
 
 import type { Channel } from "../data/channels"
 import { WithTooltip } from "@/ui/help-tooltip"
-import { CatalogCard } from "@/ui/catalog-card"
+import { CatalogCard } from "./catalog-card"
 import { PlugIcon, CheckIcon, RadioIcon } from "lucide-react"
 
 type ChannelCardProps = {
