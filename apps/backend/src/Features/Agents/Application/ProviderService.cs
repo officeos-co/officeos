@@ -4,13 +4,22 @@ internal sealed class ProviderService : IProviderService
 {
     private readonly PlatformKeysConfig _platformKeysConfig;
     private readonly CustomLlmProviderConfig _customLlmProviderConfig;
+    private readonly IOrganizationProviderProfileRepository _organizationProviderProfileRepository;
+    private readonly IWorkspaceRepository _workspaceRepository;
+    private readonly CredentialProtector _credentialProtector;
 
     public ProviderService(
         PlatformKeysConfig platformKeys,
-        CustomLlmProviderConfig customLlmProviderConfig)
+        CustomLlmProviderConfig customLlmProviderConfig,
+        IOrganizationProviderProfileRepository organizationProviderProfileRepository,
+        IWorkspaceRepository workspaceRepository,
+        CredentialProtector credentialProtector)
     {
         _platformKeysConfig = platformKeys;
         _customLlmProviderConfig = customLlmProviderConfig;
+        _organizationProviderProfileRepository = organizationProviderProfileRepository;
+        _workspaceRepository = workspaceRepository;
+        _credentialProtector = credentialProtector;
     }
 
     public Task<IReadOnlyList<ProviderResult>> ListAsync(CancellationToken ct = default)
@@ -36,6 +45,21 @@ internal sealed class ProviderService : IProviderService
         return Task.FromResult<IReadOnlyList<ProviderResult>>(list);
     }
 
+    public async Task<IReadOnlyList<ProviderResult>> ListForWorkspaceAsync(Guid? workspaceId, CancellationToken ct = default)
+    {
+        var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
+        if (!organizationId.HasValue || _organizationProviderProfileRepository is null)
+            return await ListAsync(ct);
+
+        var profiles = await _organizationProviderProfileRepository.ListAsync(
+            new OrganizationProviderProfileFilter { OrganizationId = organizationId.Value, Enabled = true },
+            ct);
+        if (profiles.Count == 0)
+            return await ListAsync(ct);
+
+        return profiles.Select(ToProviderResult).ToList();
+    }
+
     public Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
     {
         if (ProviderRegistry.IsCustomProvider(name))
@@ -45,6 +69,40 @@ internal sealed class ProviderService : IProviderService
 
         var key = _platformKeysConfig.GetKey(ProviderRegistry.Get(name)?.PlatformKeyConfigName);
         return Task.FromResult(key);
+    }
+
+    public async Task<string?> GetApiKeyForDispatchAsync(string name, Guid? workspaceId, CancellationToken ct = default)
+    {
+        var organizationId = await GetOrganizationIdAsync(workspaceId, ct);
+        if (organizationId.HasValue)
+        {
+            var profile = await _organizationProviderProfileRepository.GetByAsync(
+                new OrganizationProviderProfileFilter
+                {
+                    OrganizationId = organizationId.Value,
+                    Provider = name.Trim().ToLowerInvariant(),
+                    Enabled = true,
+                },
+                ct);
+            if (profile is not null)
+                return _credentialProtector.Unprotect(profile.EncryptedApiKey).GetValueOrDefault("apiKey");
+        }
+
+        return await GetApiKeyForDispatchAsync(name, ct);
+    }
+
+    public async Task<bool> IsModelAllowedAsync(string provider, string? model, Guid? workspaceId, CancellationToken ct = default)
+    {
+        var configured = await ListForWorkspaceAsync(workspaceId, ct);
+        var result = configured.FirstOrDefault(p => p.Name.Equals(provider, StringComparison.OrdinalIgnoreCase) && p.Configured);
+        if (result is null)
+            return false;
+
+        var effectiveModel = string.IsNullOrWhiteSpace(model) ? ProviderRegistry.DefaultModel : model.Trim();
+        if (effectiveModel.Equals(ProviderRegistry.DefaultModel, StringComparison.OrdinalIgnoreCase))
+            return result.Models.Count > 0;
+
+        return result.Models.Any(m => m.Id.Equals(effectiveModel, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool HasPlatformKey(string name) =>
@@ -60,6 +118,53 @@ internal sealed class ProviderService : IProviderService
                     _customLlmProviderConfig.EffectiveCostWeight),
             }
             : [];
+
+    private async Task<Guid?> GetOrganizationIdAsync(Guid? workspaceId, CancellationToken ct)
+    {
+        if (!workspaceId.HasValue)
+            return null;
+
+        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId.Value }, ct);
+        return workspace?.OrganizationId;
+    }
+
+    private static ProviderResult ToProviderResult(OrganizationProviderProfileRecord profile)
+    {
+        var definition = ProviderRegistry.Get(profile.Provider);
+        var models = ParseModels(profile.AllowedModelsJson);
+        if (models.Count == 0 && definition is not null)
+            models = definition.Models.Select(m => m.Id).ToList();
+
+        return new ProviderResult(
+            profile.Id,
+            profile.Provider,
+            string.IsNullOrWhiteSpace(profile.DisplayName) ? definition?.DisplayName ?? profile.Provider : profile.DisplayName,
+            profile.Enabled && !string.IsNullOrWhiteSpace(profile.EncryptedApiKey),
+            profile.ConfiguredAt,
+            models.Select(model =>
+            {
+                var definitionModel = definition?.Models.FirstOrDefault(m => m.Id.Equals(model, StringComparison.OrdinalIgnoreCase));
+                return new ProviderModelResult(model, definitionModel?.DisplayName ?? model, definitionModel?.CostWeight ?? 1);
+            }).ToList());
+    }
+
+    private static IReadOnlyList<string> ParseModels(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
+            return parsed.ValueKind == JsonValueKind.Array
+                ? parsed.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).ToList()
+                : [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
 
     private static Guid DeterministicGuid(string input)
     {

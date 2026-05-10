@@ -27,6 +27,11 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentToolPermissionEntity> AgentToolPermissions => Set<AgentToolPermissionEntity>();
     public DbSet<OrganizationEntity> Organizations => Set<OrganizationEntity>();
     public DbSet<OrgMemberEntity> OrgMembers => Set<OrgMemberEntity>();
+    public DbSet<AccessGroupEntity> AccessGroups => Set<AccessGroupEntity>();
+    public DbSet<AccessGroupMemberEntity> AccessGroupMembers => Set<AccessGroupMemberEntity>();
+    public DbSet<AccessGroupWorkspaceGrantEntity> AccessGroupWorkspaceGrants => Set<AccessGroupWorkspaceGrantEntity>();
+    public DbSet<OrganizationPolicyProfileEntity> OrganizationPolicyProfiles => Set<OrganizationPolicyProfileEntity>();
+    public DbSet<OrganizationProviderProfileEntity> OrganizationProviderProfiles => Set<OrganizationProviderProfileEntity>();
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
     public DbSet<AgentCronJobEntity> AgentCronJobs => Set<AgentCronJobEntity>();
@@ -41,6 +46,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<IntegrationDefinitionEntity> Integrations => Set<IntegrationDefinitionEntity>();
     public DbSet<AgentIntegrationEntity> AgentIntegrations => Set<AgentIntegrationEntity>();
     public DbSet<IntegrationCredentialEntity> IntegrationCredentials => Set<IntegrationCredentialEntity>();
+    public DbSet<IntegrationDeploymentEntity> IntegrationDeployments => Set<IntegrationDeploymentEntity>();
     public DbSet<IntegrationConnectionEntity> IntegrationConnections => Set<IntegrationConnectionEntity>();
     public DbSet<IntegrationIndexEntityStatusEntity> IntegrationIndexEntityStatuses => Set<IntegrationIndexEntityStatusEntity>();
     public DbSet<IntegrationIndexJobEntity> IntegrationIndexJobs => Set<IntegrationIndexJobEntity>();
@@ -244,6 +250,55 @@ public sealed class EaosDbContext : DbContext
             e.Property(m => m.Status).IsRequired().HasMaxLength(16);
         });
 
+        modelBuilder.Entity<AccessGroupEntity>(e =>
+        {
+            e.HasKey(g => g.Id);
+            e.HasIndex(g => new { g.OrganizationId, g.Name }).IsUnique();
+            e.Property(g => g.Name).IsRequired().HasMaxLength(200);
+            e.HasOne(g => g.Organization).WithMany().HasForeignKey(g => g.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccessGroupMemberEntity>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => new { m.AccessGroupId, m.UserId }).IsUnique();
+            e.HasIndex(m => m.UserId);
+            e.HasOne(m => m.AccessGroup).WithMany().HasForeignKey(m => m.AccessGroupId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccessGroupWorkspaceGrantEntity>(e =>
+        {
+            e.HasKey(g => g.Id);
+            e.HasIndex(g => new { g.AccessGroupId, g.WorkspaceId }).IsUnique();
+            e.HasIndex(g => g.WorkspaceId);
+            e.Property(g => g.Role).IsRequired().HasMaxLength(16);
+            e.HasOne(g => g.AccessGroup).WithMany().HasForeignKey(g => g.AccessGroupId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(g => g.Workspace).WithMany().HasForeignKey(g => g.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrganizationPolicyProfileEntity>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.OrganizationId).IsUnique();
+            e.Property(p => p.AllowedToolsJson).HasColumnType("jsonb");
+            e.Property(p => p.DeniedToolsJson).HasColumnType("jsonb");
+            e.Property(p => p.AllowedIntegrationsJson).HasColumnType("jsonb");
+            e.Property(p => p.DeniedIntegrationsJson).HasColumnType("jsonb");
+            e.HasOne(p => p.Organization).WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrganizationProviderProfileEntity>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.OrganizationId, p.Provider }).IsUnique();
+            e.Property(p => p.Provider).IsRequired().HasMaxLength(64);
+            e.Property(p => p.DisplayName).IsRequired().HasMaxLength(128);
+            e.Property(p => p.AllowedModelsJson).HasColumnType("jsonb");
+            e.Property(p => p.EncryptedApiKey).HasMaxLength(4096);
+            e.HasOne(p => p.Organization).WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<AgentMemoryEntity>(e =>
         {
             e.ToTable("AgentMemories");
@@ -407,6 +462,18 @@ public sealed class EaosDbContext : DbContext
             e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
             e.HasOne<UserEntity>().WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IntegrationDeploymentEntity>(e =>
+        {
+            e.ToTable("IntegrationDeployments");
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => new { d.WorkspaceId, d.IntegrationName }).IsUnique();
+            e.HasIndex(d => d.OrganizationId);
+            e.Property(d => d.IntegrationName).IsRequired().HasMaxLength(64);
+            e.HasOne(d => d.Organization).WithMany().HasForeignKey(d => d.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Workspace).WithMany().HasForeignKey(d => d.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.CreatedBy).WithMany().HasForeignKey(d => d.CreatedById).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<IntegrationConnectionEntity>(e =>

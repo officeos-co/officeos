@@ -11,6 +11,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentResourceService, AgentResourceService>();
         services.AddScoped<IProviderService, ProviderService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
+        services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
         services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();
         services.AddScoped<IIntegrationExecutionService, IntegrationExecutionService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
@@ -44,6 +45,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
+        services.AddScoped<IAccessGroupService, AccessGroupService>();
+        services.AddScoped<IOrganizationPolicyService, OrganizationPolicyService>();
+        services.AddScoped<IOrganizationProviderProfileService, OrganizationProviderProfileService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<AgentTurnService>();
 

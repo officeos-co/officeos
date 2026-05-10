@@ -65,6 +65,12 @@ Context owns markdown-style memory stores, memory entries, external integration 
 
 Do not use `Data` as a feature, namespace, file prefix, or type prefix for Context-owned memory concepts. If the concept is agent-scoped memory, use `AgentMemory*`. If it is a reusable memory store or store entry, use `MemoryStore*` / `MemoryStoreEntry*`. If it is integration indexing or execution, use the existing Context integration names.
 
+To get a quick grasp of the project layout use
+
+```bash
+tree --gitignore
+```
+
 ## Dependency Rules
 
 Even though this is one project, layer boundaries still apply:
@@ -75,6 +81,7 @@ Even though this is one project, layer boundaries still apply:
 - Api may compose Application, Domain, and Infrastructure.
 - Do not pass transport `*Input`/`*Payload` types into Domain records or repository interfaces.
 - Do not pass EF entities, tracked queries, or `DbContext` outside Database/Infrastructure.
+- Constructor-injected services are required dependencies. Do not make injected repositories/services/protectors nullable, optional, or defaulted to `null` just to simplify tests. Tests must provide explicit fakes or real test registrations.
 
 ## Naming
 
@@ -302,7 +309,6 @@ Dependency field naming enforced by `EAOS010`:
 - Examples: `IChannelRepository _channelRepository`, `IChannelGateway _channelGateway`, `IAgentRepository _agentRepository`, `ChannelCredentialProtector _channelCredentialProtector`, `ChannelReplyContext _channelReplyContext`.
 - Framework/common exceptions keep the obvious type-derived names: `ILogger<T> _logger`, `IPublisher _publisher`, `HttpClient _httpClient`, `EaosDbContext _eaosDbContext`, `IDistributedCache _distributedCache`.
 - Avoid aliases such as `_repo`, `_db`, `_agents`, `_gateway`, `_protector`, `_events`, `_cache`, `_http`, `_browser`, or `_runtime`.
-
 
 ## Running
 

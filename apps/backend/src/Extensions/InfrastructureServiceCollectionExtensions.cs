@@ -16,6 +16,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIntegrationDefinitionRepository, IntegrationDefinitionRepository>();
         services.AddScoped<IAgentIntegrationRepository, AgentIntegrationRepository>();
         services.AddScoped<IIntegrationCredentialRepository, IntegrationCredentialRepository>();
+        services.AddScoped<IIntegrationDeploymentRepository, IntegrationDeploymentRepository>();
         services.AddScoped<IIntegrationConnectionRepository, IntegrationConnectionRepository>();
         services.AddScoped<IIntegrationIndexEntityStatusRepository, IntegrationIndexEntityStatusRepository>();
         services.AddScoped<IIntegrationIndexJobRepository, IntegrationIndexJobRepository>();
@@ -27,10 +28,13 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
         services.AddScoped<IWorkspaceMemberRepository, WorkspaceMemberRepository>();
+        services.AddScoped<IAccessGroupRepository, AccessGroupRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IChannelRepository, ChannelRepository>();
         services.AddScoped<IAgentLogRepository, AgentLogRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IOrganizationPolicyProfileRepository, OrganizationPolicyProfileRepository>();
+        services.AddScoped<IOrganizationProviderProfileRepository, OrganizationProviderProfileRepository>();
         services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
         services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
         services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();

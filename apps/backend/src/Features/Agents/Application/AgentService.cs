@@ -82,11 +82,14 @@ internal sealed class AgentService : IAgentService
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
 
-        if (await RequiresConfiguredProviderKeyAsync(request.Provider, ct))
+        if (await RequiresConfiguredProviderKeyAsync(request.Provider, workspaceId, ct))
         {
             throw new InvalidOperationException(
                 $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
         }
+
+        if (!await _providerService.IsModelAllowedAsync(request.Provider, request.Model, workspaceId, ct))
+            throw new InvalidOperationException($"Model '{request.Model ?? ProviderRegistry.DefaultModel}' is not allowed for provider '{request.Provider}'.");
 
         var record = AgentRecord.Create(request.Name, request.Provider, request.Model, ownerId, request.Prompt, workspaceId);
 
@@ -127,16 +130,20 @@ internal sealed class AgentService : IAgentService
         if (!string.IsNullOrWhiteSpace(request.Provider))
         {
             var provider = request.Provider.Trim().ToLowerInvariant();
-            if (await RequiresConfiguredProviderKeyAsync(provider, ct))
+            if (await RequiresConfiguredProviderKeyAsync(provider, record.WorkspaceId, ct))
             {
                 throw new InvalidOperationException(
                     $"Provider '{provider}' is not configured. Set its API key on the Providers page first.");
             }
+            if (!await _providerService.IsModelAllowedAsync(provider, request.Model ?? record.Model, record.WorkspaceId, ct))
+                throw new InvalidOperationException($"Model '{request.Model ?? record.Model ?? ProviderRegistry.DefaultModel}' is not allowed for provider '{provider}'.");
             record.Provider = provider;
         }
 
         if (request.Model is not null)
         {
+            if (!await _providerService.IsModelAllowedAsync(record.Provider, request.Model, record.WorkspaceId, ct))
+                throw new InvalidOperationException($"Model '{request.Model}' is not allowed for provider '{record.Provider}'.");
             record.ValidateAndSetModel(request.Model);
         }
 
@@ -208,9 +215,9 @@ internal sealed class AgentService : IAgentService
         }
     }
 
-    private async Task<bool> RequiresConfiguredProviderKeyAsync(string provider, CancellationToken ct)
+    private async Task<bool> RequiresConfiguredProviderKeyAsync(string provider, Guid? workspaceId, CancellationToken ct)
     {
-        var key = await _providerService.GetApiKeyForDispatchAsync(provider, ct);
+        var key = await _providerService.GetApiKeyForDispatchAsync(provider, workspaceId, ct);
         return key is null;
     }
 
