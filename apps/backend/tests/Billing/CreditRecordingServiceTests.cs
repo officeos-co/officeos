@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.Management;
+using OffceOs.Application.Features.Billing;
 using OffceOs.Domain.Common.Services;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Management;
+using OffceOs.Domain.Features.Billing;
 using OffceOs.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -17,7 +17,7 @@ public sealed class CreditRecordingServiceTests
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
         var agents = new FakeAgentRepository(Agent(agentId, ownerId));
-        var subscriptions = new FakeUserSubscriptionRepository(UserSubscription.CreateDefaultFree(ownerId));
+        var subscriptions = new FakeUserSubscriptionRepository(UserSubscriptionRecord.CreateDefaultFree(ownerId));
         var stripe = new FakeStripeMeteringService();
         var service = CreateService(agents, subscriptions, stripe);
 
@@ -33,7 +33,7 @@ public sealed class CreditRecordingServiceTests
     {
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
-        var subscriptions = new FakeUserSubscriptionRepository(UserSubscription.CreateDefaultFree(ownerId));
+        var subscriptions = new FakeUserSubscriptionRepository(UserSubscriptionRecord.CreateDefaultFree(ownerId));
         var service = CreateService(
             new FakeAgentRepository(Agent(agentId, ownerId)),
             subscriptions,
@@ -71,7 +71,7 @@ public sealed class CreditRecordingServiceTests
     {
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
-        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        var sub = UserSubscriptionRecord.CreateDefaultFree(ownerId);
         sub.Plan = SubscriptionPlan.Pro;
         sub.CreditBudgetPerMonth = 100;
         sub.CreditsUsedThisMonth = 90;
@@ -95,7 +95,7 @@ public sealed class CreditRecordingServiceTests
     {
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
-        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        var sub = UserSubscriptionRecord.CreateDefaultFree(ownerId);
         sub.CreditBudgetPerMonth = 100;
         sub.CreditsUsedThisMonth = 100;
         sub.OverageEnabled = true;
@@ -154,13 +154,13 @@ public sealed class CreditRecordingServiceTests
 
     private sealed class FakeUserSubscriptionRepository : IUserSubscriptionRepository
     {
-        public FakeUserSubscriptionRepository(UserSubscription? current = null) => Current = current;
+        public FakeUserSubscriptionRepository(UserSubscriptionRecord? current = null) => Current = current;
 
-        public UserSubscription? Current { get; private set; }
+        public UserSubscriptionRecord? Current { get; private set; }
         public int AddCount { get; private set; }
         public int UpdateCount { get; private set; }
 
-        public Task<UserSubscription?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
+        public Task<UserSubscriptionRecord?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
             => Task.FromResult(
                 Current is not null
                 && (!filter.Id.HasValue || Current.Id == filter.Id.Value)
@@ -168,14 +168,14 @@ public sealed class CreditRecordingServiceTests
                     ? Current
                     : null);
 
-        public Task AddAsync(UserSubscription sub, CancellationToken ct = default)
+        public Task AddAsync(UserSubscriptionRecord sub, CancellationToken ct = default)
         {
             Current = sub;
             AddCount++;
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(UserSubscription sub, CancellationToken ct = default)
+        public Task UpdateAsync(UserSubscriptionRecord sub, CancellationToken ct = default)
         {
             Current = sub;
             UpdateCount++;

@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Billing;
 
 internal sealed class UserBillingService : IUserBillingService
 {
@@ -20,10 +20,10 @@ internal sealed class UserBillingService : IUserBillingService
         StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
-    public async Task<UserSubscription> GetSubscriptionAsync(Guid userId, CancellationToken ct = default)
+    public async Task<UserSubscriptionRecord> GetSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
-        return sub ?? UserSubscription.CreateDefaultFree(userId);
+        return sub ?? UserSubscriptionRecord.CreateDefaultFree(userId);
     }
 
     public async Task<CreditBudgetResult> CheckCreditBudgetAsync(Guid userId, CancellationToken ct = default)
@@ -86,7 +86,7 @@ internal sealed class UserBillingService : IUserBillingService
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         if (sub is null)
         {
-            sub = UserSubscription.CreateDefaultFree(userId);
+            sub = UserSubscriptionRecord.CreateDefaultFree(userId);
             await _userSubscriptionRepository.AddAsync(sub, ct);
         }
 
@@ -279,7 +279,7 @@ internal sealed class UserBillingService : IUserBillingService
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = userId }, ct);
         if (sub is null)
         {
-            sub = UserSubscription.CreateDefaultFree(userId);
+            sub = UserSubscriptionRecord.CreateDefaultFree(userId);
             await _userSubscriptionRepository.AddAsync(sub, ct);
         }
         sub.StripeCustomerId = customer.Id;

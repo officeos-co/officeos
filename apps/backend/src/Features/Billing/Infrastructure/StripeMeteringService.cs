@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Features.Management;
+namespace OffceOs.Infrastructure.Features.Billing;
 
 internal sealed class StripeMeteringService : IStripeMeteringService
 {

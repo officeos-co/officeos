@@ -1,7 +1,7 @@
 namespace OffceOs.Domain.Common.ValueObjects;
 
 /// <summary>
-/// Encapsulates credit budget state and logic shared between UserSubscription and OrgSubscription.
+/// Encapsulates credit budget state and logic shared between UserSubscriptionRecord and OrgSubscriptionRecord.
 /// </summary>
 public sealed class CreditBudget
 {

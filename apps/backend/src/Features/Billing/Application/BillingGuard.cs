@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Billing;
 
 internal sealed class BillingGuard : IBillingGuard
 {
@@ -65,7 +65,7 @@ internal sealed class BillingGuard : IBillingGuard
         var sub = await _userSubscriptionRepository.GetByAsync(new UserSubscriptionFilter { UserId = agent.OwnerId.Value }, ct);
         if (sub is null)
         {
-            sub = UserSubscription.CreateDefaultFree(agent.OwnerId.Value);
+            sub = UserSubscriptionRecord.CreateDefaultFree(agent.OwnerId.Value);
             await _userSubscriptionRepository.AddAsync(sub, ct);
             _logger.LogWarning(
                 "Created missing free subscription during billing guard check for agent {AgentId} user {UserId}",

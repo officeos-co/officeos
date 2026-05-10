@@ -1,23 +1,23 @@
-namespace OffceOs.Infrastructure.Features.Management;
+namespace OffceOs.Infrastructure.Features.Billing;
 
-internal sealed class UserSubscriptionRepository : IUserSubscriptionRepository
+internal sealed class OrgSubscriptionRepository : IOrgSubscriptionRepository
 {
     private readonly EaosDbContext _eaosDbContext;
 
-    public UserSubscriptionRepository(EaosDbContext db)
+    public OrgSubscriptionRepository(EaosDbContext db)
     {
         _eaosDbContext = db;
     }
 
-    public async Task<UserSubscription?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
+    public async Task<OrgSubscriptionRecord?> GetByAsync(OrgSubscriptionFilter filter, CancellationToken ct = default)
     {
-        var query = _eaosDbContext.UserSubscriptions.AsQueryable();
+        var query = _eaosDbContext.OrgSubscriptions.AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(s => s.Id == filter.Id.Value);
 
-        if (filter.UserId.HasValue)
-            query = query.Where(s => s.UserId == filter.UserId.Value);
+        if (!string.IsNullOrEmpty(filter.OrganizationId))
+            query = query.Where(s => s.OrganizationId == filter.OrganizationId);
 
         if (!string.IsNullOrEmpty(filter.StripeCustomerId))
             query = query.Where(s => s.StripeCustomerId == filter.StripeCustomerId);
@@ -26,22 +26,22 @@ internal sealed class UserSubscriptionRepository : IUserSubscriptionRepository
             query = query.Where(s => s.StripeSubscriptionId == filter.StripeSubscriptionId);
 
         var entity = await query.FirstOrDefaultAsync(ct);
-        return entity is null ? null : ToUserSubscription(entity);
+        return entity is null ? null : ToOrgSubscription(entity);
     }
 
-    public async Task AddAsync(UserSubscription sub, CancellationToken ct = default)
+    public async Task AddAsync(OrgSubscriptionRecord sub, CancellationToken ct = default)
     {
-        await _eaosDbContext.UserSubscriptions.AddAsync(ToUserSubscriptionEntity(sub), ct);
+        await _eaosDbContext.OrgSubscriptions.AddAsync(ToOrgSubscriptionEntity(sub), ct);
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(UserSubscription sub, CancellationToken ct = default)
+    public async Task UpdateAsync(OrgSubscriptionRecord sub, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.UserSubscriptions
-            .FirstOrDefaultAsync(s => s.UserId == sub.UserId, ct);
+        var entity = await _eaosDbContext.OrgSubscriptions
+            .FirstOrDefaultAsync(s => s.OrganizationId == sub.OrganizationId, ct);
 
         if (entity is null)
-            throw new InvalidOperationException($"User subscription for user {sub.UserId} was not found.");
+            throw new InvalidOperationException($"Organization subscription for org {sub.OrganizationId} was not found.");
 
         Apply(entity, sub);
         await _eaosDbContext.SaveChangesAsync(ct);
@@ -54,12 +54,11 @@ internal sealed class UserSubscriptionRepository : IUserSubscriptionRepository
 
     // ── Mapping ──────────────────────────────────────────────────────
 
-    private static UserSubscription ToUserSubscription(UserSubscriptionEntity e) => new()
+    private static OrgSubscriptionRecord ToOrgSubscription(OrgSubscriptionEntity e) => new()
     {
         Id = e.Id,
-        UserId = e.UserId,
+        OrganizationId = e.OrganizationId,
         Plan = e.Plan.ToSubscriptionPlan(),
-        BillingCycle = e.BillingCycle.ToBillingCycle(),
         StripeCustomerId = e.StripeCustomerId,
         StripeSubscriptionId = e.StripeSubscriptionId,
         StripeOverageItemId = e.StripeOverageItemId,
@@ -71,12 +70,11 @@ internal sealed class UserSubscriptionRepository : IUserSubscriptionRepository
         OverageEnabled = e.OverageEnabled,
     };
 
-    private static UserSubscriptionEntity ToUserSubscriptionEntity(UserSubscription r) => new()
+    private static OrgSubscriptionEntity ToOrgSubscriptionEntity(OrgSubscriptionRecord r) => new()
     {
         Id = r.Id,
-        UserId = r.UserId,
+        OrganizationId = r.OrganizationId,
         Plan = r.Plan.ToStorageString(),
-        BillingCycle = r.BillingCycle.ToStorageString(),
         StripeCustomerId = r.StripeCustomerId,
         StripeSubscriptionId = r.StripeSubscriptionId,
         StripeOverageItemId = r.StripeOverageItemId,
@@ -89,10 +87,9 @@ internal sealed class UserSubscriptionRepository : IUserSubscriptionRepository
         OverageEnabled = r.OverageEnabled,
     };
 
-    private static void Apply(UserSubscriptionEntity e, UserSubscription r)
+    private static void Apply(OrgSubscriptionEntity e, OrgSubscriptionRecord r)
     {
         e.Plan = r.Plan.ToStorageString();
-        e.BillingCycle = r.BillingCycle.ToStorageString();
         e.StripeCustomerId = r.StripeCustomerId;
         e.StripeSubscriptionId = r.StripeSubscriptionId;
         e.StripeOverageItemId = r.StripeOverageItemId;

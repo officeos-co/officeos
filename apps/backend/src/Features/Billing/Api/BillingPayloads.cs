@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Features.Management;
+namespace OffceOs.Api.Features.Billing;
 
 public sealed record UserSubscriptionPayload(
     Guid Id,

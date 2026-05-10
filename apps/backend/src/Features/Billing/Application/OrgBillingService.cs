@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Billing;
 
 internal sealed class OrgBillingService : IOrgBillingService
 {
@@ -14,10 +14,10 @@ internal sealed class OrgBillingService : IOrgBillingService
         StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
-    public async Task<OrgSubscription> GetSubscriptionAsync(string orgId, CancellationToken ct = default)
+    public async Task<OrgSubscriptionRecord> GetSubscriptionAsync(string orgId, CancellationToken ct = default)
     {
         var sub = await _orgSubscriptionRepository.GetByAsync(new OrgSubscriptionFilter { OrganizationId = orgId }, ct);
-        return sub ?? OrgSubscription.CreateDefaultFree(orgId);
+        return sub ?? OrgSubscriptionRecord.CreateDefaultFree(orgId);
     }
 
     public async Task<CreditBudgetResult> CheckCreditBudgetAsync(string orgId, CancellationToken ct = default)
@@ -68,7 +68,7 @@ internal sealed class OrgBillingService : IOrgBillingService
         var sub = await _orgSubscriptionRepository.GetByAsync(new OrgSubscriptionFilter { OrganizationId = orgId }, ct);
         if (sub is null)
         {
-            sub = OrgSubscription.CreateDefaultFree(orgId);
+            sub = OrgSubscriptionRecord.CreateDefaultFree(orgId);
             await _orgSubscriptionRepository.AddAsync(sub, ct);
         }
 
