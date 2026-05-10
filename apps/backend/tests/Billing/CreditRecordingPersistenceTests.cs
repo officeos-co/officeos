@@ -5,6 +5,7 @@ using OffceOs.Database;
 using OffceOs.Configuration;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Billing;
+using OffceOs.Tests.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -20,7 +21,7 @@ public sealed class CreditRecordingPersistenceTests
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
 
-        await using (var db = CreateDb(dbName))
+        await using (var db = TestDbFactory.CreateNamed(dbName))
         {
             await db.Database.EnsureCreatedAsync();
             await new AgentRepository(db).AddAsync(new AgentRecord
@@ -34,7 +35,7 @@ public sealed class CreditRecordingPersistenceTests
             await new UserSubscriptionRepository(db).AddAsync(UserSubscriptionRecord.CreateDefaultFree(ownerId));
         }
 
-        await using (var db = CreateDb(dbName))
+        await using (var db = TestDbFactory.CreateNamed(dbName))
         {
             var service = new CreditRecordingService(
                 new StripeConfig(),
@@ -46,24 +47,11 @@ public sealed class CreditRecordingPersistenceTests
             await service.RecordCreditUsageAsync(agentId, "gpt-4o-mini", rawTokens: 123, CancellationToken.None);
         }
 
-        await using (var db = CreateDb(dbName))
+        await using (var db = TestDbFactory.CreateNamed(dbName))
         {
             var persisted = await db.UserSubscriptions.SingleAsync(s => s.UserId == ownerId);
             Assert.Equal(123, persisted.CreditsUsedThisMonth);
         }
     }
 
-    private static EaosDbContext CreateDb(string dbName)
-    {
-        var options = new DbContextOptionsBuilder<EaosDbContext>()
-            .UseInMemoryDatabase(dbName)
-            .Options;
-        return new EaosDbContext(options);
-    }
-
-    private sealed class FakeStripeMeteringService : IStripeMeteringService
-    {
-        public Task FireMeterEventAsync(string eventName, string customerId, long credits, CancellationToken ct = default)
-            => Task.CompletedTask;
-    }
 }

@@ -1,6 +1,5 @@
-using System.Net;
-using System.Text;
 using OffceOs.Application.Features.Agents;
+using OffceOs.Tests.Shared;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -11,7 +10,7 @@ public sealed class SseResponseParserTests
     public async Task ParseAsync_ignores_null_usage_and_delta_chunks()
     {
         var parser = new SseResponseParser();
-        using var response = SseResponse("""
+        using var response = HttpResponseFactory.SseResponse("""
             data: {"choices":[{"index":0,"delta":{"content":"Hello"}}],"usage":null}
 
             data: {"choices":[{"index":0,"delta":null,"finish_reason":"stop"}],"usage":null}
@@ -34,7 +33,7 @@ public sealed class SseResponseParserTests
     public async Task ParseAsync_assembles_streamed_tool_calls_with_null_usage_chunks()
     {
         var parser = new SseResponseParser();
-        using var response = SseResponse("""
+        using var response = HttpResponseFactory.SseResponse("""
             data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_123","function":{"name":"google_docs_create","arguments":""}}]}}],"usage":null}
 
             data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"title\""}}]}}],"usage":null}
@@ -59,8 +58,4 @@ public sealed class SseResponseParserTests
         Assert.Equal(9, result.OutputTokens);
     }
 
-    private static HttpResponseMessage SseResponse(string content) => new(HttpStatusCode.OK)
-    {
-        Content = new StringContent(content, Encoding.UTF8, "text/event-stream"),
-    };
 }

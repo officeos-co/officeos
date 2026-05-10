@@ -1,8 +1,8 @@
-using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Infrastructure.Features.Management;
+using OffceOs.Tests.Shared;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -16,7 +16,7 @@ public sealed class WorkspaceRepositoryTests
         var userId = Guid.NewGuid();
         var organizationId = Guid.NewGuid();
 
-        await using var db = CreateDb();
+        await using var db = TestDbFactory.Create("workspaces");
         db.Users.Add(new UserEntity { Id = userId, Email = "member@example.com", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
         db.Organizations.Add(new OrganizationEntity { Id = organizationId, Name = "Acme", OwnerUserId = userId, CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
@@ -38,7 +38,7 @@ public sealed class WorkspaceRepositoryTests
         var outsiderId = Guid.NewGuid();
         var organizationId = Guid.NewGuid();
 
-        await using var db = CreateDb();
+        await using var db = TestDbFactory.Create("workspaces");
         db.Users.Add(new UserEntity { Id = ownerId, Email = "owner@example.com", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
         db.Users.Add(new UserEntity { Id = outsiderId, Email = "outsider@example.com", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
         db.Organizations.Add(new OrganizationEntity { Id = organizationId, Name = "Acme", OwnerUserId = ownerId, CreatedAt = DateTime.UtcNow });
@@ -57,11 +57,4 @@ public sealed class WorkspaceRepositoryTests
         Assert.NotEqual(organization.Id, current.Id);
     }
 
-    private static EaosDbContext CreateDb()
-    {
-        var options = new DbContextOptionsBuilder<EaosDbContext>()
-            .UseInMemoryDatabase($"workspaces-{Guid.NewGuid():N}")
-            .Options;
-        return new EaosDbContext(options);
-    }
 }

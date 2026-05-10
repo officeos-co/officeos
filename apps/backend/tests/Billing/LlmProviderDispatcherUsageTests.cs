@@ -1,9 +1,9 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using OffceOs.Domain.Common.Services;
 using OffceOs.Configuration;
 using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -20,7 +20,7 @@ public sealed class LlmProviderDispatcherUsageTests
 
         foreach (var provider in providers)
         {
-            var handler = new CapturingHandler(_ => SseResponse("""
+            var handler = new CapturingHandler(_ => HttpResponseFactory.SseResponse("""
                 data: {"choices":[],"usage":{"prompt_tokens":11,"completion_tokens":7}}
 
                 data: [DONE]
@@ -31,19 +31,19 @@ public sealed class LlmProviderDispatcherUsageTests
             var result = await dispatcher.DispatchAsync(
                 provider.Slug,
                 "test-key",
-                ModelFor(provider),
-                RequestBody(ModelFor(provider)),
+                LlmProviderDispatcherTestData.ModelFor(provider),
+                LlmProviderDispatcherTestData.RequestBody(LlmProviderDispatcherTestData.ModelFor(provider)),
                 CancellationToken.None);
 
             Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
-            Assert.Equal(ModelFor(provider), result.Value.Model);
+            Assert.Equal(LlmProviderDispatcherTestData.ModelFor(provider), result.Value.Model);
 
             var sent = Assert.Single(handler.Requests);
             Assert.Equal("Bearer", sent.AuthorizationScheme);
             Assert.Equal("test-key", sent.AuthorizationParameter);
 
             using var doc = JsonDocument.Parse(sent.Body);
-            Assert.Equal(ModelFor(provider), doc.RootElement.GetProperty("model").GetString());
+            Assert.Equal(LlmProviderDispatcherTestData.ModelFor(provider), doc.RootElement.GetProperty("model").GetString());
             Assert.True(doc.RootElement.GetProperty("stream_options").GetProperty("include_usage").GetBoolean());
         }
     }
@@ -56,12 +56,12 @@ public sealed class LlmProviderDispatcherUsageTests
         {
             calls++;
             return calls == 1
-                ? JsonResponse(HttpStatusCode.BadRequest, """{"error":"unsupported parameter stream_options"}""")
-                : SseResponse("data: [DONE]\n\n");
+                ? HttpResponseFactory.JsonResponse(HttpStatusCode.BadRequest, """{"error":"unsupported parameter stream_options"}""")
+                : HttpResponseFactory.SseResponse("data: [DONE]\n\n");
         });
         var dispatcher = new LlmProviderDispatcher(new FakeHttpClientFactory(handler), NullLogger<LlmProviderDispatcher>.Instance);
 
-        var result = await dispatcher.DispatchAsync("openrouter", "test-key", "openrouter/model", RequestBody("openrouter/model"), CancellationToken.None);
+        var result = await dispatcher.DispatchAsync("openrouter", "test-key", "openrouter/model", LlmProviderDispatcherTestData.RequestBody("openrouter/model"), CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         Assert.Equal(2, handler.Requests.Count);
@@ -72,7 +72,7 @@ public sealed class LlmProviderDispatcherUsageTests
     [Fact]
     public async Task Custom_provider_uses_configured_base_url_and_model_without_authorization_when_key_is_empty()
     {
-        var handler = new CapturingHandler(_ => SseResponse("data: [DONE]\n\n"));
+        var handler = new CapturingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler),
             NullLogger<LlmProviderDispatcher>.Instance,
@@ -86,7 +86,7 @@ public sealed class LlmProviderDispatcherUsageTests
             "custom",
             string.Empty,
             "dashboard-model-id",
-            RequestBody("dashboard-model-id"),
+            LlmProviderDispatcherTestData.RequestBody("dashboard-model-id"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
@@ -103,7 +103,7 @@ public sealed class LlmProviderDispatcherUsageTests
     [Fact]
     public async Task Custom_provider_sends_bearer_authorization_when_key_is_configured()
     {
-        var handler = new CapturingHandler(_ => SseResponse("data: [DONE]\n\n"));
+        var handler = new CapturingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler),
             NullLogger<LlmProviderDispatcher>.Instance,
@@ -117,7 +117,7 @@ public sealed class LlmProviderDispatcherUsageTests
             "custom",
             "custom-key",
             "deepseek-r1:8b",
-            RequestBody("deepseek-r1:8b"),
+            LlmProviderDispatcherTestData.RequestBody("deepseek-r1:8b"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
@@ -129,7 +129,7 @@ public sealed class LlmProviderDispatcherUsageTests
     [Fact]
     public async Task Anthropic_provider_translates_usage_into_openai_compatible_stream()
     {
-        var handler = new CapturingHandler(_ => SseResponse("""
+        var handler = new CapturingHandler(_ => HttpResponseFactory.SseResponse("""
             data: {"type":"message_start","message":{"usage":{"input_tokens":19,"output_tokens":1}}}
 
             data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"hello"}}
@@ -141,7 +141,7 @@ public sealed class LlmProviderDispatcherUsageTests
             """));
         var dispatcher = new LlmProviderDispatcher(new FakeHttpClientFactory(handler), NullLogger<LlmProviderDispatcher>.Instance);
 
-        var result = await dispatcher.DispatchAsync("anthropic", "test-key", "claude-haiku-4-5", RequestBody("claude-haiku-4-5"), CancellationToken.None);
+        var result = await dispatcher.DispatchAsync("anthropic", "test-key", "claude-haiku-4-5", LlmProviderDispatcherTestData.RequestBody("claude-haiku-4-5"), CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         var streamText = await result.Value.Response.Content.ReadAsStringAsync();
@@ -166,64 +166,4 @@ public sealed class LlmProviderDispatcherUsageTests
         Assert.Equal(80, ProviderRegistry.ToCredits("gemini-2.5-pro", 10));
     }
 
-    private static JsonElement RequestBody(string model) => JsonSerializer.SerializeToElement(new
-    {
-        model,
-        messages = new[] { new { role = "user", content = "hello" } },
-        stream = true,
-    });
-
-    private static string ModelFor(ProviderDefinition provider)
-        => provider.Models.FirstOrDefault()?.Id ?? $"{provider.Slug}/test-model";
-
-    private static HttpResponseMessage SseResponse(string content) => new(HttpStatusCode.OK)
-    {
-        Content = new StringContent(content, Encoding.UTF8, "text/event-stream"),
-    };
-
-    private static HttpResponseMessage JsonResponse(HttpStatusCode statusCode, string content) => new(statusCode)
-    {
-        Content = new StringContent(content, Encoding.UTF8, "application/json"),
-    };
-
-    private sealed record CapturedRequest(
-        string RequestUri,
-        string Body,
-        string? AuthorizationScheme,
-        string? AuthorizationParameter,
-        string? ApiKeyHeaderName,
-        string? ApiKeyHeaderValue);
-
-    private sealed class CapturingHandler : HttpMessageHandler
-    {
-        private readonly Func<HttpRequestMessage, HttpResponseMessage> _respond;
-
-        public CapturingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) => _respond = respond;
-
-        public List<CapturedRequest> Requests { get; } = [];
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
-            request.Headers.TryGetValues("x-api-key", out var apiKeys);
-            Requests.Add(new CapturedRequest(
-                request.RequestUri?.ToString() ?? string.Empty,
-                body,
-                request.Headers.Authorization?.Scheme,
-                request.Headers.Authorization?.Parameter,
-                apiKeys is null ? null : "x-api-key",
-                apiKeys?.SingleOrDefault()));
-
-            return _respond(request);
-        }
-    }
-
-    private sealed class FakeHttpClientFactory : IHttpClientFactory
-    {
-        private readonly HttpMessageHandler _handler;
-
-        public FakeHttpClientFactory(HttpMessageHandler handler) => _handler = handler;
-
-        public HttpClient CreateClient(string name) => new(_handler, disposeHandler: false);
-    }
 }

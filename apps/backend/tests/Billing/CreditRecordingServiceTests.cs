@@ -1,10 +1,8 @@
-using OffceOs.Application.Features.Billing;
 using OffceOs.Domain.Common.Services;
 using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.Billing;
 using OffceOs.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
+using OffceOs.Tests.Shared;
 using Xunit;
 
 namespace OffceOs.Tests.Billing;
@@ -16,10 +14,10 @@ public sealed class CreditRecordingServiceTests
     {
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
-        var agents = new FakeAgentRepository(Agent(agentId, ownerId));
+        var agents = new FakeAgentRepository(AgentRecordFactory.Agent(agentId, ownerId));
         var subscriptions = new FakeUserSubscriptionRepository(UserSubscriptionRecord.CreateDefaultFree(ownerId));
         var stripe = new FakeStripeMeteringService();
-        var service = CreateService(agents, subscriptions, stripe);
+        var service = CreditRecordingServiceTestFactory.CreateService(agents, subscriptions, stripe);
 
         await service.RecordCreditUsageAsync(agentId, "gpt-4o", rawTokens: 10, CancellationToken.None);
 
@@ -34,8 +32,8 @@ public sealed class CreditRecordingServiceTests
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
         var subscriptions = new FakeUserSubscriptionRepository(UserSubscriptionRecord.CreateDefaultFree(ownerId));
-        var service = CreateService(
-            new FakeAgentRepository(Agent(agentId, ownerId)),
+        var service = CreditRecordingServiceTestFactory.CreateService(
+            new FakeAgentRepository(AgentRecordFactory.Agent(agentId, ownerId)),
             subscriptions,
             new FakeStripeMeteringService(),
             new CustomLlmProviderConfig
@@ -56,7 +54,7 @@ public sealed class CreditRecordingServiceTests
         var ownerId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
         var subscriptions = new FakeUserSubscriptionRepository();
-        var service = CreateService(new FakeAgentRepository(Agent(agentId, ownerId)), subscriptions, new FakeStripeMeteringService());
+        var service = CreditRecordingServiceTestFactory.CreateService(new FakeAgentRepository(AgentRecordFactory.Agent(agentId, ownerId)), subscriptions, new FakeStripeMeteringService());
 
         await service.RecordCreditUsageAsync(agentId, "gpt-4o-mini", rawTokens: 25, CancellationToken.None);
 
@@ -80,7 +78,7 @@ public sealed class CreditRecordingServiceTests
         sub.StripeOverageItemId = "si_overage";
 
         var stripe = new FakeStripeMeteringService();
-        var service = CreateService(new FakeAgentRepository(Agent(agentId, ownerId)), new FakeUserSubscriptionRepository(sub), stripe);
+        var service = CreditRecordingServiceTestFactory.CreateService(new FakeAgentRepository(AgentRecordFactory.Agent(agentId, ownerId)), new FakeUserSubscriptionRepository(sub), stripe);
 
         await service.RecordCreditUsageAsync(agentId, "gpt-4o-mini", rawTokens: 25, CancellationToken.None);
 
@@ -101,7 +99,7 @@ public sealed class CreditRecordingServiceTests
         sub.OverageEnabled = true;
 
         var stripe = new FakeStripeMeteringService();
-        var service = CreateService(new FakeAgentRepository(Agent(agentId, ownerId)), new FakeUserSubscriptionRepository(sub), stripe);
+        var service = CreditRecordingServiceTestFactory.CreateService(new FakeAgentRepository(AgentRecordFactory.Agent(agentId, ownerId)), new FakeUserSubscriptionRepository(sub), stripe);
 
         await Assert.ThrowsAsync<BillingProviderException>(
             () => service.RecordCreditUsageAsync(agentId, "gpt-4o-mini", rawTokens: 1, CancellationToken.None));
@@ -112,100 +110,10 @@ public sealed class CreditRecordingServiceTests
     public async Task RecordCreditUsageAsync_refuses_unowned_agents()
     {
         var agentId = Guid.NewGuid();
-        var service = CreateService(new FakeAgentRepository(Agent(agentId, null)), new FakeUserSubscriptionRepository(), new FakeStripeMeteringService());
+        var service = CreditRecordingServiceTestFactory.CreateService(new FakeAgentRepository(AgentRecordFactory.Agent(agentId, null)), new FakeUserSubscriptionRepository(), new FakeStripeMeteringService());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.RecordCreditUsageAsync(agentId, "gpt-4o-mini", rawTokens: 1, CancellationToken.None));
     }
 
-    private static CreditRecordingService CreateService(
-        IAgentRepository agents,
-        IUserSubscriptionRepository subscriptions,
-        IStripeMeteringService stripe,
-        CustomLlmProviderConfig? customLlmProviderConfig = null)
-        => new(
-            new StripeConfig(),
-            agents,
-            subscriptions,
-            stripe,
-            NullLogger<CreditRecordingService>.Instance,
-            customLlmProviderConfig);
-
-    private static AgentRecord Agent(Guid id, Guid? ownerId) => new()
-    {
-        Id = id,
-        Name = "Test agent",
-        Provider = "openai",
-        Model = "gpt-4o-mini",
-        OwnerId = ownerId,
-        PodName = "pod",
-    };
-
-    private sealed class FakeStripeMeteringService : IStripeMeteringService
-    {
-        public List<(string EventName, string CustomerId, long Credits)> Events { get; } = [];
-
-        public Task FireMeterEventAsync(string eventName, string customerId, long credits, CancellationToken ct = default)
-        {
-            Events.Add((eventName, customerId, credits));
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeUserSubscriptionRepository : IUserSubscriptionRepository
-    {
-        public FakeUserSubscriptionRepository(UserSubscriptionRecord? current = null) => Current = current;
-
-        public UserSubscriptionRecord? Current { get; private set; }
-        public int AddCount { get; private set; }
-        public int UpdateCount { get; private set; }
-
-        public Task<UserSubscriptionRecord?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
-            => Task.FromResult(
-                Current is not null
-                && (!filter.Id.HasValue || Current.Id == filter.Id.Value)
-                && (!filter.UserId.HasValue || Current.UserId == filter.UserId.Value)
-                    ? Current
-                    : null);
-
-        public Task AddAsync(UserSubscriptionRecord sub, CancellationToken ct = default)
-        {
-            Current = sub;
-            AddCount++;
-            return Task.CompletedTask;
-        }
-
-        public Task UpdateAsync(UserSubscriptionRecord sub, CancellationToken ct = default)
-        {
-            Current = sub;
-            UpdateCount++;
-            return Task.CompletedTask;
-        }
-
-        public Task SaveChangesAsync(CancellationToken ct = default) => Task.CompletedTask;
-    }
-
-    private sealed class FakeAgentRepository : IAgentRepository
-    {
-        private readonly AgentRecord? _agent;
-
-        public FakeAgentRepository(AgentRecord? agent) => _agent = agent;
-
-        public Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<AgentRecord>>(_agent is null ? [] : [_agent]);
-
-        public Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default)
-            => Task.FromResult(
-                _agent is not null
-                && (!filter.Id.HasValue || _agent.Id == filter.Id.Value)
-                && (!filter.OwnerId.HasValue || _agent.OwnerId == filter.OwnerId.Value)
-                    ? _agent
-                    : null);
-
-        public Task AddAsync(AgentRecord record, CancellationToken ct = default) => Task.CompletedTask;
-        public Task UpdateAsync(AgentRecord record, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> SoftDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.FromResult(false);
-        public Task UpdateStatusAsync(AgentFilter filter, AgentStatus status, CancellationToken ct = default) => Task.CompletedTask;
-        public Task HardDeleteAsync(AgentFilter filter, CancellationToken ct = default) => Task.CompletedTask;
-    }
 }

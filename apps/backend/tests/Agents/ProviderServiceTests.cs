@@ -1,15 +1,14 @@
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Common.Services;
 using OffceOs.Configuration;
-using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Management;
+using OffceOs.Tests.Shared;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -19,7 +18,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task ListAsync_marks_only_platform_providers_with_keys_as_configured()
     {
-        var service = CreateService(
+        var service = ProviderServiceTestFactory.CreateService(
             new PlatformKeysConfig { OpenAiApiKey = "openai-key" },
             new CustomLlmProviderConfig());
 
@@ -52,7 +51,7 @@ public sealed class ProviderServiceTests
             configuration.GetSection("PlatformKeys").Bind(platformKeys);
             configuration.GetSection("CustomLlmProvider").Bind(customProvider);
 
-            var service = CreateService(platformKeys, customProvider);
+            var service = ProviderServiceTestFactory.CreateService(platformKeys, customProvider);
             var providers = await service.ListAsync();
 
             Assert.True(Assert.Single(providers, p => p.Name == "openai").Configured);
@@ -70,7 +69,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task ListAsync_includes_configured_custom_provider_with_configured_model()
     {
-        var service = CreateService(
+        var service = ProviderServiceTestFactory.CreateService(
             new PlatformKeysConfig(),
             new CustomLlmProviderConfig
             {
@@ -95,7 +94,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task ListAsync_includes_unconfigured_custom_provider_without_models()
     {
-        var service = CreateService(
+        var service = ProviderServiceTestFactory.CreateService(
             new PlatformKeysConfig(),
             new CustomLlmProviderConfig { BaseUrl = "http://localhost:11434/v1" });
 
@@ -110,7 +109,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task GetApiKeyForDispatchAsync_returns_empty_string_for_configured_custom_provider_without_key()
     {
-        var service = CreateService(
+        var service = ProviderServiceTestFactory.CreateService(
             new PlatformKeysConfig(),
             new CustomLlmProviderConfig
             {
@@ -126,7 +125,7 @@ public sealed class ProviderServiceTests
     [Fact]
     public async Task Workspace_provider_profiles_override_platform_provider_list_and_key()
     {
-        await using var db = CreateDb();
+        await using var db = TestDbFactory.Create("provider-service");
         var userId = Guid.NewGuid();
         var organizationId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
@@ -176,23 +175,4 @@ public sealed class ProviderServiceTests
         Assert.False(await service.IsModelAllowedAsync("anthropic", "claude-sonnet-4-5", workspaceId));
     }
 
-    private static EaosDbContext CreateDb()
-    {
-        var options = new DbContextOptionsBuilder<EaosDbContext>()
-            .UseInMemoryDatabase($"provider-service-{Guid.NewGuid():N}")
-            .Options;
-        return new EaosDbContext(options);
-    }
-
-    private static ProviderService CreateService(PlatformKeysConfig platformKeysConfig, CustomLlmProviderConfig customLlmProviderConfig)
-    {
-        var db = CreateDb();
-        var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-keys-{Guid.NewGuid():N}"))));
-        return new ProviderService(
-            platformKeysConfig,
-            customLlmProviderConfig,
-            new OrganizationProviderProfileRepository(db),
-            new WorkspaceRepository(db),
-            protector);
-    }
 }

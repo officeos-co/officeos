@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Tests.Shared;
 using Xunit;
 
 namespace OffceOs.Tests.Sandbox;
@@ -86,23 +87,4 @@ public sealed class PodExecutorClientTests
         Assert.Contains("hello", handler.Bodies[1]);
     }
 
-    private sealed class RecordingHandler : HttpMessageHandler
-    {
-        private readonly Func<HttpRequestMessage, HttpResponseMessage> _respond;
-
-        public RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond)
-        {
-            _respond = respond;
-        }
-
-        public List<HttpRequestMessage> Requests { get; } = [];
-        public List<string> Bodies { get; } = [];
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            Requests.Add(request);
-            Bodies.Add(request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken));
-            return _respond(request);
-        }
-    }
 }
