@@ -8,7 +8,8 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
-    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
+    private readonly IAgentDefinitionRepository _agentDefinitionRepository;
+    private readonly AgentDefinitionParser _agentDefinitionParser;
 
     public AgentToolCatalogService(
         IAgentMemoryService memoryService,
@@ -17,7 +18,8 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         AgentTaskStore taskStore,
         IBrowserToolContextFactory browserToolContextFactory,
         IIntegrationDefinitionService integrationDefinitionService,
-        IAgentToolPermissionRepository permissionRepository)
+        IAgentDefinitionRepository agentDefinitionRepository,
+        AgentDefinitionParser agentDefinitionParser)
     {
         _agentMemoryService = memoryService;
         _agentCronJobRepository = cronJobRepository;
@@ -25,7 +27,8 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         _agentTaskStore = taskStore;
         _browserToolContextFactory = browserToolContextFactory;
         _integrationDefinitionService = integrationDefinitionService;
-        _agentToolPermissionRepository = permissionRepository;
+        _agentDefinitionRepository = agentDefinitionRepository;
+        _agentDefinitionParser = agentDefinitionParser;
     }
 
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default)
@@ -59,10 +62,16 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         var browserContext = await _browserToolContextFactory.CreateCatalogAsync(ct);
         tools.AddRange(ToolRegistryFactory.CreateBrowserTools(browserContext, effectiveAgentId));
 
+        AgentToolsetPermissionPolicy? toolsetPolicy = null;
         if (agentId.HasValue)
         {
-            var resolver = new AgentToolPermissionResolver(await _agentToolPermissionRepository.ListForAgentAsync(effectiveAgentId, ct));
-            tools = tools.Where(resolver.IsAllowed).ToList();
+            var definition = await _agentDefinitionRepository.GetByAsync(
+                new AgentDefinitionFilter { AgentId = effectiveAgentId, ActiveOnly = true },
+                ct);
+            if (definition is not null)
+                toolsetPolicy = new AgentToolsetPermissionPolicy(_agentDefinitionParser.Parse(definition.ConfigJson));
+            if (toolsetPolicy is not null)
+                tools = tools.Where(toolsetPolicy.IsAllowed).ToList();
         }
 
         var entries = tools.Select(ToEntry).ToList();
@@ -73,7 +82,10 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             foreach (var server in integrations)
             {
                 foreach (var tool in ParseIntegrationTools(server))
-                    entries.Add(tool);
+                {
+                    if (toolsetPolicy is null || toolsetPolicy.AllowsIntegrationTool(server.Name, tool.PermissionTool))
+                        entries.Add(tool);
+                }
             }
         }
 

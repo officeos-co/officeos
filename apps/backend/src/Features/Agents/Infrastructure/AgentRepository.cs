@@ -199,6 +199,7 @@ internal sealed class AgentRepository : IAgentRepository
         OwnerId = e.OwnerId,
         WorkspaceId = e.WorkspaceId,
         EncryptedBackendToken = e.EncryptedBackendToken,
+        ActiveDefinitionId = e.ActiveDefinitionId,
         PersonalityFiles = personalityFiles ?? [],
         Memories = memories ?? [],
         CronJobs = cronJobs ?? [],
@@ -221,6 +222,7 @@ internal sealed class AgentRepository : IAgentRepository
         OwnerId = r.OwnerId,
         WorkspaceId = r.WorkspaceId,
         EncryptedBackendToken = r.EncryptedBackendToken,
+        ActiveDefinitionId = r.ActiveDefinitionId,
     };
 
     private static void MapToAgentEntity(AgentRecord r, AgentEntity e)
@@ -236,5 +238,6 @@ internal sealed class AgentRepository : IAgentRepository
         e.OwnerId = r.OwnerId;
         e.WorkspaceId = r.WorkspaceId;
         e.EncryptedBackendToken = r.EncryptedBackendToken;
+        e.ActiveDefinitionId = r.ActiveDefinitionId;
     }
 }

@@ -80,16 +80,19 @@ internal sealed class NoBrowserToolContextFactory : IBrowserToolContextFactory
         throw new NotSupportedException();
 }
 
-public sealed class EmptyAgentToolPermissionRepository : IAgentToolPermissionRepository
+public sealed class EmptyAgentDefinitionRepository : IAgentDefinitionRepository
 {
-    public Task<IReadOnlyList<AgentToolPermissionRecord>> ListForAgentAsync(Guid agentId, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<AgentToolPermissionRecord>>([]);
+    public Task<AgentDefinitionRecord?> GetByAsync(AgentDefinitionFilter filter, CancellationToken ct = default) =>
+        Task.FromResult<AgentDefinitionRecord?>(null);
 
-    public Task UpsertAsync(Guid agentId, string skillName, string toolName, ToolPermission permission, CancellationToken ct = default) =>
+    public Task<IReadOnlyList<AgentDefinitionRecord>> ListAsync(AgentDefinitionFilter filter, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentDefinitionRecord>>([]);
+
+    public Task AddAsync(AgentDefinitionRecord definition, CancellationToken ct = default) =>
         Task.CompletedTask;
 
-    public Task SetManyAsync(Guid agentId, IReadOnlyList<AgentToolPermissionRecord> entries, CancellationToken ct = default) =>
-        Task.CompletedTask;
+    public Task<int> GetNextVersionAsync(Guid agentId, CancellationToken ct = default) =>
+        Task.FromResult(1);
 }
 
 public sealed class FakeIntegrationExecutionService : IIntegrationExecutionService

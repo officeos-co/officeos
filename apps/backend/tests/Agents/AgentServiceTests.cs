@@ -39,6 +39,7 @@ public sealed class AgentServiceTests
     private static AgentService CreateService(EaosDbContext db, IProviderService providerService)
     {
         var agentRepository = new AgentRepository(db);
+        var agentDefinitionRepository = new AgentDefinitionRepository(db);
         return new AgentService(
             agentRepository,
             new FakeAgentDeployer(),
@@ -50,6 +51,7 @@ public sealed class AgentServiceTests
             new AgentChannelBinder(new ChannelRepository(db)),
             new FakeAgentLogService(),
             IntegrationDefinitionServiceTestFactory.CreateService(),
-            new AgentToolPermissionRepository(db));
+            agentDefinitionRepository,
+            new AgentDefinitionParser());
     }
 }

@@ -41,6 +41,8 @@ public sealed class AgentRecord
     /// </summary>
     public string? EncryptedBackendToken { get; set; }
 
+    public Guid? ActiveDefinitionId { get; set; }
+
     // ── Aggregate children (populated by rich-load repository methods) ───────
 
     public IReadOnlyList<AgentPersonalityRecord> PersonalityFiles { get; init; } = [];

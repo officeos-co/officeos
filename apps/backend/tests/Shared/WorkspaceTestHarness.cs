@@ -48,6 +48,8 @@ public sealed record WorkspaceTestHarness(
         var channelRepository = new ChannelRepository(db);
         var integrationDefinitionRepository = new IntegrationDefinitionRepository(db);
         var integrationCredentialRepository = new IntegrationCredentialRepository(db);
+        var agentDefinitionRepository = new AgentDefinitionRepository(db);
+        var agentDefinitionParser = new AgentDefinitionParser();
         var integrationService = CreateIntegrationService(
             db,
             agentRepository,
@@ -64,7 +66,8 @@ public sealed record WorkspaceTestHarness(
             new AgentChannelBinder(channelRepository),
             new FakeAgentLogService(),
             integrationService,
-            new AgentToolPermissionRepository(db));
+            agentDefinitionRepository,
+            agentDefinitionParser);
         var agentDashboard = new AgentDashboardService(
             agentService,
             agentRepository,
@@ -74,8 +77,8 @@ public sealed record WorkspaceTestHarness(
             channelRepository,
             new FakeChannelService(),
             new FakeBrowserService(),
-            new AgentToolPermissionRepository(db),
-            new AgentRunRepository(db));
+            new AgentRunRepository(db),
+            agentDefinitionParser);
 
         return new WorkspaceTestHarness(
             new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache, new NoopPublisher()),

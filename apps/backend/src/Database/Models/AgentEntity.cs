@@ -15,6 +15,7 @@ public sealed class AgentEntity
     public Guid? OwnerId { get; set; }
     public Guid? WorkspaceId { get; set; }
     public string? EncryptedBackendToken { get; set; }
+    public Guid? ActiveDefinitionId { get; set; }
     public UserEntity? Owner { get; set; }
     public WorkspaceEntity? Workspace { get; set; }
 }

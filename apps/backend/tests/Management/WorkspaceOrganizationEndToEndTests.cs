@@ -32,16 +32,16 @@ public sealed class WorkspaceOrganizationEndToEndTests
 
         var agent = await harness.AgentDashboard.CreateAsync(
             new CreateDashboardAgentRequest(
-                "Workspace Agent",
-                "openai",
-                "gpt-4o-mini",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null),
+                Name: "Workspace Agent",
+                Provider: "openai",
+                Model: "gpt-4o-mini",
+                Prompt: null,
+                ConfigJson: null,
+                IntegrationSlugs: null,
+                ChannelConnectionIds: null,
+                ToolNames: null,
+                Resources: null,
+                BootstrapMessage: null),
             userId,
             replacement.Id);
 
@@ -94,16 +94,16 @@ public sealed class WorkspaceOrganizationEndToEndTests
 
         var agent = await harness.AgentDashboard.CreateAsync(
             new CreateDashboardAgentRequest(
-                "Org Agent",
-                "openai",
-                "gpt-4o-mini",
-                null,
-                null,
-                null,
-                ["org-docs"],
-                null,
-                null,
-                null),
+                Name: "Org Agent",
+                Provider: "openai",
+                Model: "gpt-4o-mini",
+                Prompt: null,
+                ConfigJson: null,
+                IntegrationSlugs: null,
+                ChannelConnectionIds: null,
+                ToolNames: ["org-docs"],
+                Resources: null,
+                BootstrapMessage: null),
             memberId,
             opsWorkspace.Id);
 
@@ -247,16 +247,16 @@ public sealed class WorkspaceOrganizationEndToEndTests
         var hidden = await harness.Integrations.ListAsync(ownerId, workspace.Id);
         var agent = await harness.AgentDashboard.CreateAsync(
             new CreateDashboardAgentRequest(
-                "Org Agent",
-                "openai",
-                "gpt-4o-mini",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null),
+                Name: "Org Agent",
+                Provider: "openai",
+                Model: "gpt-4o-mini",
+                Prompt: null,
+                ConfigJson: null,
+                IntegrationSlugs: null,
+                ChannelConnectionIds: null,
+                ToolNames: null,
+                Resources: null,
+                BootstrapMessage: null),
             ownerId,
             workspace.Id);
 

@@ -27,16 +27,16 @@ public sealed class AgentDashboardChannelBindingTests
 
         var agent = await harness.AgentDashboard.CreateAsync(
             new CreateDashboardAgentRequest(
-                "Ops Agent",
-                "openai",
-                "gpt-4o-mini",
-                null,
-                null,
-                [telegramSupport.Id],
-                null,
-                null,
-                null,
-                null),
+                Name: "Ops Agent",
+                Provider: "openai",
+                Model: "gpt-4o-mini",
+                Prompt: null,
+                ConfigJson: null,
+                IntegrationSlugs: null,
+                ChannelConnectionIds: [telegramSupport.Id],
+                ToolNames: null,
+                Resources: null,
+                BootstrapMessage: null),
             ownerId,
             workspace.Id);
 
@@ -62,16 +62,16 @@ public sealed class AgentDashboardChannelBindingTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.AgentDashboard.CreateAsync(
                 new CreateDashboardAgentRequest(
-                    "Ops Agent",
-                    "openai",
-                    "gpt-4o-mini",
-                    null,
-                    null,
-                    [otherTelegram.Id],
-                    null,
-                    null,
-                    null,
-                    null),
+                    Name: "Ops Agent",
+                    Provider: "openai",
+                    Model: "gpt-4o-mini",
+                    Prompt: null,
+                    ConfigJson: null,
+                    IntegrationSlugs: null,
+                    ChannelConnectionIds: [otherTelegram.Id],
+                    ToolNames: null,
+                    Resources: null,
+                    BootstrapMessage: null),
                 ownerId,
                 workspace.Id));
 

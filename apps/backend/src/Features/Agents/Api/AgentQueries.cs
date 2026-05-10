@@ -45,19 +45,6 @@ public class AgentQueries
         return result;
     }
 
-    [GraphQLDescription("Returns explicit allow/deny tool permission overrides for an agent.")]
-    public async Task<IReadOnlyList<ToolPermissionPayload>> GetAgentToolPermissions(
-        Guid agentId,
-        [Service] UserContext user,
-        [Service] IWorkspaceService workspaces,
-        [Service] IAgentDashboardService agents,
-        CancellationToken ct)
-    {
-        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var rows = await agents.ListToolPermissionsAsync(user.Id, workspace.Id, agentId, ct);
-        return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
-    }
-
     [GraphQLDescription("Returns the backend-owned tool catalog for dashboard permission UIs.")]
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> GetAgentToolCatalog(
         Guid? agentId,

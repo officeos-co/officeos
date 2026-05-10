@@ -24,10 +24,10 @@ public class AgentDashboardMutations
                     input.Provider,
                     input.Model,
                     input.Prompt,
+                    input.ConfigJson,
                     input.IntegrationSlugs,
                     input.ChannelConnectionIds,
                     input.ToolNames,
-                    input.ToolPermissions?.Select(tp => new AgentToolPermissionInit(tp.Tool, tp.Mode)).ToList(),
                     input.Resources?.Select(resource => new AgentResourceAttachmentRequest(
                         resource.ResourceType,
                         resource.ResourceId,
@@ -66,7 +66,7 @@ public class AgentDashboardMutations
             id,
             user.Id,
             workspace.Id,
-            new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt),
+            new PatchAgentRequest(input.Provider, input.Model, input.Name, input.Prompt, input.ConfigJson),
             ct);
         if (dto is null)
         {
@@ -97,37 +97,4 @@ public class AgentDashboardMutations
         return result;
     }
 
-    [GraphQLDescription("Sets one explicit tool permission override for an agent.")]
-    public async Task<ToolPermissionPayload> SetAgentToolPermission(
-        SetAgentToolPermissionInput input,
-        [Service] UserContext user,
-        [Service] IWorkspaceService workspaces,
-        [Service] IAgentDashboardService agents,
-        CancellationToken ct)
-    {
-        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        await agents.SetToolPermissionAsync(user.Id, workspace.Id, input.AgentId, input.Skill, input.Tool, input.Mode, ct);
-        return new ToolPermissionPayload(input.Skill, input.Tool, input.Mode);
-    }
-
-    [GraphQLDescription("Replaces explicit tool permission overrides for an agent.")]
-    public async Task<IReadOnlyList<ToolPermissionPayload>> SetAgentToolPermissions(
-        SetAgentToolPermissionsInput input,
-        [Service] UserContext user,
-        [Service] IWorkspaceService workspaces,
-        [Service] IAgentDashboardService agents,
-        CancellationToken ct)
-    {
-        var rows = input.Entries.Select(e => new AgentToolPermissionRecord
-        {
-            AgentId = input.AgentId,
-            SkillName = e.Skill,
-            ToolName = e.Tool,
-            Permission = e.Mode,
-        }).ToList();
-
-        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        await agents.SetToolPermissionsAsync(user.Id, workspace.Id, input.AgentId, rows, ct);
-        return rows.Select(p => new ToolPermissionPayload(p.SkillName, p.ToolName, p.Permission)).ToList();
-    }
 }
