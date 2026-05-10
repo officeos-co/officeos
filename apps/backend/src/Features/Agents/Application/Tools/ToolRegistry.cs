@@ -1,66 +1,67 @@
 namespace OffceOs.Application.Features.Agents;
 
-/// <summary>
-/// Registry of all agent tools. Creates tool instances per-turn with the appropriate dependencies.
-/// </summary>
+internal sealed class ToolRegistryContext
+{
+    public required List<IAgentTool> Tools { get; init; }
+    public required ToolExecutionContext ToolExecutionContext { get; init; }
+    public required List<IAsyncDisposable> IntegrationConnections { get; init; }
+    public required HashSet<string> PreloadedToolNames { get; init; }
+    public required Dictionary<string, string> PolicyDeniedToolReasons { get; init; }
+    public required TurnEventPublisher TurnEventPublisher { get; init; }
+    public required string CorrelationId { get; init; }
+}
+
 internal sealed class ToolRegistry : IAsyncDisposable
 {
-    private readonly List<IAgentTool> _tools;
-    private readonly HashSet<string> _preloadedToolNames;
+    private readonly ToolRegistryContext _toolRegistryContext;
     private readonly HashSet<string> _revealed = new(StringComparer.Ordinal);
-    private readonly List<IAsyncDisposable> _integrationConnections;
-    private readonly ToolExecutionContext _toolExecutionContext;
-    private readonly IReadOnlyDictionary<string, string> _policyDeniedToolReasons;
-    private readonly TurnEventPublisher? _turnEventPublisher;
-    private readonly string? _correlationId;
 
-    public ToolRegistry(
-        List<IAgentTool> tools,
-        ToolExecutionContext context,
-        List<IAsyncDisposable>? integrationConnections = null,
-        IEnumerable<string>? preloadedToolNames = null,
-        IReadOnlyDictionary<string, string>? policyDeniedToolReasons = null,
-        TurnEventPublisher? turnEventPublisher = null,
-        string? correlationId = null)
+    public ToolRegistry(ToolRegistryContext toolRegistryContext)
     {
-        _tools = tools;
-        _toolExecutionContext = context;
-        _integrationConnections = integrationConnections ?? [];
-        _preloadedToolNames = (preloadedToolNames ?? []).ToHashSet(StringComparer.Ordinal);
-        _policyDeniedToolReasons = policyDeniedToolReasons ?? new Dictionary<string, string>();
-        _turnEventPublisher = turnEventPublisher;
-        _correlationId = correlationId;
+        _toolRegistryContext = toolRegistryContext;
     }
+
+    public IReadOnlyList<IAgentTool> Tools => _toolRegistryContext.Tools;
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var conn in _integrationConnections)
+        foreach (var conn in _toolRegistryContext.IntegrationConnections)
             await conn.DisposeAsync();
     }
 
-    public IReadOnlyList<IAgentTool> Tools => _tools;
-
-    /// <summary>Get loaded tool schemas for the LLM tools array.</summary>
-    public object[] GetSchemas() => _tools
-        .Where(t => t.AlwaysLoad || _preloadedToolNames.Contains(t.Name) || _revealed.Contains(t.Name))
-        .Select(ToSchema)
+    public object[] GetSchemas() => _toolRegistryContext.Tools
+        .Where(tool => tool.AlwaysLoad
+            || _toolRegistryContext.PreloadedToolNames.Contains(tool.Name)
+            || _revealed.Contains(tool.Name))
+        .Select(tool => new
+        {
+            type = "function",
+            function = new
+            {
+                name = tool.Schema.Name,
+                description = tool.Schema.Description,
+                parameters = tool.Schema.Parameters,
+            }
+        })
         .ToArray();
 
     public string GetDeferredToolsMessage()
     {
-        var groups = _tools
-            .Where(t => t.ShouldDefer && !_preloadedToolNames.Contains(t.Name) && !_revealed.Contains(t.Name))
-            .GroupBy(t => t.Kind == AgentToolKind.Integration
-                ? ToolKey.Parse(t.PermissionScope).SkillName
-                : t.Name.StartsWith("browser__", StringComparison.Ordinal) ? "browser" : "builtin")
-            .OrderBy(g => g.Key);
+        var groups = _toolRegistryContext.Tools
+            .Where(tool => tool.ShouldDefer
+                && !_toolRegistryContext.PreloadedToolNames.Contains(tool.Name)
+                && !_revealed.Contains(tool.Name))
+            .GroupBy(tool => tool.Kind == AgentToolKind.Integration
+                ? ToolKey.Parse(tool.PermissionScope).SkillName
+                : tool.Name.StartsWith("browser__", StringComparison.Ordinal) ? "browser" : "builtin")
+            .OrderBy(group => group.Key);
 
         var sb = new StringBuilder();
         sb.AppendLine("<available-deferred-tools>");
         foreach (var group in groups)
         {
             sb.AppendLine($"group: {group.Key}");
-            foreach (var tool in group.OrderBy(t => t.Name))
+            foreach (var tool in group.OrderBy(tool => tool.Name))
                 sb.AppendLine($"- {tool.Name}: {tool.SearchHint}");
         }
         sb.Append("</available-deferred-tools>");
@@ -73,30 +74,16 @@ internal sealed class ToolRegistry : IAsyncDisposable
             _revealed.Add(name);
     }
 
-    private static object ToSchema(IAgentTool t) => new
-    {
-        type = "function",
-        function = new
-        {
-            name = t.Schema.Name,
-            description = t.Schema.Description,
-            parameters = t.Schema.Parameters,
-        }
-    };
-
-    /// <summary>Dispatch a tool call by name.</summary>
     public async Task<AgentResult<ToolResult>> DispatchAsync(string toolName, JsonElement args, CancellationToken ct)
     {
-        var tool = _tools.FirstOrDefault(t => t.Name == toolName);
+        var tool = _toolRegistryContext.Tools.FirstOrDefault(candidate => candidate.Name == toolName);
         if (tool is null)
         {
-            if (_turnEventPublisher is not null
-                && _correlationId is not null
-                && _policyDeniedToolReasons.TryGetValue(toolName, out var reason))
+            if (_toolRegistryContext.PolicyDeniedToolReasons.TryGetValue(toolName, out var reason))
             {
-                await _turnEventPublisher.PublishToolPolicyDeniedAsync(
-                    _toolExecutionContext.AgentId,
-                    _correlationId,
+                await _toolRegistryContext.TurnEventPublisher.PublishToolPolicyDeniedAsync(
+                    _toolRegistryContext.ToolExecutionContext.AgentId,
+                    _toolRegistryContext.CorrelationId,
                     toolName,
                     reason,
                     ct);
@@ -113,21 +100,28 @@ internal sealed class ToolRegistry : IAsyncDisposable
         if (result.IsFailure) return result;
 
         var value = result.Value;
-        var output = Truncate(value.Output, tool.MaxResultChars);
-        var error = value.Error is null ? null : Truncate(value.Error, tool.MaxResultChars);
+        var output = value.Output.Length > tool.MaxResultChars && tool.MaxResultChars > 0
+            ? value.Output[..tool.MaxResultChars] + "\n[truncated]"
+            : value.Output;
+        var error = value.Error is { } errorValue && errorValue.Length > tool.MaxResultChars && tool.MaxResultChars > 0
+            ? errorValue[..tool.MaxResultChars] + "\n[truncated]"
+            : value.Error;
         return new ToolResult(value.Success, output, error);
     }
-
-    private static string Truncate(string value, int maxChars)
-        => maxChars > 0 && value.Length > maxChars
-            ? value[..maxChars] + "\n[truncated]"
-            : value;
-
 }
 
-/// <summary>
-/// Builds a per-turn tool registry and owns tool construction dependencies.
-/// </summary>
+internal sealed class ToolRegistryRequest
+{
+    public required IAgentSandbox Sandbox { get; init; }
+    public required string SandboxId { get; init; }
+    public required string ServiceUrl { get; init; }
+    public required Guid AgentId { get; init; }
+    public required Guid? WorkspaceId { get; init; }
+    public required string CorrelationId { get; init; }
+    public required IReadOnlyList<IntegrationDefinitionRecord> Integrations { get; init; }
+    public required Func<string, Task<Dictionary<string, string>>> CredentialLoader { get; init; }
+}
+
 internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryService _agentMemoryService;
@@ -135,7 +129,7 @@ internal sealed class ToolRegistryFactory
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IIntegrationClientManager _integrationClientManager;
-    private readonly IBrowserToolContextFactory _browserToolContextFactory;
+    private readonly IBrowserToolService _browserToolService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IOrganizationPolicyService _organizationPolicyService;
@@ -149,7 +143,7 @@ internal sealed class ToolRegistryFactory
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IIntegrationClientManager integrationClientManager,
-        IBrowserToolContextFactory browserToolContextFactory,
+        IBrowserToolService browserToolService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
         IOrganizationPolicyService organizationPolicyService,
@@ -162,7 +156,7 @@ internal sealed class ToolRegistryFactory
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
         _integrationClientManager = integrationClientManager;
-        _browserToolContextFactory = browserToolContextFactory;
+        _browserToolService = browserToolService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
         _organizationPolicyService = organizationPolicyService;
@@ -171,42 +165,29 @@ internal sealed class ToolRegistryFactory
         _logger = logger;
     }
 
-    public async Task<ToolRegistry> CreateAsync(
-        IAgentSandbox sandbox,
-        string sandboxId,
-        string serviceUrl,
-        Guid agentId,
-        Guid? workspaceId,
-        string correlationId,
-        IReadOnlyList<IntegrationDefinitionRecord> integrations,
-            Func<string, Task<Dictionary<string, string>>> credentialLoader,
-            CancellationToken ct)
+    public async Task<ToolRegistry> CreateAsync(ToolRegistryRequest request, CancellationToken ct)
     {
-        var context = new ToolExecutionContext(agentId, sandboxId, serviceUrl, sandbox);
+        var context = new ToolExecutionContext(request.AgentId, request.SandboxId, request.ServiceUrl, request.Sandbox);
         var tools = new List<IAgentTool>
         {
-            // Bash tools (execute via pod PTY)
             new ShellTool(context),
             new FileReadTool(context),
             new FileWriteTool(context),
             new FileEditTool(context),
             new ContentSearchTool(context),
             new GlobSearchTool(context),
-            // Memory tools (Postgres)
-            new MemoryStoreTool(_agentMemoryService, agentId),
-            new MemoryRecallTool(_agentMemoryService, agentId),
-            new MemoryForgetTool(_agentMemoryService, agentId),
-            // Session/task orchestration
+            new MemoryStoreTool(_agentMemoryService, request.AgentId),
+            new MemoryRecallTool(_agentMemoryService, request.AgentId),
+            new MemoryForgetTool(_agentMemoryService, request.AgentId),
             new AskUserQuestionTool(),
-            new TaskCreateTool(_agentTaskStore, agentId),
-            new TaskListTool(_agentTaskStore, agentId),
-            new TaskGetTool(_agentTaskStore, agentId),
-            new TaskUpdateTool(_agentTaskStore, agentId),
-            new CronCreateTool(_agentCronJobRepository, agentId),
-            new CronListTool(_agentCronJobRepository, agentId),
-            new CronDeleteTool(_agentCronJobRepository, agentId),
-            new AgentSpawnTool(_agentRunRepository, agentId),
-            // HTTP tools (backend)
+            new TaskCreateTool(_agentTaskStore, request.AgentId),
+            new TaskListTool(_agentTaskStore, request.AgentId),
+            new TaskGetTool(_agentTaskStore, request.AgentId),
+            new TaskUpdateTool(_agentTaskStore, request.AgentId),
+            new CronCreateTool(_agentCronJobRepository, request.AgentId),
+            new CronListTool(_agentCronJobRepository, request.AgentId),
+            new CronDeleteTool(_agentCronJobRepository, request.AgentId),
+            new AgentSpawnTool(_agentRunRepository, request.AgentId),
             new HttpRequestTool(),
             new WebFetchTool(),
         };
@@ -214,116 +195,113 @@ internal sealed class ToolRegistryFactory
 
         var definitionStart = Stopwatch.GetTimestamp();
         var definition = await _agentDefinitionRepository.GetByAsync(
-            new AgentDefinitionFilter { AgentId = agentId, ActiveOnly = true },
+            new AgentDefinitionFilter { AgentId = request.AgentId, ActiveOnly = true },
             ct);
         var definitionConfig = definition is null
-            ? _agentDefinitionParser.CreateDefaultConfig("agent", ProviderRegistry.DefaultModel, null, integrations.Select(integration => integration.Name).ToList())
+            ? _agentDefinitionParser.CreateDefaultConfig(
+                "agent",
+                ProviderRegistry.DefaultModel,
+                null,
+                request.Integrations.Select(integration => integration.Name).ToList())
             : _agentDefinitionParser.Parse(definition.ConfigJson);
         var toolsetPolicy = new AgentToolsetPermissionPolicy(definitionConfig);
         await _turnEventPublisher.PublishDiagnosticAsync(
-            agentId,
-            correlationId,
+            request.AgentId,
+            request.CorrelationId,
             $"Tool setup: agent definition loaded ({definitionConfig.Tools.Count} toolsets)",
-            ElapsedMs(definitionStart),
+            (int)Stopwatch.GetElapsedTime(definitionStart).TotalMilliseconds,
             ct);
 
         var browserStart = Stopwatch.GetTimestamp();
-        BrowserToolContext? browserContext = null;
-        var browserFailed = false;
         try
         {
-            browserContext = await _browserToolContextFactory.CreateForTurnAsync(ct);
+            var browserTools = await _browserToolService.CreateForTurnAsync(request.AgentId, ct);
+            if (browserTools.Count == 0)
+            {
+                await _turnEventPublisher.PublishDiagnosticAsync(
+                    request.AgentId,
+                    request.CorrelationId,
+                    "Tool setup: browser unavailable",
+                    (int)Stopwatch.GetElapsedTime(browserStart).TotalMilliseconds,
+                    ct);
+                _logger.LogDebug("Browser runtime unavailable for agent {AgentId}; continuing turn without browser tools", request.AgentId);
+            }
+            else
+            {
+                tools.AddRange(browserTools);
+                foreach (var tool in browserTools)
+                    preloadedToolNames.Add(tool.Name);
+                await _turnEventPublisher.PublishDiagnosticAsync(
+                    request.AgentId,
+                    request.CorrelationId,
+                    "Tool setup: browser tools discovered",
+                    (int)Stopwatch.GetElapsedTime(browserStart).TotalMilliseconds,
+                    ct);
+            }
         }
         catch (Exception ex)
         {
-            browserFailed = true;
             await _turnEventPublisher.PublishDiagnosticAsync(
-                agentId,
-                correlationId,
+                request.AgentId,
+                request.CorrelationId,
                 "Tool setup: browser unavailable",
-                ElapsedMs(browserStart),
+                (int)Stopwatch.GetElapsedTime(browserStart).TotalMilliseconds,
                 ct);
-            // Browser is an internal optional runtime. If it is down, omit the
-            // tools for this turn instead of failing the whole agent loop.
-            _logger.LogWarning(ex, "Browser tools unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
-        }
-        if (browserContext is null && !browserFailed)
-        {
-            await _turnEventPublisher.PublishDiagnosticAsync(
-                agentId,
-                correlationId,
-                "Tool setup: browser unavailable",
-                ElapsedMs(browserStart),
-                ct);
-            _logger.LogDebug("Browser runtime unavailable for agent {AgentId}; continuing turn without browser tools", agentId);
-        }
-        else if (browserContext is { } availableBrowserContext)
-        {
-            await _turnEventPublisher.PublishDiagnosticAsync(
-                agentId,
-                correlationId,
-                "Tool setup: browser tools discovered",
-                ElapsedMs(browserStart),
-                ct);
-            AddBrowserTools(availableBrowserContext, agentId, tools, preloadedToolNames);
+            _logger.LogWarning(ex, "Browser tools unavailable for agent {AgentId}; continuing turn without browser tools", request.AgentId);
         }
 
         var integrationConnections = new List<IAsyncDisposable>();
-        if (HasEnabledIndexedIntegration(integrations, toolsetPolicy))
-            tools.Add(new IntegrationExecuteTool(_integrationExecutionService));
-
-        foreach (var server in integrations)
+        if (request.Integrations.Any(integration =>
+            integration.Entities.Count > 0
+            && toolsetPolicy.AllowsIntegrationTool(integration.Name, IntegrationIndexAccess.ToolName)))
         {
-            if (!string.IsNullOrWhiteSpace(server.ToolsJson))
+            tools.Add(new IntegrationExecuteTool(_integrationExecutionService));
+        }
+
+        foreach (var server in request.Integrations)
+        {
+            if (server.Tools.Count > 0)
             {
                 var lazyConnection = new LazyIntegrationConnection(
                     server,
-                    credentialLoader,
+                    request.CredentialLoader,
                     _integrationClientManager,
                     _turnEventPublisher,
-                    agentId,
-                    correlationId);
-
-                var catalogTools = ParseIntegrationCatalogTools(server).ToList();
-                foreach (var catalogTool in catalogTools)
+                    request.AgentId,
+                    request.CorrelationId);
+                foreach (var catalogTool in server.Tools)
                     tools.Add(new LazyIntegrationTool(server, catalogTool, lazyConnection));
                 tools.Add(new LazyListIntegrationResourcesTool(server, lazyConnection));
                 tools.Add(new LazyReadIntegrationResourceTool(server, lazyConnection));
                 integrationConnections.Add(lazyConnection);
-
                 await _turnEventPublisher.PublishDiagnosticAsync(
-                    agentId,
-                    correlationId,
-                    $"Tool setup: integration catalog loaded ({server.Name}, {catalogTools.Count} tools)",
+                    request.AgentId,
+                    request.CorrelationId,
+                    $"Tool setup: integration catalog loaded ({server.Name}, {server.Tools.Count} tools)",
                     0,
                     ct);
                 continue;
             }
 
             var credentialStart = Stopwatch.GetTimestamp();
-            var creds = await credentialLoader(server.Name);
+            var creds = await request.CredentialLoader(server.Name);
             await _turnEventPublisher.PublishDiagnosticAsync(
-                agentId,
-                correlationId,
+                request.AgentId,
+                request.CorrelationId,
                 $"Tool setup: integration credentials loaded ({server.Name})",
-                ElapsedMs(credentialStart),
+                (int)Stopwatch.GetElapsedTime(credentialStart).TotalMilliseconds,
                 ct);
 
             var connectStart = Stopwatch.GetTimestamp();
             var result = await _integrationClientManager.ConnectAsync(server, creds, ct);
             await _turnEventPublisher.PublishDiagnosticAsync(
-                agentId,
-                correlationId,
+                request.AgentId,
+                request.CorrelationId,
                 $"Tool setup: integration connected ({server.Name}, {result.Tools.Count} tools)",
-                ElapsedMs(connectStart),
+                (int)Stopwatch.GetElapsedTime(connectStart).TotalMilliseconds,
                 ct);
             if (result.Tools.Count == 0)
-            {
-                _logger.LogWarning(
-                    "Assigned integration {Server} discovered no callable tools for agent {AgentId}",
-                    server.Name,
-                    agentId);
-            }
+                _logger.LogWarning("Assigned integration {Server} discovered no callable tools for agent {AgentId}", server.Name, request.AgentId);
             foreach (var discovered in result.Tools)
                 tools.Add(new IntegrationTool(discovered));
             tools.Add(new ListIntegrationResourcesTool(server.Name, result.NativeClient));
@@ -340,10 +318,9 @@ internal sealed class ToolRegistryFactory
             else
                 policyDeniedToolReasons[tool.Name] = "tool is not allowed by agent definition";
         }
-
         tools = allowedByAgentDefinition;
 
-        var policy = await _organizationPolicyService.GetEffectiveForWorkspaceAsync(workspaceId, ct);
+        var policy = await _organizationPolicyService.GetEffectiveForWorkspaceAsync(request.WorkspaceId, ct);
         if (policy is not null)
         {
             var allowedByPolicy = new List<IAgentTool>();
@@ -355,120 +332,20 @@ internal sealed class ToolRegistryFactory
                 else
                     policyDeniedToolReasons[tool.Name] = denialReason;
             }
-
             tools = allowedByPolicy;
         }
 
         tools.Add(new ToolSearchTool(tools));
-
-        preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
-        return new ToolRegistry(
-            tools,
-            context,
-            integrationConnections,
-            preloadedToolNames,
-            policyDeniedToolReasons,
-            _turnEventPublisher,
-            correlationId);
-    }
-
-    private static int ElapsedMs(long startTimestamp)
-        => (int)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
-
-    private static bool HasEnabledIndexedIntegration(
-        IReadOnlyList<IntegrationDefinitionRecord> integrations,
-        AgentToolsetPermissionPolicy toolsetPolicy)
-    {
-        return integrations.Any(integration =>
-            integration.Entities.Count > 0
-            && toolsetPolicy.AllowsIntegrationTool(integration.Name, IntegrationIndexAccess.ToolName));
-    }
-
-    private static IEnumerable<IntegrationCatalogTool> ParseIntegrationCatalogTools(IntegrationDefinitionRecord server)
-    {
-        if (string.IsNullOrWhiteSpace(server.ToolsJson))
-            yield break;
-
-        JsonElement parsed;
-        try
+        preloadedToolNames.IntersectWith(tools.Select(tool => tool.Name));
+        return new ToolRegistry(new ToolRegistryContext
         {
-            parsed = JsonSerializer.Deserialize<JsonElement>(server.ToolsJson);
-        }
-        catch
-        {
-            yield break;
-        }
-
-        if (parsed.ValueKind != JsonValueKind.Array)
-            yield break;
-
-        foreach (var item in parsed.EnumerateArray())
-        {
-            var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-            if (string.IsNullOrWhiteSpace(name))
-                continue;
-
-            var description = item.TryGetProperty("description", out var descProp)
-                ? descProp.GetString() ?? name
-                : name;
-            JsonElement? parameters = null;
-            if (item.TryGetProperty("parameters", out var parametersProp)
-                || item.TryGetProperty("inputSchema", out parametersProp)
-                || item.TryGetProperty("input_schema", out parametersProp))
-            {
-                parameters = JsonSerializer.Deserialize<JsonElement>(parametersProp.GetRawText());
-            }
-
-            yield return new IntegrationCatalogTool(name, description, parameters);
-        }
+            Tools = tools,
+            ToolExecutionContext = context,
+            IntegrationConnections = integrationConnections,
+            PreloadedToolNames = preloadedToolNames,
+            PolicyDeniedToolReasons = policyDeniedToolReasons,
+            TurnEventPublisher = _turnEventPublisher,
+            CorrelationId = request.CorrelationId,
+        });
     }
-
-    private static void AddBrowserTools(
-        BrowserToolContext browserContext,
-        Guid agentId,
-        List<IAgentTool> tools,
-        HashSet<string> preloadedToolNames)
-    {
-        var browserTools = CreateBrowserTools(browserContext, agentId);
-        tools.AddRange(browserTools);
-        foreach (var tool in browserTools)
-            preloadedToolNames.Add(tool.Name);
-    }
-
-    internal static IReadOnlyList<IAgentTool> CreateBrowserTools(BrowserToolContext browser, Guid agentId)
-        =>
-        [
-            new BrowserNavigateTool(browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetSessionTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserObserveTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserScreenshotTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetConsoleTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetPageErrorsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetRequestFailuresTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserStopTraceTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserListAuthProfilesTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetAuthProfileTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserListDownloadsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserListTabsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserActivateTabTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserCloseTabTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserExecuteActionTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserSaveAuthStateTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserSaveAuthProfileTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserRequestHumanTakeoverTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetNetworkLogTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserEvalJsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserWaitForSelectorTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetHtmlTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserFindElementsTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserDragDropTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserSetViewportTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetCookiesTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserSetCookiesTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserGetLocalStorageTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserSetLocalStorageTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserExportScriptTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserCdpAttachTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-            new BrowserFindByVisionTool(browser.Descriptors, browser.BrowserService, browser.BrowserRuntime, agentId),
-        ];
 }

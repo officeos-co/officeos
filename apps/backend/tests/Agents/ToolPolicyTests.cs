@@ -28,20 +28,21 @@ public sealed class ToolPolicyTests
             {
                 Name = "salesforce",
                 Title = "Salesforce",
-                ToolsJson = """[{"name":"query","description":"Query records","parameters":{"type":"object","properties":{}}}]""",
+                Tools = [new IntegrationCatalogToolRecord("query", "Query records", new { type = "object", properties = new { } })],
             },
         };
 
-        await using var registry = await factory.CreateAsync(
-            new FakeAgentSandbox(),
-            "sandbox",
-            "http://sandbox",
-            agentId,
-            workspaceId,
-            "correlation",
-            integrations,
-            _ => Task.FromResult(new Dictionary<string, string>()),
-            CancellationToken.None);
+        await using var registry = await factory.CreateAsync(new ToolRegistryRequest
+        {
+            Sandbox = new FakeAgentSandbox(),
+            SandboxId = "sandbox",
+            ServiceUrl = "http://sandbox",
+            AgentId = agentId,
+            WorkspaceId = workspaceId,
+            CorrelationId = "correlation",
+            Integrations = integrations,
+            CredentialLoader = _ => Task.FromResult(new Dictionary<string, string>()),
+        }, CancellationToken.None);
 
         var toolNames = registry.Tools.Select(tool => tool.Name).ToHashSet(StringComparer.Ordinal);
 
@@ -69,26 +70,27 @@ public sealed class ToolPolicyTests
             {
                 Name = "google-docs",
                 Title = "Google Docs",
-                ToolsJson = """[{"name":"create_document","description":"Create a document","parameters":{"type":"object","properties":{}}}]""",
+                Tools = [new IntegrationCatalogToolRecord("create_document", "Create a document", new { type = "object", properties = new { } })],
             },
             new IntegrationDefinitionRecord
             {
                 Name = "salesforce",
                 Title = "Salesforce",
-                ToolsJson = """[{"name":"query","description":"Query records","parameters":{"type":"object","properties":{}}}]""",
+                Tools = [new IntegrationCatalogToolRecord("query", "Query records", new { type = "object", properties = new { } })],
             },
         };
 
-        await using var registry = await factory.CreateAsync(
-            new FakeAgentSandbox(),
-            "sandbox",
-            "http://sandbox",
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "correlation",
-            integrations,
-            _ => Task.FromResult(new Dictionary<string, string>()),
-            CancellationToken.None);
+        await using var registry = await factory.CreateAsync(new ToolRegistryRequest
+        {
+            Sandbox = new FakeAgentSandbox(),
+            SandboxId = "sandbox",
+            ServiceUrl = "http://sandbox",
+            AgentId = Guid.NewGuid(),
+            WorkspaceId = Guid.NewGuid(),
+            CorrelationId = "correlation",
+            Integrations = integrations,
+            CredentialLoader = _ => Task.FromResult(new Dictionary<string, string>()),
+        }, CancellationToken.None);
 
         var toolNames = registry.Tools.Select(tool => tool.Name).ToHashSet(StringComparer.Ordinal);
 

@@ -14,7 +14,7 @@ internal static class ToolRegistryTestFactory
             new FakeAgentRunRepository(),
             new AgentTaskStore(),
             new ThrowingIntegrationClientManager(),
-            new NoBrowserToolContextFactory(),
+            new BrowserToolService(new NoBrowserToolContextFactory()),
             new EmptyAgentDefinitionRepository(),
             new AgentDefinitionParser(),
             new FakeOrganizationPolicyService(policy),

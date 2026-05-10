@@ -52,21 +52,16 @@ internal sealed partial class IntegrationTool : IAgentTool
         var slug = SlugRegex().Replace(discovered.IntegrationName, "_");
         var toolSlug = SlugRegex().Replace(discovered.Name, "_");
         var name = $"{slug}__{toolSlug}";
-        var parameters = !string.IsNullOrEmpty(discovered.JsonSchema)
-            ? JsonSerializer.Deserialize<JsonElement>(discovered.JsonSchema)
-            : EmptyObjectSchema();
 
         return new ToolSchema(
             Name: name,
             Description: $"[{discovered.IntegrationName}] {discovered.Description ?? discovered.Name}",
-            Parameters: parameters);
+            Parameters: discovered.Parameters ?? EmptyObjectSchema());
     }
 
     internal static JsonElement EmptyObjectSchema()
         => JsonSerializer.SerializeToElement(new { type = "object", properties = new { } });
 }
-
-internal sealed record IntegrationCatalogTool(string Name, string Description, JsonElement? Parameters);
 
 internal interface IHydratableToolSchema
 {
@@ -79,7 +74,7 @@ internal sealed partial class LazyIntegrationTool : IAgentTool, IHydratableToolS
     private readonly LazyIntegrationConnection _connection;
     private ToolSchema _schema;
 
-    public LazyIntegrationTool(IntegrationDefinitionRecord server, IntegrationCatalogTool catalogTool, LazyIntegrationConnection connection)
+    public LazyIntegrationTool(IntegrationDefinitionRecord server, IntegrationCatalogToolRecord catalogTool, LazyIntegrationConnection connection)
     {
         _runtimeToolName = catalogTool.Name;
         _connection = connection;

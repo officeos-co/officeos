@@ -30,17 +30,17 @@ public sealed class HydratingIntegrationClientManager : IIntegrationClientManage
                     IntegrationName = server.Name,
                     Name = "create_document",
                     Description = "Create a new Google Document with optional initial content",
-                    JsonSchema = """
+                    Parameters = new
+                    {
+                        type = "object",
+                        properties = new
                         {
-                          "type": "object",
-                          "properties": {
-                            "title": { "type": "string" },
-                            "initialContent": { "type": "string" }
-                          },
-                          "required": ["title"],
-                          "additionalProperties": false
-                        }
-                        """,
+                            title = new { type = "string" },
+                            initialContent = new { type = "string" },
+                        },
+                        required = new[] { "title" },
+                        additionalProperties = false,
+                    },
                     NativeHandle = new object()
                 }
             ],

@@ -33,7 +33,7 @@ public sealed class IntegrationDiscoveredTool
 {
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public string? JsonSchema { get; init; }
+    public object? Parameters { get; init; }
     public string IntegrationName { get; init; } = string.Empty;
     /// <summary>Opaque reference to the SDK tool + client for execution.</summary>
     public object NativeHandle { get; init; } = null!;

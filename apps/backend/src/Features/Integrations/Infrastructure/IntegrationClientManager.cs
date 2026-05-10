@@ -32,8 +32,8 @@ internal sealed class IntegrationClientManager : IIntegrationClientManager
             {
                 Name = t.Name,
                 Description = t.Description,
-                JsonSchema = t.JsonSchema.ValueKind != JsonValueKind.Undefined
-                    ? t.JsonSchema.GetRawText()
+                Parameters = t.JsonSchema.ValueKind != JsonValueKind.Undefined
+                    ? t.JsonSchema
                     : null,
                 IntegrationName = server.Name,
                 NativeHandle = new IntegrationNativeHandle(t, client),
