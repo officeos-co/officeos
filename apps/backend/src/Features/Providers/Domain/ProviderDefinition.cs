@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.Services;
+namespace OffceOs.Domain.Features.Providers;
 
 public sealed record ProviderDefinition(
     string Slug,
@@ -6,4 +6,6 @@ public sealed record ProviderDefinition(
     ApiFormat ApiFormat,
     string BaseUrl,
     string? PlatformKeyConfigName,
-    IReadOnlyList<ModelDefinition> Models);
+    IReadOnlyList<ModelDefinition> Models,
+    bool EnterpriseOnly = false,
+    bool RequiresPinnedModels = false);

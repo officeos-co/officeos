@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Features.Agents;
+namespace OffceOs.Api.Features.Providers;
 
 public sealed record ProviderPayload(
     Guid Id,

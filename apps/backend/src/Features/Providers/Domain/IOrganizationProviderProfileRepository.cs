@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Providers;
 
 public interface IOrganizationProviderProfileRepository
 {

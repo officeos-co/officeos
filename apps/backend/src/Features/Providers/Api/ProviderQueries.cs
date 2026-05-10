@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Features.Agents;
+namespace OffceOs.Api.Features.Providers;
 
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class ProviderQueries
@@ -28,8 +28,11 @@ public class ProviderQueries
         var provider = configured.FirstOrDefault(p =>
             string.Equals(p.Name, providerName, StringComparison.OrdinalIgnoreCase));
 
-        return provider is not null
-            ? provider.Models.Select(m => m.Id).ToList()
+        if (provider is not null)
+            return provider.Models.Select(m => m.Id).ToList();
+
+        return ProviderRegistry.IsEnterpriseProvider(providerName)
+            ? []
             : ProviderRegistry.GetModelIds(providerName);
     }
 

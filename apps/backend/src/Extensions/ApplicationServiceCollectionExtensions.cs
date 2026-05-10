@@ -49,6 +49,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOrganizationPolicyService, OrganizationPolicyService>();
         services.AddScoped<IOrganizationProviderProfileService, OrganizationProviderProfileService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
+        services.AddScoped<ProviderEnterprisePolicy>();
         services.AddScoped<AgentTurnService>();
 
         // Background services

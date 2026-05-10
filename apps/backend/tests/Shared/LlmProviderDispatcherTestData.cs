@@ -1,5 +1,5 @@
 using System.Text.Json;
-using OffceOs.Domain.Common.Services;
+using OffceOs.Domain.Features.Providers;
 
 namespace OffceOs.Tests.Shared;
 

@@ -9,15 +9,6 @@ When changing code, apply these conventions proactively rather than only satisfy
 - `src`: the single backend project and application host.
 - `tests/OffceOs.Tests`: backend tests.
 
-Only these top-level feature folders are allowed under `src/Features`:
-
-- `Agents`
-- `Channels`
-- `Context`
-- `Analytics`
-- `Billing`
-- `Management`
-
 Each feature owns its local layers:
 
 - `Domain`: business records, value objects, repository/service interfaces, filters, domain events, and invariants.
@@ -65,6 +56,8 @@ Channels owns channel connections, credentials, bindings, inbound routing, sidec
 Context owns markdown-style memory stores, memory entries, external integration connections, integration indexing, indexed records, and integration execution.
 
 Billing owns subscriptions, plan limits, quota checks, credit recording, Stripe checkout/portal/webhook/metering integration, and dashboard billing API surfaces.
+
+Providers owns provider catalogs, provider/model selection, organization provider profiles, enterprise cloud provider gates, credential lookup for provider dispatch, and provider GraphQL API surfaces.
 
 Do not use `Data` as a feature, namespace, file prefix, or type prefix for Context-owned memory concepts. If the concept is agent-scoped memory, use `AgentMemory*`. If it is a reusable memory store or store entry, use `MemoryStore*` / `MemoryStoreEntry*`. If it is integration indexing or execution, use the existing Context integration names.
 
@@ -282,7 +275,7 @@ Current diagnostics:
 
 Layer vocabulary enforced by `EAOS006`:
 
-- Domain: `*Record`, `*Filter`, `*Event`, `*Result`, `*Request`, `*Response`, `*Config`, `*Message`, `*Context`, `*Definition`, `*Provider`, `*Kinds`, `*State`, `*Descriptor`, `*Tool`, `*Deployment`, `*Row`, `*Options`, `*Page`, `*Overview`, `*Exception`, `*Subscription`, `*Limit`, and `I*Repository`/`I*Service`/explicit domain ports.
+- Domain: `*Record`, `*Filter`, `*Event`, `*Result`, `*Request`, `*Response`, `*Config`, `*Message`, `*Context`, `*Definition`, `*Provider`, `*Registry`, `*Kinds`, `*State`, `*Descriptor`, `*Tool`, `*Deployment`, `*Row`, `*Options`, `*Page`, `*Overview`, `*Exception`, `*Subscription`, `*Limit`, and `I*Repository`/`I*Service`/explicit domain ports.
 - Application: `*Service`, `*Request`, `*Result`, `*Policy`, `*Projection`, `*Entry`, `*Item`, `*Export`, `*Context`, `*Builder`, `*Executor`, `*Publisher`, `*Resolver`, `*Parser`, `*Detector`, `*Checkpoint`, `*Guard`, `*Lifecycle`, `*Scope`, `*Loop`, `*Session`, `*Connection`, `*Tool`, `*Registry`, `*Factory`, `*Store`, and closely named orchestration helpers.
 - Api: `*Input`, `*Payload`, `*Queries`, `*Mutations`, `*Subscriptions`, `*Controller`, `*Endpoint`, `*Mapper`, plus bootstrap/summary payload helper names.
 - Infrastructure: `*Repository`, `*Adapter`, `*Client`, `*Gateway`, `*Config`, `*Protector`, `*Dispatcher`, `*Translator`, `*Sandbox`, `*Store`, `*Injector`, `*Router`, `*Service`, `*Manager`, `*Handle`, `*Response`.

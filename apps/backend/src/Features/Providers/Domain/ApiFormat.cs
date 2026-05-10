@@ -1,3 +1,3 @@
-namespace OffceOs.Domain.Common.Services;
+namespace OffceOs.Domain.Features.Providers;
 
 public enum ApiFormat { OpenAiCompat, Anthropic }

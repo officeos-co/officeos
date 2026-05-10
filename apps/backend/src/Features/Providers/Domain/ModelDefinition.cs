@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.Services;
+namespace OffceOs.Domain.Features.Providers;
 
 public sealed record ModelDefinition(
     string Id,

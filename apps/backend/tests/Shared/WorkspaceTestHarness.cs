@@ -2,18 +2,22 @@ using OffceOs.Application.Features.Agents;
 using OffceOs.Application.Features.Channels;
 using OffceOs.Application.Features.Integrations;
 using OffceOs.Application.Features.Management;
+using OffceOs.Application.Features.Providers;
 using OffceOs.Configuration;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Features.Management;
+using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.Billing;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Infrastructure.Features.Context;
 using OffceOs.Infrastructure.Features.Integrations;
 using OffceOs.Infrastructure.Features.Management;
+using OffceOs.Infrastructure.Features.Providers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,6 +44,7 @@ public sealed record WorkspaceTestHarness(
         var accessGroupRepository = new AccessGroupRepository(db);
         var organizationPolicyProfileRepository = new OrganizationPolicyProfileRepository(db);
         var organizationProviderProfileRepository = new OrganizationProviderProfileRepository(db);
+        var orgSubscriptionRepository = new OrgSubscriptionRepository(db);
         var integrationDeploymentRepository = new IntegrationDeploymentRepository(db);
         var agentRepository = new AgentRepository(db);
         var channelRepository = new ChannelRepository(db);
@@ -82,7 +87,8 @@ public sealed record WorkspaceTestHarness(
             new OrganizationProviderProfileService(
                 organizationProviderProfileRepository,
                 organizationRepository,
-                new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}"))))),
+                new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}")))),
+                new ProviderEnterprisePolicy(orgSubscriptionRepository)),
             new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository),
             integrationService,
             agentDashboard,

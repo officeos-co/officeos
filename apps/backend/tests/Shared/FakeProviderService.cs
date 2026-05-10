@@ -1,4 +1,4 @@
-using OffceOs.Application.Features.Agents;
+using OffceOs.Application.Features.Providers;
 
 namespace OffceOs.Tests.Shared;
 
