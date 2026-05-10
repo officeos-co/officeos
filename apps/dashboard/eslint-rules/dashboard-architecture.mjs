@@ -2,6 +2,7 @@ import path from "node:path";
 
 const FEATURE_LANES = new Set(["api", "components", "hooks", "data"]);
 const FEATURE_ROOT_FILES = new Set(["index.ts", "types.ts"]);
+const ALLOWED_FEATURES = new Set(["agents", "analytics", "atlas", "manage"]);
 const FORBIDDEN_BUCKET_NAMES = new Set([
   "cards",
   "common",
@@ -96,6 +97,15 @@ function checkPath(context, projectPath, node) {
     const parts = projectPath.split("/");
     const feature = parts[2];
     const featureParts = parts.slice(3);
+
+    if (!ALLOWED_FEATURES.has(feature)) {
+      report(
+        context,
+        node,
+        `DASH031: ${feature} is not an approved top-level feature. Keep small resource slices under agents, analytics, atlas, or manage unless the architecture guide is updated first.`,
+      );
+      return;
+    }
 
     if (featureParts.length === 0) {
       return;
