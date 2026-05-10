@@ -6,7 +6,6 @@ internal sealed class ProviderSetupService : IProviderSetupService
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IOrganizationProviderProfileService _organizationProviderProfileService;
     private readonly CredentialProtector _credentialProtector;
-    private readonly ProviderEnterprisePolicy _providerEnterprisePolicy;
     private readonly LlmProviderDispatcher _llmProviderDispatcher;
 
     public ProviderSetupService(
@@ -14,28 +13,25 @@ internal sealed class ProviderSetupService : IProviderSetupService
         IOrganizationRepository organizationRepository,
         IOrganizationProviderProfileService organizationProviderProfileService,
         CredentialProtector credentialProtector,
-        ProviderEnterprisePolicy providerEnterprisePolicy,
         LlmProviderDispatcher llmProviderDispatcher)
     {
         _organizationProviderProfileRepository = organizationProviderProfileRepository;
         _organizationRepository = organizationRepository;
         _organizationProviderProfileService = organizationProviderProfileService;
         _credentialProtector = credentialProtector;
-        _providerEnterprisePolicy = providerEnterprisePolicy;
         _llmProviderDispatcher = llmProviderDispatcher;
     }
 
     public async Task<IReadOnlyList<ProviderSetupStatusResult>> GetSetupStatusAsync(Guid actorUserId, Guid organizationId, CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
-        await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
 
         var profiles = await _organizationProviderProfileRepository.ListAsync(
             new OrganizationProviderProfileFilter { OrganizationId = organizationId },
             ct);
 
         return profiles
-            .Where(profile => ProviderRegistry.IsEnterpriseProvider(profile.Provider))
+            .Where(profile => ProviderRegistry.IsOrganizationProfileProvider(profile.Provider))
             .Select(ToStatus)
             .ToList();
     }
@@ -173,7 +169,6 @@ internal sealed class ProviderSetupService : IProviderSetupService
         CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
-        await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
 
         var normalizedProvider = provider.Trim().ToLowerInvariant();
         var profile = await _organizationProviderProfileRepository.GetByAsync(

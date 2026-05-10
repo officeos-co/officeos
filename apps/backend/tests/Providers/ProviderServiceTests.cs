@@ -165,23 +165,24 @@ public sealed class ProviderServiceTests
             new CustomLlmProviderConfig(),
             new OrganizationProviderProfileRepository(db),
             new WorkspaceRepository(db),
-            protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+            protector);
 
         var providers = await service.ListForWorkspaceAsync(workspaceId);
         var key = await service.GetApiKeyForDispatchAsync("openai", workspaceId);
-        var openAi = Assert.Single(providers);
+        var openAi = Assert.Single(providers, provider => provider.Name == "openai");
+        var anthropic = Assert.Single(providers, provider => provider.Name == "anthropic");
 
         Assert.Equal("openai", openAi.Name);
         Assert.Equal("Org OpenAI", openAi.DisplayName);
         Assert.Equal("gpt-4o-mini", Assert.Single(openAi.Models).Id);
+        Assert.True(anthropic.Configured);
         Assert.Equal("org-key", key);
         Assert.True(await service.IsModelAllowedAsync("openai", "gpt-4o-mini", workspaceId));
-        Assert.False(await service.IsModelAllowedAsync("anthropic", "claude-sonnet-4-5", workspaceId));
+        Assert.True(await service.IsModelAllowedAsync("anthropic", "claude-sonnet-4-6", workspaceId));
     }
 
     [Fact]
-    public async Task Non_enterprise_workspace_does_not_list_or_use_cloud_provider_profiles()
+    public async Task Non_enterprise_workspace_lists_and_uses_cloud_provider_profiles()
     {
         await using var db = TestDbFactory.Create("provider-service");
         var userId = Guid.NewGuid();
@@ -225,19 +226,81 @@ public sealed class ProviderServiceTests
             new CustomLlmProviderConfig(),
             new OrganizationProviderProfileRepository(db),
             new WorkspaceRepository(db),
-            protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+            protector);
 
         var providers = await service.ListForWorkspaceAsync(workspaceId);
+        var bedrock = Assert.Single(providers, provider => provider.Name == ProviderRegistry.AwsBedrockProviderSlug);
+        var openAi = Assert.Single(providers, provider => provider.Name == "openai");
+        var auth = await service.GetAuthForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId);
 
-        Assert.DoesNotContain(providers, provider => provider.Name == ProviderRegistry.AwsBedrockProviderSlug);
-        Assert.True(Assert.Single(providers, provider => provider.Name == "openai").Configured);
+        Assert.Equal(ProviderRegistry.AwsBedrockProviderSlug, bedrock.Name);
+        Assert.True(bedrock.Configured);
+        Assert.True(openAi.Configured);
+        Assert.NotNull(auth);
+        Assert.Equal(ProviderAuthKind.AwsIam, auth.Kind);
+        Assert.Equal("us-east-1", auth.Get("awsRegion"));
         Assert.Null(await service.GetApiKeyForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId));
-        Assert.Null(await service.GetAuthForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId));
-        Assert.False(await service.IsModelAllowedAsync(
+        Assert.True(await service.IsModelAllowedAsync(
             ProviderRegistry.AwsBedrockProviderSlug,
             "us.anthropic.claude-sonnet-4-6",
             workspaceId));
+    }
+
+    [Fact]
+    public async Task Organization_workspace_lists_and_uses_dashboard_configured_self_hosted_provider()
+    {
+        await using var db = TestDbFactory.Create("provider-service");
+        var userId = Guid.NewGuid();
+        var organizationId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-keys-{Guid.NewGuid():N}"))));
+        db.Users.Add(new UserEntity { Id = userId, Email = "owner@example.com", Name = "Owner", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
+        db.Organizations.Add(new OrganizationEntity { Id = organizationId, Name = "Acme", OwnerUserId = userId, CreatedAt = DateTime.UtcNow });
+        db.Workspaces.Add(new WorkspaceEntity
+        {
+            Id = workspaceId,
+            OrganizationId = organizationId,
+            OwnerKind = WorkspaceOwnerKind.Organization.ToStorageString(),
+            Name = "Ops",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        db.OrganizationProviderProfiles.Add(new OrganizationProviderProfileEntity
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = organizationId,
+            Provider = ProviderRegistry.CustomProviderSlug,
+            DisplayName = "Local Ollama",
+            AllowedModelsJson = """["llama3.1"]""",
+            EncryptedApiKey = protector.Protect(new Dictionary<string, string>
+            {
+                ["authKind"] = ProviderAuthKind.ApiKey.ToStorageString(),
+                ["baseUrl"] = "http://localhost:11434/v1",
+            }),
+            Enabled = true,
+            ConfiguredAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = new ProviderService(
+            new PlatformKeysConfig(),
+            new CustomLlmProviderConfig(),
+            new OrganizationProviderProfileRepository(db),
+            new WorkspaceRepository(db),
+            protector);
+
+        var providers = await service.ListForWorkspaceAsync(workspaceId);
+        var custom = Assert.Single(providers, provider => provider.Name == ProviderRegistry.CustomProviderSlug);
+        var auth = await service.GetAuthForDispatchAsync(ProviderRegistry.CustomProviderSlug, workspaceId);
+
+        Assert.True(custom.Configured);
+        Assert.Equal("Local Ollama", custom.DisplayName);
+        Assert.Equal("llama3.1", Assert.Single(custom.Models).Id);
+        Assert.True(await service.IsModelAllowedAsync(ProviderRegistry.CustomProviderSlug, "llama3.1", workspaceId));
+        Assert.NotNull(auth);
+        Assert.Equal("http://localhost:11434/v1", auth.Get("baseUrl"));
     }
 
     [Fact]
@@ -278,8 +341,7 @@ public sealed class ProviderServiceTests
             new CustomLlmProviderConfig(),
             new OrganizationProviderProfileRepository(db),
             new WorkspaceRepository(db),
-            protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+            protector);
         var service = new DevelopmentProviderService(
             providerService,
             new WorkspaceRepository(db),
@@ -375,14 +437,14 @@ public sealed class ProviderServiceTests
             new CustomLlmProviderConfig(),
             new OrganizationProviderProfileRepository(db),
             new WorkspaceRepository(db),
-            protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+            protector);
 
         var providers = await service.ListForWorkspaceAsync(workspaceId);
 
-        Assert.Equal(
-            [ProviderRegistry.AwsBedrockProviderSlug, ProviderRegistry.GoogleVertexProviderSlug],
-            providers.Select(provider => provider.Name).OrderBy(name => name).ToList());
+        Assert.Contains(providers, provider => provider.Name == "openai" && provider.Configured);
+        Assert.Contains(providers, provider => provider.Name == ProviderRegistry.AwsBedrockProviderSlug && provider.Configured);
+        Assert.Contains(providers, provider => provider.Name == ProviderRegistry.GoogleVertexProviderSlug && provider.Configured);
+        Assert.Contains(providers, provider => provider.Name == ProviderRegistry.AzureFoundryProviderSlug && !provider.Configured);
         Assert.True(await service.IsModelAllowedAsync(
             ProviderRegistry.AwsBedrockProviderSlug,
             "us.anthropic.claude-sonnet-4-6",

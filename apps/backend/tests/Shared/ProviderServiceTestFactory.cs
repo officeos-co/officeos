@@ -1,7 +1,6 @@
 using OffceOs.Application.Features.Providers;
 using OffceOs.Configuration;
 using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Infrastructure.Features.Billing;
 using OffceOs.Infrastructure.Features.Management;
 using OffceOs.Infrastructure.Features.Providers;
 using Microsoft.AspNetCore.DataProtection;
@@ -19,7 +18,6 @@ internal static class ProviderServiceTestFactory
             customLlmProviderConfig,
             new OrganizationProviderProfileRepository(db),
             new WorkspaceRepository(db),
-            protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+            protector);
     }
 }

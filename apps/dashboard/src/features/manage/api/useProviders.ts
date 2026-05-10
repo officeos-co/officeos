@@ -1,6 +1,7 @@
 "use client";
 
-import { gql, useMutation, useQuery } from "@apollo/client";
+import { gql, useApolloClient, useMutation, useQuery } from "@apollo/client";
+import { useCallback } from "react";
 
 export type Provider = {
   id: string;
@@ -25,6 +26,32 @@ export type ProviderSetupStatus = {
   configuredAt: string;
   pinnedModels: string[];
   environment: ProviderEnvironment[];
+};
+
+export type OrganizationProviderProfile = {
+  id: string;
+  organizationId: string;
+  provider: string;
+  displayName: string;
+  allowedModels: string[];
+  enabled: boolean;
+  configuredAt: string;
+};
+
+export type ProviderCredentialInput = {
+  key: string;
+  value: string;
+};
+
+export type SaveOrganizationProviderProfileInput = {
+  organizationId: string;
+  provider: string;
+  displayName: string;
+  allowedModels: string[];
+  apiKey: string;
+  enabled: boolean;
+  authKind?: string | null;
+  credentials?: ProviderCredentialInput[] | null;
 };
 
 export type BedrockProviderSetupInput = {
@@ -96,6 +123,19 @@ const PROVIDERS_QUERY = gql`
   }
 `;
 
+const CODEX_OAUTH_PROVIDER_QUERY = gql`
+  query CodexOAuthProvider {
+    codexOAuthProvider {
+      id
+      name
+      displayName
+      configured
+      configuredAt
+      models
+    }
+  }
+`;
+
 const PROVIDER_SETUP_STATUS_QUERY = gql`
   query ProviderSetupStatus($organizationId: UUID!) {
     providerSetupStatus(organizationId: $organizationId) {
@@ -110,6 +150,36 @@ const PROVIDER_SETUP_STATUS_QUERY = gql`
         key
         value
       }
+    }
+  }
+`;
+
+const ORGANIZATION_PROVIDER_PROFILES_QUERY = gql`
+  query OrganizationProviderProfiles($organizationId: UUID!) {
+    organizationProviderProfiles(organizationId: $organizationId) {
+      id
+      organizationId
+      provider
+      displayName
+      allowedModels
+      enabled
+      configuredAt
+    }
+  }
+`;
+
+const SAVE_ORGANIZATION_PROVIDER_PROFILE = gql`
+  mutation SaveOrganizationProviderProfile(
+    $input: SaveOrganizationProviderProfileInput!
+  ) {
+    saveOrganizationProviderProfile(input: $input) {
+      id
+      organizationId
+      provider
+      displayName
+      allowedModels
+      enabled
+      configuredAt
     }
   }
 `;
@@ -190,6 +260,27 @@ export function useProviders() {
   return { providers, loading, error, refetch };
 }
 
+export function useRefreshProviderQueries() {
+  const apollo = useApolloClient();
+  return useCallback(
+    () =>
+      apollo.refetchQueries({
+        include: ["Providers", "SupportedModels", "CodexOAuthProvider"],
+      }),
+    [apollo],
+  );
+}
+
+export function useCodexOAuthProvider() {
+  const { data, loading, error, refetch } = useQuery(
+    CODEX_OAUTH_PROVIDER_QUERY,
+  );
+
+  const provider: Provider | undefined = data?.codexOAuthProvider;
+
+  return { provider, loading, error, refetch };
+}
+
 export function useProviderSetupStatus(organizationId?: string | null) {
   const { data, loading, error, refetch } = useQuery(
     PROVIDER_SETUP_STATUS_QUERY,
@@ -202,6 +293,34 @@ export function useProviderSetupStatus(organizationId?: string | null) {
   const statuses: ProviderSetupStatus[] = data?.providerSetupStatus ?? [];
 
   return { statuses, loading, error, refetch };
+}
+
+export function useOrganizationProviderProfiles(organizationId?: string | null) {
+  const { data, loading, error, refetch } = useQuery(
+    ORGANIZATION_PROVIDER_PROFILES_QUERY,
+    {
+      variables: { organizationId },
+      skip: !organizationId,
+    },
+  );
+
+  const profiles: OrganizationProviderProfile[] =
+    data?.organizationProviderProfiles ?? [];
+
+  return { profiles, loading, error, refetch };
+}
+
+export function useSaveOrganizationProviderProfile() {
+  const [fn, state] = useMutation(SAVE_ORGANIZATION_PROVIDER_PROFILE);
+  return {
+    saveOrganizationProviderProfile: async (
+      input: SaveOrganizationProviderProfileInput,
+    ): Promise<OrganizationProviderProfile | undefined> => {
+      const { data } = await fn({ variables: { input } });
+      return data?.saveOrganizationProviderProfile;
+    },
+    ...state,
+  };
 }
 
 export function useSaveBedrockProviderSetup() {

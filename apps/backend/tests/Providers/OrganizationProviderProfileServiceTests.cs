@@ -16,26 +16,30 @@ namespace OffceOs.Tests.Providers;
 public sealed class OrganizationProviderProfileServiceTests
 {
     [Fact]
-    public async Task Free_org_admin_cannot_manage_enterprise_provider_profiles()
+    public async Task Free_org_admin_can_manage_cloud_provider_profiles()
     {
         await using var db = TestDbFactory.Create("provider-profile-service");
         var ownerId = Guid.NewGuid();
         var organizationId = SeedOrganization(db, ownerId, SubscriptionPlan.Free);
         var service = CreateService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.ListAsync(ownerId, organizationId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.SaveAsync(
-                ownerId,
-                organizationId,
-                ProviderRegistry.AwsBedrockProviderSlug,
-                "Bedrock",
-                ["us.anthropic.claude-sonnet-4-6"],
-                "aws-key",
-                true));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.DeleteAsync(ownerId, organizationId, ProviderRegistry.AwsBedrockProviderSlug));
+        Assert.Empty(await service.ListAsync(ownerId, organizationId));
+
+        var saved = await service.SaveNativeAuthAsync(
+            ownerId,
+            organizationId,
+            ProviderRegistry.AwsBedrockProviderSlug,
+            "Bedrock",
+            ["us.anthropic.claude-sonnet-4-6"],
+            ProviderAuthKind.AwsEnvironment,
+            new Dictionary<string, string>
+            {
+                ["awsRegion"] = "us-east-1",
+            },
+            true);
+
+        Assert.Equal(ProviderRegistry.AwsBedrockProviderSlug, saved.Provider);
+        Assert.Single(await service.ListAsync(ownerId, organizationId));
     }
 
     [Fact]
@@ -71,7 +75,7 @@ public sealed class OrganizationProviderProfileServiceTests
     }
 
     [Fact]
-    public async Task Enterprise_cloud_provider_profiles_require_valid_pinned_models()
+    public async Task Cloud_provider_profiles_require_valid_pinned_models()
     {
         await using var db = TestDbFactory.Create("provider-profile-service");
         var ownerId = Guid.NewGuid();
@@ -89,7 +93,7 @@ public sealed class OrganizationProviderProfileServiceTests
     }
 
     [Fact]
-    public async Task Enterprise_provider_profile_save_normalizes_duplicate_models_and_redacts_key()
+    public async Task Cloud_provider_profile_save_normalizes_duplicate_models_and_redacts_key()
     {
         await using var db = TestDbFactory.Create("provider-profile-service");
         var ownerId = Guid.NewGuid();
@@ -157,6 +161,39 @@ public sealed class OrganizationProviderProfileServiceTests
     }
 
     [Fact]
+    public async Task Self_hosted_provider_profile_requires_base_url_and_allows_optional_api_key()
+    {
+        await using var db = TestDbFactory.Create("provider-profile-service");
+        var ownerId = Guid.NewGuid();
+        var organizationId = SeedOrganization(db, ownerId, SubscriptionPlan.Free);
+        var service = CreateService(db);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SaveNativeAuthAsync(
+                ownerId,
+                organizationId,
+                ProviderRegistry.CustomProviderSlug,
+                "Local Ollama",
+                ["llama3.1"],
+                ProviderAuthKind.ApiKey,
+                new Dictionary<string, string>(),
+                true));
+
+        var saved = await service.SaveNativeAuthAsync(
+            ownerId,
+            organizationId,
+            ProviderRegistry.CustomProviderSlug,
+            "Local Ollama",
+            ["llama3.1"],
+            ProviderAuthKind.ApiKey,
+            new Dictionary<string, string> { ["baseUrl"] = "http://localhost:11434/v1" },
+            true);
+
+        Assert.Equal(ProviderRegistry.CustomProviderSlug, saved.Provider);
+        Assert.Equal("""["llama3.1"]""", saved.AllowedModelsJson);
+    }
+
+    [Fact]
     public async Task Codex_oauth_profile_is_separate_from_openai_api_key_profile()
     {
         await using var db = TestDbFactory.Create("provider-profile-service");
@@ -212,7 +249,6 @@ public sealed class OrganizationProviderProfileServiceTests
             new OrganizationProviderProfileRepository(db),
             new OrganizationRepository(db),
             protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)),
             new NoopPublisher());
     }
 

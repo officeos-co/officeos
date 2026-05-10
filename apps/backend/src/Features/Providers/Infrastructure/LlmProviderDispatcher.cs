@@ -62,9 +62,11 @@ public sealed class LlmProviderDispatcher
         CancellationToken ct)
     {
         var definition = ProviderRegistry.Get(provider);
-        var isConfiguredCustomProvider = definition is null &&
-            ProviderRegistry.IsCustomProvider(provider) &&
-            _customLlmProviderConfig.IsConfigured;
+        var isCustomProvider = definition is null &&
+            ProviderRegistry.IsCustomProvider(provider);
+        var customBaseUrl = auth.Get("baseUrl") ?? _customLlmProviderConfig.BaseUrl;
+        var isConfiguredCustomProvider = isCustomProvider &&
+            !string.IsNullOrWhiteSpace(customBaseUrl);
 
         if (definition is null && !isConfiguredCustomProvider)
             return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
@@ -88,10 +90,12 @@ public sealed class LlmProviderDispatcher
         }
 
         var resolvedModel = isConfiguredCustomProvider
-            ? _customLlmProviderConfig.ModelId.Trim()
+            ? string.IsNullOrWhiteSpace(auth.Get("baseUrl"))
+                ? _customLlmProviderConfig.ModelId.Trim()
+                : model
             : definition!.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase)
-            ? SmartRouter.Resolve(model, requestBody, definition.Slug)
-            : model;
+                ? SmartRouter.Resolve(model, requestBody, definition.Slug)
+                : model;
 
         _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, resolvedModel);
 
@@ -101,7 +105,7 @@ public sealed class LlmProviderDispatcher
                 return await DispatchAnthropicAsync(definition.Slug, auth, resolvedModel, requestBody, ct);
 
             var baseUrl = isConfiguredCustomProvider
-                ? _customLlmProviderConfig.BaseUrl
+                ? customBaseUrl
                 : definition!.Slug.Equals(ProviderRegistry.AzureFoundryProviderSlug, StringComparison.OrdinalIgnoreCase) && HasFoundryEndpoint(auth)
                     ? $"{FoundryEndpoint(auth).TrimEnd('/')}/openai/v1"
                     : definition!.BaseUrl;

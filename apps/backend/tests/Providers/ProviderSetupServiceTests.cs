@@ -59,37 +59,37 @@ public sealed class ProviderSetupServiceTests
     }
 
     [Fact]
-    public async Task Claude_cloud_setup_requires_enterprise_org_and_pinned_models()
+    public async Task Claude_cloud_setup_allows_free_orgs_and_requires_pinned_models()
     {
         await using var db = TestDbFactory.Create("provider-setup");
         var ownerId = Guid.NewGuid();
         var organizationId = SeedOrganization(db, ownerId, SubscriptionPlan.Free);
         var service = CreateService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.SaveBedrockSetupAsync(
-                ownerId,
-                new BedrockProviderSetupRequest(
-                    organizationId,
-                    "Bedrock",
-                    "us-east-1",
-                    ProviderAuthKind.AwsEnvironment,
-                    AwsProfile: null,
-                    AwsAccessKeyId: null,
-                    AwsSecretAccessKey: null,
-                    AwsSessionToken: null,
-                    BedrockApiKey: null,
-                    BaseUrl: null,
-                    SkipProviderAuth: false,
-                    PinnedModels: ["us.anthropic.claude-sonnet-4-6"],
-                    Enabled: true)));
+        var saved = await service.SaveBedrockSetupAsync(
+            ownerId,
+            new BedrockProviderSetupRequest(
+                organizationId,
+                "Bedrock",
+                "us-east-1",
+                ProviderAuthKind.AwsEnvironment,
+                AwsProfile: null,
+                AwsAccessKeyId: null,
+                AwsSecretAccessKey: null,
+                AwsSessionToken: null,
+                BedrockApiKey: null,
+                BaseUrl: null,
+                SkipProviderAuth: false,
+                PinnedModels: ["us.anthropic.claude-sonnet-4-6"],
+                Enabled: true));
 
-        var enterpriseOrganizationId = SeedOrganization(db, Guid.NewGuid(), SubscriptionPlan.Enterprise);
+        Assert.Equal(ProviderRegistry.AwsBedrockProviderSlug, saved.Provider);
+
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.SaveVertexSetupAsync(
                 ownerId,
                 new VertexProviderSetupRequest(
-                    enterpriseOrganizationId,
+                    organizationId,
                     "Vertex",
                     "acme-project",
                     "global",
@@ -261,8 +261,7 @@ public sealed class ProviderSetupServiceTests
         var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-setup-keys-{Guid.NewGuid():N}"))));
         var profileRepository = new OrganizationProviderProfileRepository(db);
         var organizationRepository = new OrganizationRepository(db);
-        var enterprisePolicy = new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db));
-        var profileService = new OrganizationProviderProfileService(profileRepository, organizationRepository, protector, enterprisePolicy, new NoopPublisher());
+        var profileService = new OrganizationProviderProfileService(profileRepository, organizationRepository, protector, new NoopPublisher());
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler ?? new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"))),
             NullLogger<LlmProviderDispatcher>.Instance);
@@ -271,7 +270,6 @@ public sealed class ProviderSetupServiceTests
             organizationRepository,
             profileService,
             protector,
-            enterprisePolicy,
             dispatcher);
     }
 

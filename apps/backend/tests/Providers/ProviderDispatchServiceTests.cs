@@ -58,6 +58,34 @@ public sealed class ProviderDispatchServiceTests
         Assert.Single(handler.Requests);
     }
 
+    [Fact]
+    public async Task Dispatch_routes_dashboard_configured_custom_provider_to_profile_base_url()
+    {
+        var codex = new FakeCodexAppServerService();
+        var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
+        var service = new ProviderDispatchService(
+            new StaticProviderService(new ProviderAuthResult(
+                ProviderAuthKind.ApiKey,
+                new Dictionary<string, string>
+                {
+                    ["baseUrl"] = "http://localhost:11434/v1",
+                    ["apiKey"] = "local-key",
+                })),
+            new LlmProviderDispatcher(
+                new FakeHttpClientFactory(handler),
+                NullLogger<LlmProviderDispatcher>.Instance),
+            codex);
+        using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
+
+        var result = await service.DispatchAsync("custom", null, "llama3.1", document.RootElement);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("llama3.1", result.Value.Model);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("http://localhost:11434/v1/chat/completions", request.RequestUri?.ToString());
+        Assert.Equal("local-key", request.Headers.Authorization?.Parameter);
+    }
+
     private sealed class StaticProviderService : IProviderService
     {
         private readonly ProviderAuthResult _providerAuthResult;

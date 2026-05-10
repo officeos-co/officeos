@@ -12,7 +12,6 @@ using OffceOs.Domain.Features.Management;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
-using OffceOs.Infrastructure.Features.Billing;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Infrastructure.Features.Context;
 using OffceOs.Infrastructure.Features.Integrations;
@@ -44,7 +43,6 @@ public sealed record WorkspaceTestHarness(
         var accessGroupRepository = new AccessGroupRepository(db);
         var organizationPolicyProfileRepository = new OrganizationPolicyProfileRepository(db);
         var organizationProviderProfileRepository = new OrganizationProviderProfileRepository(db);
-        var orgSubscriptionRepository = new OrgSubscriptionRepository(db);
         var integrationDeploymentRepository = new IntegrationDeploymentRepository(db);
         var agentRepository = new AgentRepository(db);
         var channelRepository = new ChannelRepository(db);
@@ -88,7 +86,6 @@ public sealed record WorkspaceTestHarness(
                 organizationProviderProfileRepository,
                 organizationRepository,
                 new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}")))),
-                new ProviderEnterprisePolicy(orgSubscriptionRepository),
                 new NoopPublisher()),
             new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository),
             integrationService,

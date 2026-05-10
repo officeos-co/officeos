@@ -7,5 +7,5 @@ public sealed record ProviderDefinition(
     string BaseUrl,
     string? PlatformKeyConfigName,
     IReadOnlyList<ModelDefinition> Models,
-    bool EnterpriseOnly = false,
+    bool OrganizationProfileOnly = false,
     bool RequiresPinnedModels = false);
