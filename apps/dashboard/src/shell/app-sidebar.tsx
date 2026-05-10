@@ -56,6 +56,7 @@ const data = {
       items: [
         { title: "Profile", url: "/profile" },
         { title: "Team", url: "/team" },
+        { title: "Providers", url: "/providers" },
         { title: "Billing", url: "/billing" },
       ],
     },
@@ -65,14 +66,6 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, loading: authLoading } = useAuthContext();
   const { billing, loading: billingLoading } = useBilling();
-  const navMain = React.useMemo(() => {
-    const showProviders = billing?.plan?.toLowerCase() === "enterprise";
-    return data.navMain.map((section) =>
-      section.title === "Manage" && showProviders
-        ? { ...section, items: [...section.items, { title: "Providers", url: "/providers" }] }
-        : section
-    );
-  }, [billing?.plan]);
 
   return (
     <Sidebar {...props}>
@@ -81,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
