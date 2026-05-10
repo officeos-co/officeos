@@ -91,7 +91,8 @@ public sealed class IntegrationDefinitionServiceTests
             new GoogleOAuthConfig(),
             NullLogger<IntegrationDefinitionService>.Instance,
             new FakeIntegrationDeploymentRepository(),
-            new FakeWorkspaceRepository());
+            new FakeWorkspaceRepository(),
+            new FakeOrganizationRepository());
     }
 
     private static IntegrationDefinitionRecord CustomServer(
@@ -280,5 +281,26 @@ public sealed class IntegrationDefinitionServiceTests
 
         public Task<bool> DeleteOrganizationGrantAsync(Guid workspaceId, Guid organizationId, CancellationToken ct = default) =>
             Task.FromResult(false);
+    }
+
+    private sealed class FakeOrganizationRepository : IOrganizationRepository
+    {
+        public Task<OrganizationRecord> GetOrCreateDefaultAsync(Guid ownerUserId, string ownerEmail, string? ownerName, CancellationToken ct = default) =>
+            Task.FromResult(new OrganizationRecord { OwnerUserId = ownerUserId, Name = "Default" });
+
+        public Task<OrganizationRecord?> GetByAsync(OrganizationFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<OrganizationRecord?>(null);
+
+        public Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(Guid organizationId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<OrgMemberRecord>>([]);
+
+        public Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default) =>
+            Task.FromResult(member);
+
+        public Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default) =>
+            Task.FromResult(false);
+
+        public Task<OrganizationRecord> RenameAsync(Guid organizationId, string name, CancellationToken ct = default) =>
+            Task.FromResult(new OrganizationRecord { Id = organizationId, Name = name, OwnerUserId = OwnerId });
     }
 }

@@ -5,6 +5,7 @@ internal sealed class HttpRequestTool : IAgentTool
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     public string Name => "http_request";
+    public AgentToolKind Kind => AgentToolKind.Network;
     public ToolSchema Schema => new("http_request",
         "Make an HTTP request. Supports GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS.",
         new
@@ -72,6 +73,7 @@ internal sealed class WebFetchTool : IAgentTool
     }) { Timeout = TimeSpan.FromSeconds(30) };
 
     public string Name => "web_fetch";
+    public AgentToolKind Kind => AgentToolKind.Network;
     public ToolSchema Schema => new("web_fetch",
         "Fetch a URL and convert to plain text. HTML is cleaned to readable text.",
         new
