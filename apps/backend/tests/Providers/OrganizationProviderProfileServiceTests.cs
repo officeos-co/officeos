@@ -163,7 +163,8 @@ public sealed class OrganizationProviderProfileServiceTests
             new OrganizationProviderProfileRepository(db),
             new OrganizationRepository(db),
             protector,
-            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)));
+            new ProviderEnterprisePolicy(new OrgSubscriptionRepository(db)),
+            new NoopPublisher());
     }
 
     private static Guid SeedOrganization(EaosDbContext db, Guid ownerId, SubscriptionPlan plan)

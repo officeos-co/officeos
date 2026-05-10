@@ -32,12 +32,13 @@ internal sealed class TurnEventPublisher
     public Task PublishLlmCompletedAsync(
         Guid agentId,
         string correlationId,
+        string provider,
         string model,
         int durationMs,
         int inputTokens,
         int outputTokens,
         CancellationToken ct)
-        => _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, model, durationMs, inputTokens, outputTokens), ct);
+        => _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, provider, model, durationMs, inputTokens, outputTokens), ct);
 
     public Task PublishMessageOutAsync(Guid agentId, string correlationId, string content, CancellationToken ct)
         => _publisher.Publish(new MessageOutEvent(agentId, correlationId, content), ct);
@@ -54,6 +55,14 @@ internal sealed class TurnEventPublisher
         int durationMs,
         CancellationToken ct)
         => _publisher.Publish(new ToolCallCompletedEvent(agentId, correlationId, toolName, success, output, durationMs), ct);
+
+    public Task PublishToolPolicyDeniedAsync(
+        Guid agentId,
+        string correlationId,
+        string toolName,
+        string reason,
+        CancellationToken ct)
+        => _publisher.Publish(new AgentToolPolicyDeniedEvent(agentId, correlationId, toolName, reason), ct);
 
     public Task PublishTurnCompletedAsync(
         Guid agentId,

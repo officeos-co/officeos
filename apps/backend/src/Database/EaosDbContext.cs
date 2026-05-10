@@ -32,6 +32,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AccessGroupWorkspaceGrantEntity> AccessGroupWorkspaceGrants => Set<AccessGroupWorkspaceGrantEntity>();
     public DbSet<OrganizationPolicyProfileEntity> OrganizationPolicyProfiles => Set<OrganizationPolicyProfileEntity>();
     public DbSet<OrganizationProviderProfileEntity> OrganizationProviderProfiles => Set<OrganizationProviderProfileEntity>();
+    public DbSet<OrganizationAuditLogEntity> OrganizationAuditLogs => Set<OrganizationAuditLogEntity>();
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
     public DbSet<AgentCronJobEntity> AgentCronJobs => Set<AgentCronJobEntity>();
@@ -297,6 +298,27 @@ public sealed class EaosDbContext : DbContext
             e.Property(p => p.AllowedModelsJson).HasColumnType("jsonb");
             e.Property(p => p.EncryptedApiKey).HasMaxLength(4096);
             e.HasOne(p => p.Organization).WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrganizationAuditLogEntity>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.HasIndex(a => new { a.OrganizationId, a.OccurredAt });
+            e.HasIndex(a => a.Action);
+            e.HasIndex(a => a.ActorUserId);
+            e.HasIndex(a => a.WorkspaceId);
+            e.HasIndex(a => a.AgentId);
+            e.HasIndex(a => a.Outcome);
+            e.Property(a => a.Action).IsRequired().HasMaxLength(128);
+            e.Property(a => a.ResourceType).IsRequired().HasMaxLength(128);
+            e.Property(a => a.ResourceId).HasMaxLength(128);
+            e.Property(a => a.Outcome).IsRequired().HasMaxLength(32);
+            e.Property(a => a.CorrelationId).HasMaxLength(128);
+            e.Property(a => a.MetadataJson).HasColumnType("jsonb");
+            e.HasOne(a => a.Organization).WithMany().HasForeignKey(a => a.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Actor).WithMany().HasForeignKey(a => a.ActorUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Workspace).WithMany().HasForeignKey(a => a.WorkspaceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Agent).WithMany().HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<AgentMemoryEntity>(e =>
