@@ -31,7 +31,7 @@ public sealed class OrganizationProviderProfileServiceTests
                 organizationId,
                 ProviderRegistry.AwsBedrockProviderSlug,
                 "Bedrock",
-                ["anthropic.claude-sonnet-4-20250514-v1:0"],
+                ["us.anthropic.claude-sonnet-4-6"],
                 "aws-key",
                 true));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -65,7 +65,7 @@ public sealed class OrganizationProviderProfileServiceTests
                 organizationId,
                 ProviderRegistry.AwsBedrockProviderSlug,
                 "Bedrock",
-                ["anthropic.claude-sonnet-4-20250514-v1:0"],
+                ["us.anthropic.claude-sonnet-4-6"],
                 "aws-key",
                 true));
     }
@@ -81,11 +81,11 @@ public sealed class OrganizationProviderProfileServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.SaveAsync(ownerId, organizationId, ProviderRegistry.AwsBedrockProviderSlug, "Bedrock", [], "aws-key", true));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.SaveAsync(ownerId, organizationId, ProviderRegistry.AwsBedrockProviderSlug, "Bedrock", ["claude-sonnet-4@20250514"], "aws-key", true));
+            service.SaveAsync(ownerId, organizationId, ProviderRegistry.AwsBedrockProviderSlug, "Bedrock", ["claude-sonnet-4-6"], "aws-key", true));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.SaveAsync(ownerId, organizationId, "not-a-provider", "Unknown", ["model"], "key", true));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.SaveAsync(ownerId, organizationId, ProviderRegistry.AwsBedrockProviderSlug, "Bedrock", ["anthropic.claude-sonnet-4-20250514-v1:0"], " ", true));
+            service.SaveAsync(ownerId, organizationId, ProviderRegistry.AwsBedrockProviderSlug, "Bedrock", ["us.anthropic.claude-sonnet-4-6"], " ", true));
     }
 
     [Fact]
@@ -102,15 +102,15 @@ public sealed class OrganizationProviderProfileServiceTests
             ProviderRegistry.AwsBedrockProviderSlug,
             " Bedrock ",
             [
-                " anthropic.claude-sonnet-4-20250514-v1:0 ",
-                "anthropic.claude-sonnet-4-20250514-v1:0",
+                " us.anthropic.claude-sonnet-4-6 ",
+                "us.anthropic.claude-sonnet-4-6",
                 ""
             ],
             "aws-key",
             true);
 
         Assert.Equal("Bedrock", saved.DisplayName);
-        Assert.Equal("""["anthropic.claude-sonnet-4-20250514-v1:0"]""", saved.AllowedModelsJson);
+        Assert.Equal("""["us.anthropic.claude-sonnet-4-6"]""", saved.AllowedModelsJson);
         Assert.DoesNotContain("aws-key", saved.EncryptedApiKey);
     }
 
@@ -128,11 +128,11 @@ public sealed class OrganizationProviderProfileServiceTests
                 organizationId,
                 ProviderRegistry.GoogleVertexProviderSlug,
                 "Vertex",
-                ["claude-sonnet-4@20250514"],
-                ProviderAuthKind.GoogleServiceAccount,
+                ["claude-sonnet-4-6"],
+                ProviderAuthKind.GoogleServiceAccountFile,
                 new Dictionary<string, string>
                 {
-                    ["serviceAccountJson"] = "{}",
+                    ["credentialsPath"] = "/var/run/secrets/gcp/claude.json",
                     ["projectId"] = "acme",
                 },
                 true));
@@ -142,17 +142,17 @@ public sealed class OrganizationProviderProfileServiceTests
             organizationId,
             ProviderRegistry.GoogleVertexProviderSlug,
             "Vertex",
-            ["claude-sonnet-4@20250514"],
-            ProviderAuthKind.GoogleServiceAccount,
+            ["claude-sonnet-4-6"],
+            ProviderAuthKind.GoogleServiceAccountFile,
             new Dictionary<string, string>
             {
-                ["serviceAccountJson"] = """{"client_email":"svc@example.com"}""",
+                ["credentialsPath"] = "/var/run/secrets/gcp/claude.json",
                 ["projectId"] = "acme",
                 ["location"] = "us-east5",
             },
             true);
 
-        Assert.DoesNotContain("svc@example.com", saved.EncryptedApiKey);
+        Assert.DoesNotContain("/var/run/secrets/gcp/claude.json", saved.EncryptedApiKey);
         Assert.DoesNotContain("acme", saved.EncryptedApiKey);
     }
 

@@ -100,8 +100,8 @@ public sealed class LlmProviderDispatcher
 
             var baseUrl = isConfiguredCustomProvider
                 ? _customLlmProviderConfig.BaseUrl
-                : definition!.Slug.Equals(ProviderRegistry.AzureFoundryProviderSlug, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(auth.Get("endpoint"))
-                    ? $"{auth.Get("endpoint")!.TrimEnd('/')}/openai/v1"
+                : definition!.Slug.Equals(ProviderRegistry.AzureFoundryProviderSlug, StringComparison.OrdinalIgnoreCase) && HasFoundryEndpoint(auth)
+                    ? $"{FoundryEndpoint(auth).TrimEnd('/')}/openai/v1"
                     : definition!.BaseUrl;
             return await DispatchOpenAiCompatAsync(baseUrl, auth, resolvedModel, requestBody, ct);
         }
@@ -117,6 +117,33 @@ public sealed class LlmProviderDispatcher
         {
             return new AgentError(AgentErrorCategory.LlmCall, $"Unexpected LLM error: {ex.Message}", ex.ToString());
         }
+    }
+
+    public async Task<AgentResult<bool>> CheckModelAccessAsync(
+        string provider,
+        ProviderAuthResult auth,
+        string model,
+        CancellationToken ct)
+    {
+        using var document = JsonDocument.Parse(
+            """
+            {
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "ping"
+                }
+              ],
+              "max_tokens": 1,
+              "stream": true
+            }
+            """);
+        var result = await DispatchAsync(provider, auth, model, document.RootElement, ct);
+        if (result.IsFailure)
+            return result.Error;
+
+        result.Value.Response.Dispose();
+        return true;
     }
 
     private async Task<AgentResult<LlmDispatchResponse>> DispatchOpenAiCompatAsync(
@@ -180,9 +207,12 @@ public sealed class LlmProviderDispatcher
                 if (!string.IsNullOrWhiteSpace(auth.Get("apiKey")))
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth.Get("apiKey"));
                 break;
+            case ProviderAuthKind.Gateway:
+                break;
             case ProviderAuthKind.AzureApiKey:
                 request.Headers.Add("api-key", Required(auth, "apiKey"));
                 break;
+            case ProviderAuthKind.AzureDefaultCredential:
             case ProviderAuthKind.AzureEntraClientSecret:
             case ProviderAuthKind.AzureManagedIdentity:
                 request.Headers.Authorization = new AuthenticationHeaderValue(
@@ -245,11 +275,13 @@ public sealed class LlmProviderDispatcher
     private static string AnthropicEndpoint(string provider, ProviderAuthResult auth, string model) => provider switch
     {
         ProviderRegistry.AwsBedrockProviderSlug =>
-            $"https://bedrock-runtime.{Required(auth, "awsRegion")}.amazonaws.com/model/{Uri.EscapeDataString(model)}/invoke-with-response-stream",
+            $"{BedrockBaseUrl(auth)}/model/{Uri.EscapeDataString(model)}/invoke-with-response-stream",
         ProviderRegistry.GoogleVertexProviderSlug =>
-            $"https://{Required(auth, "location")}-aiplatform.googleapis.com/v1/projects/{Required(auth, "projectId")}/locations/{Required(auth, "location")}/publishers/anthropic/models/{Uri.EscapeDataString(model)}:streamRawPredict",
+            string.IsNullOrWhiteSpace(auth.Get("projectId")) || string.IsNullOrWhiteSpace(auth.Get("location"))
+                ? $"{AnthropicBaseUrl(auth, "https://aiplatform.googleapis.com")}/v1/messages"
+                : $"{AnthropicBaseUrl(auth, $"https://{Required(auth, "location")}-aiplatform.googleapis.com")}/v1/projects/{Required(auth, "projectId")}/locations/{Required(auth, "location")}/publishers/anthropic/models/{Uri.EscapeDataString(model)}:streamRawPredict",
         ProviderRegistry.AzureFoundryProviderSlug =>
-            $"{Required(auth, "endpoint").TrimEnd('/')}/openai/v1/chat/completions",
+            $"{FoundryEndpoint(auth).TrimEnd('/')}/openai/v1/chat/completions",
         _ => "https://api.anthropic.com/v1/messages",
     };
 
@@ -260,18 +292,25 @@ public sealed class LlmProviderDispatcher
             case (_, ProviderAuthKind.ApiKey):
                 request.Headers.Add("x-api-key", Required(auth, "apiKey"));
                 break;
+            case (_, ProviderAuthKind.Gateway):
+                break;
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsEnvironment):
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsProfile):
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsAccessKey):
             case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsIam):
-                ApplyAwsSigV4(request, auth);
+                ApplyAwsSigV4(request, await _cloudProviderTokenService.GetAwsCredentialsAsync(auth, ct));
                 break;
             case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsBedrockApiKey):
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Required(auth, "apiKey"));
                 break;
+            case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleServiceAccountFile):
             case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleServiceAccount):
             case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleApplicationDefault):
                 request.Headers.Authorization = new AuthenticationHeaderValue(
                     "Bearer",
                     await _cloudProviderTokenService.GetGoogleAccessTokenAsync(auth, ct));
                 break;
+            case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureDefaultCredential):
             case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureEntraClientSecret):
             case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureManagedIdentity):
                 request.Headers.Authorization = new AuthenticationHeaderValue(
@@ -337,6 +376,33 @@ public sealed class LlmProviderDispatcher
 
     private static string ToHex(byte[] bytes) =>
         Convert.ToHexString(bytes).ToLowerInvariant();
+
+    private static string AnthropicBaseUrl(ProviderAuthResult auth, string fallback) =>
+        (auth.Get("baseUrl") ?? fallback).TrimEnd('/');
+
+    private static string BedrockBaseUrl(ProviderAuthResult auth) =>
+        !string.IsNullOrWhiteSpace(auth.Get("baseUrl"))
+            ? auth.Get("baseUrl")!.TrimEnd('/')
+            : $"https://bedrock-runtime.{Required(auth, "awsRegion")}.amazonaws.com";
+
+    private static string FoundryEndpoint(ProviderAuthResult auth)
+    {
+        if (!string.IsNullOrWhiteSpace(auth.Get("baseUrl")))
+            return auth.Get("baseUrl")!;
+
+        if (!string.IsNullOrWhiteSpace(auth.Get("endpoint")))
+            return auth.Get("endpoint")!;
+
+        if (!string.IsNullOrWhiteSpace(auth.Get("resource")))
+            return $"https://{auth.Get("resource")}.services.ai.azure.com/anthropic";
+
+        throw new InvalidOperationException("Foundry resource or base URL is required.");
+    }
+
+    private static bool HasFoundryEndpoint(ProviderAuthResult auth) =>
+        !string.IsNullOrWhiteSpace(auth.Get("baseUrl")) ||
+        !string.IsNullOrWhiteSpace(auth.Get("endpoint")) ||
+        !string.IsNullOrWhiteSpace(auth.Get("resource"));
 
     private static string Required(ProviderAuthResult auth, string key) =>
         auth.Get(key) ?? throw new InvalidOperationException($"Provider credential '{key}' is required.");
