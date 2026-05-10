@@ -35,6 +35,21 @@ public static class ProviderRegistry
             }),
 
         new ProviderDefinition(
+            Slug: OpenAiCodexProviderSlug,
+            DisplayName: "OpenAI Codex",
+            ApiFormat: ApiFormat.CodexAppServer,
+            BaseUrl: "codex-app-server",
+            PlatformKeyConfigName: null,
+            Models: new[]
+            {
+                new ModelDefinition("gpt-5.5", "GPT-5.5", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("gpt-5.4", "GPT-5.4", CostWeight: 18, null),
+                new ModelDefinition("gpt-5.4-mini", "GPT-5.4 Mini", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("gpt-5.3-codex", "GPT-5.3 Codex", CostWeight: 20, null),
+                new ModelDefinition("gpt-5.3-codex-spark", "GPT-5.3 Codex Spark", CostWeight: 3, null),
+            }),
+
+        new ProviderDefinition(
             Slug: "google",
             DisplayName: "Google Gemini",
             ApiFormat: ApiFormat.OpenAiCompat,
@@ -183,6 +198,7 @@ public static class ProviderRegistry
     public const string AwsBedrockProviderSlug = "aws-bedrock";
     public const string GoogleVertexProviderSlug = "google-vertex";
     public const string AzureFoundryProviderSlug = "azure-foundry";
+    public const string OpenAiCodexProviderSlug = "openai-codex";
 
     // ── Stable well-known config property names (referenced by PlatformKeyConfigName) ──
     // These are just string constants so Domain doesn't depend on PlatformKeysConfig.

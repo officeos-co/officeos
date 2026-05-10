@@ -9,7 +9,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentCronJobService, AgentCronJobService>();
         services.AddScoped<IAgentSessionService, AgentSessionService>();
         services.AddScoped<IAgentResourceService, AgentResourceService>();
-        services.AddScoped<IProviderService, ProviderService>();
+        services.AddScoped<ProviderService>();
         services.AddScoped<IProviderDispatchService, ProviderDispatchService>();
         services.AddScoped<IProviderSetupService, ProviderSetupService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();

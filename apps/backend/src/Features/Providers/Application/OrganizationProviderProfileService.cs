@@ -73,6 +73,10 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
         var definition = ProviderRegistry.Get(normalizedProvider);
         if (definition is null && !ProviderRegistry.IsCustomProvider(normalizedProvider))
             throw new InvalidOperationException($"Provider '{normalizedProvider}' is not supported.");
+        if (normalizedProvider == ProviderRegistry.OpenAiCodexProviderSlug)
+            throw new InvalidOperationException("OpenAI Codex is configured per personal user, not as an organization provider.");
+        if (authKind == ProviderAuthKind.CodexChatGptOAuth)
+            throw new InvalidOperationException("Codex ChatGPT OAuth is only supported for OpenAI Codex.");
 
         var normalizedCredentials = ValidateCredentials(normalizedProvider, authKind, credentials);
 
@@ -202,6 +206,9 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
             case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureApiKey):
                 Require(normalized, "apiKey");
                 RequireFoundryEndpoint(normalized);
+                break;
+            case (ProviderRegistry.OpenAiCodexProviderSlug, ProviderAuthKind.CodexChatGptOAuth):
+                Require(normalized, "authJson");
                 break;
             case (_, ProviderAuthKind.ApiKey):
                 Require(normalized, "apiKey");

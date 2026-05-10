@@ -77,7 +77,7 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(o => o.UserId);
             e.HasIndex(o => new { o.UserId, o.Provider }).IsUnique();
             e.Property(o => o.Provider).IsRequired().HasMaxLength(32);
-            e.Property(o => o.EncryptedAccessToken).HasMaxLength(16384);
+            e.Property(o => o.EncryptedAccessToken);
             e.Property(o => o.EncryptedRefreshToken).HasMaxLength(16384);
             e.Property(o => o.Email).HasMaxLength(256);
             e.HasOne<UserEntity>().WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.Cascade);

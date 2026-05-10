@@ -264,6 +264,10 @@ internal sealed class ProviderSetupService : IProviderSetupService
                 if (auth.Kind == ProviderAuthKind.AzureApiKey)
                     env["ANTHROPIC_FOUNDRY_API_KEY"] = "<configured>";
                 break;
+            case ProviderRegistry.OpenAiCodexProviderSlug:
+                AddOptional(env, "CODEX_ACCOUNT_EMAIL", auth.Get("accountEmail"));
+                AddOptional(env, "CODEX_PLAN_TYPE", auth.Get("planType"));
+                break;
         }
 
         AddModelPins(env, pinnedModels);

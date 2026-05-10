@@ -163,4 +163,45 @@ public sealed class OrganizationProviderProfileMutations
     {
         return await organizationProviderProfileService.DeleteAsync(user.Id, organizationId, provider, ct);
     }
+
+    public async Task<CodexOAuthLoginPayload> StartCodexOAuthLogin(
+        [Service] UserContext user,
+        [Service] ICodexProviderSetupService codexProviderSetupService,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await codexProviderSetupService.StartOAuthLoginAsync(user.Id, ct);
+            return OrganizationProviderProfileGraphQLMapper.ToPayload(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
+        }
+    }
+
+    public async Task<CodexOAuthStatusPayload> PollCodexOAuthLogin(
+        PollCodexOAuthLoginInput input,
+        [Service] UserContext user,
+        [Service] ICodexProviderSetupService codexProviderSetupService,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await codexProviderSetupService.PollOAuthLoginAsync(user.Id, input.LoginId, ct);
+            return OrganizationProviderProfileGraphQLMapper.ToPayload(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
+        }
+    }
+
+    public async Task<bool> DisconnectCodexOAuthProvider(
+        [Service] UserContext user,
+        [Service] ICodexProviderSetupService codexProviderSetupService,
+        CancellationToken ct)
+    {
+        return await codexProviderSetupService.DisconnectAsync(user.Id, ct);
+    }
 }
