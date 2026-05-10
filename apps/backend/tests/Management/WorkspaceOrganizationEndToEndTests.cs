@@ -160,6 +160,101 @@ public sealed class WorkspaceOrganizationEndToEndTests
         Assert.Equal(WorkspaceRole.Viewer, accessible.Role);
     }
 
+    [Fact]
+    public async Task Organization_members_cannot_change_org_admin_configuration()
+    {
+        await using var db = CreateDb();
+        var ownerId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        await SeedUserAsync(db, ownerId, "owner@example.com");
+        await SeedUserAsync(db, memberId, "member@example.com");
+
+        var harness = CreateHarness(db);
+        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
+        await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Member");
+        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.ProviderProfiles.SaveAsync(
+                memberId,
+                overview.Organization.Id,
+                "openai",
+                "OpenAI",
+                ["gpt-4o-mini"],
+                "key",
+                true));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Policy.UpdateAsync(
+                memberId,
+                new OrganizationPolicyProfileRecord
+                {
+                    OrganizationId = overview.Organization.Id,
+                    ShellToolsEnabled = false,
+                }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.IntegrationDeployments.DeployAsync(memberId, overview.Organization.Id, workspace.Id, "org-docs"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Integrations.RegisterAsync(memberId, workspace.Id, CustomIntegration()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Integrations.SaveCredentialAsync(memberId, workspace.Id, "org-docs", new() { ["API_KEY"] = "secret" }));
+    }
+
+    [Fact]
+    public async Task Organization_workspace_custom_integrations_require_deployment_for_visibility_and_assignment()
+    {
+        await using var db = CreateDb();
+        var ownerId = Guid.NewGuid();
+        await SeedUserAsync(db, ownerId, "owner@example.com");
+
+        var harness = CreateHarness(db);
+        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
+        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
+        db.Integrations.Add(new IntegrationDefinitionEntity
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = ownerId,
+            WorkspaceId = workspace.Id,
+            Name = "org-docs",
+            Provider = "",
+            Title = "Org Docs",
+            TransportType = IntegrationTransportType.Stdio.ToString(),
+            Command = "npx",
+            Args = """["-y","org-docs"]""",
+            Category = "custom",
+            IsBuiltin = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var hidden = await harness.Integrations.ListAsync(ownerId, workspace.Id);
+        var agent = await harness.AgentDashboard.CreateAsync(
+            new CreateDashboardAgentRequest(
+                "Org Agent",
+                "openai",
+                "gpt-4o-mini",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null),
+            ownerId,
+            workspace.Id);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Integrations.AssignToAgentAsync(agent.Id, "org-docs", ownerId));
+
+        await harness.IntegrationDeployments.DeployAsync(ownerId, overview.Organization.Id, workspace.Id, "org-docs");
+        var visible = await harness.Integrations.ListAsync(ownerId, workspace.Id);
+        await harness.Integrations.AssignToAgentAsync(agent.Id, "org-docs", ownerId);
+        var assigned = await new AgentIntegrationRepository(db).ListIntegrationNamesForAgentAsync(agent.Id, CancellationToken.None);
+
+        Assert.DoesNotContain(hidden, integration => integration.Name == "org-docs");
+        Assert.Contains(visible, integration => integration.Name == "org-docs");
+        Assert.Contains("org-docs", assigned);
+    }
+
     private static Harness CreateHarness(EaosDbContext db)
     {
         var cache = new InMemoryDistributedCache();
@@ -167,6 +262,9 @@ public sealed class WorkspaceOrganizationEndToEndTests
         var workspaceRepository = new WorkspaceRepository(db);
         var workspaceMemberRepository = new WorkspaceMemberRepository(db);
         var accessGroupRepository = new AccessGroupRepository(db);
+        var organizationPolicyProfileRepository = new OrganizationPolicyProfileRepository(db);
+        var organizationProviderProfileRepository = new OrganizationProviderProfileRepository(db);
+        var integrationDeploymentRepository = new IntegrationDeploymentRepository(db);
         var agentRepository = new AgentRepository(db);
         var channelRepository = new ChannelRepository(db);
         var integrationDefinitionRepository = new IntegrationDefinitionRepository(db);
@@ -204,6 +302,12 @@ public sealed class WorkspaceOrganizationEndToEndTests
             new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache),
             new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository),
             new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository),
+            new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository),
+            new OrganizationProviderProfileService(
+                organizationProviderProfileRepository,
+                organizationRepository,
+                new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}"))))),
+            new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository),
             integrationService,
             agentDashboard,
             agentRepository);
@@ -227,7 +331,8 @@ public sealed class WorkspaceOrganizationEndToEndTests
             new GoogleOAuthConfig(),
             NullLogger<IntegrationDefinitionService>.Instance,
             new IntegrationDeploymentRepository(db),
-            new WorkspaceRepository(db));
+            new WorkspaceRepository(db),
+            new OrganizationRepository(db));
     }
 
     private static IntegrationDefinitionRecord CustomIntegration() => new()
@@ -266,6 +371,9 @@ public sealed class WorkspaceOrganizationEndToEndTests
         IWorkspaceService Workspaces,
         IOrganizationService Organizations,
         IAccessGroupService AccessGroups,
+        IOrganizationPolicyService Policy,
+        IOrganizationProviderProfileService ProviderProfiles,
+        IIntegrationDeploymentService IntegrationDeployments,
         IIntegrationDefinitionService Integrations,
         IAgentDashboardService AgentDashboard,
         IAgentRepository Agents);
