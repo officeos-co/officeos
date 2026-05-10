@@ -65,9 +65,9 @@ public static class ProviderRegistry
             PlatformKeyConfigName: null,
             Models: new[]
             {
-                new ModelDefinition("anthropic.claude-3-5-haiku-20241022-v1:0", "Claude 3.5 Haiku 20241022", CostWeight: 5, SmartRoutingTier.Simple),
-                new ModelDefinition("anthropic.claude-sonnet-4-20250514-v1:0", "Claude Sonnet 4 20250514", CostWeight: 20, SmartRoutingTier.Standard),
-                new ModelDefinition("anthropic.claude-opus-4-20250514-v1:0", "Claude Opus 4 20250514", CostWeight: 75, null),
+                new ModelDefinition("us.anthropic.claude-haiku-4-5-20251001-v1:0", "Claude Haiku 4.5 20251001", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("us.anthropic.claude-sonnet-4-6", "Claude Sonnet 4.6", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("us.anthropic.claude-opus-4-7", "Claude Opus 4.7", CostWeight: 75, null),
             },
             EnterpriseOnly: true,
             RequiresPinnedModels: true),
@@ -80,9 +80,9 @@ public static class ProviderRegistry
             PlatformKeyConfigName: null,
             Models: new[]
             {
-                new ModelDefinition("claude-3-5-haiku@20241022", "Claude 3.5 Haiku 20241022", CostWeight: 5, SmartRoutingTier.Simple),
-                new ModelDefinition("claude-sonnet-4@20250514", "Claude Sonnet 4 20250514", CostWeight: 20, SmartRoutingTier.Standard),
-                new ModelDefinition("claude-opus-4@20250514", "Claude Opus 4 20250514", CostWeight: 75, null),
+                new ModelDefinition("claude-haiku-4-5@20251001", "Claude Haiku 4.5 20251001", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("claude-sonnet-4-6", "Claude Sonnet 4.6", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("claude-opus-4-7", "Claude Opus 4.7", CostWeight: 75, null),
             },
             EnterpriseOnly: true,
             RequiresPinnedModels: true),
@@ -95,9 +95,9 @@ public static class ProviderRegistry
             PlatformKeyConfigName: null,
             Models: new[]
             {
-                new ModelDefinition("claude-3-5-haiku-20241022", "Claude 3.5 Haiku 20241022", CostWeight: 5, SmartRoutingTier.Simple),
-                new ModelDefinition("claude-sonnet-4-20250514", "Claude Sonnet 4 20250514", CostWeight: 20, SmartRoutingTier.Standard),
-                new ModelDefinition("claude-opus-4-20250514", "Claude Opus 4 20250514", CostWeight: 75, null),
+                new ModelDefinition("claude-haiku-4-5", "Claude Haiku 4.5", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("claude-sonnet-4-6", "Claude Sonnet 4.6", CostWeight: 20, SmartRoutingTier.Standard),
+                new ModelDefinition("claude-opus-4-7", "Claude Opus 4.7", CostWeight: 75, null),
             },
             EnterpriseOnly: true,
             RequiresPinnedModels: true),
@@ -114,11 +114,14 @@ public static class ProviderRegistry
         All.ToDictionary(p => p.Slug, StringComparer.OrdinalIgnoreCase);
 
     private static readonly Dictionary<string, ModelDefinition> ModelById =
-        All.SelectMany(p => p.Models).ToDictionary(m => m.Id, StringComparer.OrdinalIgnoreCase);
+        All.SelectMany(p => p.Models)
+           .GroupBy(m => m.Id, StringComparer.OrdinalIgnoreCase)
+           .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
     private static readonly Dictionary<string, ProviderDefinition> ProviderByModel =
         All.SelectMany(p => p.Models.Select(m => (p, m)))
-           .ToDictionary(x => x.m.Id, x => x.p, StringComparer.OrdinalIgnoreCase);
+           .GroupBy(x => x.m.Id, StringComparer.OrdinalIgnoreCase)
+           .ToDictionary(group => group.Key, group => group.First().p, StringComparer.OrdinalIgnoreCase);
 
     // provider+tier → model (for smart routing)
     private static readonly Dictionary<(string Slug, SmartRoutingTier Tier), string> SmartRouteMap =

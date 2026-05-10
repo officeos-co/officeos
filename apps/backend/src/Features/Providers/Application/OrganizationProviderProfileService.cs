@@ -132,6 +132,17 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
 
         switch (provider, authKind)
         {
+            case (_, ProviderAuthKind.Gateway):
+                Require(normalized, "baseUrl");
+                break;
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsEnvironment):
+                Require(normalized, "awsRegion");
+                break;
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsProfile):
+                Require(normalized, "awsRegion");
+                Require(normalized, "awsProfile");
+                break;
+            case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsAccessKey):
             case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsIam):
                 Require(normalized, "awsAccessKeyId");
                 Require(normalized, "awsSecretAccessKey");
@@ -140,6 +151,11 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
             case (ProviderRegistry.AwsBedrockProviderSlug, ProviderAuthKind.AwsBedrockApiKey):
                 Require(normalized, "apiKey");
                 Require(normalized, "awsRegion");
+                break;
+            case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleServiceAccountFile):
+                Require(normalized, "credentialsPath");
+                Require(normalized, "projectId");
+                Require(normalized, "location");
                 break;
             case (ProviderRegistry.GoogleVertexProviderSlug, ProviderAuthKind.GoogleServiceAccount):
                 Require(normalized, "serviceAccountJson");
@@ -150,18 +166,21 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
                 Require(normalized, "projectId");
                 Require(normalized, "location");
                 break;
+            case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureDefaultCredential):
+                RequireFoundryEndpoint(normalized);
+                break;
             case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureEntraClientSecret):
                 Require(normalized, "tenantId");
                 Require(normalized, "clientId");
                 Require(normalized, "clientSecret");
-                Require(normalized, "endpoint");
+                RequireFoundryEndpoint(normalized);
                 break;
             case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureManagedIdentity):
-                Require(normalized, "endpoint");
+                RequireFoundryEndpoint(normalized);
                 break;
             case (ProviderRegistry.AzureFoundryProviderSlug, ProviderAuthKind.AzureApiKey):
                 Require(normalized, "apiKey");
-                Require(normalized, "endpoint");
+                RequireFoundryEndpoint(normalized);
                 break;
             case (_, ProviderAuthKind.ApiKey):
                 Require(normalized, "apiKey");
@@ -177,5 +196,11 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
     {
         if (!credentials.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
             throw new InvalidOperationException($"Provider credential '{key}' is required.");
+    }
+
+    private static void RequireFoundryEndpoint(IReadOnlyDictionary<string, string> credentials)
+    {
+        if (!credentials.ContainsKey("resource") && !credentials.ContainsKey("baseUrl") && !credentials.ContainsKey("endpoint"))
+            throw new InvalidOperationException("Provider credential 'resource' or 'baseUrl' is required.");
     }
 }

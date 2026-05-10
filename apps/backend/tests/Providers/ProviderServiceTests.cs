@@ -205,7 +205,7 @@ public sealed class ProviderServiceTests
             OrganizationId = organizationId,
             Provider = ProviderRegistry.AwsBedrockProviderSlug,
             DisplayName = "Bedrock",
-            AllowedModelsJson = """["anthropic.claude-sonnet-4-20250514-v1:0"]""",
+            AllowedModelsJson = """["us.anthropic.claude-sonnet-4-6"]""",
             EncryptedApiKey = protector.Protect(new Dictionary<string, string>
             {
                 ["authKind"] = ProviderAuthKind.AwsIam.ToStorageString(),
@@ -236,7 +236,7 @@ public sealed class ProviderServiceTests
         Assert.Null(await service.GetAuthForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId));
         Assert.False(await service.IsModelAllowedAsync(
             ProviderRegistry.AwsBedrockProviderSlug,
-            "anthropic.claude-sonnet-4-20250514-v1:0",
+            "us.anthropic.claude-sonnet-4-6",
             workspaceId));
     }
 
@@ -267,7 +267,7 @@ public sealed class ProviderServiceTests
                 OrganizationId = organizationId,
                 Provider = ProviderRegistry.AwsBedrockProviderSlug,
                 DisplayName = "Bedrock",
-                AllowedModelsJson = """["anthropic.claude-sonnet-4-20250514-v1:0"]""",
+                AllowedModelsJson = """["us.anthropic.claude-sonnet-4-6"]""",
                 EncryptedApiKey = protector.Protect(new Dictionary<string, string>
                 {
                     ["authKind"] = ProviderAuthKind.AwsIam.ToStorageString(),
@@ -286,8 +286,13 @@ public sealed class ProviderServiceTests
                 OrganizationId = organizationId,
                 Provider = ProviderRegistry.GoogleVertexProviderSlug,
                 DisplayName = "Vertex",
-                AllowedModelsJson = """["claude-sonnet-4@20250514"]""",
-                EncryptedApiKey = protector.Protect(new Dictionary<string, string> { ["apiKey"] = "gcp-key" }),
+                AllowedModelsJson = """["claude-sonnet-4-6"]""",
+                EncryptedApiKey = protector.Protect(new Dictionary<string, string>
+                {
+                    ["authKind"] = ProviderAuthKind.GoogleApplicationDefault.ToStorageString(),
+                    ["projectId"] = "acme-project",
+                    ["location"] = "global",
+                }),
                 Enabled = true,
                 ConfiguredAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
@@ -299,7 +304,7 @@ public sealed class ProviderServiceTests
                 OrganizationId = organizationId,
                 Provider = ProviderRegistry.AzureFoundryProviderSlug,
                 DisplayName = "Foundry",
-                AllowedModelsJson = """["claude-sonnet-4-20250514"]""",
+                AllowedModelsJson = """["claude-sonnet-4-6"]""",
                 EncryptedApiKey = protector.Protect(new Dictionary<string, string> { ["apiKey"] = "azure-key" }),
                 Enabled = false,
                 ConfiguredAt = DateTime.UtcNow,
@@ -323,13 +328,16 @@ public sealed class ProviderServiceTests
             providers.Select(provider => provider.Name).OrderBy(name => name).ToList());
         Assert.True(await service.IsModelAllowedAsync(
             ProviderRegistry.AwsBedrockProviderSlug,
-            "anthropic.claude-sonnet-4-20250514-v1:0",
+            "us.anthropic.claude-sonnet-4-6",
             workspaceId));
         Assert.False(await service.IsModelAllowedAsync(
             ProviderRegistry.AwsBedrockProviderSlug,
-            "claude-sonnet-4@20250514",
+            "claude-sonnet-4-6",
             workspaceId));
-        Assert.Equal("gcp-key", await service.GetApiKeyForDispatchAsync(ProviderRegistry.GoogleVertexProviderSlug, workspaceId));
+        Assert.Null(await service.GetApiKeyForDispatchAsync(ProviderRegistry.GoogleVertexProviderSlug, workspaceId));
+        var vertexAuth = await service.GetAuthForDispatchAsync(ProviderRegistry.GoogleVertexProviderSlug, workspaceId);
+        Assert.NotNull(vertexAuth);
+        Assert.Equal(ProviderAuthKind.GoogleApplicationDefault, vertexAuth.Kind);
         Assert.Null(await service.GetApiKeyForDispatchAsync(ProviderRegistry.AzureFoundryProviderSlug, workspaceId));
         var bedrockAuth = await service.GetAuthForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId);
         Assert.NotNull(bedrockAuth);

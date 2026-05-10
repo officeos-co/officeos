@@ -31,14 +31,14 @@ public sealed class CloudProviderNativeAuthTests
                     ["awsSessionToken"] = "session-token",
                     ["awsRegion"] = "us-east-1",
                 }),
-            "anthropic.claude-sonnet-4-20250514-v1:0",
-            LlmProviderDispatcherTestData.RequestBody("anthropic.claude-sonnet-4-20250514-v1:0"),
+            "us.anthropic.claude-sonnet-4-6",
+            LlmProviderDispatcherTestData.RequestBody("us.anthropic.claude-sonnet-4-6"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(
-            "https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-sonnet-4-20250514-v1%3A0/invoke-with-response-stream",
+            "https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-sonnet-4-6/invoke-with-response-stream",
             request.RequestUri!.ToString());
         var authorization = request.Headers.GetValues("Authorization").Single();
         Assert.StartsWith("AWS4-HMAC-SHA256", authorization);
@@ -49,7 +49,7 @@ public sealed class CloudProviderNativeAuthTests
     }
 
     [Fact]
-    public async Task Google_vertex_service_account_auth_uses_oauth_bearer_token_and_vertex_endpoint()
+    public async Task Google_vertex_service_account_file_auth_uses_oauth_bearer_token_and_vertex_endpoint()
     {
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
@@ -60,21 +60,21 @@ public sealed class CloudProviderNativeAuthTests
         var result = await dispatcher.DispatchAsync(
             ProviderRegistry.GoogleVertexProviderSlug,
             new ProviderAuthResult(
-                ProviderAuthKind.GoogleServiceAccount,
+                ProviderAuthKind.GoogleServiceAccountFile,
                 new Dictionary<string, string>
                 {
-                    ["serviceAccountJson"] = """{"client_email":"svc@example.com"}""",
+                    ["credentialsPath"] = "/var/run/secrets/gcp/claude.json",
                     ["projectId"] = "acme-project",
                     ["location"] = "us-east5",
                 }),
-            "claude-sonnet-4@20250514",
-            LlmProviderDispatcherTestData.RequestBody("claude-sonnet-4@20250514"),
+            "claude-sonnet-4-6",
+            LlmProviderDispatcherTestData.RequestBody("claude-sonnet-4-6"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(
-            "https://us-east5-aiplatform.googleapis.com/v1/projects/acme-project/locations/us-east5/publishers/anthropic/models/claude-sonnet-4%4020250514:streamRawPredict",
+            "https://us-east5-aiplatform.googleapis.com/v1/projects/acme-project/locations/us-east5/publishers/anthropic/models/claude-sonnet-4-6:streamRawPredict",
             request.RequestUri!.ToString());
         Assert.Equal("Bearer", request.Headers.Authorization!.Scheme);
         Assert.Equal("google-token", request.Headers.Authorization.Parameter);
@@ -100,8 +100,8 @@ public sealed class CloudProviderNativeAuthTests
                     ["clientSecret"] = "secret",
                     ["endpoint"] = "https://acme.openai.azure.com",
                 }),
-            "claude-sonnet-4-20250514",
-            LlmProviderDispatcherTestData.RequestBody("claude-sonnet-4-20250514"),
+            "claude-sonnet-4-6",
+            LlmProviderDispatcherTestData.RequestBody("claude-sonnet-4-6"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
@@ -111,7 +111,7 @@ public sealed class CloudProviderNativeAuthTests
         Assert.Equal("azure-token", request.Headers.Authorization.Parameter);
 
         using var doc = JsonDocument.Parse(handler.Bodies.Single());
-        Assert.Equal("claude-sonnet-4-20250514", doc.RootElement.GetProperty("model").GetString());
+        Assert.Equal("claude-sonnet-4-6", doc.RootElement.GetProperty("model").GetString());
     }
 
     [Fact]
@@ -131,8 +131,8 @@ public sealed class CloudProviderNativeAuthTests
                     ["apiKey"] = "foundry-key",
                     ["endpoint"] = "https://acme.openai.azure.com/",
                 }),
-            "claude-sonnet-4-20250514",
-            LlmProviderDispatcherTestData.RequestBody("claude-sonnet-4-20250514"),
+            "claude-sonnet-4-6",
+            LlmProviderDispatcherTestData.RequestBody("claude-sonnet-4-6"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
@@ -151,6 +151,9 @@ public sealed class CloudProviderNativeAuthTests
             _googleToken = googleToken;
             _azureToken = azureToken;
         }
+
+        public Task<ProviderAuthResult> GetAwsCredentialsAsync(ProviderAuthResult auth, CancellationToken ct = default) =>
+            Task.FromResult(auth);
 
         public Task<string> GetGoogleAccessTokenAsync(ProviderAuthResult auth, CancellationToken ct = default) =>
             Task.FromResult(_googleToken);

@@ -23,6 +23,69 @@ public sealed record ProviderCredentialInput(
     string Key,
     string Value);
 
+public sealed record BedrockProviderSetupInput(
+    Guid OrganizationId,
+    string DisplayName,
+    string? AwsRegion,
+    string AuthKind,
+    string? AwsProfile,
+    string? AwsAccessKeyId,
+    string? AwsSecretAccessKey,
+    string? AwsSessionToken,
+    string? BedrockApiKey,
+    string? BaseUrl,
+    bool SkipProviderAuth,
+    IReadOnlyList<string> PinnedModels,
+    bool Enabled);
+
+public sealed record VertexProviderSetupInput(
+    Guid OrganizationId,
+    string DisplayName,
+    string? ProjectId,
+    string? Location,
+    string AuthKind,
+    string? CredentialsPath,
+    string? BaseUrl,
+    bool SkipProviderAuth,
+    IReadOnlyList<string> PinnedModels,
+    bool Enabled);
+
+public sealed record FoundryProviderSetupInput(
+    Guid OrganizationId,
+    string DisplayName,
+    string? Resource,
+    string? BaseUrl,
+    string AuthKind,
+    string? ApiKey,
+    bool SkipProviderAuth,
+    IReadOnlyList<string> PinnedModels,
+    bool Enabled);
+
+public sealed record ProviderModelAccessCheckInput(
+    Guid OrganizationId,
+    string Provider,
+    string Model);
+
+public sealed record ProviderSetupStatusPayload(
+    string Provider,
+    string DisplayName,
+    bool Configured,
+    bool Enabled,
+    string AuthKind,
+    DateTime ConfiguredAt,
+    IReadOnlyList<string> PinnedModels,
+    IReadOnlyList<ProviderEnvironmentPayload> Environment);
+
+public sealed record ProviderEnvironmentPayload(
+    string Key,
+    string Value);
+
+public sealed record ProviderModelAccessCheckPayload(
+    string Provider,
+    string Model,
+    bool Accessible,
+    string Message);
+
 internal static class OrganizationProviderProfileGraphQLMapper
 {
     public static OrganizationProviderProfilePayload ToPayload(OrganizationProviderProfileRecord record) => new(
@@ -33,6 +96,25 @@ internal static class OrganizationProviderProfileGraphQLMapper
         ParseList(record.AllowedModelsJson),
         record.Enabled,
         record.ConfiguredAt);
+
+    public static ProviderSetupStatusPayload ToPayload(ProviderSetupStatusResult result) => new(
+        result.Provider,
+        result.DisplayName,
+        result.Configured,
+        result.Enabled,
+        result.AuthKind,
+        result.ConfiguredAt,
+        result.PinnedModels,
+        result.Environment
+            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(pair => new ProviderEnvironmentPayload(pair.Key, pair.Value))
+            .ToList());
+
+    public static ProviderModelAccessCheckPayload ToPayload(ProviderModelAccessCheckResult result) => new(
+        result.Provider,
+        result.Model,
+        result.Accessible,
+        result.Message);
 
     private static IReadOnlyList<string> ParseList(string? json)
     {
