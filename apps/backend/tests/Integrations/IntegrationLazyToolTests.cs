@@ -21,7 +21,7 @@ public sealed class IntegrationLazyToolTests
             Guid.NewGuid(),
             "correlation-1");
 
-        var tool = new LazyIntegrationTool(server, new IntegrationCatalogTool("create_document", "Create a new Google Doc", null), connection);
+        var tool = new LazyIntegrationTool(server, new IntegrationCatalogToolRecord("create_document", "Create a new Google Doc", null), connection);
 
         Assert.Equal("google_docs__create_document", tool.Name);
         Assert.Equal("google-docs:create_document", tool.PermissionScope);
@@ -41,7 +41,7 @@ public sealed class IntegrationLazyToolTests
             new TurnEventPublisher(new NoopPublisher()),
             Guid.NewGuid(),
             "correlation-1");
-        var tool = new LazyIntegrationTool(server, new IntegrationCatalogTool("create_document", "Create a new Google Doc", null), connection);
+        var tool = new LazyIntegrationTool(server, new IntegrationCatalogToolRecord("create_document", "Create a new Google Doc", null), connection);
         var search = new ToolSearchTool([tool]);
 
         var result = await search.ExecuteAsync(JsonSerializer.SerializeToElement(new { query = "google_docs" }));

@@ -25,10 +25,6 @@ internal sealed class AgentToolsetPermissionPolicy
     {
         var key = ToolKey.Parse(tool.PermissionScope);
         var scope = $"{key.SkillName}:{key.ToolName}";
-        var deniedTools = ParseStringSet(policy.DeniedToolsJson);
-        var allowedTools = ParseStringSet(policy.AllowedToolsJson);
-        var deniedIntegrations = ParseStringSet(policy.DeniedIntegrationsJson);
-        var allowedIntegrations = ParseStringSet(policy.AllowedIntegrationsJson);
 
         if (tool.Name.StartsWith("browser__", StringComparison.Ordinal) && !policy.BrowserToolsEnabled)
             return "browser tools are disabled by organization policy";
@@ -42,18 +38,18 @@ internal sealed class AgentToolsetPermissionPolicy
         if (tool.Name is "file_write" or "file_edit" && !policy.FileWriteToolsEnabled)
             return "file write tools are disabled by organization policy";
 
-        if (deniedTools.Contains(scope) || deniedTools.Contains($"{key.SkillName}:") || deniedTools.Contains(tool.Name))
+        if (policy.DeniedTools.Contains(scope) || policy.DeniedTools.Contains($"{key.SkillName}:") || policy.DeniedTools.Contains(tool.Name))
             return "tool is denied by organization policy";
 
         if (tool.Kind is AgentToolKind.Integration)
         {
-            if (deniedIntegrations.Contains(key.SkillName))
+            if (policy.DeniedIntegrations.Contains(key.SkillName))
                 return "integration is denied by organization policy";
-            if (allowedIntegrations.Count > 0 && !allowedIntegrations.Contains(key.SkillName))
+            if (policy.AllowedIntegrations.Count > 0 && !policy.AllowedIntegrations.Contains(key.SkillName))
                 return "integration is not allowed by organization policy";
         }
 
-        return allowedTools.Count == 0 || allowedTools.Contains(scope) || allowedTools.Contains($"{key.SkillName}:") || allowedTools.Contains(tool.Name)
+        return policy.AllowedTools.Count == 0 || policy.AllowedTools.Contains(scope) || policy.AllowedTools.Contains($"{key.SkillName}:") || policy.AllowedTools.Contains(tool.Name)
             ? null
             : "tool is not allowed by organization policy";
     }
@@ -102,28 +98,6 @@ internal sealed class AgentToolsetPermissionPolicy
             string.Equals(pattern, toolName, StringComparison.OrdinalIgnoreCase)
             || string.Equals(pattern, runtimeName, StringComparison.OrdinalIgnoreCase)
             || string.Equals(pattern, scope, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static HashSet<string> ParseStringSet(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
-            return parsed.ValueKind == JsonValueKind.Array
-                ? parsed.EnumerateArray()
-                    .Select(value => value.GetString())
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Select(value => value!)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        }
     }
 
     private static string Slug(string value)

@@ -6,7 +6,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IAgentCronJobRepository _agentCronJobRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
-    private readonly IBrowserToolContextFactory _browserToolContextFactory;
+    private readonly IBrowserToolService _browserToolService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
@@ -16,7 +16,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IAgentCronJobRepository cronJobRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
-        IBrowserToolContextFactory browserToolContextFactory,
+        IBrowserToolService browserToolService,
         IIntegrationDefinitionService integrationDefinitionService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser)
@@ -25,7 +25,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         _agentCronJobRepository = cronJobRepository;
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
-        _browserToolContextFactory = browserToolContextFactory;
+        _browserToolService = browserToolService;
         _integrationDefinitionService = integrationDefinitionService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
@@ -59,8 +59,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new WebFetchTool(),
         };
 
-        var browserContext = await _browserToolContextFactory.CreateCatalogAsync(ct);
-        tools.AddRange(ToolRegistryFactory.CreateBrowserTools(browserContext, effectiveAgentId));
+        tools.AddRange(await _browserToolService.CreateCatalogAsync(effectiveAgentId, ct));
 
         AgentToolsetPermissionPolicy? toolsetPolicy = null;
         if (agentId.HasValue)
@@ -81,10 +80,18 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             var integrations = await _integrationDefinitionService.ListForAgentAsync(effectiveAgentId, ct: ct);
             foreach (var server in integrations)
             {
-                foreach (var tool in ParseIntegrationTools(server))
+                foreach (var tool in server.Tools)
                 {
-                    if (toolsetPolicy is null || toolsetPolicy.AllowsIntegrationTool(server.Name, tool.PermissionTool))
-                        entries.Add(tool);
+                    if (toolsetPolicy is null || toolsetPolicy.AllowsIntegrationTool(server.Name, tool.Name))
+                    {
+                        entries.Add(new AgentToolCatalogEntry(
+                            server.Name,
+                            $"{Slug(server.Name)}__{Slug(tool.Name)}",
+                            server.Name,
+                            tool.Name,
+                            $"[{server.Name}] {tool.Description}",
+                            true));
+                    }
                 }
             }
         }
@@ -136,43 +143,6 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             key.ToolName,
             tool.Schema.Description,
             tool.ShouldDefer);
-    }
-
-    private static IEnumerable<AgentToolCatalogEntry> ParseIntegrationTools(IntegrationDefinitionRecord server)
-    {
-        if (string.IsNullOrWhiteSpace(server.ToolsJson))
-            yield break;
-
-        JsonElement parsed;
-        try
-        {
-            parsed = JsonSerializer.Deserialize<JsonElement>(server.ToolsJson);
-        }
-        catch
-        {
-            yield break;
-        }
-
-        if (parsed.ValueKind != JsonValueKind.Array)
-            yield break;
-
-        foreach (var item in parsed.EnumerateArray())
-        {
-            var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-            if (string.IsNullOrWhiteSpace(name))
-                continue;
-
-            var description = item.TryGetProperty("description", out var descProp)
-                ? descProp.GetString() ?? name
-                : name;
-            yield return new AgentToolCatalogEntry(
-                server.Name,
-                $"{Slug(server.Name)}__{Slug(name)}",
-                server.Name,
-                name,
-                $"[{server.Name}] {description}",
-                true);
-        }
     }
 
     private static string Slug(string value)

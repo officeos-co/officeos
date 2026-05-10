@@ -32,6 +32,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IBrowserService, BrowserService>();
         services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();
+        services.AddScoped<IBrowserToolService, BrowserToolService>();
         services.AddSingleton<AgentTaskStore>();
         services.AddScoped<ToolRegistryFactory>();
         services.AddScoped<IAgentToolCatalogService, AgentToolCatalogService>();

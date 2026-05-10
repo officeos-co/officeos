@@ -68,7 +68,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         existing.AuthorUrl = server.AuthorUrl;
         existing.DocumentationUrl = server.DocumentationUrl;
         existing.RepositoryUrl = server.RepositoryUrl;
-        existing.ToolsJson = server.ToolsJson;
+        existing.ToolsJson = SerializeTools(server.Tools);
         existing.CapabilitiesJson = server.CapabilitiesJson;
         existing.EntitiesJson = JsonSerializer.Serialize(server.Entities);
 
@@ -112,7 +112,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         AuthorUrl = entity.AuthorUrl,
         DocumentationUrl = entity.DocumentationUrl,
         RepositoryUrl = entity.RepositoryUrl,
-        ToolsJson = entity.ToolsJson,
+        Tools = DeserializeTools(entity.ToolsJson),
         CapabilitiesJson = entity.CapabilitiesJson,
         Entities = DeserializeStringArray(entity.EntitiesJson),
         IsBuiltin = false,
@@ -140,7 +140,7 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
         AuthorUrl = server.AuthorUrl,
         DocumentationUrl = server.DocumentationUrl,
         RepositoryUrl = server.RepositoryUrl,
-        ToolsJson = server.ToolsJson,
+        ToolsJson = SerializeTools(server.Tools),
         CapabilitiesJson = server.CapabilitiesJson,
         EntitiesJson = JsonSerializer.Serialize(server.Entities),
         IsBuiltin = false,
@@ -159,4 +159,49 @@ internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRe
             return [];
         }
     }
+
+    private static IReadOnlyList<IntegrationCatalogToolRecord> DeserializeTools(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
+            if (parsed.ValueKind != JsonValueKind.Array)
+                return [];
+
+            var tools = new List<IntegrationCatalogToolRecord>();
+            foreach (var item in parsed.EnumerateArray())
+            {
+                var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                var description = item.TryGetProperty("description", out var descProp)
+                    ? descProp.GetString() ?? name
+                    : name;
+                object? parameters = null;
+                if (item.TryGetProperty("parameters", out var parametersProp)
+                    || item.TryGetProperty("inputSchema", out parametersProp)
+                    || item.TryGetProperty("input_schema", out parametersProp))
+                {
+                    parameters = JsonSerializer.Deserialize<JsonElement>(parametersProp.GetRawText());
+                }
+
+                tools.Add(new IntegrationCatalogToolRecord(name, description, parameters));
+            }
+            return tools;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static string SerializeTools(IReadOnlyList<IntegrationCatalogToolRecord> tools) =>
+        JsonSerializer.Serialize(tools.Select(tool => new
+        {
+            name = tool.Name,
+            description = tool.Description,
+            parameters = tool.Parameters,
+        }));
 }

@@ -10,9 +10,10 @@ public sealed class BrowserToolTests
     [Fact]
     public async Task Browser_tool_factory_registers_every_named_browser_tool()
     {
-        var contextFactory = new BrowserToolContextFactory(new FakeBrowserService(), new FakeBrowserRuntimeClient());
-        var context = await contextFactory.CreateCatalogAsync();
-        var tools = ToolRegistryFactory.CreateBrowserTools(context, Guid.NewGuid());
+        var browserToolService = new BrowserToolService(new BrowserToolContextFactory(
+            new FakeBrowserService(),
+            new FakeBrowserRuntimeClient()));
+        var tools = await browserToolService.CreateCatalogAsync(Guid.NewGuid());
         var names = tools.Select(t => t.Name).ToHashSet(StringComparer.Ordinal);
 
         Assert.Equal(32, names.Count);
@@ -86,13 +87,20 @@ public sealed class BrowserToolTests
     [Fact]
     public async Task Initial_schema_list_includes_all_browser_tools_without_search()
     {
-        var contextFactory = new BrowserToolContextFactory(new FakeBrowserService(), new FakeBrowserRuntimeClient());
-        var context = await contextFactory.CreateCatalogAsync();
-        var tools = ToolRegistryFactory.CreateBrowserTools(context, Guid.NewGuid()).ToList();
-        await using var registry = new ToolRegistry(
-            tools,
-            new ToolExecutionContext(Guid.NewGuid(), "sandbox-1", "http://sandbox", new FakeAgentSandbox()),
-            preloadedToolNames: tools.Select(t => t.Name));
+        var browserToolService = new BrowserToolService(new BrowserToolContextFactory(
+            new FakeBrowserService(),
+            new FakeBrowserRuntimeClient()));
+        var tools = (await browserToolService.CreateCatalogAsync(Guid.NewGuid())).ToList();
+        await using var registry = new ToolRegistry(new ToolRegistryContext
+        {
+            Tools = tools,
+            ToolExecutionContext = new ToolExecutionContext(Guid.NewGuid(), "sandbox-1", "http://sandbox", new FakeAgentSandbox()),
+            IntegrationConnections = [],
+            PreloadedToolNames = tools.Select(t => t.Name).ToHashSet(StringComparer.Ordinal),
+            PolicyDeniedToolReasons = new Dictionary<string, string>(StringComparer.Ordinal),
+            TurnEventPublisher = new TurnEventPublisher(new NoopPublisher()),
+            CorrelationId = "correlation",
+        });
 
         var schemas = JsonSerializer.Serialize(registry.GetSchemas());
         var deferredTools = registry.GetDeferredToolsMessage();

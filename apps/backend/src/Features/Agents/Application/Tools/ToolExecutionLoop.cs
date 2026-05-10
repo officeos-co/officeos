@@ -44,16 +44,17 @@ internal sealed class ToolExecutionLoop
             ct);
 
         var registryStart = Stopwatch.GetTimestamp();
-        var registry = await _toolRegistryFactory.CreateAsync(
-            _agentSandbox,
-            agent.PodName ?? string.Empty,
-            agent.ServiceUrl ?? string.Empty,
-            agent.Id,
-            agent.WorkspaceId,
-            correlationId,
-            integrations,
-            integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, agent.WorkspaceId, ct),
-            ct);
+        var registry = await _toolRegistryFactory.CreateAsync(new ToolRegistryRequest
+        {
+            Sandbox = _agentSandbox,
+            SandboxId = agent.PodName ?? string.Empty,
+            ServiceUrl = agent.ServiceUrl ?? string.Empty,
+            AgentId = agent.Id,
+            WorkspaceId = agent.WorkspaceId,
+            CorrelationId = correlationId,
+            Integrations = integrations,
+            CredentialLoader = integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, agent.WorkspaceId, ct),
+        }, ct);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
             correlationId,

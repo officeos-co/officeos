@@ -31,7 +31,7 @@ public sealed record IntegrationDefinitionRecord
     public string AuthorUrl { get; init; } = string.Empty;
     public string DocumentationUrl { get; init; } = string.Empty;
     public string RepositoryUrl { get; init; } = string.Empty;
-    public string? ToolsJson { get; init; }
+    public IReadOnlyList<IntegrationCatalogToolRecord> Tools { get; init; } = [];
     public string? CapabilitiesJson { get; init; }
     public IReadOnlyList<string> Entities { get; init; } = [];
     public bool IsBuiltin { get; init; }
@@ -44,3 +44,8 @@ public sealed record IntegrationDefinitionRecord
         return new Guid(hash.AsSpan(0, 16));
     }
 }
+
+public sealed record IntegrationCatalogToolRecord(
+    string Name,
+    string Description,
+    object? Parameters);

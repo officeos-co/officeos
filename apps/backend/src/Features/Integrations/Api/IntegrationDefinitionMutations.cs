@@ -50,7 +50,10 @@ public sealed class IntegrationDefinitionMutations
             AuthorUrl = input.AuthorUrl,
             DocumentationUrl = input.DocumentationUrl,
             RepositoryUrl = input.RepositoryUrl,
-            ToolsJson = input.ToolsJson,
+            Tools = input.Tools?.Select(tool => new IntegrationCatalogToolRecord(
+                tool.Name,
+                string.IsNullOrWhiteSpace(tool.Description) ? tool.Name : tool.Description,
+                tool.Parameters)).ToList() ?? [],
             TransportType = transportType,
             Command = input.Command,
             Args = input.Args,
@@ -137,7 +140,7 @@ public record RegisterIntegrationInput(
     string AuthorUrl,
     string DocumentationUrl,
     string RepositoryUrl,
-    string? ToolsJson,
+    List<IntegrationCatalogToolInput>? Tools,
     string TransportType,
     string? Command,
     string? Args,
@@ -145,5 +148,10 @@ public record RegisterIntegrationInput(
     string Category,
     string? CredentialFieldsJson,
     string? Logo = null);
+
+public sealed record IntegrationCatalogToolInput(
+    string Name,
+    string? Description,
+    [property: GraphQLType(typeof(AnyType))] JsonElement? Parameters = null);
 
 public record CredentialFieldInput(string Key, string Value);
