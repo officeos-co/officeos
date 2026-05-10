@@ -81,7 +81,7 @@ internal sealed class UsageAnalyticsService : IUsageAnalyticsService
     }
 
     private UsageCostBreakdown CalculateCost(
-        UserSubscription sub,
+        UserSubscriptionRecord sub,
         long rangeCredits,
         DateTime from,
         DateTime toExclusive)

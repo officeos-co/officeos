@@ -1,7 +1,7 @@
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Application.Features.Management;
+using OffceOs.Domain.Features.Billing;
+using OffceOs.Application.Features.Billing;
 using OffceOs.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,7 +31,7 @@ public sealed class BillingGuardTests
     public async Task CheckQuotaAsync_reports_exceeded_when_budget_exceeded_and_overage_disabled()
     {
         var ownerId = Guid.NewGuid();
-        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        var sub = UserSubscriptionRecord.CreateDefaultFree(ownerId);
         sub.CreditBudgetPerMonth = 100;
         sub.CreditsUsedThisMonth = 101;
 
@@ -48,7 +48,7 @@ public sealed class BillingGuardTests
     public async Task Development_environment_does_not_check_or_block_usage_limits()
     {
         var ownerId = Guid.NewGuid();
-        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        var sub = UserSubscriptionRecord.CreateDefaultFree(ownerId);
         sub.CreditBudgetPerMonth = 100;
         sub.CreditsUsedThisMonth = 101;
         var subscriptions = new FakeUserSubscriptionRepository(sub);
@@ -70,7 +70,7 @@ public sealed class BillingGuardTests
     public async Task Production_environment_checks_and_blocks_usage_limits()
     {
         var ownerId = Guid.NewGuid();
-        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        var sub = UserSubscriptionRecord.CreateDefaultFree(ownerId);
         sub.CreditBudgetPerMonth = 100;
         sub.CreditsUsedThisMonth = 101;
         var subscriptions = new FakeUserSubscriptionRepository(sub);
@@ -91,7 +91,7 @@ public sealed class BillingGuardTests
     public async Task CheckQuotaAsync_allows_overage_enabled_subscriptions()
     {
         var ownerId = Guid.NewGuid();
-        var sub = UserSubscription.CreateDefaultFree(ownerId);
+        var sub = UserSubscriptionRecord.CreateDefaultFree(ownerId);
         sub.CreditBudgetPerMonth = 100;
         sub.CreditsUsedThisMonth = 500;
         sub.OverageEnabled = true;
@@ -154,13 +154,13 @@ public sealed class BillingGuardTests
 
     private sealed class FakeUserSubscriptionRepository : IUserSubscriptionRepository
     {
-        public FakeUserSubscriptionRepository(UserSubscription? current = null) => Current = current;
+        public FakeUserSubscriptionRepository(UserSubscriptionRecord? current = null) => Current = current;
 
-        public UserSubscription? Current { get; private set; }
+        public UserSubscriptionRecord? Current { get; private set; }
         public int AddCount { get; private set; }
         public int GetCount { get; private set; }
 
-        public Task<UserSubscription?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
+        public Task<UserSubscriptionRecord?> GetByAsync(UserSubscriptionFilter filter, CancellationToken ct = default)
         {
             GetCount++;
             return Task.FromResult(
@@ -171,14 +171,14 @@ public sealed class BillingGuardTests
                     : null);
         }
 
-        public Task AddAsync(UserSubscription sub, CancellationToken ct = default)
+        public Task AddAsync(UserSubscriptionRecord sub, CancellationToken ct = default)
         {
             Current = sub;
             AddCount++;
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(UserSubscription sub, CancellationToken ct = default)
+        public Task UpdateAsync(UserSubscriptionRecord sub, CancellationToken ct = default)
         {
             Current = sub;
             return Task.CompletedTask;

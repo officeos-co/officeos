@@ -15,6 +15,7 @@ Only these top-level feature folders are allowed under `src/Features`:
 - `Channels`
 - `Context`
 - `Analytics`
+- `Billing`
 - `Management`
 
 Each feature owns its local layers:
@@ -47,7 +48,7 @@ Shared code lives under:
 
 ## Feature Ownership
 
-Do not create top-level feature folders named `Atlas`, `Data`, `Mcp`, `Billing`, `Auth`, or `Browser`.
+Do not create top-level feature folders named `Atlas`, `Data`, `Mcp`, `Auth`, or `Browser`.
 
 Agents subdomains are expressed through strong type and file names, not nested folders:
 
@@ -62,6 +63,8 @@ Agents subdomains are expressed through strong type and file names, not nested f
 Channels owns channel connections, credentials, bindings, inbound routing, sidecar delivery, and channel GraphQL/endpoints.
 
 Context owns markdown-style memory stores, memory entries, external integration connections, integration indexing, indexed records, and integration execution.
+
+Billing owns subscriptions, plan limits, quota checks, credit recording, Stripe checkout/portal/webhook/metering integration, and dashboard billing API surfaces.
 
 Do not use `Data` as a feature, namespace, file prefix, or type prefix for Context-owned memory concepts. If the concept is agent-scoped memory, use `AgentMemory*`. If it is a reusable memory store or store entry, use `MemoryStore*` / `MemoryStoreEntry*`. If it is integration indexing or execution, use the existing Context integration names.
 

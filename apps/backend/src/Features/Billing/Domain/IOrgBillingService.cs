@@ -1,8 +1,8 @@
-namespace OffceOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Billing;
 
 public interface IOrgBillingService
 {
-    Task<OrgSubscription> GetSubscriptionAsync(string orgId, CancellationToken ct = default);
+    Task<OrgSubscriptionRecord> GetSubscriptionAsync(string orgId, CancellationToken ct = default);
     Task<CreditBudgetResult> CheckCreditBudgetAsync(string orgId, CancellationToken ct = default);
     Task<string> CreateCustomerAsync(string orgId, string email, CancellationToken ct = default);
     Task<string> CreateSubscriptionAsync(string customerId, string plan, string billingCycle = "monthly", CancellationToken ct = default);

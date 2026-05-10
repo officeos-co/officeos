@@ -1,10 +1,10 @@
-using OffceOs.Application.Features.Management;
+using OffceOs.Application.Features.Billing;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Management;
+using OffceOs.Domain.Features.Billing;
 using OffceOs.Database;
 using OffceOs.Configuration;
 using OffceOs.Infrastructure.Features.Agents;
-using OffceOs.Infrastructure.Features.Management;
+using OffceOs.Infrastructure.Features.Billing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -31,7 +31,7 @@ public sealed class CreditRecordingPersistenceTests
                 Model = "gpt-4o-mini",
                 OwnerId = ownerId,
             });
-            await new UserSubscriptionRepository(db).AddAsync(UserSubscription.CreateDefaultFree(ownerId));
+            await new UserSubscriptionRepository(db).AddAsync(UserSubscriptionRecord.CreateDefaultFree(ownerId));
         }
 
         await using (var db = CreateDb(dbName))

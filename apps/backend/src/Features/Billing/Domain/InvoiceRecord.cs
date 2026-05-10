@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Billing;
 
 public sealed record InvoiceRecord(
     string Id,

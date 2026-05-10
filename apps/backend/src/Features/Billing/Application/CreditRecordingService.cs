@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Management;
+namespace OffceOs.Application.Features.Billing;
 
 internal sealed class CreditRecordingService : ICreditRecordingService
 {
@@ -43,7 +43,7 @@ internal sealed class CreditRecordingService : ICreditRecordingService
         var createdSubscription = sub is null;
         if (sub is null)
         {
-            sub = UserSubscription.CreateDefaultFree(agent.OwnerId.Value);
+            sub = UserSubscriptionRecord.CreateDefaultFree(agent.OwnerId.Value);
             _logger.LogWarning(
                 "Created missing free subscription while recording usage for agent {AgentId} user {UserId}",
                 agentId, agent.OwnerId.Value);

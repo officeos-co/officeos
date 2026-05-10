@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Billing;
 
 /// <summary>
 /// Records normalized credit usage from LLM proxy calls and fires Stripe Billing

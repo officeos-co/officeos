@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Management;
+namespace OffceOs.Domain.Features.Billing;
 
 /// <summary>
 /// Single source of truth for plan limits. Used by both billing enforcement
@@ -23,7 +23,7 @@ public static class PlanLimits
     public static PlanLimit ForOrgPlan(SubscriptionPlan plan) => plan switch
     {
         SubscriptionPlan.Team       => OrgTeam,
-        SubscriptionPlan.Enterprise => throw new ArgumentException("Enterprise limits are stored on OrgSubscription", nameof(plan)),
+        SubscriptionPlan.Enterprise => throw new ArgumentException("Enterprise limits are stored on OrgSubscriptionRecord", nameof(plan)),
         _                           => OrgFree,
     };
 

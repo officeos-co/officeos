@@ -28,6 +28,4 @@ public sealed class UserRecord
     [MaxLength(4000)]
     public string? Preferences { get; set; }
     public Guid? CurrentWorkspaceId { get; set; }
-
-    public UserSubscription? Subscription { get; init; }
 }
