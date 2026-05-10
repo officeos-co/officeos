@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Features.Agents;
+namespace OffceOs.Infrastructure.Features.Providers;
 
 /// <summary>
 /// Classifies request complexity and returns a concrete model name.

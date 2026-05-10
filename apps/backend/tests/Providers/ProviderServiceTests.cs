@@ -206,7 +206,13 @@ public sealed class ProviderServiceTests
             Provider = ProviderRegistry.AwsBedrockProviderSlug,
             DisplayName = "Bedrock",
             AllowedModelsJson = """["anthropic.claude-sonnet-4-20250514-v1:0"]""",
-            EncryptedApiKey = protector.Protect(new Dictionary<string, string> { ["apiKey"] = "aws-key" }),
+            EncryptedApiKey = protector.Protect(new Dictionary<string, string>
+            {
+                ["authKind"] = ProviderAuthKind.AwsIam.ToStorageString(),
+                ["awsAccessKeyId"] = "AKIATEST",
+                ["awsSecretAccessKey"] = "secret",
+                ["awsRegion"] = "us-east-1",
+            }),
             Enabled = true,
             ConfiguredAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
@@ -227,6 +233,7 @@ public sealed class ProviderServiceTests
         Assert.DoesNotContain(providers, provider => provider.Name == ProviderRegistry.AwsBedrockProviderSlug);
         Assert.True(Assert.Single(providers, provider => provider.Name == "openai").Configured);
         Assert.Null(await service.GetApiKeyForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId));
+        Assert.Null(await service.GetAuthForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId));
         Assert.False(await service.IsModelAllowedAsync(
             ProviderRegistry.AwsBedrockProviderSlug,
             "anthropic.claude-sonnet-4-20250514-v1:0",
@@ -261,7 +268,13 @@ public sealed class ProviderServiceTests
                 Provider = ProviderRegistry.AwsBedrockProviderSlug,
                 DisplayName = "Bedrock",
                 AllowedModelsJson = """["anthropic.claude-sonnet-4-20250514-v1:0"]""",
-                EncryptedApiKey = protector.Protect(new Dictionary<string, string> { ["apiKey"] = "aws-key" }),
+                EncryptedApiKey = protector.Protect(new Dictionary<string, string>
+                {
+                    ["authKind"] = ProviderAuthKind.AwsIam.ToStorageString(),
+                    ["awsAccessKeyId"] = "AKIATEST",
+                    ["awsSecretAccessKey"] = "secret",
+                    ["awsRegion"] = "us-east-1",
+                }),
                 Enabled = true,
                 ConfiguredAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
@@ -318,6 +331,10 @@ public sealed class ProviderServiceTests
             workspaceId));
         Assert.Equal("gcp-key", await service.GetApiKeyForDispatchAsync(ProviderRegistry.GoogleVertexProviderSlug, workspaceId));
         Assert.Null(await service.GetApiKeyForDispatchAsync(ProviderRegistry.AzureFoundryProviderSlug, workspaceId));
+        var bedrockAuth = await service.GetAuthForDispatchAsync(ProviderRegistry.AwsBedrockProviderSlug, workspaceId);
+        Assert.NotNull(bedrockAuth);
+        Assert.Equal(ProviderAuthKind.AwsIam, bedrockAuth.Kind);
+        Assert.Equal("us-east-1", bedrockAuth.Get("awsRegion"));
     }
 
     private static void SeedEnterpriseSubscription(EaosDbContext db, Guid organizationId)

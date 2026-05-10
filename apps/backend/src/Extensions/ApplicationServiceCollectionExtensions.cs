@@ -10,6 +10,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentSessionService, AgentSessionService>();
         services.AddScoped<IAgentResourceService, AgentResourceService>();
         services.AddScoped<IProviderService, ProviderService>();
+        services.AddScoped<IProviderDispatchService, ProviderDispatchService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
         services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();

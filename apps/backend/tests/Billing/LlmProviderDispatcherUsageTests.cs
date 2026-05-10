@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Configuration;
-using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

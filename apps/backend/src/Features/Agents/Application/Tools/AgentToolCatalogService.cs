@@ -1,10 +1,5 @@
 namespace OffceOs.Application.Features.Agents;
 
-public interface IAgentToolCatalogService
-{
-    Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default);
-}
-
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
     private readonly IAgentMemoryService _agentMemoryService;

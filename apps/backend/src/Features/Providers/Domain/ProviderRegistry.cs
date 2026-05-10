@@ -90,7 +90,7 @@ public static class ProviderRegistry
         new ProviderDefinition(
             Slug: AzureFoundryProviderSlug,
             DisplayName: "Microsoft Foundry",
-            ApiFormat: ApiFormat.Anthropic,
+            ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://models.inference.ai.azure.com",
             PlatformKeyConfigName: null,
             Models: new[]
