@@ -18,5 +18,4 @@ public interface IChannelRepository
 
     // ---------- Routing queries ----------
     Task<IReadOnlyList<AgentChannelBindingRecord>> FindBindingsByConnectionAsync(Guid connectionId, CancellationToken ct = default);
-    Task<IReadOnlyList<ChannelConnectionRecord>> FindConnectionsByChannelTypeAsync(string channelType, CancellationToken ct = default);
 }

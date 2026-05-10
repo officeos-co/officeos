@@ -9,16 +9,17 @@ internal sealed class AgentChannelBinder
         _channelRepository = channelRepository;
     }
 
-    public async Task BindBySlugsAsync(Guid agentId, IReadOnlyList<string>? channelSlugs, CancellationToken ct = default)
+    public async Task BindByConnectionIdsAsync(Guid agentId, IReadOnlyList<Guid>? channelConnectionIds, CancellationToken ct = default)
     {
-        if (channelSlugs is not { Count: > 0 }) return;
+        if (channelConnectionIds is not { Count: > 0 }) return;
 
-        var connections = await _channelRepository.ListConnectionsAsync(ct: ct);
-        foreach (var slug in channelSlugs)
+        foreach (var channelConnectionId in channelConnectionIds.Distinct())
         {
-            var match = connections.FirstOrDefault(c =>
-                string.Equals(c.ChannelType.ToStorageString(), slug, StringComparison.OrdinalIgnoreCase));
-            if (match is null) continue;
+            var match = await _channelRepository.GetConnectionByAsync(
+                new ChannelConnectionFilter { Id = channelConnectionId },
+                ct);
+            if (match is null)
+                throw new InvalidOperationException("Channel connection not found.");
 
             try
             {

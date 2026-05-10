@@ -183,7 +183,7 @@ internal sealed class AgentService : IAgentService
 
     public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
     {
-        await _agentChannelBinder.BindBySlugsAsync(agentId, init.ChannelSlugs, ct);
+        await _agentChannelBinder.BindByConnectionIdsAsync(agentId, init.ChannelConnectionIds, ct);
 
         if (init.ToolNames is { Count: > 0 })
         {

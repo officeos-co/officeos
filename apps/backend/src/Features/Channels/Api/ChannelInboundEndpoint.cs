@@ -3,7 +3,7 @@ namespace OffceOs.Api.Features.Channels;
 public static class ChannelInboundEndpoint
 {
     public record ChannelInboundInput(
-        string ChannelType,
+        Guid ConnectionId,
         string SenderIdentifier,
         string MessageText,
         bool IsGroupMessage,
@@ -15,8 +15,8 @@ public static class ChannelInboundEndpoint
         IChannelService channelService,
         CancellationToken ct)
     {
-        var agentIds = await channelService.RouteInboundByChannelTypeAsync(
-            request.ChannelType, request.SenderIdentifier, request.MessageText,
+        var agentIds = await channelService.RouteInboundAsync(
+            request.ConnectionId, request.SenderIdentifier, request.MessageText,
             request.IsGroupMessage, request.MessageId, request.ChannelId, ct);
 
         return Results.Ok(new { agentIds });

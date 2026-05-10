@@ -25,7 +25,7 @@ public class AgentDashboardMutations
                     input.Model,
                     input.Prompt,
                     input.IntegrationSlugs,
-                    input.ChannelSlugs,
+                    input.ChannelConnectionIds,
                     input.ToolNames,
                     input.ToolPermissions?.Select(tp => new AgentToolPermissionInit(tp.Tool, tp.Mode)).ToList(),
                     input.Resources?.Select(resource => new AgentResourceAttachmentRequest(

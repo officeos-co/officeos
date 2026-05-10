@@ -21,7 +21,7 @@ public sealed record PatchAgentRequest(string? Provider, string? Model, string? 
 public sealed record AgentInitRequest(
     IReadOnlyList<string>? ToolNames,
     IReadOnlyList<AgentToolPermissionInit>? ToolPermissions,
-    IReadOnlyList<string>? ChannelSlugs,
+    IReadOnlyList<Guid>? ChannelConnectionIds,
     string? BootstrapMessage);
 
 public sealed record AgentToolPermissionInit(string Tool, ToolPermission Mode);

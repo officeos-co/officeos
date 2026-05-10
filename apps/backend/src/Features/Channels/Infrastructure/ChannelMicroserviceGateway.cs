@@ -14,10 +14,17 @@ public sealed class ChannelSidecarGateway : IChannelGateway
         _logger = logger;
     }
 
-    public async Task SendAsync(string channelType, string platformId, string? threadId,
+    public async Task SendAsync(Guid connectionId, string channelType, string platformId, string? threadId,
                                 ChannelMessage message, CancellationToken ct = default)
     {
-        var payload = new { channelType, platformId, threadId, message = new { kind = message.Kind, content = message.Content } };
+        var payload = new
+        {
+            connectionId = connectionId.ToString(),
+            channelType,
+            platformId,
+            threadId,
+            message = new { kind = message.Kind, content = message.Content }
+        };
         var response = await _httpClient.PostAsJsonAsync("/send", payload, ct);
         response.EnsureSuccessStatusCode();
     }

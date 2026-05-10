@@ -6,7 +6,7 @@ public sealed record CreateAgentInput(
     string? Model,
     string? Prompt,
     List<string>? IntegrationSlugs,
-    List<string>? ChannelSlugs,
+    List<Guid>? ChannelConnectionIds,
     List<string>? ToolNames,
     List<ToolPermissionInput>? ToolPermissions,
     List<AgentResourceAttachmentInput>? Resources = null,

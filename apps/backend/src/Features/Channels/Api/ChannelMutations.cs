@@ -55,7 +55,7 @@ public class ChannelMutations
         {
             var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
             var updated = await channelService.UpdateOwnedConnectionAsync(
-                id, user.Id, workspace.Id, input.DisplayName, input.Enabled, ct);
+                id, user.Id, workspace.Id, input.DisplayName, input.ConfigJson, input.Enabled, ct);
 
             await InvalidateChannelCachesAsync(cache, user.Id, workspace.Id, id, ct);
             return ChannelGraphQLMapper.ToPayload(updated);
@@ -91,51 +91,90 @@ public class ChannelMutations
     }
 
     [GraphQLDescription("Binds a channel connection to an agent so it receives messages from that channel. Optional config specifies platform/thread IDs.")]
-    public Task<AgentChannelBindingPayload> BindChannelToAgent(
+    public async Task<AgentChannelBindingPayload> BindChannelToAgent(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput? config,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = channelService;
-        _ = cache;
-        _ = ct;
-        throw ImmutableChannelBindingError();
+        try
+        {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            var binding = await channelService.BindOwnedAgentAsync(
+                agentId,
+                channelConnectionId,
+                user.Id,
+                workspace.Id,
+                config is null ? null : ChannelGraphQLMapper.SerializeConfig(config),
+                ct);
+
+            await cache.RemoveAsync(AgentCacheKeys.DashboardDetail(agentId, user.Id, workspace.Id), ct);
+            return ChannelGraphQLMapper.ToPayload(binding);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("NOT_FOUND").Build());
+        }
     }
 
     [GraphQLDescription("Removes a channel binding from an agent.")]
-    public Task<bool> UnbindChannelFromAgent(
+    public async Task<bool> UnbindChannelFromAgent(
         Guid agentId,
         Guid channelConnectionId,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IChannelService channelService,
         [Service] IDistributedCache cache,
         CancellationToken ct)
     {
-        _ = channelService;
-        _ = cache;
-        _ = ct;
-        throw ImmutableChannelBindingError();
+        try
+        {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            var result = await channelService.UnbindOwnedAgentAsync(
+                agentId, channelConnectionId, user.Id, workspace.Id, ct);
+
+            await cache.RemoveAsync(AgentCacheKeys.DashboardDetail(agentId, user.Id, workspace.Id), ct);
+            return result;
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("NOT_FOUND").Build());
+        }
     }
 
     [GraphQLDescription("Updates the routing config (platformId, threadId) on an existing agent-channel binding.")]
-    public Task<AgentChannelBindingPayload> UpdateChannelBindingConfig(
+    public async Task<AgentChannelBindingPayload> UpdateChannelBindingConfig(
         Guid agentId,
         Guid channelConnectionId,
         ChannelBindingConfigInput config,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
         [Service] IChannelService channelService,
         CancellationToken ct)
     {
-        _ = channelService;
-        _ = ct;
-        throw ImmutableChannelBindingError();
+        try
+        {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            var binding = await channelService.UpdateOwnedBindingConfigAsync(
+                agentId,
+                channelConnectionId,
+                user.Id,
+                workspace.Id,
+                ChannelGraphQLMapper.SerializeConfig(config),
+                ct);
+
+            return ChannelGraphQLMapper.ToPayload(binding);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("NOT_FOUND").Build());
+        }
     }
-
-    private static GraphQLException ImmutableChannelBindingError() =>
-        new(ErrorBuilder.New()
-            .SetMessage("Agent channels are immutable after agent creation. Create a new agent with the desired channels.")
-            .SetCode("IMMUTABLE_AGENT_CAPABILITIES")
-            .Build());
-
 }
