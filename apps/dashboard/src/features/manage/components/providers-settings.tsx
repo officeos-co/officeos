@@ -472,12 +472,13 @@ function CodexProviderCard({
 
   React.useEffect(() => {
     if (!login) return;
+    const loginId = login.loginId;
     let cancelled = false;
     let timeout: number | undefined;
 
     async function poll() {
       try {
-        const result = await pollRef.current(login.loginId);
+        const result = await pollRef.current(loginId);
         if (cancelled) return;
         if (result?.completed) {
           if (result.success) {

@@ -158,6 +158,41 @@ public sealed class FakeWorkspaceRepository : IWorkspaceRepository
         Task.FromResult(false);
 }
 
+public sealed class FakeWorkspaceMemberRepository : IWorkspaceMemberRepository
+{
+    private readonly Dictionary<(Guid WorkspaceId, Guid UserId), WorkspaceMemberRecord> _members = new();
+
+    public Task<IReadOnlyList<WorkspaceMemberRecord>> ListAsync(WorkspaceMemberFilter filter, CancellationToken ct = default)
+    {
+        var rows = _members.Values.AsEnumerable();
+        if (filter.WorkspaceId.HasValue)
+            rows = rows.Where(member => member.WorkspaceId == filter.WorkspaceId.Value);
+        if (filter.UserId.HasValue)
+            rows = rows.Where(member => member.UserId == filter.UserId.Value);
+        return Task.FromResult<IReadOnlyList<WorkspaceMemberRecord>>(rows.ToList());
+    }
+
+    public Task<WorkspaceMemberRecord?> GetByAsync(WorkspaceMemberFilter filter, CancellationToken ct = default)
+    {
+        if (filter.WorkspaceId.HasValue && filter.UserId.HasValue)
+            return Task.FromResult(_members.GetValueOrDefault((filter.WorkspaceId.Value, filter.UserId.Value)));
+        return Task.FromResult<WorkspaceMemberRecord?>(null);
+    }
+
+    public Task<WorkspaceMemberRecord> UpsertAsync(WorkspaceMemberRecord record, CancellationToken ct = default)
+    {
+        _members[(record.WorkspaceId, record.UserId)] = record;
+        return Task.FromResult(record);
+    }
+
+    public Task<bool> DeleteAsync(WorkspaceMemberFilter filter, CancellationToken ct = default)
+    {
+        if (filter.WorkspaceId.HasValue && filter.UserId.HasValue)
+            return Task.FromResult(_members.Remove((filter.WorkspaceId.Value, filter.UserId.Value)));
+        return Task.FromResult(false);
+    }
+}
+
 public sealed class FakeOrganizationRepository : IOrganizationRepository
 {
     public Task<OrganizationRecord> GetOrCreateDefaultAsync(Guid ownerUserId, string ownerEmail, string? ownerName, CancellationToken ct = default) =>

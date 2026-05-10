@@ -54,10 +54,11 @@ const data = {
       url: "#",
       icon: <SettingsIcon />,
       items: [
-        { title: "Profile", url: "/profile" },
-        { title: "Team", url: "/team" },
+        { title: "Members", url: "/members" },
+        { title: "Workspaces", url: "/workspaces" },
         { title: "Providers", url: "/providers" },
-        { title: "Billing", url: "/billing" },
+        // { title: "Billing", url: "/billing" },
+        // TODO: BIlling is remopved from sidebar as of now will be added back soon
       ],
     },
   ],

@@ -28,6 +28,7 @@ import {
 import { Input } from "@/ui/input";
 import { useSidebar } from "@/ui/sidebar";
 import {
+  canAdministerWorkspace,
   useCreateOrganizationWorkspace,
   useCreateWorkspace,
   useSwitchWorkspace,
@@ -35,15 +36,12 @@ import {
   type WorkspacePayload,
 } from "@/features/manage";
 
-type CreateScope = "personal" | "organization";
-
 export function WorkspaceSwitcher() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [createOpen, setCreateOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [search, setSearch] = React.useState("");
-  const [createScope, setCreateScope] = React.useState<CreateScope>("personal");
 
   const { workspaces, currentWorkspace: current, loading } = useWorkspaces();
   const { switchWorkspace } = useSwitchWorkspace();
@@ -51,10 +49,10 @@ export function WorkspaceSwitcher() {
   const { createOrganizationWorkspace, loading: creatingOrganization } =
     useCreateOrganizationWorkspace();
   const creating = creatingPersonal || creatingOrganization;
-  const canCreateOrganizationWorkspace =
+  const createInOrganization =
     current?.ownerKind === "organization" &&
     current.organizationId &&
-    (current.role === "Owner" || current.role === "Admin");
+    canAdministerWorkspace(current.role);
   const visibleWorkspaces = workspaces.filter((workspace) =>
     workspace.name.toLowerCase().includes(search.trim().toLowerCase()),
   );
@@ -74,7 +72,7 @@ export function WorkspaceSwitcher() {
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-    if (createScope === "organization" && current?.organizationId) {
+    if (createInOrganization && current?.organizationId) {
       await createOrganizationWorkspace({
         organizationId: current.organizationId,
         name: trimmed,
@@ -145,7 +143,6 @@ export function WorkspaceSwitcher() {
           <DropdownMenuSeparator className="my-0" />
           <DropdownMenuItem
             onClick={() => {
-              setCreateScope("personal");
               setCreateOpen(true);
             }}
             className="m-1 h-9 gap-2"
@@ -153,29 +150,13 @@ export function WorkspaceSwitcher() {
             <PlusIcon className="size-4" />
             <span>Create workspace</span>
           </DropdownMenuItem>
-          {canCreateOrganizationWorkspace && (
-            <DropdownMenuItem
-              onClick={() => {
-                setCreateScope("organization");
-                setCreateOpen(true);
-              }}
-              className="m-1 h-9 gap-2"
-            >
-              <Building2Icon className="size-4" />
-              <span>Create org workspace</span>
-            </DropdownMenuItem>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {createScope === "organization"
-                ? "New organization workspace"
-                : "New workspace"}
-            </DialogTitle>
+            <DialogTitle>New workspace</DialogTitle>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleCreate}>
             <Input

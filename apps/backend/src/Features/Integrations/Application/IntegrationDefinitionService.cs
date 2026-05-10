@@ -9,6 +9,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly IIntegrationDeploymentRepository _integrationDeploymentRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
+    private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
     private readonly IOrganizationRepository _organizationRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly GoogleOAuthConfig _googleOAuthConfig;
@@ -25,6 +26,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         ILogger<IntegrationDefinitionService> logger,
         IIntegrationDeploymentRepository integrationDeploymentRepository,
         IWorkspaceRepository workspaceRepository,
+        IWorkspaceMemberRepository workspaceMemberRepository,
         IOrganizationRepository organizationRepository)
     {
         _agentIntegrationRepository = agentIntegrations;
@@ -34,6 +36,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         _oauthTokenRepository = oauthTokens;
         _integrationDeploymentRepository = integrationDeploymentRepository;
         _workspaceRepository = workspaceRepository;
+        _workspaceMemberRepository = workspaceMemberRepository;
         _organizationRepository = organizationRepository;
         _credentialProtector = protector;
         _googleOAuthConfig = googleOAuthConfig;
@@ -56,7 +59,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public async Task<IntegrationDefinitionRecord> RegisterAsync(Guid ownerId, Guid workspaceId, IntegrationDefinitionRecord server, CancellationToken ct = default)
     {
-        await RequireOrganizationAdminForWorkspaceAsync(ownerId, workspaceId, ct);
+        await RequireWorkspaceEditorAsync(ownerId, workspaceId, ct);
 
         if (IntegrationDefinitionProvider.GetBuiltin(server.Name) is not null)
             throw new InvalidOperationException($"integration '{server.Name}' is built in and cannot be overwritten.");
@@ -69,7 +72,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     public async Task DeleteAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
     {
         if (workspaceId.HasValue)
-            await RequireOrganizationAdminForWorkspaceAsync(ownerId, workspaceId.Value, ct);
+            await RequireWorkspaceEditorAsync(ownerId, workspaceId.Value, ct);
 
         if (IntegrationDefinitionProvider.GetBuiltin(name) is not null)
             throw new InvalidOperationException($"integration '{name}' is built in and cannot be deleted.");
@@ -118,7 +121,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
     public async Task SaveCredentialAsync(Guid ownerId, Guid workspaceId, string integrationName, Dictionary<string, string> fields, CancellationToken ct = default)
     {
-        await RequireOrganizationAdminForWorkspaceAsync(ownerId, workspaceId, ct);
+        await RequireWorkspaceEditorAsync(ownerId, workspaceId, ct);
 
         var encrypted = _credentialProtector.Protect(fields);
         await _integrationCredentialRepository.UpsertAsync(new IntegrationCredentialRecord
@@ -440,17 +443,23 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         }, ct);
     }
 
-    private async Task RequireOrganizationAdminForWorkspaceAsync(Guid userId, Guid workspaceId, CancellationToken ct)
+    private async Task RequireWorkspaceEditorAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
         var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct)
             ?? throw new InvalidOperationException("Workspace not found.");
         if (workspace.OrganizationId is null)
             return;
 
+        var membership = await _workspaceMemberRepository.GetByAsync(
+            new WorkspaceMemberFilter { WorkspaceId = workspaceId, UserId = userId },
+            ct);
+        if (membership?.Role.CanEdit() == true)
+            return;
+
         var members = await _organizationRepository.ListMembersAsync(workspace.OrganizationId.Value, ct);
         var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
         if (member?.Role is not (OrgRole.Owner or OrgRole.Admin))
-            throw new InvalidOperationException("Only organization admins may manage integrations for organization workspaces.");
+            throw new InvalidOperationException("Only workspace editors or organization admins may manage integrations for organization workspaces.");
     }
 
     private static IReadOnlyList<IntegrationDefinitionRecord> OrderedBuiltins()

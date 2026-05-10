@@ -43,7 +43,7 @@ import {
   useSaveIntegrationCredential,
 } from "../api/useIntegrations";
 import { useIntegrationConnections } from "@/features/atlas";
-import { useWorkspaces } from "@/features/manage";
+import { canEditWorkspace, useWorkspaces } from "@/features/manage";
 import type { McpServer } from "../data/integrations";
 import { buildOAuthUrl } from "@/lib/auth-url";
 import { ConnectorDirectoryDialog } from "./connector-directory-dialog";
@@ -96,6 +96,9 @@ export function IntegrationsList() {
   const configIntegration = configSlug
     ? integrations.find((server) => server.name === configSlug)
     : null;
+  const canManageWorkspaceFeatures =
+    currentWorkspace?.ownerKind === "personal" ||
+    canEditWorkspace(currentWorkspace?.role);
 
   function toggleConnector(name: string, checked: boolean) {
     setSelectedNames((prev) => {
@@ -118,11 +121,13 @@ export function IntegrationsList() {
   }
 
   async function removeSelectedConnectors() {
+    if (!canManageWorkspaceFeatures) return;
     await Promise.all(selectedRemovableNames.map((name) => deleteIntegration(name)));
     setSelectedNames(new Set());
   }
 
   function startSetup(server: McpServer) {
+    if (!canManageWorkspaceFeatures) return;
     if (server.oauthProvider) {
       window.location.assign(buildOAuthUrl(server.oauthProvider, "/integrations"));
       return;
@@ -146,12 +151,17 @@ export function IntegrationsList() {
             <Button
               size="sm"
               variant="outline"
+              disabled={!canManageWorkspaceFeatures}
               onClick={() => setCustomMcpOpen(true)}
             >
               <BracesIcon className="size-4" />
               Custom MCP
             </Button>
-            <Button size="sm" onClick={() => setDirectoryOpen(true)}>
+            <Button
+              size="sm"
+              disabled={!canManageWorkspaceFeatures}
+              onClick={() => setDirectoryOpen(true)}
+            >
               <PlusIcon className="size-4" />
               Add integration
             </Button>
@@ -169,7 +179,10 @@ export function IntegrationsList() {
             <Button
               variant="destructive"
               size="sm"
-              disabled={selectedRemovableNames.length === 0}
+              disabled={
+                !canManageWorkspaceFeatures ||
+                selectedRemovableNames.length === 0
+              }
               onClick={removeSelectedConnectors}
             >
               <Trash2Icon className="size-4" />

@@ -30,6 +30,7 @@ internal static class IntegrationDefinitionServiceTestFactory
             NullLogger<IntegrationDefinitionService>.Instance,
             new FakeIntegrationDeploymentRepository(),
             new FakeWorkspaceRepository(),
+            new FakeWorkspaceMemberRepository(),
             new FakeOrganizationRepository());
     }
 

@@ -5,15 +5,18 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
     private readonly IIntegrationDeploymentRepository _integrationDeploymentRepository;
     private readonly IOrganizationRepository _organizationRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
+    private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
 
     public IntegrationDeploymentService(
         IIntegrationDeploymentRepository integrationDeploymentRepository,
         IOrganizationRepository organizationRepository,
-        IWorkspaceRepository workspaceRepository)
+        IWorkspaceRepository workspaceRepository,
+        IWorkspaceMemberRepository workspaceMemberRepository)
     {
         _integrationDeploymentRepository = integrationDeploymentRepository;
         _organizationRepository = organizationRepository;
         _workspaceRepository = workspaceRepository;
+        _workspaceMemberRepository = workspaceMemberRepository;
     }
 
     public async Task<IReadOnlyList<IntegrationDeploymentRecord>> ListAsync(
@@ -22,7 +25,10 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
         Guid? workspaceId = null,
         CancellationToken ct = default)
     {
-        await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
+        if (workspaceId.HasValue)
+            await RequireWorkspaceEditorAsync(actorUserId, organizationId, workspaceId.Value, ct);
+        else
+            await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
         return await _integrationDeploymentRepository.ListAsync(
             new IntegrationDeploymentFilter { OrganizationId = organizationId, WorkspaceId = workspaceId },
             ct);
@@ -35,11 +41,7 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
         string integrationName,
         CancellationToken ct = default)
     {
-        await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
-        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct)
-            ?? throw new InvalidOperationException("Workspace not found.");
-        if (workspace.OrganizationId != organizationId)
-            throw new InvalidOperationException("Integration deployments must target workspaces in the same organization.");
+        await RequireWorkspaceEditorAsync(actorUserId, organizationId, workspaceId, ct);
         if (string.IsNullOrWhiteSpace(integrationName))
             throw new InvalidOperationException("Integration name is required.");
 
@@ -60,7 +62,7 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
         string integrationName,
         CancellationToken ct = default)
     {
-        await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
+        await RequireWorkspaceEditorAsync(actorUserId, organizationId, workspaceId, ct);
         return await _integrationDeploymentRepository.DeleteAsync(
             new IntegrationDeploymentFilter
             {
@@ -77,5 +79,21 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
         var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
         if (member?.Role is not (OrgRole.Owner or OrgRole.Admin))
             throw new InvalidOperationException("Organization not found.");
+    }
+
+    private async Task RequireWorkspaceEditorAsync(Guid userId, Guid organizationId, Guid workspaceId, CancellationToken ct)
+    {
+        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct)
+            ?? throw new InvalidOperationException("Workspace not found.");
+        if (workspace.OrganizationId != organizationId)
+            throw new InvalidOperationException("Integration deployments must target workspaces in the same organization.");
+
+        var membership = await _workspaceMemberRepository.GetByAsync(
+            new WorkspaceMemberFilter { WorkspaceId = workspaceId, UserId = userId },
+            ct);
+        if (membership?.Role.CanEdit() == true)
+            return;
+
+        await RequireOrganizationAdminAsync(userId, organizationId, ct);
     }
 }

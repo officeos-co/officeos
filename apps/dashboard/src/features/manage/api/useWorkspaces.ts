@@ -4,7 +4,13 @@ import { gql, useMutation, useQuery } from "@apollo/client";
 import { apolloClient } from "@/lib/graphql/client";
 
 export type WorkspaceOwnerKind = "personal" | "organization";
-export type WorkspaceRole = "Owner" | "Admin" | "Editor" | "Viewer";
+
+export enum WorkspaceRole {
+  Owner = "Owner",
+  Admin = "Admin",
+  Editor = "Editor",
+  Viewer = "Viewer",
+}
 
 export type WorkspacePayload = {
   id: string;
@@ -61,6 +67,30 @@ export const WORKSPACES_QUERY = gql`
   }
 `;
 
+export const WORKSPACE_MEMBERS_QUERY = gql`
+  query WorkspaceMembers($workspaceId: UUID!) {
+    workspaceMembers(workspaceId: $workspaceId) {
+      id
+      workspaceId
+      userId
+      role
+      createdAt
+    }
+  }
+`;
+
+export const ORGANIZATION_WORKSPACE_MEMBERS_QUERY = gql`
+  query OrganizationWorkspaceMembers($organizationId: UUID!) {
+    organizationWorkspaceMembers(organizationId: $organizationId) {
+      id
+      workspaceId
+      userId
+      role
+      createdAt
+    }
+  }
+`;
+
 const SWITCH_WORKSPACE = gql`
   mutation SwitchWorkspace($id: UUID!) {
     switchWorkspace(id: $id) {
@@ -80,7 +110,9 @@ const CREATE_WORKSPACE = gql`
 `;
 
 const CREATE_ORGANIZATION_WORKSPACE = gql`
-  mutation CreateOrganizationWorkspace($input: CreateOrganizationWorkspaceInput!) {
+  mutation CreateOrganizationWorkspace(
+    $input: CreateOrganizationWorkspaceInput!
+  ) {
     createOrganizationWorkspace(input: $input) {
       id
       name
@@ -128,7 +160,9 @@ const REMOVE_WORKSPACE_MEMBER = gql`
 `;
 
 const GRANT_WORKSPACE_TO_ORGANIZATION = gql`
-  mutation GrantWorkspaceToOrganization($input: GrantWorkspaceOrganizationInput!) {
+  mutation GrantWorkspaceToOrganization(
+    $input: GrantWorkspaceOrganizationInput!
+  ) {
     grantWorkspaceToOrganization(input: $input) {
       id
       workspaceId
@@ -140,8 +174,14 @@ const GRANT_WORKSPACE_TO_ORGANIZATION = gql`
 `;
 
 const REVOKE_WORKSPACE_ORGANIZATION_GRANT = gql`
-  mutation RevokeWorkspaceOrganizationGrant($workspaceId: UUID!, $organizationId: UUID!) {
-    revokeWorkspaceOrganizationGrant(workspaceId: $workspaceId, organizationId: $organizationId)
+  mutation RevokeWorkspaceOrganizationGrant(
+    $workspaceId: UUID!
+    $organizationId: UUID!
+  ) {
+    revokeWorkspaceOrganizationGrant(
+      workspaceId: $workspaceId
+      organizationId: $organizationId
+    )
   }
 `;
 
@@ -160,6 +200,74 @@ export function useWorkspaces(): {
   return {
     workspaces: data?.workspaces ?? [],
     currentWorkspace: data?.currentWorkspace ?? null,
+    loading,
+    error: error ?? undefined,
+  };
+}
+
+export function useCanManageWorkspaceFeatures(): {
+  canManage: boolean;
+  loading: boolean;
+  currentWorkspace: WorkspacePayload | null;
+} {
+  const { currentWorkspace, loading } = useWorkspaces();
+  return {
+    canManage:
+      currentWorkspace?.ownerKind === "personal" ||
+      canEditWorkspace(currentWorkspace?.role),
+    loading,
+    currentWorkspace,
+  };
+}
+
+export function canEditWorkspace(role?: WorkspaceRole | null) {
+  return (
+    role === WorkspaceRole.Owner ||
+    role === WorkspaceRole.Admin ||
+    role === WorkspaceRole.Editor
+  );
+}
+
+export function canAdministerWorkspace(role?: WorkspaceRole | null) {
+  return role === WorkspaceRole.Owner || role === WorkspaceRole.Admin;
+}
+
+export function useWorkspaceMembers(workspaceId?: string | null): {
+  members: WorkspaceMemberPayload[];
+  loading: boolean;
+  error?: Error;
+  refetch: () => Promise<unknown>;
+} {
+  const { data, loading, error, refetch } = useQuery<{
+    workspaceMembers: WorkspaceMemberPayload[];
+  }>(WORKSPACE_MEMBERS_QUERY, {
+    variables: { workspaceId },
+    skip: !workspaceId,
+  });
+  return {
+    members: data?.workspaceMembers ?? [],
+    loading,
+    error: error ?? undefined,
+    refetch: async () => {
+      if (!workspaceId) return;
+      await refetch();
+    },
+  };
+}
+
+export function useOrganizationWorkspaceMembers(organizationId?: string | null): {
+  members: WorkspaceMemberPayload[];
+  loading: boolean;
+  error?: Error;
+} {
+  const { data, loading, error } = useQuery<{
+    organizationWorkspaceMembers: WorkspaceMemberPayload[];
+  }>(ORGANIZATION_WORKSPACE_MEMBERS_QUERY, {
+    variables: { organizationId },
+    skip: !organizationId,
+  });
+  return {
+    members: data?.organizationWorkspaceMembers ?? [],
     loading,
     error: error ?? undefined,
   };
@@ -190,7 +298,10 @@ export function useCreateWorkspace() {
 export function useCreateOrganizationWorkspace() {
   const [fn, state] = useMutation(CREATE_ORGANIZATION_WORKSPACE);
   return {
-    createOrganizationWorkspace: async (input: { organizationId: string; name: string }) => {
+    createOrganizationWorkspace: async (input: {
+      organizationId: string;
+      name: string;
+    }) => {
       await fn({ variables: { input } });
       await apolloClient.resetStore();
     },
@@ -213,9 +324,19 @@ export function useDeleteWorkspace() {
 export function useAddWorkspaceMember() {
   const [fn, state] = useMutation(ADD_WORKSPACE_MEMBER);
   return {
-    addWorkspaceMember: async (input: { workspaceId: string; userId: string; role?: WorkspaceRole }) => {
+    addWorkspaceMember: async (input: {
+      workspaceId: string;
+      userId: string;
+      role?: WorkspaceRole;
+    }) => {
       const { data } = await fn({ variables: { input } });
-      await apolloClient.refetchQueries({ include: [WORKSPACES_QUERY] });
+      await apolloClient.refetchQueries({
+        include: [
+          WORKSPACES_QUERY,
+          "WorkspaceMembers",
+          "OrganizationWorkspaceMembers",
+        ],
+      });
       return data?.addWorkspaceMember as WorkspaceMemberPayload | undefined;
     },
     ...state,
@@ -225,10 +346,22 @@ export function useAddWorkspaceMember() {
 export function useUpdateWorkspaceMemberRole() {
   const [fn, state] = useMutation(UPDATE_WORKSPACE_MEMBER_ROLE);
   return {
-    updateWorkspaceMemberRole: async (input: { workspaceId: string; userId: string; role: WorkspaceRole }) => {
+    updateWorkspaceMemberRole: async (input: {
+      workspaceId: string;
+      userId: string;
+      role: WorkspaceRole;
+    }) => {
       const { data } = await fn({ variables: { input } });
-      await apolloClient.refetchQueries({ include: [WORKSPACES_QUERY] });
-      return data?.updateWorkspaceMemberRole as WorkspaceMemberPayload | undefined;
+      await apolloClient.refetchQueries({
+        include: [
+          WORKSPACES_QUERY,
+          "WorkspaceMembers",
+          "OrganizationWorkspaceMembers",
+        ],
+      });
+      return data?.updateWorkspaceMemberRole as
+        | WorkspaceMemberPayload
+        | undefined;
     },
     ...state,
   };
@@ -239,7 +372,13 @@ export function useRemoveWorkspaceMember() {
   return {
     removeWorkspaceMember: async (workspaceId: string, userId: string) => {
       const { data } = await fn({ variables: { workspaceId, userId } });
-      await apolloClient.refetchQueries({ include: [WORKSPACES_QUERY] });
+      await apolloClient.refetchQueries({
+        include: [
+          WORKSPACES_QUERY,
+          "WorkspaceMembers",
+          "OrganizationWorkspaceMembers",
+        ],
+      });
       return Boolean(data?.removeWorkspaceMember);
     },
     ...state,
@@ -249,10 +388,16 @@ export function useRemoveWorkspaceMember() {
 export function useGrantWorkspaceToOrganization() {
   const [fn, state] = useMutation(GRANT_WORKSPACE_TO_ORGANIZATION);
   return {
-    grantWorkspaceToOrganization: async (input: { workspaceId: string; organizationId: string; maxRole?: WorkspaceRole }) => {
+    grantWorkspaceToOrganization: async (input: {
+      workspaceId: string;
+      organizationId: string;
+      maxRole?: WorkspaceRole;
+    }) => {
       const { data } = await fn({ variables: { input } });
       await apolloClient.refetchQueries({ include: [WORKSPACES_QUERY] });
-      return data?.grantWorkspaceToOrganization as WorkspaceOrganizationGrantPayload | undefined;
+      return data?.grantWorkspaceToOrganization as
+        | WorkspaceOrganizationGrantPayload
+        | undefined;
     },
     ...state,
   };
@@ -261,7 +406,10 @@ export function useGrantWorkspaceToOrganization() {
 export function useRevokeWorkspaceOrganizationGrant() {
   const [fn, state] = useMutation(REVOKE_WORKSPACE_ORGANIZATION_GRANT);
   return {
-    revokeWorkspaceOrganizationGrant: async (workspaceId: string, organizationId: string) => {
+    revokeWorkspaceOrganizationGrant: async (
+      workspaceId: string,
+      organizationId: string,
+    ) => {
       const { data } = await fn({ variables: { workspaceId, organizationId } });
       await apolloClient.refetchQueries({ include: [WORKSPACES_QUERY] });
       return Boolean(data?.revokeWorkspaceOrganizationGrant);

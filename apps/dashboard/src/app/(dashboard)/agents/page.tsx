@@ -35,6 +35,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { AgentCreateDialog, useAgents, useDeleteAgent } from "@/features/agents";
+import { useCanManageWorkspaceFeatures } from "@/features/manage";
 
 const ALL_STATUSES = ["running", "pending", "stopped", "failed"] as const;
 
@@ -42,6 +43,7 @@ export default function AgentsPage() {
   const router = useRouter();
   const { agents, loading, refetch } = useAgents();
   const { deleteAgent } = useDeleteAgent();
+  const { canManage } = useCanManageWorkspaceFeatures();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -95,6 +97,7 @@ export default function AgentsPage() {
   }
 
   async function deleteSelectedAgents() {
+    if (!canManage) return;
     const ids = Array.from(selectedIds);
     await Promise.all(ids.map((id) => deleteAgent(id)));
     setSelectedIds(new Set());
@@ -108,7 +111,11 @@ export default function AgentsPage() {
         subtitle="Create and manage autonomous agents."
         width="wide"
         action={
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            size="sm"
+            disabled={!canManage}
+            onClick={() => setCreateOpen(true)}
+          >
             <PlusIcon className="size-3.5" />
             New agent
           </Button>
@@ -152,6 +159,7 @@ export default function AgentsPage() {
             <Button
               variant="destructive"
               size="sm"
+              disabled={!canManage}
               onClick={deleteSelectedAgents}
             >
               <Trash2Icon className="size-4" />
