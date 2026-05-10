@@ -3,9 +3,9 @@
 import * as React from "react";
 import Image from "next/image";
 import { CheckCircle2Icon, SettingsIcon } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
+} from "@/ui/dialog";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
+import { Skeleton } from "@/ui/skeleton";
+import { Switch } from "@/ui/switch";
 import {
   useBilling,
   useOrganization,

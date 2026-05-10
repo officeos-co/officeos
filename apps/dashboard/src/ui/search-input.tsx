@@ -1,7 +1,7 @@
 "use client"
 
 import { SearchIcon } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Input } from "@/ui/input"
 import { cn } from "@/lib/utils"
 
 export function SearchInput({

@@ -4,27 +4,27 @@ import { use, useState, useEffect } from "react";
 import { isDevelopment } from "@/lib/env";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip";
+import { Input } from "@/ui/input";
+import { Skeleton } from "@/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { AgentIntegrationsTab } from "@/features/agents/components/agent-integrations-tab";
-import { AgentLogsTab } from "@/features/agents/components/agent-logs-tab";
+} from "@/ui/select";
+import { StatusBadge } from "@/ui/status-badge";
+import { AgentIntegrationsTab } from "@/features/agents";
+import { AgentLogsTab } from "@/features/agents";
 import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
 import { useCreateSession } from "@/features/agents";
 import { useUpdateAgent } from "@/features/agents";
-import { getModelTooltip } from "@/features/agents/model-tooltips";
+import { getModelTooltip } from "@/features/agents";
 import { SendIcon, PlusIcon } from "lucide-react";
 
 /* ── Tabs (URL-driven) ───────────────────────────────────── */
@@ -33,7 +33,6 @@ const TABS = [
   { key: "logs", label: "Logs" },
   { key: "permissions", label: "Permissions" },
 ] as const;
-type TabKey = (typeof TABS)[number]["key"];
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -114,7 +113,7 @@ export default function AgentDetailPage({
       ? "permissions"
       : searchParams.get("tab");
   const tab = TABS.some((candidate) => candidate.key === requestedTab)
-    ? (requestedTab as TabKey)
+    ? requestedTab
     : "logs";
   const agentStatus = agentStatusOverride ?? agent?.status ?? "";
   const model = modelOverride ?? agent?.model ?? "";

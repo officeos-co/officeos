@@ -1,28 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/ui/button";
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip";
+import { Input } from "@/ui/input";
+import { Textarea } from "@/ui/textarea";
+import { Label } from "@/ui/label";
+import { Switch } from "@/ui/switch";
+import { Skeleton } from "@/ui/skeleton";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useCronJobs } from "@/features/agents/api/useCronJobs";
+} from "@/ui/select";
+import { useCronJobs } from "../api/useCronJobs";
 import {
   ClockIcon,
   PlusIcon,

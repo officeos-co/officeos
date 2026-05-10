@@ -10,23 +10,23 @@ import {
   UserIcon,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { useSidebar } from "@/components/ui/sidebar";
+} from "@/ui/dropdown-menu";
+import { Input } from "@/ui/input";
+import { useSidebar } from "@/ui/sidebar";
 import {
   useCreateOrganizationWorkspace,
   useCreateWorkspace,

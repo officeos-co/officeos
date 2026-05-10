@@ -1,13 +1,13 @@
 "use client"
 
 import type { McpServer } from "../data/integrations"
-import { WithTooltip } from "@/components/ui/help-tooltip"
+import { WithTooltip } from "@/ui/help-tooltip"
 import {
   SettingsIcon,
   PlugIcon,
   CheckIcon,
 } from "lucide-react"
-import { CatalogCard, CatalogMeta } from "@/components/catalog-card"
+import { CatalogCard, CatalogMeta } from "@/ui/catalog-card"
 
 type IntegrationCardProps = {
   integration: McpServer

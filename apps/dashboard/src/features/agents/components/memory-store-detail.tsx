@@ -14,8 +14,8 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/ui/button";
+import { Textarea } from "@/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   type MemoryStore,
@@ -25,6 +25,8 @@ import {
 } from "../api/useAgentResources";
 
 export const MEMORY_DIRECTORY_MARKER = ".directory";
+
+const EMPTY_MEMORY_STORE_ENTRIES: MemoryStoreEntry[] = [];
 
 type TreeNode = {
   name: string;
@@ -106,7 +108,7 @@ export function MemoryStoreDetail({
   onSelectedDirectoryChange: (directory: string) => void;
   onRefetch: () => Promise<unknown>;
 }) {
-  const entries = memoryStore?.entries ?? [];
+  const entries = memoryStore?.entries ?? EMPTY_MEMORY_STORE_ENTRIES;
   const visibleEntries = useMemo(
     () => entries.filter((entry) => !isDirectoryMarkerKey(entry.key)),
     [entries],
@@ -117,25 +119,26 @@ export function MemoryStoreDetail({
   const [expandedDirectories, setExpandedDirectories] = useState<Set<string>>(
     () => new Set([""]),
   );
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
+  const selectedIdentity = selected?.id ?? null;
+  const [editingState, setEditingState] = useState<{
+    selectedId: string | null;
+    value: boolean;
+  }>({ selectedId: null, value: false });
+  const [draftState, setDraftState] = useState<{
+    selectedId: string | null;
+    value: string;
+  }>({ selectedId: null, value: "" });
   const { upsertMemoryStoreEntry, loading: saving } = useUpsertMemoryStoreEntry();
   const { deleteMemoryStoreEntry, loading: deleting } =
     useDeleteMemoryStoreEntry();
+  const editing =
+    editingState.selectedId === selectedIdentity ? editingState.value : false;
+  const draft =
+    draftState.selectedId === selectedIdentity
+      ? draftState.value
+      : selected?.content ?? "";
   const dirty = selected ? draft !== selected.content : false;
-
-  useEffect(() => {
-    if (selectedKey && !visibleEntries.some((entry) => entry.key === selectedKey)) {
-      onSelectedKeyChange("");
-    }
-  }, [onSelectedKeyChange, selectedKey, visibleEntries]);
-
-  useEffect(() => {
-    setDraft(selected?.content ?? "");
-    setEditing(false);
-  }, [selected?.id, selected?.content]);
-
-  useEffect(() => {
+  const autoExpandedDirectories = useMemo(() => {
     const directories = new Set<string>([""]);
     for (const directory of [selectedDirectory, parentMemoryDirectory(selectedKey)]) {
       const parts = normalizeMemoryPath(directory).split("/").filter(Boolean);
@@ -145,8 +148,18 @@ export function MemoryStoreDetail({
         directories.add(current);
       }
     }
-    setExpandedDirectories((current) => new Set([...current, ...directories]));
+    return directories;
   }, [selectedDirectory, selectedKey]);
+  const renderedExpandedDirectories = useMemo(
+    () => new Set([...expandedDirectories, ...autoExpandedDirectories]),
+    [expandedDirectories, autoExpandedDirectories],
+  );
+
+  useEffect(() => {
+    if (selectedKey && !visibleEntries.some((entry) => entry.key === selectedKey)) {
+      onSelectedKeyChange("");
+    }
+  }, [onSelectedKeyChange, selectedKey, visibleEntries]);
 
   async function handleSave() {
     if (!memoryStore || !selected || !dirty) return;
@@ -215,7 +228,7 @@ export function MemoryStoreDetail({
           {!loading && entries.length > 0 && (
             <MemoryTree
               nodes={tree}
-              expandedDirectories={expandedDirectories}
+              expandedDirectories={renderedExpandedDirectories}
               selectedKey={selectedKey}
               selectedDirectory={selectedDirectory}
               onToggleDirectory={(path) => {
@@ -250,7 +263,9 @@ export function MemoryStoreDetail({
               <Button
                 variant={editing ? "outline" : "secondary"}
                 size="sm"
-                onClick={() => setEditing(false)}
+                onClick={() =>
+                  setEditingState({ selectedId: selectedIdentity, value: false })
+                }
               >
                 <EyeIcon />
                 Preview
@@ -258,13 +273,24 @@ export function MemoryStoreDetail({
               <Button
                 variant={editing ? "secondary" : "outline"}
                 size="sm"
-                onClick={() => setEditing(true)}
+                onClick={() =>
+                  setEditingState({ selectedId: selectedIdentity, value: true })
+                }
               >
                 <PencilIcon />
                 Edit
               </Button>
               {dirty && (
-                <Button variant="outline" size="sm" onClick={() => setDraft(selected.content)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setDraftState({
+                      selectedId: selectedIdentity,
+                      value: selected.content,
+                    })
+                  }
+                >
                   <RotateCcwIcon />
                   Revert
                 </Button>
@@ -291,7 +317,12 @@ export function MemoryStoreDetail({
               <div className="p-4">
                 <Textarea
                   value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
+                  onChange={(event) =>
+                    setDraftState({
+                      selectedId: selectedIdentity,
+                      value: event.target.value,
+                    })
+                  }
                   className="min-h-[32rem] resize-none font-mono text-xs leading-6"
                 />
               </div>

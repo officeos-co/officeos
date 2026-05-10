@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon, Trash2Icon } from "lucide-react";
-import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SearchInput } from "@/components/ui/search-input";
+import { PageContainer } from "@/shell/page-container";
+import { PageHeader } from "@/shell/page-header";
+import { Button } from "@/ui/button";
+import { EmptyState } from "@/ui/empty-state";
+import { SearchInput } from "@/ui/search-input";
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TableSelectionCell,
   TableSelectionHead,
   TableSelectionToolbar,
-} from "@/components/ui/table";
+} from "@/ui/table";
 import {
   ResourceCreateDialog,
   useBrowserResources,

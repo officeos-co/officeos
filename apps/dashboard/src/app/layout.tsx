@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/ui/tooltip";
+import { Toaster } from "@/ui/sonner";
 import { Providers } from "./providers";
 import "./globals.css";
 

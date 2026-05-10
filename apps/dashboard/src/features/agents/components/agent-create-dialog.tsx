@@ -11,33 +11,33 @@ import {
   PlusIcon,
   RocketIcon,
 } from "lucide-react";
-import { getDialogWidthClassName } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
-import { HelpTooltip } from "@/components/ui/help-tooltip";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
+import { getDialogWidthClassName } from "@/shell/page-container";
+import { Button } from "@/ui/button";
+import { HelpTooltip } from "@/ui/help-tooltip";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
+import { Separator } from "@/ui/separator";
+import { Textarea } from "@/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/ui/select";
 import { useAnalytics } from "@/features/analytics";
 import { useCreateAgent } from "../api/useAgents";
 import { useBrowserResources, useMemoryStores } from "../api/useAgentResources";
@@ -45,7 +45,7 @@ import { useChannelConnections } from "../api/useChannels";
 import { useIntegrations } from "../api/useIntegrations";
 import { useModels } from "../api/useModels";
 import { ResourceAttachmentCard } from "./resource-attachment-card";
-import { getModelTooltip } from "@/features/agents/model-tooltips";
+import { getModelTooltip } from "@/features/agents";
 import { isDevelopment } from "@/lib/env";
 
 type AgentResourceType = "browser" | "memory_store" | "channel" | "connector";

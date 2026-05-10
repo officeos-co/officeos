@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
 import { CustomMcpJsonEditor, useIntegrations } from "@/features/agents";
 
 export default function CustomMcpPage() {

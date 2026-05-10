@@ -11,17 +11,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
+import { Input } from "@/ui/input";
+import { Skeleton } from "@/ui/skeleton";
 import { DownloadIcon } from "lucide-react";
 import { useUsageAnalytics } from "@/features/analytics";
 import { cn } from "@/lib/utils";
-
-type Preset = "1d" | "7d" | "30d" | "last-month";
-type UsageRange = { from: string; to: string; preset?: Preset };
 
 function formatCompact(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -44,10 +41,10 @@ function defaultRange() {
   const to = new Date();
   const from = new Date();
   from.setDate(to.getDate() - 6);
-  return { from: toInputDate(from), to: toInputDate(to), preset: "7d" as Preset };
+  return { from: toInputDate(from), to: toInputDate(to), preset: "7d" as const };
 }
 
-function rangeForPreset(preset: Preset) {
+function rangeForPreset(preset: "1d" | "7d" | "30d" | "last-month") {
   const today = new Date();
   if (preset === "last-month") {
     const from = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1));
@@ -71,7 +68,11 @@ function chartDateLabel(iso: string) {
 }
 
 export default function UsagePage() {
-  const [range, setRange] = useState<UsageRange>(defaultRange);
+  const [range, setRange] = useState<{
+    from: string;
+    to: string;
+    preset?: "1d" | "7d" | "30d" | "last-month";
+  }>(defaultRange);
   const { usage, loading, error } = useUsageAnalytics(range.from, range.to);
 
   useEffect(() => {
@@ -132,7 +133,9 @@ export default function UsagePage() {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => setRange(rangeForPreset(value as Preset))}
+            onClick={() =>
+              setRange(rangeForPreset(value as "1d" | "7d" | "30d" | "last-month"))
+            }
             className={cn(
               "h-7 px-2.5 text-xs",
               range.preset === value && "bg-accent text-accent-foreground",

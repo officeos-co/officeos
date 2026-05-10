@@ -6,17 +6,17 @@ import {
   ExternalLinkIcon,
   PlusIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { SearchInput } from "@/components/ui/search-input";
-import { getDialogWidthClassName } from "@/components/page-container";
-import type { McpServer } from "@/features/agents/data/integrations";
+} from "@/ui/dialog";
+import { SearchInput } from "@/ui/search-input";
+import { getDialogWidthClassName } from "@/shell/page-container";
+import type { McpServer } from "@/features/agents";
 
 export function ConnectorDirectoryDialog({
   open,

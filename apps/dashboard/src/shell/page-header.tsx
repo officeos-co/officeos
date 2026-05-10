@@ -6,12 +6,12 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+} from "@/ui/breadcrumb";
+import { SidebarTrigger } from "@/ui/sidebar";
 import {
   getPageWidthClassName,
   type PageWidth,
-} from "@/components/page-container";
+} from "./page-container";
 import { cn } from "@/lib/utils";
 
 const groupRoutes: Record<string, string> = {

@@ -11,7 +11,7 @@ import {
   syntaxHighlighting,
 } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ui/button";
 import { cn } from "@/lib/utils";
 import {
   useDeleteIntegration,

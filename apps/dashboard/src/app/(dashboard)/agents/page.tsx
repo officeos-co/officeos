@@ -2,18 +2,18 @@
 
 import { useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
-import { HelpTooltip, WithTooltip } from "@/components/ui/help-tooltip";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
+import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/ui/dropdown-menu";
+import { Skeleton } from "@/ui/skeleton";
 import {
   Table,
   TableHeader,
@@ -24,10 +24,10 @@ import {
   TableSelectionHead,
   TableSelectionCell,
   TableSelectionToolbar,
-} from "@/components/ui/table";
-import { SearchInput } from "@/components/ui/search-input";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { EmptyState } from "@/components/ui/empty-state";
+} from "@/ui/table";
+import { SearchInput } from "@/ui/search-input";
+import { StatusBadge } from "@/ui/status-badge";
+import { EmptyState } from "@/ui/empty-state";
 import {
   FilterIcon,
   MoreHorizontalIcon,

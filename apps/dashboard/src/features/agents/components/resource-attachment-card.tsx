@@ -3,16 +3,16 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/ui/button";
+import { Label } from "@/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/ui/select";
+import { Textarea } from "@/ui/textarea";
 
 export type ResourceOption = {
   id: string;

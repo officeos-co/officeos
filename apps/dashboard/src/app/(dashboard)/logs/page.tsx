@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { LogTable } from "@/components/log-table";
-import { Button } from "@/components/ui/button";
-import { WithTooltip } from "@/components/ui/help-tooltip";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { LogTable } from "@/features/analytics";
+import { Button } from "@/ui/button";
+import { WithTooltip } from "@/ui/help-tooltip";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SearchInput } from "@/components/ui/search-input";
-import { DataPagination } from "@/components/ui/data-pagination";
+} from "@/ui/select";
+import { SearchInput } from "@/ui/search-input";
+import { DataPagination } from "@/ui/data-pagination";
 import { useGlobalLogs } from "@/features/analytics";
 import { DownloadIcon } from "lucide-react";
 

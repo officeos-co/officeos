@@ -5,7 +5,7 @@ import {
   buildCustomMcpServersJson,
   isUnchangedCustomMcpExample,
   parseCustomMcpServersJson,
-} from "@/features/agents/data/custom-mcp-import";
+} from "@/features/agents";
 
 describe("parseCustomMcpServersJson", () => {
   test("parses Claude-style stdio MCP servers", () => {

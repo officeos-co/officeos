@@ -9,9 +9,9 @@ import {
   ExternalLinkIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
+import { Skeleton } from "@/ui/skeleton";
 import {
   type AtlasActivity,
   type AtlasConnection,

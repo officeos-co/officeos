@@ -4,12 +4,12 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { PageContainer } from "@/components/page-container";
-import { LogDetailPanel } from "@/components/log-detail-panel";
-import { LogTable } from "@/components/log-table";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/shell/page-header";
+import { PageContainer } from "@/shell/page-container";
+import { LogDetailPanel } from "@/features/analytics";
+import { LogTable } from "@/features/analytics";
+import { Button } from "@/ui/button";
+import { Skeleton } from "@/ui/skeleton";
 import { useChannelConnection, useChannelLogs } from "@/features/agents";
 import type { AgentLog } from "@/types/logs";
 

@@ -9,22 +9,22 @@ import {
   PlusIcon,
   Trash2Icon,
 } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "@/shell/page-header";
 import {
   PageContainer,
   getDialogWidthClassName,
-} from "@/components/page-container";
-import { Button } from "@/components/ui/button";
+} from "@/shell/page-container";
+import { Button } from "@/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SearchInput } from "@/components/ui/search-input";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/ui/dialog";
+import { EmptyState } from "@/ui/empty-state";
+import { SearchInput } from "@/ui/search-input";
+import { Skeleton } from "@/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -35,7 +35,7 @@ import {
   TableSelectionCell,
   TableSelectionHead,
   TableSelectionToolbar,
-} from "@/components/ui/table";
+} from "@/ui/table";
 import {
   CredentialDialog,
   ConnectorDirectoryDialog,
@@ -47,7 +47,7 @@ import {
 } from "@/features/agents";
 import { useIntegrationConnections } from "@/features/atlas";
 import { useWorkspaces } from "@/features/manage";
-import type { McpServer } from "@/features/agents/data/integrations";
+import type { McpServer } from "@/features/agents";
 import { buildOAuthUrl } from "@/lib/auth-url";
 
 export default function IntegrationsPage() {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAgentLogs } from "@/features/analytics/api/useAgentLogs";
+import { useAgentLogs } from "@/features/analytics";
 import type { AgentLog } from "@/types/logs";
 
 export const AGENT_LOG_TYPES = [

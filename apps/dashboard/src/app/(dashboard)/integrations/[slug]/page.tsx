@@ -5,25 +5,25 @@ import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { buildOAuthUrl } from "@/lib/auth-url";
 import { cn } from "@/lib/utils";
-import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
+import { PageContainer } from "@/shell/page-container";
+import { Button } from "@/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/ui/select";
+import { Skeleton } from "@/ui/skeleton";
 import {
   CredentialDialog,
   useDeleteIntegration,
   useIntegration,
   useSaveIntegrationCredential,
 } from "@/features/agents";
-import type { McpServer } from "@/features/agents/data/integrations";
-import { IntegrationDataExplorerTab } from "@/features/agents/components/integration-data-explorer-tab";
-import { IntegrationToolsTab } from "@/features/agents/components/integration-tools-tab";
+import type { McpServer } from "@/features/agents";
+import { IntegrationDataExplorerTab } from "@/features/agents";
+import { IntegrationToolsTab } from "@/features/agents";
 import { useIntegrationConnections } from "@/features/atlas";
 import {
   AlertCircleIcon,
@@ -39,7 +39,6 @@ const INDEXABLE_TABS = [
   { key: "tools", label: "Tools" },
   { key: "data", label: "Data explorer" },
 ] as const;
-type TabKey = "tools" | "data";
 
 function IntegrationSkeleton() {
   return (
@@ -94,7 +93,7 @@ export default function IntegrationDetailPage({
   const currentIntegration = integration;
   const tabs = integration.isIndexable ? INDEXABLE_TABS : BASE_TABS;
   const tab = tabs.some((candidate) => candidate.key === requestedTab)
-    ? (requestedTab as TabKey)
+    ? requestedTab
     : "tools";
   const indexState = getIndexState(integration, connections);
   const hasCredentialFields = integration.credentialFields.length > 0;

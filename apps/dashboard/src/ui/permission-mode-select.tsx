@@ -1,13 +1,13 @@
 "use client";
 
 import { BanIcon, CheckCircle2Icon, ChevronDownIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export type PermissionMode = "allow" | "deny";

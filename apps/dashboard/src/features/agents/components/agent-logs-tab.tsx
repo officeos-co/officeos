@@ -1,23 +1,23 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LogDetailPanel } from "@/components/log-detail-panel";
-import { LogTable } from "@/components/log-table";
-import { SearchInput } from "@/components/ui/search-input";
+import { LogDetailPanel } from "@/features/analytics";
+import { LogTable } from "@/features/analytics";
+import { SearchInput } from "@/ui/search-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useAutoScrollToBottom } from "@/features/agents/hooks/useAutoScrollToBottom";
+} from "@/ui/select";
+import { Switch } from "@/ui/switch";
+import { Label } from "@/ui/label";
+import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import {
   AGENT_LOG_TYPES,
   useAgentLogTimeline,
-} from "@/features/agents/hooks/useAgentLogTimeline";
+} from "../hooks/useAgentLogTimeline";
 import { BugIcon } from "lucide-react";
 
 export function AgentLogsTab({

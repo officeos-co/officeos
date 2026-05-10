@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/ui/sidebar";
 
 export function TeamSwitcher() {
   const { state } = useSidebar();
