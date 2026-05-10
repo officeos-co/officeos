@@ -17,7 +17,7 @@ import {
 import {
   ToolPermissionCard,
   type ToolPermission,
-} from "@/features/agents";
+} from "./permission-cards";
 import {
   useIntegrations,
   sortIntegrations,
@@ -28,7 +28,7 @@ import {
   useAgentToolPermissions,
   useSetAgentToolPermissions,
 } from "../api/useAgents";
-import type { McpServer } from "@/features/agents";
+import type { McpServer } from "../data/integrations";
 import {
   type AtlasConnection,
   parseJsonArray,

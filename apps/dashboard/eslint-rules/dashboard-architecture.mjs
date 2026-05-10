@@ -35,7 +35,6 @@ const SHELL_ALLOWED_IMPORTS = [
   /^@\/hooks(?:\/|$)/,
   /^@\/contexts(?:\/|$)/,
   /^@\/lib(?:\/|$)/,
-  /^@\/types(?:\/|$)/,
   /^@\/features\/[^/]+$/,
 ];
 
@@ -231,15 +230,11 @@ function checkPath(context, projectPath, node) {
   }
 
   if (projectPath.startsWith("src/types/")) {
-    const parts = projectPath.split("/");
-
-    if (parts.length !== 3) {
-      report(context, node, "DASH018: src/types must stay flat.");
-    }
-
-    if (!isKebabCaseFileName(fileName, [".ts"])) {
-      report(context, node, "DASH019: Cross-feature type files must use kebab-case .ts names.");
-    }
+    report(
+      context,
+      node,
+      "DASH018: src/types is deprecated. Put types in the owning feature's types.ts and export them from the feature barrel.",
+    );
   }
 
   if (projectPath.startsWith("src/app/")) {
@@ -278,6 +273,14 @@ function checkImport(context, projectPath, node) {
     );
   }
 
+  if (source.startsWith("@/types")) {
+    report(
+      context,
+      node,
+      "DASH019: Do not import from @/types. Put the type in the owning feature and import it from that feature barrel.",
+    );
+  }
+
   if (projectPath.startsWith("src/ui/")) {
     if (
       source.startsWith("@/features/") ||
@@ -303,7 +306,7 @@ function checkImport(context, projectPath, node) {
       report(
         context,
         node,
-        "DASH024: Shell files may import only @/ui, @/hooks, @/contexts, @/lib, @/types, and feature public barrels.",
+        "DASH024: Shell files may import only @/ui, @/hooks, @/contexts, @/lib, and feature public barrels.",
       );
     }
 
@@ -333,7 +336,7 @@ function checkImport(context, projectPath, node) {
       report(
         context,
         node,
-        `DASH028: Do not import private feature files (${importedPath}) from src/features/${importedFeature}. Import its public barrel or move shared code to src/types, src/hooks, src/lib, src/ui, or src/shell.`,
+        `DASH028: Do not import private feature files (${importedPath}) from src/features/${importedFeature}. Import its public barrel or move shared code to src/hooks, src/lib, src/ui, or src/shell.`,
       );
     }
   }
@@ -361,7 +364,7 @@ function checkNoPageTypes(context, projectPath, node) {
   report(
     context,
     node,
-    "DASH030: Do not define TypeScript types, interfaces, or enums in page.tsx files. Move route-safe types to a feature API hook, feature types.ts, src/types, or keep values inline.",
+    "DASH030: Do not define TypeScript types, interfaces, or enums in page.tsx files. Move route-safe types to a feature API hook, feature types.ts, or keep values inline.",
   );
 }
 

@@ -9,7 +9,7 @@ export type FileNode = {
   children?: FileNode[];
   content?: string;
 };
-import { useAgent } from "@/features/agents";
+import { useAgent } from "../api/useAgents";
 import { ChevronRightIcon, FileTextIcon, FolderIcon } from "lucide-react";
 
 function FileTreeItem({

@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgentLog } from "@/types/logs";
+import type { AgentLog } from "@/features/analytics";
 import {
   Table,
   TableHeader,

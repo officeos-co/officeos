@@ -11,7 +11,7 @@ import { LogTable } from "@/features/analytics";
 import { Button } from "@/ui/button";
 import { Skeleton } from "@/ui/skeleton";
 import { useChannelConnection, useChannelLogs } from "@/features/agents";
-import type { AgentLog } from "@/types/logs";
+import type { AgentLog } from "@/features/analytics";
 
 export default function ChannelDetailPage({
   params,

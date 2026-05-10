@@ -15,7 +15,6 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 - `src/hooks`: shared hooks used across route/features, such as auth, mobile detection, and URL filter params.
 - `src/contexts`: React contexts for shared app state. Keep these thin and backed by hooks.
 - `src/lib`: cross-cutting utilities, environment config, SVG sanitization, Apollo client setup, and GraphQL operation/codegen support.
-- `src/types`: cross-feature domain-shaped UI types, currently shared log entry types.
 - `src/__tests__`: dashboard tests. The current test suite validates all GraphQL operations against the backend schema.
 
 ## Feature Boundaries
@@ -28,7 +27,7 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 - Shared UI primitives belong under `src/ui`. Keep this folder flat and generic: buttons, tables, dialogs, selects, tooltips, badges, inputs, skeletons, pagination, sidebar primitives. Do not put agent, billing, provider, channel, MCP, or analytics-specific logic here.
 - Do not add files under `src/components`; that lane is deprecated. New files must go to `src/ui`, `src/shell`, or `src/features/<feature>/components`.
 - Each feature exports its public surface from `src/features/<feature>/index.ts`. Route files should prefer the feature barrel when the hook/component is already exported. Inside a feature, use relative imports for nearby private files.
-- Do not make one feature depend on another feature's private folders. If two features need the same concept, move the smallest shared type/helper to `src/types`, `src/hooks`, `src/lib`, `src/ui`, or `src/shell`.
+- Do not make one feature depend on another feature's private folders. If two features need the same concept, move the smallest shared helper to `src/hooks`, `src/lib`, `src/ui`, or `src/shell`; otherwise put the type in the owning feature and export it from that feature barrel.
 
 ## Flat Folder Rules
 
@@ -36,14 +35,14 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 - Feature `api`, `components`, `hooks`, and `data` folders must stay flat. Do not add bucket folders such as `dialogs`, `tabs`, `tables`, `forms`, `cards`, `queries`, `mutations`, `types`, `utils`, `helpers`, or `shared`.
 - Use strong file names instead of nested folders, such as `agent-create-dialog.tsx`, `integration-tools-tab.tsx`, and `useAgentBindings.ts`.
 - If a feature folder becomes too broad, split the product/domain into a new top-level feature instead of adding nested subdomain folders.
-- `src/ui`, `src/shell`, `src/hooks`, `src/contexts`, and `src/types` must stay flat.
+- `src/ui`, `src/shell`, `src/hooks`, and `src/contexts` must stay flat.
 
 ## Where Types Go
 
 - API hook input/output types that are only used with one hook stay in the same `src/features/<feature>/api/useX.ts` file.
 - Raw GraphQL response types stay private in the hook file and should be mapped before leaving the hook.
 - Feature data/catalog types live in `src/features/<feature>/data`, such as MCP server, channel, credential-field, and onboarding-step shapes.
-- Cross-feature UI/domain types live in `src/types`, such as `AgentLog`.
+- Feature-owned UI/domain types live in `src/features/<feature>/types.ts` and are exported from that feature barrel when other features/routes need them. Do not add a generic `src/types` folder.
 - Component prop types stay next to the component unless reused by multiple components.
 - Generated GraphQL types belong under `src/lib/graphql/generated` and are produced by `bun run codegen`. Do not hand-edit generated files.
 - GraphQL operation files may live under `src/lib/graphql/operations` when they are used for codegen/contract tracking, but current runtime hooks mostly define `gql` documents next to the hook. Follow the local file's pattern when extending existing code.

@@ -45,7 +45,7 @@ import { useChannelConnections } from "../api/useChannels";
 import { useIntegrations } from "../api/useIntegrations";
 import { useModels } from "../api/useModels";
 import { ResourceAttachmentCard } from "./resource-attachment-card";
-import { getModelTooltip } from "@/features/agents";
+import { getModelTooltip } from "../data/model-tooltips";
 import { isDevelopment } from "@/lib/env";
 
 type AgentResourceType = "browser" | "memory_store" | "channel" | "connector";

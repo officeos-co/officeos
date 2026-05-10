@@ -16,7 +16,7 @@ import {
 } from "@/ui/dialog";
 import { SearchInput } from "@/ui/search-input";
 import { getDialogWidthClassName } from "@/shell/page-container";
-import type { McpServer } from "@/features/agents";
+import type { McpServer } from "../data/integrations";
 
 export function ConnectorDirectoryDialog({
   open,

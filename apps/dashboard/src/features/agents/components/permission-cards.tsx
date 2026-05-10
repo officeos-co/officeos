@@ -7,8 +7,8 @@ import {
   PermissionModeSelect,
   type PermissionMode,
 } from "@/ui/permission-mode-select"
-import type { Tool } from "@/features/agents"
-import type { Channel, ChannelPermissions } from "@/features/agents"
+import type { Tool } from "../data/integrations"
+import type { Channel, ChannelPermissions } from "../data/channels"
 import {
   ChevronDownIcon,
   ChevronRightIcon,
