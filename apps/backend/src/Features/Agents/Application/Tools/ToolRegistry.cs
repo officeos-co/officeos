@@ -136,7 +136,8 @@ internal sealed class ToolRegistryFactory
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IIntegrationClientManager _integrationClientManager;
     private readonly IBrowserToolContextFactory _browserToolContextFactory;
-    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
+    private readonly IAgentDefinitionRepository _agentDefinitionRepository;
+    private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IOrganizationPolicyService _organizationPolicyService;
     private readonly IIntegrationExecutionService _integrationExecutionService;
     private readonly TurnEventPublisher _turnEventPublisher;
@@ -149,7 +150,8 @@ internal sealed class ToolRegistryFactory
         AgentTaskStore taskStore,
         IIntegrationClientManager integrationClientManager,
         IBrowserToolContextFactory browserToolContextFactory,
-        IAgentToolPermissionRepository permissionRepository,
+        IAgentDefinitionRepository agentDefinitionRepository,
+        AgentDefinitionParser agentDefinitionParser,
         IOrganizationPolicyService organizationPolicyService,
         IIntegrationExecutionService integrationExecution,
         TurnEventPublisher events,
@@ -161,7 +163,8 @@ internal sealed class ToolRegistryFactory
         _agentTaskStore = taskStore;
         _integrationClientManager = integrationClientManager;
         _browserToolContextFactory = browserToolContextFactory;
-        _agentToolPermissionRepository = permissionRepository;
+        _agentDefinitionRepository = agentDefinitionRepository;
+        _agentDefinitionParser = agentDefinitionParser;
         _organizationPolicyService = organizationPolicyService;
         _integrationExecutionService = integrationExecution;
         _turnEventPublisher = events;
@@ -209,13 +212,19 @@ internal sealed class ToolRegistryFactory
         };
         var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
 
-        var permissionsStart = Stopwatch.GetTimestamp();
-        var permissions = await _agentToolPermissionRepository.ListForAgentAsync(agentId, ct);
+        var definitionStart = Stopwatch.GetTimestamp();
+        var definition = await _agentDefinitionRepository.GetByAsync(
+            new AgentDefinitionFilter { AgentId = agentId, ActiveOnly = true },
+            ct);
+        var definitionConfig = definition is null
+            ? _agentDefinitionParser.CreateDefaultConfig("agent", ProviderRegistry.DefaultModel, null, integrations.Select(integration => integration.Name).ToList())
+            : _agentDefinitionParser.Parse(definition.ConfigJson);
+        var toolsetPolicy = new AgentToolsetPermissionPolicy(definitionConfig);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agentId,
             correlationId,
-            $"Tool setup: permissions loaded ({permissions.Count})",
-            ElapsedMs(permissionsStart),
+            $"Tool setup: agent definition loaded ({definitionConfig.Tools.Count} toolsets)",
+            ElapsedMs(definitionStart),
             ct);
 
         var browserStart = Stopwatch.GetTimestamp();
@@ -260,7 +269,7 @@ internal sealed class ToolRegistryFactory
         }
 
         var integrationConnections = new List<IAsyncDisposable>();
-        if (HasEnabledIndexedIntegration(integrations, permissions))
+        if (HasEnabledIndexedIntegration(integrations, toolsetPolicy))
             tools.Add(new IntegrationExecuteTool(_integrationExecutionService));
 
         foreach (var server in integrations)
@@ -323,13 +332,24 @@ internal sealed class ToolRegistryFactory
         }
 
         var policyDeniedToolReasons = new Dictionary<string, string>(StringComparer.Ordinal);
+        var allowedByAgentDefinition = new List<IAgentTool>();
+        foreach (var tool in tools)
+        {
+            if (toolsetPolicy.IsAllowed(tool))
+                allowedByAgentDefinition.Add(tool);
+            else
+                policyDeniedToolReasons[tool.Name] = "tool is not allowed by agent definition";
+        }
+
+        tools = allowedByAgentDefinition;
+
         var policy = await _organizationPolicyService.GetEffectiveForWorkspaceAsync(workspaceId, ct);
         if (policy is not null)
         {
             var allowedByPolicy = new List<IAgentTool>();
             foreach (var tool in tools)
             {
-                var denialReason = GetOrganizationPolicyDenialReason(tool, policy);
+                var denialReason = AgentToolsetPermissionPolicy.GetOrganizationPolicyDenialReason(tool, policy);
                 if (denialReason is null)
                     allowedByPolicy.Add(tool);
                 else
@@ -339,8 +359,6 @@ internal sealed class ToolRegistryFactory
             tools = allowedByPolicy;
         }
 
-        var resolver = new AgentToolPermissionResolver(permissions);
-        tools = tools.Where(resolver.IsAllowed).ToList();
         tools.Add(new ToolSearchTool(tools));
 
         preloadedToolNames.IntersectWith(tools.Select(t => t.Name));
@@ -359,76 +377,11 @@ internal sealed class ToolRegistryFactory
 
     private static bool HasEnabledIndexedIntegration(
         IReadOnlyList<IntegrationDefinitionRecord> integrations,
-        IReadOnlyList<AgentToolPermissionRecord> permissions)
+        AgentToolsetPermissionPolicy toolsetPolicy)
     {
-        var indexable = integrations
-            .Where(integration => integration.Entities.Count > 0)
-            .Select(integration => integration.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        return permissions.Any(permission =>
-            indexable.Contains(permission.SkillName)
-            && string.Equals(permission.ToolName, IntegrationIndexAccess.ToolName, StringComparison.Ordinal)
-            && permission.Permission == ToolPermission.Allow);
-    }
-
-    private static string? GetOrganizationPolicyDenialReason(IAgentTool tool, OrganizationPolicyProfileRecord policy)
-    {
-        var key = ToolKey.Parse(tool.PermissionScope);
-        var scope = $"{key.SkillName}:{key.ToolName}";
-        var deniedTools = ParseStringSet(policy.DeniedToolsJson);
-        var allowedTools = ParseStringSet(policy.AllowedToolsJson);
-        var deniedIntegrations = ParseStringSet(policy.DeniedIntegrationsJson);
-        var allowedIntegrations = ParseStringSet(policy.AllowedIntegrationsJson);
-
-        if (tool.Name.StartsWith("browser__", StringComparison.Ordinal) && !policy.BrowserToolsEnabled)
-            return "browser tools are disabled by organization policy";
-
-        if (tool.Kind is AgentToolKind.Network && !policy.NetworkToolsEnabled)
-            return "network tools are disabled by organization policy";
-
-        if (tool.Name.Equals("shell", StringComparison.Ordinal) && !policy.ShellToolsEnabled)
-            return "shell tools are disabled by organization policy";
-
-        if (tool.Name is "file_write" or "file_edit" && !policy.FileWriteToolsEnabled)
-            return "file write tools are disabled by organization policy";
-
-        if (deniedTools.Contains(scope) || deniedTools.Contains($"{key.SkillName}:") || deniedTools.Contains(tool.Name))
-            return "tool is denied by organization policy";
-
-        if (tool.Kind is AgentToolKind.Integration)
-        {
-            if (deniedIntegrations.Contains(key.SkillName))
-                return "integration is denied by organization policy";
-            if (allowedIntegrations.Count > 0 && !allowedIntegrations.Contains(key.SkillName))
-                return "integration is not allowed by organization policy";
-        }
-
-        return allowedTools.Count == 0 || allowedTools.Contains(scope) || allowedTools.Contains($"{key.SkillName}:") || allowedTools.Contains(tool.Name)
-            ? null
-            : "tool is not allowed by organization policy";
-    }
-
-    private static HashSet<string> ParseStringSet(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
-            return parsed.ValueKind == JsonValueKind.Array
-                ? parsed.EnumerateArray()
-                    .Select(value => value.GetString())
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Select(value => value!)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        }
+        return integrations.Any(integration =>
+            integration.Entities.Count > 0
+            && toolsetPolicy.AllowsIntegrationTool(integration.Name, IntegrationIndexAccess.ToolName));
     }
 
     private static IEnumerable<IntegrationCatalogTool> ParseIntegrationCatalogTools(IntegrationDefinitionRecord server)

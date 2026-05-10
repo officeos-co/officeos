@@ -14,14 +14,12 @@ public sealed record CreateAgentRequest(
     string Name,
     string Provider,
     string? Model,
-    string? Prompt = null);
+    string? Prompt = null,
+    string? ConfigJson = null);
 
-public sealed record PatchAgentRequest(string? Provider, string? Model, string? Name = null, string? Prompt = null);
+public sealed record PatchAgentRequest(string? Provider, string? Model, string? Name = null, string? Prompt = null, string? ConfigJson = null);
 
 public sealed record AgentInitRequest(
     IReadOnlyList<string>? ToolNames,
-    IReadOnlyList<AgentToolPermissionInit>? ToolPermissions,
     IReadOnlyList<Guid>? ChannelConnectionIds,
     string? BootstrapMessage);
-
-public sealed record AgentToolPermissionInit(string Tool, ToolPermission Mode);

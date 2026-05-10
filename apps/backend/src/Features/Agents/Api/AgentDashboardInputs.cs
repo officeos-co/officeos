@@ -5,21 +5,12 @@ public sealed record CreateAgentInput(
     string Provider,
     string? Model,
     string? Prompt,
+    string? ConfigJson,
     List<string>? IntegrationSlugs,
     List<Guid>? ChannelConnectionIds,
     List<string>? ToolNames,
-    List<ToolPermissionInput>? ToolPermissions,
     List<AgentResourceAttachmentInput>? Resources = null,
     string? BootstrapMessage = null);
-
-/// <summary>
-/// Per-tool allow/deny override submitted alongside agent creation.
-/// `Tool` is the fully-qualified "skill:tool" key (matches the dashboard
-/// permission map); persisted to <c>AgentToolPermissionRecord</c>.
-/// </summary>
-public sealed record ToolPermissionInput(
-    string Tool,
-    ToolPermission Mode);
 
 public sealed record AgentResourceAttachmentInput(
     string ResourceType,
@@ -31,7 +22,8 @@ public sealed record UpdateAgentInput(
     string? Name,
     string? Provider,
     string? Model,
-    string? Prompt);
+    string? Prompt,
+    string? ConfigJson);
 
 /// <summary>
 /// Bootstrap payload returned by <c>GET /api/agents/{id}</c> (agent-pod-facing,
@@ -49,8 +41,7 @@ public sealed record AgentBootstrapPayload(
     AgentProviderBootstrap Provider,
     AgentProxyBootstrap Proxy,
     AgentGatewayBootstrap Gateway,
-    IReadOnlyList<AgentInstalledSkillSummary> Skills,
-    AgentToolPermissionsBootstrap ToolPermissions);
+    IReadOnlyList<AgentInstalledSkillSummary> Skills);
 
 public sealed record AgentProviderBootstrap(
     string Name,
@@ -68,31 +59,3 @@ public sealed record AgentGatewayBootstrap(
     string? TlsCertRef);
 
 public sealed record AgentInstalledSkillSummary(string Name);
-
-public sealed record AgentToolPermissionsBootstrap(
-    IReadOnlyList<AgentBootstrapToolPermissionPayload> Entries);
-
-public sealed record AgentBootstrapToolPermissionPayload(
-    string Skill,
-    string Tool,
-    string Mode);
-
-public sealed record ToolPermissionPayload(
-    string SkillName,
-    string ToolName,
-    ToolPermission Mode);
-
-public sealed record SetAgentToolPermissionInput(
-    Guid AgentId,
-    string Skill,
-    string Tool,
-    ToolPermission Mode);
-
-public sealed record SetAgentToolPermissionsInput(
-    Guid AgentId,
-    IReadOnlyList<SetAgentToolPermissionEntryInput> Entries);
-
-public sealed record SetAgentToolPermissionEntryInput(
-    string Skill,
-    string Tool,
-    ToolPermission Mode);

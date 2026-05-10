@@ -10,8 +10,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelService _channelService;
     private readonly IBrowserService _browserService;
-    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
     private readonly IAgentRunRepository _agentRunRepository;
+    private readonly AgentDefinitionParser _agentDefinitionParser;
 
     public AgentDashboardService(
         IAgentService agents,
@@ -22,8 +22,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         IChannelRepository channelRepository,
         IChannelService channelService,
         IBrowserService browser,
-        IAgentToolPermissionRepository permissions,
-        IAgentRunRepository runs)
+        IAgentRunRepository runs,
+        AgentDefinitionParser agentDefinitionParser)
     {
         _agentService = agents;
         _agentRepository = agentRepository;
@@ -33,8 +33,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _channelRepository = channelRepository;
         _channelService = channelService;
         _browserService = browser;
-        _agentToolPermissionRepository = permissions;
         _agentRunRepository = runs;
+        _agentDefinitionParser = agentDefinitionParser;
     }
 
     public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
@@ -42,7 +42,16 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         await EnsureChannelConnectionsExistAsync(request.ChannelConnectionIds, workspaceId, ct);
 
         var agent = await _agentService.CreateAsync(
-            new CreateAgentRequest(request.Name, request.Provider, request.Model, request.Prompt),
+            new CreateAgentRequest(
+                request.Name,
+                request.Provider,
+                request.Model,
+                request.Prompt,
+                request.ConfigJson ?? _agentDefinitionParser.Serialize(_agentDefinitionParser.CreateDefaultConfig(
+                    request.Name,
+                    string.IsNullOrWhiteSpace(request.Model) ? ProviderRegistry.DefaultModel : request.Model,
+                    request.Prompt,
+                    request.ToolNames is { Count: > 0 } ? request.ToolNames : request.IntegrationSlugs))),
             ownerId,
             workspaceId,
             ct);
@@ -91,7 +100,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         await _agentService.InitializeAgentAsync(
             agent.Id,
             ownerId,
-            new AgentInitRequest(toolNames, request.ToolPermissions, request.ChannelConnectionIds, bootstrap),
+            new AgentInitRequest(toolNames, request.ChannelConnectionIds, bootstrap),
             ct);
 
         return agent;
@@ -114,16 +123,6 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         return await _agentService.DeleteAsync(id, ct);
     }
 
-    public async Task<IReadOnlyList<AgentToolPermissionRecord>> ListToolPermissionsAsync(
-        Guid ownerId,
-        Guid workspaceId,
-        Guid agentId,
-        CancellationToken ct = default)
-    {
-        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
-        return await _agentToolPermissionRepository.ListForAgentAsync(agentId, ct);
-    }
-
     public async Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(
         Guid ownerId,
         Guid workspaceId,
@@ -133,24 +132,6 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     {
         await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
         return await _agentRunRepository.ListForAgentAsync(agentId, parentRunId, ct);
-    }
-
-    public async Task SetToolPermissionAsync(Guid ownerId, Guid workspaceId, Guid agentId, string skill, string tool, ToolPermission mode, CancellationToken ct = default)
-    {
-        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
-        await _agentToolPermissionRepository.UpsertAsync(agentId, skill, tool, mode, ct);
-    }
-
-    public async Task<IReadOnlyList<AgentToolPermissionRecord>> SetToolPermissionsAsync(
-        Guid ownerId,
-        Guid workspaceId,
-        Guid agentId,
-        IReadOnlyList<AgentToolPermissionRecord> rows,
-        CancellationToken ct = default)
-    {
-        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
-        await _agentToolPermissionRepository.SetManyAsync(agentId, rows, ct);
-        return rows;
     }
 
     private async Task<bool> AgentIsOwnedAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)

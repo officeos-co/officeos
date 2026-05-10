@@ -7,6 +7,7 @@ public sealed class EaosDbContext : DbContext
     }
 
     public DbSet<AgentEntity> Agents => Set<AgentEntity>();
+    public DbSet<AgentDefinitionEntity> AgentDefinitions => Set<AgentDefinitionEntity>();
 
     public DbSet<OAuthTokenEntity> OAuthTokens => Set<OAuthTokenEntity>();
     public DbSet<OAuthGrantedScopeEntity> OAuthGrantedScopes => Set<OAuthGrantedScopeEntity>();
@@ -24,7 +25,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SystemEventEntity> SystemEvents => Set<SystemEventEntity>();
     public DbSet<AgentRateLimitEntity> AgentRateLimits => Set<AgentRateLimitEntity>();
     public DbSet<AgentLogEntity> AgentLogs => Set<AgentLogEntity>();
-    public DbSet<AgentToolPermissionEntity> AgentToolPermissions => Set<AgentToolPermissionEntity>();
     public DbSet<OrganizationEntity> Organizations => Set<OrganizationEntity>();
     public DbSet<OrgMemberEntity> OrgMembers => Set<OrgMemberEntity>();
     public DbSet<AccessGroupEntity> AccessGroups => Set<AccessGroupEntity>();
@@ -69,6 +69,21 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
             e.Property(a => a.Prompt).HasColumnType("text");
             e.HasOne(a => a.Workspace).WithMany().HasForeignKey(a => a.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentDefinitionEntity>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => new { d.AgentId, d.Version }).IsUnique();
+            e.HasIndex(d => d.AgentId);
+            e.Property(d => d.Name).IsRequired().HasMaxLength(200);
+            e.Property(d => d.Description).HasMaxLength(1000);
+            e.Property(d => d.Provider).IsRequired().HasMaxLength(64);
+            e.Property(d => d.Model).HasMaxLength(128);
+            e.Property(d => d.SystemPrompt).HasColumnType("text");
+            e.Property(d => d.ConfigJson).IsRequired().HasColumnType("jsonb");
+            e.Property(d => d.ConfigHash).IsRequired().HasMaxLength(128);
+            e.HasOne(d => d.Agent).WithMany().HasForeignKey(d => d.AgentId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<OAuthTokenEntity>(e =>
@@ -224,15 +239,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(l => l.Type).HasConversion<string>().HasMaxLength(32);
             e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).IsRequired(false).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(l => l.Workspace).WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AgentToolPermissionEntity>(e =>
-        {
-            e.HasKey(p => p.Id);
-            e.HasIndex(p => new { p.AgentId, p.SkillName, p.ToolName }).IsUnique();
-            e.HasIndex(p => p.AgentId);
-            e.Property(p => p.Permission).HasConversion<string>().HasMaxLength(16);
-            e.HasOne(p => p.Agent).WithMany().HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<OrganizationEntity>(e =>

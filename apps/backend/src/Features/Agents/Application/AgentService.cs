@@ -12,7 +12,8 @@ internal sealed class AgentService : IAgentService
     private readonly AgentChannelBinder _agentChannelBinder;
     private readonly IAgentLogService _agentLogService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
-    private readonly IAgentToolPermissionRepository _agentToolPermissionRepository;
+    private readonly IAgentDefinitionRepository _agentDefinitionRepository;
+    private readonly AgentDefinitionParser _agentDefinitionParser;
 
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     public AgentService(
@@ -26,7 +27,8 @@ internal sealed class AgentService : IAgentService
         AgentChannelBinder channelBinder,
         IAgentLogService agentLogService,
         IIntegrationDefinitionService integrationDefinitionService,
-        IAgentToolPermissionRepository toolPermissionRepository)
+        IAgentDefinitionRepository agentDefinitionRepository,
+        AgentDefinitionParser agentDefinitionParser)
     {
         _agentRepository = repository;
         _agentDeployer = deployer;
@@ -38,7 +40,8 @@ internal sealed class AgentService : IAgentService
         _agentChannelBinder = channelBinder;
         _agentLogService = agentLogService;
         _integrationDefinitionService = integrationDefinitionService;
-        _agentToolPermissionRepository = toolPermissionRepository;
+        _agentDefinitionRepository = agentDefinitionRepository;
+        _agentDefinitionParser = agentDefinitionParser;
     }
 
     public async Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default)
@@ -88,12 +91,32 @@ internal sealed class AgentService : IAgentService
                 $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
         }
 
-        if (!await _providerService.IsModelAllowedAsync(request.Provider, request.Model, workspaceId, ct))
+        if (string.IsNullOrWhiteSpace(request.ConfigJson)
+            && !await _providerService.IsModelAllowedAsync(request.Provider, request.Model, workspaceId, ct))
             throw new InvalidOperationException($"Model '{request.Model ?? ProviderRegistry.DefaultModel}' is not allowed for provider '{request.Provider}'.");
 
-        var record = AgentRecord.Create(request.Name, request.Provider, request.Model, ownerId, request.Prompt, workspaceId);
+        var config = string.IsNullOrWhiteSpace(request.ConfigJson)
+            ? _agentDefinitionParser.CreateDefaultConfig(
+                request.Name,
+                string.IsNullOrWhiteSpace(request.Model) ? ProviderRegistry.DefaultModel : request.Model,
+                request.Prompt,
+                null)
+            : _agentDefinitionParser.Parse(request.ConfigJson);
+
+        if (!await _providerService.IsModelAllowedAsync(request.Provider, config.Model, workspaceId, ct))
+            throw new InvalidOperationException($"Model '{config.Model}' is not allowed for provider '{request.Provider}'.");
+
+        var record = AgentRecord.Create(config.Name, request.Provider, config.Model, ownerId, config.System, workspaceId);
 
         await _agentRepository.AddAsync(record, ct);
+
+        var definition = _agentDefinitionParser.CreateRecord(record.Id, 1, config, record.Provider, ownerId);
+        await _agentDefinitionRepository.AddAsync(definition, ct);
+        record.ActiveDefinitionId = definition.Id;
+        record.Name = definition.Name;
+        record.Model = definition.Model;
+        record.Prompt = definition.SystemPrompt;
+        await _agentRepository.UpdateAsync(record, ct);
 
         // Seed default personality files — domain owns the content and validation.
         var defaults = AgentPersonalityRecord.CreateDefaults(record.Id, record.Name);
@@ -102,10 +125,10 @@ internal sealed class AgentService : IAgentService
 
         // If the user supplied a system prompt, merge it into BOOTSTRAP.md
         // while preserving the domain-owned default bootstrap guidance.
-        if (!string.IsNullOrWhiteSpace(request.Prompt))
+        if (!string.IsNullOrWhiteSpace(record.Prompt))
         {
             await _agentPersonalityRepository.UpsertAsync(
-                record.Id, "BOOTSTRAP.md", AgentPersonalityRecord.CreateBootstrapContent(request.Prompt), ct);
+                record.Id, "BOOTSTRAP.md", AgentPersonalityRecord.CreateBootstrapContent(record.Prompt), ct);
         }
 
         _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
@@ -127,9 +150,10 @@ internal sealed class AgentService : IAgentService
         _logger.LogInformation("Patching agent {AgentId}: Provider={Provider} Model={Model}",
             id, request.Provider, request.Model);
 
+        var provider = record.Provider;
         if (!string.IsNullOrWhiteSpace(request.Provider))
         {
-            var provider = request.Provider.Trim().ToLowerInvariant();
+            provider = request.Provider.Trim().ToLowerInvariant();
             if (!await HasConfiguredProviderAuthAsync(provider, record.WorkspaceId, ct))
             {
                 throw new InvalidOperationException(
@@ -137,26 +161,45 @@ internal sealed class AgentService : IAgentService
             }
             if (!await _providerService.IsModelAllowedAsync(provider, request.Model ?? record.Model, record.WorkspaceId, ct))
                 throw new InvalidOperationException($"Model '{request.Model ?? record.Model ?? ProviderRegistry.DefaultModel}' is not allowed for provider '{provider}'.");
-            record.Provider = provider;
         }
 
-        if (request.Model is not null)
+        AgentDefinitionConfig config;
+        if (!string.IsNullOrWhiteSpace(request.ConfigJson))
         {
-            if (!await _providerService.IsModelAllowedAsync(record.Provider, request.Model, record.WorkspaceId, ct))
-                throw new InvalidOperationException($"Model '{request.Model}' is not allowed for provider '{record.Provider}'.");
-            record.ValidateAndSetModel(request.Model);
+            config = _agentDefinitionParser.Parse(request.ConfigJson);
         }
-
-        if (!string.IsNullOrWhiteSpace(request.Name))
+        else
         {
-            record.Name = request.Name.Trim();
+            var name = string.IsNullOrWhiteSpace(request.Name) ? record.Name : request.Name.Trim();
+            var model = request.Model ?? record.Model ?? ProviderRegistry.DefaultModel;
+            var prompt = request.Prompt ?? record.Prompt;
+            var activeDefinition = await _agentDefinitionRepository.GetByAsync(
+                new AgentDefinitionFilter { AgentId = id, ActiveOnly = true },
+                ct);
+            var activeConfig = activeDefinition is null ? null : _agentDefinitionParser.Parse(activeDefinition.ConfigJson);
+            config = new AgentDefinitionConfig(
+                name,
+                activeConfig?.Description,
+                model,
+                prompt,
+                activeConfig?.McpServers ?? [],
+                activeConfig?.Tools ?? [],
+                activeConfig?.Metadata);
         }
 
-        if (request.Prompt is not null)
-        {
-            record.Prompt = request.Prompt.Length == 0 ? null : request.Prompt;
-        }
+        if (!await _providerService.IsModelAllowedAsync(provider, config.Model, record.WorkspaceId, ct))
+            throw new InvalidOperationException($"Model '{config.Model}' is not allowed for provider '{provider}'.");
 
+        record.Provider = provider;
+        record.Name = config.Name;
+        record.Prompt = config.System;
+        record.ValidateAndSetModel(config.Model);
+
+        var nextVersion = await _agentDefinitionRepository.GetNextVersionAsync(record.Id, ct);
+        var definition = _agentDefinitionParser.CreateRecord(record.Id, nextVersion, config, record.Provider, record.OwnerId);
+
+        record.ActiveDefinitionId = definition.Id;
+        await _agentDefinitionRepository.AddAsync(definition, ct);
         await _agentRepository.UpdateAsync(record, ct);
         await _publisher.Publish(new AgentUpdatedEvent(id), ct);
         return record;
@@ -199,12 +242,31 @@ internal sealed class AgentService : IAgentService
             }
         }
 
-        if (init.ToolPermissions is { Count: > 0 })
+        var activeDefinition = await _agentDefinitionRepository.GetByAsync(
+            new AgentDefinitionFilter { AgentId = agentId, ActiveOnly = true },
+            ct);
+        if (activeDefinition is not null)
         {
-            foreach (var permission in init.ToolPermissions)
+            var config = _agentDefinitionParser.Parse(activeDefinition.ConfigJson);
+            foreach (var server in config.McpServers)
             {
-                var key = AgentToolPermissionResolver.NormalizeDashboardKey(permission.Tool);
-                await _agentToolPermissionRepository.UpsertAsync(agentId, key.SkillName, key.ToolName, permission.Mode, ct);
+                if (server.Type == "url" && !string.IsNullOrWhiteSpace(server.Url))
+                {
+                    var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
+                    var existing = await _integrationDefinitionService.GetAsync(userId, server.Name, agent?.WorkspaceId, ct);
+                    if (existing is null && agent?.WorkspaceId is { } definitionWorkspaceId)
+                    {
+                        await _integrationDefinitionService.RegisterAsync(userId, definitionWorkspaceId, new IntegrationDefinitionRecord
+                        {
+                            Name = server.Name,
+                            Title = server.Name,
+                            TransportType = IntegrationTransportType.StreamableHttp,
+                            Url = server.Url,
+                        }, ct);
+                    }
+                }
+
+                await _integrationDefinitionService.AssignToAgentAsync(agentId, server.Name, userId, ct);
             }
         }
 
