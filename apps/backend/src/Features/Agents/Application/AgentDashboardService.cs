@@ -39,6 +39,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
 
     public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
+        await EnsureChannelConnectionsExistAsync(request.ChannelConnectionIds, workspaceId, ct);
+
         var agent = await _agentService.CreateAsync(
             new CreateAgentRequest(request.Name, request.Provider, request.Model, request.Prompt),
             ownerId,
@@ -89,7 +91,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         await _agentService.InitializeAgentAsync(
             agent.Id,
             ownerId,
-            new AgentInitRequest(toolNames, request.ToolPermissions, request.ChannelSlugs, bootstrap),
+            new AgentInitRequest(toolNames, request.ToolPermissions, request.ChannelConnectionIds, bootstrap),
             ct);
 
         return agent;
@@ -179,6 +181,27 @@ internal sealed class AgentDashboardService : IAgentDashboardService
 
         if (!exists)
             throw new InvalidOperationException("Resource not found.");
+    }
+
+    private async Task EnsureChannelConnectionsExistAsync(
+        IReadOnlyList<Guid>? channelConnectionIds,
+        Guid workspaceId,
+        CancellationToken ct)
+    {
+        if (channelConnectionIds is not { Count: > 0 })
+            return;
+
+        foreach (var channelConnectionId in channelConnectionIds.Distinct())
+        {
+            var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
+            {
+                Id = channelConnectionId,
+                WorkspaceId = workspaceId,
+            }, ct);
+
+            if (connection is null)
+                throw new InvalidOperationException("Channel connection not found.");
+        }
     }
 
     private static string NormalizeResourceType(string resourceType)

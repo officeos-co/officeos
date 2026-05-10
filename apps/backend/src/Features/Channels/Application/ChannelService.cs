@@ -46,22 +46,31 @@ internal sealed class ChannelService : IChannelService
     }
 
     public async Task<ChannelConnectionRecord> UpdateConnectionAsync(
-        Guid id, string? displayName, bool? enabled, CancellationToken ct = default)
+        Guid id, string? displayName, string? configJson, bool? enabled, CancellationToken ct = default)
     {
-        var updated = await _channelRepository.UpdateConnectionAsync(id, row => row.ApplyUpdate(displayName, enabled), ct);
+        var updated = await _channelRepository.UpdateConnectionAsync(id, row =>
+        {
+            row.ApplyUpdate(displayName, enabled);
+            if (configJson is not null)
+            {
+                row.EncryptedCreds = string.IsNullOrWhiteSpace(configJson)
+                    ? null
+                    : _channelCredentialProtector.Protect(configJson);
+            }
+        }, ct);
         if (updated is null) throw new InvalidOperationException($"Channel connection '{id}' not found.");
 
-        if (enabled.HasValue)
+        if (enabled.HasValue || (configJson is not null && updated.Enabled))
             await _channelGateway.ReloadAsync(ct);
 
         return updated;
     }
 
     public async Task<ChannelConnectionRecord> UpdateOwnedConnectionAsync(
-        Guid id, Guid ownerId, Guid workspaceId, string? displayName, bool? enabled, CancellationToken ct = default)
+        Guid id, Guid ownerId, Guid workspaceId, string? displayName, string? configJson, bool? enabled, CancellationToken ct = default)
     {
         await EnsureOwnedConnectionAsync(id, ownerId, workspaceId, ct);
-        return await UpdateConnectionAsync(id, displayName, enabled, ct);
+        return await UpdateConnectionAsync(id, displayName, configJson, enabled, ct);
     }
 
     public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
@@ -83,14 +92,17 @@ internal sealed class ChannelService : IChannelService
         bool isGroupMessage, string? messageId, string? channelId,
         CancellationToken ct = default)
     {
+        var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
+        if (connection is null || !connection.Enabled)
+            return [];
+
         var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
         var agentIds = new List<Guid>();
 
         // Log even when no agent bindings exist for this connection
         if (bindings.Count == 0)
         {
-            var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
-            var channelType = connection?.ChannelType.ToStorageString() ?? "unknown";
+            var channelType = connection.ChannelType.ToStorageString();
 
             await _publisher.Publish(new ChannelMessageRoutedEvent(
                 null, AgentLogType.ChannelIn, channelType,
@@ -126,30 +138,6 @@ internal sealed class ChannelService : IChannelService
         return agentIds;
     }
 
-    public async Task<IReadOnlyList<Guid>> RouteInboundByChannelTypeAsync(
-        string channelType, string senderIdentifier, string messageText,
-        bool isGroupMessage, string? messageId, string? channelId,
-        CancellationToken ct = default)
-    {
-        var connections = await _channelRepository.FindConnectionsByChannelTypeAsync(channelType, ct);
-        if (connections.Count == 0)
-        {
-            await _publisher.Publish(new ChannelMessageRoutedEvent(
-                null, AgentLogType.ChannelIn, channelType,
-                messageText, Guid.NewGuid().ToString("N")), ct);
-            return [];
-        }
-
-        var allAgentIds = new List<Guid>();
-        foreach (var connection in connections)
-        {
-            var agentIds = await RouteInboundAsync(connection.Id, senderIdentifier, messageText,
-                isGroupMessage, messageId, channelId, ct);
-            allAgentIds.AddRange(agentIds);
-        }
-        return allAgentIds;
-    }
-
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
         var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
@@ -180,7 +168,7 @@ internal sealed class ChannelService : IChannelService
 
             try
             {
-                await _channelGateway.SendAsync(channelType, platformId, threadId,
+                await _channelGateway.SendAsync(binding.ChannelConnectionId, channelType, platformId, threadId,
                     ChannelMessage.Text(text), ct);
 
                 await _publisher.Publish(new ChannelMessageRoutedEvent(
@@ -207,7 +195,7 @@ internal sealed class ChannelService : IChannelService
         try
         {
             // Test message — no specific platformId, sidecar adapter handles default delivery
-            await _channelGateway.SendAsync(connection.ChannelType.ToStorageString(), "default", null,
+            await _channelGateway.SendAsync(connection.Id, connection.ChannelType.ToStorageString(), "default", null,
                 ChannelMessage.Text(message), ct);
         }
         catch (Exception ex)
@@ -238,12 +226,37 @@ internal sealed class ChannelService : IChannelService
         return await _channelRepository.CreateBindingAsync(record, ct);
     }
 
+    public async Task<AgentChannelBindingRecord> BindOwnedAgentAsync(
+        Guid agentId,
+        Guid channelConnectionId,
+        Guid ownerId,
+        Guid workspaceId,
+        string? configJson,
+        CancellationToken ct = default)
+    {
+        await EnsureOwnedAgentAsync(agentId, ownerId, workspaceId, ct);
+        await EnsureOwnedConnectionAsync(channelConnectionId, ownerId, workspaceId, ct);
+        return await BindAgentAsync(agentId, channelConnectionId, configJson, ct);
+    }
+
     public async Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default)
     {
         var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
         var match = bindings.FirstOrDefault(b => b.ChannelConnectionId == channelConnectionId);
         if (match is null) return false;
         return await _channelRepository.DeleteBindingAsync(match.Id, ct);
+    }
+
+    public async Task<bool> UnbindOwnedAgentAsync(
+        Guid agentId,
+        Guid channelConnectionId,
+        Guid ownerId,
+        Guid workspaceId,
+        CancellationToken ct = default)
+    {
+        await EnsureOwnedAgentAsync(agentId, ownerId, workspaceId, ct);
+        await EnsureOwnedConnectionAsync(channelConnectionId, ownerId, workspaceId, ct);
+        return await UnbindAgentAsync(agentId, channelConnectionId, ct);
     }
 
     public async Task<AgentChannelBindingRecord> UpdateBindingConfigAsync(Guid agentId, Guid channelConnectionId, string configJson, CancellationToken ct = default)
@@ -263,6 +276,19 @@ internal sealed class ChannelService : IChannelService
             throw new InvalidOperationException("Binding not found.");
 
         return updated;
+    }
+
+    public async Task<AgentChannelBindingRecord> UpdateOwnedBindingConfigAsync(
+        Guid agentId,
+        Guid channelConnectionId,
+        Guid ownerId,
+        Guid workspaceId,
+        string configJson,
+        CancellationToken ct = default)
+    {
+        await EnsureOwnedAgentAsync(agentId, ownerId, workspaceId, ct);
+        await EnsureOwnedConnectionAsync(channelConnectionId, ownerId, workspaceId, ct);
+        return await UpdateBindingConfigAsync(agentId, channelConnectionId, configJson, ct);
     }
 
     public async Task SaveChannelCredsAsync(Guid connectionId, string credsJson, CancellationToken ct = default)
@@ -304,6 +330,19 @@ internal sealed class ChannelService : IChannelService
 
         if (connection is null)
             throw new InvalidOperationException("Channel connection not found.");
+    }
+
+    private async Task EnsureOwnedAgentAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)
+    {
+        var agent = await _agentRepository.GetByAsync(new AgentFilter
+        {
+            Id = agentId,
+            OwnerId = ownerId,
+            WorkspaceId = workspaceId,
+        }, ct);
+
+        if (agent is null)
+            throw new InvalidOperationException("Agent not found.");
     }
 
     /// <summary>

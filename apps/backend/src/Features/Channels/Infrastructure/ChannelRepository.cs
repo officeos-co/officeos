@@ -159,19 +159,10 @@ internal sealed class ChannelRepository : IChannelRepository
             .AsNoTracking()
             .Include(b => b.Agent)
             .Include(b => b.ChannelConnection)
-            .Where(b => b.ChannelConnectionId == connectionId && b.Enabled)
+            .Where(b => b.ChannelConnectionId == connectionId)
+            .OrderBy(b => b.CreatedAt)
             .ToListAsync(ct);
         return entities.Select(ToAgentChannelBindingRecord).ToList();
-    }
-
-    public async Task<IReadOnlyList<ChannelConnectionRecord>> FindConnectionsByChannelTypeAsync(string channelType, CancellationToken ct = default)
-    {
-        var entities = await _eaosDbContext.ChannelConnections
-            .AsNoTracking()
-            .Where(c => c.ChannelType == channelType && c.Enabled)
-            .OrderBy(c => c.CreatedAt)
-            .ToListAsync(ct);
-        return entities.Select(ToChannelConnectionRecord).ToList();
     }
 
     // ── Mapping ──────────────────────────────────────────────────────

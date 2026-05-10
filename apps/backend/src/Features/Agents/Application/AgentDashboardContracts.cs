@@ -17,7 +17,7 @@ public sealed record CreateDashboardAgentRequest(
     string? Model,
     string? Prompt,
     IReadOnlyList<string>? IntegrationSlugs,
-    IReadOnlyList<string>? ChannelSlugs,
+    IReadOnlyList<Guid>? ChannelConnectionIds,
     IReadOnlyList<string>? ToolNames,
     IReadOnlyList<AgentToolPermissionInit>? ToolPermissions,
     IReadOnlyList<AgentResourceAttachmentRequest>? Resources,

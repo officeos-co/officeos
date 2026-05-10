@@ -41,7 +41,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
             {
                 try
                 {
-                    await gateway.SendAsync(channelType, platformId, threadId,
+                    await gateway.SendAsync(channelConnectionId, channelType, platformId, threadId,
                         ChannelMessage.Text(content), CancellationToken.None);
 
                     await publisher.Publish(new ChannelMessageRoutedEvent(

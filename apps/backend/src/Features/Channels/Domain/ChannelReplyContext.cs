@@ -9,12 +9,12 @@ public sealed class ChannelReplyContext
 {
     private readonly ConcurrentDictionary<string, Entry> _pending = new();
 
-    public void Set(string correlationId, string channelType, string platformId, string? threadId, Guid? channelConnectionId = null)
+    public void Set(string correlationId, string channelType, string platformId, string? threadId, Guid channelConnectionId)
     {
         _pending[correlationId] = new Entry(channelType, platformId, threadId, channelConnectionId, DateTime.UtcNow);
     }
 
-    public (string ChannelType, string PlatformId, string? ThreadId, Guid? ChannelConnectionId)? Take(string correlationId)
+    public (string ChannelType, string PlatformId, string? ThreadId, Guid ChannelConnectionId)? Take(string correlationId)
     {
         if (!_pending.TryRemove(correlationId, out var entry))
             return null;
@@ -32,5 +32,5 @@ public sealed class ChannelReplyContext
         }
     }
 
-    private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, Guid? ChannelConnectionId, DateTime CreatedAt);
+    private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, Guid ChannelConnectionId, DateTime CreatedAt);
 }
