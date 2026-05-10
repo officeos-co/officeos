@@ -1,7 +1,7 @@
 "use client"
 
 import { gql, useQuery, useSubscription } from "@apollo/client"
-import type { AgentLog } from "@/types/logs"
+import type { AgentLog } from "@/features/analytics"
 
 const AGENT_LOGS_QUERY = gql`
   query AgentLogs($agentId: UUID!, $last: Int!) {

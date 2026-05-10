@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/ui/table";
-import type { McpServer } from "@/features/agents";
+import type { McpServer } from "../data/integrations";
 import {
   type AtlasConnection,
   parseJsonArray,

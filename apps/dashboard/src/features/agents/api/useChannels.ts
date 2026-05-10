@@ -3,7 +3,7 @@
 import { gql, useMutation, useQuery } from "@apollo/client"
 import type { Channel } from "../data/channels"
 import { sanitizeSvg } from "@/lib/sanitize-svg"
-import type { AgentLog } from "@/types/logs"
+import type { AgentLog } from "@/features/analytics"
 
 const CHANNELS_QUERY = gql`
   query ChannelsAndTypes {

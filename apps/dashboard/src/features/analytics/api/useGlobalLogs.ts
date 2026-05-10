@@ -1,7 +1,7 @@
 "use client";
 
 import { gql, useQuery } from "@apollo/client";
-import type { AgentLog } from "@/types/logs";
+import type { AgentLog } from "@/features/analytics";
 
 export type GlobalLogFilters = {
   search?: string;
