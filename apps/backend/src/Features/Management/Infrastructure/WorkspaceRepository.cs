@@ -250,8 +250,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
         if (existing is not null)
         {
-            await EnsureMembershipAsync(existing.Id, userId, WorkspaceRole.Owner, ct);
-            return ToRecord(existing, WorkspaceRole.Owner);
+            await EnsureMembershipAsync(existing.Id, userId, WorkspaceRole.Admin, ct);
+            return ToRecord(existing, WorkspaceRole.Admin);
         }
 
         var workspace = new WorkspaceEntity
@@ -266,8 +266,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         };
         _eaosDbContext.Workspaces.Add(workspace);
         await _eaosDbContext.SaveChangesAsync(ct);
-        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Owner, ct);
-        return ToRecord(workspace, WorkspaceRole.Owner);
+        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Admin, ct);
+        return ToRecord(workspace, WorkspaceRole.Admin);
     }
 
     public async Task<WorkspaceRecord> EnsureOrganizationDefaultAsync(Guid organizationId, Guid ownerUserId, CancellationToken ct = default)
@@ -282,8 +282,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
         if (existing is not null)
         {
-            await EnsureMembershipAsync(existing.Id, ownerUserId, WorkspaceRole.Owner, ct);
-            return ToRecord(existing, WorkspaceRole.Owner);
+            await EnsureMembershipAsync(existing.Id, ownerUserId, WorkspaceRole.Admin, ct);
+            return ToRecord(existing, WorkspaceRole.Admin);
         }
 
         var organization = await _eaosDbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == organizationId, ct);
@@ -299,8 +299,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         };
         _eaosDbContext.Workspaces.Add(workspace);
         await _eaosDbContext.SaveChangesAsync(ct);
-        await EnsureMembershipAsync(workspace.Id, ownerUserId, WorkspaceRole.Owner, ct);
-        return ToRecord(workspace, WorkspaceRole.Owner);
+        await EnsureMembershipAsync(workspace.Id, ownerUserId, WorkspaceRole.Admin, ct);
+        return ToRecord(workspace, WorkspaceRole.Admin);
     }
 
     public async Task<WorkspaceRecord> GetCurrentAsync(Guid userId, CancellationToken ct = default)
@@ -327,8 +327,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         if (user.CurrentWorkspaceId != workspace.Id)
             await SetCurrentAsync(userId, workspace.Id, ct);
 
-        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Owner, ct);
-        return ToRecord(workspace, WorkspaceRole.Owner);
+        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Admin, ct);
+        return ToRecord(workspace, WorkspaceRole.Admin);
     }
 
     public async Task SetCurrentAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
@@ -394,7 +394,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
     private async Task<WorkspaceRecord> CreateDefaultAndSetCurrentAsync(Guid userId, CancellationToken ct)
     {
         var record = await SaveAsync(WorkspaceRecord.CreatePersonal(userId, "Default", isDefault: true), ct);
-        await EnsureMembershipAsync(record.Id, userId, WorkspaceRole.Owner, ct);
+        await EnsureMembershipAsync(record.Id, userId, WorkspaceRole.Admin, ct);
         await SetCurrentAsync(userId, record.Id, ct);
         return record;
     }
@@ -425,7 +425,6 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
     private static int RoleRank(WorkspaceRole role) => role switch
     {
-        WorkspaceRole.Owner => 4,
         WorkspaceRole.Admin => 3,
         WorkspaceRole.Editor => 2,
         WorkspaceRole.Viewer => 1,

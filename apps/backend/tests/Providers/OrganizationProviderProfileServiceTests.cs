@@ -56,7 +56,7 @@ public sealed class OrganizationProviderProfileServiceTests
             OrganizationId = organizationId,
             UserId = memberId,
             Email = "member@example.com",
-            Role = OrgRole.Member.ToStorageString(),
+            Role = OrgRole.Editor.ToStorageString(),
             Status = MemberStatus.Active.ToStorageString(),
             CreatedAt = DateTime.UtcNow,
         });

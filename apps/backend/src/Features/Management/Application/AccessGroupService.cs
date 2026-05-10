@@ -158,11 +158,10 @@ internal sealed class AccessGroupService : IAccessGroupService
 
         return value.Trim() switch
         {
-            "Owner" => WorkspaceRole.Owner,
             "Admin" => WorkspaceRole.Admin,
             "Editor" => WorkspaceRole.Editor,
             "Viewer" => WorkspaceRole.Viewer,
-            _ => throw new InvalidOperationException("Workspace role must be 'Owner', 'Admin', 'Editor', or 'Viewer'."),
+            _ => throw new InvalidOperationException("Workspace role must be 'Admin', 'Editor', or 'Viewer'."),
         };
     }
 }

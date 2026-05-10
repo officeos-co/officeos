@@ -6,9 +6,11 @@ import {
   Building2Icon,
   CheckIcon,
   ChevronDownIcon,
+  MailIcon,
   PlusIcon,
   UserIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/ui/button";
 import {
@@ -28,9 +30,11 @@ import {
 import { Input } from "@/ui/input";
 import { useSidebar } from "@/ui/sidebar";
 import {
+  useAcceptOrganizationInvite,
   canAdministerWorkspace,
   useCreateOrganizationWorkspace,
   useCreateWorkspace,
+  usePendingOrganizationInvites,
   useSwitchWorkspace,
   useWorkspaces,
   type WorkspacePayload,
@@ -44,7 +48,10 @@ export function WorkspaceSwitcher() {
   const [search, setSearch] = React.useState("");
 
   const { workspaces, currentWorkspace: current, loading } = useWorkspaces();
+  const { invites } = usePendingOrganizationInvites();
   const { switchWorkspace } = useSwitchWorkspace();
+  const { acceptOrganizationInvite, loading: acceptingInvite } =
+    useAcceptOrganizationInvite();
   const { createWorkspace, loading: creatingPersonal } = useCreateWorkspace();
   const { createOrganizationWorkspace, loading: creatingOrganization } =
     useCreateOrganizationWorkspace();
@@ -82,6 +89,11 @@ export function WorkspaceSwitcher() {
     }
     setName("");
     setCreateOpen(false);
+  }
+
+  async function handleAcceptInvite(memberId: string, organizationName: string) {
+    await acceptOrganizationInvite(memberId);
+    toast.success(`Joined ${organizationName}`);
   }
 
   if (collapsed) return null;
@@ -127,6 +139,33 @@ export function WorkspaceSwitcher() {
             />
           </div>
           <div className="max-h-56 overflow-y-auto px-1 pb-1">
+            {invites.length > 0 && (
+              <div className="py-1">
+                <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                  Invitations
+                </div>
+                {invites.map((invite) => (
+                  <DropdownMenuItem
+                    key={invite.id}
+                    onClick={() =>
+                      void handleAcceptInvite(invite.id, invite.organizationName)
+                    }
+                    disabled={acceptingInvite}
+                    className="h-auto items-start gap-2 py-2"
+                  >
+                    <MailIcon className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">
+                        {invite.organizationName}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        Accept invite as {invite.role}
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            )}
             <WorkspaceGroup
               label="Personal"
               workspaces={personalWorkspaces}

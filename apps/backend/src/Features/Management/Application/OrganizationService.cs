@@ -40,9 +40,9 @@ internal sealed class OrganizationService : IOrganizationService
         if (string.IsNullOrWhiteSpace(memberEmail) || !memberEmail.Contains('@'))
             throw new InvalidOperationException("Valid email required.");
 
-        var parsedRole = (role ?? "Member").ToOrgRole();
-        if (parsedRole != OrgRole.Admin && parsedRole != OrgRole.Member)
-            throw new InvalidOperationException("Role must be 'Admin' or 'Member'.");
+        var parsedRole = (role ?? "Editor").ToOrgRole();
+        if (parsedRole is not (OrgRole.Admin or OrgRole.Editor or OrgRole.Viewer))
+            throw new InvalidOperationException("Role must be 'Admin', 'Editor', or 'Viewer'.");
 
         var member = OrgMemberRecord.Invite(org.Id, memberEmail, parsedRole);
         var created = await _organizationRepository.AddMemberAsync(member, ct);
@@ -53,6 +53,31 @@ internal sealed class OrganizationService : IOrganizationService
             created.Email,
             created.Role.ToString()), ct);
         return created;
+    }
+
+    public async Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesAsync(
+        Guid callerUserId,
+        string callerEmail,
+        CancellationToken ct = default)
+    {
+        _ = callerUserId;
+        return await _organizationRepository.ListPendingInvitesForEmailAsync(callerEmail, ct);
+    }
+
+    public async Task<OrgMemberRecord> AcceptInviteAsync(
+        Guid callerUserId,
+        string callerEmail,
+        Guid memberId,
+        CancellationToken ct = default)
+    {
+        var member = await _organizationRepository.AcceptInviteAsync(memberId, callerUserId, callerEmail, ct);
+        await _publisher.Publish(new OrganizationMemberInviteAcceptedEvent(
+            member.OrganizationId,
+            callerUserId,
+            member.Id,
+            member.Email,
+            member.Role.ToString()), ct);
+        return member;
     }
 
     public async Task<bool> RemoveMemberAsync(

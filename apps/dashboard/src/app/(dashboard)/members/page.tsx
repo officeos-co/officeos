@@ -33,6 +33,7 @@ import {
 } from "@/ui/table";
 import { Textarea } from "@/ui/textarea";
 import {
+  organizationRoleLabel,
   organizationRoleTooltip,
   useInviteMember,
   useOrganization,
@@ -41,14 +42,19 @@ import {
 const MAX_INVITE_EMAILS = 50;
 const INVITE_ROLE_OPTIONS = [
   {
-    value: "Member",
-    label: "User",
-    description: organizationRoleTooltip("Member"),
+    value: "Editor",
+    label: "Editor",
+    description: organizationRoleTooltip("Editor"),
   },
   {
     value: "Admin",
     label: "Admin",
     description: organizationRoleTooltip("Admin"),
+  },
+  {
+    value: "Viewer",
+    label: "Viewer",
+    description: organizationRoleTooltip("Viewer"),
   },
 ] as const;
 
@@ -59,7 +65,7 @@ export default function MembersPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviteRole, setInviteRole] =
-    useState<(typeof INVITE_ROLE_OPTIONS)[number]["value"]>("Member");
+    useState<(typeof INVITE_ROLE_OPTIONS)[number]["value"]>("Editor");
   const parsedInviteEmails = useMemo(
     () => parseInviteEmails(inviteEmails),
     [inviteEmails],
@@ -88,10 +94,10 @@ export default function MembersPage() {
       await inviteMember({ email, role: inviteRole });
     }
     setInviteEmails("");
-    setInviteRole("Member");
+    setInviteRole("Editor");
     setInviteOpen(false);
     toast.success(
-      inviteEmailCount === 1 ? "Invitation sent" : "Invitations sent",
+      inviteEmailCount === 1 ? "Invitation created" : "Invitations created",
     );
   }
 
@@ -169,7 +175,7 @@ export default function MembersPage() {
                     title={organizationRoleTooltip(member.role)}
                     className="rounded bg-muted px-1.5 py-0.5 text-xs"
                   >
-                    {member.role}
+                    {organizationRoleLabel(member.role)}
                   </span>
                 </TableCell>
               </TableRow>
@@ -265,7 +271,7 @@ export default function MembersPage() {
               onClick={handleInvite}
               disabled={inviting || !canSendInvite}
             >
-              {inviteEmailCount > 1 ? "Send invites" : "Send invite"}
+              {inviteEmailCount > 1 ? "Create invites" : "Create invite"}
             </Button>
           </div>
         </DialogContent>

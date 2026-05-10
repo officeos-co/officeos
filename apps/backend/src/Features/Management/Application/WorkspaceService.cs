@@ -35,7 +35,7 @@ internal sealed class WorkspaceService : IWorkspaceService
     {
         var created = await _workspaceRepository.SaveAsync(WorkspaceRecord.CreatePersonal(userId, name), ct);
         await _workspaceMemberRepository.UpsertAsync(
-            WorkspaceMemberRecord.Create(created.Id, userId, WorkspaceRole.Owner),
+            WorkspaceMemberRecord.Create(created.Id, userId, WorkspaceRole.Admin),
             ct);
         await InvalidateUserAsync(userId, ct);
         return created;
@@ -43,12 +43,10 @@ internal sealed class WorkspaceService : IWorkspaceService
 
     public async Task<WorkspaceRecord> CreateOrganizationWorkspaceAsync(Guid userId, Guid organizationId, string? name, CancellationToken ct = default)
     {
-        await RequireOrganizationAdminAsync(userId, organizationId, ct);
+        await RequireOrganizationWorkspaceCreatorAsync(userId, organizationId, ct);
 
         var created = await _workspaceRepository.SaveAsync(WorkspaceRecord.CreateOrganization(organizationId, name), ct);
-        await _workspaceMemberRepository.UpsertAsync(
-            WorkspaceMemberRecord.Create(created.Id, userId, WorkspaceRole.Owner),
-            ct);
+        await SeedOrganizationWorkspaceMembersAsync(created.Id, organizationId, userId, ct);
         await InvalidateUserAsync(userId, ct);
         await _publisher.Publish(new OrganizationWorkspaceCreatedEvent(
             organizationId,
@@ -208,7 +206,7 @@ internal sealed class WorkspaceService : IWorkspaceService
     {
         await RequireWorkspaceAdminAsync(actorUserId, workspaceId, ct);
         if (actorUserId == memberUserId)
-            throw new InvalidOperationException("Workspace owners cannot remove themselves.");
+            throw new InvalidOperationException("Workspace admins cannot remove themselves.");
 
         var removed = await _workspaceMemberRepository.DeleteAsync(
             new WorkspaceMemberFilter { WorkspaceId = workspaceId, UserId = memberUserId },
@@ -287,6 +285,53 @@ internal sealed class WorkspaceService : IWorkspaceService
             throw new InvalidOperationException("Workspace not found.");
     }
 
+    private async Task RequireOrganizationWorkspaceCreatorAsync(Guid userId, Guid organizationId, CancellationToken ct)
+    {
+        var members = await _organizationRepository.ListMembersAsync(organizationId, ct);
+        var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
+        if (member?.Role is OrgRole.Owner or OrgRole.Admin)
+            return;
+
+        var workspaceMemberships = await _workspaceMemberRepository.ListAsync(
+            new WorkspaceMemberFilter { OrganizationId = organizationId, UserId = userId },
+            ct);
+        if (workspaceMemberships.Any(membership => membership.Role.CanAdminister()))
+            return;
+
+        throw new InvalidOperationException("Workspace not found.");
+    }
+
+    private async Task SeedOrganizationWorkspaceMembersAsync(
+        Guid workspaceId,
+        Guid organizationId,
+        Guid creatorUserId,
+        CancellationToken ct)
+    {
+        var members = await _organizationRepository.ListMembersAsync(organizationId, ct);
+        foreach (var member in members)
+        {
+            if (!member.UserId.HasValue || member.Status != MemberStatus.Active)
+                continue;
+
+            await _workspaceMemberRepository.UpsertAsync(
+                WorkspaceMemberRecord.Create(workspaceId, member.UserId.Value, ToWorkspaceRole(member.Role)),
+                ct);
+        }
+
+        await _workspaceMemberRepository.UpsertAsync(
+            WorkspaceMemberRecord.Create(workspaceId, creatorUserId, WorkspaceRole.Admin),
+            ct);
+    }
+
+    private static WorkspaceRole ToWorkspaceRole(OrgRole role) => role switch
+    {
+        OrgRole.Owner => WorkspaceRole.Admin,
+        OrgRole.Admin => WorkspaceRole.Admin,
+        OrgRole.Editor => WorkspaceRole.Editor,
+        OrgRole.Viewer => WorkspaceRole.Viewer,
+        _ => WorkspaceRole.Editor,
+    };
+
     private async Task<WorkspaceRecord> RequireWorkspaceAdminAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
         var workspace = await RequireAccessibleAsync(userId, workspaceId, ct);
@@ -317,11 +362,10 @@ internal sealed class WorkspaceService : IWorkspaceService
 
         return value.Trim() switch
         {
-            "Owner" => WorkspaceRole.Owner,
             "Admin" => WorkspaceRole.Admin,
             "Editor" => WorkspaceRole.Editor,
             "Viewer" => WorkspaceRole.Viewer,
-            _ => throw new InvalidOperationException("Workspace role must be 'Owner', 'Admin', 'Editor', or 'Viewer'."),
+            _ => throw new InvalidOperationException("Workspace role must be 'Admin', 'Editor', or 'Viewer'."),
         };
     }
 

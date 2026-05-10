@@ -1,13 +1,14 @@
 "use client"
 
 import { gql, useMutation, useQuery } from "@apollo/client"
+import { apolloClient } from "@/lib/graphql/client"
 
 export type OrgMember = {
   id: string
   organizationId: string
   userId: string | null
   email: string
-  role: "Owner" | "Admin" | "Member"
+  role: "Owner" | "Admin" | "Editor" | "Viewer"
   status: "active" | "invited"
   joinedAgo: string
 }
@@ -17,6 +18,15 @@ export type OrganizationPayload = {
   name: string
   ownerUserId: string
   members: OrgMember[]
+}
+
+export type OrganizationInvite = {
+  id: string
+  organizationId: string
+  organizationName: string
+  email: string
+  role: "Admin" | "Editor" | "Viewer"
+  createdAt: string
 }
 
 const ORG_QUERY = gql`
@@ -38,9 +48,36 @@ const ORG_QUERY = gql`
   }
 `
 
+const PENDING_ORGANIZATION_INVITES = gql`
+  query PendingOrganizationInvites {
+    pendingOrganizationInvites {
+      id
+      organizationId
+      organizationName
+      email
+      role
+      createdAt
+    }
+  }
+`
+
 const INVITE_MEMBER = gql`
   mutation InviteMember($input: InviteMemberInput!) {
     inviteMember(input: $input) {
+      id
+      organizationId
+      userId
+      email
+      role
+      status
+      createdAt
+    }
+  }
+`
+
+const ACCEPT_ORGANIZATION_INVITE = gql`
+  mutation AcceptOrganizationInvite($memberId: UUID!) {
+    acceptOrganizationInvite(memberId: $memberId) {
       id
       organizationId
       userId
@@ -97,10 +134,17 @@ function toMember(m: MemberRaw): OrgMember {
     organizationId: m.organizationId,
     userId: m.userId,
     email: m.email,
-    role: (m.role as OrgMember["role"]) ?? "Member",
+    role: toOrgRole(m.role),
     status: (m.status as OrgMember["status"]) ?? "invited",
     joinedAgo: humanAgo(m.createdAt),
   }
+}
+
+function toOrgRole(role: string): OrgMember["role"] {
+  if (role === "Owner" || role === "Admin" || role === "Editor" || role === "Viewer") {
+    return role
+  }
+  return "Editor"
 }
 
 export function useOrganization(): {
@@ -123,12 +167,41 @@ export function useOrganization(): {
   return { organization, loading, error: error ?? undefined }
 }
 
+export function usePendingOrganizationInvites(): {
+  invites: OrganizationInvite[]
+  loading: boolean
+  error?: Error
+} {
+  const { data, loading, error } = useQuery<{
+    pendingOrganizationInvites: OrganizationInvite[]
+  }>(PENDING_ORGANIZATION_INVITES)
+  return {
+    invites: data?.pendingOrganizationInvites ?? [],
+    loading,
+    error: error ?? undefined,
+  }
+}
+
+export function useAcceptOrganizationInvite() {
+  const [fn, state] = useMutation(ACCEPT_ORGANIZATION_INVITE)
+  return {
+    acceptOrganizationInvite: async (memberId: string): Promise<OrgMember | undefined> => {
+      const { data } = await fn({ variables: { memberId } })
+      await apolloClient.resetStore()
+      return data?.acceptOrganizationInvite
+        ? toMember(data.acceptOrganizationInvite as MemberRaw)
+        : undefined
+    },
+    ...state,
+  }
+}
+
 export function useInviteMember() {
   const [fn, state] = useMutation(INVITE_MEMBER)
   return {
-    inviteMember: async (input: { email: string; role?: "Admin" | "Member" }): Promise<OrgMember> => {
+    inviteMember: async (input: { email: string; role?: "Admin" | "Editor" | "Viewer" }): Promise<OrgMember> => {
       const { data } = await fn({
-        variables: { input: { email: input.email, role: input.role ?? "Member" } },
+        variables: { input: { email: input.email, role: input.role ?? "Editor" } },
         optimisticResponse: {
           inviteMember: {
             __typename: "OrgMember",
@@ -136,7 +209,7 @@ export function useInviteMember() {
             organizationId: "",
             userId: null,
             email: input.email,
-            role: input.role ?? "Member",
+            role: input.role ?? "Editor",
             status: "invited",
             createdAt: new Date().toISOString(),
           },

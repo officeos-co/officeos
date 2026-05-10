@@ -7,6 +7,14 @@ public sealed record OrganizationPayload(
     DateTime CreatedAt,
     IReadOnlyList<OrgMemberRecord> Members);
 
+public sealed record OrganizationInvitePayload(
+    Guid Id,
+    Guid OrganizationId,
+    string OrganizationName,
+    string Email,
+    string Role,
+    DateTime CreatedAt);
+
 public sealed record InviteMemberInput(
     string Email,
     string? Role);

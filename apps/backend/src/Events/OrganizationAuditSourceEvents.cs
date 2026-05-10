@@ -13,6 +13,13 @@ public sealed record OrganizationMemberInvitedEvent(
     string MemberEmail,
     string Role) : DomainEvent;
 
+public sealed record OrganizationMemberInviteAcceptedEvent(
+    Guid OrganizationId,
+    Guid ActorUserId,
+    Guid MemberId,
+    string MemberEmail,
+    string Role) : DomainEvent;
+
 public sealed record OrganizationMemberRemovedEvent(
     Guid OrganizationId,
     Guid ActorUserId,

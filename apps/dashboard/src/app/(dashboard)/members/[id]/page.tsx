@@ -13,6 +13,8 @@ import {
   TableRow,
 } from "@/ui/table";
 import {
+  organizationRoleLabel,
+  organizationRoleTooltip,
   useOrganization,
   useOrganizationWorkspaceMembers,
   useWorkspaces,
@@ -76,7 +78,9 @@ export default function MemberDetailPage({
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span>{member.email}</span>
                 <span>·</span>
-                <span>{member.role}</span>
+                <span title={organizationRoleTooltip(member.role)}>
+                  {organizationRoleLabel(member.role)}
+                </span>
                 <span>·</span>
                 <span>{member.status}</span>
               </div>

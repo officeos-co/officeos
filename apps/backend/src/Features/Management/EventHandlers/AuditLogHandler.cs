@@ -3,6 +3,7 @@ namespace OffceOs.EventHandlers.Features.Management;
 internal sealed class AuditLogHandler :
     INotificationHandler<OrganizationRenamedEvent>,
     INotificationHandler<OrganizationMemberInvitedEvent>,
+    INotificationHandler<OrganizationMemberInviteAcceptedEvent>,
     INotificationHandler<OrganizationMemberRemovedEvent>,
     INotificationHandler<OrganizationWorkspaceCreatedEvent>,
     INotificationHandler<WorkspaceUpdatedEvent>,
@@ -51,6 +52,15 @@ internal sealed class AuditLogHandler :
 
     public Task Handle(OrganizationMemberInvitedEvent e, CancellationToken ct)
         => SaveAsync(e.OrganizationId, e.ActorUserId, null, null, OrganizationAuditKinds.OrganizationMemberInvited,
+            OrganizationAuditKinds.OrganizationMember, e.MemberId, OrganizationAuditKinds.Success, null,
+            new Dictionary<string, object?>
+            {
+                ["memberEmail"] = e.MemberEmail,
+                ["role"] = e.Role,
+            }, e.OccurredAt, ct);
+
+    public Task Handle(OrganizationMemberInviteAcceptedEvent e, CancellationToken ct)
+        => SaveAsync(e.OrganizationId, e.ActorUserId, null, null, OrganizationAuditKinds.OrganizationMemberInviteAccepted,
             OrganizationAuditKinds.OrganizationMember, e.MemberId, OrganizationAuditKinds.Success, null,
             new Dictionary<string, object?>
             {

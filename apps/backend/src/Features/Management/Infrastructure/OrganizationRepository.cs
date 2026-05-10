@@ -30,7 +30,7 @@ internal sealed class OrganizationRepository : IOrganizationRepository
             Id = Guid.NewGuid(),
             OrganizationId = orgEntity.Id,
             UserId = ownerUserId,
-            Email = ownerEmail,
+            Email = NormalizeEmail(ownerEmail),
             Role = OrgRole.Owner.ToStorageString(),
             Status = MemberStatus.Active.ToStorageString(),
             CreatedAt = DateTime.UtcNow,
@@ -67,27 +67,94 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         return entities.Select(ToOrgMemberRecord).ToList();
     }
 
+    public async Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesForEmailAsync(
+        string email,
+        CancellationToken ct = default)
+    {
+        var normalizedEmail = NormalizeEmail(email);
+        if (string.IsNullOrWhiteSpace(normalizedEmail))
+            return [];
+
+        var invited = MemberStatus.Invited.ToStorageString();
+        var rows = await _eaosDbContext.OrgMembers
+            .AsNoTracking()
+            .Where(member => member.Email == normalizedEmail
+                && member.Status == invited)
+            .Join(
+                _eaosDbContext.Organizations.AsNoTracking(),
+                member => member.OrganizationId,
+                organization => organization.Id,
+                (member, organization) => new { Member = member, Organization = organization })
+            .OrderBy(row => row.Member.CreatedAt)
+            .ToListAsync(ct);
+
+        return rows.Select(row => new OrganizationInviteRecord
+        {
+            Id = row.Member.Id,
+            OrganizationId = row.Member.OrganizationId,
+            OrganizationName = row.Organization.Name,
+            Email = row.Member.Email,
+            Role = row.Member.Role.ToOrgRole(),
+            CreatedAt = row.Member.CreatedAt,
+        }).ToList();
+    }
+
     public async Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default)
     {
+        var normalizedEmail = NormalizeEmail(member.Email);
         var existing = await _eaosDbContext.OrgMembers
-            .FirstOrDefaultAsync(m => m.OrganizationId == member.OrganizationId && m.Email == member.Email, ct);
+            .FirstOrDefaultAsync(m => m.OrganizationId == member.OrganizationId && m.Email == normalizedEmail, ct);
         if (existing is not null)
         {
-            await EnsureDefaultWorkspaceMembershipAsync(existing.OrganizationId, existing.UserId, ct);
+            var invited = MemberStatus.Invited.ToStorageString();
+            if (existing.Status == invited && !existing.UserId.HasValue)
+            {
+                var invitedUser = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
+                if (invitedUser is not null)
+                {
+                    existing.UserId = invitedUser.Id;
+                    await _eaosDbContext.SaveChangesAsync(ct);
+                }
+            }
+            else if (existing.Status == MemberStatus.Active.ToStorageString())
+            {
+                await EnsureDefaultWorkspaceMembershipAsync(existing.OrganizationId, existing.UserId, ct);
+            }
+
             return ToOrgMemberRecord(existing);
         }
 
-        var user = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == member.Email, ct);
+        var user = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalizedEmail, ct);
         if (user is not null)
         {
             member.UserId = user.Id;
-            member.Status = MemberStatus.Active;
         }
 
         var entity = ToOrgMemberEntity(member);
         _eaosDbContext.OrgMembers.Add(entity);
         await _eaosDbContext.SaveChangesAsync(ct);
-        await EnsureDefaultWorkspaceMembershipAsync(entity.OrganizationId, entity.UserId, ct);
+        return ToOrgMemberRecord(entity);
+    }
+
+    public async Task<OrgMemberRecord> AcceptInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default)
+    {
+        var normalizedEmail = NormalizeEmail(email);
+        var entity = await _eaosDbContext.OrgMembers.FirstOrDefaultAsync(m => m.Id == memberId, ct)
+            ?? throw new InvalidOperationException("Invite not found.");
+
+        if (entity.Email != normalizedEmail)
+            throw new InvalidOperationException("Invite not found.");
+
+        if (entity.UserId.HasValue && entity.UserId != userId)
+            throw new InvalidOperationException("Invite not found.");
+
+        if (entity.Status != MemberStatus.Invited.ToStorageString())
+            throw new InvalidOperationException("Invite not found.");
+
+        entity.UserId = userId;
+        entity.Status = MemberStatus.Active.ToStorageString();
+        await _eaosDbContext.SaveChangesAsync(ct);
+        await EnsureDefaultWorkspaceMembershipAsync(entity.OrganizationId, userId, ct);
         return ToOrgMemberRecord(entity);
     }
 
@@ -132,7 +199,7 @@ internal sealed class OrganizationRepository : IOrganizationRepository
             await _eaosDbContext.SaveChangesAsync(ct);
         }
 
-        await EnsureWorkspaceMembershipAsync(workspace.Id, ownerUserId, WorkspaceRole.Owner, ct);
+        await EnsureWorkspaceMembershipAsync(workspace.Id, ownerUserId, WorkspaceRole.Admin, ct);
     }
 
     private async Task EnsureDefaultWorkspaceMembershipAsync(Guid organizationId, Guid? userId, CancellationToken ct)
@@ -157,7 +224,17 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         if (workspace is null)
             return;
 
-        await EnsureWorkspaceMembershipAsync(workspace.Id, userId.Value, WorkspaceRole.Editor, ct);
+        var member = await _eaosDbContext.OrgMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId
+                && m.UserId == userId.Value
+                && m.Status == MemberStatus.Active.ToStorageString(), ct);
+
+        await EnsureWorkspaceMembershipAsync(
+            workspace.Id,
+            userId.Value,
+            ToWorkspaceRole(member?.Role.ToOrgRole() ?? OrgRole.Editor),
+            ct);
     }
 
     private async Task EnsureWorkspaceMembershipAsync(Guid workspaceId, Guid userId, WorkspaceRole role, CancellationToken ct)
@@ -186,11 +263,19 @@ internal sealed class OrganizationRepository : IOrganizationRepository
 
     private static int RoleRank(WorkspaceRole role) => role switch
     {
-        WorkspaceRole.Owner => 4,
         WorkspaceRole.Admin => 3,
         WorkspaceRole.Editor => 2,
         WorkspaceRole.Viewer => 1,
         _ => 0,
+    };
+
+    private static WorkspaceRole ToWorkspaceRole(OrgRole role) => role switch
+    {
+        OrgRole.Owner => WorkspaceRole.Admin,
+        OrgRole.Admin => WorkspaceRole.Admin,
+        OrgRole.Editor => WorkspaceRole.Editor,
+        OrgRole.Viewer => WorkspaceRole.Viewer,
+        _ => WorkspaceRole.Editor,
     };
 
     // ── Mapping ──────────────────────────────────────────────────────
@@ -232,4 +317,6 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         Status = r.Status.ToStorageString(),
         CreatedAt = r.CreatedAt,
     };
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 }
