@@ -24,17 +24,21 @@ import { Label } from "@/ui/label";
 import { Skeleton } from "@/ui/skeleton";
 import { Switch } from "@/ui/switch";
 import {
-  useBilling,
   useDisconnectCodexOAuthProvider,
+  useCodexOAuthProvider,
   useOrganization,
+  useOrganizationProviderProfiles,
   usePollCodexOAuthLogin,
   useProviderSetupStatus,
   useProviders,
+  useRefreshProviderQueries,
   useSaveBedrockProviderSetup,
   useSaveFoundryProviderSetup,
+  useSaveOrganizationProviderProfile,
   useSaveVertexProviderSetup,
   useStartCodexOAuthLogin,
   type CodexOAuthLogin,
+  type OrganizationProviderProfile,
   type Provider,
   type ProviderSetupStatus,
 } from "@/features/manage";
@@ -79,6 +83,9 @@ const CLOUD_PROVIDERS = [
     models: "claude-sonnet-4-6, claude-haiku-4-5",
   },
 ];
+const CLOUD_PROVIDER_SLUGS = new Set(
+  CLOUD_PROVIDERS.map((provider) => provider.slug),
+);
 
 function ProviderLogo({ name, size = 24 }: { name: string; size?: number }) {
   const src = LOGOS[name.toLowerCase()];
@@ -330,6 +337,105 @@ function CloudProviderDialog({
   );
 }
 
+function PlatformProviderDialog({
+  provider,
+  organizationId,
+  profile,
+  onSaved,
+}: {
+  provider: Provider;
+  organizationId: string;
+  profile?: OrganizationProviderProfile;
+  onSaved: () => Promise<unknown>;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [displayName, setDisplayName] = React.useState(
+    profile?.displayName ?? provider.displayName,
+  );
+  const [enabled, setEnabled] = React.useState(profile?.enabled ?? true);
+  const [models, setModels] = React.useState(
+    (profile?.allowedModels.length
+      ? profile.allowedModels
+      : provider.models
+    ).join(", "),
+  );
+  const [apiKey, setApiKey] = React.useState("");
+  const [baseUrl, setBaseUrl] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const { saveOrganizationProviderProfile, loading: saving } =
+    useSaveOrganizationProviderProfile();
+  const custom = provider.name === "custom";
+
+  async function save() {
+    setError(null);
+    try {
+      const allowedModels = splitModels(models);
+      await saveOrganizationProviderProfile({
+        organizationId,
+        provider: provider.name,
+        displayName: displayName.trim() || provider.displayName,
+        allowedModels,
+        apiKey,
+        enabled,
+        authKind: "api_key",
+        credentials: custom
+          ? [
+              { key: "baseUrl", value: baseUrl },
+              { key: "apiKey", value: apiKey },
+            ]
+          : [{ key: "apiKey", value: apiKey }],
+      });
+      await onSaved();
+      setApiKey("");
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Provider setup failed.");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <SettingsIcon />
+        Configure
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{provider.displayName}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <Field
+            label="Display name"
+            value={displayName}
+            onChange={setDisplayName}
+          />
+          {custom && (
+            <Field label="Base URL" value={baseUrl} onChange={setBaseUrl} />
+          )}
+          <Field
+            label={custom ? "API key (optional)" : "API key"}
+            type="password"
+            value={apiKey}
+            onChange={setApiKey}
+          />
+          <Field label="Models" value={models} onChange={setModels} />
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={enabled} onCheckedChange={setEnabled} />
+            Enabled
+          </label>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button onClick={save} disabled={saving}>
+            <CheckCircle2Icon />
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CodexProviderCard({
   provider,
   onChanged,
@@ -344,43 +450,75 @@ function CodexProviderCard({
   const { pollCodexOAuthLogin } = usePollCodexOAuthLogin();
   const { disconnectCodexOAuthProvider, loading: disconnecting } =
     useDisconnectCodexOAuthProvider();
-  const connected = Boolean(provider?.configured);
+  const refreshProviderQueries = useRefreshProviderQueries();
+  const [localConnected, setLocalConnected] = React.useState(
+    Boolean(provider?.configured),
+  );
+  const pollRef = React.useRef(pollCodexOAuthLogin);
+  const onChangedRef = React.useRef(onChanged);
+  const connected = localConnected || Boolean(provider?.configured);
+
+  React.useEffect(() => {
+    pollRef.current = pollCodexOAuthLogin;
+  }, [pollCodexOAuthLogin]);
+
+  React.useEffect(() => {
+    onChangedRef.current = onChanged;
+  }, [onChanged]);
+
+  React.useEffect(() => {
+    setLocalConnected(Boolean(provider?.configured));
+  }, [provider?.configured]);
 
   React.useEffect(() => {
     if (!login) return;
     let cancelled = false;
-    const interval = window.setInterval(async () => {
+    let timeout: number | undefined;
+
+    async function poll() {
       try {
-        const result = await pollCodexOAuthLogin(login.loginId);
-        if (!result || cancelled || !result.completed) return;
-        window.clearInterval(interval);
-        if (result.success) {
-          setMessage(
-            `Connected${result.accountEmail ? ` as ${result.accountEmail}` : ""}.`,
-          );
-          setLogin(null);
-          await onChanged();
-        } else {
-          setError(result.error ?? "Codex OAuth failed.");
+        const result = await pollRef.current(login.loginId);
+        if (cancelled) return;
+        if (result?.completed) {
+          if (result.success) {
+            setMessage(
+              `Connected${result.accountEmail ? ` as ${result.accountEmail}` : ""}.`,
+            );
+            setLocalConnected(true);
+            setLogin(null);
+            await onChangedRef.current();
+            await refreshProviderQueries();
+          } else {
+            setError(result.error ?? "Codex OAuth failed.");
+          }
+          return;
         }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Codex OAuth polling failed.",
         );
       }
-    }, 2500);
+      if (!cancelled && login) {
+        timeout = window.setTimeout(poll, 2500);
+      }
+    }
+
+    void poll();
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      if (timeout) window.clearTimeout(timeout);
     };
-  }, [login, pollCodexOAuthLogin, onChanged]);
+  }, [login, refreshProviderQueries]);
 
   async function start() {
     setError(null);
     setMessage(null);
     const result = await startCodexOAuthLogin();
-    if (result) setLogin(result);
+    if (result) {
+      setLogin(result);
+      window.open(result.authUrl, "_blank", "noopener,noreferrer");
+    }
   }
 
   async function disconnect() {
@@ -388,7 +526,9 @@ function CodexProviderCard({
     setMessage(null);
     await disconnectCodexOAuthProvider();
     setLogin(null);
+    setLocalConnected(false);
     await onChanged();
+    await refreshProviderQueries();
   }
 
   return (
@@ -476,7 +616,7 @@ function Field({
 }
 
 export function ProvidersSettings() {
-  const { billing, loading: billingLoading } = useBilling();
+  const refreshProviderQueries = useRefreshProviderQueries();
   const { organization, loading: orgLoading } = useOrganization();
   const {
     providers,
@@ -484,16 +624,29 @@ export function ProvidersSettings() {
     refetch: refetchProviders,
   } = useProviders();
   const {
+    provider: codexProvider,
+    loading: codexLoading,
+    refetch: refetchCodexProvider,
+  } = useCodexOAuthProvider();
+  const {
     statuses,
     loading: setupLoading,
     refetch: refetchSetup,
   } = useProviderSetupStatus(organization?.id);
-  const enterprise = billing?.plan?.toLowerCase() === "enterprise";
+  const {
+    profiles,
+    loading: profilesLoading,
+    refetch: refetchProfiles,
+  } = useOrganizationProviderProfiles(organization?.id);
   const loading =
-    billingLoading ||
     orgLoading ||
     providersLoading ||
-    (enterprise && setupLoading);
+    codexLoading ||
+    (organization ? profilesLoading : false) ||
+    (organization ? setupLoading : false);
+
+  const effectiveCodexProvider =
+    codexProvider ?? providers.find((item) => item.name === "openai-codex");
 
   if (loading) {
     return (
@@ -515,7 +668,7 @@ export function ProvidersSettings() {
     );
   }
 
-  if (!enterprise || !organization) {
+  if (!organization) {
     return (
       <>
         <PageHeader
@@ -529,8 +682,10 @@ export function ProvidersSettings() {
         >
           <section className="grid gap-2">
             <CodexProviderCard
-              provider={providers.find((item) => item.name === "openai-codex")}
-              onChanged={refetchProviders}
+              provider={effectiveCodexProvider}
+              onChanged={async () => {
+                await Promise.all([refetchCodexProvider(), refetchProviders()]);
+              }}
             />
           </section>
           <section className="grid gap-2">
@@ -568,7 +723,7 @@ export function ProvidersSettings() {
     <>
       <PageHeader
         page="Providers"
-        subtitle="Configure cloud-hosted Claude providers and model pins."
+        subtitle="Configure model providers and model pins."
         width="narrow"
       />
       <PageContainer width="narrow" className="flex flex-1 flex-col gap-6 pb-4">
@@ -603,45 +758,75 @@ export function ProvidersSettings() {
                   provider={provider}
                   organizationId={organization.id}
                   status={status}
-                  onSaved={refetchSetup}
+                  onSaved={async () => {
+                    await Promise.all([
+                      refetchSetup(),
+                      refetchProviders(),
+                      refreshProviderQueries(),
+                    ]);
+                  }}
                 />
               </div>
             );
           })}
-          {providers.some((item) => item.name === "openai-codex") && (
-            <CodexProviderCard
-              provider={providers.find((item) => item.name === "openai-codex")}
-              onChanged={async () => {
-                await Promise.all([refetchSetup(), refetchProviders()]);
-              }}
-            />
-          )}
+          <CodexProviderCard
+            provider={effectiveCodexProvider}
+            onChanged={async () => {
+              await Promise.all([
+                refetchCodexProvider(),
+                refetchSetup(),
+                refetchProviders(),
+              ]);
+            }}
+          />
         </section>
         <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">Platform providers</h3>
+          <h3 className="text-sm font-semibold">API providers</h3>
           {providers
-            .filter((provider) => provider.name !== "openai-codex")
-            .map((provider) => (
-              <div
-                key={provider.id}
-                className="flex items-center gap-3 rounded-lg border bg-card p-4"
-              >
-                <ProviderLogo name={provider.name} />
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium">
-                    {provider.displayName}
-                  </span>
-                  <div className="text-xs text-muted-foreground">
-                    {provider.models.length} models
-                  </div>
-                </div>
-                <span
-                  className={`rounded px-1.5 py-0.5 text-xs font-medium ${provider.configured ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+            .filter(
+              (provider) =>
+                provider.name !== "openai-codex" &&
+                !CLOUD_PROVIDER_SLUGS.has(provider.name),
+            )
+            .map((provider) => {
+              const profile = profiles.find(
+                (item) => item.provider === provider.name,
+              );
+              return (
+                <div
+                  key={provider.id}
+                  className="flex items-center gap-3 rounded-lg border bg-card p-4"
                 >
-                  {provider.configured ? "Connected" : "Not configured"}
-                </span>
-              </div>
-            ))}
+                  <ProviderLogo name={provider.name} />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium">
+                      {provider.displayName}
+                    </span>
+                    <div className="text-xs text-muted-foreground">
+                      {provider.models.length} models
+                      {profile ? " · dashboard" : " · env"}
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-xs font-medium ${provider.configured ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                  >
+                    {provider.configured ? "Connected" : "Not configured"}
+                  </span>
+                  <PlatformProviderDialog
+                    provider={provider}
+                    organizationId={organization.id}
+                    profile={profile}
+                    onSaved={async () => {
+                      await Promise.all([
+                        refetchProfiles(),
+                        refetchProviders(),
+                        refreshProviderQueries(),
+                      ]);
+                    }}
+                  />
+                </div>
+              );
+            })}
         </section>
       </PageContainer>
     </>

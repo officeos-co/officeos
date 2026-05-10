@@ -7,22 +7,19 @@ internal sealed class ProviderService : IProviderService
     private readonly IOrganizationProviderProfileRepository _organizationProviderProfileRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly CredentialProtector _credentialProtector;
-    private readonly ProviderEnterprisePolicy _providerEnterprisePolicy;
 
     public ProviderService(
         PlatformKeysConfig platformKeys,
         CustomLlmProviderConfig customLlmProviderConfig,
         IOrganizationProviderProfileRepository organizationProviderProfileRepository,
         IWorkspaceRepository workspaceRepository,
-        CredentialProtector credentialProtector,
-        ProviderEnterprisePolicy providerEnterprisePolicy)
+        CredentialProtector credentialProtector)
     {
         _platformKeysConfig = platformKeys;
         _customLlmProviderConfig = customLlmProviderConfig;
         _organizationProviderProfileRepository = organizationProviderProfileRepository;
         _workspaceRepository = workspaceRepository;
         _credentialProtector = credentialProtector;
-        _providerEnterprisePolicy = providerEnterprisePolicy;
     }
 
     public Task<IReadOnlyList<ProviderResult>> ListAsync(CancellationToken ct = default)
@@ -56,16 +53,15 @@ internal sealed class ProviderService : IProviderService
         if (!organizationId.HasValue)
             return RemovePersonalProviders(await ListAsync(ct));
 
-        if (!await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
-            return RemovePersonalProviders(await ListAsync(ct));
-
         var profiles = await _organizationProviderProfileRepository.ListAsync(
-            new OrganizationProviderProfileFilter { OrganizationId = organizationId.Value, Enabled = true },
+            new OrganizationProviderProfileFilter { OrganizationId = organizationId.Value },
             ct);
-        if (profiles.Count == 0)
-            return RemovePersonalProviders(await ListAsync(ct));
+        var providers = RemovePersonalProviders(await ListAsync(ct))
+            .ToDictionary(provider => provider.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in profiles)
+            providers[profile.Provider] = ToProviderResult(profile);
 
-        return profiles.Select(ToProviderResult).ToList();
+        return providers.Values.ToList();
     }
 
     public Task<string?> GetApiKeyForDispatchAsync(string name, CancellationToken ct = default)
@@ -94,19 +90,21 @@ internal sealed class ProviderService : IProviderService
     {
         var workspace = await GetWorkspaceAsync(workspaceId, ct);
         var organizationId = workspace?.OrganizationId;
-        if (organizationId.HasValue &&
-            await _providerEnterprisePolicy.IsEnterpriseOrganizationAsync(organizationId.Value, ct))
+        if (organizationId.HasValue)
         {
             var profile = await _organizationProviderProfileRepository.GetByAsync(
                 new OrganizationProviderProfileFilter
                 {
                     OrganizationId = organizationId.Value,
                     Provider = name.Trim().ToLowerInvariant(),
-                    Enabled = true,
                 },
                 ct);
             if (profile is not null)
+            {
+                if (!profile.Enabled)
+                    return null;
                 return ToProviderAuthResult(_credentialProtector.Unprotect(profile.EncryptedApiKey));
+            }
         }
 
         var apiKey = await GetApiKeyForDispatchAsync(name, ct);

@@ -5,27 +5,23 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
     private readonly IOrganizationProviderProfileRepository _organizationProviderProfileRepository;
     private readonly IOrganizationRepository _organizationRepository;
     private readonly CredentialProtector _credentialProtector;
-    private readonly ProviderEnterprisePolicy _providerEnterprisePolicy;
     private readonly IPublisher _publisher;
 
     public OrganizationProviderProfileService(
         IOrganizationProviderProfileRepository organizationProviderProfileRepository,
         IOrganizationRepository organizationRepository,
         CredentialProtector credentialProtector,
-        ProviderEnterprisePolicy providerEnterprisePolicy,
         IPublisher publisher)
     {
         _organizationProviderProfileRepository = organizationProviderProfileRepository;
         _organizationRepository = organizationRepository;
         _credentialProtector = credentialProtector;
-        _providerEnterprisePolicy = providerEnterprisePolicy;
         _publisher = publisher;
     }
 
     public async Task<IReadOnlyList<OrganizationProviderProfileRecord>> ListAsync(Guid actorUserId, Guid organizationId, CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
-        await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
         return await _organizationProviderProfileRepository.ListAsync(
             new OrganizationProviderProfileFilter { OrganizationId = organizationId },
             ct);
@@ -65,7 +61,6 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
         CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
-        await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
         if (string.IsNullOrWhiteSpace(provider))
             throw new InvalidOperationException("Provider is required.");
 
@@ -122,7 +117,6 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
     public async Task<bool> DeleteAsync(Guid actorUserId, Guid organizationId, string provider, CancellationToken ct = default)
     {
         await RequireOrganizationAdminAsync(actorUserId, organizationId, ct);
-        await _providerEnterprisePolicy.RequireEnterpriseOrganizationAsync(organizationId, ct);
         var deleted = await _organizationProviderProfileRepository.DeleteAsync(
             new OrganizationProviderProfileFilter { OrganizationId = organizationId, Provider = provider.Trim().ToLowerInvariant() },
             ct);
@@ -157,6 +151,9 @@ internal sealed class OrganizationProviderProfileService : IOrganizationProvider
 
         switch (provider, authKind)
         {
+            case (ProviderRegistry.CustomProviderSlug, ProviderAuthKind.ApiKey):
+                Require(normalized, "baseUrl");
+                break;
             case (_, ProviderAuthKind.Gateway):
                 Require(normalized, "baseUrl");
                 break;

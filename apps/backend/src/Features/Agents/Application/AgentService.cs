@@ -82,7 +82,7 @@ internal sealed class AgentService : IAgentService
         _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
             request.Name, request.Provider, request.Model);
 
-        if (await RequiresConfiguredProviderKeyAsync(request.Provider, workspaceId, ct))
+        if (!await HasConfiguredProviderAuthAsync(request.Provider, workspaceId, ct))
         {
             throw new InvalidOperationException(
                 $"Provider '{request.Provider}' is not configured. Set its API key on the Providers page first.");
@@ -130,7 +130,7 @@ internal sealed class AgentService : IAgentService
         if (!string.IsNullOrWhiteSpace(request.Provider))
         {
             var provider = request.Provider.Trim().ToLowerInvariant();
-            if (await RequiresConfiguredProviderKeyAsync(provider, record.WorkspaceId, ct))
+            if (!await HasConfiguredProviderAuthAsync(provider, record.WorkspaceId, ct))
             {
                 throw new InvalidOperationException(
                     $"Provider '{provider}' is not configured. Set its API key on the Providers page first.");
@@ -215,10 +215,10 @@ internal sealed class AgentService : IAgentService
         }
     }
 
-    private async Task<bool> RequiresConfiguredProviderKeyAsync(string provider, Guid? workspaceId, CancellationToken ct)
+    private async Task<bool> HasConfiguredProviderAuthAsync(string provider, Guid? workspaceId, CancellationToken ct)
     {
-        var key = await _providerService.GetApiKeyForDispatchAsync(provider, workspaceId, ct);
-        return key is null;
+        var auth = await _providerService.GetAuthForDispatchAsync(provider, workspaceId, ct);
+        return auth is not null;
     }
 
     private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)

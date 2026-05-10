@@ -15,6 +15,30 @@ public class ProviderQueries
         return list.Select(ProviderGraphQLMapper.ToPayload).ToList();
     }
 
+    [GraphQLDescription("Returns the authenticated user's personal OpenAI Codex provider status.")]
+    public async Task<ProviderPayload> GetCodexOAuthProvider(
+        [Service] UserContext user,
+        [Service] IOAuthTokenRepository oauthTokens,
+        CancellationToken ct)
+    {
+        var definition = ProviderRegistry.Get(ProviderRegistry.OpenAiCodexProviderSlug)!;
+        var token = await oauthTokens.GetByAsync(
+            new OAuthTokenFilter
+            {
+                UserId = user.Id,
+                Provider = OAuthProvider.OpenAiCodex.ToStorageString(),
+            },
+            ct);
+
+        return ProviderGraphQLMapper.ToPayload(new ProviderResult(
+            DeterministicGuid(ProviderRegistry.OpenAiCodexProviderSlug),
+            ProviderRegistry.OpenAiCodexProviderSlug,
+            definition.DisplayName,
+            !string.IsNullOrWhiteSpace(token?.EncryptedAccessToken),
+            token?.UpdatedAt,
+            definition.Models.Select(model => new ProviderModelResult(model.Id, model.DisplayName, model.CostWeight)).ToList()));
+    }
+
     [GraphQLDescription("Returns available model IDs for a specific provider name.")]
     public async Task<IReadOnlyList<string>> GetProviderModels(
         string providerName,
@@ -31,9 +55,7 @@ public class ProviderQueries
         if (provider is not null)
             return provider.Models.Select(m => m.Id).ToList();
 
-        return ProviderRegistry.IsEnterpriseProvider(providerName)
-            ? []
-            : ProviderRegistry.GetModelIds(providerName);
+        return ProviderRegistry.GetModelIds(providerName);
     }
 
     [GraphQLDescription("Returns available models with display names and default indicator. In self-hosted mode, only configured providers' models are returned.")]
@@ -75,5 +97,11 @@ public class ProviderQueries
                 m.Provider,
                 includeAuto ? m.Model.Id == ProviderRegistry.DefaultModel : index == 0))
             .ToList();
+    }
+
+    private static Guid DeterministicGuid(string input)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"provider:{input}"));
+        return new Guid(hash.AsSpan(0, 16));
     }
 }
