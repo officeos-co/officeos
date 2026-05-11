@@ -3,7 +3,6 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { buildOAuthUrl } from "@/lib/auth-url";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/shell/page-container";
 import { Button } from "@/ui/button";
@@ -16,11 +15,9 @@ import {
 } from "@/ui/select";
 import { Skeleton } from "@/ui/skeleton";
 import {
-  CredentialDialog,
   useDisconnectIntegration,
   useDeleteIntegration,
   useIntegration,
-  useSaveIntegrationCredential,
 } from "@/features/agents";
 import type { McpServer } from "@/features/agents";
 import { IntegrationDataExplorerTab } from "@/features/agents";
@@ -80,10 +77,8 @@ export default function IntegrationDetailPage({
   const { slug } = use(params);
   const { integration, loading } = useIntegration(slug);
   const { connections } = useIntegrationConnections({ pollInterval: 5000 });
-  const setCredentials = useSaveIntegrationCredential();
   const deleteIntegration = useDeleteIntegration();
   const disconnectIntegration = useDisconnectIntegration();
-  const [credDialogOpen, setCredDialogOpen] = useState(false);
   const [runtimeMode, setRuntimeMode] = useState<"regular" | "indexed">("regular");
   const requestedTab = searchParams.get("tab");
 
@@ -102,17 +97,6 @@ export default function IntegrationDetailPage({
   const hasOAuth = Boolean(integration.oauthProvider);
   const needsConnection = hasCredentialFields || hasOAuth;
   const authLabel = integration.oauthProvider ?? (hasCredentialFields ? "credentials" : "none");
-
-  async function handleSaveCredentials(values: Record<string, string>) {
-    await setCredentials(currentIntegration.name, values);
-  }
-
-  function handleOAuthConnect() {
-    if (!currentIntegration.oauthProvider) return;
-    window.location.assign(
-      buildOAuthUrl(currentIntegration.oauthProvider, `/integrations/${currentIntegration.name}`),
-    );
-  }
 
   async function handleUninstall() {
     if (currentIntegration.isBuiltin) {
@@ -238,18 +222,20 @@ export default function IntegrationDetailPage({
                 <Button
                   size="sm"
                   variant={integration.oauthConfigured ? "outline" : "default"}
-                  onClick={handleOAuthConnect}
+                  nativeButton={false}
+                  render={<Link href={`/integrations/${integration.name}/setup`} />}
                 >
                   <KeyIcon className="size-4" />
                   {integration.oauthConfigured
-                    ? `Reconnect ${integration.oauthProvider}`
-                    : `Connect ${integration.oauthProvider}`}
+                    ? "Reconfigure"
+                    : "Add credential"}
                 </Button>
               ) : hasCredentialFields ? (
                 <Button
                   size="sm"
                   variant={integration.configured ? "outline" : "default"}
-                  onClick={() => setCredDialogOpen(true)}
+                  nativeButton={false}
+                  render={<Link href={`/integrations/${integration.name}/setup`} />}
                 >
                   <KeyIcon className="size-4" />
                   {integration.configured ? "Reconfigure" : "Configure"}
@@ -302,18 +288,6 @@ export default function IntegrationDetailPage({
           />
         )}
       </PageContainer>
-
-      {hasCredentialFields && (
-        <CredentialDialog
-          open={credDialogOpen}
-          onOpenChange={setCredDialogOpen}
-          name={integration.title}
-          slug={integration.name}
-          logo={integration.logo}
-          credentials={integration.credentialFields}
-          onSave={handleSaveCredentials}
-        />
-      )}
     </div>
   );
 }

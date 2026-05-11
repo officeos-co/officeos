@@ -124,9 +124,17 @@ public sealed class IntegrationDefinitionMutations
         [Service] IWorkspaceService workspaces,
         [Service] IIntegrationDefinitionService svc, CancellationToken ct)
     {
-        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var dict = fields.ToDictionary(f => f.Key, f => f.Value);
-        await svc.SaveCredentialAsync(user.Id, workspace.Id, integrationName, dict, ct);
+        try
+        {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            var dict = fields.ToDictionary(f => f.Key, f => f.Value);
+            await svc.SaveCredentialAsync(user.Id, workspace.Id, integrationName, dict, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
+        }
         return true;
     }
 

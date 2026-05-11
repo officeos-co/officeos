@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BracesIcon,
   CheckCircle2Icon,
   DatabaseIcon,
   PlusIcon,
@@ -46,9 +45,7 @@ import {
 import { useIntegrationConnections } from "@/features/atlas";
 import { canEditWorkspace, useWorkspaces } from "@/features/manage";
 import type { McpServer } from "../data/integrations";
-import { buildOAuthUrl } from "@/lib/auth-url";
 import { ConnectorDirectoryDialog } from "./connector-directory-dialog";
-import { CredentialDialog } from "./credential-dialog";
 import { CustomMcpJsonEditor } from "./custom-mcp-json-editor";
 
 export function IntegrationsList() {
@@ -63,7 +60,6 @@ export function IntegrationsList() {
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [customMcpOpen, setCustomMcpOpen] = useState(false);
-  const [configSlug, setConfigSlug] = useState<string | null>(null);
 
   const sorted = useMemo(
     () => sortIntegrations(integrations),
@@ -95,9 +91,6 @@ export function IntegrationsList() {
   const selectedRemovableNames = configured
     .filter((server) => selectedNames.has(server.name) && !server.isBuiltin)
     .map((server) => server.name);
-  const configIntegration = configSlug
-    ? integrations.find((server) => server.name === configSlug)
-    : null;
   const canManageWorkspaceFeatures =
     currentWorkspace?.ownerKind === "personal" ||
     canEditWorkspace(currentWorkspace?.role);
@@ -128,15 +121,6 @@ export function IntegrationsList() {
     setSelectedNames(new Set());
   }
 
-  function startSetup(server: McpServer) {
-    if (!canManageWorkspaceFeatures) return;
-    if (server.oauthProvider) {
-      window.location.assign(buildOAuthUrl(server.oauthProvider, "/integrations"));
-      return;
-    }
-    setConfigSlug(server.name);
-  }
-
   return (
     <>
       <PageHeader
@@ -150,15 +134,6 @@ export function IntegrationsList() {
         width="wide"
         action={
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!canManageWorkspaceFeatures}
-              onClick={() => setCustomMcpOpen(true)}
-            >
-              <BracesIcon className="size-4" />
-              Custom MCP
-            </Button>
             <Button
               size="sm"
               disabled={!canManageWorkspaceFeatures}
@@ -325,7 +300,10 @@ export function IntegrationsList() {
         open={directoryOpen}
         onOpenChange={setDirectoryOpen}
         integrations={sortIntegrations(catalogIntegrations)}
-        onConnect={startSetup}
+        onSaveCredential={async (server, values) => {
+          await setCredentials(server.name, values);
+        }}
+        onAddCustomMcp={() => setCustomMcpOpen(true)}
       />
 
       <Dialog open={customMcpOpen} onOpenChange={setCustomMcpOpen}>
@@ -346,23 +324,6 @@ export function IntegrationsList() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {configIntegration && !configIntegration.oauthProvider && (
-        <CredentialDialog
-          open={!!configSlug}
-          onOpenChange={(open) => {
-            if (!open) setConfigSlug(null);
-          }}
-          name={configIntegration.title}
-          slug={configIntegration.name}
-          logo={configIntegration.logo}
-          credentials={configIntegration.credentialFields}
-          onSave={async (values) => {
-            await setCredentials(configIntegration.name, values);
-            setConfigSlug(null);
-          }}
-        />
-      )}
     </>
   );
 }

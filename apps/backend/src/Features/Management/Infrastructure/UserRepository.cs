@@ -10,7 +10,8 @@ internal sealed class UserRepository : IUserRepository
         string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
         email = NormalizeEmail(email);
-        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
+        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct)
+            ?? await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
         if (entity is null)
         {
             entity = new UserEntity
@@ -27,6 +28,7 @@ internal sealed class UserRepository : IUserRepository
         }
         else
         {
+            entity.GoogleSubjectId = googleSubjectId;
             entity.Email = email;
             entity.Name = name;
             entity.AvatarUrl = avatarUrl;
@@ -40,7 +42,8 @@ internal sealed class UserRepository : IUserRepository
         string gitHubSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
         email = NormalizeEmail(email);
-        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GitHubSubjectId == gitHubSubjectId, ct);
+        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GitHubSubjectId == gitHubSubjectId, ct)
+            ?? await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
         if (entity is null)
         {
             entity = new UserEntity
@@ -57,6 +60,7 @@ internal sealed class UserRepository : IUserRepository
         }
         else
         {
+            entity.GitHubSubjectId = gitHubSubjectId;
             entity.Email = email;
             entity.Name = name;
             entity.AvatarUrl = avatarUrl;
