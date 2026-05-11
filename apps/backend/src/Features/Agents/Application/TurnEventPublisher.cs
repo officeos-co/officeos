@@ -37,8 +37,29 @@ internal sealed class TurnEventPublisher
         int durationMs,
         int inputTokens,
         int outputTokens,
+        int? cacheReadTokens,
+        int? cacheWriteTokens,
+        int? reasoningTokens,
+        bool estimatedTokens,
+        string activity,
+        IReadOnlyList<LlmUsageContextPartMessage> contextParts,
         CancellationToken ct)
-        => _publisher.Publish(new LlmCallCompletedEvent(agentId, correlationId, provider, model, durationMs, inputTokens, outputTokens), ct);
+        => _publisher.Publish(new LlmCallCompletedEvent(
+            agentId,
+            correlationId,
+            provider,
+            model,
+            durationMs,
+            inputTokens,
+            outputTokens,
+            cacheReadTokens,
+            cacheWriteTokens,
+            reasoningTokens,
+            estimatedTokens,
+            activity,
+            contextParts,
+            AgentRunContext.RunId,
+            AgentRunContext.ParentRunId), ct);
 
     public Task PublishMessageOutAsync(Guid agentId, string correlationId, string content, CancellationToken ct)
         => _publisher.Publish(new MessageOutEvent(agentId, correlationId, content), ct);

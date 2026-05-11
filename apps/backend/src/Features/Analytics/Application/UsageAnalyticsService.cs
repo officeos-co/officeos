@@ -3,67 +3,35 @@ namespace OffceOs.Application.Features.Analytics;
 internal sealed class UsageAnalyticsService : IUsageAnalyticsService
 {
     private readonly IUserBillingService _userBillingService;
-    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly IAgentUsageAnalyticsService _agentUsageAnalyticsService;
     private readonly IHostEnvironment _hostEnvironment;
 
     public UsageAnalyticsService(
-        IUserBillingService userBilling,
-        IAgentLogRepository agentLogRepository,
-        IHostEnvironment env)
+        IUserBillingService userBillingService,
+        IAgentUsageAnalyticsService agentUsageAnalyticsService,
+        IHostEnvironment hostEnvironment)
     {
-        _userBillingService = userBilling;
-        _agentLogRepository = agentLogRepository;
-        _hostEnvironment = env;
+        _userBillingService = userBillingService;
+        _agentUsageAnalyticsService = agentUsageAnalyticsService;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<UsageAnalyticsResult> GetForUserAsync(Guid userId, UsageAnalyticsRequest input, CancellationToken ct = default)
     {
         var (from, toExclusive) = NormalizeRange(input.From, input.To);
         var sub = await _userBillingService.GetSubscriptionAsync(userId, ct);
-        var rows = await _agentLogRepository.ListUsageAggregatesAsync(userId, from, toExclusive, ct);
-
-        var points = BuildEmptyPoints(from, toExclusive);
-        long totalTokens = 0;
-        long totalCredits = 0;
-
-        foreach (var row in rows)
-        {
-            var tokens = row.InputTokens + row.OutputTokens;
-            if (tokens <= 0) continue;
-
-            var credits = ProviderRegistry.ToCredits(row.Model, tokens);
-            totalTokens += tokens;
-            totalCredits += credits;
-
-            var key = row.Date.Date;
-            if (points.TryGetValue(key, out var existing))
-            {
-                points[key] = existing with
-                {
-                    Tokens = existing.Tokens + tokens,
-                    Credits = existing.Credits + credits,
-                };
-            }
-        }
+        var dashboard = await _agentUsageAnalyticsService.GetDashboardAsync(
+            userId,
+            new AgentUsageAnalyticsRequest(from, toExclusive.AddDays(-1)),
+            ct);
 
         return new UsageAnalyticsResult(
             from,
             toExclusive,
-            totalTokens,
-            totalCredits,
-            CalculateCost(sub, totalCredits, from, toExclusive),
-            points.Values.OrderBy(p => p.Date).ToList());
-    }
-
-    private static Dictionary<DateTime, UsageAnalyticsPoint> BuildEmptyPoints(DateTime from, DateTime toExclusive)
-    {
-        return Enumerable.Range(0, (int)Math.Ceiling((toExclusive - from).TotalDays))
-            .Select(offset =>
-            {
-                var date = from.Date.AddDays(offset);
-                return new UsageAnalyticsPoint(date, 0, 0);
-            })
-            .ToDictionary(p => p.Date.Date);
+            dashboard.TotalTokens,
+            dashboard.TotalCredits,
+            CalculateCost(sub, dashboard.TotalCredits, from, toExclusive),
+            dashboard.Daily.Select(p => new UsageAnalyticsPoint(p.Date, p.Tokens, p.Credits)).ToList());
     }
 
     private static (DateTime From, DateTime ToExclusive) NormalizeRange(DateTime from, DateTime to)
