@@ -111,6 +111,7 @@ export function useAgentLogs(
     variables: { agentId, last: limit },
     skip: !agentId,
     fetchPolicy: "network-only",
+    pollInterval: 5000,
   })
 
   useSubscription(AGENT_LOG_APPENDED_SUBSCRIPTION, {

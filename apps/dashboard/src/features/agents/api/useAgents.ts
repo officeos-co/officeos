@@ -12,6 +12,10 @@ const AGENTS_QUERY = gql`
       model
       status
       createdAt
+      lastRelevantMessage
+      activeSession {
+        lastActivityAt
+      }
     }
   }
 `;
@@ -117,6 +121,8 @@ export type AgentListRow = {
   created: string;
   createdAt: number;
   updated: string;
+  updatedAt: number;
+  lastRelevantMessage: string | null;
 };
 
 export type AgentDetail = {
@@ -170,23 +176,37 @@ export function useAgents(): {
   error?: Error;
   refetch: () => void;
 } {
-  const { data, loading, error, refetch } = useQuery(AGENTS_QUERY);
+  const { data, loading, error, refetch } = useQuery(AGENTS_QUERY, {
+    fetchPolicy: "cache-and-network",
+    pollInterval: 5000,
+  });
   const raw: Array<{
     id: string;
     name: string;
     model: string;
     status: string;
     createdAt?: string;
+    lastRelevantMessage?: string | null;
+    activeSession?: { lastActivityAt?: string | null } | null;
   }> = data?.agents ?? [];
-  const agents: AgentListRow[] = raw.map((a) => ({
-    id: a.id,
-    name: a.name,
-    model: a.model,
-    status: (a.status ?? "stopped").toLowerCase(),
-    created: humanAgo(a.createdAt),
-    createdAt: a.createdAt ? Date.parse(a.createdAt) : 0,
-    updated: humanAgo(a.createdAt),
-  }));
+  const agents: AgentListRow[] = raw.map((a) => {
+    const updatedAt = a.activeSession?.lastActivityAt
+      ? Date.parse(a.activeSession.lastActivityAt)
+      : a.createdAt
+        ? Date.parse(a.createdAt)
+        : 0;
+    return {
+      id: a.id,
+      name: a.name,
+      model: a.model,
+      status: (a.status ?? "stopped").toLowerCase(),
+      created: humanAgo(a.createdAt),
+      createdAt: a.createdAt ? Date.parse(a.createdAt) : 0,
+      updated: humanAgo(updatedAt),
+      updatedAt,
+      lastRelevantMessage: a.lastRelevantMessage ?? null,
+    };
+  });
   return { agents, loading, error: error ?? undefined, refetch };
 }
 

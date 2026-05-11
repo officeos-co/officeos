@@ -28,6 +28,8 @@ import {
 import { SearchInput } from "@/ui/search-input";
 import { StatusBadge } from "@/ui/status-badge";
 import { EmptyState } from "@/ui/empty-state";
+import { cn } from "@/lib/utils";
+import { useRecentUpdates } from "@/hooks/useRecentUpdates";
 import {
   FilterIcon,
   MoreHorizontalIcon,
@@ -48,9 +50,25 @@ export default function AgentsPage() {
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const updatedAgentIds = useRecentUpdates(
+    agents,
+    (agent) => agent.id,
+    (agent) =>
+      [
+        agent.status,
+        agent.updatedAt,
+        agent.lastRelevantMessage ?? "",
+      ].join(":"),
+  );
 
   const filtered = agents.filter((agent) => {
-    if (search && !agent.name.toLowerCase().includes(search.toLowerCase())) {
+    const query = search.toLowerCase();
+    if (
+      query &&
+      !agent.name.toLowerCase().includes(query) &&
+      !agent.model.toLowerCase().includes(query) &&
+      !(agent.lastRelevantMessage ?? "").toLowerCase().includes(query)
+    ) {
       return false;
     }
     if (statusFilter.size > 0 && !statusFilter.has(agent.status)) return false;
@@ -196,6 +214,7 @@ export default function AgentsPage() {
                   </HelpTooltip>
                 </span>
               </TableHead>
+              <TableHead>Latest message</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Last updated</TableHead>
               <TableHead className="w-10" />
@@ -222,6 +241,9 @@ export default function AgentsPage() {
                     <Skeleton className="h-6 w-16 rounded-full mx-auto" />
                   </TableCell>
                   <TableCell>
+                    <Skeleton className="h-4 w-48" />
+                  </TableCell>
+                  <TableCell>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
                   <TableCell>
@@ -237,7 +259,11 @@ export default function AgentsPage() {
                 key={agent.id}
                 data-state={selectedIds.has(agent.id) ? "selected" : undefined}
                 onClick={() => router.push(`/agents/${agent.id}`)}
-                className="cursor-pointer"
+                className={cn(
+                  "cursor-pointer transition-colors",
+                  updatedAgentIds.has(agent.id) &&
+                    "bg-primary/10 hover:bg-primary/10",
+                )}
               >
                 <TableSelectionCell
                   checked={selectedIds.has(agent.id)}
@@ -259,6 +285,9 @@ export default function AgentsPage() {
                 </TableCell>
                 <TableCell className="text-center">
                   <StatusBadge status={agent.status} />
+                </TableCell>
+                <TableCell className="max-w-[360px] truncate text-xs text-muted-foreground">
+                  {agent.lastRelevantMessage ?? "No messages yet"}
                 </TableCell>
                 <TableCell>{agent.created}</TableCell>
                 <TableCell>{agent.updated}</TableCell>
@@ -299,7 +328,7 @@ export default function AgentsPage() {
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="p-0">
+                <TableCell colSpan={9} className="p-0">
                   <EmptyState message="No agents found." />
                 </TableCell>
               </TableRow>

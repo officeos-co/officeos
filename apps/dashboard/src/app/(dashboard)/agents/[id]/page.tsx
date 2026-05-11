@@ -19,6 +19,7 @@ import {
 import { StatusBadge } from "@/ui/status-badge";
 import { AgentIntegrationsTab } from "@/features/agents";
 import { AgentLogsTab } from "@/features/agents";
+import { AgentRoutinesTab } from "@/features/agents";
 import { useAgent } from "@/features/agents";
 import { useModels } from "@/features/agents";
 import { useSendAgentMessage } from "@/features/agents";
@@ -31,6 +32,7 @@ import { SendIcon, PlusIcon } from "lucide-react";
 
 const TABS = [
   { key: "logs", label: "Logs" },
+  { key: "routines", label: "Routines" },
   { key: "permissions", label: "Permissions" },
 ] as const;
 
@@ -273,6 +275,9 @@ export default function AgentDetailPage({
           }
         >
           {tab === "permissions" && <AgentIntegrationsTab agentId={id} />}
+          {tab === "routines" && (
+            <AgentRoutinesTab agentId={id} agentName={agent?.name} />
+          )}
           {tab === "logs" && (
             <AgentLogsTab
               agentId={id}

@@ -14,6 +14,8 @@ import { Button } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
 import { Skeleton } from "@/ui/skeleton";
 import { StatusBadge } from "@/ui/status-badge";
+import { cn } from "@/lib/utils";
+import { useRecentUpdates } from "@/hooks/useRecentUpdates";
 import {
   Table,
   TableBody,
@@ -26,6 +28,16 @@ import { useAgents } from "@/features/agents";
 
 export default function Home() {
   const { agents, loading } = useAgents();
+  const updatedAgentIds = useRecentUpdates(
+    agents,
+    (agent) => agent.id,
+    (agent) =>
+      [
+        agent.status,
+        agent.updatedAt,
+        agent.lastRelevantMessage ?? "",
+      ].join(":"),
+  );
   const latestAgents = [...agents]
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 5);
@@ -102,6 +114,7 @@ export default function Home() {
                 <TableHead>Name</TableHead>
                 <TableHead>Model</TableHead>
                 <TableHead className="text-center">Status</TableHead>
+                <TableHead>Latest message</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
             </TableHeader>
@@ -120,12 +133,22 @@ export default function Home() {
                       <Skeleton className="mx-auto h-6 w-16 rounded-full" />
                     </TableCell>
                     <TableCell>
+                      <Skeleton className="h-4 w-44" />
+                    </TableCell>
+                    <TableCell>
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
                   </TableRow>
                 ))}
               {latestAgents.map((agent) => (
-                <TableRow key={agent.id}>
+                <TableRow
+                  key={agent.id}
+                  className={cn(
+                    "transition-colors",
+                    updatedAgentIds.has(agent.id) &&
+                      "bg-primary/10 hover:bg-primary/10",
+                  )}
+                >
                   <TableCell className="font-medium">
                     <Link
                       href={`/agents/${agent.id}`}
@@ -140,6 +163,9 @@ export default function Home() {
                   <TableCell className="text-center">
                     <StatusBadge status={agent.status} />
                   </TableCell>
+                  <TableCell className="max-w-[280px] truncate text-xs text-muted-foreground">
+                    {agent.lastRelevantMessage ?? "No messages yet"}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {agent.created}
                   </TableCell>
@@ -147,7 +173,7 @@ export default function Home() {
               ))}
               {!loading && latestAgents.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="p-0">
+                  <TableCell colSpan={5} className="p-0">
                     <EmptyState message="No agents found." />
                   </TableCell>
                 </TableRow>

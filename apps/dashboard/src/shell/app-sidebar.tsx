@@ -34,7 +34,7 @@ const data = {
       items: [
         { title: "Agents", url: "/agents" },
         { title: "Browser", url: "/browser" },
-        { title: "Cron Jobs", url: "/cron-jobs" },
+        { title: "Routines", url: "/routines" },
         { title: "Integrations", url: "/integrations" },
         { title: "Channels", url: "/channels" },
         { title: "Memory Store", url: "/memory-stores" },

@@ -13,6 +13,7 @@ import {
 import { Skeleton } from "@/ui/skeleton";
 import { HelpTooltip, WithTooltip } from "@/ui/help-tooltip";
 import { cn } from "@/lib/utils";
+import { useRecentUpdates } from "@/hooks/useRecentUpdates";
 import {
   TerminalIcon,
   ArrowDownLeftIcon,
@@ -125,6 +126,12 @@ export function LogTable({
   const shouldShowSelectionColumn = showSelectionColumn ?? Boolean(onSelectLog);
   const columnCount =
     (showAgent ? 7 : 6) + (shouldShowSelectionColumn ? 1 : 0);
+  const updatedLogIds = useRecentUpdates(
+    logs,
+    (log) => log.id,
+    (log) => [log.time, log.type, log.content, log.durationMs ?? ""].join(":"),
+    { includeNew: true },
+  );
 
   return (
     <Table className={className}>
@@ -198,7 +205,11 @@ export function LogTable({
               key={log.id}
               onClick={() => onSelectLog?.(log)}
               data-state={selectedLogId === log.id ? "selected" : undefined}
-              className={cn(onSelectLog && "cursor-pointer")}
+              className={cn(
+                "transition-colors",
+                onSelectLog && "cursor-pointer",
+                updatedLogIds.has(log.id) && "bg-primary/10 hover:bg-primary/10",
+              )}
             >
               {shouldShowSelectionColumn && (
                 <TableSelectionCell
