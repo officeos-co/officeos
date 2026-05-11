@@ -18,9 +18,8 @@ query Agent($id: UUID!) {
   }
 }
 
-# CreateAgentInput accepts optional toolPermissions: [ToolPermissionInput!]
-# where ToolPermissionInput = { tool: String!, mode: ToolPermission! }
-# ToolPermission enum is ALLOW | DENY (no ASK).
+# CreateAgentInput accepts integrationSlugs/channelConnectionIds/toolNames.
+# Agent integrations and tool access are immutable after creation.
 mutation CreateAgent($input: CreateAgentInput!) {
   createAgent(input: $input) {
     id

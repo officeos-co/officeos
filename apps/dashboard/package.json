@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "bun test",
+    "schema:fetch": "bun scripts/fetch-graphql-schema.ts",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },

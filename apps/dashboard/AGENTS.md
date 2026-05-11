@@ -102,6 +102,7 @@ This dashboard is a Next.js App Router client for operating EnterpriseAgentOs. K
 
 - Use `bun test` from `apps/dashboard` for the dashboard test suite.
 - The current contract test in `src/__tests__/graphql-contracts.test.ts` introspects `GRAPHQL_SCHEMA_URL` or defaults to the production dashboard GraphQL endpoint, then validates every named operation found in `gql` tags and `src/lib/graphql/operations/**/*.graphql`.
+- To fetch the current GraphQL SDL schema from a running backend, run `bun run schema:fetch`. It uses `GRAPHQL_SCHEMA_URL` when set and writes to `GRAPHQL_SCHEMA_OUTPUT` or `/tmp/dashboard-schema.graphql` by default.
 - When adding or changing GraphQL operations, run the contract test against a backend/schema that includes the matching API changes.
 - Add focused tests under `src/__tests__` when changing shared parsing/mapping behavior, GraphQL contract assumptions, or cross-feature utilities.
 - For UI-only changes without tests, at least run `bun run lint` when practical and manually verify the affected route in the dashboard.
