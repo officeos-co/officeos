@@ -31,6 +31,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<AgentDefinitionParser>();
         services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
+        services.AddScoped<IAgentUsageService, AgentUsageService>();
+        services.AddScoped<IAgentUsageAnalyticsService, AgentUsageAnalyticsService>();
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IBrowserService, BrowserService>();
         services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();
@@ -45,7 +47,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<BillingCheckpoint>();
         services.AddScoped<LlmRequestBuilder>();
         services.AddScoped<SseResponseParser>();
-        services.AddScoped<UsageResolver>();
         services.AddScoped<LlmTurnExecutor>();
         services.AddScoped<ToolExecutionLoop>();
         services.AddScoped<AgentChannelBinder>();

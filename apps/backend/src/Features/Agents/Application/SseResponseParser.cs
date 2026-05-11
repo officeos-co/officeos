@@ -19,6 +19,9 @@ internal sealed class SseResponseParser
         var toolCalls = new Dictionary<int, ToolCallAccumulator>();
         int? inputTokens = null;
         int? outputTokens = null;
+        int? cacheReadTokens = null;
+        int? cacheWriteTokens = null;
+        int? reasoningTokens = null;
 
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
@@ -40,6 +43,21 @@ internal sealed class SseResponseParser
                         inputTokens = promptTokens.GetInt32();
                     if (usage.TryGetProperty("completion_tokens", out var completionTokens))
                         outputTokens = completionTokens.GetInt32();
+                    cacheReadTokens = ReadFirstInt(usage, "cache_read_input_tokens", "cached_tokens") ?? cacheReadTokens;
+                    cacheWriteTokens = ReadFirstInt(usage, "cache_creation_input_tokens", "cache_write_input_tokens") ?? cacheWriteTokens;
+                    reasoningTokens = ReadFirstInt(usage, "reasoning_tokens") ?? reasoningTokens;
+
+                    if (usage.TryGetProperty("prompt_tokens_details", out var promptDetails) &&
+                        promptDetails.ValueKind == JsonValueKind.Object)
+                    {
+                        cacheReadTokens = ReadFirstInt(promptDetails, "cached_tokens", "cache_read_tokens") ?? cacheReadTokens;
+                    }
+
+                    if (usage.TryGetProperty("completion_tokens_details", out var completionDetails) &&
+                        completionDetails.ValueKind == JsonValueKind.Object)
+                    {
+                        reasoningTokens = ReadFirstInt(completionDetails, "reasoning_tokens") ?? reasoningTokens;
+                    }
                 }
 
                 if (!root.TryGetProperty("choices", out var choices) ||
@@ -98,7 +116,25 @@ internal sealed class SseResponseParser
             content.Length > 0 ? content.ToString() : null,
             toolCalls.Values.Select(tc => new ParsedToolCall(tc.Id, tc.Name, tc.Args.ToString())).ToList(),
             inputTokens,
-            outputTokens);
+            outputTokens,
+            cacheReadTokens,
+            cacheWriteTokens,
+            reasoningTokens);
+    }
+
+    private static int? ReadFirstInt(JsonElement element, params string[] properties)
+    {
+        foreach (var property in properties)
+        {
+            if (element.TryGetProperty(property, out var value) &&
+                value.ValueKind == JsonValueKind.Number &&
+                value.TryGetInt32(out var result))
+            {
+                return result;
+            }
+        }
+
+        return null;
     }
 
     private sealed class ToolCallAccumulator

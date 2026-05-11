@@ -40,6 +40,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
     public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
+    public DbSet<AgentUsageCallEntity> AgentUsageCalls => Set<AgentUsageCallEntity>();
+    public DbSet<AgentUsageContextPartEntity> AgentUsageContextParts => Set<AgentUsageContextPartEntity>();
     public DbSet<BrowserResourceEntity> BrowserResources => Set<BrowserResourceEntity>();
     public DbSet<MemoryStoreEntity> MemoryStores => Set<MemoryStoreEntity>();
     public DbSet<MemoryStoreEntryEntity> MemoryStoreEntries => Set<MemoryStoreEntryEntity>();
@@ -418,6 +420,42 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(r => r.Workspace).WithMany()
                 .HasForeignKey(r => r.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentUsageCallEntity>(e =>
+        {
+            e.ToTable("AgentUsageCalls");
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => c.AgentId);
+            e.HasIndex(c => c.WorkspaceId);
+            e.HasIndex(c => c.OwnerId);
+            e.HasIndex(c => c.RunId);
+            e.HasIndex(c => c.CorrelationId);
+            e.HasIndex(c => new { c.OwnerId, c.Time });
+            e.HasIndex(c => new { c.OwnerId, c.Model, c.Time });
+            e.Property(c => c.CorrelationId).IsRequired().HasMaxLength(128);
+            e.Property(c => c.Provider).IsRequired().HasMaxLength(64);
+            e.Property(c => c.Model).IsRequired().HasMaxLength(128);
+            e.Property(c => c.Activity).IsRequired().HasMaxLength(64);
+            e.Property(c => c.Outcome).IsRequired().HasMaxLength(32);
+            e.HasOne(c => c.Agent).WithMany().HasForeignKey(c => c.AgentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Owner).WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Run).WithMany().HasForeignKey(c => c.RunId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AgentUsageContextPartEntity>(e =>
+        {
+            e.ToTable("AgentUsageContextParts");
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.CallId);
+            e.HasIndex(p => p.Kind);
+            e.Property(p => p.Kind).IsRequired().HasMaxLength(64);
+            e.Property(p => p.Label).IsRequired().HasMaxLength(256);
+            e.Property(p => p.Role).HasMaxLength(32);
+            e.Property(p => p.Tool).HasMaxLength(128);
+            e.Property(p => p.Integration).HasMaxLength(128);
+            e.HasOne(p => p.Call).WithMany(c => c.ContextParts).HasForeignKey(p => p.CallId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BrowserResourceEntity>(e =>

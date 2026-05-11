@@ -17,7 +17,7 @@ internal sealed class LlmTurnExecutor
     private readonly IProviderDispatchService _providerDispatchService;
     private readonly LlmRequestBuilder _llmRequestBuilder;
     private readonly SseResponseParser _sseResponseParser;
-    private readonly UsageResolver _usageResolver;
+    private readonly IAgentUsageService _agentUsageService;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly ILogger<LlmTurnExecutor> _logger;
 
@@ -25,14 +25,14 @@ internal sealed class LlmTurnExecutor
         IProviderDispatchService providerDispatchService,
         LlmRequestBuilder requestBuilder,
         SseResponseParser sseResponseParser,
-        UsageResolver usageResolver,
+        IAgentUsageService agentUsageService,
         TurnEventPublisher events,
         ILogger<LlmTurnExecutor> logger)
     {
         _providerDispatchService = providerDispatchService;
         _llmRequestBuilder = requestBuilder;
         _sseResponseParser = sseResponseParser;
-        _usageResolver = usageResolver;
+        _agentUsageService = agentUsageService;
         _turnEventPublisher = events;
         _logger = logger;
     }
@@ -87,12 +87,15 @@ internal sealed class LlmTurnExecutor
             ct);
 
         var usageStart = Stopwatch.GetTimestamp();
-        var usage = _usageResolver.Resolve(
+        var usage = _agentUsageService.Resolve(new AgentUsageResolveRequest(
             requestBody,
             sseResult.Content,
-            sseResult.ToolCalls,
+            sseResult.ToolCalls.Select(tc => new AgentUsageToolCallRequest(tc.Name, tc.Arguments)).ToList(),
             sseResult.InputTokens,
-            sseResult.OutputTokens);
+            sseResult.OutputTokens,
+            sseResult.CacheReadTokens,
+            sseResult.CacheWriteTokens,
+            sseResult.ReasoningTokens));
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
             correlationId,
@@ -100,7 +103,7 @@ internal sealed class LlmTurnExecutor
             ElapsedMs(usageStart),
             ct);
 
-        if (usage.IsEstimated)
+        if (usage.EstimatedTokens)
         {
             _logger.LogWarning(
                 "LLM provider did not return complete token usage for agent {AgentId} correlation {CorrelationId}; using estimated usage {InputTokens}/{OutputTokens}",

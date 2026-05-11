@@ -165,6 +165,20 @@ internal sealed class AgentTurnService
                     llmTurn.DurationMs,
                     llmTurn.Usage.InputTokens,
                     llmTurn.Usage.OutputTokens,
+                    llmTurn.Usage.CacheReadTokens,
+                    llmTurn.Usage.CacheWriteTokens,
+                    llmTurn.Usage.ReasoningTokens,
+                    llmTurn.Usage.EstimatedTokens,
+                    llmTurn.Usage.Activity,
+                    llmTurn.Usage.ContextParts.Select(p => new LlmUsageContextPartMessage(
+                        p.Kind,
+                        p.Label,
+                        p.Role,
+                        p.Tool,
+                        p.Integration,
+                        p.Tokens,
+                        p.EstimatedTokens,
+                        p.CharacterCount)).ToList(),
                     ct);
 
                 if (!string.IsNullOrEmpty(llmTurn.AssistantContent))

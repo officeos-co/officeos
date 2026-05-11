@@ -18,20 +18,14 @@ internal sealed record ParsedToolCall(string Id, string Name, string Arguments);
 /// <para><strong>Responsible only for:</strong> data transfer from stream parsing to LLM turn execution.</para>
 /// <para><strong>Acceptance criteria:</strong> this type should change only when the parser output shape changes.</para>
 /// </remarks>
-internal sealed record SseResult(string? Content, IReadOnlyList<ParsedToolCall> ToolCalls, int? InputTokens, int? OutputTokens);
-
-/// <summary>
-/// Normalized LLM usage for billing and logging.
-/// </summary>
-/// <remarks>
-/// <para><strong>Responsible for:</strong> carrying input/output token counts and whether any value was estimated.</para>
-/// <para><strong>Responsible only for:</strong> usage data transfer. It does not estimate, price, or persist usage.</para>
-/// <para><strong>Acceptance criteria:</strong> this type should change only when normalized usage shape changes.</para>
-/// </remarks>
-internal sealed record ResolvedLlmUsage(int InputTokens, int OutputTokens, bool IsEstimated)
-{
-    public long TotalTokens => (long)InputTokens + OutputTokens;
-}
+internal sealed record SseResult(
+    string? Content,
+    IReadOnlyList<ParsedToolCall> ToolCalls,
+    int? InputTokens,
+    int? OutputTokens,
+    int? CacheReadTokens,
+    int? CacheWriteTokens,
+    int? ReasoningTokens);
 
 /// <summary>
 /// Result of one LLM call inside a turn.
@@ -47,7 +41,7 @@ internal sealed record LlmTurnResult(
     IReadOnlyList<ParsedToolCall> ToolCalls,
     string Model,
     int DurationMs,
-    ResolvedLlmUsage Usage);
+    AgentUsageResolutionResult Usage);
 
 /// <summary>
 /// Result of executing assistant-requested tools for one LLM iteration.
