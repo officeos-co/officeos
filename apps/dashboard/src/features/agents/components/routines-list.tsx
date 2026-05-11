@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClockIcon, GitBranchIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  CalendarClockIcon,
+  GitBranchIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { PageContainer } from "@/shell/page-container";
 import { PageHeader } from "@/shell/page-header";
 import { Button } from "@/ui/button";
@@ -53,7 +58,10 @@ export function RoutinesList() {
         .some((value) => value!.toLowerCase().includes(query));
     });
   }, [routines, search]);
-  const filteredIds = useMemo(() => filtered.map((routine) => routine.id), [filtered]);
+  const filteredIds = useMemo(
+    () => filtered.map((routine) => routine.id),
+    [filtered],
+  );
   const selectedVisibleCount = filteredIds.filter((id) =>
     selectedIds.has(id),
   ).length;
@@ -169,7 +177,9 @@ export function RoutinesList() {
                     {routineScheduleSummary(routine)}
                   </span>
                 </TableCell>
-                <TableCell>{routine.enabled ? "Enabled" : "Disabled"}</TableCell>
+                <TableCell>
+                  {routine.enabled ? "Enabled" : "Disabled"}
+                </TableCell>
               </TableRow>
             ))}
             {!loading && filtered.length === 0 && (

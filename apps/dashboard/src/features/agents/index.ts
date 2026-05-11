@@ -22,6 +22,7 @@ export * from "./components/resource-attachment-card";
 export * from "./components/memory-store-detail";
 export * from "./components/routine-display";
 export * from "./components/routine-create-dialog";
+export * from "./components/routine-api-invocation";
 export * from "./components/agent-browser-tab";
 export * from "./components/agent-integrations-tab";
 export * from "./components/agent-logs-tab";

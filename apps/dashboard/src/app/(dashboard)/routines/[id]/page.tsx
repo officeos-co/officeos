@@ -16,6 +16,7 @@ import {
 import {
   describeTrigger,
   formatDateTime,
+  RoutineApiInvocation,
   routineTriggerSummary,
   triggerKindLabel,
 } from "@/features/agents";
@@ -123,6 +124,13 @@ export default function RoutineDetailPage({
                     <div className="mt-1 text-sm text-muted-foreground">
                       {describeTrigger(trigger)}
                     </div>
+                    {trigger.kind === "api" && (
+                      <RoutineApiInvocation
+                        triggerId={trigger.id}
+                        triggerName={trigger.name}
+                        className="mt-3"
+                      />
+                    )}
                   </div>
                 ))}
               </div>

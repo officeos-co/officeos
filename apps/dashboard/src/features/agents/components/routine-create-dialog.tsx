@@ -52,6 +52,7 @@ import type {
   RoutineGeneratedSecret,
 } from "../api/useRoutines";
 import { useGitHubRoutineOptions } from "../api/useRoutines";
+import { RoutineApiInvocation } from "./routine-api-invocation";
 
 type AgentOption = {
   id: string;
@@ -380,12 +381,19 @@ export function RoutineCreateDialog({
                 {generatedSecrets.map((secret) => (
                   <div
                     key={secret.triggerId}
-                    className="rounded-lg border border-border p-3"
+                    className="space-y-4 rounded-lg border border-border p-3"
                   >
-                    <div className="text-sm font-medium">{secret.name}</div>
-                    <code className="mt-2 block break-all rounded-md bg-muted px-2 py-1.5 font-mono text-xs">
-                      {secret.secret}
-                    </code>
+                    <div>
+                      <div className="text-sm font-medium">{secret.name}</div>
+                      <code className="mt-2 block break-all rounded-md bg-muted px-2 py-1.5 font-mono text-xs">
+                        {secret.secret}
+                      </code>
+                    </div>
+                    <RoutineApiInvocation
+                      triggerId={secret.triggerId}
+                      triggerName={secret.name}
+                      secret={secret.secret}
+                    />
                   </div>
                 ))}
               </div>
