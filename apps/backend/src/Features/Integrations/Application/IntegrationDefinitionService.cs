@@ -6,13 +6,11 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private readonly IAgentRepository _agentRepository;
     private readonly IIntegrationDefinitionRepository _integrationDefinitionRepository;
     private readonly IIntegrationCredentialRepository _integrationCredentialRepository;
-    private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly IIntegrationDeploymentRepository _integrationDeploymentRepository;
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
     private readonly IOrganizationRepository _organizationRepository;
-    private readonly CredentialProtector _credentialProtector;
-    private readonly GoogleOAuthConfig _googleOAuthConfig;
+    private readonly IIntegrationCredentialEncryptionService _integrationCredentialEncryptionService;
     private readonly ILogger<IntegrationDefinitionService> _logger;
 
     public IntegrationDefinitionService(
@@ -20,9 +18,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         IAgentRepository agentRepository,
         IIntegrationDefinitionRepository definitions,
         IIntegrationCredentialRepository credentials,
-        IOAuthTokenRepository oauthTokens,
-        CredentialProtector protector,
-        GoogleOAuthConfig googleOAuthConfig,
+        IIntegrationCredentialEncryptionService integrationCredentialEncryptionService,
         ILogger<IntegrationDefinitionService> logger,
         IIntegrationDeploymentRepository integrationDeploymentRepository,
         IWorkspaceRepository workspaceRepository,
@@ -33,17 +29,20 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         _agentRepository = agentRepository;
         _integrationDefinitionRepository = definitions;
         _integrationCredentialRepository = credentials;
-        _oauthTokenRepository = oauthTokens;
         _integrationDeploymentRepository = integrationDeploymentRepository;
         _workspaceRepository = workspaceRepository;
         _workspaceMemberRepository = workspaceMemberRepository;
         _organizationRepository = organizationRepository;
-        _credentialProtector = protector;
-        _googleOAuthConfig = googleOAuthConfig;
+        _integrationCredentialEncryptionService = integrationCredentialEncryptionService;
         _logger = logger;
     }
 
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
+        => (await WithConnectionStatusAsync(ownerId, workspaceId, await OrderedCatalogAsync(ownerId, workspaceId, ct), ct))
+            .Where(IsConnected)
+            .ToList();
+
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListCatalogAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
         => await WithConnectionStatusAsync(ownerId, workspaceId, await OrderedCatalogAsync(ownerId, workspaceId, ct), ct);
 
     public async Task<IntegrationDefinitionRecord?> GetAsync(Guid ownerId, string name, Guid? workspaceId = null, CancellationToken ct = default)
@@ -54,7 +53,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         if (!await IsAvailableInWorkspaceAsync(server.Name, workspaceId, ct))
             return null;
 
-        return (await WithConnectionStatusAsync(ownerId, workspaceId, [server], ct)).FirstOrDefault();
+        var configured = (await WithConnectionStatusAsync(ownerId, workspaceId, [server], ct)).FirstOrDefault();
+        return configured is not null && IsConnected(configured) ? configured : null;
     }
 
     public async Task<IntegrationDefinitionRecord> RegisterAsync(Guid ownerId, Guid workspaceId, IntegrationDefinitionRecord server, CancellationToken ct = default)
@@ -63,6 +63,8 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
 
         if (IntegrationDefinitionProvider.GetBuiltin(server.Name) is not null)
             throw new InvalidOperationException($"integration '{server.Name}' is built in and cannot be overwritten.");
+        if (!RequiresAuthentication(server))
+            throw new InvalidOperationException("Custom MCP integrations must define OAuth or credential fields before they can be added.");
 
         var saved = await _integrationDefinitionRepository.UpsertAsync(ownerId, workspaceId, CopyAsCustom(ownerId, workspaceId, server), ct);
         await EnsureDeploymentForRegisteredWorkspaceAsync(ownerId, workspaceId, saved.Name, ct);
@@ -123,77 +125,97 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     {
         await RequireWorkspaceEditorAsync(ownerId, workspaceId, ct);
 
-        var encrypted = _credentialProtector.Protect(fields);
+        var server = await FindCatalogEntryAsync(ownerId, workspaceId, integrationName, ct)
+            ?? throw new InvalidOperationException($"integration '{integrationName}' was not found.");
+        if (!RequiresAuthentication(server))
+            throw new InvalidOperationException($"integration '{integrationName}' does not declare an authentication method.");
+
+        ValidateCredentialFields(server, fields);
+        var encrypted = await _integrationCredentialEncryptionService.ProtectAsync(fields, ct);
+        var now = DateTime.UtcNow;
         await _integrationCredentialRepository.UpsertAsync(new IntegrationCredentialRecord
         {
             OwnerId = ownerId,
             WorkspaceId = workspaceId,
             IntegrationName = integrationName,
-            EncryptedCredentials = encrypted,
-            ConfiguredAt = DateTime.UtcNow,
+            AuthKind = InferAuthKind(fields),
+            State = IntegrationCredentialState.Active,
+            EncryptedSecretEnvelope = encrypted,
+            ValidatedAt = now,
+            CreatedBy = ownerId,
+            ConfiguredAt = now,
+            UpdatedAt = now,
         }, ct);
+    }
+
+    public async Task SaveOAuthCredentialAsync(
+        Guid ownerId,
+        Guid workspaceId,
+        string provider,
+        Dictionary<string, string> fields,
+        IReadOnlyList<string> scopes,
+        string? email,
+        DateTime? expiresAtUtc,
+        CancellationToken ct = default)
+    {
+        await RequireWorkspaceEditorAsync(ownerId, workspaceId, ct);
+
+        var catalog = await OrderedCatalogAsync(ownerId, workspaceId, ct);
+        var matching = catalog
+            .Where(integration => string.Equals(integration.OauthProvider, provider, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (matching.Count == 0)
+            return;
+
+        var encrypted = await _integrationCredentialEncryptionService.ProtectAsync(fields, ct);
+        var now = DateTime.UtcNow;
+        var metadata = JsonSerializer.Serialize(new
+        {
+            provider,
+            email,
+        });
+        var scopesJson = JsonSerializer.Serialize(scopes);
+        foreach (var integration in matching)
+        {
+            await _integrationCredentialRepository.UpsertAsync(new IntegrationCredentialRecord
+            {
+                OwnerId = ownerId,
+                WorkspaceId = workspaceId,
+                IntegrationName = integration.Name,
+                AuthKind = IntegrationCredentialAuthKinds.OAuth,
+                State = IntegrationCredentialState.Active,
+                EncryptedSecretEnvelope = encrypted,
+                PublicAuthMetadataJson = metadata,
+                ScopesJson = scopesJson,
+                ExpiresAtUtc = expiresAtUtc,
+                ValidatedAt = now,
+                CreatedBy = ownerId,
+                ConfiguredAt = now,
+                UpdatedAt = now,
+            }, ct);
+        }
+    }
+
+    public async Task ArchiveCredentialAsync(Guid ownerId, Guid workspaceId, string integrationName, CancellationToken ct = default)
+    {
+        await RequireWorkspaceEditorAsync(ownerId, workspaceId, ct);
+        await _integrationCredentialRepository.ArchiveAsync(workspaceId, integrationName, ct);
+        await _agentIntegrationRepository.UnassignIntegrationFromOwnerAgentsAsync(ownerId, integrationName, ct);
     }
 
     public async Task<Dictionary<string, string>> GetDecryptedCredentialAsync(string integrationName, Guid? ownerId = null, Guid? workspaceId = null, CancellationToken ct = default)
     {
-        if (!ownerId.HasValue) return new();
-
-        var server = IntegrationDefinitionProvider.GetBuiltin(integrationName);
-        if (!string.IsNullOrWhiteSpace(server?.OauthProvider))
-            return await GetOAuthCredentialAsync(ownerId.Value, server, ct);
+        if (!ownerId.HasValue || !workspaceId.HasValue) return new();
 
         var record = await _integrationCredentialRepository.GetByAsync(new IntegrationCredentialFilter
         {
             OwnerId = ownerId.Value,
-            WorkspaceId = workspaceId,
+            WorkspaceId = workspaceId.Value,
             IntegrationName = integrationName,
         }, ct);
         if (record is null) return new();
-        return _credentialProtector.Unprotect(record.EncryptedCredentials);
-    }
-
-    private async Task<Dictionary<string, string>> GetOAuthCredentialAsync(Guid ownerId, IntegrationDefinitionRecord server, CancellationToken ct)
-    {
-        var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = ownerId, Provider = server.OauthProvider! }, ct);
-        if (token is null) return new();
-
-        return server.OauthProvider switch
-        {
-            "github" => BuildGitHubEnvironment(token),
-            "google" => BuildGoogleEnvironment(token),
-            _ => new Dictionary<string, string>(),
-        };
-    }
-
-    private Dictionary<string, string> BuildGitHubEnvironment(OAuthTokenRecord token)
-    {
-        var accessToken = UnprotectToken(token.EncryptedAccessToken);
-        return string.IsNullOrWhiteSpace(accessToken)
-            ? new Dictionary<string, string>()
-            : new Dictionary<string, string> { ["GITHUB_PERSONAL_ACCESS_TOKEN"] = accessToken };
-    }
-
-    private Dictionary<string, string> BuildGoogleEnvironment(OAuthTokenRecord token)
-    {
-        var refreshToken = UnprotectToken(token.EncryptedRefreshToken);
-        if (string.IsNullOrWhiteSpace(refreshToken)
-            || string.IsNullOrWhiteSpace(_googleOAuthConfig.ClientId)
-            || string.IsNullOrWhiteSpace(_googleOAuthConfig.ClientSecret))
-            return new Dictionary<string, string>();
-
-        return new Dictionary<string, string>
-        {
-            ["GOOGLE_CLIENT_ID"] = _googleOAuthConfig.ClientId,
-            ["GOOGLE_CLIENT_SECRET"] = _googleOAuthConfig.ClientSecret,
-            ["GOOGLE_REFRESH_TOKEN"] = refreshToken,
-            ["GOOGLE_TOKEN_SCOPE"] = string.Join(' ', token.GetScopeSet()),
-        };
-    }
-
-    private string? UnprotectToken(string? encrypted)
-    {
-        if (string.IsNullOrWhiteSpace(encrypted)) return null;
-        return _credentialProtector.Unprotect(encrypted).GetValueOrDefault("token");
+        await _integrationCredentialRepository.MarkUsedAsync(record.Id, DateTime.UtcNow, ct);
+        return await _integrationCredentialEncryptionService.UnprotectAsync(record.EncryptedSecretEnvelope, ct);
     }
 
     private async Task<IReadOnlyList<IntegrationDefinitionRecord>> WithConnectionStatusAsync(
@@ -202,63 +224,28 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         IReadOnlyList<IntegrationDefinitionRecord> servers,
         CancellationToken ct)
     {
-        var providers = servers
-            .Select(s => s.OauthProvider)
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        if (!workspaceId.HasValue)
+            return servers.Where(RequiresAuthentication).ToList();
+
+        var credentials = await _integrationCredentialRepository.ListAsync(new IntegrationCredentialFilter
+        {
+            OwnerId = ownerId,
+            WorkspaceId = workspaceId.Value,
+        }, ct);
+        var configured = credentials
+            .Where(credential => !string.IsNullOrWhiteSpace(credential.EncryptedSecretEnvelope))
+            .ToDictionary(credential => credential.IntegrationName, StringComparer.OrdinalIgnoreCase);
+
+        return servers
+            .Where(RequiresAuthentication)
+            .Select(server =>
+            {
+                var isConfigured = configured.ContainsKey(server.Name);
+                return CopyWithCredentialConfigured(
+                    CopyWithOauthConfigured(server, isConfigured && !string.IsNullOrWhiteSpace(server.OauthProvider)),
+                    isConfigured);
+            })
             .ToList();
-
-        var configured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var provider in providers)
-        {
-            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = ownerId, Provider = provider! }, ct);
-            if (!string.IsNullOrWhiteSpace(token?.EncryptedAccessToken)
-                || !string.IsNullOrWhiteSpace(token?.EncryptedRefreshToken))
-            {
-                configured.Add(provider!);
-            }
-            else
-            {
-                _logger.LogDebug("integration OAuth status for provider {Provider}: no stored token", provider);
-            }
-        }
-
-        foreach (var server in servers.Where(s => !string.IsNullOrWhiteSpace(s.OauthProvider)))
-        {
-            var token = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = ownerId, Provider = server.OauthProvider! }, ct);
-            if (token is null)
-                continue;
-
-            var scopes = ParseScopes(server.OauthScopesJson);
-            var missingScopes = token.MissingScopes(scopes);
-            if (missingScopes.Count > 0)
-            {
-                _logger.LogDebug(
-                    "integration OAuth status for {Integration}: provider {Provider} missing scopes [{MissingScopes}]",
-                    server.Name,
-                    server.OauthProvider,
-                    string.Join(", ", missingScopes));
-            }
-        }
-
-        var withOAuth = servers.Select(s => string.IsNullOrWhiteSpace(s.OauthProvider)
-            ? s
-            : CopyWithOauthConfigured(s, configured.Contains(s.OauthProvider))).ToList();
-
-        var credentialConfigured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var server in withOAuth.Where(s => string.IsNullOrWhiteSpace(s.OauthProvider)))
-        {
-            var record = await _integrationCredentialRepository.GetByAsync(new IntegrationCredentialFilter
-            {
-                OwnerId = ownerId,
-                WorkspaceId = workspaceId,
-                IntegrationName = server.Name,
-            }, ct);
-            if (!string.IsNullOrWhiteSpace(record?.EncryptedCredentials))
-                credentialConfigured.Add(server.Name);
-        }
-
-        return withOAuth.Select(s => CopyWithCredentialConfigured(s, credentialConfigured.Contains(s.Name))).ToList();
     }
 
     private static IReadOnlyList<string> ParseScopes(string? scopesJson)
@@ -371,6 +358,62 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         CreatedAt = server.CreatedAt == default ? DateTime.UtcNow : server.CreatedAt,
     };
 
+    private async Task<IntegrationDefinitionRecord?> FindCatalogEntryAsync(Guid ownerId, Guid workspaceId, string integrationName, CancellationToken ct)
+        => (await OrderedCatalogAsync(ownerId, workspaceId, ct))
+            .FirstOrDefault(integration => string.Equals(integration.Name, integrationName, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsConnected(IntegrationDefinitionRecord server)
+        => server.CredentialConfigured || server.OauthConfigured;
+
+    private static bool RequiresAuthentication(IntegrationDefinitionRecord server)
+        => !string.IsNullOrWhiteSpace(server.OauthProvider) || HasCredentialFields(server);
+
+    private static bool HasCredentialFields(IntegrationDefinitionRecord server)
+        => ParseCredentialFields(server.CredentialFieldsJson).Count > 0;
+
+    private static IReadOnlyList<IntegrationCredentialItem> ParseCredentialFields(string? credentialFieldsJson)
+    {
+        if (string.IsNullOrWhiteSpace(credentialFieldsJson))
+            return [];
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<IntegrationCredentialItem>>(
+                credentialFieldsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return parsed?.Where(field => !string.IsNullOrWhiteSpace(field.Name)).ToList() ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static void ValidateCredentialFields(IntegrationDefinitionRecord server, Dictionary<string, string> fields)
+    {
+        var requiredFields = ParseCredentialFields(server.CredentialFieldsJson)
+            .Where(field => field.Required)
+            .Select(field => field.Name)
+            .ToList();
+        foreach (var required in requiredFields)
+        {
+            if (!fields.TryGetValue(required, out var value) || string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException($"Credential field '{required}' is required.");
+        }
+    }
+
+    private static string InferAuthKind(Dictionary<string, string> fields)
+    {
+        if (fields.Keys.Any(key => key.Contains("BEARER", StringComparison.OrdinalIgnoreCase)
+            || key.Contains("TOKEN", StringComparison.OrdinalIgnoreCase)))
+            return IntegrationCredentialAuthKinds.Bearer;
+
+        if (fields.Keys.Any(key => key.Contains("CLIENT_SECRET", StringComparison.OrdinalIgnoreCase)))
+            return IntegrationCredentialAuthKinds.ClientCredentials;
+
+        return IntegrationCredentialAuthKinds.ApiKey;
+    }
+
     private async Task<IReadOnlyList<IntegrationDefinitionRecord>> OrderedCatalogAsync(Guid ownerId, Guid? workspaceId, CancellationToken ct)
     {
         var custom = await _integrationDefinitionRepository.ListAsync(ownerId, workspaceId, ct);
@@ -467,4 +510,6 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Title)
             .ToList();
+
+    private sealed record IntegrationCredentialItem(string Name, bool Required);
 }

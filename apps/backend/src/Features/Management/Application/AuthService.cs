@@ -135,7 +135,17 @@ internal sealed class AuthService : IAuthService
         await _sessionRepository.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
         _logger.LogInformation("OAuth: session created for {Email}", email);
 
-        return new GoogleCallbackResult(sessionToken, email);
+        var integrationCredentials = new Dictionary<string, string>
+        {
+            ["GOOGLE_CLIENT_ID"] = _googleOAuthConfig.ClientId,
+            ["GOOGLE_CLIENT_SECRET"] = _googleOAuthConfig.ClientSecret,
+            ["GOOGLE_TOKEN_SCOPE"] = string.Join(' ', scopes),
+        };
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+            integrationCredentials["GOOGLE_REFRESH_TOKEN"] = refreshToken;
+        integrationCredentials["GOOGLE_ACCESS_TOKEN"] = accessToken;
+
+        return new GoogleCallbackResult(sessionToken, user.Id, email, integrationCredentials, scopes, expiresAt);
     }
 
     public GitHubLoginResult BuildGitHubLoginUrl(string? redirectUri = null)
@@ -256,7 +266,12 @@ internal sealed class AuthService : IAuthService
         await _sessionRepository.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
         _logger.LogInformation("OAuth: session created for {Email}", email);
 
-        return new GitHubCallbackResult(sessionToken, email);
+        var integrationCredentials = new Dictionary<string, string>
+        {
+            ["GITHUB_PERSONAL_ACCESS_TOKEN"] = accessToken,
+        };
+
+        return new GitHubCallbackResult(sessionToken, user.Id, email, integrationCredentials, scopes, null);
     }
 
     public async Task<UserRecord> UpdateProfileAsync(

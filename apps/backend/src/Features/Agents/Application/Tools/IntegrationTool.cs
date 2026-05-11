@@ -68,6 +68,63 @@ internal interface IHydratableToolSchema
     Task<ToolSchema> HydrateSchemaAsync(CancellationToken ct);
 }
 
+internal sealed partial class ProxyIntegrationTool : IAgentTool
+{
+    private readonly IntegrationDefinitionRecord _server;
+    private readonly string _runtimeToolName;
+    private readonly IIntegrationRuntimeService _integrationRuntimeService;
+    private readonly Guid? _ownerId;
+    private readonly Guid? _workspaceId;
+
+    public ProxyIntegrationTool(
+        IntegrationDefinitionRecord server,
+        IntegrationCatalogToolRecord catalogTool,
+        IIntegrationRuntimeService integrationRuntimeService,
+        Guid? ownerId,
+        Guid? workspaceId)
+    {
+        _server = server;
+        _runtimeToolName = catalogTool.Name;
+        _integrationRuntimeService = integrationRuntimeService;
+        _ownerId = ownerId;
+        _workspaceId = workspaceId;
+
+        var slug = SlugRegex().Replace(server.Name, "_");
+        var toolSlug = SlugRegex().Replace(catalogTool.Name, "_");
+        Name = $"{slug}__{toolSlug}";
+        PermissionScope = $"{server.Name}:{catalogTool.Name}";
+        Schema = new ToolSchema(
+            Name,
+            $"[{server.Name}] {catalogTool.Description}",
+            catalogTool.Parameters ?? JsonSerializer.SerializeToElement(new
+            {
+                type = "object",
+                properties = new { },
+                additionalProperties = true
+            }));
+    }
+
+    public string Name { get; }
+    public ToolSchema Schema { get; }
+    public string PermissionScope { get; }
+    public AgentToolKind Kind => AgentToolKind.Integration;
+
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct)
+    {
+        try
+        {
+            return await _integrationRuntimeService.ExecuteToolAsync(_server, _runtimeToolName, args, _ownerId, _workspaceId, ct);
+        }
+        catch (Exception ex)
+        {
+            return new AgentError(AgentErrorCategory.ToolExecution, ex.Message);
+        }
+    }
+
+    [GeneratedRegex(@"[^a-zA-Z0-9]")]
+    private static partial Regex SlugRegex();
+}
+
 internal sealed partial class LazyIntegrationTool : IAgentTool, IHydratableToolSchema
 {
     private readonly string _runtimeToolName;

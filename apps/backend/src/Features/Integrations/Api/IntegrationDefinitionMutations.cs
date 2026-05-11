@@ -129,6 +129,17 @@ public sealed class IntegrationDefinitionMutations
         await svc.SaveCredentialAsync(user.Id, workspace.Id, integrationName, dict, ct);
         return true;
     }
+
+    public async Task<bool> DisconnectIntegration(
+        string integrationName,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
+    {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        await svc.ArchiveCredentialAsync(user.Id, workspace.Id, integrationName, ct);
+        return true;
+    }
 }
 
 public record RegisterIntegrationInput(

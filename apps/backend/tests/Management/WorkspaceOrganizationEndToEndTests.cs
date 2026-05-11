@@ -239,6 +239,7 @@ public sealed class WorkspaceOrganizationEndToEndTests
             Command = "npx",
             Args = """["-y","org-docs"]""",
             Category = "custom",
+            CredentialFieldsJson = """[{"name":"API_KEY","label":"API Key","type":"password","required":true}]""",
             IsBuiltin = false,
             CreatedAt = DateTime.UtcNow,
         });
@@ -264,6 +265,7 @@ public sealed class WorkspaceOrganizationEndToEndTests
             harness.Integrations.AssignToAgentAsync(agent.Id, "org-docs", ownerId));
 
         await harness.IntegrationDeployments.DeployAsync(ownerId, overview.Organization.Id, workspace.Id, "org-docs");
+        await harness.Integrations.SaveCredentialAsync(ownerId, workspace.Id, "org-docs", new() { ["API_KEY"] = "secret" });
         var visible = await harness.Integrations.ListAsync(ownerId, workspace.Id);
         await harness.Integrations.AssignToAgentAsync(agent.Id, "org-docs", ownerId);
         var assigned = await new AgentIntegrationRepository(db).ListIntegrationNamesForAgentAsync(agent.Id, CancellationToken.None);

@@ -53,7 +53,7 @@ internal sealed class ToolExecutionLoop
             WorkspaceId = agent.WorkspaceId,
             CorrelationId = correlationId,
             Integrations = integrations,
-            CredentialLoader = integrationName => _integrationDefinitionService.GetDecryptedCredentialAsync(integrationName, agent.OwnerId, agent.WorkspaceId, ct),
+            OwnerId = agent.OwnerId,
         }, ct);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,

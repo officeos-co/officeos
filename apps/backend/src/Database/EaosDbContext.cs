@@ -544,7 +544,11 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(c => c.OwnerId);
             e.HasIndex(c => new { c.WorkspaceId, c.IntegrationName }).IsUnique();
             e.Property(c => c.IntegrationName).IsRequired().HasMaxLength(64);
-            e.Property(c => c.EncryptedCredentials).HasMaxLength(16384);
+            e.Property(c => c.AuthKind).IsRequired().HasMaxLength(32);
+            e.Property(c => c.State).IsRequired().HasMaxLength(32);
+            e.Property(c => c.EncryptedSecretEnvelope).HasMaxLength(32768);
+            e.Property(c => c.PublicAuthMetadataJson).HasColumnType("jsonb");
+            e.Property(c => c.ScopesJson).HasColumnType("jsonb");
             e.HasOne<UserEntity>().WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });

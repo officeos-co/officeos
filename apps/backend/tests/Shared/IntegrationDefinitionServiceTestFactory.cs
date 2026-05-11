@@ -15,18 +15,12 @@ internal static class IntegrationDefinitionServiceTestFactory
         FakeIntegrationDefinitionRepository? servers = null,
         FakeIntegrationCredentialRepository? credentials = null)
     {
-        var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-test-keys-{Guid.NewGuid():N}");
-        var protector = new CredentialProtector(
-            DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
-
         return new IntegrationDefinitionService(
             agentServers ?? new FakeAgentIntegrationRepository(),
             new FakeAgentRepository(),
             servers ?? new FakeIntegrationDefinitionRepository(),
             credentials ?? new FakeIntegrationCredentialRepository(),
-            new FakeOAuthTokenRepository(),
-            protector,
-            new GoogleOAuthConfig(),
+            new FakeIntegrationCredentialEncryptionService(),
             NullLogger<IntegrationDefinitionService>.Instance,
             new FakeIntegrationDeploymentRepository(),
             new FakeWorkspaceRepository(),

@@ -11,7 +11,6 @@ import { Switch } from "@/ui/switch";
 import {
   latestRoutineRunAt,
   nextRoutineRunAt,
-  parseScheduleExpression,
   useRoutine,
 } from "@/features/agents";
 import {
@@ -124,11 +123,6 @@ export default function RoutineDetailPage({
                     <div className="mt-1 text-sm text-muted-foreground">
                       {describeTrigger(trigger)}
                     </div>
-                    {trigger.kind === "schedule" && (
-                      <code className="mt-2 block font-mono text-xs text-muted-foreground">
-                        {parseScheduleExpression(trigger)}
-                      </code>
-                    )}
                   </div>
                 ))}
               </div>

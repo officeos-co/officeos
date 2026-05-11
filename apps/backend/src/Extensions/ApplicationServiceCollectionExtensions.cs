@@ -16,6 +16,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IProviderSetupService, ProviderSetupService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
+        services.AddScoped<IIntegrationRuntimeService, IntegrationRuntimeService>();
         services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();
         services.AddScoped<IIntegrationExecutionService, IntegrationExecutionService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();

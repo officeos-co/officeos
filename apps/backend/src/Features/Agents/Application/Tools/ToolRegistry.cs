@@ -119,7 +119,7 @@ internal sealed class ToolRegistryRequest
     public required Guid? WorkspaceId { get; init; }
     public required string CorrelationId { get; init; }
     public required IReadOnlyList<IntegrationDefinitionRecord> Integrations { get; init; }
-    public required Func<string, Task<Dictionary<string, string>>> CredentialLoader { get; init; }
+    public required Guid? OwnerId { get; init; }
 }
 
 internal sealed class ToolRegistryFactory
@@ -128,12 +128,12 @@ internal sealed class ToolRegistryFactory
     private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
-    private readonly IIntegrationClientManager _integrationClientManager;
     private readonly IBrowserToolService _browserToolService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IOrganizationPolicyService _organizationPolicyService;
     private readonly IIntegrationExecutionService _integrationExecutionService;
+    private readonly IIntegrationRuntimeService _integrationRuntimeService;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
@@ -142,12 +142,12 @@ internal sealed class ToolRegistryFactory
         IAgentRoutineRepository agentRoutineRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
-        IIntegrationClientManager integrationClientManager,
         IBrowserToolService browserToolService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
         IOrganizationPolicyService organizationPolicyService,
         IIntegrationExecutionService integrationExecution,
+        IIntegrationRuntimeService integrationRuntimeService,
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
@@ -155,12 +155,12 @@ internal sealed class ToolRegistryFactory
         _agentRoutineRepository = agentRoutineRepository;
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
-        _integrationClientManager = integrationClientManager;
         _browserToolService = browserToolService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
         _organizationPolicyService = organizationPolicyService;
         _integrationExecutionService = integrationExecution;
+        _integrationRuntimeService = integrationRuntimeService;
         _turnEventPublisher = events;
         _logger = logger;
     }
@@ -262,18 +262,8 @@ internal sealed class ToolRegistryFactory
         {
             if (server.Tools.Count > 0)
             {
-                var lazyConnection = new LazyIntegrationConnection(
-                    server,
-                    request.CredentialLoader,
-                    _integrationClientManager,
-                    _turnEventPublisher,
-                    request.AgentId,
-                    request.CorrelationId);
                 foreach (var catalogTool in server.Tools)
-                    tools.Add(new LazyIntegrationTool(server, catalogTool, lazyConnection));
-                tools.Add(new LazyListIntegrationResourcesTool(server, lazyConnection));
-                tools.Add(new LazyReadIntegrationResourceTool(server, lazyConnection));
-                integrationConnections.Add(lazyConnection);
+                    tools.Add(new ProxyIntegrationTool(server, catalogTool, _integrationRuntimeService, request.OwnerId, request.WorkspaceId));
                 await _turnEventPublisher.PublishDiagnosticAsync(
                     request.AgentId,
                     request.CorrelationId,
@@ -283,30 +273,7 @@ internal sealed class ToolRegistryFactory
                 continue;
             }
 
-            var credentialStart = Stopwatch.GetTimestamp();
-            var creds = await request.CredentialLoader(server.Name);
-            await _turnEventPublisher.PublishDiagnosticAsync(
-                request.AgentId,
-                request.CorrelationId,
-                $"Tool setup: integration credentials loaded ({server.Name})",
-                (int)Stopwatch.GetElapsedTime(credentialStart).TotalMilliseconds,
-                ct);
-
-            var connectStart = Stopwatch.GetTimestamp();
-            var result = await _integrationClientManager.ConnectAsync(server, creds, ct);
-            await _turnEventPublisher.PublishDiagnosticAsync(
-                request.AgentId,
-                request.CorrelationId,
-                $"Tool setup: integration connected ({server.Name}, {result.Tools.Count} tools)",
-                (int)Stopwatch.GetElapsedTime(connectStart).TotalMilliseconds,
-                ct);
-            if (result.Tools.Count == 0)
-                _logger.LogWarning("Assigned integration {Server} discovered no callable tools for agent {AgentId}", server.Name, request.AgentId);
-            foreach (var discovered in result.Tools)
-                tools.Add(new IntegrationTool(discovered));
-            tools.Add(new ListIntegrationResourcesTool(server.Name, result.NativeClient));
-            tools.Add(new ReadIntegrationResourceTool(server.Name, result.NativeClient));
-            integrationConnections.Add(result);
+            _logger.LogWarning("Assigned integration {Server} has no catalog tools for agent {AgentId}", server.Name, request.AgentId);
         }
 
         var policyDeniedToolReasons = new Dictionary<string, string>(StringComparer.Ordinal);

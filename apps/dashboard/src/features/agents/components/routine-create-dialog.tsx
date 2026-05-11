@@ -8,14 +8,22 @@ import {
   type ReactNode,
 } from "react";
 import {
+  BookOpenIcon,
   CalendarClockIcon,
+  CheckIcon,
   Code2Icon,
+  FolderGit2Icon,
   GitBranchIcon,
+  GlobeIcon,
   KeyRoundIcon,
+  LockIcon,
   PlusIcon,
   Trash2Icon,
+  WebhookIcon,
 } from "lucide-react";
 import { getDialogWidthClassName } from "@/shell/page-container";
+import { buildOAuthUrl } from "@/lib/auth-url";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/button";
 import {
   Dialog,
@@ -35,13 +43,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/ui/select";
-import { Switch } from "@/ui/switch";
 import { Textarea } from "@/ui/textarea";
 import type {
   CreateRoutineInput,
   CreateRoutineResult,
+  GitHubRoutineEvent,
+  GitHubRoutineRepository,
   RoutineGeneratedSecret,
 } from "../api/useRoutines";
+import { useGitHubRoutineOptions } from "../api/useRoutines";
 
 type AgentOption = {
   id: string;
@@ -65,8 +75,6 @@ type ScheduleDraft = {
   minute: string;
   dayOfWeek: string;
   dayOfMonth: string;
-  advanced: boolean;
-  expression: string;
 };
 
 type ApiDraft = {
@@ -79,9 +87,8 @@ type GitHubDraft = {
   id: string;
   type: "github";
   name: string;
-  owner: string;
-  repo: string;
-  eventsText: string;
+  repository: string;
+  events: string[];
   secret: string;
 };
 
@@ -146,7 +153,7 @@ const TRIGGER_OPTIONS: Array<{
   {
     type: "schedule",
     label: "Schedule",
-    description: "Run the routine on a cron-backed recurring schedule.",
+    description: "Run the routine on a recurring schedule.",
     icon: <CalendarClockIcon className="size-4" />,
   },
   {
@@ -158,8 +165,6 @@ const TRIGGER_OPTIONS: Array<{
 ];
 
 function buildCronExpression(trigger: ScheduleDraft): string {
-  if (trigger.advanced) return trigger.expression.trim();
-
   const hour = parseInt(trigger.hour, 10) || 9;
   const minute = parseInt(trigger.minute, 10) || 0;
   if (trigger.frequency === "every-30-min") return "*/30 * * * *";
@@ -184,8 +189,6 @@ function defaultTrigger(type: TriggerDraft["type"]): TriggerDraft {
       minute: "00",
       dayOfWeek: "1",
       dayOfMonth: "1",
-      advanced: false,
-      expression: "0 9 * * *",
     };
   }
   if (type === "github") {
@@ -193,9 +196,8 @@ function defaultTrigger(type: TriggerDraft["type"]): TriggerDraft {
       id: crypto.randomUUID(),
       type,
       name: "GitHub webhook",
-      owner: "",
-      repo: "",
-      eventsText: "push",
+      repository: "",
+      events: ["push"],
       secret: crypto.randomUUID(),
     };
   }
@@ -206,26 +208,29 @@ function defaultTrigger(type: TriggerDraft["type"]): TriggerDraft {
   };
 }
 
-function parseEvents(value: string): string[] {
-  return value
-    .split(/[\n,]/)
-    .map((event) => event.trim())
-    .filter(Boolean);
-}
-
 function isValidTrigger(trigger: TriggerDraft): boolean {
   if (!trigger.name.trim()) return false;
   if (trigger.type === "api") return true;
   if (trigger.type === "github") {
     return (
-      Boolean(trigger.owner.trim()) &&
-      Boolean(trigger.repo.trim()) &&
+      Boolean(trigger.repository.trim()) &&
       Boolean(trigger.secret.trim()) &&
-      parseEvents(trigger.eventsText).length > 0
+      trigger.events.length > 0
     );
   }
   const expression = buildCronExpression(trigger);
   return expression.split(/\s+/).length === 5;
+}
+
+function splitRepository(repository: string): { owner: string; repo: string } {
+  const [owner = "", repo = ""] = repository.split("/", 2);
+  return { owner, repo };
+}
+
+function toggleEvent(events: string[], event: string): string[] {
+  return events.includes(event)
+    ? events.filter((item) => item !== event)
+    : [...events, event];
 }
 
 export function RoutineCreateDialog({
@@ -255,6 +260,8 @@ export function RoutineCreateDialog({
   const [createdRoutineName, setCreatedRoutineName] = useState("");
   const shouldScrollToTriggerRef = useRef(false);
   const triggerEndRef = useRef<HTMLDivElement>(null);
+  const hasGitHubTrigger = triggers.some((trigger) => trigger.type === "github");
+  const githubOptions = useGitHubRoutineOptions(open && hasGitHubTrigger);
 
   useEffect(() => {
     if (!shouldScrollToTriggerRef.current || !triggerEndRef.current) return;
@@ -324,9 +331,9 @@ export function RoutineCreateDialog({
         .filter((trigger): trigger is GitHubDraft => trigger.type === "github")
         .map((trigger) => ({
           name: trigger.name.trim(),
-          owner: trigger.owner.trim(),
-          repo: trigger.repo.trim(),
-          events: parseEvents(trigger.eventsText),
+          owner: splitRepository(trigger.repository).owner,
+          repo: splitRepository(trigger.repository).repo,
+          events: trigger.events,
           secret: trigger.secret.trim(),
         })),
     };
@@ -448,20 +455,24 @@ export function RoutineCreateDialog({
                     Add one or more ways to start this routine.
                   </p>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-2">
                   {TRIGGER_OPTIONS.map((option) => (
                     <button
                       key={option.type}
                       type="button"
                       onClick={() => addTrigger(option.type)}
-                      className="rounded-lg border border-border px-3 py-3 text-left transition-colors hover:bg-muted/50"
+                      className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-lg border border-border px-3 py-3 text-left transition-colors hover:bg-muted/50"
                     >
-                      <span className="flex items-center gap-2 text-sm font-medium">
+                      <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                         {option.icon}
-                        {option.label}
                       </span>
-                      <span className="mt-1 block text-xs text-muted-foreground">
-                        {option.description}
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">
+                          {option.label}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {option.description}
+                        </span>
                       </span>
                     </button>
                   ))}
@@ -473,6 +484,10 @@ export function RoutineCreateDialog({
                       key={trigger.id}
                       index={index}
                       trigger={trigger}
+                      githubRepositories={githubOptions.repositories}
+                      githubEvents={githubOptions.events}
+                      githubConnected={githubOptions.connected}
+                      githubLoading={githubOptions.loading}
                       onUpdate={(patch) => updateTrigger(trigger.id, patch)}
                       onRemove={() => removeTrigger(trigger.id)}
                     />
@@ -522,11 +537,19 @@ export function RoutineCreateDialog({
 function TriggerSection({
   index,
   trigger,
+  githubRepositories,
+  githubEvents,
+  githubConnected,
+  githubLoading,
   onUpdate,
   onRemove,
 }: {
   index: number;
   trigger: TriggerDraft;
+  githubRepositories: GitHubRoutineRepository[];
+  githubEvents: GitHubRoutineEvent[];
+  githubConnected: boolean;
+  githubLoading: boolean;
   onUpdate: (patch: Partial<TriggerDraft>) => void;
   onRemove: () => void;
 }) {
@@ -576,40 +599,14 @@ function TriggerSection({
         )}
 
         {trigger.type === "github" && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Owner</Label>
-              <Input
-                value={trigger.owner}
-                onChange={(event) => onUpdate({ owner: event.target.value })}
-                placeholder="acme"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Repository</Label>
-              <Input
-                value={trigger.repo}
-                onChange={(event) => onUpdate({ repo: event.target.value })}
-                placeholder="backend"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Events</Label>
-              <Input
-                value={trigger.eventsText}
-                onChange={(event) => onUpdate({ eventsText: event.target.value })}
-                placeholder="push, pull_request"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label>Webhook secret</Label>
-              <Input
-                value={trigger.secret}
-                onChange={(event) => onUpdate({ secret: event.target.value })}
-                placeholder="Shared webhook secret"
-              />
-            </div>
-          </div>
+          <GitHubTriggerFields
+            trigger={trigger}
+            repositories={githubRepositories}
+            events={githubEvents}
+            connected={githubConnected}
+            loading={githubLoading}
+            onUpdate={onUpdate}
+          />
         )}
 
         {trigger.type === "schedule" && (
@@ -633,139 +630,258 @@ function ScheduleTriggerFields({
 
   return (
     <div className="space-y-4">
-      <Label className="gap-2 text-xs text-muted-foreground">
-        <Switch
-          size="sm"
-          checked={trigger.advanced}
-          onCheckedChange={(advanced) => onUpdate({ advanced })}
-        />
-        Advanced cron expression
-      </Label>
+      <div className="space-y-2">
+        <Label>Frequency</Label>
+        <Select
+          value={trigger.frequency}
+          onValueChange={(value) =>
+            value && onUpdate({ frequency: value as Frequency })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FREQUENCIES.map((frequency) => (
+              <SelectItem key={frequency.value} value={frequency.value}>
+                {frequency.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {trigger.advanced ? (
-        <div className="space-y-2">
-          <Label>Expression</Label>
-          <Input
-            value={trigger.expression}
-            onChange={(event) => onUpdate({ expression: event.target.value })}
-            placeholder="0 9 * * *"
-          />
+      {needsTime && (
+        <div className="flex items-center gap-2">
+          <Label className="shrink-0 text-xs text-muted-foreground">At</Label>
+          <Select
+            value={trigger.hour}
+            onValueChange={(value) => value && onUpdate({ hour: value })}
+          >
+            <SelectTrigger className="w-[80px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 24 }, (_, hour) => (
+                <SelectItem
+                  key={hour}
+                  value={hour.toString().padStart(2, "0")}
+                >
+                  {hour.toString().padStart(2, "0")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-muted-foreground">:</span>
+          <Select
+            value={trigger.minute}
+            onValueChange={(value) => value && onUpdate({ minute: value })}
+          >
+            <SelectTrigger className="w-[80px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["00", "15", "30", "45"].map((minute) => (
+                <SelectItem key={minute} value={minute}>
+                  {minute}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">UTC</span>
         </div>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <Label>Frequency</Label>
-            <Select
-              value={trigger.frequency}
-              onValueChange={(value) =>
-                value && onUpdate({ frequency: value as Frequency })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FREQUENCIES.map((frequency) => (
-                  <SelectItem key={frequency.value} value={frequency.value}>
-                    {frequency.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {needsTime && (
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0 text-xs text-muted-foreground">At</Label>
-              <Select
-                value={trigger.hour}
-                onValueChange={(value) => value && onUpdate({ hour: value })}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 24 }, (_, hour) => (
-                    <SelectItem
-                      key={hour}
-                      value={hour.toString().padStart(2, "0")}
-                    >
-                      {hour.toString().padStart(2, "0")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-muted-foreground">:</span>
-              <Select
-                value={trigger.minute}
-                onValueChange={(value) => value && onUpdate({ minute: value })}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {["00", "15", "30", "45"].map((minute) => (
-                    <SelectItem key={minute} value={minute}>
-                      {minute}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-xs text-muted-foreground">UTC</span>
-            </div>
-          )}
-
-          {needsDayOfWeek && (
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0 text-xs text-muted-foreground">On</Label>
-              <Select
-                value={trigger.dayOfWeek}
-                onValueChange={(value) => value && onUpdate({ dayOfWeek: value })}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS_OF_WEEK.map((day) => (
-                    <SelectItem key={day.value} value={day.value}>
-                      {day.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {needsDayOfMonth && (
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0 text-xs text-muted-foreground">
-                On day
-              </Label>
-              <Select
-                value={trigger.dayOfMonth}
-                onValueChange={(value) =>
-                  value && onUpdate({ dayOfMonth: value })
-                }
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 28 }, (_, index) => (
-                    <SelectItem key={index + 1} value={(index + 1).toString()}>
-                      {index + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </>
       )}
 
-      <p className="rounded-md bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground">
-        {buildCronExpression(trigger)}
+      {needsDayOfWeek && (
+        <div className="flex items-center gap-2">
+          <Label className="shrink-0 text-xs text-muted-foreground">On</Label>
+          <Select
+            value={trigger.dayOfWeek}
+            onValueChange={(value) => value && onUpdate({ dayOfWeek: value })}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DAYS_OF_WEEK.map((day) => (
+                <SelectItem key={day.value} value={day.value}>
+                  {day.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {needsDayOfMonth && (
+        <div className="flex items-center gap-2">
+          <Label className="shrink-0 text-xs text-muted-foreground">
+            On day
+          </Label>
+          <Select
+            value={trigger.dayOfMonth}
+            onValueChange={(value) =>
+              value && onUpdate({ dayOfMonth: value })
+            }
+          >
+            <SelectTrigger className="w-[80px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 28 }, (_, index) => (
+                <SelectItem key={index + 1} value={(index + 1).toString()}>
+                  {index + 1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        The backend scheduler will run this routine at the selected cadence.
       </p>
+    </div>
+  );
+}
+
+function GitHubTriggerFields({
+  trigger,
+  repositories,
+  events,
+  connected,
+  loading,
+  onUpdate,
+}: {
+  trigger: GitHubDraft;
+  repositories: GitHubRoutineRepository[];
+  events: GitHubRoutineEvent[];
+  connected: boolean;
+  loading: boolean;
+  onUpdate: (patch: Partial<TriggerDraft>) => void;
+}) {
+  const selectedRepository = repositories.find(
+    (repository) => repository.fullName === trigger.repository,
+  );
+
+  return (
+    <div className="space-y-4">
+      {!connected && !loading && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="flex items-center gap-2 font-medium">
+            <GlobeIcon className="size-4" />
+            Connect GitHub
+          </div>
+          <p className="mt-1 text-xs">
+            Repository options come from the backend through your GitHub OAuth token.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3 bg-background"
+            onClick={() =>
+              window.location.assign(buildOAuthUrl("github", "/routines"))
+            }
+          >
+            <GlobeIcon className="size-4" />
+            Connect GitHub
+          </Button>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label>Repository</Label>
+        <Select
+          value={trigger.repository}
+          disabled={!connected || loading || repositories.length === 0}
+          onValueChange={(value) => value && onUpdate({ repository: value })}
+        >
+          <SelectTrigger>
+            <SelectValue
+              placeholder={
+                loading
+                  ? "Loading repositories..."
+                  : connected
+                    ? "Select a repository"
+                    : "Connect GitHub first"
+              }
+            >
+              {selectedRepository?.fullName}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="w-max min-w-(--anchor-width) max-w-[calc(100vw-2rem)]">
+            {repositories.map((repository) => (
+              <SelectItem key={repository.fullName} value={repository.fullName}>
+                <span className="flex items-center gap-2">
+                  <FolderGit2Icon className="size-4 text-muted-foreground" />
+                  <span className="font-medium">{repository.fullName}</span>
+                  {repository.private && (
+                    <LockIcon className="size-3.5 text-muted-foreground" />
+                  )}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedRepository?.description && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <BookOpenIcon className="mt-0.5 size-3.5 shrink-0" />
+            {selectedRepository.description}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Events</Label>
+        <div className="grid gap-2">
+          {events.map((event) => {
+            const checked = trigger.events.includes(event.value);
+            return (
+              <button
+                key={event.value}
+                type="button"
+                disabled={!connected}
+                onClick={() =>
+                  onUpdate({ events: toggleEvent(trigger.events, event.value) })
+                }
+                className={cn(
+                  "grid grid-cols-[24px_24px_minmax(0,1fr)] items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
+                  checked
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50",
+                  !connected && "cursor-not-allowed opacity-60",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-5 items-center justify-center rounded-full border",
+                    checked
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/40",
+                  )}
+                >
+                  {checked && <CheckIcon className="size-3" />}
+                </span>
+                <WebhookIcon className="size-4 text-muted-foreground" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">
+                    {event.label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {event.description}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+          {events.length === 0 && (
+            <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              No GitHub events are available.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

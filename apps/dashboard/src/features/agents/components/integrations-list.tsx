@@ -39,6 +39,7 @@ import {
 import {
   sortIntegrations,
   useDeleteIntegration,
+  useIntegrationCatalog,
   useIntegrations,
   useSaveIntegrationCredential,
 } from "../api/useIntegrations";
@@ -53,6 +54,7 @@ import { CustomMcpJsonEditor } from "./custom-mcp-json-editor";
 export function IntegrationsList() {
   const router = useRouter();
   const { integrations, loading } = useIntegrations();
+  const { integrations: catalogIntegrations } = useIntegrationCatalog();
   const { currentWorkspace } = useWorkspaces();
   const { connections } = useIntegrationConnections({ pollInterval: 5000 });
   const setCredentials = useSaveIntegrationCredential();
@@ -67,7 +69,7 @@ export function IntegrationsList() {
     () => sortIntegrations(integrations),
     [integrations],
   );
-  const configured = sorted.filter((server) => server.configured);
+  const configured = sorted;
   const filtered = useMemo(() => {
     const query = search.toLowerCase();
     return configured.filter((server) => {
@@ -322,7 +324,7 @@ export function IntegrationsList() {
       <ConnectorDirectoryDialog
         open={directoryOpen}
         onOpenChange={setDirectoryOpen}
-        integrations={sorted}
+        integrations={sortIntegrations(catalogIntegrations)}
         onConnect={startSetup}
       />
 

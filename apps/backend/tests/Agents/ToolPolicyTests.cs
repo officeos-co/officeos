@@ -39,9 +39,9 @@ public sealed class ToolPolicyTests
             ServiceUrl = "http://sandbox",
             AgentId = agentId,
             WorkspaceId = workspaceId,
+            OwnerId = Guid.NewGuid(),
             CorrelationId = "correlation",
             Integrations = integrations,
-            CredentialLoader = _ => Task.FromResult(new Dictionary<string, string>()),
         }, CancellationToken.None);
 
         var toolNames = registry.Tools.Select(tool => tool.Name).ToHashSet(StringComparer.Ordinal);
@@ -87,9 +87,9 @@ public sealed class ToolPolicyTests
             ServiceUrl = "http://sandbox",
             AgentId = Guid.NewGuid(),
             WorkspaceId = Guid.NewGuid(),
+            OwnerId = Guid.NewGuid(),
             CorrelationId = "correlation",
             Integrations = integrations,
-            CredentialLoader = _ => Task.FromResult(new Dictionary<string, string>()),
         }, CancellationToken.None);
 
         var toolNames = registry.Tools.Select(tool => tool.Name).ToHashSet(StringComparer.Ordinal);

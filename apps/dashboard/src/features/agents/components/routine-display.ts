@@ -15,7 +15,7 @@ export function describeCronExpression(expression: string): string {
   if (known[expression]) return known[expression];
 
   const parts = expression.split(" ");
-  if (parts.length !== 5) return expression;
+  if (parts.length !== 5) return "Custom schedule";
   const [min, hour, dom, , dow] = parts;
   const time = `${hour.padStart(2, "0")}:${min.padStart(2, "0")} UTC`;
 
@@ -24,7 +24,7 @@ export function describeCronExpression(expression: string): string {
   if (dow !== "*") return `Weekly on day ${dow} at ${time}`;
   if (hour !== "*" && dom === "*" && dow === "*") return `Daily at ${time}`;
 
-  return expression;
+  return "Custom schedule";
 }
 
 export function isHeartbeatCron(expression: string): boolean {

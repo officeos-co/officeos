@@ -142,6 +142,11 @@ builder.Services.AddSingleton(googleOAuthConfig);
 var gitHubOAuthConfig = RequireSection<GitHubOAuthConfig>("GitHubOAuth");
 builder.Services.AddSingleton(gitHubOAuthConfig);
 
+var integrationCredentialEncryptionConfig = builder.Configuration
+    .GetSection("IntegrationCredentialEncryption")
+    .Get<IntegrationCredentialEncryptionConfig>() ?? new IntegrationCredentialEncryptionConfig();
+builder.Services.AddSingleton(integrationCredentialEncryptionConfig);
+
 var kubernetesConfig = RequireSection<KubernetesConfig>("Kubernetes");
 builder.Services.AddSingleton(kubernetesConfig);
 

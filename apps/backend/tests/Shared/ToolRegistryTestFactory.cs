@@ -13,12 +13,12 @@ internal static class ToolRegistryTestFactory
             new FakeAgentRoutineRepository(),
             new FakeAgentRunRepository(),
             new AgentTaskStore(),
-            new ThrowingIntegrationClientManager(),
             new BrowserToolService(new NoBrowserToolContextFactory()),
             new EmptyAgentDefinitionRepository(),
             new AgentDefinitionParser(),
             new FakeOrganizationPolicyService(policy),
             new FakeIntegrationExecutionService(),
+            new FakeIntegrationRuntimeService(),
             new TurnEventPublisher(new NoopPublisher()),
             NullLogger<ToolRegistryFactory>.Instance);
 }

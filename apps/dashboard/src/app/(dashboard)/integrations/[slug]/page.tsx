@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "@/ui/skeleton";
 import {
   CredentialDialog,
+  useDisconnectIntegration,
   useDeleteIntegration,
   useIntegration,
   useSaveIntegrationCredential,
@@ -81,6 +82,7 @@ export default function IntegrationDetailPage({
   const { connections } = useIntegrationConnections({ pollInterval: 5000 });
   const setCredentials = useSaveIntegrationCredential();
   const deleteIntegration = useDeleteIntegration();
+  const disconnectIntegration = useDisconnectIntegration();
   const [credDialogOpen, setCredDialogOpen] = useState(false);
   const [runtimeMode, setRuntimeMode] = useState<"regular" | "indexed">("regular");
   const requestedTab = searchParams.get("tab");
@@ -113,8 +115,11 @@ export default function IntegrationDetailPage({
   }
 
   async function handleUninstall() {
-    if (currentIntegration.isBuiltin) return;
-    await deleteIntegration(currentIntegration.name);
+    if (currentIntegration.isBuiltin) {
+      await disconnectIntegration(currentIntegration.name);
+    } else {
+      await deleteIntegration(currentIntegration.name);
+    }
     router.push("/integrations");
   }
 
@@ -252,12 +257,11 @@ export default function IntegrationDetailPage({
               ) : null}
               <Button
                 size="sm"
-                variant="outline"
-                disabled={integration.isBuiltin}
+                variant={integration.isBuiltin ? "destructive" : "outline"}
                 onClick={handleUninstall}
               >
                 <Trash2Icon className="size-4" />
-                Uninstall
+                {integration.isBuiltin ? "Disconnect" : "Uninstall"}
               </Button>
             </div>
           </div>

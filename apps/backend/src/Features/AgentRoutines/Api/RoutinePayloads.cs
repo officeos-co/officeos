@@ -53,6 +53,24 @@ public sealed record AgentRoutineGeneratedSecretPayload(
     string Name,
     string Secret);
 
+public sealed record GitHubRoutineOptionsPayload(
+    bool Connected,
+    IReadOnlyList<GitHubRepositoryOptionPayload> Repositories,
+    IReadOnlyList<GitHubRoutineEventPayload> Events);
+
+public sealed record GitHubRepositoryOptionPayload(
+    string FullName,
+    string Name,
+    string Owner,
+    bool Private,
+    string? Url,
+    string? Description);
+
+public sealed record GitHubRoutineEventPayload(
+    string Value,
+    string Label,
+    string Description);
+
 internal static class AgentRoutineMapper
 {
     public static AgentRoutinePayload ToPayload(AgentRoutineWithAgentRecord row) =>
@@ -87,4 +105,13 @@ internal static class AgentRoutineMapper
             result.GeneratedSecrets
                 .Select(secret => new AgentRoutineGeneratedSecretPayload(secret.TriggerId, secret.Kind, secret.Name, secret.Secret))
                 .ToList());
+
+    public static GitHubRepositoryOptionPayload ToPayload(GitHubRepositoryItem repository) =>
+        new(
+            repository.FullName,
+            repository.Name,
+            repository.Owner,
+            repository.Private,
+            repository.Url,
+            repository.Description);
 }

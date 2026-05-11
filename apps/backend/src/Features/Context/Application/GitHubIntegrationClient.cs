@@ -1,6 +1,6 @@
 namespace OffceOs.Application.Features.Context;
 
-internal sealed class GitHubIntegrationClient
+public sealed class GitHubIntegrationClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
@@ -18,6 +18,39 @@ internal sealed class GitHubIntegrationClient
 
     public async Task<bool> HasTokenAsync(Guid? userId, CancellationToken ct)
         => !string.IsNullOrWhiteSpace(await GetAccessTokenAsync(userId, ct));
+
+    public async Task<IReadOnlyList<GitHubRepositoryItem>> ListRepositoriesAsync(Guid? userId, CancellationToken ct)
+    {
+        var rows = new List<GitHubRepositoryItem>();
+        for (var page = 1; page <= 5; page++)
+        {
+            var json = await SendAsync(
+                userId,
+                HttpMethod.Get,
+                $"user/repos?affiliation=owner,collaborator,organization_member&sort=updated&per_page=100&page={page}",
+                ct);
+            var array = JsonNode.Parse(json) as JsonArray ?? [];
+            foreach (var item in array)
+            {
+                if (item is not JsonObject obj) continue;
+                var fullName = obj["full_name"]?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(fullName)) continue;
+                rows.Add(new GitHubRepositoryItem(
+                    fullName,
+                    obj["name"]?.GetValue<string>() ?? fullName.Split('/').Last(),
+                    obj["owner"]?["login"]?.GetValue<string>() ?? fullName.Split('/').First(),
+                    obj["private"]?.GetValue<bool>() ?? false,
+                    obj["html_url"]?.GetValue<string>(),
+                    obj["description"]?.GetValue<string>()));
+            }
+            if (array.Count < 100) break;
+        }
+
+        return rows
+            .DistinctBy(repo => repo.FullName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(repo => repo.FullName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     public async Task ValidateRepositoriesAsync(Guid? userId, IReadOnlyList<string> repositories, CancellationToken ct)
     {
@@ -135,3 +168,11 @@ internal sealed class GitHubIntegrationClient
             ? parsed
             : null;
 }
+
+public sealed record GitHubRepositoryItem(
+    string FullName,
+    string Name,
+    string Owner,
+    bool Private,
+    string? Url,
+    string? Description);

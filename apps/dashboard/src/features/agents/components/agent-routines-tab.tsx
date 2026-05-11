@@ -15,7 +15,6 @@ import { WithTooltip } from "@/ui/help-tooltip";
 import {
   latestRoutineRunAt,
   nextRoutineRunAt,
-  parseScheduleExpression,
   useAgentRoutines,
 } from "../api/useRoutines";
 import {
@@ -126,11 +125,6 @@ export function AgentRoutinesTab({
                     )}
                     <span>{describeTrigger(trigger)}</span>
                   </div>
-                  {trigger.kind === "schedule" && (
-                    <code className="mt-1 block font-mono text-xs text-muted-foreground">
-                      {parseScheduleExpression(trigger)}
-                    </code>
-                  )}
                 </div>
               ))}
             </div>

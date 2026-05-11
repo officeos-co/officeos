@@ -2,11 +2,23 @@ namespace OffceOs.Domain.Features.Management;
 
 public sealed record GoogleLoginResult(string RedirectUrl, string State);
 
-public sealed record GoogleCallbackResult(string SessionToken, string Email);
+public sealed record GoogleCallbackResult(
+    string SessionToken,
+    Guid UserId,
+    string Email,
+    Dictionary<string, string> IntegrationCredentials,
+    IReadOnlyList<string> Scopes,
+    DateTime? ExpiresAtUtc);
 
 public sealed record GitHubLoginResult(string RedirectUrl, string State);
 
-public sealed record GitHubCallbackResult(string SessionToken, string Email);
+public sealed record GitHubCallbackResult(
+    string SessionToken,
+    Guid UserId,
+    string Email,
+    Dictionary<string, string> IntegrationCredentials,
+    IReadOnlyList<string> Scopes,
+    DateTime? ExpiresAtUtc);
 
 public interface IAuthService
 {

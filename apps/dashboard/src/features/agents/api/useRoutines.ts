@@ -60,6 +60,21 @@ export type GitHubRoutineTriggerConfig = {
   events?: string[];
 };
 
+export type GitHubRoutineRepository = {
+  fullName: string;
+  name: string;
+  owner: string;
+  private: boolean;
+  url?: string | null;
+  description?: string | null;
+};
+
+export type GitHubRoutineEvent = {
+  value: string;
+  label: string;
+  description: string;
+};
+
 const ROUTINES_FOR_AGENT_QUERY = gql`
   query RoutinesForAgent($agentId: UUID!) {
     routinesForAgent(agentId: $agentId) {
@@ -179,6 +194,27 @@ const DELETE_ROUTINE = gql`
   }
 `;
 
+const GITHUB_ROUTINE_OPTIONS = gql`
+  query GitHubRoutineOptions {
+    gitHubRoutineOptions {
+      connected
+      repositories {
+        fullName
+        name
+        owner
+        private
+        url
+        description
+      }
+      events {
+        value
+        label
+        description
+      }
+    }
+  }
+`;
+
 type CreateRoutinePayload = {
   createAgentRoutine: CreateRoutineResult;
 };
@@ -247,7 +283,6 @@ export function routineMatchesSearch(routine: AgentRoutine, query: string) {
       return [
         trigger.kind,
         trigger.name,
-        parseScheduleExpression(trigger),
         github.owner,
         github.repo,
         github.events?.join(" "),
@@ -399,6 +434,28 @@ export function useRoutine(id: string) {
     deleteRoutine: async () => {
       await deleteMutation({ variables: { id } });
     },
+    refetch,
+  };
+}
+
+export function useGitHubRoutineOptions(enabled = true) {
+  const { data, loading, error, refetch } = useQuery<{
+    gitHubRoutineOptions: {
+      connected: boolean;
+      repositories: GitHubRoutineRepository[];
+      events: GitHubRoutineEvent[];
+    };
+  }>(GITHUB_ROUTINE_OPTIONS, {
+    skip: !enabled,
+    fetchPolicy: "cache-and-network",
+  });
+
+  return {
+    connected: data?.gitHubRoutineOptions.connected ?? false,
+    repositories: data?.gitHubRoutineOptions.repositories ?? [],
+    events: data?.gitHubRoutineOptions.events ?? [],
+    loading,
+    error: error ?? undefined,
     refetch,
   };
 }

@@ -5,15 +5,21 @@ namespace OffceOs.Api.Features.Management;
 public sealed class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IWorkspaceService _workspaceService;
+    private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly FrontendConfig _frontendConfig;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IAuthService authService,
+        IWorkspaceService workspaceService,
+        IIntegrationDefinitionService integrationDefinitionService,
         FrontendConfig frontendConfig,
         ILogger<AuthController> logger)
     {
         _authService = authService;
+        _workspaceService = workspaceService;
+        _integrationDefinitionService = integrationDefinitionService;
         _frontendConfig = frontendConfig;
         _logger = logger;
     }
@@ -58,6 +64,7 @@ public sealed class AuthController : ControllerBase
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
             var result = await _authService.HandleGoogleCallbackAsync(code, ct: ct);
+            await SaveIntegrationOAuthCredentialAsync("google", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
 
             Response.Cookies.Append("eaos-session", result.SessionToken, new CookieOptions
             {
@@ -118,6 +125,7 @@ public sealed class AuthController : ControllerBase
                 return RedirectWithError("Invalid OAuth state — please try signing in again.");
 
             var result = await _authService.HandleGitHubCallbackAsync(code, ct: ct);
+            await SaveIntegrationOAuthCredentialAsync("github", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
 
             Response.Cookies.Append("eaos-session", result.SessionToken, new CookieOptions
             {
@@ -177,4 +185,33 @@ public sealed class AuthController : ControllerBase
 
     private IActionResult RedirectWithError(string message)
         => Redirect(BuildFrontendRedirect($"/login?error={Uri.EscapeDataString(message)}"));
+
+    private async Task SaveIntegrationOAuthCredentialAsync(
+        string provider,
+        string returnTo,
+        Guid userId,
+        string email,
+        Dictionary<string, string> integrationCredentials,
+        IReadOnlyList<string> scopes,
+        DateTime? expiresAtUtc,
+        CancellationToken ct)
+    {
+        if (!IsIntegrationReturn(returnTo))
+            return;
+
+        var workspace = await _workspaceService.GetCurrentAsync(userId, ct);
+        await _integrationDefinitionService.SaveOAuthCredentialAsync(
+            userId,
+            workspace.Id,
+            provider,
+            integrationCredentials,
+            scopes,
+            email,
+            expiresAtUtc,
+            ct);
+    }
+
+    private static bool IsIntegrationReturn(string returnTo)
+        => returnTo.StartsWith("/integrations/", StringComparison.Ordinal)
+            || string.Equals(returnTo, "/integrations", StringComparison.Ordinal);
 }

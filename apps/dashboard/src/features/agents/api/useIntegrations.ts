@@ -45,6 +45,42 @@ const MCP_SERVERS_QUERY = gql`
   }
 `;
 
+const INTEGRATION_CATALOG_QUERY = gql`
+  query IntegrationCatalog {
+    integrationCatalog {
+      id
+      name
+      provider
+      title
+      description
+      transportType
+      command
+      args
+      url
+      logo
+      category
+      credentialFieldsJson
+      oauthProvider
+      oauthScopesJson
+      oauthConfigured
+      credentialConfigured
+      subtitle
+      authorName
+      authorUrl
+      documentationUrl
+      repositoryUrl
+      tools {
+        name
+        description
+      }
+      capabilitiesJson
+      entities
+      isBuiltin
+      createdAt
+    }
+  }
+`;
+
 const MCP_SERVER_QUERY = gql`
   query Integration($name: String!) {
     integration(name: $name) {
@@ -146,6 +182,12 @@ const DELETE_MCP_SERVER = gql`
 const SAVE_MCP_CREDENTIAL = gql`
   mutation SaveIntegrationCredential($integrationName: String!, $fields: [CredentialFieldInput!]!) {
     saveIntegrationCredential(integrationName: $integrationName, fields: $fields)
+  }
+`;
+
+const DISCONNECT_INTEGRATION = gql`
+  mutation DisconnectIntegration($integrationName: String!) {
+    disconnectIntegration(integrationName: $integrationName)
   }
 `;
 
@@ -286,6 +328,19 @@ export function useIntegrations(): {
   return { integrations, loading, error: error ?? undefined };
 }
 
+export function useIntegrationCatalog(): {
+  integrations: McpServer[];
+  loading: boolean;
+  error?: Error;
+} {
+  const { data, loading, error } = useQuery(INTEGRATION_CATALOG_QUERY, {
+    fetchPolicy: "cache-and-network",
+  });
+  const raw: RawMcpServer[] = data?.integrationCatalog ?? [];
+  const integrations = raw.map(mapIntegration);
+  return { integrations, loading, error: error ?? undefined };
+}
+
 export function useIntegration(name: string): {
   integration: McpServer | null;
   loading: boolean;
@@ -310,7 +365,18 @@ export function useSaveIntegrationCredential() {
     }));
     await fn({
       variables: { integrationName, fields },
-      refetchQueries: [{ query: MCP_SERVERS_QUERY }],
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }, { query: INTEGRATION_CATALOG_QUERY }],
+      awaitRefetchQueries: true,
+    });
+  };
+}
+
+export function useDisconnectIntegration() {
+  const [fn] = useMutation(DISCONNECT_INTEGRATION);
+  return async (integrationName: string) => {
+    await fn({
+      variables: { integrationName },
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }, { query: INTEGRATION_CATALOG_QUERY }],
       awaitRefetchQueries: true,
     });
   };
@@ -340,7 +406,7 @@ export function useRegisterIntegration() {
   return async (input: RegisterIntegrationInput) => {
     await fn({
       variables: { input },
-      refetchQueries: [{ query: MCP_SERVERS_QUERY }],
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }, { query: INTEGRATION_CATALOG_QUERY }],
       awaitRefetchQueries: true,
     });
   };
@@ -351,7 +417,7 @@ export function useDeleteIntegration() {
   return async (name: string) => {
     await fn({
       variables: { name },
-      refetchQueries: [{ query: MCP_SERVERS_QUERY }],
+      refetchQueries: [{ query: MCP_SERVERS_QUERY }, { query: INTEGRATION_CATALOG_QUERY }],
       awaitRefetchQueries: true,
     });
   };

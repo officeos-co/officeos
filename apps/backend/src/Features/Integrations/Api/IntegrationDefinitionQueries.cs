@@ -12,6 +12,15 @@ public sealed class IntegrationDefinitionQueries
         return await svc.ListAsync(user.Id, workspace.Id, ct);
     }
 
+    public async Task<IReadOnlyList<IntegrationDefinitionRecord>> GetIntegrationCatalog(
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        [Service] IIntegrationDefinitionService svc, CancellationToken ct)
+    {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        return await svc.ListCatalogAsync(user.Id, workspace.Id, ct);
+    }
+
     public async Task<IntegrationDefinitionRecord?> GetIntegration(
         string name,
         [Service] UserContext user,

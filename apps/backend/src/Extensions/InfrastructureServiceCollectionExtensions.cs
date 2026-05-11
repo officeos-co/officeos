@@ -59,9 +59,11 @@ public static class InfrastructureServiceCollectionExtensions
         // Protectors
         services.AddSingleton<CredentialProtector>();
         services.AddSingleton<ChannelCredentialProtector>();
+        services.AddScoped<IIntegrationCredentialEncryptionService, IntegrationCredentialEncryptionService>();
 
         // HTTP clients
         services.AddHttpClient<IPostHogService, PostHogService>();
+        services.AddHttpClient("vault-transit");
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient<IBrowserRuntimeClient, AutoBrowserRuntimeClient>();

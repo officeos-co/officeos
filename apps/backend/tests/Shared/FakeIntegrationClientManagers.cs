@@ -1,4 +1,7 @@
+using OffceOs.Application.Features.Agents;
+using OffceOs.Application.Features.Integrations;
 using OffceOs.Domain.Features.Integrations;
+using System.Text.Json;
 
 namespace OffceOs.Tests.Shared;
 
@@ -46,4 +49,16 @@ public sealed class HydratingIntegrationClientManager : IIntegrationClientManage
             ],
         });
     }
+}
+
+public sealed class FakeIntegrationRuntimeService : IIntegrationRuntimeService
+{
+    public Task<ToolResult> ExecuteToolAsync(
+        IntegrationDefinitionRecord integration,
+        string toolName,
+        JsonElement args,
+        Guid? ownerId,
+        Guid? workspaceId,
+        CancellationToken ct = default) =>
+        Task.FromResult(new ToolResult(true, "{}"));
 }

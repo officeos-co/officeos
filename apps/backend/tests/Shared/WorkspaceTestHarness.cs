@@ -136,16 +136,12 @@ public sealed record WorkspaceTestHarness(
         IIntegrationDefinitionRepository integrationDefinitionRepository,
         IIntegrationCredentialRepository integrationCredentialRepository)
     {
-        var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-e2e-keys-{Guid.NewGuid():N}");
-        var protector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
         return new IntegrationDefinitionService(
             new AgentIntegrationRepository(db),
             agentRepository,
             integrationDefinitionRepository,
             integrationCredentialRepository,
-            new OAuthTokenRepository(db),
-            protector,
-            new GoogleOAuthConfig(),
+            new FakeIntegrationCredentialEncryptionService(),
             NullLogger<IntegrationDefinitionService>.Instance,
             new IntegrationDeploymentRepository(db),
             new WorkspaceRepository(db),
