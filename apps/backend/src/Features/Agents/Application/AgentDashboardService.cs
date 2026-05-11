@@ -10,7 +10,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelService _channelService;
     private readonly IBrowserService _browserService;
+    private readonly IAgentDeployer _agentDeployer;
     private readonly IAgentRunRepository _agentRunRepository;
+    private readonly IAgentLogService _agentLogService;
     private readonly AgentDefinitionParser _agentDefinitionParser;
 
     public AgentDashboardService(
@@ -22,7 +24,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         IChannelRepository channelRepository,
         IChannelService channelService,
         IBrowserService browser,
+        IAgentDeployer agentDeployer,
         IAgentRunRepository runs,
+        IAgentLogService agentLogService,
         AgentDefinitionParser agentDefinitionParser)
     {
         _agentService = agents;
@@ -33,8 +37,49 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _channelRepository = channelRepository;
         _channelService = channelService;
         _browserService = browser;
+        _agentDeployer = agentDeployer;
         _agentRunRepository = runs;
+        _agentLogService = agentLogService;
         _agentDefinitionParser = agentDefinitionParser;
+    }
+
+    public async Task<IReadOnlyList<AgentDashboardResult>> ListDashboardAgentsAsync(
+        Guid ownerId,
+        Guid workspaceId,
+        CancellationToken ct = default)
+    {
+        var agents = await _agentRepository.ListAsync(new AgentFilter { WorkspaceId = workspaceId }, ct);
+        var lastMessages = await _agentLogService.GetLastRelevantMessagesForAgentsAsync(
+            agents.Select(agent => agent.Id).ToList(),
+            workspaceId,
+            ct);
+
+        var results = new List<AgentDashboardResult>(agents.Count);
+        foreach (var agent in agents)
+        {
+            var status = await ResolveStatusAsync(agent, ct);
+            results.Add(new AgentDashboardResult(
+                agent,
+                status,
+                lastMessages.TryGetValue(agent.Id, out var lastMessage) ? lastMessage : null));
+        }
+
+        return results;
+    }
+
+    public async Task<AgentDashboardResult?> GetDashboardAgentAsync(
+        Guid id,
+        Guid ownerId,
+        Guid workspaceId,
+        CancellationToken ct = default)
+    {
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = id, WorkspaceId = workspaceId }, ct);
+        if (agent is null)
+            return null;
+
+        var status = await ResolveStatusAsync(agent, ct);
+        var lastMessage = await _agentLogService.GetLastRelevantMessageForAgentAsync(agent.Id, workspaceId, ct);
+        return new AgentDashboardResult(agent, status, lastMessage);
     }
 
     public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
@@ -144,6 +189,44 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     {
         if (!await AgentIsOwnedAsync(agentId, ownerId, workspaceId, ct))
             throw new InvalidOperationException("Agent not found.");
+    }
+
+    private async Task<AgentStatus> ResolveStatusAsync(AgentRecord agent, CancellationToken ct)
+    {
+        if (!agent.HasPod || string.IsNullOrWhiteSpace(agent.PodName))
+            return agent.Status == AgentStatus.Failed ? AgentStatus.Failed : AgentStatus.Booting;
+
+        var runtimeStatus = await GetRuntimeStatusAsync(agent, ct);
+        if (runtimeStatus is AgentStatus.Failed or AgentStatus.Booting or AgentStatus.Restarting)
+            return runtimeStatus;
+
+        var runningRun = await _agentRunRepository.GetByAsync(new AgentRunFilter
+        {
+            AgentId = agent.Id,
+            Status = "running",
+        }, ct);
+
+        return runningRun is null ? AgentStatus.Idle : AgentStatus.Working;
+    }
+
+    private async Task<AgentStatus> GetRuntimeStatusAsync(AgentRecord agent, CancellationToken ct)
+    {
+        try
+        {
+            var status = (await _agentDeployer.GetStatusAsync(agent.PodName!, ct)).ToAgentStatus();
+            var persistedStatus = status == AgentStatus.Working ? AgentStatus.Idle : status;
+            if (persistedStatus != agent.Status)
+            {
+                await _agentRepository.UpdateStatusAsync(new AgentFilter { Id = agent.Id }, persistedStatus, ct);
+                agent.Status = persistedStatus;
+            }
+
+            return status;
+        }
+        catch
+        {
+            return agent.Status == AgentStatus.Failed ? AgentStatus.Failed : AgentStatus.Booting;
+        }
     }
 
     private async Task EnsureResourceExistsAsync(string resourceType, Guid resourceId, Guid ownerId, Guid workspaceId, CancellationToken ct)

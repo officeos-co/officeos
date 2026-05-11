@@ -2,6 +2,8 @@ namespace OffceOs.Application.Features.Analytics;
 
 internal sealed class AgentLogService : IAgentLogService
 {
+    private const int ActivityPreviewMaxLength = 240;
+
     private static readonly string[] SecretKeySubstrings =
     [
         "apikey", "token", "secret", "password", "credential", "key"
@@ -29,25 +31,25 @@ internal sealed class AgentLogService : IAgentLogService
 
     public IQueryable<AgentLogProjection> AgentLogs(Guid agentId, Guid? workspaceId = null) =>
         ToProjectionQuery(
-            _agentLogRepository.Query(new AgentLogFilter { AgentId = agentId, WorkspaceId = workspaceId })
+            ExcludePodStartupLogs(_agentLogRepository.Query(new AgentLogFilter { AgentId = agentId, WorkspaceId = workspaceId }))
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
     public IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId, Guid? workspaceId = null) =>
         ToProjectionQuery(
-            _agentLogRepository.Query(new AgentLogFilter { ChannelConnectionId = channelConnectionId, WorkspaceId = workspaceId })
+            ExcludePodStartupLogs(_agentLogRepository.Query(new AgentLogFilter { ChannelConnectionId = channelConnectionId, WorkspaceId = workspaceId }))
                 .OrderBy(l => l.Time)
                 .ThenBy(l => l.Id));
 
     public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters, Guid? workspaceId = null) =>
         ToProjectionQuery(
-            _agentLogRepository.Query(new AgentLogFilter
+            ExcludePodStartupLogs(_agentLogRepository.Query(new AgentLogFilter
                 {
                     WorkspaceId = workspaceId,
                     Search = filters.Search,
                     AgentName = filters.AgentName,
                     Type = filters.Type,
-                })
+                }))
                 .OrderByDescending(l => l.Time)
                 .ThenByDescending(l => l.Id));
 
@@ -97,23 +99,46 @@ internal sealed class AgentLogService : IAgentLogService
             new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
             ct);
 
+    public Task<string?> GetLastRelevantMessageForAgentAsync(Guid agentId, Guid? workspaceId = null, CancellationToken ct = default)
+        => GetLastRelevantMessageAsync(new AgentLogFilter { AgentId = agentId, WorkspaceId = workspaceId }, ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForAgentsAsync(
+        IReadOnlyCollection<Guid> agentIds,
+        Guid? workspaceId = null,
+        CancellationToken ct = default)
+    {
+        var result = new Dictionary<Guid, string?>();
+        foreach (var agentId in agentIds.Distinct())
+            result[agentId] = await GetLastRelevantMessageForAgentAsync(agentId, workspaceId, ct);
+
+        return result;
+    }
+
+    public Task<string?> GetLastRelevantMessageForChannelConnectionAsync(
+        Guid channelConnectionId,
+        Guid? workspaceId = null,
+        CancellationToken ct = default)
+        => GetLastRelevantMessageAsync(new AgentLogFilter { ChannelConnectionId = channelConnectionId, WorkspaceId = workspaceId }, ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForChannelConnectionsAsync(
+        IReadOnlyCollection<Guid> channelConnectionIds,
+        Guid? workspaceId = null,
+        CancellationToken ct = default)
+    {
+        var result = new Dictionary<Guid, string?>();
+        foreach (var channelConnectionId in channelConnectionIds.Distinct())
+            result[channelConnectionId] = await GetLastRelevantMessageForChannelConnectionAsync(channelConnectionId, workspaceId, ct);
+
+        return result;
+    }
+
     public async Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersRequest filters, CancellationToken ct = default)
     {
         var limit = Math.Clamp(filters.Limit, 1, 200);
         var skip = Math.Max(filters.Skip, 0);
-        var filter = new AgentLogFilter
-        {
-            Search = filters.Search,
-            AgentName = filters.AgentName,
-            Type = filters.Type,
-            WorkspaceId = filters.WorkspaceId,
-        };
-        var total = await _agentLogRepository.CountAsync(filter, ct);
-        var rows = await _agentLogRepository.ListAsync(
-            filter,
-            new AgentLogListOptions { Skip = skip, Limit = limit, Sort = AgentLogSort.TimeDescending },
-            ct);
-        var items = rows.Select(r => r.ToProjection(r.Agent?.Name ?? "(unbound)")).ToList();
+        var query = GlobalLogs(filters, filters.WorkspaceId);
+        var total = await query.CountAsync(ct);
+        var items = await query.Skip(skip).Take(limit).ToListAsync(ct);
         return new GlobalLogsPage(items, total);
     }
 
@@ -256,6 +281,90 @@ internal sealed class AgentLogService : IAgentLogService
             log.Usage.InputTokens,
             log.Usage.OutputTokens,
             log.CorrelationId));
+
+    private async Task<string?> GetLastRelevantMessageAsync(AgentLogFilter filter, CancellationToken ct)
+    {
+        var log = await RelevantActivityLogs(_agentLogRepository.Query(filter))
+            .OrderByDescending(l => l.Time)
+            .ThenByDescending(l => l.Id)
+            .FirstOrDefaultAsync(ct);
+
+        return log is null ? null : FormatRelevantMessage(log);
+    }
+
+    private static IQueryable<AgentLogRecord> ExcludePodStartupLogs(IQueryable<AgentLogRecord> query) =>
+        query.Where(log =>
+            log.Type != AgentLogType.AgentStartup &&
+            !(log.Type == AgentLogType.System && log.Content == "Pod connected"));
+
+    private static IQueryable<AgentLogRecord> RelevantActivityLogs(IQueryable<AgentLogRecord> query) =>
+        ExcludePodStartupLogs(query)
+            .Where(log =>
+                log.Type == AgentLogType.MessageIn ||
+                log.Type == AgentLogType.MessageOut ||
+                log.Type == AgentLogType.ChannelIn ||
+                log.Type == AgentLogType.ChannelOut ||
+                log.Type == AgentLogType.ToolCall ||
+                log.Type == AgentLogType.ToolResult ||
+                log.Type == AgentLogType.Error ||
+                log.Type == AgentLogType.ErrorPodConnection ||
+                log.Type == AgentLogType.ErrorLlmCall ||
+                log.Type == AgentLogType.ErrorToolExecution ||
+                log.Type == AgentLogType.ErrorSkillExecution ||
+                log.Type == AgentLogType.ErrorTurnOrchestration ||
+                log.Type == AgentLogType.ErrorMemory ||
+                log.Type == AgentLogType.ErrorConfiguration ||
+                (log.Type == AgentLogType.System &&
+                    !log.Content.StartsWith("Turn setup:") &&
+                    !log.Content.StartsWith("Turn started:") &&
+                    !log.Content.StartsWith("Turn complete:") &&
+                    !log.Content.StartsWith("LLM call complete:") &&
+                    !log.Content.StartsWith("Conversation compacted")));
+
+    private static string FormatRelevantMessage(AgentLogRecord log) => log.Type switch
+    {
+        AgentLogType.ToolCall => $"Using {DisplayTool(log)}",
+        AgentLogType.ToolResult => FormatToolResult(log),
+        AgentLogType.Error or
+            AgentLogType.ErrorPodConnection or
+            AgentLogType.ErrorLlmCall or
+            AgentLogType.ErrorToolExecution or
+            AgentLogType.ErrorSkillExecution or
+            AgentLogType.ErrorTurnOrchestration or
+            AgentLogType.ErrorMemory or
+            AgentLogType.ErrorConfiguration => $"Error: {Preview(log.Content)}",
+        _ => Preview(log.Content),
+    };
+
+    private static string FormatToolResult(AgentLogRecord log)
+    {
+        var content = Preview(log.Content);
+        return string.IsNullOrWhiteSpace(content)
+            ? $"{DisplayTool(log)} finished"
+            : $"{DisplayTool(log)} finished: {content}";
+    }
+
+    private static string DisplayTool(AgentLogRecord log)
+    {
+        if (!string.IsNullOrWhiteSpace(log.Integration) && !string.IsNullOrWhiteSpace(log.Tool))
+            return $"{log.Integration}.{log.Tool}";
+
+        if (!string.IsNullOrWhiteSpace(log.Tool))
+            return log.Tool;
+
+        return "tool";
+    }
+
+    private static string Preview(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+
+        var normalized = Regex.Replace(content.Trim(), "\\s+", " ");
+        return normalized.Length <= ActivityPreviewMaxLength
+            ? normalized
+            : normalized[..ActivityPreviewMaxLength] + "...";
+    }
 
     private static object? JsonElementToObject(JsonElement el) => el.ValueKind switch
     {

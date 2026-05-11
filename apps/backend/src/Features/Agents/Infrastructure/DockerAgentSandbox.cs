@@ -137,8 +137,8 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
             return status switch
             {
                 "running" => "running",
-                "created" => "pending",
-                "restarting" => "pending",
+                "created" => "booting",
+                "restarting" => "restarting",
                 "exited" => "stopped",
                 "dead" => "failed",
                 _ => "unknown",

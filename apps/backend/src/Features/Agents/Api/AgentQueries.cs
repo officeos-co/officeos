@@ -3,46 +3,33 @@ namespace OffceOs.Api.Features.Agents;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class AgentQueries
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
-    [GraphQLDescription("Lists all agents owned by the authenticated user with id, name, provider, model, status, and pod info.")]
-    public async Task<IReadOnlyList<AgentRecord>> GetAgents(
+    [GraphQLDescription("Lists all agents owned by the authenticated user with dynamic status and last relevant activity.")]
+    public async Task<IReadOnlyList<AgentPayload>> GetAgents(
         [Service] UserContext user,
         [Service] IWorkspaceService workspaces,
-        [Service] IAgentService agents,
-        [Service] IDistributedCache cache,
+        [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var listCacheKey = AgentCacheKeys.DashboardList(user.Id, workspace.Id);
-        var cached = await cache.GetJsonAsync<IReadOnlyList<AgentRecord>>(listCacheKey, ct);
-        if (cached is not null)
-            return cached;
-
-        var result = await agents.ListAsync(new AgentFilter { WorkspaceId = workspace.Id }, ct);
-        await cache.SetJsonAsync(listCacheKey, result, CacheTtl, ct);
-        return result;
+        var result = await agents.ListDashboardAgentsAsync(user.Id, workspace.Id, ct);
+        return result
+            .Select(row => AgentGraphQLMapper.ToPayload(row.Agent, row.Status, row.LastRelevantMessage))
+            .ToList();
     }
 
-    [GraphQLDescription("Returns a single agent by ID including its full aggregate: personality files, installed skills, memories, channel bindings, and routines.")]
-    public async Task<AgentRecord?> GetAgent(
+    [GraphQLDescription("Returns a single agent by ID including its full aggregate, dynamic status, and last relevant activity.")]
+    public async Task<AgentPayload?> GetAgent(
         Guid id,
         [Service] UserContext user,
         [Service] IWorkspaceService workspaces,
-        [Service] IAgentRepository agents,
-        [Service] IDistributedCache cache,
+        [Service] IAgentDashboardService agents,
         CancellationToken ct)
     {
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        var key = AgentCacheKeys.DashboardDetail(id, user.Id, workspace.Id);
-        var cached = await cache.GetJsonAsync<AgentRecord>(key, ct);
-        if (cached is not null)
-            return cached;
-
-        var result = await agents.GetByAsync(new AgentFilter { Id = id, WorkspaceId = workspace.Id }, ct);
-        if (result is not null)
-            await cache.SetJsonAsync(key, result, CacheTtl, ct);
-
-        return result;
+        var result = await agents.GetDashboardAgentAsync(id, user.Id, workspace.Id, ct);
+        return result is null
+            ? null
+            : AgentGraphQLMapper.ToPayload(result.Agent, result.Status, result.LastRelevantMessage);
     }
 
     [GraphQLDescription("Returns the backend-owned tool catalog for dashboard permission UIs.")]

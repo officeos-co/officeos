@@ -38,7 +38,7 @@ public sealed class FakeAgentRepository : IAgentRepository
             WorkspaceId = filter.WorkspaceId ?? TestIds.WorkspaceId,
             Name = "Test Agent",
             Provider = "openai",
-            Status = AgentStatus.Running,
+            Status = AgentStatus.Idle,
         });
     }
 
