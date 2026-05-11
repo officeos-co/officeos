@@ -103,3 +103,7 @@ cd apps/backend && dotnet run --project src/EnterpriseAgentOs.Api
 # Dashboard
 cd apps/dashboard && bun dev
 ```
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=officeos-co/officeos&type=date&legend=top-left)](https://www.star-history.com/?repos=officeos-co%2Fofficeos&type=date&legend=top-left)
