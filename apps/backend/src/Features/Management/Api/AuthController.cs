@@ -44,7 +44,7 @@ public sealed class AuthController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return RedirectWithError(ex.Message);
+            return RedirectWithError(ex.Message, returnTo);
         }
     }
 
@@ -54,14 +54,15 @@ public sealed class AuthController : ControllerBase
         [FromQuery] string state,
         CancellationToken ct)
     {
+        string? returnTo = null;
         try
         {
             var savedState = Request.Cookies["oauth-state"];
             Response.Cookies.Delete("oauth-state");
-            var returnTo = GetAndClearReturnToCookie();
+            returnTo = GetAndClearReturnToCookie();
 
             if (string.IsNullOrEmpty(savedState) || savedState != state)
-                return RedirectWithError("Invalid OAuth state — please try signing in again.");
+                return RedirectWithError("Invalid OAuth state - please try signing in again.", returnTo);
 
             var result = await _authService.HandleGoogleCallbackAsync(code, ct: ct);
             await SaveIntegrationOAuthCredentialAsync("google", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
@@ -78,10 +79,15 @@ public sealed class AuthController : ControllerBase
             _logger.LogInformation("OAuth: login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
             return Redirect(BuildFrontendRedirect(returnTo));
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Google OAuth callback failed");
+            return RedirectWithError(ex.Message, returnTo);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Google OAuth callback failed");
-            return RedirectWithError($"Sign-in failed: {ex.Message}");
+            return RedirectWithError("OAuth connection failed. Please try again.", returnTo);
         }
     }
 
@@ -105,7 +111,7 @@ public sealed class AuthController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return RedirectWithError(ex.Message);
+            return RedirectWithError(ex.Message, returnTo);
         }
     }
 
@@ -115,14 +121,15 @@ public sealed class AuthController : ControllerBase
         [FromQuery] string state,
         CancellationToken ct)
     {
+        string? returnTo = null;
         try
         {
             var savedState = Request.Cookies["oauth-state"];
             Response.Cookies.Delete("oauth-state");
-            var returnTo = GetAndClearReturnToCookie();
+            returnTo = GetAndClearReturnToCookie();
 
             if (string.IsNullOrEmpty(savedState) || savedState != state)
-                return RedirectWithError("Invalid OAuth state — please try signing in again.");
+                return RedirectWithError("Invalid OAuth state - please try signing in again.", returnTo);
 
             var result = await _authService.HandleGitHubCallbackAsync(code, ct: ct);
             await SaveIntegrationOAuthCredentialAsync("github", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
@@ -139,10 +146,15 @@ public sealed class AuthController : ControllerBase
             _logger.LogInformation("OAuth: GitHub login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
             return Redirect(BuildFrontendRedirect(returnTo));
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "GitHub OAuth callback failed");
+            return RedirectWithError(ex.Message, returnTo);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "GitHub OAuth callback failed");
-            return RedirectWithError($"Sign-in failed: {ex.Message}");
+            return RedirectWithError("OAuth connection failed. Please try again.", returnTo);
         }
     }
 
@@ -183,8 +195,13 @@ public sealed class AuthController : ControllerBase
         return new Uri(frontendOrigin, path).ToString();
     }
 
-    private IActionResult RedirectWithError(string message)
-        => Redirect(BuildFrontendRedirect($"/login?error={Uri.EscapeDataString(message)}"));
+    private IActionResult RedirectWithError(string message, string? returnTo = null)
+    {
+        var target = IsIntegrationReturn(returnTo)
+            ? AppendQueryParameter(returnTo!, "oauthError", message)
+            : $"/login?error={Uri.EscapeDataString(message)}";
+        return Redirect(BuildFrontendRedirect(target));
+    }
 
     private async Task SaveIntegrationOAuthCredentialAsync(
         string provider,
@@ -211,7 +228,22 @@ public sealed class AuthController : ControllerBase
             ct);
     }
 
-    private static bool IsIntegrationReturn(string returnTo)
-        => returnTo.StartsWith("/integrations/", StringComparison.Ordinal)
-            || string.Equals(returnTo, "/integrations", StringComparison.Ordinal);
+    private static bool IsIntegrationReturn(string? returnTo)
+    {
+        if (!IsSafeLocalPath(returnTo))
+            return false;
+
+        var path = returnTo!.Split('?', '#')[0];
+        return path.StartsWith("/integrations/", StringComparison.Ordinal)
+            || string.Equals(path, "/integrations", StringComparison.Ordinal);
+    }
+
+    private static string AppendQueryParameter(string path, string name, string value)
+    {
+        var hashIndex = path.IndexOf('#', StringComparison.Ordinal);
+        var fragment = hashIndex >= 0 ? path[hashIndex..] : string.Empty;
+        var withoutFragment = hashIndex >= 0 ? path[..hashIndex] : path;
+        var separator = withoutFragment.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+        return $"{withoutFragment}{separator}{Uri.EscapeDataString(name)}={Uri.EscapeDataString(value)}{fragment}";
+    }
 }

@@ -81,6 +81,7 @@ export default function IntegrationDetailPage({
   const disconnectIntegration = useDisconnectIntegration();
   const [runtimeMode, setRuntimeMode] = useState<"regular" | "indexed">("regular");
   const requestedTab = searchParams.get("tab");
+  const oauthError = searchParams.get("oauthError");
 
   if (!integration) {
     if (loading) return <IntegrationSkeleton />;
@@ -105,6 +106,17 @@ export default function IntegrationDetailPage({
       await deleteIntegration(currentIntegration.name);
     }
     router.push("/integrations");
+  }
+
+  function dismissOAuthError() {
+    const params = new URLSearchParams(searchParams);
+    params.delete("oauthError");
+    const query = params.toString();
+    router.replace(
+      query
+        ? `/integrations/${currentIntegration.name}?${query}`
+        : `/integrations/${currentIntegration.name}`,
+    );
   }
 
   return (
@@ -272,7 +284,27 @@ export default function IntegrationDetailPage({
         </PageContainer>
       </div>
 
-      <PageContainer width="wide" className="flex flex-1 flex-col">
+      <PageContainer width="wide" className="flex flex-1 flex-col gap-4">
+        {oauthError ? (
+          <div
+            role="alert"
+            className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            <span className="flex min-w-0 items-start gap-2">
+              <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
+              <span>{oauthError}</span>
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-auto px-1 py-0 text-destructive hover:bg-destructive/10"
+              onClick={dismissOAuthError}
+            >
+              Dismiss
+            </Button>
+          </div>
+        ) : null}
+
         {tab === "tools" && (
           <IntegrationToolsTab
             integration={integration}

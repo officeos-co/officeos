@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  AlertTriangleIcon,
   CheckCircle2Icon,
   DatabaseIcon,
   PlusIcon,
@@ -50,6 +51,7 @@ import { CustomMcpJsonEditor } from "./custom-mcp-json-editor";
 
 export function IntegrationsList() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { integrations, loading } = useIntegrations();
   const { integrations: catalogIntegrations } = useIntegrationCatalog();
   const { currentWorkspace } = useWorkspaces();
@@ -60,6 +62,7 @@ export function IntegrationsList() {
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [customMcpOpen, setCustomMcpOpen] = useState(false);
+  const oauthError = searchParams.get("oauthError");
 
   const sorted = useMemo(
     () => sortIntegrations(integrations),
@@ -121,6 +124,13 @@ export function IntegrationsList() {
     setSelectedNames(new Set());
   }
 
+  function dismissOAuthError() {
+    const params = new URLSearchParams(searchParams);
+    params.delete("oauthError");
+    const query = params.toString();
+    router.replace(query ? `/integrations?${query}` : "/integrations");
+  }
+
   return (
     <>
       <PageHeader
@@ -146,6 +156,26 @@ export function IntegrationsList() {
         }
       />
       <PageContainer width="wide" className="flex flex-1 flex-col gap-4 pb-4">
+        {oauthError ? (
+          <div
+            role="alert"
+            className="flex items-start justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            <span className="flex min-w-0 items-start gap-2">
+              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+              <span>{oauthError}</span>
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-auto px-1 py-0 text-destructive hover:bg-destructive/10"
+              onClick={dismissOAuthError}
+            >
+              Dismiss
+            </Button>
+          </div>
+        ) : null}
+
         <div className="flex min-h-9 items-center justify-between gap-2">
           <SearchInput
             placeholder="Search integrations..."

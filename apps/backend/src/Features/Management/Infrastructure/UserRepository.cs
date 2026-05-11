@@ -10,8 +10,9 @@ internal sealed class UserRepository : IUserRepository
         string googleSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
         email = NormalizeEmail(email);
-        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct)
-            ?? await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var subjectEntity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubjectId == googleSubjectId, ct);
+        var emailEntity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var entity = ResolveProviderUser(subjectEntity, emailEntity, clearProviderSubject: user => user.GoogleSubjectId = null);
         if (entity is null)
         {
             entity = new UserEntity
@@ -42,8 +43,9 @@ internal sealed class UserRepository : IUserRepository
         string gitHubSubjectId, string email, string? name, string? avatarUrl, CancellationToken ct)
     {
         email = NormalizeEmail(email);
-        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GitHubSubjectId == gitHubSubjectId, ct)
-            ?? await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var subjectEntity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.GitHubSubjectId == gitHubSubjectId, ct);
+        var emailEntity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        var entity = ResolveProviderUser(subjectEntity, emailEntity, clearProviderSubject: user => user.GitHubSubjectId = null);
         if (entity is null)
         {
             entity = new UserEntity
@@ -152,4 +154,16 @@ internal sealed class UserRepository : IUserRepository
     };
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static UserEntity? ResolveProviderUser(
+        UserEntity? subjectEntity,
+        UserEntity? emailEntity,
+        Action<UserEntity> clearProviderSubject)
+    {
+        if (subjectEntity is null || emailEntity is null || subjectEntity.Id == emailEntity.Id)
+            return subjectEntity ?? emailEntity;
+
+        clearProviderSubject(subjectEntity);
+        return emailEntity;
+    }
 }
