@@ -124,7 +124,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
             return pod.Status?.Phase?.ToLowerInvariant() switch
             {
                 "running" => "running",
-                "pending" => "pending",
+                "pending" => "booting",
                 "succeeded" => "stopped",
                 "failed" => "failed",
                 _ => "unknown",

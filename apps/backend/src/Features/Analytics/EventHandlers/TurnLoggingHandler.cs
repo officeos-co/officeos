@@ -31,11 +31,9 @@ internal sealed class TurnLoggingHandler :
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
     }
 
-    public async Task Handle(PodConnectedEvent e, CancellationToken ct)
+    public Task Handle(PodConnectedEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.System(e.AgentId, "Pod connected",
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
+        return Task.CompletedTask;
     }
 
     public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)

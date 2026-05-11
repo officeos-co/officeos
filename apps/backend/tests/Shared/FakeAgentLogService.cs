@@ -25,6 +25,20 @@ public sealed class FakeAgentLogService : IAgentLogService
     public Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default) =>
         Task.FromResult(new List<AgentLogRecord>());
 
+    public Task<string?> GetLastRelevantMessageForAgentAsync(Guid agentId, Guid? workspaceId = null, CancellationToken ct = default) =>
+        Task.FromResult<string?>(null);
+
+    public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForAgentsAsync(IReadOnlyCollection<Guid> agentIds, Guid? workspaceId = null, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyDictionary<Guid, string?>>(
+            agentIds.Distinct().ToDictionary(agentId => agentId, _ => (string?)null));
+
+    public Task<string?> GetLastRelevantMessageForChannelConnectionAsync(Guid channelConnectionId, Guid? workspaceId = null, CancellationToken ct = default) =>
+        Task.FromResult<string?>(null);
+
+    public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForChannelConnectionsAsync(IReadOnlyCollection<Guid> channelConnectionIds, Guid? workspaceId = null, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyDictionary<Guid, string?>>(
+            channelConnectionIds.Distinct().ToDictionary(channelConnectionId => channelConnectionId, _ => (string?)null));
+
     public Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersRequest filters, CancellationToken ct = default) =>
         Task.FromResult(new GlobalLogsPage([], 0));
 

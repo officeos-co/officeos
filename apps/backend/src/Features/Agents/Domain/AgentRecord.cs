@@ -11,7 +11,7 @@ public sealed class AgentRecord
 
     public string? Model { get; set; }
 
-    public AgentStatus Status { get; set; } = AgentStatus.Pending;
+    public AgentStatus Status { get; set; } = AgentStatus.Booting;
 
     public string? PodName { get; set; }
 
@@ -61,7 +61,7 @@ public sealed class AgentRecord
     {
         PodName = podName;
         ServiceUrl = serviceUrl;
-        Status = AgentStatus.Running;
+        Status = AgentStatus.Idle;
     }
 
     /// <summary>Marks the agent as failed to deploy.</summary>
@@ -83,7 +83,7 @@ public sealed class AgentRecord
         {
             Name = name.Trim(),
             Provider = provider.Trim().ToLowerInvariant(),
-            Status = AgentStatus.Pending,
+            Status = AgentStatus.Booting,
             OwnerId = ownerId,
             WorkspaceId = workspaceId,
             Prompt = string.IsNullOrWhiteSpace(prompt) ? null : prompt,

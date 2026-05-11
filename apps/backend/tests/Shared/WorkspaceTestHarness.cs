@@ -77,7 +77,9 @@ public sealed record WorkspaceTestHarness(
             channelRepository,
             new FakeChannelService(),
             new FakeBrowserService(),
+            new FakeAgentDeployer(),
             new AgentRunRepository(db),
+            new FakeAgentLogService(),
             agentDefinitionParser);
 
         return new WorkspaceTestHarness(

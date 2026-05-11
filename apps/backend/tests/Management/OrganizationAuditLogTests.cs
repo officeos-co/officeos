@@ -304,7 +304,7 @@ public sealed class OrganizationAuditLogTests
             Name = "Runtime Agent",
             Provider = "openai",
             Model = "gpt-4o-mini",
-            Status = AgentStatus.Running.ToStorageString(),
+            Status = AgentStatus.Idle.ToStorageString(),
             CreatedAt = DateTime.UtcNow,
         });
         await db.SaveChangesAsync();

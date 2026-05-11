@@ -7,7 +7,8 @@ public sealed record ChannelConnectionPayload(
     string ChannelType,
     string DisplayName,
     bool Enabled,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? LastRelevantMessage);
 
 public sealed record AgentChannelBindingPayload(
     Guid Id,
@@ -43,12 +44,13 @@ internal static class ChannelGraphQLMapper
         PropertyNameCaseInsensitive = true,
     };
 
-    public static ChannelConnectionPayload ToPayload(ChannelConnectionRecord r) => new(
+    public static ChannelConnectionPayload ToPayload(ChannelConnectionRecord r, string? lastRelevantMessage = null) => new(
         r.Id,
         r.ChannelType.ToStorageString(),
         r.DisplayName,
         r.Enabled,
-        r.CreatedAt);
+        r.CreatedAt,
+        lastRelevantMessage);
 
     public static AgentChannelBindingPayload ToPayload(AgentChannelBindingRecord r) => new(
         r.Id,
