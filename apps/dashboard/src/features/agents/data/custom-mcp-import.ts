@@ -38,7 +38,7 @@ export type ParsedCustomMcpServer = {
     authorUrl: string;
     documentationUrl: string;
     repositoryUrl: string;
-    toolsJson?: string | null;
+    tools?: Array<{ name: string; description: string }> | null;
     transportType: string;
     command?: string | null;
     args?: string | null;
@@ -144,7 +144,7 @@ function parseServer(name: string, value: unknown): ParsedCustomMcpServer {
       authorUrl: "",
       documentationUrl: "",
       repositoryUrl: "",
-      toolsJson: null,
+      tools: null,
       transportType: "stdio",
       command: command.trim(),
       args: args.length > 0 ? JSON.stringify(args) : null,

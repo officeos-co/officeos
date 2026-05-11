@@ -94,7 +94,7 @@ export type AtlasConnectorType = {
   documentationUrl?: string | null;
   repositoryUrl?: string | null;
   logo: string;
-  toolsJson?: string | null;
+  tools?: Array<{ name: string; description: string }> | null;
   category: string;
   oauthProvider?: string | null;
   oauthScopesJson?: string | null;
@@ -166,7 +166,10 @@ const ATLAS_CONNECTOR_TYPES = gql`
       documentationUrl
       repositoryUrl
       logo
-      toolsJson
+      tools {
+        name
+        description
+      }
       category
       oauthProvider
       oauthScopesJson

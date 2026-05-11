@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { EmptyState } from "@/ui/empty-state";
 import { HelpTooltip } from "@/ui/help-tooltip";
 import { Label } from "@/ui/label";
@@ -23,11 +22,7 @@ import {
   sortIntegrations,
 } from "../api/useIntegrations";
 import { useAgentBindings } from "../api/useAgentBindings";
-import {
-  useAgentToolCatalog,
-  useAgentToolPermissions,
-  useSetAgentToolPermissions,
-} from "../api/useAgents";
+import { useAgentToolCatalog } from "../api/useAgents";
 import type { McpServer } from "../data/integrations";
 import {
   type AtlasConnection,
@@ -45,117 +40,19 @@ import {
 } from "@/ui/table";
 import {
   AlertTriangleIcon,
-  DatabaseIcon,
   ExternalLinkIcon,
   MonitorIcon,
   TerminalIcon,
 } from "lucide-react";
-
-function graphQLErrorMessage(error: unknown, fallback: string) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "graphQLErrors" in error &&
-    Array.isArray(error.graphQLErrors)
-  ) {
-    const first = error.graphQLErrors[0] as { message?: unknown } | undefined;
-    if (typeof first?.message === "string") return first.message;
-  }
-  return fallback;
-}
 
 export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
   const { integrations } = useIntegrations();
   const { skillSlugs } = useAgentBindings(agentId);
   const { tools: toolCatalog } = useAgentToolCatalog(agentId);
   const { connections } = useIntegrationConnections({ pollInterval: 5000 });
-  const { permissions: savedToolPermissions } =
-    useAgentToolPermissions(agentId);
-  const { setAgentToolPermissions } = useSetAgentToolPermissions();
-  const [toolPermissions, setToolPermissions] = useState<
-    Record<string, ToolPermission>
-  >({});
-  const [groupPermissions, setGroupPermissions] = useState<
-    Record<string, ToolPermission>
-  >({});
   const [view, setView] = useState<"tools" | "data">("tools");
-  const lastSyncedPermissionsRef = useRef<string>("");
-
-  useEffect(() => {
-    const key = savedToolPermissions
-      .map((p) => `${p.skillName}:${p.toolName}:${p.mode}`)
-      .sort()
-      .join("|");
-    if (key === lastSyncedPermissionsRef.current) return;
-    lastSyncedPermissionsRef.current = key;
-
-    const nextTools: Record<string, ToolPermission> = {};
-    const nextGroups: Record<string, ToolPermission> = {};
-    for (const permission of savedToolPermissions) {
-      const mode = permission.mode === "DENY" ? "deny" : "allow";
-      if (permission.toolName) {
-        nextTools[`${permission.skillName}:${permission.toolName}`] = mode;
-      } else {
-        nextGroups[permission.skillName] = mode;
-      }
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setToolPermissions(nextTools);
-    setGroupPermissions(nextGroups);
-  }, [savedToolPermissions]);
-
-  async function persistToolPermissions(
-    nextTools: Record<string, ToolPermission>,
-    nextGroups: Record<string, ToolPermission>,
-  ) {
-    const entries: Array<{
-      skill: string;
-      tool: string;
-      mode: "ALLOW" | "DENY";
-    }> = [];
-
-    for (const [key, permission] of Object.entries(nextTools)) {
-      const [skill, ...toolParts] = key.split(":");
-      entries.push({
-        skill,
-        tool: toolParts.join(":"),
-        mode: permission === "deny" ? "DENY" : "ALLOW",
-      });
-    }
-
-    for (const [skill, permission] of Object.entries(nextGroups)) {
-      entries.push({
-        skill,
-        tool: "",
-        mode: permission === "deny" ? "DENY" : "ALLOW",
-      });
-    }
-
-    try {
-      await setAgentToolPermissions(agentId, entries);
-    } catch (error) {
-      toast.error(graphQLErrorMessage(error, "Failed to save tool permissions"));
-    }
-  }
-
-  function updateToolPermission(key: string, permission: ToolPermission) {
-    const next = { ...toolPermissions, [key]: permission };
-    setToolPermissions(next);
-    void persistToolPermissions(next, groupPermissions);
-  }
-
-  function updateGroupPermission(skill: string, permission: ToolPermission) {
-    const next = { ...groupPermissions, [skill]: permission };
-    setGroupPermissions(next);
-    void persistToolPermissions(toolPermissions, next);
-  }
-
-  function updateIndexedDataMode(integrationName: string, enabled: boolean) {
-    updateToolPermission(
-      `${integrationName}:__indexed_data`,
-      enabled ? "allow" : "deny",
-    );
-  }
+  const toolPermissions = useMemo<Record<string, ToolPermission>>(() => ({}), []);
+  const noopPermissionChange = () => {};
 
   const activeIntegrations = sortIntegrations(integrations).filter((i) =>
     skillSlugs.includes(i.name),
@@ -186,13 +83,13 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
         <Label>
           Permissions
           <HelpTooltip>
-            Agent integrations are fixed after creation. This page controls
-            which tools the already-attached MCP servers may expose.
+            Agent integrations and tool access are fixed when the agent is
+            created.
           </HelpTooltip>
         </Label>
         <p className="text-xs text-muted-foreground">
-          Tool access is mutable. Attached MCP servers and channel resources are
-          managed outside the agent detail view.
+          This view shows the backend-owned tool catalog exposed to this agent.
+          Create a new agent to change integrations or tool policy.
         </p>
       </div>
 
@@ -266,12 +163,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
             icon={<TerminalIcon className="size-4" />}
             tools={backendBuiltInTools}
             permissions={toolPermissions}
-            onToggle={updateToolPermission}
-            groupPerm={groupPermissions["builtin"] ?? "allow"}
-            onGroupPerm={(permission) =>
-              updateGroupPermission("builtin", permission)
-            }
+            onToggle={noopPermissionChange}
+            groupPerm="allow"
+            onGroupPerm={noopPermissionChange}
             prefix="builtin"
+            disabled
           />
           {backendBrowserTools.length > 0 && (
             <ToolPermissionCard
@@ -280,60 +176,16 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
               icon={<MonitorIcon className="size-4" />}
               tools={backendBrowserTools}
               permissions={toolPermissions}
-              onToggle={updateToolPermission}
-              groupPerm={groupPermissions["browser"] ?? "allow"}
-              onGroupPerm={(permission) =>
-                updateGroupPermission("browser", permission)
-              }
+              onToggle={noopPermissionChange}
+              groupPerm="allow"
+              onGroupPerm={noopPermissionChange}
               prefix="browser"
+              disabled
             />
           )}
           {activeIntegrations.map((integration) => {
-            const indexedDataEnabled =
-              toolPermissions[`${integration.name}:__indexed_data`] === "allow";
-            const indexState = getIndexState(integration, connections);
-
             return (
               <div key={integration.name} className="space-y-3">
-                {integration.isIndexable ? (
-                  <div className="rounded-lg border border-border p-4">
-                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px] md:items-center">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <DatabaseIcon className="size-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">
-                            {integration.title} indexed data
-                          </span>
-                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            {indexState.label}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {indexState.description}
-                        </p>
-                      </div>
-                      <Select
-                        value={indexedDataEnabled ? "tools_index" : "tools"}
-                        onValueChange={(value) =>
-                          updateIndexedDataMode(
-                            integration.name,
-                            value === "tools_index",
-                          )
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tools">MCP tools only</SelectItem>
-                          <SelectItem value="tools_index">
-                            MCP tools and indexed data
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                ) : null}
                 <ToolPermissionCard
                   title={integration.title}
                   subtitle={integration.name}
@@ -345,12 +197,11 @@ export function AgentIntegrationsTab({ agentId }: { agentId: string }) {
                   }
                   tools={integration.tools}
                   permissions={toolPermissions}
-                  onToggle={updateToolPermission}
-                  groupPerm={groupPermissions[integration.name] ?? "allow"}
-                  onGroupPerm={(permission) =>
-                    updateGroupPermission(integration.name, permission)
-                  }
+                  onToggle={noopPermissionChange}
+                  groupPerm="allow"
+                  onGroupPerm={noopPermissionChange}
                   prefix={integration.name}
+                  disabled
                 />
               </div>
             );
@@ -509,54 +360,6 @@ function AgentDataExplorer({
       </div>
     </section>
   );
-}
-
-function getIndexState(
-  integration: { provider?: string; name: string; entities: string[] },
-  connections: Array<{
-    provider: string;
-    status: string;
-    entityStatuses: Array<{ recordCount: number }>;
-  }>,
-) {
-  const matching = connections.filter((connection) =>
-    providerMatches(connection.provider, integration.provider ?? integration.name),
-  );
-  const records = matching.reduce(
-    (sum, connection) =>
-      sum +
-      connection.entityStatuses.reduce(
-        (entitySum, entity) => entitySum + entity.recordCount,
-        0,
-      ),
-    0,
-  );
-  const active = matching.find((connection) => connection.status === "Indexing");
-  const ready = matching.find((connection) => connection.status === "Ready");
-  const failed = matching.find((connection) => connection.status === "Failed");
-
-  if (active) {
-    return {
-      label: "Indexing",
-      description: `${records} indexed records are available while the index refreshes.`,
-    };
-  }
-  if (ready || records > 0) {
-    return {
-      label: "Indexed",
-      description: `${records} records indexed across ${matching.length} source${matching.length === 1 ? "" : "s"}.`,
-    };
-  }
-  if (failed) {
-    return {
-      label: "Index failed",
-      description: "The latest indexing run failed. Check the integration data explorer for details.",
-    };
-  }
-  return {
-    label: "Not indexed",
-    description: `${integration.entities.length} indexable data type${integration.entities.length === 1 ? "" : "s"} are available.`,
-  };
 }
 
 function providerMatches(left: string, right: string) {

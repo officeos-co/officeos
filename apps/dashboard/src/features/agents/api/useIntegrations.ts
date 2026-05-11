@@ -33,7 +33,10 @@ const MCP_SERVERS_QUERY = gql`
       authorUrl
       documentationUrl
       repositoryUrl
-      toolsJson
+      tools {
+        name
+        description
+      }
       capabilitiesJson
       entities
       isBuiltin
@@ -66,7 +69,10 @@ const MCP_SERVER_QUERY = gql`
       authorUrl
       documentationUrl
       repositoryUrl
-      toolsJson
+      tools {
+        name
+        description
+      }
       capabilitiesJson
       entities
       isBuiltin
@@ -121,7 +127,10 @@ const REGISTER_MCP_SERVER = gql`
       authorUrl
       documentationUrl
       repositoryUrl
-      toolsJson
+      tools {
+        name
+        description
+      }
       isBuiltin
       createdAt
     }
@@ -162,7 +171,7 @@ type RawMcpServer = {
   authorUrl: string | null;
   documentationUrl: string | null;
   repositoryUrl: string | null;
-  toolsJson: string | null;
+  tools: Tool[] | null;
   capabilitiesJson: string | null;
   entities: string[] | null;
   isBuiltin: boolean;
@@ -185,18 +194,12 @@ function parseCredentialFields(json: string | null): CredentialField[] {
   }
 }
 
-function parseTools(json: string | null): Tool[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((t: Record<string, unknown>) => ({
-      name: String(t.name ?? ""),
-      description: String(t.description ?? ""),
-    }));
-  } catch {
-    return [];
-  }
+function parseTools(tools: Tool[] | null): Tool[] {
+  if (!Array.isArray(tools)) return [];
+  return tools.map((tool) => ({
+    name: String(tool.name ?? ""),
+    description: String(tool.description ?? ""),
+  }));
 }
 
 function parseCapabilities(json: string | null): IntegrationCapability[] {
@@ -263,7 +266,7 @@ function mapIntegration(s: RawMcpServer): McpServer {
     authorUrl: s.authorUrl ?? "",
     documentationUrl: s.documentationUrl ?? "",
     repositoryUrl: s.repositoryUrl ?? "",
-    tools: parseTools(s.toolsJson),
+    tools: parseTools(s.tools),
     capabilities: parseCapabilities(s.capabilitiesJson),
     entities: s.entities ?? [],
     isIndexable: (s.entities ?? []).length > 0,
@@ -322,7 +325,7 @@ export type RegisterIntegrationInput = {
   authorUrl: string;
   documentationUrl: string;
   repositoryUrl: string;
-  toolsJson?: string | null;
+  tools?: Tool[] | null;
   transportType: string;
   command?: string | null;
   args?: string | null;

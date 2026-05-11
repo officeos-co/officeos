@@ -229,9 +229,8 @@ export function AgentCreateDialog({
         model: selectedModel,
         provider: selectedModelInfo?.provider ?? "anthropic",
         systemPrompt: startupPrompt,
-        toolNames: Array.from(selectedConnectorNames),
-        toolPermissions: [],
-        channelSlugs: [],
+        integrationSlugs: Array.from(selectedConnectorNames),
+        channelConnectionIds: [],
         resources: resources
           .filter((resource) => resource.type !== "connector")
           .map((resource) => ({

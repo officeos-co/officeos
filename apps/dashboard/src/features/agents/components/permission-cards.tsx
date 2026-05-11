@@ -18,7 +18,15 @@ import {
 
 export type ToolPermission = PermissionMode
 
-export function PermissionCycleButton({ value, onChange }: { value: ToolPermission; onChange: (p: ToolPermission) => void }) {
+export function PermissionCycleButton({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: ToolPermission;
+  onChange: (p: ToolPermission) => void;
+  disabled?: boolean;
+}) {
   const tooltip = value === "allow"
     ? "Allowed means the agent may call this tool without an extra approval prompt."
     : "Deny means the tool is hidden from the agent and blocked at execution time."
@@ -28,6 +36,7 @@ export function PermissionCycleButton({ value, onChange }: { value: ToolPermissi
         <PermissionModeSelect
           value={value}
           onChange={(permission) => onChange(permission)}
+          disabled={disabled}
         />
       </span>
     </WithTooltip>
@@ -37,11 +46,11 @@ export function PermissionCycleButton({ value, onChange }: { value: ToolPermissi
 /* ── Tool permission card ────────────────────────────────── */
 
 export function ToolPermissionCard({
-  title, subtitle, icon, tools, permissions, onToggle, groupPerm, onGroupPerm, prefix,
+  title, subtitle, icon, tools, permissions, onToggle, groupPerm, onGroupPerm, prefix, disabled = false,
 }: {
   title: string; subtitle?: string; icon: React.ReactNode; tools: Tool[]
   permissions: Record<string, ToolPermission>; onToggle: (key: string, p: ToolPermission) => void
-  groupPerm: ToolPermission; onGroupPerm: (p: ToolPermission) => void; prefix: string
+  groupPerm: ToolPermission; onGroupPerm: (p: ToolPermission) => void; prefix: string; disabled?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   return (
@@ -59,7 +68,7 @@ export function ToolPermissionCard({
           <span className="text-xs font-medium">Tool permissions</span>
           <HelpTooltip side="right">Group permissions apply to every tool in this section unless a specific tool has its own override.</HelpTooltip>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{tools.length}</span>
-          <span className="ml-auto"><PermissionCycleButton value={groupPerm} onChange={onGroupPerm} /></span>
+          <span className="ml-auto"><PermissionCycleButton value={groupPerm} onChange={onGroupPerm} disabled={disabled} /></span>
         </button>
         {expanded && tools.map((tool) => {
           const key = `${prefix}:${tool.name}`
@@ -68,7 +77,7 @@ export function ToolPermissionCard({
             <div key={tool.name} className="flex items-center gap-4 px-4 py-2.5 border-t border-border">
               <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs min-w-[100px]">{tool.name}</code>
               <span className="flex-1 text-sm text-muted-foreground">{tool.description}</span>
-              <PermissionCycleButton value={perm} onChange={(p) => onToggle(key, p)} />
+              <PermissionCycleButton value={perm} onChange={(p) => onToggle(key, p)} disabled={disabled} />
             </div>
           )
         })}

@@ -21,7 +21,10 @@ query Integrations {
     authorUrl
     documentationUrl
     repositoryUrl
-    toolsJson
+    tools {
+      name
+      description
+    }
     capabilitiesJson
     entities
     isBuiltin
@@ -52,7 +55,10 @@ query Integration($name: String!) {
     authorUrl
     documentationUrl
     repositoryUrl
-    toolsJson
+    tools {
+      name
+      description
+    }
     capabilitiesJson
     entities
     isBuiltin
@@ -103,7 +109,10 @@ mutation RegisterIntegration($input: RegisterIntegrationInput!) {
     authorUrl
     documentationUrl
     repositoryUrl
-    toolsJson
+    tools {
+      name
+      description
+    }
     isBuiltin
     createdAt
   }
