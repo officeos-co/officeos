@@ -12,7 +12,11 @@ Open-source infrastructure for deploying, hosting, and managing fleets of AI age
 </p>
 
 <p align="center">
-<a href="https://officeos.co">Website</a> · <a href="https://docs.officeos.co">Docs</a> · <a href="https://docs.officeos.co/quickstart">Getting Started</a> · <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a>
+  <a href="https://officeos.co">Website</a> · 
+  <a href="https://docs.officeos.co">Docs</a> · 
+  <a href="https://docs.officeos.co/quickstart">Getting Started</a> · 
+  <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a> ·
+  <a href="https://discord.gg/TyvRBzsQP">Discord</a>
 </p>
 
 <br/>
