@@ -6,7 +6,9 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddScoped<IAgentService, AgentService>();
         services.AddScoped<IAgentDashboardService, AgentDashboardService>();
-        services.AddScoped<IAgentCronJobService, AgentCronJobService>();
+        services.AddScoped<IAgentRoutineService, AgentRoutineService>();
+        services.AddScoped<AgentRoutineExecutionService>();
+        services.AddScoped<IAgentRoutineExecutionService>(provider => provider.GetRequiredService<AgentRoutineExecutionService>());
         services.AddScoped<IAgentSessionService, AgentSessionService>();
         services.AddScoped<IAgentResourceService, AgentResourceService>();
         services.AddScoped<ProviderService>();
@@ -57,7 +59,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AgentTurnService>();
 
         // Background services
-        services.AddHostedService<CronJobSchedulerService>();
+        services.AddHostedService<AgentRoutineSchedulerService>();
         services.AddHostedService<IntegrationIndexSchedulerService>();
         services.AddHostedService<AgentRuntimeCleanupService>();
 

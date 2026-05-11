@@ -47,7 +47,6 @@ public sealed class AgentRecord
 
     public IReadOnlyList<AgentPersonalityRecord> PersonalityFiles { get; init; } = [];
     public IReadOnlyList<AgentMemoryRecord> Memories { get; init; } = [];
-    public IReadOnlyList<AgentCronJobRecord> CronJobs { get; init; } = [];
     public IReadOnlyList<AgentRateLimitRecord> RateLimits { get; init; } = [];
     public IReadOnlyList<AgentChannelBindingRecord> ChannelBindings { get; init; } = [];
     public AgentSessionRecord? ActiveSession { get; init; }

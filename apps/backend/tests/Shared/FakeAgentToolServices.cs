@@ -3,6 +3,7 @@ using OffceOs.Application.Features.Agents;
 using OffceOs.Application.Features.Context;
 using OffceOs.Domain.Common.Primitives;
 using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.AgentRoutines;
 using OffceOs.Domain.Features.Context;
 using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Features.Management;
@@ -35,27 +36,29 @@ public sealed class FakeAgentMemoryService : IAgentMemoryService
     public Task<bool> ForgetAsync(Guid agentId, string key, CancellationToken ct = default) => Task.FromResult(false);
 }
 
-public sealed class FakeAgentCronJobRepository : IAgentCronJobRepository
+public sealed class FakeAgentRoutineRepository : IAgentRoutineRepository
 {
-    public Task<IReadOnlyList<AgentCronJobRecord>> ListAsync(Guid agentId, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<AgentCronJobRecord>>([]);
+    public Task<IReadOnlyList<AgentRoutineRecord>> ListAsync(AgentRoutineFilter filter, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentRoutineRecord>>([]);
 
-    public Task<IReadOnlyList<AgentCronJobWithAgentRecord>> ListForOwnerAsync(Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<AgentCronJobWithAgentRecord>>([]);
+    public Task<IReadOnlyList<AgentRoutineWithAgentRecord>> ListForOwnerAsync(Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentRoutineWithAgentRecord>>([]);
 
-    public Task<IReadOnlyList<AgentCronJobRecord>> ListAllEnabledAsync(CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<AgentCronJobRecord>>([]);
+    public Task<IReadOnlyList<AgentRoutineRecord>> ListAllEnabledAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentRoutineRecord>>([]);
 
-    public Task<AgentCronJobRecord?> GetByAsync(AgentCronJobFilter filter, CancellationToken ct = default) =>
-        Task.FromResult<AgentCronJobRecord?>(null);
+    public Task<AgentRoutineRecord?> GetByAsync(AgentRoutineFilter filter, CancellationToken ct = default) =>
+        Task.FromResult<AgentRoutineRecord?>(null);
 
-    public Task<AgentCronJobWithAgentRecord?> GetForOwnerAsync(Guid id, Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default) =>
-        Task.FromResult<AgentCronJobWithAgentRecord?>(null);
+    public Task<AgentRoutineWithAgentRecord?> GetForOwnerAsync(Guid id, Guid? ownerId, Guid? workspaceId = null, CancellationToken ct = default) =>
+        Task.FromResult<AgentRoutineWithAgentRecord?>(null);
 
-    public Task<AgentCronJobRecord> CreateAsync(Guid agentId, string name, string expression, string prompt, CancellationToken ct = default) =>
-        Task.FromResult(AgentCronJobRecord.Create(agentId, name, expression, prompt));
+    public Task<AgentRoutineTriggerRecord?> GetTriggerByAsync(Guid triggerId, CancellationToken ct = default) =>
+        Task.FromResult<AgentRoutineTriggerRecord?>(null);
 
-    public Task UpdateAsync(AgentCronJobRecord record, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<AgentRoutineRecord> UpsertAsync(AgentRoutineRecord record, CancellationToken ct = default) =>
+        Task.FromResult(record);
+
     public Task SetEnabledAsync(Guid id, bool enabled, CancellationToken ct = default) => Task.CompletedTask;
     public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default) => Task.FromResult(false);
 }

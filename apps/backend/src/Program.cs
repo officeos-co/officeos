@@ -337,6 +337,8 @@ app.UseWebSockets();
 app.MapGet("/api/health", () => Results.Ok(new { ok = true }));
 app.MapPost("/api/channels/inbound", ChannelInboundEndpoint.Handle);
 app.MapGet("/api/channels/active", ChannelActiveEndpoint.Handle);
+app.MapPost("/api/agent-routines/triggers/{triggerId:guid}/invoke", RoutineApiEndpoint.Handle);
+app.MapPost("/api/agent-routines/github/webhook", RoutineGitHubWebhookEndpoint.Handle);
 
 app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
     .RequireCors(FrontendCorsPolicy);

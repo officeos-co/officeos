@@ -10,7 +10,7 @@ internal static class ToolRegistryTestFactory
     public static ToolRegistryFactory CreateFactory(OrganizationPolicyProfileRecord? policy) =>
         new(
             new FakeAgentMemoryService(),
-            new FakeAgentCronJobRepository(),
+            new FakeAgentRoutineRepository(),
             new FakeAgentRunRepository(),
             new AgentTaskStore(),
             new ThrowingIntegrationClientManager(),

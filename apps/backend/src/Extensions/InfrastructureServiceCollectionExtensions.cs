@@ -40,7 +40,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
         services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();
         services.AddScoped<IAgentPersonalityRepository, AgentPersonalityRepository>();
-        services.AddScoped<IAgentCronJobRepository, AgentCronJobRepository>();
+        services.AddScoped<IAgentRoutineRepository, AgentRoutineRepository>();
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
         services.AddScoped<IAgentSessionContextRepository, AgentSessionContextRepository>();
         services.AddScoped<IAgentRunRepository, AgentRunRepository>();

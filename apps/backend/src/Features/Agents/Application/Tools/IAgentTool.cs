@@ -106,6 +106,6 @@ internal static class ToolPermissionPolicy
     public static bool ShouldDefer(IAgentTool tool)
         => tool.Kind is AgentToolKind.Integration
            || tool.Name.StartsWith("browser__", StringComparison.Ordinal)
-           || tool.Name.StartsWith("cron_", StringComparison.Ordinal)
+           || tool.Name.StartsWith("routine_", StringComparison.Ordinal)
            || !CoreToolNames.Contains(tool.Name);
 }

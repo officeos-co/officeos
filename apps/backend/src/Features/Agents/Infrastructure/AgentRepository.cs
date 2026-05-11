@@ -182,7 +182,6 @@ internal sealed class AgentRepository : IAgentRepository
         AgentEntity e,
         IReadOnlyList<AgentPersonalityRecord>? personalityFiles = null,
         IReadOnlyList<AgentMemoryRecord>? memories = null,
-        IReadOnlyList<AgentCronJobRecord>? cronJobs = null,
         IReadOnlyList<AgentChannelBindingRecord>? channelBindings = null,
         AgentSessionRecord? activeSession = null) => new()
     {
@@ -202,7 +201,6 @@ internal sealed class AgentRepository : IAgentRepository
         ActiveDefinitionId = e.ActiveDefinitionId,
         PersonalityFiles = personalityFiles ?? [],
         Memories = memories ?? [],
-        CronJobs = cronJobs ?? [],
         ChannelBindings = channelBindings ?? [],
         ActiveSession = activeSession,
     };
