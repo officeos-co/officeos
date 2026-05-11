@@ -125,7 +125,7 @@ internal sealed class ToolRegistryRequest
 internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryService _agentMemoryService;
-    private readonly IAgentCronJobRepository _agentCronJobRepository;
+    private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IIntegrationClientManager _integrationClientManager;
@@ -139,7 +139,7 @@ internal sealed class ToolRegistryFactory
 
     public ToolRegistryFactory(
         IAgentMemoryService memoryService,
-        IAgentCronJobRepository cronJobRepository,
+        IAgentRoutineRepository agentRoutineRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IIntegrationClientManager integrationClientManager,
@@ -152,7 +152,7 @@ internal sealed class ToolRegistryFactory
         ILogger<ToolRegistryFactory> logger)
     {
         _agentMemoryService = memoryService;
-        _agentCronJobRepository = cronJobRepository;
+        _agentRoutineRepository = agentRoutineRepository;
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
         _integrationClientManager = integrationClientManager;
@@ -184,9 +184,9 @@ internal sealed class ToolRegistryFactory
             new TaskListTool(_agentTaskStore, request.AgentId),
             new TaskGetTool(_agentTaskStore, request.AgentId),
             new TaskUpdateTool(_agentTaskStore, request.AgentId),
-            new CronCreateTool(_agentCronJobRepository, request.AgentId),
-            new CronListTool(_agentCronJobRepository, request.AgentId),
-            new CronDeleteTool(_agentCronJobRepository, request.AgentId),
+            new RoutineCreateTool(_agentRoutineRepository, request.AgentId),
+            new RoutineListTool(_agentRoutineRepository, request.AgentId),
+            new RoutineDeleteTool(_agentRoutineRepository, request.AgentId),
             new AgentSpawnTool(_agentRunRepository, request.AgentId),
             new HttpRequestTool(),
             new WebFetchTool(),

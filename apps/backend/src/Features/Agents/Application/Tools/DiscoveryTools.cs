@@ -11,7 +11,7 @@ internal sealed class ToolSearchTool : IAgentTool
     public bool IsReadOnly => true;
     public bool IsConcurrencySafe => true;
     public ToolSchema Schema => new("tool_search",
-        "Find available tools and return their full JSON schemas. Use when you need to discover integration, browser, cron, task, or less common tools.",
+        "Find available tools and return their full JSON schemas. Use when you need to discover integration, browser, routine, task, or less common tools.",
         new
         {
             type = "object",

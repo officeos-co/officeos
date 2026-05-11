@@ -35,7 +35,8 @@ public sealed class EaosDbContext : DbContext
     public DbSet<OrganizationAuditLogEntity> OrganizationAuditLogs => Set<OrganizationAuditLogEntity>();
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
-    public DbSet<AgentCronJobEntity> AgentCronJobs => Set<AgentCronJobEntity>();
+    public DbSet<AgentRoutineEntity> AgentRoutines => Set<AgentRoutineEntity>();
+    public DbSet<AgentRoutineTriggerEntity> AgentRoutineTriggers => Set<AgentRoutineTriggerEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
     public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
@@ -350,13 +351,31 @@ public sealed class EaosDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AgentCronJobEntity>(e =>
+        modelBuilder.Entity<AgentRoutineEntity>(e =>
         {
-            e.HasKey(j => j.Id);
-            e.HasIndex(j => j.AgentId);
-            e.Property(j => j.Name).IsRequired().HasMaxLength(200);
-            e.Property(j => j.Expression).IsRequired().HasMaxLength(64);
-            e.Property(j => j.Prompt).HasColumnType("text").IsRequired();
+            e.ToTable("AgentRoutines");
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.AgentId);
+            e.Property(r => r.Name).IsRequired().HasMaxLength(200);
+            e.Property(r => r.Prompt).HasColumnType("text").IsRequired();
+            e.HasOne(r => r.Agent).WithMany()
+                .HasForeignKey(r => r.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentRoutineTriggerEntity>(e =>
+        {
+            e.ToTable("AgentRoutineTriggers");
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => new { t.RoutineId, t.Kind });
+            e.Property(t => t.Kind).IsRequired().HasMaxLength(32);
+            e.Property(t => t.Name).IsRequired().HasMaxLength(200);
+            e.Property(t => t.ConfigJson).HasColumnType("jsonb").IsRequired();
+            e.Property(t => t.SecretHash).HasMaxLength(128);
+            e.Property(t => t.EncryptedSecret).HasColumnType("text");
+            e.HasOne(t => t.Routine).WithMany(r => r.Triggers)
+                .HasForeignKey(t => t.RoutineId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentSessionEntity>(e =>

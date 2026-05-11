@@ -3,7 +3,7 @@ namespace OffceOs.Application.Features.Agents;
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
     private readonly IAgentMemoryService _agentMemoryService;
-    private readonly IAgentCronJobRepository _agentCronJobRepository;
+    private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IBrowserToolService _browserToolService;
@@ -13,7 +13,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
     public AgentToolCatalogService(
         IAgentMemoryService memoryService,
-        IAgentCronJobRepository cronJobRepository,
+        IAgentRoutineRepository agentRoutineRepository,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IBrowserToolService browserToolService,
@@ -22,7 +22,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         AgentDefinitionParser agentDefinitionParser)
     {
         _agentMemoryService = memoryService;
-        _agentCronJobRepository = cronJobRepository;
+        _agentRoutineRepository = agentRoutineRepository;
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
         _browserToolService = browserToolService;
@@ -51,9 +51,9 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new TaskListTool(_agentTaskStore, effectiveAgentId),
             new TaskGetTool(_agentTaskStore, effectiveAgentId),
             new TaskUpdateTool(_agentTaskStore, effectiveAgentId),
-            new CronCreateTool(_agentCronJobRepository, effectiveAgentId),
-            new CronListTool(_agentCronJobRepository, effectiveAgentId),
-            new CronDeleteTool(_agentCronJobRepository, effectiveAgentId),
+            new RoutineCreateTool(_agentRoutineRepository, effectiveAgentId),
+            new RoutineListTool(_agentRoutineRepository, effectiveAgentId),
+            new RoutineDeleteTool(_agentRoutineRepository, effectiveAgentId),
             new AgentSpawnTool(_agentRunRepository, effectiveAgentId),
             new HttpRequestTool(),
             new WebFetchTool(),

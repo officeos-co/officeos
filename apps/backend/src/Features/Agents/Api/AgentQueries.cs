@@ -23,7 +23,7 @@ public class AgentQueries
         return result;
     }
 
-    [GraphQLDescription("Returns a single agent by ID including its full aggregate: personality files, installed skills, memories, channel bindings, and cron jobs.")]
+    [GraphQLDescription("Returns a single agent by ID including its full aggregate: personality files, installed skills, memories, channel bindings, and routines.")]
     public async Task<AgentRecord?> GetAgent(
         Guid id,
         [Service] UserContext user,

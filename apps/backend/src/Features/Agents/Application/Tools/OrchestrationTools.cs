@@ -206,14 +206,14 @@ internal sealed class TaskUpdateTool : IAgentTool
     }
 }
 
-internal sealed class CronCreateTool : IAgentTool
+internal sealed class RoutineCreateTool : IAgentTool
 {
-    private readonly IAgentCronJobRepository _agentCronJobRepository;
+    private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly Guid _agentId;
-    public CronCreateTool(IAgentCronJobRepository repo, Guid agentId) { _agentCronJobRepository = repo; _agentId = agentId; }
-    public string Name => "cron_create";
+    public RoutineCreateTool(IAgentRoutineRepository agentRoutineRepository, Guid agentId) { _agentRoutineRepository = agentRoutineRepository; _agentId = agentId; }
+    public string Name => "routine_create";
     public AgentToolKind Kind => AgentToolKind.Planning;
-    public ToolSchema Schema => new("cron_create", "Schedule a prompt to run later using a five-field cron expression in UTC.",
+    public ToolSchema Schema => new("routine_create", "Create a scheduled routine that sends a prompt to this agent using a five-field cron expression in UTC.",
         new { type = "object", properties = new { name = new { type = "string" }, expression = new { type = "string" }, prompt = new { type = "string" } }, required = new[] { "name", "expression", "prompt" } });
     public Task<ToolValidationResult> ValidateAsync(JsonElement args, CancellationToken ct = default)
     {
@@ -222,42 +222,49 @@ internal sealed class CronCreateTool : IAgentTool
     }
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var job = await _agentCronJobRepository.CreateAsync(_agentId, args.GetProperty("name").GetString() ?? "", args.GetProperty("expression").GetString() ?? "", args.GetProperty("prompt").GetString() ?? "", ct);
-        return new ToolResult(true, $"Created cron job {job.Id} '{job.Name}' next_run={job.NextRunAt:O}");
+        var expression = args.GetProperty("expression").GetString() ?? "";
+        var routine = AgentRoutineRecord.Create(_agentId, args.GetProperty("name").GetString() ?? "", args.GetProperty("prompt").GetString() ?? "");
+        var cron = Cronos.CronExpression.Parse(expression);
+        routine.Triggers.Add(AgentRoutineTriggerRecord.CreateSchedule(routine.Id, "schedule", expression, cron.GetNextOccurrence(DateTime.UtcNow, inclusive: false)));
+        var saved = await _agentRoutineRepository.UpsertAsync(routine, ct);
+        var trigger = saved.Triggers.Single(item => item.Kind == AgentRoutineTriggerKinds.Schedule);
+        return new ToolResult(true, $"Created routine {saved.Id} '{saved.Name}' next_run={trigger.NextRunAt:O}");
     }
 }
 
-internal sealed class CronListTool : IAgentTool
+internal sealed class RoutineListTool : IAgentTool
 {
-    private readonly IAgentCronJobRepository _agentCronJobRepository;
+    private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly Guid _agentId;
-    public CronListTool(IAgentCronJobRepository repo, Guid agentId) { _agentCronJobRepository = repo; _agentId = agentId; }
-    public string Name => "cron_list";
+    public RoutineListTool(IAgentRoutineRepository agentRoutineRepository, Guid agentId) { _agentRoutineRepository = agentRoutineRepository; _agentId = agentId; }
+    public string Name => "routine_list";
     public AgentToolKind Kind => AgentToolKind.Planning;
     public bool IsReadOnly => true;
-    public ToolSchema Schema => new("cron_list", "List scheduled cron jobs for this agent.", new { type = "object", properties = new { } });
+    public ToolSchema Schema => new("routine_list", "List routines for this agent.", new { type = "object", properties = new { } });
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var jobs = await _agentCronJobRepository.ListAsync(_agentId, ct);
-        return new ToolResult(true, jobs.Count == 0 ? "No cron jobs found." : string.Join("\n", jobs.Select(j => $"{j.Id} [{(j.Enabled ? "enabled" : "disabled")}] {j.Name} {j.Expression} next={j.NextRunAt:O}")));
+        var routines = await _agentRoutineRepository.ListAsync(new AgentRoutineFilter { AgentId = _agentId }, ct);
+        return new ToolResult(true, routines.Count == 0
+            ? "No routines found."
+            : string.Join("\n", routines.Select(routine => $"{routine.Id} [{(routine.Enabled ? "enabled" : "disabled")}] {routine.Name} triggers={routine.Triggers.Count}")));
     }
 }
 
-internal sealed class CronDeleteTool : IAgentTool
+internal sealed class RoutineDeleteTool : IAgentTool
 {
-    private readonly IAgentCronJobRepository _agentCronJobRepository;
+    private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly Guid _agentId;
-    public CronDeleteTool(IAgentCronJobRepository repo, Guid agentId) { _agentCronJobRepository = repo; _agentId = agentId; }
-    public string Name => "cron_delete";
+    public RoutineDeleteTool(IAgentRoutineRepository agentRoutineRepository, Guid agentId) { _agentRoutineRepository = agentRoutineRepository; _agentId = agentId; }
+    public string Name => "routine_delete";
     public AgentToolKind Kind => AgentToolKind.Planning;
-    public ToolSchema Schema => new("cron_delete", "Delete a scheduled cron job by ID.", new { type = "object", properties = new { job_id = new { type = "string" } }, required = new[] { "job_id" } });
+    public ToolSchema Schema => new("routine_delete", "Delete a routine by ID.", new { type = "object", properties = new { routine_id = new { type = "string" } }, required = new[] { "routine_id" } });
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        if (!Guid.TryParse(args.GetProperty("job_id").GetString(), out var id)) return new ToolResult(false, "", "Invalid job_id.");
-        var job = await _agentCronJobRepository.GetByAsync(new AgentCronJobFilter { Id = id }, ct);
-        if (job is null || job.AgentId != _agentId) return new ToolResult(false, "", "Cron job not found.");
-        var deleted = await _agentCronJobRepository.DeleteAsync(id, ct);
-        return new ToolResult(deleted, deleted ? $"Deleted cron job {id}." : "", deleted ? null : "Cron job not found.");
+        if (!Guid.TryParse(args.GetProperty("routine_id").GetString(), out var id)) return new ToolResult(false, "", "Invalid routine_id.");
+        var routine = await _agentRoutineRepository.GetByAsync(new AgentRoutineFilter { Id = id }, ct);
+        if (routine is null || routine.AgentId != _agentId) return new ToolResult(false, "", "Routine not found.");
+        var deleted = await _agentRoutineRepository.DeleteAsync(id, ct);
+        return new ToolResult(deleted, deleted ? $"Deleted routine {id}." : "", deleted ? null : "Routine not found.");
     }
 }
 
