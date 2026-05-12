@@ -101,7 +101,6 @@ export const Feature = ({
 }: FeatureProps) => {
 	const [currentIndex, setCurrentIndex] = useState<number>(-1);
 	const [imageLoaded, setImageLoaded] = useState<boolean>(false);
-	const [previousIndex, setPreviousIndex] = useState<number>(-1);
 
 	const carouselRef = useRef<HTMLUListElement>(null);
 	const ref = useRef(null);
@@ -113,8 +112,10 @@ export const Feature = ({
 	useEffect(() => {
 		const timer = setTimeout(() => {
 			if (isInView) {
+				setImageLoaded(false);
 				setCurrentIndex(0);
 			} else {
+				setImageLoaded(false);
 				setCurrentIndex(-1);
 			}
 		}, 100);
@@ -144,6 +145,7 @@ export const Feature = ({
 	// interval for changing images
 	useEffect(() => {
 		const timer = setInterval(() => {
+			setImageLoaded(false);
 			setCurrentIndex((prevIndex) =>
 				prevIndex !== undefined ? (prevIndex + 1) % featureItems.length : 0,
 			);
@@ -171,25 +173,18 @@ export const Feature = ({
 			const handleScroll = () => {
 				const scrollLeft = carousel.scrollLeft;
 				const cardWidth = carousel.querySelector(".card")?.clientWidth || 0;
-				const newIndex = Math.min(
-					Math.floor(scrollLeft / cardWidth),
-					featureItems.length - 1,
-				);
-				setCurrentIndex(newIndex);
-			};
+					const newIndex = Math.min(
+						Math.floor(scrollLeft / cardWidth),
+						featureItems.length - 1,
+					);
+					setImageLoaded(false);
+					setCurrentIndex(newIndex);
+				};
 
 			carousel.addEventListener("scroll", handleScroll);
 			return () => carousel.removeEventListener("scroll", handleScroll);
 		}
 	}, [featureItems.length]);
-
-	// Handle image transition
-	useEffect(() => {
-		if (currentIndex !== previousIndex) {
-			setImageLoaded(false);
-			setPreviousIndex(currentIndex);
-		}
-	}, [currentIndex, previousIndex]);
 
 	// Replace the existing image rendering section with this optimized version
 	const renderMedia = () => {

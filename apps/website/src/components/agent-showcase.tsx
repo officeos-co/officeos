@@ -179,7 +179,9 @@ function useAgentCycle() {
     if (!p) return;
 
     const logEntries = p.log ?? [];
-    setLogVisible(logEntries.length > 0 ? 1 : 0);
+    const resetLogTimer = setTimeout(() => {
+      setLogVisible(logEntries.length > 0 ? 1 : 0);
+    }, 0);
 
     if (logEntries.length > 0) {
       let visible = 1;
@@ -213,7 +215,10 @@ function useAgentCycle() {
       }, phaseDuration);
     }
 
-    return clearTimers;
+    return () => {
+      clearTimeout(resetLogTimer);
+      clearTimers();
+    };
   }, [selected, phaseIdx, clearTimers]);
 
   const selectAgent = useCallback((i: number) => {
