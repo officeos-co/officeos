@@ -8,7 +8,6 @@ FROM oven/bun:1 AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/website/. ./
-COPY changelog/ ./changelog/
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 

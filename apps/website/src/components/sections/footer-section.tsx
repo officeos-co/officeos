@@ -12,7 +12,6 @@ const footerLinks = [
     title: "Explore",
     links: [
       { id: 6, title: "Pricing", url: "/pricing" },
-      { id: 13, title: "Changelog", url: "/changelog" },
       { id: 18, title: "Support", url: "/support" },
       { id: 16, title: "Docs", url: getSiteConfig().docsUrl },
     ],

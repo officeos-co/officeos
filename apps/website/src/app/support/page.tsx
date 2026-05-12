@@ -60,17 +60,6 @@ export default function Support() {
               </li>
               <li>
                 <a
-                  href="https://changelog.officeos.co"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-4 hover:text-primary/80"
-                >
-                  Changelog
-                </a>{" "}
-                — latest product updates and fixes.
-              </li>
-              <li>
-                <a
                   href="https://status.officeos.co"
                   target="_blank"
                   rel="noopener noreferrer"
