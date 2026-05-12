@@ -1,4 +1,6 @@
-export const initialQuickstartYaml = `name: Contract tracker
+export const initialQuickstartYaml = `kind: agent
+key: contract_tracker
+name: Contract tracker
 description: Extracts clauses, sets deadline reminders, and tracks obligations in Asana when given a GitHub issue or link.
 model: claude-sonnet-4-6
 system: |-
@@ -29,6 +31,36 @@ tools:
         type: always_allow
 metadata:
   template: contract-clause-extraction`;
+
+export const initialQuickstartFiles = [
+  {
+    path: "workspace.yaml",
+    content: `kind: workspace
+resources:
+  browsers:
+    - key: contract_browser
+      display_name: Contract Browser
+  memory_stores:
+    - key: contract_memory
+      display_name: Contract Memory
+agents:
+  - key: contract_tracker
+    file: agents/contract-tracker.yaml`,
+  },
+  {
+    path: "agents/contract-tracker.yaml",
+    content: `${initialQuickstartYaml}
+resources:
+  - type: browser
+    ref: contract_browser
+    access_mode: read_write
+    instructions: Use this browser to inspect web pages and verify external workflows.
+  - type: memory_store
+    ref: contract_memory
+    access_mode: read_write
+    instructions: Store extracted contract obligations, dates, and follow-up decisions.`,
+  },
+];
 
 export const initialQuickstartMessages: Array<{
   id: string;

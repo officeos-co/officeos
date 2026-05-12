@@ -5,4 +5,17 @@ public sealed record QuickstartAgentChatPayload(
     string ConfigYaml,
     string ConfigJson,
     string Provider,
-    string Model);
+    string Model,
+    IReadOnlyList<QuickstartFilePayload> Files);
+
+public sealed record QuickstartFilePayload(
+    string Path,
+    string Content);
+
+public sealed record QuickstartBlueprintApplyPayload(
+    IReadOnlyList<QuickstartCreatedAgentPayload> Agents);
+
+public sealed record QuickstartCreatedAgentPayload(
+    Guid Id,
+    string Name,
+    string FilePath);

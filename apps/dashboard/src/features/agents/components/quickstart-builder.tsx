@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowUp, FileText, Loader2 } from "lucide-react";
 import type { ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
 import {
@@ -23,19 +23,22 @@ const CodeMirror = dynamic<ReactCodeMirrorProps>(
 
 export function QuickstartBuilder() {
   const {
+    activeFile,
+    activePath,
     chatEndRef,
     codeScroll,
     draft,
+    files,
     isCreating,
     isGenerating,
     messages,
+    setActiveContent,
+    setActivePath,
     setCodeScroller,
     setDraft,
-    setYaml,
     submitPrompt,
     useTemplate,
     updateCodeScroll,
-    yaml,
   } = useQuickstartTemplate();
 
   const editorExtensions = useMemo(
@@ -176,7 +179,7 @@ export function QuickstartBuilder() {
               <ArrowLeft className="size-4" />
             </Button>
             <div className="min-w-0 truncate text-sm font-medium">
-              Generated template
+              Generated blueprint
             </div>
           </div>
           <Button size="sm" onClick={useTemplate} disabled={isCreating}>
@@ -184,10 +187,30 @@ export function QuickstartBuilder() {
           </Button>
         </div>
 
+        <div className="flex h-10 shrink-0 items-end gap-1 overflow-x-auto border-b border-border bg-muted/35 px-3">
+          {files.map((file) => (
+            <button
+              key={file.path}
+              type="button"
+              onClick={() => setActivePath(file.path)}
+              className={cn(
+                "flex h-8 shrink-0 items-center gap-1.5 rounded-t-md border border-b-0 px-3 text-xs font-medium transition-colors",
+                file.path === activePath
+                  ? "border-border bg-background text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground",
+              )}
+            >
+              <FileText className="size-3.5" />
+              <span className="max-w-44 truncate">{file.path}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="min-h-0 flex-1 overflow-hidden">
           <div className="relative flex h-full overflow-hidden bg-background">
             <CodeMirror
-              value={yaml}
+              key={activeFile.path}
+              value={activeFile.content}
               height="100%"
               minHeight="100%"
               basicSetup={{
@@ -206,7 +229,7 @@ export function QuickstartBuilder() {
                 setCodeScroller(view.scrollDOM);
                 requestAnimationFrame(updateCodeScroll);
               }}
-              onChange={(value) => setYaml(value)}
+              onChange={(value) => setActiveContent(value)}
             />
             <div className="pointer-events-none absolute bottom-3 right-2 top-3 w-1 rounded-full bg-border/40">
               <div

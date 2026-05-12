@@ -8,10 +8,13 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
     private readonly IProviderDispatchService _providerDispatchService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IAgentResourceRepository _agentResourceRepository;
+    private readonly IAgentResourceService _agentResourceService;
+    private readonly IAgentDashboardService _agentDashboardService;
     private readonly IChannelRepository _channelRepository;
     private readonly IMemoryStoreRepository _memoryStoreRepository;
     private readonly IAgentRoutineService _agentRoutineService;
     private readonly AgentDefinitionParser _agentDefinitionParser;
+    private readonly QuickstartBlueprintParser _quickstartBlueprintParser;
     private readonly SseResponseParser _sseResponseParser;
 
     public QuickstartAgentService(
@@ -19,20 +22,26 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
         IProviderDispatchService providerDispatchService,
         IIntegrationDefinitionService integrationDefinitionService,
         IAgentResourceRepository agentResourceRepository,
+        IAgentResourceService agentResourceService,
+        IAgentDashboardService agentDashboardService,
         IChannelRepository channelRepository,
         IMemoryStoreRepository memoryStoreRepository,
         IAgentRoutineService agentRoutineService,
         AgentDefinitionParser agentDefinitionParser,
+        QuickstartBlueprintParser quickstartBlueprintParser,
         SseResponseParser sseResponseParser)
     {
         _providerService = providerService;
         _providerDispatchService = providerDispatchService;
         _integrationDefinitionService = integrationDefinitionService;
         _agentResourceRepository = agentResourceRepository;
+        _agentResourceService = agentResourceService;
+        _agentDashboardService = agentDashboardService;
         _channelRepository = channelRepository;
         _memoryStoreRepository = memoryStoreRepository;
         _agentRoutineService = agentRoutineService;
         _agentDefinitionParser = agentDefinitionParser;
+        _quickstartBlueprintParser = quickstartBlueprintParser;
         _sseResponseParser = sseResponseParser;
     }
 
@@ -50,15 +59,12 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
         var context = await BuildContextAsync(userId, workspaceId, ct);
         var provider = ResolveProvider(request.Provider, context.Models);
         var model = await ResolveModelAsync(provider, request.Model, workspaceId, context.Models, ct);
-        var currentConfig = string.IsNullOrWhiteSpace(request.CurrentYaml)
-            ? _agentDefinitionParser.CreateDefaultConfig("Operations assistant", model, null, null)
-            : _agentDefinitionParser.Parse(request.CurrentYaml);
-        var currentYaml = _agentDefinitionParser.SerializeYaml(currentConfig);
+        var currentFiles = BuildCurrentFiles(request, model);
 
         var requestBody = JsonSerializer.SerializeToElement(new
         {
             model,
-            messages = BuildMessages(request, currentYaml, context, model),
+            messages = BuildMessages(request, currentFiles, context, model),
             stream = true,
         });
 
@@ -68,7 +74,8 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
 
         var parsed = await _sseResponseParser.ParseAsync(dispatch.Value.Response, ct);
         var output = ParseModelOutput(parsed.Content ?? string.Empty);
-        var config = _agentDefinitionParser.Parse(output.ConfigYaml);
+        var files = NormalizeOutputFiles(output, currentFiles);
+        var config = GetPrimaryAgentConfig(files);
         var normalizedYaml = _agentDefinitionParser.SerializeYaml(config);
         var configJson = _agentDefinitionParser.Serialize(config);
 
@@ -77,7 +84,63 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
             normalizedYaml,
             configJson,
             InferProvider(provider, config.Model),
-            config.Model);
+            config.Model,
+            files);
+    }
+
+    public async Task<QuickstartBlueprintApplyResult> ApplyAsync(
+        QuickstartBlueprintApplyRequest request,
+        Guid userId,
+        Guid workspaceId,
+        CancellationToken ct = default)
+    {
+        var parsed = _quickstartBlueprintParser.Parse(request.Files);
+        var createdResources = new Dictionary<string, QuickstartCreatedResourceResult>(StringComparer.OrdinalIgnoreCase);
+        foreach (var resource in parsed.Resources)
+        {
+            if (resource.Type == AgentResourceKinds.Browser)
+            {
+                var browser = await _agentResourceService.CreateBrowserResourceAsync(
+                    userId,
+                    workspaceId,
+                    resource.DisplayName,
+                    ct);
+                createdResources[resource.Key] = new QuickstartCreatedResourceResult(resource.Key, resource.Type, browser.Id);
+            }
+            else if (resource.Type == AgentResourceKinds.MemoryStore)
+            {
+                var memoryStore = await _memoryStoreRepository.CreateAsync(
+                    MemoryStoreRecord.Create(userId, workspaceId, resource.DisplayName),
+                    ct);
+                createdResources[resource.Key] = new QuickstartCreatedResourceResult(resource.Key, resource.Type, memoryStore.Id);
+            }
+        }
+
+        var createdAgents = new List<QuickstartCreatedAgentResult>();
+        foreach (var parsedAgent in parsed.Agents)
+        {
+            var config = _quickstartBlueprintParser.ResolveAgentConfig(parsedAgent.Agent, createdResources);
+            var provider = InferProvider(request.Provider ?? ProviderRegistry.OpenAiCodexProviderSlug, request.Model ?? config.Model);
+            var agent = await _agentDashboardService.CreateAsync(
+                new CreateDashboardAgentRequest(
+                    config.Name,
+                    provider,
+                    request.Model ?? config.Model,
+                    config.System,
+                    _agentDefinitionParser.Serialize(config),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null),
+                userId,
+                workspaceId,
+                ct);
+
+            createdAgents.Add(new QuickstartCreatedAgentResult(agent.Id, agent.Name, parsedAgent.FilePath));
+        }
+
+        return new QuickstartBlueprintApplyResult(createdAgents);
     }
 
     private static bool IsReasonableRequest(string message)
@@ -134,7 +197,7 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
 
     private static List<object> BuildMessages(
         QuickstartAgentChatRequest request,
-        string currentYaml,
+        IReadOnlyList<QuickstartFileResult> currentFiles,
         QuickstartBuilderContext context,
         string model)
     {
@@ -144,13 +207,33 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
             {
                 role = "system",
                 content = $"""
-                You are the EnterpriseAgentOs quickstart builder. Generate and edit one declarative YAML agent definition.
+                You are the EnterpriseAgentOs quickstart builder. Generate and edit declarative YAML quickstart files.
 
                 Return only a JSON object with:
                 - "message": short assistant reply for the chat
-                - "yaml": complete YAML document
+                - "files": array of complete YAML files, each with "path" and "content"
 
-                YAML schema:
+                Use this file layout by default:
+                - workspace.yaml declares created resources and agent file paths
+                - agents/<agent-key>.yaml declares one agent
+                Single-agent creation is still the default. Create multiple agent files only when the user explicitly asks for multiple agents.
+
+                Workspace YAML schema:
+                kind: workspace
+                resources:
+                  browsers:
+                    - key: stable_reference_name
+                      display_name: user-facing browser name
+                  memory_stores:
+                    - key: stable_reference_name
+                      display_name: user-facing memory store name
+                agents:
+                  - key: stable_agent_key
+                    file: agents/stable-agent-key.yaml
+
+                Agent YAML schema:
+                kind: agent
+                key: stable_agent_key
                 name: string
                 description: string
                 model: string
@@ -170,6 +253,7 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
                         tools: required for allow_list and deny_list
                 resources:
                   - type: browser | memory_store | channel
+                    ref: workspace resource key for browser or memory_store created in workspace.yaml
                     resource_id: configured resource UUID
                     access_mode: read_write | read_only
                     instructions: optional resource-specific guidance
@@ -190,7 +274,8 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
                 metadata: object
 
                 Use model "{model}" unless the user explicitly asks for another valid model.
-                Only reference configured resources listed below. If the request is too vague, ask one concise clarifying question in "message" and keep the YAML close to the current version.
+                For now, only create browser and memory_store resources in workspace.yaml. Do not create MCP servers or channels. Existing MCP servers may be referenced by name. Existing channels may only be attached by resource_id if already configured.
+                If the request is too vague, ask one concise clarifying question in "message" and keep the YAML close to the current version.
                 Prefer type "registered" for configured MCP servers. Include browser_toolset only when a browser resource is attached or browser automation is required. Include agent_toolset_20260401 for normal filesystem, shell, HTTP, memory, and orchestration tools.
                 Full workspace context:
                 {BuildWorkspaceContext(context)}
@@ -199,7 +284,7 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
             new
             {
                 role = "user",
-                content = $"Current YAML:\n```yaml\n{currentYaml}\n```"
+                content = $"Current files:\n{FormatFilesForPrompt(currentFiles)}"
             },
         };
 
@@ -212,6 +297,90 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
 
         messages.Add(new { role = "user", content = request.Message.Trim() });
         return messages;
+    }
+
+    private IReadOnlyList<QuickstartFileResult> BuildCurrentFiles(QuickstartAgentChatRequest request, string model)
+    {
+        if (request.CurrentFiles is { Count: > 0 })
+        {
+            return request.CurrentFiles
+                .Where(file => !string.IsNullOrWhiteSpace(file.Path) && !string.IsNullOrWhiteSpace(file.Content))
+                .Select(file => new QuickstartFileResult(file.Path.Trim(), file.Content.Trim()))
+                .ToList();
+        }
+
+        var config = string.IsNullOrWhiteSpace(request.CurrentYaml)
+            ? _agentDefinitionParser.CreateDefaultConfig("Operations assistant", model, null, null)
+            : _agentDefinitionParser.Parse(request.CurrentYaml);
+
+        return
+        [
+            new QuickstartFileResult("agents/agent.yaml", _agentDefinitionParser.SerializeYaml(config)),
+        ];
+    }
+
+    private IReadOnlyList<QuickstartFileResult> NormalizeOutputFiles(
+        QuickstartModelResult output,
+        IReadOnlyList<QuickstartFileResult> currentFiles)
+    {
+        if (output.Files is { Count: > 0 })
+        {
+            return output.Files
+                .Where(file => !string.IsNullOrWhiteSpace(file.Path) && !string.IsNullOrWhiteSpace(file.Content))
+                .Select(file => new QuickstartFileResult(file.Path.Trim(), file.Content.Trim()))
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(output.ConfigYaml))
+            return [new QuickstartFileResult(FindPrimaryAgentPath(currentFiles), output.ConfigYaml.Trim())];
+
+        return currentFiles;
+    }
+
+    private AgentDefinitionConfig GetPrimaryAgentConfig(IReadOnlyList<QuickstartFileResult> files)
+    {
+        var parsed = _quickstartBlueprintParser.Parse(files.Select(file => new QuickstartFileRequest(file.Path, file.Content)).ToList());
+        var agent = parsed.Agents.FirstOrDefault()
+            ?? throw new InvalidOperationException("Quickstart output must include at least one agent YAML file.");
+        var directResources = (agent.Agent.Resources ?? [])
+            .Where(resource => resource.ResourceId is { } resourceId && resourceId != Guid.Empty)
+            .Select(resource => new AgentResourceAttachmentConfig(
+                resource.Type,
+                resource.ResourceId!.Value,
+                resource.AccessMode,
+                resource.Instructions))
+            .ToList();
+
+        return _agentDefinitionParser.Parse(_agentDefinitionParser.Serialize(new AgentDefinitionConfig(
+            agent.Agent.Name,
+            agent.Agent.Description,
+            agent.Agent.Model,
+            agent.Agent.System,
+            agent.Agent.McpServers ?? [],
+            agent.Agent.Tools ?? [],
+            directResources,
+            agent.Agent.Routines,
+            agent.Agent.Metadata)));
+    }
+
+    private static string FindPrimaryAgentPath(IReadOnlyList<QuickstartFileResult> files)
+        => files.FirstOrDefault(file => file.Path.StartsWith("agents/", StringComparison.OrdinalIgnoreCase))?.Path
+            ?? files.FirstOrDefault(file => !file.Path.Equals("workspace.yaml", StringComparison.OrdinalIgnoreCase)
+                && !file.Path.Equals("workspace.yml", StringComparison.OrdinalIgnoreCase))?.Path
+            ?? "agents/agent.yaml";
+
+    private static string FormatFilesForPrompt(IReadOnlyList<QuickstartFileResult> files)
+    {
+        var builder = new StringBuilder();
+        foreach (var file in files)
+        {
+            builder.AppendLine($"--- {file.Path}");
+            builder.AppendLine("```yaml");
+            builder.AppendLine(file.Content);
+            builder.AppendLine("```");
+        }
+
+        return builder.ToString().TrimEnd();
     }
 
     private static string BuildWorkspaceContext(QuickstartBuilderContext context)
@@ -281,7 +450,8 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
             {
                 PropertyNameCaseInsensitive = true,
             });
-            if (parsed is not null && !string.IsNullOrWhiteSpace(parsed.ConfigYaml))
+            if (parsed is not null
+                && (!string.IsNullOrWhiteSpace(parsed.ConfigYaml) || parsed.Files is { Count: > 0 }))
                 return parsed;
         }
         catch (JsonException)
@@ -289,7 +459,7 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
         }
 
         var yaml = ExtractYaml(content);
-        return new QuickstartModelResult("I updated the agent definition.", yaml);
+        return new QuickstartModelResult("I updated the agent definition.", yaml, null);
     }
 
     private static string ExtractJsonObject(string content)
@@ -321,7 +491,8 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
 
     private sealed record QuickstartModelResult(
         [property: JsonPropertyName("message")] string Message,
-        [property: JsonPropertyName("yaml")] string ConfigYaml);
+        [property: JsonPropertyName("yaml")] string? ConfigYaml,
+        [property: JsonPropertyName("files")] IReadOnlyList<QuickstartFileResult>? Files);
 
     private sealed record QuickstartBuilderContext(
         IReadOnlyList<QuickstartModelContext> Models,

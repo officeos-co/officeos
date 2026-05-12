@@ -3,18 +3,18 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { initialQuickstartFiles, initialQuickstartMessages } from "../data/quickstart-template";
 import {
-  initialQuickstartMessages,
-  initialQuickstartYaml,
-} from "../data/quickstart-template";
-import { useCreateAgent } from "../api/useAgents";
-import { useQuickstartAgentChat } from "../api/useQuickstartAgentChat";
+  useQuickstartAgentChat,
+  type QuickstartFile,
+} from "../api/useQuickstartAgentChat";
 
 type QuickstartMessage = {
   id: string;
@@ -22,25 +22,20 @@ type QuickstartMessage = {
   content: string;
 };
 
-function readYamlValue(source: string, key: string) {
-  const match = source.match(new RegExp(`^${key}:\\s*(.+)$`, "m"));
-  return match?.[1]?.replace(/^["']|["']$/g, "").trim() || "";
-}
-
 export function useQuickstartTemplate() {
   const router = useRouter();
-  const { createAgent, loading: isCreating } = useCreateAgent();
-  const { quickstartAgentChat } = useQuickstartAgentChat();
+  const {
+    applyQuickstartBlueprint,
+    applying: isCreating,
+    quickstartAgentChat,
+  } = useQuickstartAgentChat();
   const [messages, setMessages] = useState<QuickstartMessage[]>(
     initialQuickstartMessages,
   );
   const [draft, setDraft] = useState("");
-  const [yaml, setYaml] = useState(initialQuickstartYaml);
+  const [files, setFiles] = useState<QuickstartFile[]>(initialQuickstartFiles);
+  const [activePath, setActivePath] = useState(initialQuickstartFiles[0].path);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedTarget, setGeneratedTarget] = useState<{
-    provider: string;
-    model: string;
-  } | null>(null);
   const [codeScroll, setCodeScroll] = useState({
     canScroll: false,
     thumbSize: 100,
@@ -48,6 +43,13 @@ export function useQuickstartTemplate() {
   });
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const codeScrollerRef = useRef<HTMLElement | null>(null);
+
+  const activeFile = useMemo(
+    () =>
+      files.find((file) => file.path === activePath) ??
+      files[0] ?? { path: "workspace.yaml", content: "" },
+    [activePath, files],
+  );
 
   const updateCodeScroll = useCallback(() => {
     const scroller = codeScrollerRef.current;
@@ -81,6 +83,17 @@ export function useQuickstartTemplate() {
     [updateCodeScroll],
   );
 
+  const setActiveContent = useCallback(
+    (content: string) => {
+      setFiles((current) =>
+        current.map((file) =>
+          file.path === activeFile.path ? { ...file, content } : file,
+        ),
+      );
+    },
+    [activeFile.path],
+  );
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [messages, isGenerating]);
@@ -102,7 +115,7 @@ export function useQuickstartTemplate() {
 
   useEffect(() => {
     requestAnimationFrame(updateCodeScroll);
-  }, [updateCodeScroll, yaml]);
+  }, [activeFile.content, updateCodeScroll]);
 
   async function submitPrompt(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
@@ -122,7 +135,7 @@ export function useQuickstartTemplate() {
     try {
       const result = await quickstartAgentChat({
         message: prompt,
-        currentYaml: yaml,
+        currentFiles: files,
         messages: messages.map((message) => ({
           role: message.role,
           content: message.content,
@@ -134,11 +147,12 @@ export function useQuickstartTemplate() {
         throw new Error("Quickstart generation returned no result.");
       }
 
-      setYaml(result.configYaml);
-      setGeneratedTarget({
-        provider: result.provider,
-        model: result.model,
-      });
+      setFiles(result.files);
+      setActivePath((current) =>
+        result.files.some((file) => file.path === current)
+          ? current
+          : result.files[0]?.path || "workspace.yaml",
+      );
       setMessages((current) => [
         ...current,
         {
@@ -170,22 +184,15 @@ export function useQuickstartTemplate() {
     }
 
     try {
-      const model =
-        generatedTarget?.model ||
-        readYamlValue(yaml, "model") ||
-        "claude-sonnet-4-6";
-      const created = await createAgent({
-        name: readYamlValue(yaml, "name") || "Quickstart agent",
-        provider: generatedTarget?.provider ?? "anthropic",
-        model,
-        systemPrompt: "",
-        integrationSlugs: [],
-        channelConnectionIds: [],
-        configJson: yaml,
+      const created = await applyQuickstartBlueprint({
+        files,
+        provider: null,
+        model: null,
       });
 
-      if (created?.id) {
-        router.push(`/agents/${created.id}`);
+      const firstAgent = created?.agents[0];
+      if (firstAgent?.id) {
+        router.push(`/agents/${firstAgent.id}`);
       }
     } catch (error) {
       setMessages((current) => [
@@ -203,18 +210,21 @@ export function useQuickstartTemplate() {
   }
 
   return {
+    activeFile,
+    activePath,
     chatEndRef,
     codeScroll,
     draft,
+    files,
     isCreating,
     isGenerating,
     messages,
+    setActiveContent,
+    setActivePath,
     setCodeScroller,
     setDraft,
-    setYaml,
     submitPrompt,
     useTemplate,
     updateCodeScroll,
-    yaml,
   };
 }

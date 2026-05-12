@@ -64,6 +64,7 @@ global using OffceOs.Domain.Features.Context;
 global using OffceOs.Domain.Features.Integrations;
 global using OffceOs.Domain.Features.Management;
 global using OffceOs.Domain.Features.Providers;
+global using OffceOs.Domain.Features.Quickstart;
 global using OffceOs.Extensions;
 global using OffceOs.Infrastructure.Common.Caching;
 global using OffceOs.Infrastructure.Common.Security;

@@ -87,6 +87,7 @@ public sealed class QuickstartAgentServiceTests
                 null,
                 null,
                 null,
+                null,
                 null),
             ownerId,
             workspace.Id);
@@ -104,6 +105,67 @@ public sealed class QuickstartAgentServiceTests
         Assert.Contains("routines:", requestText);
         Assert.Contains("Support planner", result.ConfigYaml);
         Assert.Contains("\"name\":\"Support planner\"", result.ConfigJson);
+        var file = Assert.Single(result.Files);
+        Assert.Equal("agents/agent.yaml", file.Path);
+        Assert.Contains("Support planner", file.Content);
+    }
+
+    [Fact]
+    public async Task ChatAsync_accepts_multi_file_model_output_with_workspace_resource_refs()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb("quickstart-chat-files");
+        var ownerId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, ownerId, "owner@example.com");
+        var harness = WorkspaceTestHarness.Create(db);
+        var workspace = await harness.Workspaces.GetCurrentAsync(ownerId);
+        var dispatch = new RecordingProviderDispatchService(
+            files:
+            [
+                new QuickstartFileResult(
+                    "workspace.yaml",
+                    """
+                    kind: workspace
+                    resources:
+                      browsers:
+                        - key: qa_browser
+                          display_name: QA Browser
+                    agents:
+                      - key: qa_agent
+                        file: agents/qa-agent.yaml
+                    """),
+                new QuickstartFileResult(
+                    "agents/qa-agent.yaml",
+                    """
+                    kind: agent
+                    key: qa_agent
+                    name: QA agent
+                    model: gpt-4o-mini
+                    system: Check browser workflows.
+                    tools:
+                      - type: agent_toolset_20260401
+                      - type: browser_toolset
+                    resources:
+                      - type: browser
+                        ref: qa_browser
+                    """),
+            ]);
+        var service = CreateService(db, harness, dispatch);
+
+        var result = await service.ChatAsync(
+            new QuickstartAgentChatRequest(
+                "Build a browser QA agent for regression checks.",
+                null,
+                null,
+                null,
+                null,
+                null),
+            ownerId,
+            workspace.Id);
+
+        Assert.Equal(2, result.Files.Count);
+        Assert.Contains(result.Files, file => file.Path == "workspace.yaml");
+        Assert.Contains(result.Files, file => file.Path == "agents/qa-agent.yaml");
+        Assert.Contains("QA agent", result.ConfigYaml);
     }
 
     [Fact]
@@ -118,7 +180,7 @@ public sealed class QuickstartAgentServiceTests
         var service = CreateService(db, harness, dispatch);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChatAsync(
-            new QuickstartAgentChatRequest("test", null, null, null, null),
+            new QuickstartAgentChatRequest("test", null, null, null, null, null),
             ownerId,
             workspace.Id));
 
@@ -147,10 +209,13 @@ public sealed class QuickstartAgentServiceTests
             dispatch,
             harness.Integrations,
             new AgentResourceRepository(db),
+            new AgentResourceService(new AgentResourceRepository(db), new AgentSessionRepository(db), harness.Agents),
+            harness.AgentDashboard,
             new ChannelRepository(db),
             new MemoryStoreRepository(db),
             new FakeAgentRoutineServiceWithRepository(new AgentRoutineRepository(db)),
             new AgentDefinitionParser(),
+            new QuickstartBlueprintParser(new AgentDefinitionParser()),
             new SseResponseParser());
 
     private sealed class FakeAgentRoutineServiceWithRepository : IAgentRoutineService
@@ -183,11 +248,13 @@ public sealed class QuickstartAgentServiceTests
 
     private sealed class RecordingProviderDispatchService : IProviderDispatchService
     {
-        private readonly string _yaml;
+        private readonly string? _yaml;
+        private readonly IReadOnlyList<QuickstartFileResult>? _files;
 
-        public RecordingProviderDispatchService(string yaml)
+        public RecordingProviderDispatchService(string? yaml = null, IReadOnlyList<QuickstartFileResult>? files = null)
         {
             _yaml = yaml;
+            _files = files;
         }
 
         public JsonElement RequestBody { get; private set; }
@@ -202,11 +269,17 @@ public sealed class QuickstartAgentServiceTests
         {
             DispatchCount++;
             RequestBody = requestBody.Clone();
-            var content = JsonSerializer.Serialize(new
-            {
-                message = "Generated a support planner.",
-                yaml = _yaml,
-            });
+            var content = _files is { Count: > 0 }
+                ? JsonSerializer.Serialize(new
+                {
+                    message = "Generated a multi-file blueprint.",
+                    files = _files,
+                })
+                : JsonSerializer.Serialize(new
+                {
+                    message = "Generated a support planner.",
+                    yaml = _yaml,
+                });
             var chunk = JsonSerializer.Serialize(new
             {
                 choices = new[]
