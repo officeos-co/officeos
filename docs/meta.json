@@ -1,18 +1,4 @@
 {
   "title": "Documentation",
-  "pages": [
-    "index",
-    "---Getting Started---",
-    "quickstart",
-    "agent-lifecycle",
-    "---Architecture---",
-    "llm-proxy",
-    "zeroclaw-runtime",
-    "engineering-patterns",
-    "environment-management",
-    "---Features---",
-    "skills",
-    "runners",
-    "SKILLS_ROADMAP"
-  ]
+  "pages": ["---Getting Started---", "quickstart"]
 }

@@ -64,13 +64,13 @@ docker compose -f docker-compose.infra.yml ps
 
 Useful local service URLs:
 
-| Service | URL |
-| --- | --- |
-| MinIO API | `http://localhost:9000` |
-| MinIO Console | `http://localhost:9001` |
-| Channels | `http://localhost:3100` |
+| Service            | URL                      |
+| ------------------ | ------------------------ |
+| MinIO API          | `http://localhost:9000`  |
+| MinIO Console      | `http://localhost:9001`  |
+| Channels           | `http://localhost:3100`  |
 | Browser controller | `http://localhost:18080` |
-| Browser view | `http://localhost:6080` |
+| Browser view       | `http://localhost:6080`  |
 
 ## Step 5: Start the backend
 
