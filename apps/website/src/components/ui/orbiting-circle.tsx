@@ -1,7 +1,7 @@
 "use client";
 
 import { cubicBezier, HTMLMotionProps, motion, useInView } from "motion/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export interface OrbitingCirclesProps extends HTMLMotionProps<"div"> {
@@ -37,15 +37,8 @@ export function OrbitingCircles({
 
 	const ref = useRef(null);
 	const isInView = useInView(ref, { once });
-	const [shouldAnimate, setShouldAnimate] = useState(false);
+	const shouldAnimate = isInView;
 
-	useEffect(() => {
-		if (isInView) {
-			setShouldAnimate(true);
-		} else {
-			setShouldAnimate(false);
-		}
-	}, [isInView]);
 	return (
 		<>
 			{path && (

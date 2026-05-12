@@ -28,3 +28,9 @@ Clean architecture with domain separation under `apps/dashboard/src/features` (a
 - never try to run the application yourself, after having changed the code your done; rather you should build the code or lint it only check if it compiles
 - dont care about legacy integrations the default should always be to just delete the old entirely
 - the default integration should be big-bang-integration unless i explicitely tell you to.
+
+# Security And Quality Fixes
+
+- When GitHub Dependabot alerts are part of the task, fetch the live alert list with `gh api --method GET /repos/<owner>/<repo>/dependabot/alerts -f state=open` and fix every affected manifest plus its lockfile. Do not only edit `package.json`.
+- For GitHub code quality/security scanning work, fetch the live code-scanning alerts with `gh api --method GET /repos/<owner>/<repo>/code-scanning/alerts -f state=open`. If GitHub has no analysis for the repo, use the repo's local quality gates instead: backend `dotnet build`, frontend `bun run lint`/`bun run build`, and the package manager audit relevant to the changed manifest.
+- Do not leave framework packages below the first patched version reported by Dependabot. Prefer one direct upgrade that clears all alerts for that package across all affected apps.

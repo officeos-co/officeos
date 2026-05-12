@@ -27,7 +27,6 @@ export function CronJobsAnimation({
 
   useEffect(() => {
     if (!isInView) {
-      setFiringIdx(null);
       return;
     }
 
@@ -40,7 +39,6 @@ export function CronJobsAnimation({
       { idx: 2, delay: 1600 },
       { idx: null, delay: 1400 },
     ];
-    let step = 0;
     let elapsed = 0;
     const timeouts: ReturnType<typeof setTimeout>[] = [];
 
@@ -70,6 +68,8 @@ export function CronJobsAnimation({
     };
   }, [isInView]);
 
+  const activeFiringIdx = isInView ? firingIdx : null;
+
   return (
     <div
       ref={ref}
@@ -80,7 +80,7 @@ export function CronJobsAnimation({
       <div className="w-full max-w-xs flex flex-col gap-2.5">
         <AnimatePresence>
           {tasks.map((task, i) => {
-            const isFiring = firingIdx === i;
+            const isFiring = activeFiringIdx === i;
             return (
               <motion.div
                 key={task.name}

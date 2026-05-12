@@ -25,17 +25,20 @@ export function FirstBentoAnimation() {
 
 	useEffect(() => {
 		if (!isInView) {
-			setPhase("idle");
-			setBootStep(0);
 			return;
 		}
 
+		const reset = setTimeout(() => {
+			setPhase("idle");
+			setBootStep(0);
+		}, 0);
 		const t1 = setTimeout(() => setPhase("booting"), 800);
 		const t2 = setTimeout(() => setBootStep(1), 1400);
 		const t3 = setTimeout(() => setBootStep(2), 2000);
 		const t4 = setTimeout(() => setPhase("live"), 2400);
 
 		return () => {
+			clearTimeout(reset);
 			clearTimeout(t1);
 			clearTimeout(t2);
 			clearTimeout(t3);
@@ -43,7 +46,9 @@ export function FirstBentoAnimation() {
 		};
 	}, [isInView]);
 
-	const cfg = phaseConfig[phase];
+	const visiblePhase = isInView ? phase : "idle";
+	const visibleBootStep = isInView ? bootStep : 0;
+	const cfg = phaseConfig[visiblePhase];
 
 	return (
 		<div
@@ -98,7 +103,7 @@ export function FirstBentoAnimation() {
 				{/* Boot log / status */}
 				<div className="rounded-lg bg-muted/40 px-3 py-2.5">
 					<AnimatePresence mode="wait">
-						{phase === "idle" && (
+						{visiblePhase === "idle" && (
 							<motion.div
 								key="idle"
 								initial={{ opacity: 0 }}
@@ -109,7 +114,7 @@ export function FirstBentoAnimation() {
 								Ready to deploy
 							</motion.div>
 						)}
-						{phase === "booting" && (
+						{visiblePhase === "booting" && (
 							<motion.div
 								key="booting"
 								initial={{ opacity: 0 }}
@@ -117,14 +122,14 @@ export function FirstBentoAnimation() {
 								exit={{ opacity: 0 }}
 								className="space-y-1"
 							>
-								{bootSteps.slice(0, bootStep + 1).map((step, i) => (
+								{bootSteps.slice(0, visibleBootStep + 1).map((step, i) => (
 									<motion.div
 										key={step}
 										initial={{ opacity: 0, y: 4 }}
 										animate={{ opacity: 1, y: 0 }}
 										className="flex items-center gap-1.5 text-[10px]"
 									>
-										{i < bootStep ? (
+										{i < visibleBootStep ? (
 											<span className="text-emerald-500">✓</span>
 										) : (
 											<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
@@ -134,7 +139,7 @@ export function FirstBentoAnimation() {
 								))}
 							</motion.div>
 						)}
-						{phase === "live" && (
+						{visiblePhase === "live" && (
 							<motion.div
 								key="live"
 								initial={{ opacity: 0 }}
