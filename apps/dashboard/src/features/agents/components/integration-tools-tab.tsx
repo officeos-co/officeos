@@ -10,52 +10,28 @@ import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 
 export function IntegrationToolsTab({
   integration,
-  mode,
 }: {
   integration: McpServer;
-  mode: "regular" | "indexed";
 }) {
   const [toolPolicies, setToolPolicies] = useState<Record<string, PermissionMode>>({});
-  const [indexedToolsExpanded, setIndexedToolsExpanded] = useState(true);
   const [directToolsExpanded, setDirectToolsExpanded] = useState(true);
-  const indexedMode = mode === "indexed" && integration.isIndexable;
   const directTools = integration.tools.map((tool) => ({
     key: tool.name,
     description: tool.description,
   }));
-  const indexedTools = [
-    {
-      key: "integration_execute",
-      description:
-        "Execute integration operations through source_id, entity, action, params, and select_fields, including indexed search and live provider requests.",
-    },
-  ];
 
-  if (!integration.isIndexable && directTools.length === 0) return null;
+  if (directTools.length === 0) return null;
 
   return (
     <div className="space-y-3 pt-4">
-      {integration.isIndexable && (
-        <ToolGroup
-          title="Indexed execution"
-          description="Backend execution through integration_execute for indexed search and live provider requests."
-          status={indexedMode ? "Available in indexed mode" : "Unavailable in regular mode"}
-          tools={indexedTools}
-          expanded={indexedToolsExpanded}
-          onExpandedChange={setIndexedToolsExpanded}
-          disabled={!indexedMode}
-          policies={toolPolicies}
-          onPolicyChange={setToolPolicies}
-        />
-      )}
       <ToolGroup
-        title="Direct MCP tools"
-        description="Direct MCP server tool catalog for regular integration calls."
-        status={indexedMode ? "Unavailable in indexed mode" : "Available in regular mode"}
+        title="MCP tools"
+        description="MCP server tool catalog for integration calls."
+        status="Available"
         tools={directTools}
         expanded={directToolsExpanded}
         onExpandedChange={setDirectToolsExpanded}
-        disabled={indexedMode}
+        disabled={false}
         policies={toolPolicies}
         onPolicyChange={setToolPolicies}
       />

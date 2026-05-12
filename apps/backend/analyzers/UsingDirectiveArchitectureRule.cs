@@ -30,7 +30,9 @@ internal sealed class UsingDirectiveArchitectureRule : IArchitectureRule
         var usingDirective = (UsingDirectiveSyntax)context.Node;
         var namespaceName = usingDirective.Name?.ToString();
 
-        if (ArchitecturePaths.IsBackendSourceFile(filePath) && !ArchitecturePaths.IsGlobalUsingsFile(filePath))
+        if (ArchitecturePaths.IsBackendSourceFile(filePath)
+            && !ArchitecturePaths.IsGlobalUsingsFile(filePath)
+            && !ArchitecturePaths.IsDatabaseMigrationFile(filePath))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 ArchitectureDiagnostics.GlobalUsingOnlyRule,

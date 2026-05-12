@@ -1,4 +1,3 @@
-using System.Text.Json;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Application.Features.Context;
 using OffceOs.Domain.Common.Primitives;
@@ -96,31 +95,4 @@ public sealed class EmptyAgentDefinitionRepository : IAgentDefinitionRepository
 
     public Task<int> GetNextVersionAsync(Guid agentId, CancellationToken ct = default) =>
         Task.FromResult(1);
-}
-
-public sealed class FakeIntegrationExecutionService : IIntegrationExecutionService
-{
-    public Task<JsonElement> ExecuteAsync(IntegrationExecuteRequest request, CancellationToken ct = default) =>
-        Task.FromResult(JsonSerializer.SerializeToElement(new { ok = true }));
-}
-
-public sealed class CapturingIntegrationExecutionService : IIntegrationExecutionService
-{
-    public IntegrationExecuteRequest? Request { get; private set; }
-
-    public Task<JsonElement> ExecuteAsync(IntegrationExecuteRequest request, CancellationToken ct = default)
-    {
-        Request = request;
-        return Task.FromResult(JsonSerializer.SerializeToElement(new
-        {
-            status = "success",
-            result = Array.Empty<object>(),
-            connector_metadata = (object?)null,
-            execution_metadata = new
-            {
-                connector_instance_id = $"source_id:{request.SourceId}",
-                execution_time_ms = 1,
-            },
-        }));
-    }
 }

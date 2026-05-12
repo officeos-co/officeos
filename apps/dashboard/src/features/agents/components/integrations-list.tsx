@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
-  DatabaseIcon,
   PlusIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -43,9 +42,7 @@ import {
   useIntegrations,
   useSaveIntegrationCredential,
 } from "../api/useIntegrations";
-import { useIntegrationConnections } from "@/features/atlas";
 import { canEditWorkspace, useWorkspaces } from "@/features/manage";
-import type { McpServer } from "../data/integrations";
 import { ConnectorDirectoryDialog } from "./connector-directory-dialog";
 import { CustomMcpJsonEditor } from "./custom-mcp-json-editor";
 
@@ -55,7 +52,6 @@ export function IntegrationsList() {
   const { integrations, loading } = useIntegrations();
   const { integrations: catalogIntegrations } = useIntegrationCatalog();
   const { currentWorkspace } = useWorkspaces();
-  const { connections } = useIntegrationConnections({ pollInterval: 5000 });
   const setCredentials = useSaveIntegrationCredential();
   const deleteIntegration = useDeleteIntegration();
   const [search, setSearch] = useState("");
@@ -243,8 +239,6 @@ export function IntegrationsList() {
                 </TableRow>
               ))}
             {filtered.map((server) => {
-              const indexState = getIndexState(server, connections);
-
               return (
                 <TableRow
                   key={server.name}
@@ -283,19 +277,11 @@ export function IntegrationsList() {
                           ? `${server.tools.length} tools`
                           : "No tools"}
                       </span>
-                      {server.isIndexable ? (
-                        <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                          <DatabaseIcon className="size-3" />
-                          Indexed data
-                        </span>
-                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">
-                      {server.isIndexable
-                        ? "Tool policies and data mode"
-                        : "Tool policies"}
+                      Tool policies
                     </span>
                   </TableCell>
                   <TableCell>
@@ -304,12 +290,6 @@ export function IntegrationsList() {
                         <CheckCircle2Icon className="size-3" />
                         Connected
                       </span>
-                      {server.isIndexable ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
-                          <DatabaseIcon className="size-3" />
-                          {indexState.label}
-                        </span>
-                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -356,42 +336,4 @@ export function IntegrationsList() {
       </Dialog>
     </>
   );
-}
-
-function getIndexState(
-  integration: Pick<McpServer, "provider" | "name">,
-  connections: Array<{
-    provider: string;
-    status: string;
-    entityStatuses: Array<{ recordCount: number }>;
-  }>,
-) {
-  const matching = connections.filter((connection) =>
-    providerMatches(connection.provider, integration.provider || integration.name),
-  );
-  const records = matching.reduce(
-    (sum, connection) =>
-      sum +
-      connection.entityStatuses.reduce(
-        (entitySum, entity) => entitySum + entity.recordCount,
-        0,
-      ),
-    0,
-  );
-  if (matching.some((connection) => connection.status === "Indexing")) {
-    return { label: "Indexing" };
-  }
-  if (matching.some((connection) => connection.status === "Ready") || records > 0) {
-    return { label: "Indexed" };
-  }
-  if (matching.some((connection) => connection.status === "Failed")) {
-    return { label: "Index failed" };
-  }
-  return { label: "Indexable" };
-}
-
-function providerMatches(left: string, right: string) {
-  const normalize = (value: string) =>
-    value.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return normalize(left) === normalize(right);
 }

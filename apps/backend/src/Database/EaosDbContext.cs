@@ -51,12 +51,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentIntegrationEntity> AgentIntegrations => Set<AgentIntegrationEntity>();
     public DbSet<IntegrationCredentialEntity> IntegrationCredentials => Set<IntegrationCredentialEntity>();
     public DbSet<IntegrationDeploymentEntity> IntegrationDeployments => Set<IntegrationDeploymentEntity>();
-    public DbSet<IntegrationConnectionEntity> IntegrationConnections => Set<IntegrationConnectionEntity>();
-    public DbSet<IntegrationIndexEntityStatusEntity> IntegrationIndexEntityStatuses => Set<IntegrationIndexEntityStatusEntity>();
-    public DbSet<IntegrationIndexJobEntity> IntegrationIndexJobs => Set<IntegrationIndexJobEntity>();
-    public DbSet<IntegrationIndexedRecordEntity> IntegrationIndexedRecords => Set<IntegrationIndexedRecordEntity>();
-    public DbSet<IntegrationActivityEntity> IntegrationActivity => Set<IntegrationActivityEntity>();
-    public DbSet<IntegrationRequestHistoryEntity> IntegrationRequestHistory => Set<IntegrationRequestHistoryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -565,84 +559,5 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(d => d.CreatedBy).WithMany().HasForeignKey(d => d.CreatedById).OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<IntegrationConnectionEntity>(e =>
-        {
-            e.ToTable("IntegrationConnections");
-            e.HasKey(c => c.Id);
-            e.HasIndex(c => c.Provider);
-            e.HasIndex(c => new { c.CreatedById, c.WorkspaceId });
-            e.Property(c => c.Provider).IsRequired().HasMaxLength(32);
-            e.Property(c => c.WorkspaceName).IsRequired().HasMaxLength(128);
-            e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
-            e.Property(c => c.RepositoriesJson).HasColumnType("jsonb");
-            e.Property(c => c.EntitiesJson).HasColumnType("jsonb");
-            e.Property(c => c.Status).IsRequired().HasMaxLength(32);
-            e.Property(c => c.Error).HasColumnType("text");
-            e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<IntegrationIndexEntityStatusEntity>(e =>
-        {
-            e.ToTable("IntegrationIndexEntityStatuses");
-            e.HasKey(s => s.Id);
-            e.HasIndex(s => new { s.ConnectionId, s.Entity }).IsUnique();
-            e.Property(s => s.Entity).IsRequired().HasMaxLength(64);
-            e.Property(s => s.Status).IsRequired().HasMaxLength(32);
-            e.Property(s => s.Error).HasColumnType("text");
-            e.HasOne(s => s.Connection).WithMany().HasForeignKey(s => s.ConnectionId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<IntegrationIndexJobEntity>(e =>
-        {
-            e.ToTable("IntegrationIndexJobs");
-            e.HasKey(j => j.Id);
-            e.HasIndex(j => j.Status);
-            e.HasIndex(j => j.ConnectionId);
-            e.Property(j => j.Status).IsRequired().HasMaxLength(32);
-            e.Property(j => j.Error).HasColumnType("text");
-            e.HasOne(j => j.Connection).WithMany().HasForeignKey(j => j.ConnectionId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<IntegrationIndexedRecordEntity>(e =>
-        {
-            e.ToTable("IntegrationIndexedRecords");
-            e.HasKey(r => r.Id);
-            e.HasIndex(r => new { r.ConnectionId, r.Entity, r.ExternalId }).IsUnique();
-            e.HasIndex(r => new { r.ConnectionId, r.Entity });
-            e.Property(r => r.Entity).IsRequired().HasMaxLength(64);
-            e.Property(r => r.ExternalId).IsRequired().HasMaxLength(512);
-            e.Property(r => r.Title).HasMaxLength(512);
-            e.Property(r => r.SearchText).HasColumnType("text");
-            e.Property(r => r.RawJson).HasColumnType("jsonb");
-            e.HasOne(r => r.Connection).WithMany().HasForeignKey(r => r.ConnectionId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<IntegrationActivityEntity>(e =>
-        {
-            e.ToTable("IntegrationActivity");
-            e.HasKey(a => a.Id);
-            e.HasIndex(a => a.ConnectionId);
-            e.HasIndex(a => a.CreatedAt);
-            e.Property(a => a.Type).IsRequired().HasMaxLength(64);
-            e.Property(a => a.Entity).HasMaxLength(64);
-            e.Property(a => a.Message).IsRequired().HasMaxLength(512);
-            e.Property(a => a.DetailsJson).HasColumnType("jsonb");
-            e.HasOne(a => a.Connection).WithMany().HasForeignKey(a => a.ConnectionId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<IntegrationRequestHistoryEntity>(e =>
-        {
-            e.ToTable("IntegrationRequestHistory");
-            e.HasKey(h => h.Id);
-            e.HasIndex(h => h.ConnectionId);
-            e.HasIndex(h => h.CreatedAt);
-            e.Property(h => h.Type).IsRequired().HasMaxLength(16);
-            e.Property(h => h.Entity).IsRequired().HasMaxLength(64);
-            e.Property(h => h.Action).IsRequired().HasMaxLength(64);
-            e.Property(h => h.ParamsJson).HasColumnType("jsonb");
-            e.Property(h => h.Error).HasColumnType("text");
-            e.HasOne(h => h.Connection).WithMany().HasForeignKey(h => h.ConnectionId).OnDelete(DeleteBehavior.Cascade);
-        });
     }
 }

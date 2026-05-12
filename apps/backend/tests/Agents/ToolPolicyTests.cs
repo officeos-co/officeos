@@ -98,4 +98,36 @@ public sealed class ToolPolicyTests
         Assert.DoesNotContain("salesforce__query", toolNames);
     }
 
+    [Fact]
+    public async Task Integration_registry_exposes_regular_tools_without_indexed_execution_tool()
+    {
+        var factory = ToolRegistryTestFactory.CreateFactory(null);
+        var integrations = new[]
+        {
+            new IntegrationDefinitionRecord
+            {
+                Name = "github",
+                Title = "GitHub",
+                Tools = [new IntegrationCatalogToolRecord("list_issues", "List issues", new { type = "object", properties = new { } })],
+            },
+        };
+
+        await using var registry = await factory.CreateAsync(new ToolRegistryRequest
+        {
+            Sandbox = new FakeAgentSandbox(),
+            SandboxId = "sandbox",
+            ServiceUrl = "http://sandbox",
+            AgentId = Guid.NewGuid(),
+            WorkspaceId = Guid.NewGuid(),
+            OwnerId = Guid.NewGuid(),
+            CorrelationId = "correlation",
+            Integrations = integrations,
+        }, CancellationToken.None);
+
+        var toolNames = registry.Tools.Select(tool => tool.Name).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("github__list_issues", toolNames);
+        Assert.DoesNotContain("integration_execute", toolNames);
+    }
+
 }

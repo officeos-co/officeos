@@ -38,7 +38,6 @@ const MCP_SERVERS_QUERY = gql`
         description
       }
       capabilitiesJson
-      entities
       isBuiltin
       createdAt
     }
@@ -74,7 +73,6 @@ const INTEGRATION_CATALOG_QUERY = gql`
         description
       }
       capabilitiesJson
-      entities
       isBuiltin
       createdAt
     }
@@ -110,7 +108,6 @@ const MCP_SERVER_QUERY = gql`
         description
       }
       capabilitiesJson
-      entities
       isBuiltin
       createdAt
     }
@@ -134,7 +131,6 @@ export const AGENT_MCP_SERVERS_QUERY = gql`
       oauthConfigured
       credentialConfigured
       capabilitiesJson
-      entities
       isBuiltin
     }
   }
@@ -215,7 +211,6 @@ type RawMcpServer = {
   repositoryUrl: string | null;
   tools: Tool[] | null;
   capabilitiesJson: string | null;
-  entities: string[] | null;
   isBuiltin: boolean;
   createdAt: string | null;
 };
@@ -310,8 +305,6 @@ function mapIntegration(s: RawMcpServer): McpServer {
     repositoryUrl: s.repositoryUrl ?? "",
     tools: parseTools(s.tools),
     capabilities: parseCapabilities(s.capabilitiesJson),
-    entities: s.entities ?? [],
-    isIndexable: (s.entities ?? []).length > 0,
   };
 }
 

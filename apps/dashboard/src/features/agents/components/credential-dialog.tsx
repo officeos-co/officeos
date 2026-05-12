@@ -392,8 +392,6 @@ export function CredentialForm({
       repositoryUrl: "",
       tools: [],
       capabilities: [],
-      entities: [],
-      isIndexable: false,
     }),
     [credentials, logo, name, oauthProvider, serverUrl, slug],
   );

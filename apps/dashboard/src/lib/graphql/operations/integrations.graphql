@@ -26,7 +26,6 @@ query Integrations {
       description
     }
     capabilitiesJson
-    entities
     isBuiltin
     createdAt
   }
@@ -60,7 +59,6 @@ query Integration($name: String!) {
       description
     }
     capabilitiesJson
-    entities
     isBuiltin
     createdAt
   }
@@ -82,7 +80,6 @@ query AgentIntegrations($agentId: UUID!) {
     oauthConfigured
     credentialConfigured
     capabilitiesJson
-    entities
     isBuiltin
   }
 }

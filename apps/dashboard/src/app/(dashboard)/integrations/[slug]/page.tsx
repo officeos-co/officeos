@@ -1,42 +1,25 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PageContainer } from "@/shell/page-container";
 import { Button } from "@/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/ui/select";
 import { Skeleton } from "@/ui/skeleton";
 import {
   useDisconnectIntegration,
   useDeleteIntegration,
   useIntegration,
 } from "@/features/agents";
-import type { McpServer } from "@/features/agents";
-import { IntegrationDataExplorerTab } from "@/features/agents";
 import { IntegrationToolsTab } from "@/features/agents";
-import { useIntegrationConnections } from "@/features/atlas";
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
-  DatabaseIcon,
   ExternalLinkIcon,
   KeyIcon,
   Trash2Icon,
 } from "lucide-react";
-
-const BASE_TABS = [{ key: "tools", label: "Tools" }] as const;
-const INDEXABLE_TABS = [
-  { key: "tools", label: "Tools" },
-  { key: "data", label: "Data explorer" },
-] as const;
 
 function IntegrationSkeleton() {
   return (
@@ -53,10 +36,6 @@ function IntegrationSkeleton() {
               <Skeleton className="h-3 w-96" />
             </div>
             <Skeleton className="h-8 w-28 rounded-md" />
-          </div>
-          <div className="-mb-px flex gap-1">
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-8 w-28" />
           </div>
         </PageContainer>
       </div>
@@ -76,11 +55,8 @@ export default function IntegrationDetailPage({
   const searchParams = useSearchParams();
   const { slug } = use(params);
   const { integration, loading } = useIntegration(slug);
-  const { connections } = useIntegrationConnections({ pollInterval: 5000 });
   const deleteIntegration = useDeleteIntegration();
   const disconnectIntegration = useDisconnectIntegration();
-  const [runtimeMode, setRuntimeMode] = useState<"regular" | "indexed">("regular");
-  const requestedTab = searchParams.get("tab");
   const oauthError = searchParams.get("oauthError");
 
   if (!integration) {
@@ -89,11 +65,6 @@ export default function IntegrationDetailPage({
   }
 
   const currentIntegration = integration;
-  const tabs = integration.isIndexable ? INDEXABLE_TABS : BASE_TABS;
-  const tab = tabs.some((candidate) => candidate.key === requestedTab)
-    ? requestedTab
-    : "tools";
-  const indexState = getIndexState(integration, connections);
   const hasCredentialFields = integration.credentialFields.length > 0;
   const hasOAuth = Boolean(integration.oauthProvider);
   const needsConnection = hasCredentialFields || hasOAuth;
@@ -139,12 +110,6 @@ export default function IntegrationDetailPage({
                     label={integration.configured ? "Configured" : "Credentials required"}
                   />
                 ) : null}
-                {integration.isIndexable ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-sky-800">
-                    <DatabaseIcon className="size-3" />
-                    {indexState.label}
-                  </span>
-                ) : null}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span className="font-mono">{integration.name}</span>
@@ -156,13 +121,8 @@ export default function IntegrationDetailPage({
                 ) : null}
                 <span>·</span>
                 <span>
-                  {runtimeMode === "indexed" && integration.isIndexable
-                    ? `1 indexed tool + ${integration.tools.length} direct ${
-                        integration.tools.length === 1 ? "tool" : "tools"
-                      }`
-                    : `${integration.tools.length} ${
-                        integration.tools.length === 1 ? "tool" : "tools"
-                      }`}
+                  {integration.tools.length}{" "}
+                  {integration.tools.length === 1 ? "tool" : "tools"}
                 </span>
                 <span>·</span>
                 <span className="capitalize">Auth: {authLabel}</span>
@@ -180,22 +140,6 @@ export default function IntegrationDetailPage({
               )}
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-              {integration.isIndexable ? (
-                <Select
-                  value={runtimeMode}
-                  onValueChange={(value) =>
-                    setRuntimeMode(value === "indexed" ? "indexed" : "regular")
-                  }
-                >
-                  <SelectTrigger className="h-8 w-[190px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="regular">Regular mode</SelectItem>
-                    <SelectItem value="indexed">Indexed data mode</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : null}
               {integration.documentationUrl ? (
                 <Button
                   variant="outline"
@@ -264,23 +208,6 @@ export default function IntegrationDetailPage({
             </div>
           </div>
 
-          {tabs.length > 1 && (
-            <div className="-mb-px flex">
-              {tabs.map((item) => (
-                <Link
-                  key={item.key}
-                  href={`/integrations/${integration.name}?tab=${item.key}`}
-                  className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-                    tab === item.key
-                      ? "border-foreground text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
         </PageContainer>
       </div>
 
@@ -305,20 +232,7 @@ export default function IntegrationDetailPage({
           </div>
         ) : null}
 
-        {tab === "tools" && (
-          <IntegrationToolsTab
-            integration={integration}
-            mode={runtimeMode}
-          />
-        )}
-        {tab === "data" && integration.isIndexable && (
-          <IntegrationDataExplorerTab
-            integration={integration}
-            connections={connections}
-            indexedModeEnabled={runtimeMode === "indexed"}
-            onEnableIndexedMode={() => setRuntimeMode("indexed")}
-          />
-        )}
+        <IntegrationToolsTab integration={integration} />
       </PageContainer>
     </div>
   );
@@ -340,44 +254,4 @@ function StatusPill({ configured, label }: { configured: boolean; label: string 
       {label}
     </span>
   );
-}
-
-function getIndexState(
-  integration: Pick<McpServer, "provider" | "name" | "entities">,
-  connections: Array<{
-    provider: string;
-    status: string;
-    entityStatuses: Array<{ recordCount: number }>;
-  }>,
-) {
-  const matching = connections.filter((connection) =>
-    providerMatches(connection.provider, integration.provider || integration.name),
-  );
-  const records = matching.reduce(
-    (sum, connection) =>
-      sum +
-      connection.entityStatuses.reduce(
-        (entitySum, entity) => entitySum + entity.recordCount,
-        0,
-      ),
-    0,
-  );
-  if (matching.some((connection) => connection.status === "Indexing")) {
-    return { label: "Indexing" };
-  }
-  if (matching.some((connection) => connection.status === "Ready") || records > 0) {
-    return { label: "Indexed" };
-  }
-  if (matching.some((connection) => connection.status === "Failed")) {
-    return { label: "Index failed" };
-  }
-  return {
-    label: integration.entities.length > 0 ? "Indexable" : "Not indexable",
-  };
-}
-
-function providerMatches(left: string, right: string) {
-  const normalize = (value: string) =>
-    value.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return normalize(left) === normalize(right);
 }

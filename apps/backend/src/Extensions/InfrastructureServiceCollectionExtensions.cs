@@ -17,12 +17,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAgentIntegrationRepository, AgentIntegrationRepository>();
         services.AddScoped<IIntegrationCredentialRepository, IntegrationCredentialRepository>();
         services.AddScoped<IIntegrationDeploymentRepository, IntegrationDeploymentRepository>();
-        services.AddScoped<IIntegrationConnectionRepository, IntegrationConnectionRepository>();
-        services.AddScoped<IIntegrationIndexEntityStatusRepository, IntegrationIndexEntityStatusRepository>();
-        services.AddScoped<IIntegrationIndexJobRepository, IntegrationIndexJobRepository>();
-        services.AddScoped<IIntegrationIndexedRecordRepository, IntegrationIndexedRecordRepository>();
-        services.AddScoped<IIntegrationActivityRepository, IntegrationActivityRepository>();
-        services.AddScoped<IIntegrationRequestHistoryRepository, IntegrationRequestHistoryRepository>();
         services.AddScoped<IMemoryStoreRepository, MemoryStoreRepository>();
         services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -67,7 +61,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");
         services.AddHttpClient<IBrowserRuntimeClient, AutoBrowserRuntimeClient>();
-        services.AddHttpClient("github-integration-indexing", client =>
+        services.AddHttpClient("github-api", client =>
         {
             client.BaseAddress = new Uri("https://api.github.com/");
             client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeOS-Integration/1.0");

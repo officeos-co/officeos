@@ -472,8 +472,7 @@ internal sealed class AgentUsageAnalyticsService : IAgentUsageAnalyticsService
         "tool_search" or "task_create" or "task_list" or "task_get" or "task_update" or "agent_spawn";
 
     private static bool IsMcpOrIntegrationTool(string tool) => !IsCoreTool(tool)
-        || tool.Contains("__", StringComparison.Ordinal)
-        || tool == "integration_execute";
+        || tool.Contains("__", StringComparison.Ordinal);
 
     private static string? FirstShellCommandToken(string content)
     {

@@ -132,7 +132,6 @@ internal sealed class ToolRegistryFactory
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IOrganizationPolicyService _organizationPolicyService;
-    private readonly IIntegrationExecutionService _integrationExecutionService;
     private readonly IIntegrationRuntimeService _integrationRuntimeService;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly ILogger<ToolRegistryFactory> _logger;
@@ -146,7 +145,6 @@ internal sealed class ToolRegistryFactory
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
         IOrganizationPolicyService organizationPolicyService,
-        IIntegrationExecutionService integrationExecution,
         IIntegrationRuntimeService integrationRuntimeService,
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
@@ -159,7 +157,6 @@ internal sealed class ToolRegistryFactory
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
         _organizationPolicyService = organizationPolicyService;
-        _integrationExecutionService = integrationExecution;
         _integrationRuntimeService = integrationRuntimeService;
         _turnEventPublisher = events;
         _logger = logger;
@@ -251,12 +248,6 @@ internal sealed class ToolRegistryFactory
         }
 
         var integrationConnections = new List<IAsyncDisposable>();
-        if (request.Integrations.Any(integration =>
-            integration.Entities.Count > 0
-            && toolsetPolicy.AllowsIntegrationTool(integration.Name, IntegrationIndexAccess.ToolName)))
-        {
-            tools.Add(new IntegrationExecuteTool(_integrationExecutionService));
-        }
 
         foreach (var server in request.Integrations)
         {

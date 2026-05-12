@@ -30,7 +30,6 @@ export * from "./components/agent-routines-tab";
 export * from "./components/browser-resources-list";
 export * from "./components/channels-list";
 export * from "./components/routines-list";
-export * from "./components/integration-data-explorer-tab";
 export * from "./components/integration-tools-tab";
 export * from "./components/integrations-list";
 export * from "./components/memory-stores-list";

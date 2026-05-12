@@ -17,12 +17,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
         services.AddScoped<IIntegrationRuntimeService, IntegrationRuntimeService>();
-        services.AddScoped<IIntegrationConnectionService, IntegrationConnectionService>();
-        services.AddScoped<IIntegrationExecutionService, IntegrationExecutionService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<GitHubIntegrationClient>();
-        services.AddScoped<IntegrationIndexingService>();
         services.AddScoped<IUserBillingService, UserBillingService>();
         services.AddScoped<IOrgBillingService, OrgBillingService>();
         services.AddScoped<ICreditRecordingService, CreditRecordingService>();
@@ -62,7 +59,6 @@ public static class ApplicationServiceCollectionExtensions
 
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();
-        services.AddHostedService<IntegrationIndexSchedulerService>();
         services.AddHostedService<AgentRuntimeCleanupService>();
 
         return services;

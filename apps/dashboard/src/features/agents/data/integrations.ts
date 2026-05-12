@@ -41,8 +41,6 @@ export type McpServer = {
   repositoryUrl: string;
   tools: Tool[];
   capabilities: IntegrationCapability[];
-  entities: string[];
-  isIndexable: boolean;
 };
 
 /** @deprecated Use McpServer instead */

@@ -18,8 +18,6 @@ const groupRoutes: Record<string, string> = {
   "Managed Agents": "/agents",
   Agents: "/agents",
   Analytics: "/logs",
-  Atlas: "/atlas",
-  Data: "/atlas",
   Manage: "/billing",
   Integrations: "/integrations",
   "MCP Servers": "/integrations",

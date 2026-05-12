@@ -33,6 +33,9 @@ internal static class ArchitecturePaths
     public static bool IsGlobalUsingsFile(string filePath) =>
         filePath.EndsWith("/src/globalusings.cs", StringComparison.Ordinal);
 
+    public static bool IsDatabaseMigrationFile(string filePath) =>
+        filePath.IndexOf("/src/database/migrations/", StringComparison.Ordinal) >= 0;
+
     public static bool IsInLayer(string filePath, string layer) =>
         filePath.Contains($"/{layer.ToLowerInvariant()}/");
 }

@@ -17,7 +17,6 @@ internal static class ToolRegistryTestFactory
             new EmptyAgentDefinitionRepository(),
             new AgentDefinitionParser(),
             new FakeOrganizationPolicyService(policy),
-            new FakeIntegrationExecutionService(),
             new FakeIntegrationRuntimeService(),
             new TurnEventPublisher(new NoopPublisher()),
             NullLogger<ToolRegistryFactory>.Instance);
