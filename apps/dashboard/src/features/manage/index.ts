@@ -8,3 +8,5 @@ export * from "./data/workspace-role-labels";
 export * from "./data/organization-role-labels";
 export * from "./components/login-form";
 export * from "./components/providers-settings";
+export * from "./components/organization-settings";
+export * from "./components/organization-invites-menu";

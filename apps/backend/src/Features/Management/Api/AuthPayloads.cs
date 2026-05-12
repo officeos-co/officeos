@@ -9,7 +9,8 @@ public sealed record UserPayload(
     string? Timezone,
     string? NotificationPrefsJson,
     string? Preferences,
-    Guid? CurrentWorkspaceId);
+    Guid? CurrentWorkspaceId,
+    Guid? CurrentOrganizationId);
 
 public sealed record UpdateProfileInput(
     string? Name,

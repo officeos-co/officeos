@@ -1,5 +1,11 @@
 namespace OffceOs.Domain.Events;
 
+public sealed record OrganizationCreatedEvent(
+    Guid OrganizationId,
+    Guid ActorUserId,
+    string Name,
+    string? ActorName) : DomainEvent;
+
 public sealed record OrganizationRenamedEvent(
     Guid OrganizationId,
     Guid ActorUserId,

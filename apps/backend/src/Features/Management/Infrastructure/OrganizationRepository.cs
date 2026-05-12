@@ -6,37 +6,21 @@ internal sealed class OrganizationRepository : IOrganizationRepository
 
     public OrganizationRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public async Task<OrganizationRecord> GetOrCreateDefaultAsync(
-        Guid ownerUserId,
-        string ownerEmail,
-        string? ownerName,
+    public async Task<OrganizationRecord> CreateAsync(
+        OrganizationRecord organization,
+        OrgMemberRecord ownerMember,
         CancellationToken ct = default)
     {
         var owned = await _eaosDbContext.Organizations
-            .FirstOrDefaultAsync(o => o.OwnerUserId == ownerUserId, ct);
-        if (owned is not null) return ToOrganizationRecord(owned);
+            .AsNoTracking()
+            .AnyAsync(o => o.OwnerUserId == organization.OwnerUserId, ct);
+        if (owned)
+            throw new InvalidOperationException("User already owns an organization.");
 
-        var orgEntity = new OrganizationEntity
-        {
-            Id = Guid.NewGuid(),
-            Name = string.IsNullOrWhiteSpace(ownerName) ? "My Organization" : $"{ownerName}'s Organization",
-            OwnerUserId = ownerUserId,
-            CreatedAt = DateTime.UtcNow,
-        };
+        var orgEntity = ToOrganizationEntity(organization);
         _eaosDbContext.Organizations.Add(orgEntity);
-
-        _eaosDbContext.OrgMembers.Add(new OrgMemberEntity
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = orgEntity.Id,
-            UserId = ownerUserId,
-            Email = NormalizeEmail(ownerEmail),
-            Role = OrgRole.Owner.ToStorageString(),
-            Status = MemberStatus.Active.ToStorageString(),
-            CreatedAt = DateTime.UtcNow,
-        });
+        _eaosDbContext.OrgMembers.Add(ToOrgMemberEntity(ownerMember));
         await _eaosDbContext.SaveChangesAsync(ct);
-        await EnsureOrganizationDefaultWorkspaceAsync(orgEntity.Id, ownerUserId, ct);
         return ToOrganizationRecord(orgEntity);
     }
 
@@ -57,6 +41,24 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         return entity is null ? null : ToOrganizationRecord(entity);
     }
 
+    public async Task<IReadOnlyList<OrganizationRecord>> ListForMemberAsync(Guid userId, CancellationToken ct = default)
+    {
+        var active = MemberStatus.Active.ToStorageString();
+        var rows = await _eaosDbContext.OrgMembers
+            .AsNoTracking()
+            .Where(member => member.UserId == userId && member.Status == active)
+            .Join(
+                _eaosDbContext.Organizations.AsNoTracking(),
+                member => member.OrganizationId,
+                organization => organization.Id,
+                (member, organization) => organization)
+            .OrderBy(organization => organization.Name)
+            .ThenBy(organization => organization.CreatedAt)
+            .ToListAsync(ct);
+
+        return rows.Select(ToOrganizationRecord).ToList();
+    }
+
     public async Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(
         Guid organizationId, CancellationToken ct = default)
     {
@@ -65,6 +67,58 @@ internal sealed class OrganizationRepository : IOrganizationRepository
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(ct);
         return entities.Select(ToOrgMemberRecord).ToList();
+    }
+
+    public async Task<OrgMemberRecord> EnsureOwnerMembershipAsync(
+        Guid organizationId,
+        Guid userId,
+        string email,
+        CancellationToken ct = default)
+    {
+        var normalizedEmail = NormalizeEmail(email);
+        var entity = await _eaosDbContext.OrgMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId, ct);
+
+        if (entity is null)
+        {
+            entity = await _eaosDbContext.OrgMembers
+                .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.Email == normalizedEmail, ct);
+        }
+
+        if (entity is null)
+        {
+            entity = ToOrgMemberEntity(OrgMemberRecord.CreateOwner(organizationId, userId, normalizedEmail));
+            _eaosDbContext.OrgMembers.Add(entity);
+        }
+        else
+        {
+            entity.UserId = userId;
+            entity.Email = normalizedEmail;
+            entity.Role = OrgRole.Owner.ToStorageString();
+            entity.Status = MemberStatus.Active.ToStorageString();
+        }
+
+        await _eaosDbContext.SaveChangesAsync(ct);
+        await EnsureDefaultWorkspaceMembershipAsync(organizationId, userId, ct);
+        return ToOrgMemberRecord(entity);
+    }
+
+    public async Task<OrganizationRecord> SaveAsync(OrganizationRecord organization, CancellationToken ct = default)
+    {
+        var entity = await _eaosDbContext.Organizations.FirstOrDefaultAsync(o => o.Id == organization.Id, ct);
+        if (entity is null)
+        {
+            entity = ToOrganizationEntity(organization);
+            _eaosDbContext.Organizations.Add(entity);
+        }
+        else
+        {
+            entity.Name = organization.Name;
+            entity.Kind = organization.Kind.ToStorageString();
+        }
+
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return ToOrganizationRecord(entity);
     }
 
     public async Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesForEmailAsync(
@@ -156,6 +210,27 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         await _eaosDbContext.SaveChangesAsync(ct);
         await EnsureDefaultWorkspaceMembershipAsync(entity.OrganizationId, userId, ct);
         return ToOrgMemberRecord(entity);
+    }
+
+    public async Task<bool> DeclineInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default)
+    {
+        var normalizedEmail = NormalizeEmail(email);
+        var entity = await _eaosDbContext.OrgMembers.FirstOrDefaultAsync(m => m.Id == memberId, ct);
+        if (entity is null)
+            return false;
+
+        if (entity.Email != normalizedEmail)
+            throw new InvalidOperationException("Invite not found.");
+
+        if (entity.UserId.HasValue && entity.UserId != userId)
+            throw new InvalidOperationException("Invite not found.");
+
+        if (entity.Status != MemberStatus.Invited.ToStorageString())
+            throw new InvalidOperationException("Invite not found.");
+
+        _eaosDbContext.OrgMembers.Remove(entity);
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default)
@@ -285,6 +360,7 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         Id = e.Id,
         Name = e.Name,
         OwnerUserId = e.OwnerUserId,
+        Kind = e.Kind.ToOrganizationKind(),
         CreatedAt = e.CreatedAt,
     };
 
@@ -293,6 +369,7 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         Id = r.Id,
         Name = r.Name,
         OwnerUserId = r.OwnerUserId,
+        Kind = r.Kind.ToStorageString(),
         CreatedAt = r.CreatedAt,
     };
 
@@ -312,7 +389,7 @@ internal sealed class OrganizationRepository : IOrganizationRepository
         Id = r.Id,
         OrganizationId = r.OrganizationId,
         UserId = r.UserId,
-        Email = r.Email,
+        Email = NormalizeEmail(r.Email),
         Role = r.Role.ToStorageString(),
         Status = r.Status.ToStorageString(),
         CreatedAt = r.CreatedAt,

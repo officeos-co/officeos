@@ -66,20 +66,18 @@ public sealed class WorkspaceOrganizationEndToEndTests
         await WorkspaceTestHarness.SeedUserAsync(db, memberId, "member@example.com");
 
         var harness = WorkspaceTestHarness.Create(db);
-        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
+        var organization = await harness.Organizations.CreateOrganizationAsync(ownerId, "owner@example.com", "Owner", "Acme");
         var orgDefault = await harness.Workspaces.GetCurrentAsync(ownerId);
         var invite = await harness.Organizations.InviteMemberAsync(
             ownerId,
-            "owner@example.com",
-            "Owner",
             "member@example.com",
             "Editor");
         var member = await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", invite.Id);
 
         var memberWorkspaces = await harness.Workspaces.ListAsync(memberId);
-        var memberOrgDefault = Assert.Single(memberWorkspaces, workspace => workspace.OrganizationId == overview.Organization.Id);
+        var memberOrgDefault = Assert.Single(memberWorkspaces, workspace => workspace.OrganizationId == organization.Id);
 
-        var opsWorkspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
+        var opsWorkspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, organization.Id, "Ops");
         var seededOpsWorkspace = Assert.Single(await harness.Workspaces.ListAsync(memberId), workspace => workspace.Id == opsWorkspace.Id);
         var opsMembership = await harness.Workspaces.AddMemberAsync(ownerId, opsWorkspace.Id, memberId, "Viewer");
         var upgradedMembership = await harness.Workspaces.UpdateMemberRoleAsync(ownerId, opsWorkspace.Id, memberId, "Editor");
@@ -132,11 +130,9 @@ public sealed class WorkspaceOrganizationEndToEndTests
         await WorkspaceTestHarness.SeedUserAsync(db, ownerId, "owner@example.com");
 
         var harness = WorkspaceTestHarness.Create(db);
-        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
+        var organization = await harness.Organizations.CreateOrganizationAsync(ownerId, "owner@example.com", "Owner", "Acme");
         var invite = await harness.Organizations.InviteMemberAsync(
             ownerId,
-            "owner@example.com",
-            "Owner",
             "member@example.com",
             "Editor");
 
@@ -149,10 +145,117 @@ public sealed class WorkspaceOrganizationEndToEndTests
 
         Assert.Single(pending);
         Assert.Equal(invite.Id, pending[0].Id);
-        Assert.DoesNotContain(workspacesBeforeAccept, workspace => workspace.OrganizationId == overview.Organization.Id);
+        Assert.DoesNotContain(workspacesBeforeAccept, workspace => workspace.OrganizationId == organization.Id);
         Assert.Equal(MemberStatus.Active, accepted.Status);
         Assert.Equal(invitedUserId, accepted.UserId);
-        Assert.Contains(workspacesAfterAccept, workspace => workspace.OrganizationId == overview.Organization.Id);
+        Assert.Contains(workspacesAfterAccept, workspace => workspace.OrganizationId == organization.Id);
+    }
+
+    [Fact]
+    public async Task User_gets_individual_organization_until_setup_converts_it()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb();
+        var userId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, userId, "owner@example.com");
+
+        var harness = WorkspaceTestHarness.Create(db);
+        var currentBeforeSetup = await harness.Organizations.GetCurrentOverviewAsync(userId);
+        var ownedBeforeSetup = await harness.Organizations.GetOwnedOrganizationAsync(userId);
+        var joinedBeforeSetup = await harness.Organizations.ListJoinedOrganizationsAsync(userId);
+
+        var organization = await harness.Organizations.CreateOrganizationAsync(userId, "owner@example.com", "Owner", "Acme");
+        var ownedAfterSetup = await harness.Organizations.GetOwnedOrganizationAsync(userId);
+        var currentAfterSetup = await harness.Organizations.GetCurrentOrganizationAsync(userId);
+        var defaultWorkspace = Assert.Single(await harness.Workspaces.ListAsync(userId), workspace => workspace.OrganizationId == organization.Id);
+
+        Assert.NotNull(currentBeforeSetup);
+        var beforeSetup = currentBeforeSetup;
+        Assert.Equal(OrganizationKind.Individual, beforeSetup.Organization.Kind);
+        Assert.Equal("owner's Individual Org", beforeSetup.Organization.Name);
+        Assert.Equal(beforeSetup.Organization.Id, ownedBeforeSetup?.Id);
+        Assert.Single(joinedBeforeSetup);
+        Assert.Equal(beforeSetup.Organization.Id, organization.Id);
+        Assert.Equal(OrganizationKind.Shared, organization.Kind);
+        Assert.Equal(organization.Id, ownedAfterSetup?.Id);
+        Assert.Equal(organization.Id, currentAfterSetup.Id);
+        Assert.True(defaultWorkspace.IsDefault);
+        Assert.Equal(WorkspaceOwnerKind.Organization, defaultWorkspace.OwnerKind);
+    }
+
+    [Fact]
+    public async Task Repeated_organization_setup_renames_same_owned_organization()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb();
+        var userId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, userId, "owner@example.com");
+
+        var harness = WorkspaceTestHarness.Create(db);
+        var first = await harness.Organizations.CreateOrganizationAsync(userId, "owner@example.com", "Owner", "Acme");
+        var second = await harness.Organizations.CreateOrganizationAsync(userId, "owner@example.com", "Owner", "Second");
+        var owned = await harness.Organizations.GetOwnedOrganizationAsync(userId);
+
+        Assert.Equal(first.Id, second.Id);
+        Assert.Equal(first.Id, owned?.Id);
+        Assert.Equal("Second", second.Name);
+        Assert.Equal(OrganizationKind.Shared, second.Kind);
+    }
+
+    [Fact]
+    public async Task Invite_acceptance_sets_active_context_and_decline_removes_pending_invite()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb();
+        var ownerId = Guid.NewGuid();
+        var secondOwnerId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, ownerId, "owner@example.com");
+        await WorkspaceTestHarness.SeedUserAsync(db, secondOwnerId, "second@example.com");
+        await WorkspaceTestHarness.SeedUserAsync(db, memberId, "member@example.com");
+
+        var harness = WorkspaceTestHarness.Create(db);
+        var organization = await harness.Organizations.CreateOrganizationAsync(ownerId, "owner@example.com", "Owner", "Acme");
+        var secondOwned = await harness.Organizations.CreateOrganizationAsync(secondOwnerId, "second@example.com", "Second", "Second Co");
+        var firstInvite = await harness.Organizations.InviteMemberAsync(ownerId, "member@example.com", "Viewer");
+        var secondInvite = await harness.Organizations.InviteMemberAsync(ownerId, "second@example.com", "Admin");
+        var declinedInvite = await harness.Organizations.InviteMemberAsync(ownerId, "decline@example.com", "Viewer");
+        await WorkspaceTestHarness.SeedUserAsync(db, Guid.NewGuid(), "decline@example.com");
+
+        await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", firstInvite.Id);
+        await harness.Organizations.AcceptInviteAsync(secondOwnerId, "second@example.com", secondInvite.Id);
+        var declined = await harness.Organizations.DeclineInviteAsync(Guid.NewGuid(), "decline@example.com", declinedInvite.Id);
+
+        var memberContext = await harness.Organizations.GetCurrentOrganizationAsync(memberId);
+        var secondOwnerContext = await harness.Organizations.GetCurrentOrganizationAsync(secondOwnerId);
+        var secondJoined = await harness.Organizations.ListJoinedOrganizationsAsync(secondOwnerId);
+        var pendingDeclined = await harness.Organizations.ListPendingInvitesAsync(Guid.NewGuid(), "decline@example.com");
+
+        Assert.True(declined);
+        Assert.Equal(organization.Id, memberContext.Id);
+        Assert.Equal(organization.Id, secondOwnerContext.Id);
+        Assert.Contains(secondJoined, item => item.Id == organization.Id);
+        Assert.Contains(secondJoined, item => item.Id == secondOwned.Id);
+        Assert.DoesNotContain(pendingDeclined, item => item.Id == declinedInvite.Id);
+    }
+
+    [Fact]
+    public async Task Personal_workspace_resolves_organization_context_from_persisted_selection()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb();
+        var userId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, userId, "owner@example.com");
+
+        var harness = WorkspaceTestHarness.Create(db);
+        var organization = await harness.Organizations.CreateOrganizationAsync(userId, "owner@example.com", "Owner", "Acme");
+        var personal = await harness.Workspaces.CreateAsync(userId, "Personal Lab");
+
+        await harness.Workspaces.SwitchAsync(userId, personal.Id);
+
+        var currentWorkspace = await harness.Workspaces.GetCurrentAsync(userId);
+        var currentOrganization = await harness.Organizations.GetCurrentOrganizationAsync(userId);
+        var members = await harness.Organizations.ListMembersAsync(userId);
+
+        Assert.Equal(WorkspaceOwnerKind.Personal, currentWorkspace.OwnerKind);
+        Assert.Equal(organization.Id, currentOrganization.Id);
+        Assert.Single(members);
     }
 
     [Fact]
@@ -165,11 +268,11 @@ public sealed class WorkspaceOrganizationEndToEndTests
         await WorkspaceTestHarness.SeedUserAsync(db, memberId, "member@example.com");
 
         var harness = WorkspaceTestHarness.Create(db);
-        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
-        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Finance");
-        var invite = await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Editor");
+        var organization = await harness.Organizations.CreateOrganizationAsync(ownerId, "owner@example.com", "Owner", "Acme");
+        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, organization.Id, "Finance");
+        var invite = await harness.Organizations.InviteMemberAsync(ownerId, "member@example.com", "Editor");
         await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", invite.Id);
-        var group = await harness.AccessGroups.CreateAsync(ownerId, overview.Organization.Id, "Finance");
+        var group = await harness.AccessGroups.CreateAsync(ownerId, organization.Id, "Finance");
 
         await harness.AccessGroups.AddMemberAsync(ownerId, group.Id, memberId);
         await harness.AccessGroups.GrantWorkspaceAsync(ownerId, group.Id, workspace.Id, "Viewer");
@@ -190,15 +293,15 @@ public sealed class WorkspaceOrganizationEndToEndTests
         await WorkspaceTestHarness.SeedUserAsync(db, memberId, "member@example.com");
 
         var harness = WorkspaceTestHarness.Create(db);
-        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
-        var invite = await harness.Organizations.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "member@example.com", "Editor");
+        var organization = await harness.Organizations.CreateOrganizationAsync(ownerId, "owner@example.com", "Owner", "Acme");
+        var invite = await harness.Organizations.InviteMemberAsync(ownerId, "member@example.com", "Editor");
         await harness.Organizations.AcceptInviteAsync(memberId, "member@example.com", invite.Id);
-        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
+        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, organization.Id, "Ops");
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.ProviderProfiles.SaveAsync(
                 memberId,
-                overview.Organization.Id,
+                organization.Id,
                 "openai",
                 "OpenAI",
                 ["gpt-4o-mini"],
@@ -209,10 +312,10 @@ public sealed class WorkspaceOrganizationEndToEndTests
                 memberId,
                 new OrganizationPolicyProfileRecord
                 {
-                    OrganizationId = overview.Organization.Id,
+                    OrganizationId = organization.Id,
                     ShellToolsEnabled = false,
                 }));
-        await harness.IntegrationDeployments.DeployAsync(memberId, overview.Organization.Id, workspace.Id, "org-docs");
+        await harness.IntegrationDeployments.DeployAsync(memberId, organization.Id, workspace.Id, "org-docs");
         await harness.Integrations.RegisterAsync(memberId, workspace.Id, WorkspaceTestHarness.CustomIntegration());
         await harness.Integrations.SaveCredentialAsync(memberId, workspace.Id, "org-docs", new() { ["API_KEY"] = "secret" });
     }
@@ -225,8 +328,8 @@ public sealed class WorkspaceOrganizationEndToEndTests
         await WorkspaceTestHarness.SeedUserAsync(db, ownerId, "owner@example.com");
 
         var harness = WorkspaceTestHarness.Create(db);
-        var overview = await harness.Organizations.GetOverviewAsync(ownerId, "owner@example.com", "Owner");
-        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, overview.Organization.Id, "Ops");
+        var organization = await harness.Organizations.CreateOrganizationAsync(ownerId, "owner@example.com", "Owner", "Acme");
+        var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, organization.Id, "Ops");
         db.Integrations.Add(new IntegrationDefinitionEntity
         {
             Id = Guid.NewGuid(),
@@ -264,7 +367,7 @@ public sealed class WorkspaceOrganizationEndToEndTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.Integrations.AssignToAgentAsync(agent.Id, "org-docs", ownerId));
 
-        await harness.IntegrationDeployments.DeployAsync(ownerId, overview.Organization.Id, workspace.Id, "org-docs");
+        await harness.IntegrationDeployments.DeployAsync(ownerId, organization.Id, workspace.Id, "org-docs");
         await harness.Integrations.SaveCredentialAsync(ownerId, workspace.Id, "org-docs", new() { ["API_KEY"] = "secret" });
         var visible = await harness.Integrations.ListAsync(ownerId, workspace.Id);
         await harness.Integrations.AssignToAgentAsync(agent.Id, "org-docs", ownerId);

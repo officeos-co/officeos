@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { UserPlusIcon } from "lucide-react";
@@ -37,7 +38,9 @@ import {
   organizationRoleTooltip,
   useInviteMember,
   useOrganization,
+  useWorkspaces,
 } from "@/features/manage";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const MAX_INVITE_EMAILS = 50;
 const INVITE_ROLE_OPTIONS = [
@@ -60,7 +63,9 @@ const INVITE_ROLE_OPTIONS = [
 
 export default function MembersPage() {
   const router = useRouter();
+  const { user } = useAuthContext();
   const { organization, loading, error } = useOrganization();
+  const { currentWorkspace } = useWorkspaces();
   const { inviteMember, loading: inviting } = useInviteMember();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
@@ -81,6 +86,15 @@ export default function MembersPage() {
     inviteEmailCount > 0 &&
     inviteEmailCount <= MAX_INVITE_EMAILS &&
     !hasInvalidInviteEmails;
+  const currentOrgMember = organization?.members.find(
+    (member) => member.userId === user?.id,
+  );
+  const canManageMembers =
+    currentOrgMember?.role === "Owner" || currentOrgMember?.role === "Admin";
+  const personalWorkspaceContext =
+    currentWorkspace?.ownerKind === "personal" && organization
+      ? `You're in a personal workspace. Showing organization settings for ${organization.name}.`
+      : null;
 
   useEffect(() => {
     if (error) {
@@ -127,9 +141,18 @@ export default function MembersPage() {
           width="thin"
         />
         <PageContainer width="thin" className="py-20">
-          <p className="text-sm text-muted-foreground">
-            Unable to load organization members.
-          </p>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <p className="text-sm text-muted-foreground">
+              No organization context selected.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href="/organization" />}
+            >
+              Open Organization
+            </Button>
+          </div>
         </PageContainer>
       </>
     );
@@ -139,13 +162,15 @@ export default function MembersPage() {
     <>
       <PageHeader
         page="Members"
-        subtitle="Manage organization members."
+        subtitle={personalWorkspaceContext ?? "Manage organization members."}
         width="thin"
         action={
-          <Button size="sm" onClick={() => setInviteOpen(true)}>
-            <UserPlusIcon className="size-3.5" />
-            Invite member
-          </Button>
+          canManageMembers ? (
+            <Button size="sm" onClick={() => setInviteOpen(true)}>
+              <UserPlusIcon className="size-3.5" />
+              Invite member
+            </Button>
+          ) : null
         }
       />
       <PageContainer width="thin" className="flex flex-1 flex-col gap-4 pb-4">

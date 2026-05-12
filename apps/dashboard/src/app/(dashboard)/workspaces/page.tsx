@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PlusIcon } from "lucide-react";
 import { PageHeader } from "@/shell/page-header";
@@ -49,7 +50,7 @@ export default function WorkspacesPage() {
   const activeOrganizationId =
     currentWorkspace?.ownerKind === "organization"
       ? currentWorkspace.organizationId
-      : null;
+      : organization?.id ?? null;
   const currentOrgMember = organization?.members.find(
     (member) => member.userId === user?.id,
   );
@@ -57,7 +58,13 @@ export default function WorkspacesPage() {
     currentOrgMember?.role === "Owner" || currentOrgMember?.role === "Admin";
   const canCreateOrganizationWorkspace =
     Boolean(activeOrganizationId) &&
-    (isOrgAdmin || canAdministerWorkspace(currentWorkspace?.role));
+    (isOrgAdmin ||
+      (currentWorkspace?.ownerKind === "organization" &&
+        canAdministerWorkspace(currentWorkspace?.role)));
+  const personalWorkspaceContext =
+    currentWorkspace?.ownerKind === "personal" && organization
+      ? `You're in a personal workspace. Showing organization settings for ${organization.name}.`
+      : null;
   const organizationWorkspaces = activeOrganizationId
     ? workspaces.filter(
         (workspace) =>
@@ -98,7 +105,9 @@ export default function WorkspacesPage() {
     <>
       <PageHeader
         page="Workspaces"
-        subtitle="Manage organization workspaces."
+        subtitle={
+          personalWorkspaceContext ?? "Manage organization workspaces."
+        }
         width="thin"
         action={
           canCreateOrganizationWorkspace ? (
@@ -149,9 +158,20 @@ export default function WorkspacesPage() {
                   colSpan={4}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  {activeOrganizationId
-                    ? "No organization workspaces found."
-                    : "Switch to an organization workspace to view organization workspaces."}
+                  {activeOrganizationId ? (
+                    "No organization workspaces found."
+                  ) : (
+                    <span className="inline-flex flex-col items-center gap-3">
+                      <span>No organization context selected.</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        render={<Link href="/organization" />}
+                      >
+                        Open Organization
+                      </Button>
+                    </span>
+                  )}
                 </TableCell>
               </TableRow>
             )}

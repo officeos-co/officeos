@@ -16,8 +16,17 @@ export type OrgMember = {
 export type OrganizationPayload = {
   id: string
   name: string
+  kind: "individual" | "shared"
   ownerUserId: string
   members: OrgMember[]
+}
+
+export type OrganizationSummary = {
+  id: string
+  name: string
+  kind: "individual" | "shared"
+  ownerUserId: string
+  createdAt: string
 }
 
 export type OrganizationInvite = {
@@ -29,11 +38,19 @@ export type OrganizationInvite = {
   createdAt: string
 }
 
+export type OrganizationContext = {
+  currentOrganization: OrganizationPayload
+  ownedOrganization: OrganizationSummary | null
+  joinedOrganizations: OrganizationSummary[]
+  pendingInvites: OrganizationInvite[]
+}
+
 const ORG_QUERY = gql`
   query Org {
     org {
       id
       name
+      kind
       ownerUserId
       members {
         id
@@ -56,6 +73,81 @@ const PENDING_ORGANIZATION_INVITES = gql`
       organizationName
       email
       role
+      createdAt
+    }
+  }
+`
+
+const ORGANIZATION_CONTEXT = gql`
+  query OrganizationContext {
+    organizationContext {
+      currentOrganization {
+        id
+        name
+        kind
+        ownerUserId
+        members {
+          id
+          organizationId
+          userId
+          email
+          role
+          status
+          createdAt
+        }
+      }
+      ownedOrganization {
+        id
+        name
+        kind
+        ownerUserId
+        createdAt
+      }
+      joinedOrganizations {
+        id
+        name
+        kind
+        ownerUserId
+        createdAt
+      }
+      pendingInvites {
+        id
+        organizationId
+        organizationName
+        email
+        role
+        createdAt
+      }
+    }
+  }
+`
+
+const CREATE_ORGANIZATION = gql`
+  mutation CreateOrganization($input: CreateOrganizationInput!) {
+    createOrganization(input: $input) {
+      id
+      name
+      kind
+      ownerUserId
+      members {
+        id
+        organizationId
+        userId
+        email
+        role
+        status
+        createdAt
+      }
+    }
+  }
+`
+
+const SELECT_ORGANIZATION = gql`
+  mutation SelectOrganization($organizationId: UUID!) {
+    selectOrganization(organizationId: $organizationId) {
+      id
+      name
+      ownerUserId
       createdAt
     }
   }
@@ -86,6 +178,12 @@ const ACCEPT_ORGANIZATION_INVITE = gql`
       status
       createdAt
     }
+  }
+`
+
+const DECLINE_ORGANIZATION_INVITE = gql`
+  mutation DeclineOrganizationInvite($memberId: UUID!) {
+    declineOrganizationInvite(memberId: $memberId)
   }
 `
 
@@ -154,17 +252,69 @@ export function useOrganization(): {
 } {
   const { data, loading, error } = useQuery(ORG_QUERY)
   const raw = data?.org as
-    | { id: string; name: string; ownerUserId: string; members: MemberRaw[] }
+    | { id: string; name: string; kind: string; ownerUserId: string; members: MemberRaw[] }
     | null
     | undefined
   if (!raw) return { organization: null, loading, error: error ?? undefined }
   const organization: OrganizationPayload = {
     id: raw.id,
     name: raw.name,
+    kind: toOrganizationKind(raw.kind),
     ownerUserId: raw.ownerUserId,
     members: (raw.members ?? []).map(toMember),
   }
   return { organization, loading, error: error ?? undefined }
+}
+
+type OrganizationRaw = {
+  id: string
+  name: string
+  kind: string
+  ownerUserId: string
+  members: MemberRaw[]
+}
+
+type OrganizationContextRaw = {
+  organizationContext: {
+    currentOrganization: OrganizationRaw
+    ownedOrganization: OrganizationSummary | null
+    joinedOrganizations: OrganizationSummary[]
+    pendingInvites: OrganizationInvite[]
+  }
+}
+
+function toOrganization(raw: OrganizationRaw): OrganizationPayload {
+  return {
+    id: raw.id,
+    name: raw.name,
+    kind: toOrganizationKind(raw.kind),
+    ownerUserId: raw.ownerUserId,
+    members: (raw.members ?? []).map(toMember),
+  }
+}
+
+export function useOrganizationContext(): {
+  context: OrganizationContext | null
+  loading: boolean
+  error?: Error
+} {
+  const { data, loading, error } = useQuery<OrganizationContextRaw>(ORGANIZATION_CONTEXT)
+  const raw = data?.organizationContext
+  if (!raw) return { context: null, loading, error: error ?? undefined }
+  return {
+    context: {
+      currentOrganization: toOrganization(raw.currentOrganization),
+      ownedOrganization: raw.ownedOrganization ?? null,
+      joinedOrganizations: raw.joinedOrganizations ?? [],
+      pendingInvites: raw.pendingInvites ?? [],
+    },
+    loading,
+    error: error ?? undefined,
+  }
+}
+
+function toOrganizationKind(kind: string | null | undefined): OrganizationPayload["kind"] {
+  return kind === "shared" ? "shared" : "individual"
 }
 
 export function usePendingOrganizationInvites(): {
@@ -196,6 +346,44 @@ export function useAcceptOrganizationInvite() {
   }
 }
 
+export function useDeclineOrganizationInvite() {
+  const [fn, state] = useMutation(DECLINE_ORGANIZATION_INVITE)
+  return {
+    declineOrganizationInvite: async (memberId: string): Promise<boolean> => {
+      const { data } = await fn({ variables: { memberId } })
+      await apolloClient.resetStore()
+      return Boolean(data?.declineOrganizationInvite)
+    },
+    ...state,
+  }
+}
+
+export function useCreateOrganization() {
+  const [fn, state] = useMutation(CREATE_ORGANIZATION)
+  return {
+    createOrganization: async (name: string): Promise<OrganizationPayload | undefined> => {
+      const { data } = await fn({ variables: { input: { name } } })
+      await apolloClient.resetStore()
+      return data?.createOrganization
+        ? toOrganization(data.createOrganization as OrganizationRaw)
+        : undefined
+    },
+    ...state,
+  }
+}
+
+export function useSelectOrganization() {
+  const [fn, state] = useMutation(SELECT_ORGANIZATION)
+  return {
+    selectOrganization: async (organizationId: string): Promise<OrganizationSummary | undefined> => {
+      const { data } = await fn({ variables: { organizationId } })
+      await apolloClient.resetStore()
+      return data?.selectOrganization as OrganizationSummary | undefined
+    },
+    ...state,
+  }
+}
+
 export function useInviteMember() {
   const [fn, state] = useMutation(INVITE_MEMBER)
   return {
@@ -216,7 +404,7 @@ export function useInviteMember() {
         },
         update(cache, { data: result }) {
           if (!result?.inviteMember) return
-          const existing = cache.readQuery<{ org: { id: string; name: string; ownerUserId: string; members: MemberRaw[] } }>({ query: ORG_QUERY })
+          const existing = cache.readQuery<{ org: { id: string; name: string; kind: string; ownerUserId: string; members: MemberRaw[] } }>({ query: ORG_QUERY })
           if (existing?.org) {
             cache.writeQuery({
               query: ORG_QUERY,
@@ -244,7 +432,7 @@ export function useRemoveMember() {
         variables: { memberId },
         optimisticResponse: { removeMember: true },
         update(cache) {
-          const existing = cache.readQuery<{ org: { id: string; name: string; ownerUserId: string; members: Array<{ id: string }> } }>({ query: ORG_QUERY })
+          const existing = cache.readQuery<{ org: { id: string; name: string; kind: string; ownerUserId: string; members: Array<{ id: string }> } }>({ query: ORG_QUERY })
           if (existing?.org) {
             cache.writeQuery({
               query: ORG_QUERY,
@@ -280,7 +468,7 @@ export function useRenameOrg() {
         },
         update(cache, { data: result }) {
           if (!result?.renameOrg) return
-          const existing = cache.readQuery<{ org: { id: string; name: string; ownerUserId: string; members: unknown[] } }>({ query: ORG_QUERY })
+          const existing = cache.readQuery<{ org: { id: string; name: string; kind: string; ownerUserId: string; members: unknown[] } }>({ query: ORG_QUERY })
           if (existing?.org) {
             cache.writeQuery({
               query: ORG_QUERY,

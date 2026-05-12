@@ -5,5 +5,6 @@ public sealed class OrganizationEntity
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public Guid OwnerUserId { get; set; }
+    public string Kind { get; set; } = "individual";
     public DateTime CreatedAt { get; set; }
 }

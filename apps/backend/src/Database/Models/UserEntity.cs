@@ -15,5 +15,7 @@ public sealed class UserEntity
     public string? NotificationPrefsJson { get; set; }
     public string? Preferences { get; set; }
     public Guid? CurrentWorkspaceId { get; set; }
+    public Guid? CurrentOrganizationId { get; set; }
     public WorkspaceEntity? CurrentWorkspace { get; set; }
+    public OrganizationEntity? CurrentOrganization { get; set; }
 }

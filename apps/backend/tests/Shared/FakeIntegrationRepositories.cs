@@ -274,14 +274,23 @@ public sealed class FakeWorkspaceMemberRepository : IWorkspaceMemberRepository
 
 public sealed class FakeOrganizationRepository : IOrganizationRepository
 {
-    public Task<OrganizationRecord> GetOrCreateDefaultAsync(Guid ownerUserId, string ownerEmail, string? ownerName, CancellationToken ct = default) =>
-        Task.FromResult(new OrganizationRecord { OwnerUserId = ownerUserId, Name = "Default" });
+    public Task<OrganizationRecord> CreateAsync(OrganizationRecord organization, OrgMemberRecord ownerMember, CancellationToken ct = default) =>
+        Task.FromResult(organization);
 
     public Task<OrganizationRecord?> GetByAsync(OrganizationFilter filter, CancellationToken ct = default) =>
         Task.FromResult<OrganizationRecord?>(null);
 
+    public Task<IReadOnlyList<OrganizationRecord>> ListForMemberAsync(Guid userId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<OrganizationRecord>>([]);
+
     public Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(Guid organizationId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<OrgMemberRecord>>([]);
+
+    public Task<OrgMemberRecord> EnsureOwnerMembershipAsync(Guid organizationId, Guid userId, string email, CancellationToken ct = default) =>
+        Task.FromResult(OrgMemberRecord.CreateOwner(organizationId, userId, email));
+
+    public Task<OrganizationRecord> SaveAsync(OrganizationRecord organization, CancellationToken ct = default) =>
+        Task.FromResult(organization);
 
     public Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesForEmailAsync(string email, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<OrganizationInviteRecord>>([]);
@@ -290,6 +299,8 @@ public sealed class FakeOrganizationRepository : IOrganizationRepository
 
     public Task<OrgMemberRecord> AcceptInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default) =>
         Task.FromResult(new OrgMemberRecord { Id = memberId, UserId = userId, Email = email, Status = MemberStatus.Active });
+
+    public Task<bool> DeclineInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default) => Task.FromResult(true);
 
     public Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default) => Task.FromResult(false);
 

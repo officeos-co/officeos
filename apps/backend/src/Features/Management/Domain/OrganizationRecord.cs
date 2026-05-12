@@ -6,5 +6,6 @@ public sealed class OrganizationRecord
     [Required, MaxLength(200)]
     public string Name { get; set; } = string.Empty;
     public Guid OwnerUserId { get; init; }
+    public OrganizationKind Kind { get; set; } = OrganizationKind.Individual;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

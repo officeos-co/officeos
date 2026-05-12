@@ -54,6 +54,7 @@ const data = {
       url: "#",
       icon: <SettingsIcon />,
       items: [
+        { title: "Organization", url: "/organization" },
         { title: "Members", url: "/members" },
         { title: "Workspaces", url: "/workspaces" },
         { title: "Providers", url: "/providers" },

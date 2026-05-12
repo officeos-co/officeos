@@ -27,16 +27,15 @@ public sealed class OrganizationAuditLogTests
             new OrganizationRepository(db),
             new WorkspaceRepository(db),
             new WorkspaceMemberRepository(db),
+            new UserRepository(db),
             publisher);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.InviteMemberAsync(ownerId, "owner@example.com", "Owner", "not-an-email", "Editor"));
+            service.InviteMemberAsync(ownerId, "not-an-email", "Editor"));
         Assert.Empty(publisher.Notifications);
 
         var member = await service.InviteMemberAsync(
             ownerId,
-            "owner@example.com",
-            "Owner",
             "new.member@example.com",
             "Admin");
 
@@ -261,7 +260,15 @@ public sealed class OrganizationAuditLogTests
         string email = "owner@example.com")
     {
         var organizationId = Guid.NewGuid();
-        db.Users.Add(new UserEntity { Id = ownerId, Email = email, Name = "Owner", CreatedAt = DateTime.UtcNow, LastLoginAt = DateTime.UtcNow });
+        db.Users.Add(new UserEntity
+        {
+            Id = ownerId,
+            Email = email,
+            Name = "Owner",
+            CreatedAt = DateTime.UtcNow,
+            LastLoginAt = DateTime.UtcNow,
+            CurrentOrganizationId = organizationId,
+        });
         db.Organizations.Add(new OrganizationEntity { Id = organizationId, Name = "Acme", OwnerUserId = ownerId, CreatedAt = DateTime.UtcNow });
         db.OrgMembers.Add(new OrgMemberEntity
         {

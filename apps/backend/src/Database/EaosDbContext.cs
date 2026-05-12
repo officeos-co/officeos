@@ -109,6 +109,7 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(u => u.GoogleSubjectId).IsUnique();
             e.HasIndex(u => u.Email).IsUnique();
             e.HasOne(u => u.CurrentWorkspace).WithMany().HasForeignKey(u => u.CurrentWorkspaceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(u => u.CurrentOrganization).WithMany().HasForeignKey(u => u.CurrentOrganizationId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<WorkspaceEntity>(e =>
@@ -242,6 +243,7 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(o => o.Id);
             e.Property(o => o.Name).IsRequired().HasMaxLength(200);
+            e.Property(o => o.Kind).IsRequired().HasMaxLength(32).HasDefaultValue("individual");
         });
 
         modelBuilder.Entity<OrgMemberEntity>(e =>

@@ -38,6 +38,7 @@ public sealed record WorkspaceTestHarness(
     {
         var cache = new InMemoryDistributedCache();
         var organizationRepository = new OrganizationRepository(db);
+        var userRepository = new UserRepository(db);
         var workspaceRepository = new WorkspaceRepository(db);
         var workspaceMemberRepository = new WorkspaceMemberRepository(db);
         var accessGroupRepository = new AccessGroupRepository(db);
@@ -84,7 +85,7 @@ public sealed record WorkspaceTestHarness(
 
         return new WorkspaceTestHarness(
             new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache, new NoopPublisher()),
-            new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository, new NoopPublisher()),
+            new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository, userRepository, new NoopPublisher()),
             new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
             new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
             new OrganizationProviderProfileService(

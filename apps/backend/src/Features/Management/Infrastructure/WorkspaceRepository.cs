@@ -341,6 +341,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
             ?? throw new InvalidOperationException("User not found.");
 
         user.CurrentWorkspaceId = workspaceId;
+        if (accessible.OrganizationId.HasValue)
+            user.CurrentOrganizationId = accessible.OrganizationId.Value;
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
