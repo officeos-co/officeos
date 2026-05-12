@@ -6,9 +6,14 @@
 
 - 
 
+## Validation
+
+<!-- List the builds, tests, or lint commands you ran. If not run, explain why. -->
+
 ## Checklist
 
 - [ ] Code compiles / builds correctly
-- [ ] Tests pass (or new tests added)
-- [ ] Docs or CLAUDE.md updated if needed
+- [ ] Tests pass or new tests were added for changed behavior
+- [ ] Docs or README updated if needed
 - [ ] Migration added if DB schema changed
+- [ ] Security impact considered for credentials, execution, auth, networking, logs, and tenant isolation

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/officeos-co/officeos/security/policy
+    about: Report vulnerabilities privately. Do not open a public issue for security reports.
+  - name: Community conduct report
+    url: https://github.com/officeos-co/officeos/blob/main/CODE_OF_CONDUCT.md
+    about: Use GitHub's report content flow or contact repository maintainers privately for conduct concerns.

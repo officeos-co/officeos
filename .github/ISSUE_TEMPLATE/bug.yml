@@ -2,6 +2,10 @@ name: Bug Report
 description: Report a bug or unexpected behavior
 labels: ["bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include secrets, provider keys, kubeconfigs, or private customer data.
   - type: textarea
     id: description
     attributes:
@@ -30,3 +34,17 @@ body:
       description: OS, browser, versions, cluster info, etc.
     validations:
       required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Screenshots
+      description: Paste relevant logs or screenshots with secrets removed.
+    validations:
+      required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Safety Check
+      options:
+        - label: I removed secrets, provider keys, kubeconfigs, and private data from this report.
+          required: true

@@ -15,13 +15,13 @@ Open-source infrastructure for deploying, hosting, and managing fleets of AI age
   <a href="https://officeos.co">Website</a> · 
   <a href="https://docs.officeos.co">Docs</a> · 
   <a href="https://docs.officeos.co/quickstart">Getting Started</a> · 
-  <a href="https://github.com/HarKro753/EnterpriseAgentOs/issues">Issues</a> ·
+  <a href="https://github.com/officeos-co/officeos/issues">Issues</a> ·
   <a href="https://discord.gg/TyvRBzsQP">Discord</a>
 </p>
 
 <br/>
 
-OfficeOS is the infrastructure layer for running AI agents in production. Self-host the stack once, then launch agents on demand with their own virtual environment, attached browser, tools, persistent memory, credential access, structured logs, and isolated workspace.
+OfficeOS is open-source, self-hosted, model-agnostic agent infrastructure: a control plane for running AI agents on your own cloud. Self-host the stack once, then launch agents on demand with their own virtual environment, attached browser, tools, persistent memory, credential access, structured logs, and isolated workspace.
 
 The dashboard is the control plane for deploying agents, managing their capabilities, observing every turn, and operating them across teams and environments.
 
@@ -103,6 +103,14 @@ cd apps/backend && dotnet run --project src/EnterpriseAgentOs.Api
 # Dashboard
 cd apps/dashboard && bun dev
 ```
+
+## Project Resources
+
+- [Contributing](CONTRIBUTING.md) explains the development workflow, architecture boundaries, and review expectations.
+- [Code of Conduct](CODE_OF_CONDUCT.md) defines how contributors are expected to work together.
+- [Security Policy](SECURITY.md) explains how to report vulnerabilities privately.
+- [License](LICENSE) is Apache-2.0.
+- [Bug reports](.github/ISSUE_TEMPLATE/bug.yml), [feature requests](.github/ISSUE_TEMPLATE/feature.yml), and the [pull request template](.github/pull_request_template.md) are configured for GitHub.
 
 ## Star History
 

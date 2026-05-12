@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting a feature! Describe the problem and your proposed solution.
+        Thanks for suggesting a feature. Describe the problem and the proposed solution. For new integrations, prefer MCP-based designs.
   - type: textarea
     id: problem
     attributes:
@@ -34,3 +34,28 @@ body:
       description: Diagrams, links, references, or anything else.
     validations:
       required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the system is most affected?
+      options:
+        - Backend agent loop
+        - Pod executor
+        - MCP integration
+        - Dashboard
+        - Channels
+        - Kubernetes or Helm
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Contribution Checks
+      options:
+        - label: This proposal avoids introducing a legacy integration path when an MCP-based path is appropriate.
+          required: true
+        - label: I considered security impact for credentials, execution, auth, networking, logs, and tenant isolation.
+          required: true
