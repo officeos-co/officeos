@@ -32,6 +32,7 @@ const data = {
       icon: <BotIcon />,
       isActive: true,
       items: [
+        { title: "Quickstart", url: "/quickstart" },
         { title: "Agents", url: "/agents" },
         { title: "Browser", url: "/browser" },
         { title: "Routines", url: "/routines" },

@@ -1,4 +1,5 @@
 using OffceOs.Application.Features.Agents;
+using OffceOs.Application.Features.AgentRoutines;
 using OffceOs.Application.Features.Channels;
 using OffceOs.Application.Features.Integrations;
 using OffceOs.Application.Features.Management;
@@ -7,11 +8,13 @@ using OffceOs.Configuration;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Channels;
 using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.AgentRoutines;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Infrastructure.Features.Context;
 using OffceOs.Infrastructure.Features.Integrations;
@@ -76,12 +79,23 @@ public sealed record WorkspaceTestHarness(
             new AgentResourceRepository(db),
             new MemoryStoreRepository(db),
             channelRepository,
-            new FakeChannelService(),
+            new ChannelService(
+                channelRepository,
+                new RecordingChannelGateway(),
+                agentRepository,
+                new ChannelCredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-channel-e2e-keys-{Guid.NewGuid():N}")))),
+                new NoopPublisher(),
+                new ChannelReplyContext(),
+                NullLogger<ChannelService>.Instance),
             new FakeBrowserService(),
             new FakeAgentDeployer(),
             new AgentRunRepository(db),
             new FakeAgentLogService(),
-            agentDefinitionParser);
+            agentDefinitionParser,
+            new AgentRoutineService(
+                new AgentRoutineRepository(db),
+                agentRepository,
+                new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-routine-e2e-keys-{Guid.NewGuid():N}"))))));
 
         return new WorkspaceTestHarness(
             new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache, new NoopPublisher()),

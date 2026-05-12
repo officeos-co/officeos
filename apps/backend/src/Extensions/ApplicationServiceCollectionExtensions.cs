@@ -6,6 +6,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddScoped<IAgentService, AgentService>();
         services.AddScoped<IAgentDashboardService, AgentDashboardService>();
+        services.AddScoped<IQuickstartAgentService, QuickstartAgentService>();
         services.AddScoped<IAgentRoutineService, AgentRoutineService>();
         services.AddScoped<AgentRoutineExecutionService>();
         services.AddScoped<IAgentRoutineExecutionService>(provider => provider.GetRequiredService<AgentRoutineExecutionService>());

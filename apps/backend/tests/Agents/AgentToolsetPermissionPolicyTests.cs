@@ -41,6 +41,8 @@ public sealed class AgentToolsetPermissionPolicyTests
                 AgentToolsetKinds.Mcp,
                 "notion",
                 new AgentToolsetDefaultConfig(new AgentToolPermissionConfig(AgentToolPermissionKinds.DenyList, ["delete_page"])))],
+            null,
+            null,
             null);
         var policy = new AgentToolsetPermissionPolicy(config);
 
@@ -56,6 +58,8 @@ public sealed class AgentToolsetPermissionPolicyTests
             null,
             [],
             [new AgentToolsetConfig(AgentToolsetKinds.Builtin, null, new AgentToolsetDefaultConfig(permissionConfig))],
+            null,
+            null,
             null);
 
     private sealed class StubTool : IAgentTool

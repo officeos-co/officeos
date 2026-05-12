@@ -1,4 +1,5 @@
 using OffceOs.Application.Features.Agents;
+using OffceOs.Application.Features.AgentRoutines;
 using OffceOs.Application.Features.Context;
 using OffceOs.Domain.Common.Primitives;
 using OffceOs.Domain.Features.Agents;
@@ -71,6 +72,27 @@ public sealed class FakeAgentRunRepository : IAgentRunRepository
         Task.FromResult<IReadOnlyList<AgentRunRecord>>([]);
 
     public Task UpdateAsync(AgentRunRecord run, CancellationToken ct = default) => Task.CompletedTask;
+}
+
+public sealed class FakeAgentRoutineService : IAgentRoutineService
+{
+    public Task<IReadOnlyList<AgentRoutineWithAgentRecord>> ListForOwnerAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentRoutineWithAgentRecord>>([]);
+
+    public Task<AgentRoutineWithAgentRecord?> GetForOwnerAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
+        Task.FromResult<AgentRoutineWithAgentRecord?>(null);
+
+    public Task<IReadOnlyList<AgentRoutineRecord>> ListForAgentAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentRoutineRecord>>([]);
+
+    public Task<AgentRoutineCreateResult> CreateAsync(CreateAgentRoutineRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
+        Task.FromResult(new AgentRoutineCreateResult(AgentRoutineRecord.Create(request.AgentId, request.Name, request.Prompt), []));
+
+    public Task<bool> SetEnabledAsync(Guid id, Guid ownerId, Guid workspaceId, bool enabled, CancellationToken ct = default) =>
+        Task.FromResult(true);
+
+    public Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
+        Task.FromResult(true);
 }
 
 internal sealed class NoBrowserToolContextFactory : IBrowserToolContextFactory

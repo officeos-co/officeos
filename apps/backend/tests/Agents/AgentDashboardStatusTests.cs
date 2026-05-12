@@ -89,7 +89,8 @@ public sealed class AgentDashboardStatusTests
             deployer,
             new AgentRunRepository(db),
             new FakeAgentLogService(),
-            agentDefinitionParser);
+            agentDefinitionParser,
+            new FakeAgentRoutineService());
     }
 
     private static async Task AddAgentAsync(

@@ -14,6 +14,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly IAgentLogService _agentLogService;
     private readonly AgentDefinitionParser _agentDefinitionParser;
+    private readonly IAgentRoutineService _agentRoutineService;
 
     public AgentDashboardService(
         IAgentService agents,
@@ -27,7 +28,8 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         IAgentDeployer agentDeployer,
         IAgentRunRepository runs,
         IAgentLogService agentLogService,
-        AgentDefinitionParser agentDefinitionParser)
+        AgentDefinitionParser agentDefinitionParser,
+        IAgentRoutineService agentRoutineService)
     {
         _agentService = agents;
         _agentRepository = agentRepository;
@@ -41,6 +43,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _agentRunRepository = runs;
         _agentLogService = agentLogService;
         _agentDefinitionParser = agentDefinitionParser;
+        _agentRoutineService = agentRoutineService;
     }
 
     public async Task<IReadOnlyList<AgentDashboardResult>> ListDashboardAgentsAsync(
@@ -85,6 +88,9 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         await EnsureChannelConnectionsExistAsync(request.ChannelConnectionIds, workspaceId, ct);
+        var definitionConfig = string.IsNullOrWhiteSpace(request.ConfigJson)
+            ? null
+            : _agentDefinitionParser.Parse(request.ConfigJson);
 
         var agent = await _agentService.CreateAsync(
             new CreateAgentRequest(
@@ -92,16 +98,19 @@ internal sealed class AgentDashboardService : IAgentDashboardService
                 request.Provider,
                 request.Model,
                 request.Prompt,
-                request.ConfigJson ?? _agentDefinitionParser.Serialize(_agentDefinitionParser.CreateDefaultConfig(
+                definitionConfig is null
+                    ? _agentDefinitionParser.Serialize(_agentDefinitionParser.CreateDefaultConfig(
                     request.Name,
                     string.IsNullOrWhiteSpace(request.Model) ? ProviderRegistry.DefaultModel : request.Model,
                     request.Prompt,
-                    request.ToolNames is { Count: > 0 } ? request.ToolNames : request.IntegrationSlugs))),
+                    request.ToolNames is { Count: > 0 } ? request.ToolNames : request.IntegrationSlugs))
+                    : _agentDefinitionParser.Serialize(definitionConfig)),
             ownerId,
             workspaceId,
             ct);
 
-        if (request.Resources is { Count: > 0 })
+        var resources = MergeResources(request.Resources, definitionConfig?.Resources);
+        if (resources.Count > 0)
         {
             var resourceSession = await _agentSessionRepository.GetByAsync(
                 new AgentSessionFilter { AgentId = agent.Id, Status = SessionStatus.Active },
@@ -112,7 +121,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
                 await _agentSessionRepository.CreateAsync(resourceSession, ct);
             }
 
-            foreach (var resource in request.Resources)
+            foreach (var resource in resources)
             {
                 var resourceType = NormalizeResourceType(resource.ResourceType);
                 await EnsureResourceExistsAsync(resourceType, resource.ResourceId, ownerId, workspaceId, ct);
@@ -147,6 +156,29 @@ internal sealed class AgentDashboardService : IAgentDashboardService
             ownerId,
             new AgentInitRequest(toolNames, request.ChannelConnectionIds, bootstrap),
             ct);
+
+        if (definitionConfig?.Routines is { Count: > 0 })
+        {
+            foreach (var routine in definitionConfig.Routines)
+            {
+                await _agentRoutineService.CreateAsync(
+                    new CreateAgentRoutineRequest(
+                        agent.Id,
+                        routine.Name,
+                        routine.Prompt,
+                        routine.ScheduleTriggers?.Select(trigger => new CreateScheduleRoutineTriggerRequest(trigger.Name, trigger.Expression)).ToList() ?? [],
+                        routine.ApiTriggers?.Select(trigger => new CreateApiRoutineTriggerRequest(trigger.Name)).ToList() ?? [],
+                        routine.GitHubTriggers?.Select(trigger => new CreateGitHubRoutineTriggerRequest(
+                            trigger.Name,
+                            trigger.Owner,
+                            trigger.Repo,
+                            trigger.Events,
+                            trigger.Secret)).ToList() ?? []),
+                    ownerId,
+                    workspaceId,
+                    ct);
+            }
+        }
 
         return agent;
     }
@@ -266,6 +298,28 @@ internal sealed class AgentDashboardService : IAgentDashboardService
             if (connection is null)
                 throw new InvalidOperationException("Channel connection not found.");
         }
+    }
+
+    private static IReadOnlyList<AgentResourceAttachmentRequest> MergeResources(
+        IReadOnlyList<AgentResourceAttachmentRequest>? requestResources,
+        IReadOnlyList<AgentResourceAttachmentConfig>? configResources)
+    {
+        var resources = new List<AgentResourceAttachmentRequest>();
+        if (requestResources is { Count: > 0 })
+            resources.AddRange(requestResources);
+        if (configResources is { Count: > 0 })
+        {
+            resources.AddRange(configResources.Select(resource => new AgentResourceAttachmentRequest(
+                resource.Type,
+                resource.ResourceId,
+                resource.AccessMode,
+                resource.Instructions)));
+        }
+
+        return resources
+            .GroupBy(resource => (Type: NormalizeResourceType(resource.ResourceType), resource.ResourceId))
+            .Select(group => group.Last())
+            .ToList();
     }
 
     private static string NormalizeResourceType(string resourceType)

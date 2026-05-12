@@ -7,6 +7,8 @@ public sealed record AgentDefinitionConfig(
     string? System,
     IReadOnlyList<AgentMcpServerConfig> McpServers,
     IReadOnlyList<AgentToolsetConfig> Tools,
+    IReadOnlyList<AgentResourceAttachmentConfig>? Resources,
+    IReadOnlyList<AgentRoutineConfig>? Routines,
     JsonElement? Metadata);
 
 public sealed record AgentMcpServerConfig(
@@ -25,6 +27,33 @@ public sealed record AgentToolsetDefaultConfig(
 public sealed record AgentToolPermissionConfig(
     string Type,
     IReadOnlyList<string>? Tools);
+
+public sealed record AgentResourceAttachmentConfig(
+    string Type,
+    Guid ResourceId,
+    string? AccessMode,
+    string? Instructions);
+
+public sealed record AgentRoutineConfig(
+    string Name,
+    string Prompt,
+    IReadOnlyList<AgentRoutineScheduleTriggerConfig>? ScheduleTriggers,
+    IReadOnlyList<AgentRoutineApiTriggerConfig>? ApiTriggers,
+    IReadOnlyList<AgentRoutineGitHubTriggerConfig>? GitHubTriggers);
+
+public sealed record AgentRoutineScheduleTriggerConfig(
+    string Name,
+    string Expression);
+
+public sealed record AgentRoutineApiTriggerConfig(
+    string Name);
+
+public sealed record AgentRoutineGitHubTriggerConfig(
+    string Name,
+    string Owner,
+    string Repo,
+    IReadOnlyList<string> Events,
+    string Secret);
 
 public static class AgentToolsetKinds
 {

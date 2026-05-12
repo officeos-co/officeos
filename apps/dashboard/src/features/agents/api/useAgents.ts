@@ -253,6 +253,7 @@ export type CreateAgentHookInput = {
     instructions?: string | null;
   }>;
   bootstrapMessage?: string;
+  configJson?: string;
 };
 
 export function useCreateAgent() {
@@ -266,6 +267,7 @@ export function useCreateAgent() {
             provider: input.provider,
             model: input.model,
             prompt: input.systemPrompt,
+            configJson: input.configJson ?? null,
             integrationSlugs: input.integrationSlugs,
             channelConnectionIds: input.channelConnectionIds,
             toolNames: input.toolNames ?? [],

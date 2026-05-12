@@ -184,6 +184,8 @@ internal sealed class AgentService : IAgentService
                 prompt,
                 activeConfig?.McpServers ?? [],
                 activeConfig?.Tools ?? [],
+                activeConfig?.Resources,
+                activeConfig?.Routines,
                 activeConfig?.Metadata);
         }
 
