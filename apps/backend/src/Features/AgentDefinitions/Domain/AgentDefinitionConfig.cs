@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.AgentDefinitions;
 
 public sealed record AgentDefinitionConfig(
     string Name,

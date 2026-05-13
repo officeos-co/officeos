@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Common.Primitives;
+using OffceOs.Domain.Features.AgentDefinitions;
 using OffceOs.Domain.Features.Agents;
 using Xunit;
 

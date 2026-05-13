@@ -1,3 +1,4 @@
+using OffceOs.Application.Features.AgentDefinitions;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Events;
 using OffceOs.Domain.Features.Management;

@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentDefinitions;
 
 public sealed record DeclarativeManifestRequest(string Manifest);
 

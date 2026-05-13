@@ -1,5 +1,6 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
+using OffceOs.Application.Features.AgentDefinitions;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;

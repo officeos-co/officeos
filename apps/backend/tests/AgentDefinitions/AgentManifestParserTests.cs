@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.Agents;
+using OffceOs.Application.Features.AgentDefinitions;
 using Xunit;
 
-namespace OffceOs.Tests.Agents;
+namespace OffceOs.Tests.AgentDefinitions;
 
 public sealed class AgentManifestParserTests
 {
