@@ -62,6 +62,7 @@ public static class ApplicationServiceCollectionExtensions
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();
         services.AddHostedService<AgentRuntimeCleanupService>();
+        services.AddHostedService<AgentRunDispatchService>();
 
         return services;
     }

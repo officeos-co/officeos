@@ -14,6 +14,13 @@ public sealed class FakeChannelService : IChannelService
         CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<Guid>>([]);
 
+    public Task<IReadOnlyList<Guid>> SendInternalMessageAsync(
+        Guid senderAgentId,
+        Guid channelConnectionId,
+        string content,
+        CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Guid>>([]);
+
     public Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default) => Task.CompletedTask;
 
     public Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default) => Task.CompletedTask;
@@ -68,6 +75,14 @@ public sealed class FakeChannelService : IChannelService
         Guid ownerId,
         Guid workspaceId,
         string? configJson,
+        CancellationToken ct = default) =>
+        throw new NotSupportedException();
+
+    public Task<ChannelConnectionRecord> CreateOwnedInternalConnectionAsync(
+        string displayName,
+        IReadOnlyList<InternalChannelBindingRequest> bindings,
+        Guid ownerId,
+        Guid workspaceId,
         CancellationToken ct = default) =>
         throw new NotSupportedException();
 

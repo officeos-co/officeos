@@ -481,3 +481,54 @@ internal sealed class AgentSpawnTool : IAgentTool
         return new ToolResult(true, payload);
     }
 }
+
+internal sealed class InternalChannelSendTool : IAgentTool
+{
+    private readonly IChannelService _channelService;
+    private readonly Guid _agentId;
+
+    public InternalChannelSendTool(IChannelService channelService, Guid agentId)
+    {
+        _channelService = channelService;
+        _agentId = agentId;
+    }
+
+    public string Name => "internal_channel_send";
+    public AgentToolKind Kind => AgentToolKind.Planning;
+    public ToolSchema Schema => new("internal_channel_send",
+        "Send a message from this agent to agents connected through an internal agent channel.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                channel_connection_id = new { type = "string", description = "Internal channel connection ID" },
+                message = new { type = "string" }
+            },
+            required = new[] { "channel_connection_id", "message" }
+        });
+
+    public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
+    {
+        var rawChannelConnectionId = args.GetProperty("channel_connection_id").GetString();
+        if (!Guid.TryParse(rawChannelConnectionId, out var channelConnectionId))
+            return new ToolResult(false, "", "channel_connection_id must be a valid GUID.");
+
+        var message = args.GetProperty("message").GetString();
+        if (string.IsNullOrWhiteSpace(message))
+            return new ToolResult(false, "", "message is required.");
+
+        try
+        {
+            var receiverIds = await _channelService.SendInternalMessageAsync(_agentId, channelConnectionId, message, ct);
+            return new ToolResult(true, JsonSerializer.Serialize(new
+            {
+                delivered_to_agent_ids = receiverIds,
+            }, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new ToolResult(false, "", ex.Message);
+        }
+    }
+}

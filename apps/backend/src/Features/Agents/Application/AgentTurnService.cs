@@ -1,5 +1,11 @@
 namespace OffceOs.Application.Features.Agents;
 
+internal sealed record AgentTurnResult(bool Success, string? Content, string? Error)
+{
+    public static AgentTurnResult Completed(string? content) => new(true, content, null);
+    public static AgentTurnResult Failed(string error) => new(false, null, error);
+}
+
 /// <summary>
 /// Coordinates one user-visible agent turn.
 /// </summary>
@@ -47,7 +53,7 @@ internal sealed class AgentTurnService
         _logger = logger;
     }
 
-    public async Task RunTurnAsync(Guid agentId, string userMessage, string correlationId, CancellationToken ct)
+    public async Task<AgentTurnResult> RunTurnAsync(Guid agentId, string userMessage, string correlationId, CancellationToken ct)
     {
         try
         {
@@ -58,13 +64,13 @@ internal sealed class AgentTurnService
             if (agent is null)
             {
                 await _turnEventPublisher.PublishErrorAsync(agentId, correlationId, $"Agent {agentId} not found", ct);
-                return;
+                return AgentTurnResult.Failed($"Agent {agentId} not found");
             }
 
             if (string.IsNullOrEmpty(agent.PodName))
             {
                 await _turnEventPublisher.PublishErrorAsync(agentId, correlationId, $"Agent {agentId} has no pod", ct);
-                return;
+                return AgentTurnResult.Failed($"Agent {agentId} has no pod");
             }
 
             var runStart = Stopwatch.GetTimestamp();
@@ -123,7 +129,7 @@ internal sealed class AgentTurnService
                     var quotaMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
                     await _turnEventPublisher.PublishTurnCompletedAsync(agentId, correlationId, quotaMs, i, totalToolCalls, ct);
                     await _agentRunLifecycle.FailAsync(run, ex.Message, ct);
-                    return;
+                    return AgentTurnResult.Failed(ex.Message);
                 }
 
                 var llmResult = await _llmTurnExecutor.ExecuteAsync(agent, history, tools.Registry, i + 1, correlationId, ct);
@@ -131,7 +137,7 @@ internal sealed class AgentTurnService
                 {
                     await _turnEventPublisher.PublishErrorAsync(agentId, correlationId, llmResult.Error.Message, ct);
                     await _agentRunLifecycle.FailAsync(run, llmResult.Error.Message, ct);
-                    return;
+                    return AgentTurnResult.Failed(llmResult.Error.Message);
                 }
 
                 var llmTurn = llmResult.Value;
@@ -154,7 +160,7 @@ internal sealed class AgentTurnService
                         "LLM usage could not be recorded; refusing to continue the turn.",
                         ct);
                     await _agentRunLifecycle.FailAsync(run, "LLM usage could not be recorded.", ct);
-                    return;
+                    return AgentTurnResult.Failed("LLM usage could not be recorded.");
                 }
 
                 await _turnEventPublisher.PublishLlmCompletedAsync(
@@ -200,7 +206,7 @@ internal sealed class AgentTurnService
                     var totalMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
                     await _turnEventPublisher.PublishTurnCompletedAsync(agentId, correlationId, totalMs, i + 1, totalToolCalls, ct);
                     await _agentRunLifecycle.CompleteAsync(run, llmTurn.AssistantContent, ct);
-                    return;
+                    return AgentTurnResult.Completed(llmTurn.AssistantContent);
                 }
 
                 var toolLoop = await _toolExecutionLoop.ExecuteAsync(
@@ -219,7 +225,7 @@ internal sealed class AgentTurnService
                     var breakMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
                     await _turnEventPublisher.PublishTurnCompletedAsync(agentId, correlationId, breakMs, i + 1, totalToolCalls, ct);
                     await _agentRunLifecycle.FailAsync(run, toolLoop.ErrorMessage!, ct);
-                    return;
+                    return AgentTurnResult.Failed(toolLoop.ErrorMessage!);
                 }
             }
 
@@ -228,6 +234,7 @@ internal sealed class AgentTurnService
             var maxMs = (int)Stopwatch.GetElapsedTime(turnStart).TotalMilliseconds;
             await _turnEventPublisher.PublishTurnCompletedAsync(agentId, correlationId, maxMs, MaxIterations, totalToolCalls, ct);
             await _agentRunLifecycle.FailAsync(run, maxIterationError, ct);
+            return AgentTurnResult.Failed(maxIterationError);
         }
         catch (Exception ex)
         {
@@ -240,6 +247,8 @@ internal sealed class AgentTurnService
             {
                 _logger.LogError(pubEx, "Failed to publish error event for agent {AgentId}", agentId);
             }
+
+            return AgentTurnResult.Failed($"Internal error: {ex.Message}");
         }
     }
 

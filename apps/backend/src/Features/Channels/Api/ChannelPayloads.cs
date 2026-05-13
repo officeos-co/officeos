@@ -33,7 +33,22 @@ public sealed record UpdateChannelConnectionInput(
 
 public sealed record ChannelBindingConfigInput(
     string? PlatformId,
-    string? ThreadId);
+    string? ThreadId,
+    bool? CanSend = null,
+    bool? CanReceive = null,
+    bool? ReplyOnly = null,
+    string? Label = null);
+
+public sealed record CreateInternalChannelConnectionInput(
+    string DisplayName,
+    IReadOnlyList<InternalChannelBindingInput> Bindings);
+
+public sealed record InternalChannelBindingInput(
+    Guid AgentId,
+    bool CanSend = true,
+    bool CanReceive = true,
+    bool ReplyOnly = false,
+    string? Label = null);
 
 // ── Mapping helpers (shared bcetween queries + mutations) ──────────────────
 
@@ -79,7 +94,20 @@ internal static class ChannelGraphQLMapper
         {
             PlatformId = input.PlatformId,
             ThreadId = input.ThreadId,
+            CanSend = input.CanSend,
+            CanReceive = input.CanReceive,
+            ReplyOnly = input.ReplyOnly,
+            Label = input.Label,
         };
         return JsonSerializer.Serialize(cfg);
     }
+
+    public static IReadOnlyList<InternalChannelBindingRequest> ToRequests(
+        IReadOnlyList<InternalChannelBindingInput> inputs)
+        => inputs.Select(input => new InternalChannelBindingRequest(
+            input.AgentId,
+            input.CanSend,
+            input.CanReceive,
+            input.ReplyOnly,
+            input.Label)).ToList();
 }

@@ -67,6 +67,8 @@ public sealed class FakeAgentRunRepository : IAgentRunRepository
 {
     public Task<AgentRunRecord> CreateAsync(AgentRunRecord run, CancellationToken ct = default) => Task.FromResult(run);
     public Task<AgentRunRecord?> GetByAsync(AgentRunFilter filter, CancellationToken ct = default) => Task.FromResult<AgentRunRecord?>(null);
+    public Task<IReadOnlyList<AgentRunRecord>> ListAsync(AgentRunFilter filter, int limit = 100, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<AgentRunRecord>>([]);
 
     public Task<IReadOnlyList<AgentRunRecord>> ListForAgentAsync(Guid agentId, Guid? parentRunId = null, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<AgentRunRecord>>([]);

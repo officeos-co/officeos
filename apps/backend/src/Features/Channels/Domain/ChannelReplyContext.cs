@@ -8,6 +8,7 @@ namespace OffceOs.Domain.Features.Channels;
 public sealed class ChannelReplyContext
 {
     private readonly ConcurrentDictionary<string, Entry> _pending = new();
+    private readonly ConcurrentDictionary<string, InternalEntry> _internalPending = new();
 
     public void Set(string correlationId, string channelType, string platformId, string? threadId, Guid channelConnectionId)
     {
@@ -21,6 +22,18 @@ public sealed class ChannelReplyContext
         return (entry.ChannelType, entry.PlatformId, entry.ThreadId, entry.ChannelConnectionId);
     }
 
+    public void SetInternal(string correlationId, Guid channelConnectionId, Guid sourceAgentId, Guid replyingAgentId)
+    {
+        _internalPending[correlationId] = new InternalEntry(channelConnectionId, sourceAgentId, replyingAgentId, DateTime.UtcNow);
+    }
+
+    public (Guid ChannelConnectionId, Guid SourceAgentId, Guid ReplyingAgentId)? TakeInternal(string correlationId)
+    {
+        if (!_internalPending.TryRemove(correlationId, out var entry))
+            return null;
+        return (entry.ChannelConnectionId, entry.SourceAgentId, entry.ReplyingAgentId);
+    }
+
     /// <summary>Remove entries older than the TTL. Called periodically.</summary>
     public void Evict(TimeSpan ttl)
     {
@@ -30,7 +43,14 @@ public sealed class ChannelReplyContext
             if (kvp.Value.CreatedAt < cutoff)
                 _pending.TryRemove(kvp.Key, out _);
         }
+
+        foreach (var kvp in _internalPending)
+        {
+            if (kvp.Value.CreatedAt < cutoff)
+                _internalPending.TryRemove(kvp.Key, out _);
+        }
     }
 
     private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, Guid ChannelConnectionId, DateTime CreatedAt);
+    private sealed record InternalEntry(Guid ChannelConnectionId, Guid SourceAgentId, Guid ReplyingAgentId, DateTime CreatedAt);
 }

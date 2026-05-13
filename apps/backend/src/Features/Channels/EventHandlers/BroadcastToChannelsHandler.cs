@@ -21,6 +21,38 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
         if (string.IsNullOrEmpty(notification.Content))
             return Task.CompletedTask;
 
+        var internalReply = _channelReplyContext.TakeInternal(notification.CorrelationId);
+        if (internalReply is { } internalTarget)
+        {
+            if (internalTarget.ReplyingAgentId != notification.AgentId)
+                return Task.CompletedTask;
+
+            var replyingAgentId = notification.AgentId;
+            var internalCorrelationId = notification.CorrelationId;
+            var internalContent = notification.Content;
+
+            BackgroundWork.Run<IPublisher>(
+                _serviceScopeFactory,
+                async publisher =>
+                {
+                    await publisher.Publish(new ChannelMessageRoutedEvent(
+                        replyingAgentId, AgentLogType.ChannelOut, ChannelType.Internal.ToStorageString(),
+                        internalContent, internalCorrelationId, internalTarget.ChannelConnectionId));
+
+                    await publisher.Publish(new ChannelMessageRoutedEvent(
+                        internalTarget.SourceAgentId, AgentLogType.ChannelIn, ChannelType.Internal.ToStorageString(),
+                        internalContent, internalCorrelationId, internalTarget.ChannelConnectionId));
+
+                    await publisher.Publish(new MessageReceivedEvent(
+                        internalTarget.SourceAgentId,
+                        internalContent,
+                        internalCorrelationId));
+                },
+                _logger);
+
+            return Task.CompletedTask;
+        }
+
         // Check if this turn was triggered by a channel message
         var reply = _channelReplyContext.Take(notification.CorrelationId);
         if (reply is null)

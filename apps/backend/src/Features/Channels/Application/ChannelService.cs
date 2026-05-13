@@ -61,7 +61,7 @@ internal sealed class ChannelService : IChannelService
         }, ct);
         if (updated is null) throw new InvalidOperationException($"Channel connection '{id}' not found.");
 
-        if (enabled.HasValue || (configJson is not null && updated.Enabled))
+        if (updated.ChannelType != ChannelType.Internal && (enabled.HasValue || (configJson is not null && updated.Enabled)))
             await _channelGateway.ReloadAsync(ct);
 
         return updated;
@@ -76,8 +76,9 @@ internal sealed class ChannelService : IChannelService
 
     public async Task<bool> DeleteConnectionAsync(Guid id, CancellationToken ct = default)
     {
+        var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = id }, ct);
         var deleted = await _channelRepository.DeleteConnectionAsync(id, ct);
-        if (deleted)
+        if (deleted && connection?.ChannelType != ChannelType.Internal)
             await _channelGateway.ReloadAsync(ct);
         return deleted;
     }
@@ -95,6 +96,8 @@ internal sealed class ChannelService : IChannelService
     {
         var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
         if (connection is null || !connection.Enabled)
+            return [];
+        if (connection.ChannelType == ChannelType.Internal)
             return [];
 
         var bindings = await _channelRepository.FindBindingsByConnectionAsync(connectionId, ct);
@@ -163,6 +166,58 @@ internal sealed class ChannelService : IChannelService
         return agentIds;
     }
 
+    public async Task<IReadOnlyList<Guid>> SendInternalMessageAsync(
+        Guid senderAgentId,
+        Guid channelConnectionId,
+        string content,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            throw new InvalidOperationException("Message content is required.");
+
+        var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = channelConnectionId }, ct);
+        if (connection is null || !connection.Enabled || connection.ChannelType != ChannelType.Internal)
+            throw new InvalidOperationException("Internal channel connection not found.");
+
+        var bindings = await _channelRepository.FindBindingsByConnectionAsync(channelConnectionId, ct);
+        var senderBinding = bindings.FirstOrDefault(binding => binding.AgentId == senderAgentId);
+        if (senderBinding is null || !senderBinding.Enabled)
+            throw new InvalidOperationException("Sender is not bound to this internal channel.");
+
+        var senderConfig = ChannelRoutingPolicy.ParseBindingConfig(senderBinding.Config);
+        if (!AllowsInternalSend(senderConfig))
+            throw new InvalidOperationException("Sender cannot initiate messages on this internal channel.");
+
+        var receiverBindings = bindings
+            .Where(binding => binding.Enabled && binding.AgentId != senderAgentId)
+            .Where(binding => AllowsInternalReceive(ChannelRoutingPolicy.ParseBindingConfig(binding.Config)))
+            .ToList();
+        if (receiverBindings.Count == 0)
+            throw new InvalidOperationException("Internal channel has no enabled receivers.");
+
+        var receiverIds = new List<Guid>();
+        foreach (var receiverBinding in receiverBindings)
+        {
+            var correlationId = Guid.NewGuid().ToString("N");
+            _channelReplyContext.SetInternal(correlationId, channelConnectionId, senderAgentId, receiverBinding.AgentId);
+
+            await _publisher.Publish(new ChannelMessageRoutedEvent(
+                senderAgentId, AgentLogType.ChannelOut, ChannelType.Internal.ToStorageString(),
+                content, correlationId, channelConnectionId), ct);
+
+            await _publisher.Publish(new ChannelMessageRoutedEvent(
+                receiverBinding.AgentId, AgentLogType.ChannelIn, ChannelType.Internal.ToStorageString(),
+                content, correlationId, channelConnectionId), ct);
+
+            await _publisher.Publish(new MessageReceivedEvent(
+                receiverBinding.AgentId, content, correlationId), ct);
+
+            receiverIds.Add(receiverBinding.AgentId);
+        }
+
+        return receiverIds;
+    }
+
     public async Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default)
     {
         var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
@@ -173,6 +228,9 @@ internal sealed class ChannelService : IChannelService
                 continue;
 
             var channelType = binding.ChannelConnection.ChannelType.ToStorageString();
+            if (binding.ChannelConnection.ChannelType == ChannelType.Internal)
+                continue;
+
             var correlationId = Guid.NewGuid().ToString("N");
 
             ChannelBindingConfig? config = null;
@@ -214,6 +272,7 @@ internal sealed class ChannelService : IChannelService
     {
         var connection = await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter { Id = connectionId }, ct);
         if (connection is null) return;
+        if (connection.ChannelType == ChannelType.Internal) return;
 
         var message = $"✅ {connection.DisplayName} connected successfully!";
 
@@ -262,6 +321,43 @@ internal sealed class ChannelService : IChannelService
         await EnsureOwnedAgentAsync(agentId, ownerId, workspaceId, ct);
         await EnsureOwnedConnectionAsync(channelConnectionId, ownerId, workspaceId, ct);
         return await BindAgentAsync(agentId, channelConnectionId, configJson, ct);
+    }
+
+    public async Task<ChannelConnectionRecord> CreateOwnedInternalConnectionAsync(
+        string displayName,
+        IReadOnlyList<InternalChannelBindingRequest> bindings,
+        Guid ownerId,
+        Guid workspaceId,
+        CancellationToken ct = default)
+    {
+        if (bindings.Count == 0)
+            throw new InvalidOperationException("At least one agent binding is required.");
+
+        foreach (var binding in bindings)
+            await EnsureOwnedAgentAsync(binding.AgentId, ownerId, workspaceId, ct);
+
+        var created = await CreateConnectionAsync(
+            ChannelType.Internal.ToStorageString(),
+            displayName,
+            null,
+            ownerId,
+            workspaceId,
+            ct);
+
+        foreach (var binding in bindings.DistinctBy(binding => binding.AgentId))
+        {
+            var config = JsonSerializer.Serialize(new ChannelBindingConfig
+            {
+                CanSend = binding.CanSend,
+                CanReceive = binding.CanReceive,
+                ReplyOnly = binding.ReplyOnly,
+                Label = binding.Label,
+            });
+
+            await BindAgentAsync(binding.AgentId, created.Id, config, ct);
+        }
+
+        return created;
     }
 
     public async Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default)
@@ -369,6 +465,12 @@ internal sealed class ChannelService : IChannelService
         if (agent is null)
             throw new InvalidOperationException("Agent not found.");
     }
+
+    private static bool AllowsInternalSend(ChannelBindingConfig? config)
+        => config?.CanSend ?? true;
+
+    private static bool AllowsInternalReceive(ChannelBindingConfig? config)
+        => config?.CanReceive ?? true;
 
     /// <summary>
     /// Extract the plain text from a Chat SDK JSON message envelope.

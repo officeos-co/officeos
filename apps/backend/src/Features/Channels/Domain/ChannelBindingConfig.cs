@@ -32,4 +32,12 @@ public sealed class ChannelBindingConfig
     public IReadOnlyList<string>? MentionPatterns { get; set; }
 
     public IReadOnlyList<string>? ActiveTopicIds { get; set; }
+
+    public bool? CanSend { get; set; }
+
+    public bool? CanReceive { get; set; }
+
+    public bool? ReplyOnly { get; set; }
+
+    public string? Label { get; set; }
 }

@@ -134,6 +134,7 @@ internal sealed class ToolRegistryFactory
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IOrganizationPolicyService _organizationPolicyService;
     private readonly IIntegrationRuntimeService _integrationRuntimeService;
+    private readonly IChannelService _channelService;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
@@ -148,6 +149,7 @@ internal sealed class ToolRegistryFactory
         AgentDefinitionParser agentDefinitionParser,
         IOrganizationPolicyService organizationPolicyService,
         IIntegrationRuntimeService integrationRuntimeService,
+        IChannelService channelService,
         TurnEventPublisher events,
         ILogger<ToolRegistryFactory> logger)
     {
@@ -161,6 +163,7 @@ internal sealed class ToolRegistryFactory
         _agentDefinitionParser = agentDefinitionParser;
         _organizationPolicyService = organizationPolicyService;
         _integrationRuntimeService = integrationRuntimeService;
+        _channelService = channelService;
         _turnEventPublisher = events;
         _logger = logger;
     }
@@ -188,6 +191,7 @@ internal sealed class ToolRegistryFactory
             new RoutineListTool(_agentRoutineRepository, request.AgentId),
             new RoutineDeleteTool(_agentRoutineRepository, request.AgentId),
             new AgentSpawnTool(_agentRunRepository, request.AgentId),
+            new InternalChannelSendTool(_channelService, request.AgentId),
             new HttpRequestTool(),
             new WebFetchTool(),
         };

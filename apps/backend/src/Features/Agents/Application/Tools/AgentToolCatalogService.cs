@@ -11,6 +11,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
+    private readonly IChannelService _channelService;
 
     public AgentToolCatalogService(
         IAgentMemoryService memoryService,
@@ -21,7 +22,8 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IBrowserToolService browserToolService,
         IIntegrationDefinitionService integrationDefinitionService,
         IAgentDefinitionRepository agentDefinitionRepository,
-        AgentDefinitionParser agentDefinitionParser)
+        AgentDefinitionParser agentDefinitionParser,
+        IChannelService channelService)
     {
         _agentMemoryService = memoryService;
         _agentRoutineRepository = agentRoutineRepository;
@@ -32,6 +34,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         _integrationDefinitionService = integrationDefinitionService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
+        _channelService = channelService;
     }
 
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default)
@@ -58,6 +61,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new RoutineListTool(_agentRoutineRepository, effectiveAgentId),
             new RoutineDeleteTool(_agentRoutineRepository, effectiveAgentId),
             new AgentSpawnTool(_agentRunRepository, effectiveAgentId),
+            new InternalChannelSendTool(_channelService, effectiveAgentId),
             new HttpRequestTool(),
             new WebFetchTool(),
         };

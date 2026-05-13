@@ -93,6 +93,7 @@ public sealed class ChannelEndpointContractTests
             return Task.FromResult(AgentIds);
         }
 
+        public Task<IReadOnlyList<Guid>> SendInternalMessageAsync(Guid senderAgentId, Guid channelConnectionId, string content, CancellationToken ct = default) => throw new NotSupportedException();
         public Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ChannelConnectionRecord> CreateConnectionAsync(string channelType, string displayName, string? configJson, Guid createdById, Guid workspaceId, CancellationToken ct = default) => throw new NotSupportedException();
@@ -104,6 +105,7 @@ public sealed class ChannelEndpointContractTests
         public Task<IReadOnlyList<AgentChannelBindingRecord>> ListBindingsForOwnedAgentAsync(Guid agentId, Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<AgentChannelBindingRecord> BindAgentAsync(Guid agentId, Guid channelConnectionId, string? configJson, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<AgentChannelBindingRecord> BindOwnedAgentAsync(Guid agentId, Guid channelConnectionId, Guid ownerId, Guid workspaceId, string? configJson, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ChannelConnectionRecord> CreateOwnedInternalConnectionAsync(string displayName, IReadOnlyList<InternalChannelBindingRequest> bindings, Guid ownerId, Guid workspaceId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> UnbindOwnedAgentAsync(Guid agentId, Guid channelConnectionId, Guid ownerId, Guid workspaceId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<AgentChannelBindingRecord> UpdateBindingConfigAsync(Guid agentId, Guid channelConnectionId, string configJson, CancellationToken ct = default) => throw new NotSupportedException();

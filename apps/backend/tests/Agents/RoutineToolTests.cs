@@ -66,6 +66,7 @@ public sealed class RoutineToolTests
             parser,
             new FakeOrganizationPolicyService(),
             new FakeIntegrationRuntimeService(),
+            new FakeChannelService(),
             new TurnEventPublisher(new NoopPublisher()),
             NullLogger<ToolRegistryFactory>.Instance);
 

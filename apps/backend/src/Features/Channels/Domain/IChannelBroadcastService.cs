@@ -17,6 +17,7 @@ public interface IChannelGateway
 public interface IChannelService
 {
     Task<IReadOnlyList<Guid>> RouteInboundAsync(Guid connectionId, string senderIdentifier, string messageText, bool isGroupMessage, string? messageId, string? channelId, CancellationToken ct = default);
+    Task<IReadOnlyList<Guid>> SendInternalMessageAsync(Guid senderAgentId, Guid channelConnectionId, string content, CancellationToken ct = default);
     Task BroadcastAsync(Guid agentId, string text, CancellationToken ct = default);
     Task SendTestMessageAsync(Guid connectionId, CancellationToken ct = default);
     Task<ChannelConnectionRecord> CreateConnectionAsync(string channelType, string displayName, string? configJson, Guid createdById, Guid workspaceId, CancellationToken ct = default);
@@ -28,8 +29,16 @@ public interface IChannelService
     Task<IReadOnlyList<AgentChannelBindingRecord>> ListBindingsForOwnedAgentAsync(Guid agentId, Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default);
     Task<AgentChannelBindingRecord> BindAgentAsync(Guid agentId, Guid channelConnectionId, string? configJson, CancellationToken ct = default);
     Task<AgentChannelBindingRecord> BindOwnedAgentAsync(Guid agentId, Guid channelConnectionId, Guid ownerId, Guid workspaceId, string? configJson, CancellationToken ct = default);
+    Task<ChannelConnectionRecord> CreateOwnedInternalConnectionAsync(string displayName, IReadOnlyList<InternalChannelBindingRequest> bindings, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<bool> UnbindAgentAsync(Guid agentId, Guid channelConnectionId, CancellationToken ct = default);
     Task<bool> UnbindOwnedAgentAsync(Guid agentId, Guid channelConnectionId, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<AgentChannelBindingRecord> UpdateBindingConfigAsync(Guid agentId, Guid channelConnectionId, string configJson, CancellationToken ct = default);
     Task<AgentChannelBindingRecord> UpdateOwnedBindingConfigAsync(Guid agentId, Guid channelConnectionId, Guid ownerId, Guid workspaceId, string configJson, CancellationToken ct = default);
 }
+
+public sealed record InternalChannelBindingRequest(
+    Guid AgentId,
+    bool CanSend,
+    bool CanReceive,
+    bool ReplyOnly,
+    string? Label);

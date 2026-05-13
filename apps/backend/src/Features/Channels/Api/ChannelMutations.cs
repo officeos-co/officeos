@@ -41,6 +41,35 @@ public class ChannelMutations
         }
     }
 
+    [GraphQLDescription("Creates an internal agent channel with directed send/receive bindings.")]
+    public async Task<ChannelConnectionPayload> CreateInternalChannelConnection(
+        CreateInternalChannelConnectionInput input,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        [Service] IChannelService channelService,
+        [Service] IDistributedCache cache,
+        CancellationToken ct)
+    {
+        try
+        {
+            var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+            var created = await channelService.CreateOwnedInternalConnectionAsync(
+                input.DisplayName,
+                ChannelGraphQLMapper.ToRequests(input.Bindings),
+                user.Id,
+                workspace.Id,
+                ct);
+
+            await InvalidateChannelCachesAsync(cache, user.Id, workspace.Id, null, ct);
+            return ChannelGraphQLMapper.ToPayload(created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new GraphQLException(
+                ErrorBuilder.New().SetMessage(ex.Message).SetCode("BAD_INPUT").Build());
+        }
+    }
+
     [GraphQLDescription("Updates display name and/or enabled status of an existing channel connection.")]
     public async Task<ChannelConnectionPayload> UpdateChannelConnection(
         Guid id,

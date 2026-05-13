@@ -27,11 +27,40 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         if (filter.ParentRunId.HasValue)
             query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
 
+        if (!string.IsNullOrEmpty(filter.Kind))
+            query = query.Where(r => r.Kind == filter.Kind);
+
         if (!string.IsNullOrEmpty(filter.Status))
             query = query.Where(r => r.Status == filter.Status);
 
         var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToRecord(entity);
+    }
+
+    public async Task<IReadOnlyList<AgentRunRecord>> ListAsync(AgentRunFilter filter, int limit = 100, CancellationToken ct = default)
+    {
+        var query = _eaosDbContext.AgentRuns.AsNoTracking().AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(r => r.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(r => r.AgentId == filter.AgentId.Value);
+
+        if (filter.ParentRunId.HasValue)
+            query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
+
+        if (!string.IsNullOrEmpty(filter.Kind))
+            query = query.Where(r => r.Kind == filter.Kind);
+
+        if (!string.IsNullOrEmpty(filter.Status))
+            query = query.Where(r => r.Status == filter.Status);
+
+        var entities = await query
+            .OrderBy(r => r.CreatedAt)
+            .Take(limit)
+            .ToListAsync(ct);
+        return entities.Select(ToRecord).ToList();
     }
 
     public async Task<IReadOnlyList<AgentRunRecord>> ListForAgentAsync(Guid agentId, Guid? parentRunId = null, CancellationToken ct = default)

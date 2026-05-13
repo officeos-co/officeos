@@ -156,6 +156,7 @@ public sealed class QuickstartAgentEndToEndTests
             new AgentDefinitionParser(),
             new FakeOrganizationPolicyService(),
             new FakeIntegrationRuntimeService(),
+            new FakeChannelService(),
             new TurnEventPublisher(new NoopPublisher()),
             NullLogger<ToolRegistryFactory>.Instance);
 }

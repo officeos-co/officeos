@@ -25,6 +25,7 @@ internal sealed class AgentRunLifecycle
         var run = await _agentRunRepository.CreateAsync(new AgentRunRecord
         {
             AgentId = agentId,
+            ParentRunId = AgentRunContext.RunId,
             ParentCorrelationId = correlationId,
             Kind = "turn",
             Status = "running",

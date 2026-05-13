@@ -87,6 +87,7 @@ internal static class ToolPermissionPolicy
         "routine_create",
         "routine_list",
         "routine_delete",
+        "internal_channel_send",
         "http_request",
         "web_fetch",
     };

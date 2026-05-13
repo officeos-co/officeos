@@ -2,6 +2,7 @@ namespace OffceOs.Domain.Common.ValueObjects;
 
 public enum ChannelType
 {
+    Internal,
     Slack,
     Telegram,
     Discord,
@@ -14,6 +15,7 @@ public static class ChannelTypeExtensions
 {
     public static string ToStorageString(this ChannelType type) => type switch
     {
+        ChannelType.Internal => "internal",
         ChannelType.Slack => "slack",
         ChannelType.Telegram => "telegram",
         ChannelType.Discord => "discord",
@@ -25,6 +27,7 @@ public static class ChannelTypeExtensions
 
     public static ChannelType ToChannelType(this string value) => value.ToLowerInvariant() switch
     {
+        "internal" => ChannelType.Internal,
         "slack" => ChannelType.Slack,
         "telegram" => ChannelType.Telegram,
         "discord" => ChannelType.Discord,
