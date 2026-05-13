@@ -1,0 +1,109 @@
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: agent-mesh-internal
+spec:
+  type: internal
+  displayName: Agent Mesh Internal Channel
+  enabled: true
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-product
+spec:
+  type: slack
+  displayName: Product Slack Agent Channel
+  enabled: true
+  token: "${SLACK_PRODUCT_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-engineering
+spec:
+  type: slack
+  displayName: Engineering Slack Agent Channel
+  enabled: true
+  token: "${SLACK_ENGINEERING_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-support
+spec:
+  type: slack
+  displayName: Support Slack Agent Channel
+  enabled: true
+  token: "${SLACK_SUPPORT_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-sales
+spec:
+  type: slack
+  displayName: Sales Slack Agent Channel
+  enabled: true
+  token: "${SLACK_SALES_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-marketing
+spec:
+  type: slack
+  displayName: Marketing Slack Agent Channel
+  enabled: true
+  token: "${SLACK_MARKETING_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-finance
+spec:
+  type: slack
+  displayName: Finance Slack Agent Channel
+  enabled: true
+  token: "${SLACK_FINANCE_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-legal
+spec:
+  type: slack
+  displayName: Legal Slack Agent Channel
+  enabled: true
+  token: "${SLACK_LEGAL_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-hr
+spec:
+  type: slack
+  displayName: HR Slack Agent Channel
+  enabled: true
+  token: "${SLACK_HR_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-operations
+spec:
+  type: slack
+  displayName: Operations Slack Agent Channel
+  enabled: true
+  token: "${SLACK_OPERATIONS_BOT_TOKEN}"
+---
+apiVersion: eaos.dev/v1
+kind: Channel
+metadata:
+  name: slack-security
+spec:
+  type: slack
+  displayName: Security Slack Agent Channel
+  enabled: true
+  token: "${SLACK_SECURITY_BOT_TOKEN}"
