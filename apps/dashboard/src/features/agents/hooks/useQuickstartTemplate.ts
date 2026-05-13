@@ -10,17 +10,49 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
-import { initialQuickstartFiles, initialQuickstartMessages } from "../data/quickstart-template";
+import {
+  initialQuickstartFiles,
+  initialQuickstartMessages,
+} from "../data/quickstart-template";
 import {
   useQuickstartAgentChat,
   type QuickstartFile,
 } from "../api/useQuickstartAgentChat";
+import { useModels } from "../api/useModels";
 
 type QuickstartMessage = {
   id: string;
   role: "agent" | "user";
   content: string;
 };
+
+function applyModelToAgentYaml(content: string, model: string) {
+  if (!/^\s*kind:\s*agent\s*$/m.test(content)) {
+    return content;
+  }
+
+  const modelLine = `model: ${model}`;
+  if (/^model:\s*.*$/m.test(content)) {
+    return content.replace(/^model:\s*.*$/m, modelLine);
+  }
+
+  if (/^description:\s*.*$/m.test(content)) {
+    return content.replace(/^description:\s*.*$/m, `$&\n${modelLine}`);
+  }
+
+  if (/^name:\s*.*$/m.test(content)) {
+    return content.replace(/^name:\s*.*$/m, `$&\n${modelLine}`);
+  }
+
+  return `${content.trimEnd()}\n${modelLine}`;
+}
+
+function applySelectedModelToFiles(files: QuickstartFile[], model: string) {
+  return files.map((file) => ({
+    ...file,
+    content: applyModelToAgentYaml(file.content, model),
+  }));
+}
 
 export function useQuickstartTemplate() {
   const router = useRouter();
@@ -29,10 +61,12 @@ export function useQuickstartTemplate() {
     applying: isCreating,
     quickstartAgentChat,
   } = useQuickstartAgentChat();
+  const { models, defaultModelId } = useModels();
   const [messages, setMessages] = useState<QuickstartMessage[]>(
     initialQuickstartMessages,
   );
   const [draft, setDraft] = useState("");
+  const [model, setModel] = useState<string | null>(null);
   const [files, setFiles] = useState<QuickstartFile[]>(initialQuickstartFiles);
   const [activePath, setActivePath] = useState(initialQuickstartFiles[0].path);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,6 +83,13 @@ export function useQuickstartTemplate() {
       files.find((file) => file.path === activePath) ??
       files[0] ?? { path: "workspace.yaml", content: "" },
     [activePath, files],
+  );
+  const selectedModel =
+    model && models.some((modelOption) => modelOption.id === model)
+      ? model
+      : defaultModelId;
+  const selectedModelInfo = models.find(
+    (modelOption) => modelOption.id === selectedModel,
   );
 
   const updateCodeScroll = useCallback(() => {
@@ -117,16 +158,30 @@ export function useQuickstartTemplate() {
     requestAnimationFrame(updateCodeScroll);
   }, [activeFile.content, updateCodeScroll]);
 
+  useEffect(() => {
+    if (!selectedModel) {
+      return;
+    }
+
+    setFiles((current) => applySelectedModelToFiles(current, selectedModel));
+  }, [selectedModel]);
+
   async function submitPrompt(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
 
     const prompt = draft.trim();
-    if (!prompt || isGenerating) {
+    if (!prompt || isGenerating || !selectedModel) {
       return;
     }
 
+    const filesWithSelectedModel = applySelectedModelToFiles(
+      files,
+      selectedModel,
+    );
+
     setDraft("");
     setIsGenerating(true);
+    setFiles(filesWithSelectedModel);
     setMessages((current) => [
       ...current,
       { id: `user-${Date.now()}`, role: "user", content: prompt },
@@ -135,23 +190,24 @@ export function useQuickstartTemplate() {
     try {
       const result = await quickstartAgentChat({
         message: prompt,
-        currentFiles: files,
+        currentFiles: filesWithSelectedModel,
         messages: messages.map((message) => ({
           role: message.role,
           content: message.content,
         })),
-        provider: null,
-        model: null,
+        provider: selectedModelInfo?.provider ?? null,
+        model: selectedModel,
       });
       if (!result) {
         throw new Error("Quickstart generation returned no result.");
       }
 
-      setFiles(result.files);
+      const resultFiles = applySelectedModelToFiles(result.files, selectedModel);
+      setFiles(resultFiles);
       setActivePath((current) =>
-        result.files.some((file) => file.path === current)
+        resultFiles.some((file) => file.path === current)
           ? current
-          : result.files[0]?.path || "workspace.yaml",
+          : resultFiles[0]?.path || "workspace.yaml",
       );
       setMessages((current) => [
         ...current,
@@ -179,15 +235,21 @@ export function useQuickstartTemplate() {
   }
 
   async function useTemplate() {
-    if (isCreating) {
+    if (isCreating || !selectedModel) {
       return;
     }
 
     try {
-      const created = await applyQuickstartBlueprint({
+      const filesWithSelectedModel = applySelectedModelToFiles(
         files,
-        provider: null,
-        model: null,
+        selectedModel,
+      );
+      setFiles(filesWithSelectedModel);
+
+      const created = await applyQuickstartBlueprint({
+        files: filesWithSelectedModel,
+        provider: selectedModelInfo?.provider ?? null,
+        model: selectedModel,
       });
 
       const firstAgent = created?.agents[0];
@@ -219,10 +281,14 @@ export function useQuickstartTemplate() {
     isCreating,
     isGenerating,
     messages,
+    models,
+    selectedModel,
+    selectedModelInfo,
     setActiveContent,
     setActivePath,
     setCodeScroller,
     setDraft,
+    setModel,
     submitPrompt,
     useTemplate,
     updateCodeScroll,

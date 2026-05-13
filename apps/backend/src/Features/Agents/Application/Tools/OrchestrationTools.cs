@@ -208,28 +208,184 @@ internal sealed class TaskUpdateTool : IAgentTool
 
 internal sealed class RoutineCreateTool : IAgentTool
 {
-    private readonly IAgentRoutineRepository _agentRoutineRepository;
+    private readonly IAgentRoutineService _agentRoutineService;
     private readonly Guid _agentId;
-    public RoutineCreateTool(IAgentRoutineRepository agentRoutineRepository, Guid agentId) { _agentRoutineRepository = agentRoutineRepository; _agentId = agentId; }
+    private readonly Guid? _ownerId;
+    private readonly Guid? _workspaceId;
+
+    public RoutineCreateTool(IAgentRoutineService agentRoutineService, Guid agentId, Guid? ownerId, Guid? workspaceId)
+    {
+        _agentRoutineService = agentRoutineService;
+        _agentId = agentId;
+        _ownerId = ownerId;
+        _workspaceId = workspaceId;
+    }
+
     public string Name => "routine_create";
     public AgentToolKind Kind => AgentToolKind.Planning;
-    public ToolSchema Schema => new("routine_create", "Create a scheduled routine that sends a prompt to this agent using a five-field cron expression in UTC.",
-        new { type = "object", properties = new { name = new { type = "string" }, expression = new { type = "string" }, prompt = new { type = "string" } }, required = new[] { "name", "expression", "prompt" } });
+    public ToolSchema Schema => new("routine_create", "Create a routine for this agent with schedule, API, or GitHub triggers.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                name = new { type = "string" },
+                prompt = new { type = "string" },
+                schedule_triggers = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            name = new { type = "string" },
+                            expression = new { type = "string", description = "Five-field cron expression in UTC" }
+                        },
+                        required = new[] { "name", "expression" }
+                    }
+                },
+                api_triggers = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new { name = new { type = "string" } },
+                        required = new[] { "name" }
+                    }
+                },
+                github_triggers = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            name = new { type = "string" },
+                            owner = new { type = "string" },
+                            repo = new { type = "string" },
+                            events = new { type = "array", items = new { type = "string" } },
+                            secret = new { type = "string" }
+                        },
+                        required = new[] { "name", "owner", "repo", "events", "secret" }
+                    }
+                }
+            },
+            required = new[] { "name", "prompt" }
+        });
+
     public Task<ToolValidationResult> ValidateAsync(JsonElement args, CancellationToken ct = default)
     {
-        try { Cronos.CronExpression.Parse(args.GetProperty("expression").GetString() ?? ""); return Task.FromResult(ToolValidationResult.Valid); }
-        catch (Exception ex) { return Task.FromResult(ToolValidationResult.Invalid($"Invalid cron expression: {ex.Message}")); }
+        var triggerCount = CountArray(args, "schedule_triggers") + CountArray(args, "api_triggers") + CountArray(args, "github_triggers");
+        if (triggerCount == 0)
+            return Task.FromResult(ToolValidationResult.Invalid("At least one schedule, API, or GitHub trigger is required."));
+
+        if (args.TryGetProperty("schedule_triggers", out var schedules) && schedules.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var trigger in schedules.EnumerateArray())
+            {
+                var expression = GetString(trigger, "expression");
+                if (string.IsNullOrWhiteSpace(expression))
+                    return Task.FromResult(ToolValidationResult.Invalid("Schedule routine triggers require an expression."));
+
+                try { Cronos.CronExpression.Parse(expression); }
+                catch (Exception ex) { return Task.FromResult(ToolValidationResult.Invalid($"Invalid cron expression: {ex.Message}")); }
+            }
+        }
+
+        if (args.TryGetProperty("github_triggers", out var githubTriggers) && githubTriggers.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var trigger in githubTriggers.EnumerateArray())
+            {
+                if (!trigger.TryGetProperty("events", out var events) || events.ValueKind != JsonValueKind.Array || !events.EnumerateArray().Any())
+                    return Task.FromResult(ToolValidationResult.Invalid("GitHub routine triggers require at least one event."));
+            }
+        }
+
+        return Task.FromResult(ToolValidationResult.Valid);
     }
+
     public async Task<AgentResult<ToolResult>> ExecuteAsync(JsonElement args, CancellationToken ct = default)
     {
-        var expression = args.GetProperty("expression").GetString() ?? "";
-        var routine = AgentRoutineRecord.Create(_agentId, args.GetProperty("name").GetString() ?? "", args.GetProperty("prompt").GetString() ?? "");
-        var cron = Cronos.CronExpression.Parse(expression);
-        routine.Triggers.Add(AgentRoutineTriggerRecord.CreateSchedule(routine.Id, "schedule", expression, cron.GetNextOccurrence(DateTime.UtcNow, inclusive: false)));
-        var saved = await _agentRoutineRepository.UpsertAsync(routine, ct);
-        var trigger = saved.Triggers.Single(item => item.Kind == AgentRoutineTriggerKinds.Schedule);
-        return new ToolResult(true, $"Created routine {saved.Id} '{saved.Name}' next_run={trigger.NextRunAt:O}");
+        if (!_ownerId.HasValue || !_workspaceId.HasValue)
+            return new ToolResult(false, "", "Routine creation requires owner and workspace context.");
+
+        var result = await _agentRoutineService.CreateAsync(
+            new CreateAgentRoutineRequest(
+                _agentId,
+                args.GetProperty("name").GetString() ?? "",
+                args.GetProperty("prompt").GetString() ?? "",
+                ReadScheduleTriggers(args),
+                ReadApiTriggers(args),
+                ReadGitHubTriggers(args)),
+            _ownerId.Value,
+            _workspaceId.Value,
+            ct);
+
+        var output = JsonSerializer.Serialize(new
+        {
+            routine_id = result.Routine.Id,
+            name = result.Routine.Name,
+            triggers = result.Routine.Triggers.Select(trigger => new
+            {
+                trigger_id = trigger.Id,
+                kind = trigger.Kind,
+                name = trigger.Name,
+                next_run = trigger.NextRunAt,
+            }),
+            generated_secrets = result.GeneratedSecrets.Select(secret => new
+            {
+                trigger_id = secret.TriggerId,
+                kind = secret.Kind,
+                name = secret.Name,
+                secret = secret.Secret,
+            }),
+        }, new JsonSerializerOptions { WriteIndented = true });
+
+        return new ToolResult(true, output);
     }
+
+    private static int CountArray(JsonElement args, string property)
+        => args.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Array
+            ? value.GetArrayLength()
+            : 0;
+
+    private static IReadOnlyList<CreateScheduleRoutineTriggerRequest> ReadScheduleTriggers(JsonElement args)
+        => args.TryGetProperty("schedule_triggers", out var triggers) && triggers.ValueKind == JsonValueKind.Array
+            ? triggers.EnumerateArray()
+                .Select(trigger => new CreateScheduleRoutineTriggerRequest(
+                    GetString(trigger, "name"),
+                    GetString(trigger, "expression")))
+                .ToList()
+            : [];
+
+    private static IReadOnlyList<CreateApiRoutineTriggerRequest> ReadApiTriggers(JsonElement args)
+        => args.TryGetProperty("api_triggers", out var triggers) && triggers.ValueKind == JsonValueKind.Array
+            ? triggers.EnumerateArray()
+                .Select(trigger => new CreateApiRoutineTriggerRequest(GetString(trigger, "name")))
+                .ToList()
+            : [];
+
+    private static IReadOnlyList<CreateGitHubRoutineTriggerRequest> ReadGitHubTriggers(JsonElement args)
+        => args.TryGetProperty("github_triggers", out var triggers) && triggers.ValueKind == JsonValueKind.Array
+            ? triggers.EnumerateArray()
+                .Select(trigger => new CreateGitHubRoutineTriggerRequest(
+                    GetString(trigger, "name"),
+                    GetString(trigger, "owner"),
+                    GetString(trigger, "repo"),
+                    trigger.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array
+                        ? events.EnumerateArray().Select(item => item.GetString() ?? "").ToList()
+                        : [],
+                    GetString(trigger, "secret")))
+                .ToList()
+            : [];
+
+    private static string GetString(JsonElement element, string property)
+        => element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString() ?? ""
+            : "";
 }
 
 internal sealed class RoutineListTool : IAgentTool

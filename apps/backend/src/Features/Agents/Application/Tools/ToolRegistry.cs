@@ -126,6 +126,7 @@ internal sealed class ToolRegistryFactory
 {
     private readonly IAgentMemoryService _agentMemoryService;
     private readonly IAgentRoutineRepository _agentRoutineRepository;
+    private readonly IAgentRoutineService _agentRoutineService;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IBrowserToolService _browserToolService;
@@ -139,6 +140,7 @@ internal sealed class ToolRegistryFactory
     public ToolRegistryFactory(
         IAgentMemoryService memoryService,
         IAgentRoutineRepository agentRoutineRepository,
+        IAgentRoutineService agentRoutineService,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IBrowserToolService browserToolService,
@@ -151,6 +153,7 @@ internal sealed class ToolRegistryFactory
     {
         _agentMemoryService = memoryService;
         _agentRoutineRepository = agentRoutineRepository;
+        _agentRoutineService = agentRoutineService;
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
         _browserToolService = browserToolService;
@@ -181,7 +184,7 @@ internal sealed class ToolRegistryFactory
             new TaskListTool(_agentTaskStore, request.AgentId),
             new TaskGetTool(_agentTaskStore, request.AgentId),
             new TaskUpdateTool(_agentTaskStore, request.AgentId),
-            new RoutineCreateTool(_agentRoutineRepository, request.AgentId),
+            new RoutineCreateTool(_agentRoutineService, request.AgentId, request.OwnerId, request.WorkspaceId),
             new RoutineListTool(_agentRoutineRepository, request.AgentId),
             new RoutineDeleteTool(_agentRoutineRepository, request.AgentId),
             new AgentSpawnTool(_agentRunRepository, request.AgentId),
@@ -271,7 +274,7 @@ internal sealed class ToolRegistryFactory
         var allowedByAgentDefinition = new List<IAgentTool>();
         foreach (var tool in tools)
         {
-            if (toolsetPolicy.IsAllowed(tool))
+            if (toolsetPolicy.IsAllowed(tool) || ToolPermissionPolicy.IsAgentSelfManagementTool(tool))
                 allowedByAgentDefinition.Add(tool);
             else
                 policyDeniedToolReasons[tool.Name] = "tool is not allowed by agent definition";

@@ -76,6 +76,10 @@ public sealed class FakeAgentRunRepository : IAgentRunRepository
 
 public sealed class FakeAgentRoutineService : IAgentRoutineService
 {
+    public CreateAgentRoutineRequest? LastCreateRequest { get; private set; }
+    public Guid? LastOwnerId { get; private set; }
+    public Guid? LastWorkspaceId { get; private set; }
+
     public Task<IReadOnlyList<AgentRoutineWithAgentRecord>> ListForOwnerAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<AgentRoutineWithAgentRecord>>([]);
 
@@ -85,8 +89,40 @@ public sealed class FakeAgentRoutineService : IAgentRoutineService
     public Task<IReadOnlyList<AgentRoutineRecord>> ListForAgentAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<AgentRoutineRecord>>([]);
 
-    public Task<AgentRoutineCreateResult> CreateAsync(CreateAgentRoutineRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
-        Task.FromResult(new AgentRoutineCreateResult(AgentRoutineRecord.Create(request.AgentId, request.Name, request.Prompt), []));
+    public Task<AgentRoutineCreateResult> CreateAsync(CreateAgentRoutineRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    {
+        LastCreateRequest = request;
+        LastOwnerId = ownerId;
+        LastWorkspaceId = workspaceId;
+
+        var routine = AgentRoutineRecord.Create(request.AgentId, request.Name, request.Prompt);
+        foreach (var trigger in request.ScheduleTriggers)
+        {
+            var cron = Cronos.CronExpression.Parse(trigger.Expression);
+            routine.Triggers.Add(AgentRoutineTriggerRecord.CreateSchedule(routine.Id, trigger.Name, trigger.Expression, cron.GetNextOccurrence(DateTime.UtcNow, inclusive: false)));
+        }
+
+        var secrets = new List<AgentRoutineGeneratedSecretResult>();
+        foreach (var trigger in request.ApiTriggers)
+        {
+            var apiTrigger = AgentRoutineTriggerRecord.CreateApi(routine.Id, trigger.Name, "hashed-secret");
+            routine.Triggers.Add(apiTrigger);
+            secrets.Add(new AgentRoutineGeneratedSecretResult(apiTrigger.Id, apiTrigger.Kind, apiTrigger.Name, "generated-secret"));
+        }
+
+        foreach (var trigger in request.GitHubTriggers)
+        {
+            routine.Triggers.Add(AgentRoutineTriggerRecord.CreateGitHub(
+                routine.Id,
+                trigger.Name,
+                trigger.Owner,
+                trigger.Repo,
+                trigger.Events,
+                "encrypted-secret"));
+        }
+
+        return Task.FromResult(new AgentRoutineCreateResult(routine, secrets));
+    }
 
     public Task<bool> SetEnabledAsync(Guid id, Guid ownerId, Guid workspaceId, bool enabled, CancellationToken ct = default) =>
         Task.FromResult(true);

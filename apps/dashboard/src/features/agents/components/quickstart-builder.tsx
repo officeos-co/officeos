@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { ArrowLeft, ArrowUp, FileText, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ArrowUp, FileText, Loader2, PlusIcon } from "lucide-react";
 import type { ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
 import {
@@ -12,9 +13,20 @@ import {
 import { EditorView } from "@codemirror/view";
 
 import { cn } from "@/lib/utils";
+import { isDevelopment } from "@/lib/env";
 import { Button } from "@/ui/button";
+import { HelpTooltip } from "@/ui/help-tooltip";
+import { Label } from "@/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
 import { useQuickstartTemplate } from "../hooks/useQuickstartTemplate";
+import { getModelTooltip } from "../data/model-tooltips";
 
 const CodeMirror = dynamic<ReactCodeMirrorProps>(
   () => import("@uiw/react-codemirror").then((mod) => mod.default),
@@ -32,10 +44,14 @@ export function QuickstartBuilder() {
     isCreating,
     isGenerating,
     messages,
+    models,
+    selectedModel,
+    selectedModelInfo,
     setActiveContent,
     setActivePath,
     setCodeScroller,
     setDraft,
+    setModel,
     submitPrompt,
     useTemplate,
     updateCodeScroll,
@@ -158,7 +174,7 @@ export function QuickstartBuilder() {
             <Button
               type="submit"
               size="icon"
-              disabled={!draft.trim() || isGenerating}
+              disabled={!draft.trim() || isGenerating || !selectedModel}
               aria-label="Generate template"
               className="size-9 rounded-lg"
             >
@@ -182,9 +198,67 @@ export function QuickstartBuilder() {
               Generated blueprint
             </div>
           </div>
-          <Button size="sm" onClick={useTemplate} disabled={isCreating}>
-            {isCreating ? "Creating..." : "Use this template"}
-          </Button>
+          <div className="flex min-w-0 items-center gap-2">
+            {models.length === 0 && isDevelopment() ? (
+              <Link
+                href="/providers"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-8 items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 text-sm text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+              >
+                <PlusIcon className="size-4" />
+                Add provider
+              </Link>
+            ) : models.length === 0 ? (
+              <div className="flex h-8 items-center rounded-lg border border-border px-3 text-sm text-muted-foreground">
+                No models
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-center gap-2">
+                <Label className="hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
+                  Model
+                  <HelpTooltip>
+                    Quickstart generation and the created agent both use this
+                    provider model.
+                  </HelpTooltip>
+                </Label>
+                <Select
+                  value={selectedModel}
+                  onValueChange={(value) => {
+                    if (value) setModel(value);
+                  }}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    aria-label="Model"
+                    className="w-48 max-w-[42vw]"
+                  >
+                    <SelectValue>
+                      {selectedModelInfo?.displayName ?? selectedModel}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-max min-w-(--anchor-width) max-w-[calc(100vw-2rem)]">
+                    {models.map((modelOption) => (
+                      <SelectItem
+                        key={modelOption.id}
+                        value={modelOption.id}
+                        title={getModelTooltip(modelOption.id)}
+                      >
+                        {modelOption.displayName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button
+              size="sm"
+              onClick={useTemplate}
+              disabled={isCreating || !selectedModel}
+            >
+              {isCreating ? "Creating..." : "Use this template"}
+            </Button>
+          </div>
         </div>
 
         <div className="flex h-10 shrink-0 items-end gap-1 overflow-x-auto border-b border-border bg-muted/35 px-3">

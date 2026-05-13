@@ -11,6 +11,7 @@ internal static class ToolRegistryTestFactory
         new(
             new FakeAgentMemoryService(),
             new FakeAgentRoutineRepository(),
+            new FakeAgentRoutineService(),
             new FakeAgentRunRepository(),
             new AgentTaskStore(),
             new BrowserToolService(new NoBrowserToolContextFactory()),

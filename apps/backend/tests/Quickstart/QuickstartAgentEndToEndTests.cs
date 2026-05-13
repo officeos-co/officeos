@@ -148,6 +148,7 @@ public sealed class QuickstartAgentEndToEndTests
         new(
             new FakeAgentMemoryService(),
             new FakeAgentRoutineRepository(),
+            new FakeAgentRoutineService(),
             new FakeAgentRunRepository(),
             new AgentTaskStore(),
             new BrowserToolService(new NoBrowserToolContextFactory()),

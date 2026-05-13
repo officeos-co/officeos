@@ -57,7 +57,9 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
             throw new InvalidOperationException("Describe a concrete agent goal, workflow, or edit. Very short placeholders such as 'test' are not enough to generate a useful agent definition.");
 
         var context = await BuildContextAsync(userId, workspaceId, ct);
-        var provider = ResolveProvider(request.Provider, context.Models);
+        var provider = string.IsNullOrWhiteSpace(request.Model)
+            ? ResolveProvider(request.Provider, context.Models)
+            : ResolveProviderForModel(request.Provider, request.Model.Trim(), context.Models);
         var model = await ResolveModelAsync(provider, request.Model, workspaceId, context.Models, ct);
         var currentFiles = BuildCurrentFiles(request, model);
 
@@ -95,6 +97,7 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
         CancellationToken ct = default)
     {
         var parsed = _quickstartBlueprintParser.Parse(request.Files);
+        var models = await ListConfiguredModelsAsync(workspaceId, ct);
         var createdResources = new Dictionary<string, QuickstartCreatedResourceResult>(StringComparer.OrdinalIgnoreCase);
         foreach (var resource in parsed.Resources)
         {
@@ -120,12 +123,17 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
         foreach (var parsedAgent in parsed.Agents)
         {
             var config = _quickstartBlueprintParser.ResolveAgentConfig(parsedAgent.Agent, createdResources);
-            var provider = InferProvider(request.Provider ?? ProviderRegistry.OpenAiCodexProviderSlug, request.Model ?? config.Model);
+            var model = string.IsNullOrWhiteSpace(request.Model) ? config.Model : request.Model.Trim();
+            var provider = ResolveProviderForModel(request.Provider, model, models);
+            if (!await _providerService.IsModelAllowedAsync(provider, model, workspaceId, ct))
+                throw new InvalidOperationException($"Model '{model}' is not allowed for provider '{provider}'.");
+            config = config with { Model = model };
+
             var agent = await _agentDashboardService.CreateAsync(
                 new CreateDashboardAgentRequest(
                     config.Name,
                     provider,
-                    request.Model ?? config.Model,
+                    model,
                     config.System,
                     _agentDefinitionParser.Serialize(config),
                     null,
@@ -157,16 +165,22 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
     {
         var providers = await _providerService.ListForWorkspaceAsync(workspaceId, ct);
         return new QuickstartBuilderContext(
-            providers
-                .Where(provider => provider.Configured && provider.Models.Count > 0)
-                .SelectMany(provider => provider.Models.Select(model => new QuickstartModelContext(provider.Name, model.Id, model.DisplayName, model.CostWeight)))
-                .ToList(),
+            ToModelContext(providers),
             await _integrationDefinitionService.ListAsync(userId, workspaceId, ct),
             await _agentResourceRepository.ListBrowserResourcesAsync(null, workspaceId, ct),
             await _channelRepository.ListConnectionsAsync(new ChannelConnectionFilter { WorkspaceId = workspaceId }, ct),
             await _memoryStoreRepository.ListAsync(null, workspaceId, ct),
             await _agentRoutineService.ListForOwnerAsync(userId, workspaceId, ct));
     }
+
+    private async Task<IReadOnlyList<QuickstartModelContext>> ListConfiguredModelsAsync(Guid workspaceId, CancellationToken ct)
+        => ToModelContext(await _providerService.ListForWorkspaceAsync(workspaceId, ct));
+
+    private static IReadOnlyList<QuickstartModelContext> ToModelContext(IReadOnlyList<ProviderResult> providers)
+        => providers
+            .Where(provider => provider.Configured && provider.Models.Count > 0)
+            .SelectMany(provider => provider.Models.Select(model => new QuickstartModelContext(provider.Name, model.Id, model.DisplayName, model.CostWeight)))
+            .ToList();
 
     private static string ResolveProvider(string? provider, IReadOnlyList<QuickstartModelContext> models)
     {
@@ -185,14 +199,42 @@ internal sealed class QuickstartAgentService : IQuickstartAgentService
         IReadOnlyList<QuickstartModelContext> models,
         CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(model))
-            return model.Trim();
+        var defaultModel = string.IsNullOrWhiteSpace(model)
+            ? models.FirstOrDefault(candidate => candidate.Provider.Equals(provider, StringComparison.OrdinalIgnoreCase))?.Id ?? ProviderRegistry.DefaultModel
+            : model.Trim();
 
-        var defaultModel = models.FirstOrDefault(candidate => candidate.Provider.Equals(provider, StringComparison.OrdinalIgnoreCase))?.Id
-            ?? ProviderRegistry.DefaultModel;
         return await _providerService.IsModelAllowedAsync(provider, defaultModel, workspaceId, ct)
             ? defaultModel
-            : throw new InvalidOperationException($"Provider '{provider}' does not have an allowed model for quickstart generation.");
+            : throw new InvalidOperationException($"Model '{defaultModel}' is not allowed for provider '{provider}'.");
+    }
+
+    private static string ResolveProviderForModel(
+        string? provider,
+        string model,
+        IReadOnlyList<QuickstartModelContext> models)
+    {
+        if (!string.IsNullOrWhiteSpace(provider))
+            return provider.Trim().ToLowerInvariant();
+
+        if (model.Equals(ProviderRegistry.DefaultModel, StringComparison.OrdinalIgnoreCase))
+        {
+            return models.Any(candidate => candidate.Provider.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
+                ? "anthropic"
+                : throw new InvalidOperationException("Auto model routing requires a configured Anthropic provider.");
+        }
+
+        var candidates = models
+            .Where(candidate => candidate.Id.Equals(model, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (candidates.Count == 0)
+            throw new InvalidOperationException($"Model '{model}' is not configured for this workspace.");
+
+        var registryProvider = ProviderRegistry.GetByModel(model)?.Slug;
+        return candidates.FirstOrDefault(candidate =>
+                registryProvider is not null
+                && candidate.Provider.Equals(registryProvider, StringComparison.OrdinalIgnoreCase))
+            ?.Provider
+            ?? candidates[0].Provider;
     }
 
     private static List<object> BuildMessages(

@@ -84,9 +84,15 @@ internal static class ToolPermissionPolicy
         "task_list",
         "task_get",
         "task_update",
+        "routine_create",
+        "routine_list",
+        "routine_delete",
         "http_request",
         "web_fetch",
     };
+
+    public static bool IsAgentSelfManagementTool(IAgentTool tool)
+        => tool.Name is "routine_create" or "routine_list" or "routine_delete";
 
     public static string ScopeFor(IAgentTool tool)
     {
@@ -105,6 +111,5 @@ internal static class ToolPermissionPolicy
     public static bool ShouldDefer(IAgentTool tool)
         => tool.Kind is AgentToolKind.Integration
            || tool.Name.StartsWith("browser__", StringComparison.Ordinal)
-           || tool.Name.StartsWith("routine_", StringComparison.Ordinal)
            || !CoreToolNames.Contains(tool.Name);
 }

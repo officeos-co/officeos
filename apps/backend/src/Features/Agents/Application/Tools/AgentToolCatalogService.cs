@@ -4,6 +4,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {
     private readonly IAgentMemoryService _agentMemoryService;
     private readonly IAgentRoutineRepository _agentRoutineRepository;
+    private readonly IAgentRoutineService _agentRoutineService;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly AgentTaskStore _agentTaskStore;
     private readonly IBrowserToolService _browserToolService;
@@ -14,6 +15,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     public AgentToolCatalogService(
         IAgentMemoryService memoryService,
         IAgentRoutineRepository agentRoutineRepository,
+        IAgentRoutineService agentRoutineService,
         IAgentRunRepository agentRunRepository,
         AgentTaskStore taskStore,
         IBrowserToolService browserToolService,
@@ -23,6 +25,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     {
         _agentMemoryService = memoryService;
         _agentRoutineRepository = agentRoutineRepository;
+        _agentRoutineService = agentRoutineService;
         _agentRunRepository = agentRunRepository;
         _agentTaskStore = taskStore;
         _browserToolService = browserToolService;
@@ -51,7 +54,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             new TaskListTool(_agentTaskStore, effectiveAgentId),
             new TaskGetTool(_agentTaskStore, effectiveAgentId),
             new TaskUpdateTool(_agentTaskStore, effectiveAgentId),
-            new RoutineCreateTool(_agentRoutineRepository, effectiveAgentId),
+            new RoutineCreateTool(_agentRoutineService, effectiveAgentId, null, null),
             new RoutineListTool(_agentRoutineRepository, effectiveAgentId),
             new RoutineDeleteTool(_agentRoutineRepository, effectiveAgentId),
             new AgentSpawnTool(_agentRunRepository, effectiveAgentId),
@@ -70,7 +73,7 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
             if (definition is not null)
                 toolsetPolicy = new AgentToolsetPermissionPolicy(_agentDefinitionParser.Parse(definition.ConfigJson));
             if (toolsetPolicy is not null)
-                tools = tools.Where(toolsetPolicy.IsAllowed).ToList();
+                tools = tools.Where(tool => toolsetPolicy.IsAllowed(tool) || ToolPermissionPolicy.IsAgentSelfManagementTool(tool)).ToList();
         }
 
         var entries = tools.Select(ToEntry).ToList();
