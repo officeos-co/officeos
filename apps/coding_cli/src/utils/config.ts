@@ -302,10 +302,6 @@ export type GlobalConfig = {
     totalShown: number;
   };
 
-  // /buddy companion soul — bones regenerated from userId on read. See src/buddy/.
-  companion?: import("../buddy/types.js").StoredCompanion;
-  companionMuted?: boolean;
-
   // Feedback survey tracking
   feedbackSurveyState?: {
     lastShownTime?: number;
