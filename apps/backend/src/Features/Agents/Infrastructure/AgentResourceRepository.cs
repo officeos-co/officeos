@@ -45,6 +45,23 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
         return ToBrowserRecord(entity);
     }
 
+    public async Task<BrowserResourceRecord?> UpdateBrowserResourceAsync(Guid id, Guid? ownerId, Guid workspaceId, string displayName, CancellationToken ct = default)
+    {
+        var query = _eaosDbContext.BrowserResources
+            .Where(r => r.Id == id && r.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(r => r.OwnerId == ownerId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
+        if (entity is null) return null;
+
+        entity.DisplayName = BrowserResourceRecord.NormalizeName(displayName, "Browser");
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return ToBrowserRecord(entity);
+    }
+
     public async Task<bool> DeleteBrowserResourceAsync(Guid id, Guid? ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         var query = _eaosDbContext.BrowserResources

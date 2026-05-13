@@ -4,20 +4,25 @@ public sealed record DeclarativeManifestRequest(string Manifest);
 
 public sealed record DeclarativeManifestValidationResult(
     bool Valid,
-    IReadOnlyList<string> Errors,
+    IReadOnlyList<DeclarativeValidationErrorItem> Errors,
     IReadOnlyList<string> Resources);
 
 public sealed record DeclarativeManifestDiffResult(
-    IReadOnlyList<DeclarativeAgentChangeItem> Changes);
+    IReadOnlyList<DeclarativeResourceChangeItem> Changes);
 
 public sealed record DeclarativeManifestApplyResult(
-    IReadOnlyList<DeclarativeAgentChangeItem> Changes);
+    IReadOnlyList<DeclarativeResourceChangeItem> Changes);
 
-public sealed record DeclarativeAgentChangeItem(
+public sealed record DeclarativeValidationErrorItem(
+    string Kind,
+    string Name,
+    string Message);
+
+public sealed record DeclarativeResourceChangeItem(
     string Kind,
     string Name,
     string Action,
-    string? AgentId,
+    string? ResourceId,
     string? Message);
 
 public interface IDeclarativeAgentService
@@ -25,5 +30,6 @@ public interface IDeclarativeAgentService
     Task<DeclarativeManifestValidationResult> ValidateAsync(string manifest, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<DeclarativeManifestDiffResult> DiffAsync(string manifest, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<DeclarativeManifestApplyResult> ApplyAsync(string manifest, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
+    Task<string> ExportWorkspaceAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<string?> ExportAgentAsync(string name, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
 }

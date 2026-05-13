@@ -27,7 +27,14 @@ public sealed class DeclarativeAgentsController : ControllerBase
         var user = RequireUser();
         if (user is null) return Unauthorized(new { error = "Unauthenticated." });
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        return Ok(await declarative.DiffAsync(input.Manifest, user.Id, workspace.Id, ct));
+        try
+        {
+            return Ok(await declarative.DiffAsync(input.Manifest, user.Id, workspace.Id, ct));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpPost("apply")]
@@ -40,7 +47,27 @@ public sealed class DeclarativeAgentsController : ControllerBase
         var user = RequireUser();
         if (user is null) return Unauthorized(new { error = "Unauthenticated." });
         var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
-        return Ok(await declarative.ApplyAsync(input.Manifest, user.Id, workspace.Id, ct));
+        try
+        {
+            return Ok(await declarative.ApplyAsync(input.Manifest, user.Id, workspace.Id, ct));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportWorkspace(
+        [FromServices] IDeclarativeAgentService declarative,
+        [FromServices] IWorkspaceService workspaces,
+        CancellationToken ct)
+    {
+        var user = RequireUser();
+        if (user is null) return Unauthorized(new { error = "Unauthenticated." });
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var yaml = await declarative.ExportWorkspaceAsync(user.Id, workspace.Id, ct);
+        return Content(yaml, "application/yaml", Encoding.UTF8);
     }
 
     [HttpGet("agents/{name}/export")]

@@ -45,6 +45,23 @@ internal sealed class MemoryStoreRepository : IMemoryStoreRepository
         return ToRecord(entity);
     }
 
+    public async Task<MemoryStoreRecord?> UpdateAsync(Guid id, Guid? ownerId, Guid workspaceId, string displayName, CancellationToken ct = default)
+    {
+        var query = _eaosDbContext.MemoryStores
+            .Where(s => s.Id == id && s.WorkspaceId == workspaceId);
+
+        if (ownerId.HasValue)
+            query = query.Where(s => s.OwnerId == ownerId.Value);
+
+        var entity = await query.FirstOrDefaultAsync(ct);
+        if (entity is null) return null;
+
+        entity.DisplayName = MemoryStoreRecord.Create(entity.OwnerId, entity.WorkspaceId, displayName).DisplayName;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return ToRecord(entity);
+    }
+
     public async Task<bool> DeleteAsync(Guid id, Guid? ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         var query = _eaosDbContext.MemoryStores

@@ -29,7 +29,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOrganizationAuditLogService, OrganizationAuditLogService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<AgentDefinitionParser>();
-        services.AddScoped<AgentManifestParser>();
+        services.AddScoped<DeclarativeManifestParser>();
         services.AddScoped<IDeclarativeAgentService, DeclarativeAgentService>();
         services.AddScoped<QuickstartBlueprintParser>();
         services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();

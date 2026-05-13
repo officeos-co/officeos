@@ -47,5 +47,5 @@ function help(): void {
   print("  validate -f <file>");
   print("  diff -f <file>");
   print("  apply -f <file>");
-  print("  export agent <name>");
+  print("  export [agent <name>]");
 }

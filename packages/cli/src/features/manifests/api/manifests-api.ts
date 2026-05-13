@@ -4,13 +4,19 @@ export interface DeclarativeChange {
   kind: string;
   name: string;
   action: string;
-  agentId?: string | null;
+  resourceId?: string | null;
   message?: string | null;
+}
+
+export interface DeclarativeValidationError {
+  kind: string;
+  name: string;
+  message: string;
 }
 
 export interface ValidateResponse {
   valid: boolean;
-  errors: string[];
+  errors: DeclarativeValidationError[];
   resources: string[];
 }
 
@@ -59,4 +65,11 @@ export async function exportAgent(
   return await new ApiClient({ apiUrl, token }).getText(
     `/api/declarative/agents/${encodeURIComponent(name)}/export`,
   );
+}
+
+export async function exportWorkspace(
+  apiUrl: string,
+  token: string,
+): Promise<string> {
+  return await new ApiClient({ apiUrl, token }).getText("/api/declarative/export");
 }

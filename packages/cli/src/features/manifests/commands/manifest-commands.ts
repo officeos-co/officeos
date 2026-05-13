@@ -5,6 +5,7 @@ import {
   applyManifest,
   diffManifest,
   exportAgent,
+  exportWorkspace,
   validateManifest,
 } from "../api/manifests-api";
 
@@ -17,7 +18,7 @@ export async function validateCommand(args: string[]): Promise<void> {
     manifest,
   );
   if (!result.valid) {
-    for (const error of result.errors) print(`error: ${error}`);
+    for (const error of result.errors) print(`error: ${error.kind}/${error.name}: ${error.message}`);
     process.exitCode = 1;
     return;
   }
@@ -39,10 +40,16 @@ export async function applyCommand(args: string[]): Promise<void> {
 }
 
 export async function exportCommand(args: string[]): Promise<void> {
-  if (args[0] !== "agent" || !args[1]) {
-    throw new Error("Usage: eaos export agent <name>");
-  }
   const context = await requireContext();
+  if (args.length === 0) {
+    print(await exportWorkspace(context.apiUrl, context.token));
+    return;
+  }
+
+  if (args[0] !== "agent" || !args[1]) {
+    throw new Error("Usage: eaos export [agent <name>]");
+  }
+
   print(await exportAgent(context.apiUrl, context.token, args[1]));
 }
 

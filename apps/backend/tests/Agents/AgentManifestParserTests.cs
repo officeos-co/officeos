@@ -1,5 +1,4 @@
 using OffceOs.Application.Features.Agents;
-using OffceOs.Domain.Features.Agents;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -7,13 +6,21 @@ namespace OffceOs.Tests.Agents;
 public sealed class AgentManifestParserTests
 {
     [Fact]
-    public void ToDefinitionConfig_converts_agent_manifest_to_existing_definition_config()
+    public void Parse_reads_multi_resource_declarative_manifest()
     {
-        var parser = new AgentManifestParser(new AgentDefinitionParser());
+        var parser = new DeclarativeManifestParser();
 
-        var manifest = parser.ParseMany(
+        var manifest = parser.Parse(
             """
-            apiVersion: eaos.io/v1alpha1
+            apiVersion: eaos.dev/v1
+            kind: Channel
+            metadata:
+              name: support-slack
+            spec:
+              type: slack
+              token: xoxb-test
+            ---
+            apiVersion: eaos.dev/v1
             kind: Agent
             metadata:
               name: support-agent
@@ -22,24 +29,35 @@ public sealed class AgentManifestParserTests
               model: claude-sonnet-4-6
               description: Answers customer questions.
               system: Answer from sources.
-              mcpServers:
-                - name: notion
-                  type: registered
-              tools:
-                - type: agent_toolset_20260401
-                - type: mcp_toolset
-                  mcpServerName: notion
-                  defaultConfig:
-                    permissionPolicy:
-                      type: always_allow
-            """).Single();
+              channels:
+                - ref: support-slack
+            """);
 
-        var config = parser.ToDefinitionConfig(manifest);
+        Assert.Equal(2, manifest.Items.Count);
+        Assert.Equal("Channel", manifest.Items[0].Kind);
+        Assert.Equal("support-slack", manifest.Items[0].Metadata?.Name);
+        Assert.Equal("Agent", manifest.Items[1].Kind);
+        Assert.Equal("support-agent", manifest.Items[1].Metadata?.Name);
+    }
 
-        Assert.Equal("support-agent", config.Name);
-        Assert.Equal("claude-sonnet-4-6", config.Model);
-        Assert.Equal("Answer from sources.", config.System);
-        Assert.Single(config.McpServers);
-        Assert.Contains(config.Tools, tool => tool.Type == AgentToolsetKinds.Mcp);
+    [Fact]
+    public void Serialize_writes_multi_document_yaml()
+    {
+        var parser = new DeclarativeManifestParser();
+        var manifest = parser.Parse(
+            """
+            apiVersion: eaos.dev/v1
+            kind: MemoryStore
+            metadata:
+              name: product-docs
+            spec:
+              displayName: Product Docs
+            """);
+
+        var yaml = parser.Serialize(manifest);
+
+        Assert.Contains("kind: MemoryStore", yaml);
+        Assert.Contains("name: product-docs", yaml);
+        Assert.Contains("displayName: Product Docs", yaml);
     }
 }
