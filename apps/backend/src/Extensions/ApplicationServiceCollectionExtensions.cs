@@ -36,6 +36,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentUsageService, AgentUsageService>();
         services.AddScoped<IAgentUsageAnalyticsService, AgentUsageAnalyticsService>();
         services.AddScoped<IChannelService, ChannelService>();
+        services.AddScoped<ICliCodeService, CliCodeService>();
         services.AddScoped<IBrowserService, BrowserService>();
         services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();
         services.AddScoped<IBrowserToolService, BrowserToolService>();

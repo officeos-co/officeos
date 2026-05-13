@@ -24,7 +24,10 @@ internal sealed class TurnContextBuilder
     {
         var history = new ConversationHistory();
         var contextWindow = await _conversationCompactionService.LoadAsync(agentId, correlationId, ct);
-        var ordered = contextWindow.Logs.OrderBy(l => l.Time).ToList();
+        var ordered = contextWindow.Logs
+            .Where(l => l.CorrelationId != correlationId)
+            .OrderBy(l => l.Time)
+            .ToList();
 
         if (!string.IsNullOrWhiteSpace(contextWindow.Summary))
         {
