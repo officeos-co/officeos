@@ -5,10 +5,6 @@ public enum ChannelType
     Internal,
     Slack,
     Telegram,
-    Discord,
-    WhatsApp,
-    Teams,
-    GoogleChat,
 }
 
 public static class ChannelTypeExtensions
@@ -18,10 +14,6 @@ public static class ChannelTypeExtensions
         ChannelType.Internal => "internal",
         ChannelType.Slack => "slack",
         ChannelType.Telegram => "telegram",
-        ChannelType.Discord => "discord",
-        ChannelType.WhatsApp => "whatsapp",
-        ChannelType.Teams => "teams",
-        ChannelType.GoogleChat => "google-chat",
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -30,10 +22,6 @@ public static class ChannelTypeExtensions
         "internal" => ChannelType.Internal,
         "slack" => ChannelType.Slack,
         "telegram" => ChannelType.Telegram,
-        "discord" => ChannelType.Discord,
-        "whatsapp" => ChannelType.WhatsApp,
-        "teams" => ChannelType.Teams,
-        "google-chat" => ChannelType.GoogleChat,
         _ => throw new ArgumentOutOfRangeException(nameof(value), $"Unknown channel type: {value}"),
     };
 }

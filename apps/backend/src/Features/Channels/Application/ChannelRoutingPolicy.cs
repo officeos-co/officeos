@@ -49,9 +49,6 @@ internal static class ChannelRoutingPolicy
         channelType switch
         {
             "slack" => inbound.ChannelId,
-            "teams" => inbound.ConversationId ?? inbound.ChannelId,
-            "msteams" => inbound.ConversationId ?? inbound.ChannelId,
-            "whatsapp" => inbound.GroupId ?? inbound.ChannelId,
             "telegram" => inbound.GroupId ?? inbound.ChannelId,
             _ => inbound.ChannelId,
         };
@@ -115,9 +112,6 @@ internal static class ChannelRoutingPolicy
             !string.IsNullOrWhiteSpace(inbound.MessageThreadId) &&
             config?.ActiveTopicIds is { Count: > 0 } activeTopicIds &&
             ContainsIgnoreCase(activeTopicIds, inbound.MessageThreadId))
-            return true;
-
-        if (channelType is "teams" or "msteams" && inbound.MentionsBot)
             return true;
 
         if (!string.IsNullOrWhiteSpace(config?.BotUserId) &&

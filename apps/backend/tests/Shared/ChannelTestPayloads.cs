@@ -35,58 +35,6 @@ internal static class ChannelTestPayloads
             replyToBotAgentId,
         });
 
-    public static string TeamsBindingConfig(
-        string conversationId,
-        IReadOnlyList<string>? allowedSenderIds = null,
-        bool requireMention = true,
-        int? historyLimit = null) =>
-        JsonSerializer.Serialize(new
-        {
-            platformId = conversationId,
-            requireMention,
-            allowedSenderIds = allowedSenderIds ?? [],
-            botMention = "OpenClaw",
-            historyLimit,
-        });
-
-    public static string TeamsEnvelope(
-        string text,
-        string teamId,
-        string conversationId,
-        bool mentionsBot) =>
-        JsonSerializer.Serialize(new
-        {
-            text,
-            platform = "teams",
-            chatType = "channel",
-            teamId,
-            conversationId,
-            mentionsBot,
-        });
-
-    public static string WhatsappBindingConfig(
-        string groupId,
-        IReadOnlyList<string>? allowedSenderIds = null,
-        int? historyLimit = null) =>
-        JsonSerializer.Serialize(new
-        {
-            platformId = groupId,
-            requireMention = true,
-            allowedGroupIds = new[] { groupId },
-            allowedSenderIds = allowedSenderIds ?? [],
-            mentionPatterns = new[] { "@OpenClaw" },
-            historyLimit,
-        });
-
-    public static string WhatsappEnvelope(string text, string groupId) =>
-        JsonSerializer.Serialize(new
-        {
-            text,
-            platform = "whatsapp",
-            chatType = "group",
-            groupId,
-        });
-
     public static string TelegramBindingConfig(
         string groupId,
         IReadOnlyList<string>? allowedSenderIds = null,

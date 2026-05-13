@@ -40,61 +40,6 @@ public sealed class ChannelGroupContextPersistenceTests
     }
 
     [Fact]
-    public async Task Whatsapp_buffers_unprocessed_group_messages_and_injects_bounded_context_only_when_triggered()
-    {
-        await using var harness = ChannelTestHarness.Create("whatsapp-pending-context");
-        var agentId = Guid.NewGuid();
-        harness.SeedAgents(agentId);
-        var whatsapp = await harness.CreateConnectionAsync("whatsapp", "Ops WhatsApp");
-        await harness.BindAsync(
-            agentId,
-            whatsapp.Id,
-            ChannelTestPayloads.WhatsappBindingConfig(
-                "120363-ops@g.us",
-                allowedSenderIds: ["+15551234567"],
-                historyLimit: 2));
-
-        await harness.Service.RouteInboundAsync(
-            whatsapp.Id,
-            "+15551234567",
-            ChannelTestPayloads.WhatsappEnvelope("first ambient update", "120363-ops@g.us"),
-            isGroupMessage: true,
-            messageId: "wa-1",
-            channelId: "120363-ops@g.us");
-        await harness.Service.RouteInboundAsync(
-            whatsapp.Id,
-            "+15551234567",
-            ChannelTestPayloads.WhatsappEnvelope("second ambient update", "120363-ops@g.us"),
-            isGroupMessage: true,
-            messageId: "wa-2",
-            channelId: "120363-ops@g.us");
-        await harness.Service.RouteInboundAsync(
-            whatsapp.Id,
-            "+15551234567",
-            ChannelTestPayloads.WhatsappEnvelope("third ambient update", "120363-ops@g.us"),
-            isGroupMessage: true,
-            messageId: "wa-3",
-            channelId: "120363-ops@g.us");
-
-        var notified = await harness.Service.RouteInboundAsync(
-            whatsapp.Id,
-            "+15551234567",
-            ChannelTestPayloads.WhatsappEnvelope("@OpenClaw summarize now", "120363-ops@g.us"),
-            isGroupMessage: true,
-            messageId: "wa-4",
-            channelId: "120363-ops@g.us");
-
-        var message = Assert.Single(harness.MessageEvents);
-        Assert.Equal([agentId], notified);
-        Assert.DoesNotContain("first ambient update", message.Content);
-        Assert.Contains("second ambient update", message.Content);
-        Assert.Contains("third ambient update", message.Content);
-        Assert.Contains("[Chat messages since your last reply - for context]", message.Content);
-        Assert.Contains("[Current message - respond to this]", message.Content);
-        Assert.Contains("@OpenClaw summarize now", message.Content);
-    }
-
-    [Fact]
     public async Task Slack_thread_history_limit_injects_only_recent_messages_for_the_triggered_thread()
     {
         await using var harness = ChannelTestHarness.Create("slack-thread-context");
@@ -143,43 +88,6 @@ public sealed class ChannelGroupContextPersistenceTests
         Assert.Contains("recent thread line one", message.Content);
         Assert.Contains("recent thread line two", message.Content);
         Assert.Contains("please answer from this thread", message.Content);
-    }
-
-    [Fact]
-    public async Task Teams_history_limit_zero_does_not_remember_ambient_group_messages()
-    {
-        await using var harness = ChannelTestHarness.Create("teams-history-disabled");
-        var agentId = Guid.NewGuid();
-        harness.SeedAgents(agentId);
-        var teams = await harness.CreateConnectionAsync("teams", "Engineering Teams");
-        await harness.BindAsync(
-            agentId,
-            teams.Id,
-            ChannelTestPayloads.TeamsBindingConfig(
-                "19:channel@thread.tacv2",
-                allowedSenderIds: ["aad-allowed"],
-                historyLimit: 0));
-
-        await harness.Service.RouteInboundAsync(
-            teams.Id,
-            "aad-allowed",
-            ChannelTestPayloads.TeamsEnvelope("ambient architecture discussion", "19:team@thread.tacv2", "19:channel@thread.tacv2", mentionsBot: false),
-            isGroupMessage: true,
-            messageId: "teams-1",
-            channelId: "19:channel@thread.tacv2");
-
-        var notified = await harness.Service.RouteInboundAsync(
-            teams.Id,
-            "aad-allowed",
-            ChannelTestPayloads.TeamsEnvelope("<at>OpenClaw</at> summarize", "19:team@thread.tacv2", "19:channel@thread.tacv2", mentionsBot: true),
-            isGroupMessage: true,
-            messageId: "teams-2",
-            channelId: "19:channel@thread.tacv2");
-
-        var message = Assert.Single(harness.MessageEvents);
-        Assert.Equal([agentId], notified);
-        Assert.DoesNotContain("ambient architecture discussion", message.Content);
-        Assert.Contains("summarize", message.Content);
     }
 
     [Fact]

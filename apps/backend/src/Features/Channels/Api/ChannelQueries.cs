@@ -3,7 +3,7 @@ namespace OffceOs.Api.Features.Channels;
 [ExtendObjectType(typeof(GraphQLQueries))]
 public class ChannelQueries
 {
-    [GraphQLDescription("Lists all channel connections (Slack, Telegram, Discord, etc.) configured by the user.")]
+    [GraphQLDescription("Lists all channel connections configured by the user.")]
     public async Task<IReadOnlyList<ChannelConnectionPayload>> GetChannelConnections(
         [Service] UserContext user,
         [Service] IWorkspaceService workspaces,

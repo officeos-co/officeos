@@ -8,14 +8,10 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@chat-adapter/discord": "^4.26.0",
-    "@chat-adapter/gchat": "^4.26.0",
     "@chat-adapter/shared": "^4.26.0",
     "@chat-adapter/slack": "^4.26.0",
     "@chat-adapter/state-memory": "^4.26.0",
-    "@chat-adapter/teams": "^4.26.0",
     "@chat-adapter/telegram": "^4.26.0",
-    "@chat-adapter/whatsapp": "^4.26.0",
     "better-sqlite3": "^11.7.0",
     "chat": "^4.26.0",
     "express": "^4.21.0"

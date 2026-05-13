@@ -1,7 +1,7 @@
 /**
  * v2 Channel Adapter interface.
  *
- * Channel adapters bridge NanoClaw with messaging platforms (Discord, Slack, etc.).
+ * Channel adapters bridge NanoClaw with messaging platforms (Slack, Telegram).
  * Two patterns: native adapters (implement directly) or Chat SDK bridge (wrap a Chat SDK adapter).
  */
 
@@ -112,10 +112,10 @@ export interface ChannelAdapter {
    * Whether this adapter models conversations as threads.
    *
    * true  — adapter's platform uses threads as the primary conversation unit
-   *         (Discord, Slack, Linear, GitHub). One thread = one session; the
+   *         (Slack). One thread = one session; the
    *         agent replies into the originating thread.
    * false — adapter's platform treats the channel itself as the conversation
-   *         (Telegram, WhatsApp, iMessage). Thread ids are stripped at the
+   *         (Telegram). Thread ids are stripped at the
    *         router; agent replies go to the channel.
    */
   supportsThreads: boolean;
@@ -150,11 +150,11 @@ export interface ChannelAdapter {
    * users who may never have messaged the bot themselves.
    *
    * Omit this method on channels where the user handle IS already the DM
-   * chat id (Telegram, WhatsApp, iMessage, email, Matrix). Callers will
+   * chat id (Telegram). Callers will
    * fall through to using the handle directly.
    *
-   * For channels that distinguish user id from DM channel id (Discord,
-   * Slack, Teams, Webex, gChat): implement by delegating to Chat SDK's
+   * For channels that distinguish user id from DM channel id (Slack):
+   * implement by delegating to Chat SDK's
    * chat.openDM, which hits the platform's idempotent open-DM endpoint.
    * Returning the same platform_id on repeated calls is expected.
    */

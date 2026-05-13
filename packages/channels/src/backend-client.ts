@@ -14,12 +14,8 @@ interface ActiveConnectionResponse {
 }
 
 const CHANNEL_TYPE_BY_ENUM_VALUE = new Map<number, string>([
-  [0, 'slack'],
-  [1, 'telegram'],
-  [2, 'discord'],
-  [3, 'whatsapp'],
-  [4, 'teams'],
-  [5, 'google-chat'],
+  [1, 'slack'],
+  [2, 'telegram'],
 ]);
 
 function normalizeChannelType(channelType: string | number): string | null {

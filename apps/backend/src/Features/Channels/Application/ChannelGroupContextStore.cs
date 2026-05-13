@@ -68,8 +68,6 @@ internal sealed class ChannelGroupContextStore
         return channelType switch
         {
             "slack" => 20,
-            "teams" or "msteams" => 50,
-            "whatsapp" => 50,
             "telegram" => 50,
             _ => 0,
         };
