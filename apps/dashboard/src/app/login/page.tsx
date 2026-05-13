@@ -1,17 +1,19 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { LoginForm } from "@/features/manage"
 
 export default function LoginPage() {
   const { authenticated, loading } = useAuthContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = safeReturnTo(searchParams.get("returnTo"))
 
   useEffect(() => {
-    if (authenticated) router.replace("/agents")
-  }, [authenticated, router])
+    if (authenticated) router.replace(returnTo)
+  }, [authenticated, returnTo, router])
 
   if (loading || authenticated) {
     return (
@@ -31,7 +33,7 @@ export default function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xs">
-            <LoginForm />
+            <LoginForm returnTo={returnTo} />
           </div>
         </div>
       </div>
@@ -40,4 +42,11 @@ export default function LoginPage() {
       </div>
     </div>
   )
+}
+
+function safeReturnTo(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("://")) {
+    return "/agents"
+  }
+  return value
 }

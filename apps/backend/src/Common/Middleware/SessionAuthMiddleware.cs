@@ -25,17 +25,17 @@ public sealed class SessionAuthMiddleware
             return;
         }
 
-        var cookie = context.Request.Cookies["eaos-session"];
-        if (string.IsNullOrWhiteSpace(cookie))
+        var token = ResolveToken(context);
+        if (string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogDebug("No eaos-session cookie on {Path}", path);
+            _logger.LogDebug("No dashboard cookie or bearer token on {Path}", path);
             await _requestDelegate(context);
             return;
         }
 
         try
         {
-            var decoded = Uri.UnescapeDataString(cookie);
+            var decoded = Uri.UnescapeDataString(token);
             var tokenHash = HashToken(decoded);
             var cacheKey = $"session:{tokenHash[..16]}";
 
@@ -87,4 +87,16 @@ public sealed class SessionAuthMiddleware
     }
 
     public static string HashToken(string token) => SessionTokenHasher.Hash(token);
+
+    private static string? ResolveToken(HttpContext context)
+    {
+        var authorization = context.Request.Headers.Authorization.ToString();
+        if (!string.IsNullOrWhiteSpace(authorization)
+            && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            return authorization["Bearer ".Length..].Trim();
+        }
+
+        return context.Request.Cookies["eaos-session"];
+    }
 }

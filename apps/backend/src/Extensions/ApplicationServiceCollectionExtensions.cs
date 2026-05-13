@@ -29,6 +29,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOrganizationAuditLogService, OrganizationAuditLogService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<AgentDefinitionParser>();
+        services.AddScoped<AgentManifestParser>();
+        services.AddScoped<IDeclarativeAgentService, DeclarativeAgentService>();
         services.AddScoped<QuickstartBlueprintParser>();
         services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
         services.AddScoped<IAgentUsageService, AgentUsageService>();
@@ -52,6 +54,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AgentChannelBinder>();
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ICliAuthService, CliAuthService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
         services.AddScoped<IAccessGroupService, AccessGroupService>();
         services.AddScoped<IOrganizationPolicyService, OrganizationPolicyService>();

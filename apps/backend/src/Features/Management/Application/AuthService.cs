@@ -133,10 +133,7 @@ internal sealed class AuthService : IAuthService
         googleToken.ReplaceScopes(scopes);
         await _oauthTokenRepository.UpsertAsync(googleToken, ct);
 
-        // Create session
-        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = SessionTokenHasher.Hash(sessionToken);
-        await _sessionRepository.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
+        var sessionToken = await CreateSessionTokenAsync(user.Id, TimeSpan.FromDays(7), ct);
         _logger.LogInformation("OAuth: session created for {Email}", email);
 
         var integrationCredentials = new Dictionary<string, string>
@@ -265,10 +262,7 @@ internal sealed class AuthService : IAuthService
         gitHubToken.ReplaceScopes(scopes);
         await _oauthTokenRepository.UpsertAsync(gitHubToken, ct);
 
-        // Create session
-        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var tokenHash = SessionTokenHasher.Hash(sessionToken);
-        await _sessionRepository.CreateAsync(user.Id, tokenHash, DateTime.UtcNow.AddDays(7), ct);
+        var sessionToken = await CreateSessionTokenAsync(user.Id, TimeSpan.FromDays(7), ct);
         _logger.LogInformation("OAuth: session created for {Email}", email);
 
         var integrationCredentials = new Dictionary<string, string>
@@ -298,6 +292,14 @@ internal sealed class AuthService : IAuthService
             ct);
         await _distributedCache.RemoveAsync($"auth:me:{userId}", ct);
         return updated;
+    }
+
+    public async Task<string> CreateSessionTokenAsync(Guid userId, TimeSpan lifetime, CancellationToken ct = default)
+    {
+        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var tokenHash = SessionTokenHasher.Hash(sessionToken);
+        await _sessionRepository.CreateAsync(userId, tokenHash, DateTime.UtcNow.Add(lifetime), ct);
+        return sessionToken;
     }
 
     public async Task<bool> LogoutAsync(string? sessionToken, CancellationToken ct = default)

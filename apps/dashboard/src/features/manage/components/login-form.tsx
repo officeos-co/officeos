@@ -41,8 +41,9 @@ function GoogleIcon() {
 
 export function LoginForm({
   className,
+  returnTo = "/agents",
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { returnTo?: string }) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
@@ -58,7 +59,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           nativeButton={false}
-          render={<Link href={buildOAuthUrl("google", "/agents")} prefetch={false} />}
+          render={<Link href={buildOAuthUrl("google", returnTo)} prefetch={false} />}
         >
           <GoogleIcon />
           Continue with Google
@@ -67,7 +68,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           nativeButton={false}
-          render={<Link href={buildOAuthUrl("github", "/agents")} prefetch={false} />}
+          render={<Link href={buildOAuthUrl("github", returnTo)} prefetch={false} />}
         >
           <GitHubIcon />
           Continue with GitHub
