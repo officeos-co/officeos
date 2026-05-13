@@ -59,12 +59,24 @@ internal sealed class LlmRequestBuilder
             }
         }
 
-        return JsonSerializer.SerializeToElement(new
+        var effort = ExtractReasoningEffort(agent.Prompt);
+        var body = new Dictionary<string, object?>
         {
-            model = agent.Model ?? "auto",
-            messages,
-            tools = registry.GetSchemas(),
-            stream = true,
-        });
+            ["model"] = agent.Model ?? "auto",
+            ["messages"] = messages,
+            ["tools"] = registry.GetSchemas(),
+            ["stream"] = true,
+        };
+        if (effort is not null)
+            body["reasoning_effort"] = effort;
+
+        return JsonSerializer.SerializeToElement(body);
+    }
+
+    private static string? ExtractReasoningEffort(string? prompt)
+    {
+        if (string.IsNullOrWhiteSpace(prompt)) return null;
+        var match = Regex.Match(prompt, @"Coding effort:\s*(low|medium|high)", RegexOptions.IgnoreCase);
+        return match.Success ? match.Groups[1].Value.ToLowerInvariant() : null;
     }
 }
