@@ -8,6 +8,8 @@ public sealed class AgentRunEntity
     public Guid? ParentRunId { get; set; }
     public string? ParentCorrelationId { get; set; }
     public string Kind { get; set; } = "turn";
+    public string Purpose { get; set; } = "manual";
+    public Guid? DefinitionId { get; set; }
     public string Status { get; set; } = "running";
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }

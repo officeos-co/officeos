@@ -14,6 +14,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
     private readonly IAgentDeployer _agentDeployer;
     private readonly IAgentRunRepository _agentRunRepository;
     private readonly IAgentLogService _agentLogService;
+    private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IAgentRoutineService _agentRoutineService;
 
@@ -30,6 +31,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         IAgentDeployer agentDeployer,
         IAgentRunRepository runs,
         IAgentLogService agentLogService,
+        IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
         IAgentRoutineService agentRoutineService)
     {
@@ -45,6 +47,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         _agentDeployer = agentDeployer;
         _agentRunRepository = runs;
         _agentLogService = agentLogService;
+        _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
         _agentRoutineService = agentRoutineService;
     }
@@ -196,6 +199,32 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
             return null;
 
         return await _agentService.PatchAsync(id, request, ct);
+    }
+
+    public async Task<bool> RebootstrapAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    {
+        if (!await AgentIsOwnedAsync(id, ownerId, workspaceId, ct))
+            return false;
+
+        var activeDefinition = await _agentDefinitionRepository.GetByAsync(
+            new AgentDefinitionFilter { AgentId = id, ActiveOnly = true },
+            ct);
+        if (activeDefinition is null)
+            return false;
+
+        var config = _agentDefinitionParser.Parse(activeDefinition.ConfigJson);
+        if (string.IsNullOrWhiteSpace(config.System))
+            return false;
+
+        await _agentService.InitializeAgentAsync(
+            id,
+            ownerId,
+            new AgentInitRequest(
+                config.McpServers.Select(server => server.Name).ToList(),
+                null,
+                config.System),
+            ct);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default)

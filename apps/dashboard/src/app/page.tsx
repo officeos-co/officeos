@@ -27,6 +27,9 @@ import {
   describeResource,
   isActiveResource,
   resourceId,
+  resourceHealth,
+  resourceHealthReason,
+  resourceHealthState,
   resourceName,
   resourceStatus,
   resourceTimestamp,
@@ -152,7 +155,10 @@ export default function ResourceDashboardPage() {
           {ResourceCategories.map((category) => {
             const Icon = iconByKind[category.kind];
             const count = resources[category.kind]?.length ?? 0;
-            const active = (resources[category.kind] ?? []).filter(isActiveResource).length;
+            const categoryResources = resources[category.kind] ?? [];
+            const active = categoryResources.filter(isActiveResource).length;
+            const warning = categoryResources.filter((resource) => resourceHealthState(resource) === "orange").length;
+            const failed = categoryResources.filter((resource) => resourceHealthState(resource) === "red").length;
             return (
               <button
                 className={`mb-1 grid h-11 w-full grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3 rounded-md px-3 text-left text-sm ${
@@ -164,7 +170,7 @@ export default function ResourceDashboardPage() {
               >
                 <Icon className="size-4" />
                 <span className="truncate">{category.label}</span>
-                <span className="font-mono text-xs">{active}/{count}</span>
+                <span className="font-mono text-xs">{active}/{warning}/{failed}/{count}</span>
               </button>
             );
           })}
@@ -230,22 +236,23 @@ function ResourceTable({
         <table className="w-full table-fixed border-collapse text-sm">
           <thead className="bg-panel-strong text-left text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="w-[32%] px-3 py-2 font-medium">Name</th>
-              <th className="w-[18%] px-3 py-2 font-medium">State</th>
-              <th className="w-[24%] px-3 py-2 font-medium">Info</th>
-              <th className="w-[26%] px-3 py-2 font-medium">Time</th>
+              <th className="w-[30%] px-3 py-2 font-medium">Name</th>
+              <th className="w-[16%] px-3 py-2 font-medium">Health</th>
+              <th className="w-[26%] px-3 py-2 font-medium">Reason</th>
+              <th className="w-[14%] px-3 py-2 font-medium">Info</th>
+              <th className="w-[14%] px-3 py-2 font-medium">Time</th>
             </tr>
           </thead>
           <tbody>
             {resources.map((resource) => {
               const key = resourceKey(resource);
-              const status = resourceStatus(resource);
               return (
                 <tr className={`cursor-pointer border-t border-border ${selectedName === key ? "bg-panel-strong" : "hover:bg-panel-strong"}`} key={key} onClick={() => onSelect(key)}>
                   <td className="truncate px-3 py-2 font-medium">{resourceName(resource) || key}</td>
                   <td className="px-3 py-2">
-                    <StatusPill status={status} />
+                    <StatusPill resource={resource} />
                   </td>
+                  <td className="truncate px-3 py-2 text-muted-foreground">{resourceHealthReason(resource)}</td>
                   <td className="truncate px-3 py-2 text-muted-foreground">{describeResource(category, resource)}</td>
                   <td className="truncate px-3 py-2 font-mono text-xs text-muted-foreground">{resourceTimestamp(resource)}</td>
                 </tr>
@@ -274,6 +281,8 @@ function ResourceInspector({
   logs: string;
   selectedName: string;
 }) {
+  const health = resourceHealth(details);
+  const healthState = resourceHealthState(details);
   return (
     <aside className="grid min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] border-l border-border bg-panel">
       <section className="min-h-0 border-b border-border">
@@ -281,9 +290,18 @@ function ResourceInspector({
           <Settings2 className="size-4" />
           Details
         </div>
-        <pre className="h-[calc(100%-2.5rem)] overflow-auto p-3 text-xs leading-5">
-          {selectedName ? detailState === "loading" ? "Loading" : JSON.stringify(details, null, 2) : ""}
-        </pre>
+        <div className="h-[calc(100%-2.5rem)] overflow-auto">
+          {health && healthState !== "green" ? (
+            <div className={`m-3 rounded-md border p-3 text-sm ${healthState === "red" ? "border-red-200 bg-red-50 text-danger" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+              <div className="font-medium">{health.reason ?? health.status ?? "Needs attention"}</div>
+              <div className="mt-1 text-xs">{health.message ?? "Inspect the latest bootstrap run and logs."}</div>
+              {health.lastBootstrapRunId ? <div className="mt-2 font-mono text-xs">run/{health.lastBootstrapRunId}</div> : null}
+            </div>
+          ) : null}
+          <pre className="p-3 text-xs leading-5">
+            {selectedName ? detailState === "loading" ? "Loading" : JSON.stringify(details, null, 2) : ""}
+          </pre>
+        </div>
       </section>
       <section className="min-h-0">
         <div className="flex h-10 items-center gap-2 border-b border-border px-3 text-sm font-medium">
@@ -298,12 +316,19 @@ function ResourceInspector({
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const normalized = status.toLowerCase();
-  const active = ["active", "running", "enabled", "configured", "ready", "succeeded"].includes(normalized);
-  const bad = ["error", "failed", "disabled", "unconfigured", "canceled", "cancelled"].includes(normalized);
+function StatusPill({ resource }: { resource: ResourceValue }) {
+  const status = resourceStatus(resource);
+  const state = resourceHealthState(resource);
+  const color = state === "green"
+    ? "bg-green-500"
+    : state === "orange"
+      ? "bg-amber-500"
+      : state === "red"
+        ? "bg-red-500"
+        : "bg-muted-foreground";
   return (
-    <span className={`inline-flex max-w-full items-center rounded px-2 py-1 text-xs ${active ? "bg-green-50 text-success" : bad ? "bg-red-50 text-danger" : "bg-panel-strong text-muted-foreground"}`}>
+    <span className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs text-foreground">
+      <span className={`size-2 shrink-0 rounded-full ${color}`} />
       <span className="truncate">{status || "-"}</span>
     </span>
   );

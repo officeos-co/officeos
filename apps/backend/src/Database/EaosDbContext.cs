@@ -269,8 +269,10 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(r => r.AgentId);
             e.HasIndex(r => r.WorkspaceId);
             e.HasIndex(r => r.ParentRunId);
+            e.HasIndex(r => r.DefinitionId);
             e.HasIndex(r => r.Status);
             e.Property(r => r.Kind).IsRequired().HasMaxLength(16);
+            e.Property(r => r.Purpose).IsRequired().HasMaxLength(32).HasDefaultValue("manual");
             e.Property(r => r.Status).IsRequired().HasMaxLength(32);
             e.Property(r => r.Name).IsRequired().HasMaxLength(128);
             e.Property(r => r.Description).HasColumnType("text");

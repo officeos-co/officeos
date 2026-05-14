@@ -240,7 +240,7 @@ public sealed class AgentRoutineEndToEndTests
 
     private sealed class RecordingAgentService : IAgentService
     {
-        public List<(Guid AgentId, string Content, Guid UserId)> Messages { get; } = [];
+        public List<(Guid AgentId, string Content, Guid UserId, string? Purpose)> Messages { get; } = [];
 
         public Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<AgentRecord>>([]);
@@ -260,9 +260,15 @@ public sealed class AgentRoutineEndToEndTests
         public Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default) =>
             Task.CompletedTask;
 
-        public Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
+        public Task<AgentLogRecord> SendMessageAsync(
+            Guid agentId,
+            string content,
+            Guid userId,
+            CancellationToken ct = default,
+            string? runPurpose = null,
+            Guid? definitionId = null)
         {
-            Messages.Add((agentId, content, userId));
+            Messages.Add((agentId, content, userId, runPurpose));
             return Task.FromResult(AgentLogRecord.MessageIn(agentId, content));
         }
     }

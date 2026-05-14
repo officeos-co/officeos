@@ -86,6 +86,7 @@ public sealed record WorkspaceTestHarness(
             new FakeAgentDeployer(),
             new AgentRunRepository(db),
             new FakeAgentLogService(),
+            agentDefinitionRepository,
             agentDefinitionParser,
             new AgentRoutineService(
                 new AgentRoutineRepository(db),

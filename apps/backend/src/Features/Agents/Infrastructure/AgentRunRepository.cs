@@ -30,8 +30,14 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         if (filter.ParentRunId.HasValue)
             query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
 
+        if (filter.DefinitionId.HasValue)
+            query = query.Where(r => r.DefinitionId == filter.DefinitionId.Value);
+
         if (!string.IsNullOrEmpty(filter.Kind))
             query = query.Where(r => r.Kind == filter.Kind);
+
+        if (!string.IsNullOrEmpty(filter.Purpose))
+            query = query.Where(r => r.Purpose == filter.Purpose);
 
         if (!string.IsNullOrEmpty(filter.Status))
             query = query.Where(r => r.Status == filter.Status);
@@ -56,8 +62,14 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         if (filter.ParentRunId.HasValue)
             query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
 
+        if (filter.DefinitionId.HasValue)
+            query = query.Where(r => r.DefinitionId == filter.DefinitionId.Value);
+
         if (!string.IsNullOrEmpty(filter.Kind))
             query = query.Where(r => r.Kind == filter.Kind);
+
+        if (!string.IsNullOrEmpty(filter.Purpose))
+            query = query.Where(r => r.Purpose == filter.Purpose);
 
         if (!string.IsNullOrEmpty(filter.Status))
             query = query.Where(r => r.Status == filter.Status);
@@ -100,6 +112,8 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         ParentRunId = e.ParentRunId,
         ParentCorrelationId = e.ParentCorrelationId,
         Kind = e.Kind,
+        Purpose = e.Purpose,
+        DefinitionId = e.DefinitionId,
         Status = e.Status,
         Name = e.Name,
         Description = e.Description,
@@ -126,6 +140,8 @@ internal sealed class AgentRunRepository : IAgentRunRepository
             ParentRunId = r.ParentRunId,
             ParentCorrelationId = r.ParentCorrelationId,
             Kind = r.Kind,
+            Purpose = AgentRunPurposeKinds.Normalize(r.Purpose),
+            DefinitionId = r.DefinitionId,
             Status = r.Status,
             Name = r.Name,
             Description = r.Description,

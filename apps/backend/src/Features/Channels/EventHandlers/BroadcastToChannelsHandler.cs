@@ -46,7 +46,8 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
                     await publisher.Publish(new MessageReceivedEvent(
                         internalTarget.SourceAgentId,
                         internalContent,
-                        internalCorrelationId));
+                        internalCorrelationId,
+                        AgentRunPurposeKinds.Channel));
                 },
                 _logger);
 

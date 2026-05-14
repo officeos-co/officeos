@@ -226,7 +226,13 @@ internal sealed class AgentService : IAgentService
         return deleted;
     }
 
-    public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
+    public async Task<AgentLogRecord> SendMessageAsync(
+        Guid agentId,
+        string content,
+        Guid userId,
+        CancellationToken ct = default,
+        string? runPurpose = null,
+        Guid? definitionId = null)
     {
         var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
         if (agent is null)
@@ -234,7 +240,12 @@ internal sealed class AgentService : IAgentService
 
         var correlationId = Guid.NewGuid().ToString("N");
         var record = await _agentLogService.AppendAsync(AgentLogRecord.MessageIn(agentId, content, correlationId));
-        await _publisher.Publish(new MessageReceivedEvent(agentId, content, correlationId), ct);
+        await _publisher.Publish(new MessageReceivedEvent(
+            agentId,
+            content,
+            correlationId,
+            AgentRunPurposeKinds.Normalize(runPurpose),
+            definitionId), ct);
         return record;
     }
 
@@ -287,7 +298,13 @@ internal sealed class AgentService : IAgentService
         // Bootstrap message
         if (!string.IsNullOrWhiteSpace(init.BootstrapMessage))
         {
-            await SendMessageAsync(agentId, init.BootstrapMessage, userId, ct);
+            await SendMessageAsync(
+                agentId,
+                init.BootstrapMessage,
+                userId,
+                ct,
+                AgentRunPurposeKinds.Bootstrap,
+                activeDefinition?.Id);
         }
     }
 

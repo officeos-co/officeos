@@ -158,7 +158,11 @@ internal sealed class ChannelService : IChannelService
                 _channelReplyContext.Set(correlationId, channelType, channelId, channelId, binding.ChannelConnectionId);
 
             await _publisher.Publish(new MessageReceivedEvent(
-                binding.AgentId, plainText, correlationId), ct);
+                binding.AgentId,
+                plainText,
+                correlationId,
+                AgentRunPurposeKinds.Channel,
+                binding.Agent?.ActiveDefinitionId), ct);
 
             agentIds.Add(binding.AgentId);
         }
@@ -210,7 +214,11 @@ internal sealed class ChannelService : IChannelService
                 content, correlationId, channelConnectionId), ct);
 
             await _publisher.Publish(new MessageReceivedEvent(
-                receiverBinding.AgentId, content, correlationId), ct);
+                receiverBinding.AgentId,
+                content,
+                correlationId,
+                AgentRunPurposeKinds.Channel,
+                receiverBinding.Agent?.ActiveDefinitionId), ct);
 
             receiverIds.Add(receiverBinding.AgentId);
         }

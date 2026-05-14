@@ -36,6 +36,8 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             AgentId = agent.Id,
             WorkspaceId = workspaceId,
             Kind = "opencode",
+            Purpose = AgentRunPurposeKinds.Manual,
+            DefinitionId = agent.ActiveDefinitionId,
             Status = "queued",
             Name = request.AgentRef,
             Description = engineRef,

@@ -31,6 +31,8 @@ internal sealed class RunAgentTurnHandler : INotificationHandler<MessageReceived
             WorkspaceId = agent.WorkspaceId,
             ParentCorrelationId = notification.CorrelationId,
             Kind = "opencode",
+            Purpose = AgentRunPurposeKinds.Normalize(notification.Purpose),
+            DefinitionId = notification.DefinitionId,
             Status = "queued",
             Name = agent.Name,
             Description = "opencode",

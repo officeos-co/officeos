@@ -42,6 +42,16 @@ export interface DashboardUser {
   displayName?: string | null;
 }
 
+export interface ResourceHealth {
+  status?: string;
+  state?: "green" | "orange" | "red" | string;
+  reason?: string;
+  message?: string;
+  lastBootstrapRunId?: string | null;
+  lastBootstrapAt?: string | null;
+  lastSuccessfulBootstrapAt?: string | null;
+}
+
 export function resourceName(value: unknown): string {
   if (!value || typeof value !== "object") return String(value ?? "");
   const record = value as Record<string, unknown>;
@@ -64,6 +74,8 @@ export function resourceId(value: unknown): string {
 export function resourceStatus(value: unknown): string {
   if (!value || typeof value !== "object") return "";
   const record = value as Record<string, unknown>;
+  const health = resourceHealth(value);
+  if (health?.status) return health.status;
   if (typeof record.status === "string") return record.status;
   if (typeof record.phase === "string") return record.phase;
   if (typeof record.enabled === "boolean") return record.enabled ? "enabled" : "disabled";
@@ -72,11 +84,34 @@ export function resourceStatus(value: unknown): string {
 }
 
 export function isActiveResource(value: unknown): boolean {
+  const health = resourceHealth(value);
+  if (health?.state) return health.state === "green";
   const status = resourceStatus(value).toLowerCase();
   if (["active", "running", "enabled", "configured", "ready", "succeeded"].includes(status)) return true;
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   return record.enabled === true || record.configured === true;
+}
+
+export function resourceHealth(value: unknown): ResourceHealth | null {
+  if (!value || typeof value !== "object") return null;
+  const health = (value as Record<string, unknown>).health;
+  return health && typeof health === "object" ? health as ResourceHealth : null;
+}
+
+export function resourceHealthState(value: unknown): "green" | "orange" | "red" | "neutral" {
+  const health = resourceHealth(value);
+  if (health?.state === "green" || health?.state === "orange" || health?.state === "red") return health.state;
+  const status = resourceStatus(value).toLowerCase();
+  if (["active", "running", "enabled", "configured", "ready", "succeeded", "healthy"].includes(status)) return "green";
+  if (["pending", "queued", "booting", "restarting", "working", "degraded"].includes(status)) return "orange";
+  if (["error", "failed", "disabled", "unconfigured", "canceled", "cancelled"].includes(status)) return "red";
+  return "neutral";
+}
+
+export function resourceHealthReason(value: unknown): string {
+  const health = resourceHealth(value);
+  return health?.reason || resourceStatus(value) || "-";
 }
 
 export function resourceTimestamp(value: unknown): string {

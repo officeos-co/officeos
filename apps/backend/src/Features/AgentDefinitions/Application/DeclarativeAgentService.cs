@@ -26,6 +26,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly IAgentLifecycleService _agentLifecycleService;
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
+    private readonly IAgentRunRepository? _agentRunRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentResourceRepository _agentResourceRepository;
     private readonly IBrowserResourceRepository _browserResourceRepository;
@@ -58,7 +59,8 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         DeclarativeManifestParser declarativeManifestParser,
         ChannelCredentialProtector channelCredentialProtector,
         IProviderResourceRepository? providerResourceRepository = null,
-        CredentialProtector? credentialProtector = null)
+        CredentialProtector? credentialProtector = null,
+        IAgentRunRepository? agentRunRepository = null)
     {
         _agentLifecycleService = agentLifecycleService;
         _agentRepository = agentRepository;
@@ -75,6 +77,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         _agentDefinitionParser = agentDefinitionParser;
         _declarativeManifestParser = declarativeManifestParser;
         _channelCredentialProtector = channelCredentialProtector;
+        _agentRunRepository = agentRunRepository;
         _providerResourceRepository = providerResourceRepository;
         _credentialProtector = credentialProtector;
     }
@@ -571,14 +574,51 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             return (created, new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "create", created.Id.ToString(), "Created agent."));
         }
 
-        var patched = await _agentLifecycleService.PatchAsync(
-            existing.Id,
-            ownerId,
-            workspaceId,
-            new PatchAgentRequest(spec.Provider.Trim().ToLowerInvariant(), config.Model, config.Name, config.System, configJson),
-            ct) ?? existing;
+        var activeDefinition = await _agentDefinitionRepository.GetByAsync(
+            new AgentDefinitionFilter { AgentId = existing.Id, ActiveOnly = true },
+            ct);
+        var provider = spec.Provider.Trim().ToLowerInvariant();
+        var specChanged = activeDefinition?.ConfigJson != configJson
+            || !string.Equals(existing.Provider, provider, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(existing.Model, config.Model, StringComparison.Ordinal);
+
+        var patched = specChanged
+            ? await _agentLifecycleService.PatchAsync(
+                existing.Id,
+                ownerId,
+                workspaceId,
+                new PatchAgentRequest(provider, config.Model, config.Name, config.System, configJson),
+                ct) ?? existing
+            : existing;
         await EnsureAgentResourcesAsync(patched.Id, spec, workspaceId, ct);
-        return (patched, new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "update", patched.Id.ToString(), "Updated agent."));
+        var rebootstrap = await ShouldRebootstrapAsync(patched, specChanged, ct);
+        if (rebootstrap)
+            await _agentLifecycleService.RebootstrapAsync(patched.Id, ownerId, workspaceId, ct);
+
+        var message = rebootstrap
+            ? "Updated agent and queued bootstrap."
+            : specChanged ? "Updated agent." : "Agent unchanged.";
+        return (patched, new DeclarativeResourceChangeItem(resource.Kind, resource.Name, specChanged ? "update" : "unchanged", patched.Id.ToString(), message));
+    }
+
+    private async Task<bool> ShouldRebootstrapAsync(AgentRecord agent, bool specChanged, CancellationToken ct)
+    {
+        if (specChanged)
+            return true;
+        if (_agentRunRepository is null)
+            return false;
+
+        var runs = await _agentRunRepository.ListForAgentAsync(agent.Id, ct: ct);
+        var activeBootstrap = runs
+            .Where(run => run.Purpose == AgentRunPurposeKinds.Bootstrap
+                && (!agent.ActiveDefinitionId.HasValue || run.DefinitionId == agent.ActiveDefinitionId))
+            .OrderByDescending(run => run.CreatedAt)
+            .FirstOrDefault();
+
+        return activeBootstrap is null
+            || activeBootstrap.Status.Equals("failed", StringComparison.OrdinalIgnoreCase)
+            || activeBootstrap.Status.Equals("canceled", StringComparison.OrdinalIgnoreCase)
+            || activeBootstrap.Status.Equals("cancelled", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<DeclarativeResourceChangeItem> ApplyRoutineAsync(

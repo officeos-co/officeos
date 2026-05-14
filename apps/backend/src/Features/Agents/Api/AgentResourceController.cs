@@ -9,12 +9,15 @@ public sealed class AgentResourceController : ControllerBase
     public async Task<IActionResult> ListAgents(
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentRepository agents,
+        [FromServices] IAgentRunRepository runs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
         if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
-        return Ok((await agents.ListAsync(new AgentFilter { WorkspaceId = scope.Value.WorkspaceId }, ct)).Select(ToAgentResource));
+        var agentRecords = await agents.ListAsync(new AgentFilter { WorkspaceId = scope.Value.WorkspaceId }, ct);
+        var runRecords = await runs.ListAsync(new AgentRunFilter { WorkspaceId = scope.Value.WorkspaceId }, 1000, ct);
+        return Ok(agentRecords.Select(agent => ToAgentResource(agent, AgentHealthProjection.From(agent, runRecords))));
     }
 
     [HttpGet("resources/agents/{name}")]
@@ -23,15 +26,20 @@ public sealed class AgentResourceController : ControllerBase
         string name,
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentRepository agents,
+        [FromServices] IAgentRunRepository runs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
         if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
         var agent = await FindAgentAsync(agents, name, scope.Value.WorkspaceId, ct);
-        return agent is null
-            ? NotFound(new { error = $"agents/{name} was not found." })
-            : Ok(ToAgentDetailsResource(agent));
+        if (agent is null)
+        {
+            return NotFound(new { error = $"agents/{name} was not found." });
+        }
+
+        var agentRuns = await runs.ListForAgentAsync(agent.Id, ct: ct);
+        return Ok(ToAgentDetailsResource(agent, AgentHealthProjection.From(agent, agentRuns)));
     }
 
     [HttpDelete("resources/agents/{name}")]
@@ -185,25 +193,29 @@ public sealed class AgentResourceController : ControllerBase
         return (user.Id, workspace.Id);
     }
 
-    private static object ToAgentResource(AgentRecord agent) => new
+    private static object ToAgentResource(AgentRecord agent, AgentHealthResult health) => new
     {
         kind = "Agent",
         name = agent.Name,
         id = agent.Id,
         provider = agent.Provider,
         model = agent.Model,
-        status = agent.Status.ToString(),
+        status = health.Status,
+        rawStatus = agent.Status.ToString(),
+        health,
         createdAt = agent.CreatedAt,
     };
 
-    private static object ToAgentDetailsResource(AgentRecord agent) => new
+    private static object ToAgentDetailsResource(AgentRecord agent, AgentHealthResult health) => new
     {
         kind = "Agent",
         name = agent.Name,
         id = agent.Id,
         provider = agent.Provider,
         model = agent.Model,
-        status = agent.Status.ToString(),
+        status = health.Status,
+        rawStatus = agent.Status.ToString(),
+        health,
         prompt = agent.Prompt,
         systemPrompt = SystemPromptComposer.Compose(agent),
         podName = agent.PodName,
@@ -253,7 +265,10 @@ public sealed class AgentResourceController : ControllerBase
         id = run.Id,
         agentId = run.AgentId,
         engine = run.Kind,
+        purpose = run.Purpose,
+        definitionId = run.DefinitionId,
         phase = run.Status,
+        error = run.Error,
         createdAt = run.CreatedAt,
         completedAt = run.CompletedAt,
     };

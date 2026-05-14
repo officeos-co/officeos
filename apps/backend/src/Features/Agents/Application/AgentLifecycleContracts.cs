@@ -6,6 +6,7 @@ public interface IAgentLifecycleService
     Task<AgentLifecycleResult?> GetAgentAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<AgentRecord> CreateAsync(CreateAgentLifecycleRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<AgentRecord?> PatchAsync(Guid id, Guid ownerId, Guid workspaceId, PatchAgentRequest request, CancellationToken ct = default);
+    Task<bool> RebootstrapAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(Guid ownerId, Guid workspaceId, Guid agentId, Guid? parentRunId, CancellationToken ct = default);
 }

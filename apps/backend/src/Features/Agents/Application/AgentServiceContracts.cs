@@ -8,7 +8,13 @@ public interface IAgentService
     Task<AgentRecord?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
     Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default);
-    Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default);
+    Task<AgentLogRecord> SendMessageAsync(
+        Guid agentId,
+        string content,
+        Guid userId,
+        CancellationToken ct = default,
+        string? runPurpose = null,
+        Guid? definitionId = null);
 }
 
 public sealed record CreateAgentRequest(

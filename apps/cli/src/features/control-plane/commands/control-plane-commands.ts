@@ -301,7 +301,11 @@ function formatRow(value: unknown): string {
   const record = value as Record<string, unknown>;
   const kind = record.kind ?? "";
   const name = record.name ?? record.id ?? "";
-  const status = record.status ?? record.phase ?? record.enabled ?? "";
+  const health = record.health;
+  const healthRecord = health && typeof health === "object" ? health as Record<string, unknown> : null;
+  const status = healthRecord?.state
+    ? `${healthRecord.state}:${healthRecord.reason ?? record.status ?? ""}`
+    : record.status ?? record.phase ?? record.enabled ?? "";
   return [kind, name, status]
     .filter((part) => String(part).length > 0)
     .join("\t");
