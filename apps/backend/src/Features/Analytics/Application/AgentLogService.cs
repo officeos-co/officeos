@@ -102,6 +102,24 @@ internal sealed class AgentLogService : IAgentLogService
             new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
             ct);
 
+    public Task<List<AgentLogRecord>> ListForResourceAsync(ResourceLogQueryRequest request, CancellationToken ct = default)
+    {
+        var tail = Math.Clamp(request.Tail, 1, 1000);
+        return _agentLogRepository.ListAsync(
+            new AgentLogFilter
+            {
+                WorkspaceId = request.WorkspaceId,
+                ResourceKind = NormalizeResourceKind(request.ResourceKind),
+                ResourceId = request.ResourceId,
+                ResourceName = request.ResourceId.HasValue ? null : request.ResourceName,
+                FromInclusive = request.SinceTime,
+                Type = request.Type,
+                Severity = request.Severity,
+            },
+            new AgentLogListOptions { Limit = tail, Sort = AgentLogSort.TimeDescending },
+            ct);
+    }
+
     public Task<string?> GetLastRelevantMessageForAgentAsync(Guid agentId, Guid? workspaceId = null, CancellationToken ct = default)
         => GetLastRelevantMessageAsync(new AgentLogFilter { AgentId = agentId, WorkspaceId = workspaceId }, ct);
 
@@ -287,6 +305,20 @@ internal sealed class AgentLogService : IAgentLogService
         query.Where(log =>
             log.Type != AgentLogType.AgentStartup &&
             !(log.Type == AgentLogType.System && log.Content == "Pod connected"));
+
+    private static string NormalizeResourceKind(string kind)
+    {
+        var value = kind.Trim().ToLowerInvariant();
+        return value switch
+        {
+            "agent" or "agents" => ResourceLogKinds.Agent,
+            "run" or "runs" => ResourceLogKinds.Run,
+            "channel" or "channels" => ResourceLogKinds.Channel,
+            "integration" or "integrations" or "integrationdeployment" or "integrationdeployments" or "integration-deployment" or "integration-deployments" => ResourceLogKinds.IntegrationDeployment,
+            "provider" or "providers" => ResourceLogKinds.Provider,
+            _ => kind.Trim(),
+        };
+    }
 
     private static IQueryable<AgentLogRecord> RelevantActivityLogs(IQueryable<AgentLogRecord> query) =>
         ExcludePodStartupLogs(query)

@@ -20,7 +20,8 @@ public sealed class ProviderDispatchServiceTests
                 new Dictionary<string, string> { ["apiKey"] = "sk-test" })),
             new LlmProviderDispatcher(
                 new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance));
+                NullLogger<LlmProviderDispatcher>.Instance),
+            new FakeAgentLogService());
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("openai", null, "gpt-4o-mini", document.RootElement);
@@ -43,7 +44,8 @@ public sealed class ProviderDispatchServiceTests
                 })),
             new LlmProviderDispatcher(
                 new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance));
+                NullLogger<LlmProviderDispatcher>.Instance),
+            new FakeAgentLogService());
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("custom", null, "llama3.1", document.RootElement);

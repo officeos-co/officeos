@@ -108,6 +108,7 @@ internal sealed class OpenCodeRunService : IControlPlaneRunService
         run.Status = "running";
         run.UpdatedAt = DateTime.UtcNow;
         await _agentRunRepository.UpdateAsync(run, ct);
+        await AppendRunSystemLogAsync(run, agent.Id, "Run started.", ct);
 
         var workspace = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeos-runs", run.Id.ToString("N"));
         Directory.CreateDirectory(workspace);
@@ -191,6 +192,26 @@ internal sealed class OpenCodeRunService : IControlPlaneRunService
         run.CompletedAt = DateTime.UtcNow;
         run.UpdatedAt = DateTime.UtcNow;
         await _agentRunRepository.UpdateAsync(run, ct);
+        await AppendRunSystemLogAsync(run, run.AgentId, error is null ? $"Run {status}." : $"Run {status}: {error}", ct);
+    }
+
+    private Task AppendRunSystemLogAsync(AgentRunRecord run, Guid agentId, string content, CancellationToken ct)
+    {
+        return _agentLogService.AppendAsync(new AgentLogRecord
+        {
+            AgentId = agentId,
+            WorkspaceId = run.WorkspaceId,
+            ResourceKind = ResourceLogKinds.Run,
+            ResourceId = run.Id,
+            ResourceName = run.Id.ToString("N"),
+            ParentResourceKind = ResourceLogKinds.Agent,
+            ParentResourceId = agentId,
+            Type = content.Contains("failed", StringComparison.OrdinalIgnoreCase) ? AgentLogType.Error : AgentLogType.System,
+            Content = content,
+            RunId = run.Id,
+            CorrelationId = run.Id.ToString("N"),
+            MetadataJson = JsonSerializer.Serialize(new { run.Status, run.Kind }),
+        }, ct);
     }
 
     private async Task<AgentRecord?> ResolveAgentAsync(string agentRef, Guid workspaceId, CancellationToken ct)

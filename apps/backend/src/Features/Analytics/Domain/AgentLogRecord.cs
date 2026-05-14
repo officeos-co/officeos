@@ -25,19 +25,22 @@ public enum AgentLogType
     ErrorConfiguration,
 }
 
-/// <summary>
-/// Unified append-only event log for an agent. Replaces the legacy
-/// AgentConversationRecord (chat messages) + AgentToolCallRecord (skill execution audit)
-/// with a single ordered timeline the dashboard renders verbatim.
-///
-/// Send-message flow: dashboard mutation appends a <see cref="AgentLogType.MessageIn"/>
-/// entry and kicks the agent pod. The agent appends <c>tool_call</c>, <c>tool_result</c>,
-/// and <see cref="AgentLogType.MessageOut"/> entries as it runs. Clients subscribe to
-/// <c>agentLogAppended</c> for live updates.
-/// </summary>
 public sealed class AgentLogRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
+
+    [MaxLength(64)]
+    public string ResourceKind { get; init; } = ResourceLogKinds.Agent;
+
+    public Guid? ResourceId { get; init; }
+
+    [MaxLength(200)]
+    public string? ResourceName { get; init; }
+
+    [MaxLength(64)]
+    public string? ParentResourceKind { get; init; }
+
+    public Guid? ParentResourceId { get; init; }
 
     public Guid? AgentId { get; init; }
     public Guid? WorkspaceId { get; init; }
@@ -46,6 +49,9 @@ public sealed class AgentLogRecord
     public DateTime Time { get; init; } = DateTime.UtcNow;
 
     public AgentLogType Type { get; init; }
+
+    [MaxLength(16)]
+    public string Severity { get; init; } = ResourceLogSeverityKinds.Info;
 
     /// <summary>Skill action name for tool_call/tool_result. Null otherwise.</summary>
     [MaxLength(64)]
@@ -71,6 +77,8 @@ public sealed class AgentLogRecord
     public string Content { get; init; } = string.Empty;
 
     public TokenUsage Usage { get; init; } = TokenUsage.Empty;
+
+    public string? MetadataJson { get; init; }
 
     /// <summary>
     /// Ties related entries together (e.g. a tool_call + its tool_result, or all entries
@@ -132,4 +140,21 @@ public sealed class AgentLogRecord
         AgentId = agentId, Type = AgentLogType.ChannelOut, Channel = channel,
         ChannelConnectionId = channelConnectionId, Content = content, CorrelationId = correlationId,
     };
+}
+
+public static class ResourceLogKinds
+{
+    public const string Agent = "Agent";
+    public const string Run = "Run";
+    public const string Channel = "Channel";
+    public const string IntegrationDeployment = "IntegrationDeployment";
+    public const string Provider = "Provider";
+}
+
+public static class ResourceLogSeverityKinds
+{
+    public const string Debug = "debug";
+    public const string Info = "info";
+    public const string Warning = "warning";
+    public const string Error = "error";
 }

@@ -100,7 +100,7 @@ public sealed record WorkspaceTestHarness(
             new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository, userRepository, new NoopPublisher()),
             new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
             new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
-            new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository, workspaceMemberRepository),
+            new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository, workspaceMemberRepository, new FakeAgentLogService()),
             integrationService,
             agentDashboard,
             agentRepository);

@@ -9,6 +9,7 @@ public interface IAgentLogService
     Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListForRunAsync(Guid runId, Guid workspaceId, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default);
+    Task<List<AgentLogRecord>> ListForResourceAsync(ResourceLogQueryRequest request, CancellationToken ct = default);
     Task<string?> GetLastRelevantMessageForAgentAsync(Guid agentId, Guid? workspaceId = null, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForAgentsAsync(IReadOnlyCollection<Guid> agentIds, Guid? workspaceId = null, CancellationToken ct = default);
     Task<string?> GetLastRelevantMessageForChannelConnectionAsync(Guid channelConnectionId, Guid? workspaceId = null, CancellationToken ct = default);
@@ -21,6 +22,16 @@ public interface IAgentLogService
     Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(Guid agentId, int limit, int offset, CancellationToken ct = default);
     Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default);
 }
+
+public sealed record ResourceLogQueryRequest(
+    string ResourceKind,
+    string ResourceName,
+    Guid WorkspaceId,
+    Guid? ResourceId = null,
+    int Tail = 100,
+    DateTime? SinceTime = null,
+    AgentLogType? Type = null,
+    string? Severity = null);
 
 public interface IUsageAnalyticsService
 {

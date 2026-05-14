@@ -8,10 +8,25 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
     public IQueryable<AgentLogRecord> Query(AgentLogFilter filter)
     {
-        var query = _eaosDbContext.AgentLogs.AsNoTracking().AsQueryable();
+        var query = _eaosDbContext.ResourceLogs.AsNoTracking().AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(l => l.Id == filter.Id.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.ResourceKind))
+            query = query.Where(l => l.ResourceKind == filter.ResourceKind.Trim());
+
+        if (filter.ResourceId.HasValue)
+            query = query.Where(l => l.ResourceId == filter.ResourceId.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.ResourceName))
+        {
+            var resourceName = filter.ResourceName.Trim().ToLower();
+            query = query.Where(l => l.ResourceName != null && l.ResourceName.ToLower() == resourceName);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Severity))
+            query = query.Where(l => l.Severity == filter.Severity.Trim().ToLowerInvariant());
 
         if (filter.AgentId.HasValue)
             query = query.Where(l => l.AgentId == filter.AgentId.Value);
@@ -87,7 +102,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
         if (options.AfterLogId.HasValue)
         {
-            var boundary = await _eaosDbContext.AgentLogs.AsNoTracking()
+            var boundary = await _eaosDbContext.ResourceLogs.AsNoTracking()
                 .Where(l => l.Id == options.AfterLogId.Value)
                 .Select(l => (DateTime?)l.Time)
                 .FirstOrDefaultAsync(ct);
@@ -116,7 +131,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         DateTime toExclusive,
         CancellationToken ct = default)
     {
-        var rows = await _eaosDbContext.AgentLogs
+        var rows = await _eaosDbContext.ResourceLogs
             .AsNoTracking()
             .Where(l =>
                 l.Agent != null &&
@@ -154,15 +169,15 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentLogs.Add(await ToAgentLogEntityAsync(record, ct));
+        _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(record, ct));
         await _eaosDbContext.SaveChangesAsync(ct);
         return record;
     }
 
     public async Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
     {
-        _eaosDbContext.AgentLogs.Add(await ToAgentLogEntityAsync(toolCall, ct));
-        _eaosDbContext.AgentLogs.Add(await ToAgentLogEntityAsync(toolResult, ct));
+        _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(toolCall, ct));
+        _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(toolResult, ct));
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
@@ -172,15 +187,20 @@ internal sealed class AgentLogRepository : IAgentLogRepository
     public async Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default)
     {
         if (agentIds.Count == 0) return;
-        await _eaosDbContext.AgentLogs
+        await _eaosDbContext.ResourceLogs
             .Where(l => l.AgentId.HasValue && agentIds.Contains(l.AgentId.Value))
             .ExecuteDeleteAsync(ct);
     }
 
-    private static IQueryable<AgentLogRecord> ProjectAgentLogRecords(IQueryable<AgentLogEntity> query) =>
+    private static IQueryable<AgentLogRecord> ProjectAgentLogRecords(IQueryable<ResourceLogEntity> query) =>
         query.Select(log => new AgentLogRecord
         {
             Id = log.Id,
+            ResourceKind = log.ResourceKind,
+            ResourceId = log.ResourceId,
+            ResourceName = log.ResourceName,
+            ParentResourceKind = log.ParentResourceKind,
+            ParentResourceId = log.ParentResourceId,
             AgentId = log.AgentId,
             Agent = log.Agent == null
                 ? null
@@ -194,50 +214,93 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             WorkspaceId = log.Agent.WorkspaceId,
         },
         WorkspaceId = log.WorkspaceId,
-        Time = log.Time,
+            Time = log.Time,
             Type = log.Type,
+            Severity = log.Severity,
             Tool = log.Tool,
             Integration = log.Integration,
             Channel = log.Channel,
             ChannelConnectionId = log.ChannelConnectionId,
             Content = log.Content,
+            MetadataJson = log.MetadataJson,
             Usage = new TokenUsage(log.InputTokens, log.OutputTokens, log.DurationMs),
             CorrelationId = log.CorrelationId,
             RunId = log.RunId,
             ParentRunId = log.ParentRunId,
         });
 
-    private async Task<AgentLogEntity> ToAgentLogEntityAsync(AgentLogRecord r, CancellationToken ct)
+    private async Task<ResourceLogEntity> ToAgentLogEntityAsync(AgentLogRecord r, CancellationToken ct)
     {
         var workspaceId = r.WorkspaceId;
+        var resourceKind = r.ResourceKind;
+        var resourceId = r.ResourceId;
+        var resourceName = r.ResourceName;
+        var parentResourceKind = r.ParentResourceKind;
+        var parentResourceId = r.ParentResourceId;
+
         if (workspaceId is null && r.AgentId.HasValue)
         {
-            workspaceId = await _eaosDbContext.Agents.AsNoTracking()
+            var agent = await _eaosDbContext.Agents.AsNoTracking()
                 .Where(a => a.Id == r.AgentId.Value)
-                .Select(a => a.WorkspaceId)
+                .Select(a => new { a.WorkspaceId, a.Name })
                 .FirstOrDefaultAsync(ct);
+            workspaceId = agent?.WorkspaceId;
+            if (resourceId is null && !r.RunId.HasValue)
+                resourceId = r.AgentId.Value;
+            resourceName ??= agent?.Name;
         }
 
         if (workspaceId is null && r.ChannelConnectionId.HasValue)
         {
-            workspaceId = await _eaosDbContext.ChannelConnections.AsNoTracking()
+            var channel = await _eaosDbContext.ChannelConnections.AsNoTracking()
                 .Where(c => c.Id == r.ChannelConnectionId.Value)
-                .Select(c => c.WorkspaceId)
+                .Select(c => new { c.WorkspaceId, c.DisplayName })
                 .FirstOrDefaultAsync(ct);
+            workspaceId = channel?.WorkspaceId;
+            resourceName ??= channel?.DisplayName;
         }
 
-        return new AgentLogEntity
+        if (r.RunId.HasValue)
+        {
+            resourceKind = ResourceLogKinds.Run;
+            resourceId = r.RunId.Value;
+            resourceName ??= r.RunId.Value.ToString("N");
+            if (r.AgentId.HasValue)
+            {
+                parentResourceKind ??= ResourceLogKinds.Agent;
+                parentResourceId ??= r.AgentId.Value;
+            }
+        }
+        else if (r.ChannelConnectionId.HasValue)
+        {
+            resourceKind = ResourceLogKinds.Channel;
+            resourceId = r.ChannelConnectionId.Value;
+        }
+        else if (r.AgentId.HasValue)
+        {
+            resourceKind = ResourceLogKinds.Agent;
+            resourceId ??= r.AgentId.Value;
+        }
+
+        return new ResourceLogEntity
         {
             Id = r.Id,
+            ResourceKind = resourceKind,
+            ResourceId = resourceId,
+            ResourceName = resourceName,
+            ParentResourceKind = parentResourceKind,
+            ParentResourceId = parentResourceId,
             AgentId = r.AgentId,
             WorkspaceId = workspaceId,
             Time = r.Time,
             Type = r.Type,
+            Severity = NormalizeSeverity(r),
             Tool = r.Tool,
             Integration = r.Integration,
             Channel = r.Channel,
             ChannelConnectionId = r.ChannelConnectionId,
             Content = r.Content,
+            MetadataJson = r.MetadataJson,
             DurationMs = r.Usage.DurationMs,
             InputTokens = r.Usage.InputTokens,
             OutputTokens = r.Usage.OutputTokens,
@@ -256,6 +319,19 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             return agentModel;
 
         return ProviderRegistry.DefaultModel;
+    }
+
+    private static string NormalizeSeverity(AgentLogRecord record)
+    {
+        if (!string.IsNullOrWhiteSpace(record.Severity) &&
+            !record.Severity.Equals(ResourceLogSeverityKinds.Info, StringComparison.OrdinalIgnoreCase))
+        {
+            return record.Severity.Trim().ToLowerInvariant();
+        }
+
+        return record.Type.ToString().StartsWith("Error", StringComparison.Ordinal) || record.Type == AgentLogType.Error
+            ? ResourceLogSeverityKinds.Error
+            : ResourceLogSeverityKinds.Info;
     }
 
     private sealed record UsageLogRow(

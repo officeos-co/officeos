@@ -24,7 +24,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentChannelBindingEntity> AgentChannelBindings => Set<AgentChannelBindingEntity>();
     public DbSet<SystemEventEntity> SystemEvents => Set<SystemEventEntity>();
     public DbSet<AgentRateLimitEntity> AgentRateLimits => Set<AgentRateLimitEntity>();
-    public DbSet<AgentLogEntity> AgentLogs => Set<AgentLogEntity>();
+    public DbSet<ResourceLogEntity> ResourceLogs => Set<ResourceLogEntity>();
     public DbSet<OrganizationEntity> Organizations => Set<OrganizationEntity>();
     public DbSet<OrgMemberEntity> OrgMembers => Set<OrgMemberEntity>();
     public DbSet<AccessGroupEntity> AccessGroups => Set<AccessGroupEntity>();
@@ -225,15 +225,23 @@ public sealed class EaosDbContext : DbContext
             e.Property(r => r.BucketKey).IsRequired().HasMaxLength(64);
         });
 
-        modelBuilder.Entity<AgentLogEntity>(e =>
+        modelBuilder.Entity<ResourceLogEntity>(e =>
         {
             e.HasKey(l => l.Id);
+            e.ToTable("ResourceLogs");
+            e.HasIndex(l => new { l.WorkspaceId, l.ResourceKind, l.ResourceId, l.Time });
+            e.HasIndex(l => new { l.WorkspaceId, l.ResourceKind, l.ResourceName, l.Time });
             e.HasIndex(l => l.AgentId);
             e.HasIndex(l => l.WorkspaceId);
             e.HasIndex(l => l.ChannelConnectionId);
             e.HasIndex(l => new { l.AgentId, l.Time });
             e.HasIndex(l => l.CorrelationId);
             e.Property(l => l.Content).HasColumnType("text");
+            e.Property(l => l.MetadataJson).HasColumnType("text");
+            e.Property(l => l.ResourceKind).IsRequired().HasMaxLength(64);
+            e.Property(l => l.ResourceName).HasMaxLength(200);
+            e.Property(l => l.ParentResourceKind).HasMaxLength(64);
+            e.Property(l => l.Severity).IsRequired().HasMaxLength(16);
             e.Property(l => l.Type).HasConversion<string>().HasMaxLength(32);
             e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).IsRequired(false).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(l => l.Workspace).WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
