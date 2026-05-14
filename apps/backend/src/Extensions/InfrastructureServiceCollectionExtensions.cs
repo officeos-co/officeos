@@ -32,8 +32,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrganizationAuditLogRepository, OrganizationAuditLogRepository>();
         services.AddScoped<IOrganizationPolicyProfileRepository, OrganizationPolicyProfileRepository>();
         services.AddScoped<IProviderResourceRepository, ProviderResourceRepository>();
-        services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
-        services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
         services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();
         services.AddScoped<IAgentPersonalityRepository, AgentPersonalityRepository>();
         services.AddScoped<IAgentRoutineRepository, AgentRoutineRepository>();
@@ -46,8 +44,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<ICloudProviderTokenService, CloudProviderTokenService>();
-        services.AddScoped<IStripeWebhookService, StripeWebhookService>();
-        services.AddScoped<IStripeMeteringService, StripeMeteringService>();
         services.AddScoped<IOpenCodeProcessService, OpenCodeProcessAdapter>();
         // Adapters - integrations
         services.AddSingleton<IIntegrationClientManager, IntegrationClientManager>();

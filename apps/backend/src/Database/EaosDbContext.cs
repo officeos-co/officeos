@@ -18,8 +18,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
     public DbSet<DeviceCodeEntity> DeviceCodes => Set<DeviceCodeEntity>();
     public DbSet<BrowserSessionEntity> BrowserSessions => Set<BrowserSessionEntity>();
-    public DbSet<UserSubscriptionEntity> UserSubscriptions { get; set; } = null!;
-    public DbSet<OrgSubscriptionEntity> OrgSubscriptions { get; set; } = null!;
     public DbSet<ChannelConnectionEntity> ChannelConnections => Set<ChannelConnectionEntity>();
     public DbSet<AgentChannelBindingEntity> AgentChannelBindings => Set<AgentChannelBindingEntity>();
     public DbSet<SystemEventEntity> SystemEvents => Set<SystemEventEntity>();
@@ -163,28 +161,6 @@ public sealed class EaosDbContext : DbContext
             e.HasKey(b => b.Id);
             e.HasIndex(b => b.AgentId).IsUnique();
             e.Property(b => b.CookiesJson).HasColumnType("text");
-        });
-
-        modelBuilder.Entity<UserSubscriptionEntity>(e =>
-        {
-            e.HasKey(u => u.Id);
-            e.HasIndex(u => u.UserId).IsUnique();
-            e.Property(u => u.Plan).IsRequired().HasMaxLength(32);
-            e.Property(u => u.BillingCycle).IsRequired().HasMaxLength(16);
-            e.Property(u => u.StripeCustomerId).HasMaxLength(256);
-            e.Property(u => u.StripeSubscriptionId).HasMaxLength(256);
-            e.Property(u => u.StripeOverageItemId).HasMaxLength(256);
-        });
-
-        modelBuilder.Entity<OrgSubscriptionEntity>(e =>
-        {
-            e.HasKey(o => o.Id);
-            e.HasIndex(o => o.OrganizationId).IsUnique();
-            e.Property(o => o.OrganizationId).IsRequired().HasMaxLength(256);
-            e.Property(o => o.Plan).IsRequired().HasMaxLength(32);
-            e.Property(o => o.StripeCustomerId).HasMaxLength(256);
-            e.Property(o => o.StripeSubscriptionId).HasMaxLength(256);
-            e.Property(o => o.StripeOverageItemId).HasMaxLength(256);
         });
 
         modelBuilder.Entity<ChannelConnectionEntity>(e =>

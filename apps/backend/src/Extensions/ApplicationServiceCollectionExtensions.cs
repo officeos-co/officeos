@@ -18,10 +18,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<GitHubIntegrationClient>();
-        services.AddScoped<IUserBillingService, UserBillingService>();
-        services.AddScoped<IOrgBillingService, OrgBillingService>();
-        services.AddScoped<ICreditRecordingService, CreditRecordingService>();
-        services.AddScoped<IBillingGuard, BillingGuard>();
         services.AddScoped<IGdprService, GdprService>();
         services.AddScoped<IOrganizationAuditLogService, OrganizationAuditLogService>();
         services.AddScoped<IAgentLogService, AgentLogService>();

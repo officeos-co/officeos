@@ -190,26 +190,12 @@ else
     builder.Services.AddScoped<IAgentRuntimeCleaner>(sp => sp.GetRequiredService<DockerAgentSandbox>());
 }
 
-
-// Billing
-var stripeConfig = RequireSection<StripeConfig>("Stripe");
-if (!isDevelopment)
-{
-    RequireNotEmpty(stripeConfig.SecretKey, "Stripe:SecretKey");
-    RequireNotEmpty(stripeConfig.WebhookSecret, "Stripe:WebhookSecret");
-}
-builder.Services.AddSingleton(stripeConfig);
-
 var frontendOrigins = RequireCsv("FrontendOrigins", "FRONTEND_ORIGINS", "FRONTEND_ORIGIN");
 var frontendOrigin = frontendOrigins[0];
 var frontendConfig = new FrontendConfig(frontendOrigin);
 builder.Services.AddSingleton(frontendConfig);
 
 builder.Services.AddScoped<IProviderService>(sp => sp.GetRequiredService<ProviderService>());
-builder.Services.AddSingleton(new BillingPolicyConfig
-{
-    EnforceUsageLimits = !isDevelopment,
-});
 
 // Session auth — configurable skip prefixes
 var sessionAuthConfig = RequireSection<SessionAuthConfig>("SessionAuth");
