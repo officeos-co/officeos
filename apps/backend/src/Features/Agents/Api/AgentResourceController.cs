@@ -48,13 +48,15 @@ public sealed class AgentResourceController : ControllerBase
         string name,
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentLifecycleService agents,
+        [FromServices] IAgentRepository agentRepository,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
         if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
-        return Guid.TryParse(name, out var agentId) &&
-            await agents.DeleteAsync(agentId, scope.Value.UserId, scope.Value.WorkspaceId, ct)
+        var agent = await FindAgentAsync(agentRepository, name, scope.Value.WorkspaceId, ct);
+        return agent is not null &&
+            await agents.DeleteAsync(agent.Id, scope.Value.UserId, scope.Value.WorkspaceId, ct)
             ? Ok(new { deleted = true })
             : NotFound(new { error = $"agents/{name} was not found." });
     }

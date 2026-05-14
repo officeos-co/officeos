@@ -281,38 +281,59 @@ function ResourceInspector({
   logs: string;
   selectedName: string;
 }) {
+  const [activeTab, setActiveTab] = useState<"logs" | "details">("logs");
   const health = resourceHealth(details);
   const healthState = resourceHealthState(details);
   return (
-    <aside className="grid min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] border-l border-border bg-panel">
-      <section className="min-h-0 border-b border-border">
-        <div className="flex h-10 items-center gap-2 border-b border-border px-3 text-sm font-medium">
-          <Settings2 className="size-4" />
-          Details
+    <aside className="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] border-l border-border bg-panel">
+      {health && healthState !== "green" ? (
+        <div className={`m-3 mb-0 rounded-md border p-3 text-sm ${healthState === "red" ? "border-red-200 bg-red-50 text-danger" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+          <div className="font-medium">{health.reason ?? health.status ?? "Needs attention"}</div>
+          <div className="mt-1 text-xs">{health.message ?? "Inspect the latest bootstrap run and logs."}</div>
+          {health.lastBootstrapRunId ? <div className="mt-2 font-mono text-xs">run/{health.lastBootstrapRunId}</div> : null}
         </div>
-        <div className="h-[calc(100%-2.5rem)] overflow-auto">
-          {health && healthState !== "green" ? (
-            <div className={`m-3 rounded-md border p-3 text-sm ${healthState === "red" ? "border-red-200 bg-red-50 text-danger" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
-              <div className="font-medium">{health.reason ?? health.status ?? "Needs attention"}</div>
-              <div className="mt-1 text-xs">{health.message ?? "Inspect the latest bootstrap run and logs."}</div>
-              {health.lastBootstrapRunId ? <div className="mt-2 font-mono text-xs">run/{health.lastBootstrapRunId}</div> : null}
-            </div>
-          ) : null}
+      ) : null}
+      <div className="flex h-11 items-end gap-1 border-b border-border px-3">
+        <InspectorTab active={activeTab === "logs"} icon={FileText} label="Logs" onClick={() => setActiveTab("logs")} />
+        <InspectorTab active={activeTab === "details"} icon={Settings2} label="Details" onClick={() => setActiveTab("details")} />
+      </div>
+      <section className="min-h-0 overflow-auto">
+        {activeTab === "details" ? (
           <pre className="p-3 text-xs leading-5">
             {selectedName ? detailState === "loading" ? "Loading" : JSON.stringify(details, null, 2) : ""}
           </pre>
-        </div>
-      </section>
-      <section className="min-h-0">
-        <div className="flex h-10 items-center gap-2 border-b border-border px-3 text-sm font-medium">
-          <FileText className="size-4" />
-          Logs
-        </div>
-        <pre className="h-[calc(100%-2.5rem)] overflow-auto whitespace-pre-wrap p-3 text-xs leading-5">
-          {selectedName ? detailState === "loading" ? "Loading" : logs || "No logs" : ""}
-        </pre>
+        ) : (
+          <pre className="min-h-full whitespace-pre-wrap p-3 text-xs leading-5">
+            {selectedName ? detailState === "loading" ? "Loading" : logs || "No logs" : ""}
+          </pre>
+        )}
       </section>
     </aside>
+  );
+}
+
+function InspectorTab({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`inline-flex h-9 items-center gap-2 rounded-t-md border border-b-0 px-3 text-sm ${
+        active ? "border-border bg-background text-foreground" : "border-transparent text-muted-foreground hover:bg-panel-strong hover:text-foreground"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon className="size-4" />
+      {label}
+    </button>
   );
 }
 

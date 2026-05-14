@@ -88,7 +88,7 @@ function help(): void {
   print("  apply -f <file>");
   print("  get <kind|kind/name> [-o json|yaml|name]");
   print("  describe <kind/name>");
-  print("  delete <kind> <name>");
+  print("  delete <kind> <name> | delete --all");
   print("  run <agent> --task <text> [--engine opencode] [--wait]");
   print("  logs <kind/name> [--tail <n>] [--since <duration>] [--type <type>] [--severity <level>]");
   print("  wait run/<id> --for complete --timeout <duration>");

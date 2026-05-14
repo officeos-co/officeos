@@ -22,6 +22,7 @@ const ResourceKinds = [
   { kind: "channels", aliases: "channel", description: "Channel connections" },
   { kind: "routines", aliases: "routine", description: "Agent routines" },
   { kind: "browsers", aliases: "browser", description: "Browser resources" },
+  { kind: "integrations", aliases: "integration", description: "Integration deployments" },
   {
     kind: "memory-stores",
     aliases: "memorystore, memorystores",
@@ -29,6 +30,16 @@ const ResourceKinds = [
   },
   { kind: "providers", aliases: "provider", description: "Configured provider resources" },
   { kind: "engines", aliases: "engine", description: "Execution engines" },
+] as const;
+
+const DeletableResourceKinds = [
+  "routines",
+  "channels",
+  "integrations",
+  "browsers",
+  "memory-stores",
+  "agents",
+  "providers",
 ] as const;
 
 interface LogsOptions {
@@ -69,6 +80,22 @@ export async function describeCommand(args: string[]): Promise<void> {
 
 export async function deleteCommand(args: string[]): Promise<void> {
   const context = await requireContext();
+  if (args[0] === "--all") {
+    let deleted = 0;
+    for (const kind of DeletableResourceKinds) {
+      const resources = await listResources(context.apiUrl, context.token, kind);
+      for (const resource of resources) {
+        const name = resourceDeleteIdentifier(kind, resource);
+        if (!name) continue;
+        await deleteResource(context.apiUrl, context.token, kind, name);
+        deleted += 1;
+        print(`${kind}/${resourceDisplayName(resource) || name} deleted`);
+      }
+    }
+    print(`${deleted} resources deleted`);
+    return;
+  }
+
   const kind = requireArg(args[0], "Usage: officeos delete <kind> <name>");
   const name = requireArg(args[1], "Usage: officeos delete <kind> <name>");
   await deleteResource(context.apiUrl, context.token, kind, name);
@@ -315,6 +342,22 @@ function resourceName(value: unknown): string {
   if (!value || typeof value !== "object") return String(value);
   const record = value as Record<string, unknown>;
   return `${String(record.kind ?? "").toLowerCase()}/${record.name ?? record.id ?? ""}`;
+}
+
+function resourceDeleteIdentifier(kind: typeof DeletableResourceKinds[number], value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  const name = kind === "integrations" || kind === "providers"
+    ? record.name ?? record.id
+    : record.id ?? record.name;
+  return typeof name === "string" || typeof name === "number" ? String(name) : "";
+}
+
+function resourceDisplayName(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  const name = record.name ?? record.displayName ?? record.id;
+  return typeof name === "string" || typeof name === "number" ? String(name) : "";
 }
 
 function readOption(args: string[], name: string): string | undefined {

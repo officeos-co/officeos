@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { getMe } from "../features/auth/api/auth-api";
 import {
+  deleteResource,
   getResourceLogs,
   listModels,
   listResources,
@@ -19,6 +20,7 @@ test("control-plane API calls backend v1 resource routes", async () => {
 
   await listModels("http://localhost:5000/", "token");
   await listResources("http://localhost:5000/", "token", "agents");
+  await deleteResource("http://localhost:5000/", "token", "agents", "alice");
   await getResourceLogs("http://localhost:5000/", "token", "agents", "alice", {
     tail: 50,
     since: "10m",
@@ -29,6 +31,7 @@ test("control-plane API calls backend v1 resource routes", async () => {
   expect(requests).toEqual([
     { url: "http://localhost:5000/api/v1/models", method: "GET" },
     { url: "http://localhost:5000/api/v1/resources/agents", method: "GET" },
+    { url: "http://localhost:5000/api/v1/resources/agents/alice", method: "DELETE" },
     {
       url: "http://localhost:5000/api/v1/resources/agents/alice/logs?tail=50&since=10m&type=message-out&severity=error",
       method: "GET",
