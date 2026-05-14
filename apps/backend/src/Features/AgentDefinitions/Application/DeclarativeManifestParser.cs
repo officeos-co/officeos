@@ -262,3 +262,11 @@ internal sealed record DeclarativeGitHubTriggerItem(
     string Repo,
     IReadOnlyList<string>? Events,
     string Secret);
+
+internal sealed record DeclarativeEngineSpecItem(
+    string Type,
+    string? Version,
+    string? Image,
+    string? ExecutionMode,
+    string? DefaultModel,
+    string? PermissionProfile);

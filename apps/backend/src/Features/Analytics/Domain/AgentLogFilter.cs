@@ -10,6 +10,7 @@ public sealed record AgentLogFilter
     public Guid? ChannelConnectionId { get; init; }
     public string? CorrelationId { get; init; }
     public IReadOnlyList<string>? CorrelationIds { get; init; }
+    public Guid? RunId { get; init; }
     public AgentLogType? Type { get; init; }
     public IReadOnlyList<AgentLogType>? Types { get; init; }
     public string? Search { get; init; }

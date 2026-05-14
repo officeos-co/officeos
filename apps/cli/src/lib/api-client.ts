@@ -36,6 +36,14 @@ export class ApiClient {
     return await readResponse<T>(response);
   }
 
+  async delete<T>(path: string): Promise<T> {
+    const response = await fetch(`${this.apiUrl}${path}`, {
+      method: "DELETE",
+      headers: this.headers(),
+    });
+    return await readResponse<T>(response);
+  }
+
   private headers(extra: Record<string, string> = {}): Record<string, string> {
     return {
       ...extra,

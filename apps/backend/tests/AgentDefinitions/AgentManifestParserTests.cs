@@ -12,7 +12,7 @@ public sealed class AgentManifestParserTests
 
         var manifest = parser.Parse(
             """
-            apiVersion: eaos.dev/v1
+            apiVersion: officeos.io/v1
             kind: Channel
             metadata:
               name: support-slack
@@ -20,7 +20,7 @@ public sealed class AgentManifestParserTests
               type: slack
               token: xoxb-test
             ---
-            apiVersion: eaos.dev/v1
+            apiVersion: officeos.io/v1
             kind: Agent
             metadata:
               name: support-agent
@@ -46,7 +46,7 @@ public sealed class AgentManifestParserTests
         var parser = new DeclarativeManifestParser();
         var manifest = parser.Parse(
             """
-            apiVersion: eaos.dev/v1
+            apiVersion: officeos.io/v1
             kind: MemoryStore
             metadata:
               name: product-docs

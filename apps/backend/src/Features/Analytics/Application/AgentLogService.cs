@@ -12,20 +12,17 @@ internal sealed class AgentLogService : IAgentLogService
     private readonly IAgentLogRepository _agentLogRepository;
     private readonly IAgentRepository _agentRepository;
     private readonly IPublisher _publisher;
-    private readonly ITopicEventSender _topicEventSender;
     private readonly ILogger<AgentLogService> _logger;
 
     public AgentLogService(
         IAgentLogRepository agentLogRepository,
         IAgentRepository agentRepository,
         IPublisher publisher,
-        ITopicEventSender topicEventSender,
         ILogger<AgentLogService> logger)
     {
         _agentLogRepository = agentLogRepository;
         _agentRepository = agentRepository;
         _publisher = publisher;
-        _topicEventSender = topicEventSender;
         _logger = logger;
     }
 
@@ -93,6 +90,12 @@ internal sealed class AgentLogService : IAgentLogService
             new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeDescending },
             ct);
 
+    public Task<List<AgentLogRecord>> ListForRunAsync(Guid runId, Guid workspaceId, int limit, CancellationToken ct = default)
+        => _agentLogRepository.ListAsync(
+            new AgentLogFilter { RunId = runId, WorkspaceId = workspaceId },
+            new AgentLogListOptions { Limit = limit, Sort = AgentLogSort.TimeAscending },
+            ct);
+
     public Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default)
         => _agentLogRepository.ListAsync(
             new AgentLogFilter { ChannelConnectionId = channelConnectionId, Before = before },
@@ -145,10 +148,6 @@ internal sealed class AgentLogService : IAgentLogService
     public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
     {
         var saved = await _agentLogRepository.AppendAsync(record, ct);
-        if (saved.AgentId is { } agentId)
-        {
-            await _topicEventSender.SendAsync(AgentLogTopics.AgentLogAppended(agentId), saved.ToProjection(), ct);
-        }
         return saved;
     }
 
@@ -160,14 +159,6 @@ internal sealed class AgentLogService : IAgentLogService
         var correlationId = Guid.NewGuid().ToString("N");
 
         var record = await AppendAsync(AgentLogRecord.MessageIn(agentId, content, correlationId));
-
-        if (string.IsNullOrEmpty(agent.PodName))
-        {
-            const string message = "Agent runtime is unavailable: no pod is assigned. The message was saved, but no agent turn could be started.";
-            _logger.LogWarning("Agent {AgentId} has no pod, message queued only", agentId);
-            await _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, message), ct);
-            return record;
-        }
 
         await _publisher.Publish(new MessageReceivedEvent(agentId, content, correlationId), ct);
 

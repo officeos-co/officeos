@@ -2,44 +2,17 @@ namespace OffceOs.EventHandlers.Features.Agents;
 
 internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedEvent>
 {
-    private readonly IAgentDeployer _agentDeployer;
-    private readonly IAgentRepository _agentRepository;
-    private readonly IPublisher _publisher;
     private readonly ILogger<DeployAgentPodHandler> _logger;
 
-    public DeployAgentPodHandler(
-        IAgentDeployer deployer,
-        IAgentRepository agentRepository,
-        IPublisher publisher,
-        ILogger<DeployAgentPodHandler> logger)
+    public DeployAgentPodHandler(ILogger<DeployAgentPodHandler> logger)
     {
-        _agentDeployer = deployer;
-        _agentRepository = agentRepository;
-        _publisher = publisher;
         _logger = logger;
     }
 
-    public async Task Handle(AgentCreatedEvent notification, CancellationToken ct)
+    public Task Handle(AgentCreatedEvent notification, CancellationToken ct)
     {
-        var record = await _agentRepository.GetByAsync(new AgentFilter { Id = notification.AgentId }, ct);
-        if (record is null) return;
-
-        try
-        {
-            var deployment = await _agentDeployer.DeployAsync(notification.AgentId, ct);
-            record.MarkDeployed(deployment.PodName, deployment.ServiceUrl);
-            await _agentRepository.UpdateAsync(record, ct);
-            _logger.LogInformation("Agent {AgentId} deployed as pod {PodName}", notification.AgentId, record.PodName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to deploy agent {AgentId}", notification.AgentId);
-            record.MarkFailed();
-            await _agentRepository.UpdateAsync(record, ct);
-            await _publisher.Publish(new AgentErrorOccurredEvent(
-                notification.AgentId,
-                Guid.NewGuid().ToString("N"),
-                $"Failed to deploy agent runtime: {ex.Message}"), ct);
-        }
+        _ = ct;
+        _logger.LogInformation("Agent {AgentId} registered for control-plane execution; no backend harness pod is deployed.", notification.AgentId);
+        return Task.CompletedTask;
     }
 }

@@ -1,0 +1,112 @@
+{
+  "name": "officeos-vscode",
+  "displayName": "OfficeOS",
+  "description": "Browse and inspect OfficeOS control-plane resources from VS Code.",
+  "version": "0.1.0",
+  "publisher": "officeos",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:officeos.resources",
+    "onCommand:officeos.refresh",
+    "onCommand:officeos.login",
+    "onCommand:officeos.currentContext",
+    "onCommand:officeos.useContext",
+    "onCommand:officeos.describeResource",
+    "onCommand:officeos.copyResourceName"
+  ],
+  "main": "./out/src/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test out/test/*.test.js"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "OfficeOS",
+      "properties": {
+        "officeos.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the officeos CLI. When empty, the extension uses officeos from PATH, then falls back to the repo Bun CLI in development."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "officeos.refresh",
+        "title": "OfficeOS: Refresh Explorer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "officeos.login",
+        "title": "OfficeOS: Login"
+      },
+      {
+        "command": "officeos.currentContext",
+        "title": "OfficeOS: Show Current Context"
+      },
+      {
+        "command": "officeos.useContext",
+        "title": "OfficeOS: Use Context"
+      },
+      {
+        "command": "officeos.describeResource",
+        "title": "OfficeOS: Describe Resource"
+      },
+      {
+        "command": "officeos.copyResourceName",
+        "title": "OfficeOS: Copy Resource Name"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "officeos.refresh",
+          "when": "view == officeos.resources",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "officeos.describeResource",
+          "when": "view == officeos.resources && viewItem == officeosResource",
+          "group": "inline"
+        },
+        {
+          "command": "officeos.copyResourceName",
+          "when": "view == officeos.resources && viewItem == officeosResource",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "officeos",
+          "title": "OfficeOS",
+          "icon": "resources/officeos.svg"
+        }
+      ]
+    },
+    "views": {
+      "officeos": [
+        {
+          "id": "officeos.resources",
+          "name": "Resources",
+          "when": "true"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.96.0",
+    "typescript": "^5.8.2"
+  }
+}

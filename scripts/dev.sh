@@ -4,13 +4,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${EAOS_LOG_DIR:-$ROOT_DIR/.runlogs}"
 BACKEND_PORT="${EAOS_BACKEND_PORT:-5000}"
+COMPOSE_FILE="$ROOT_DIR/docker-compose.infra.yml"
+START_INFRA="${EAOS_START_INFRA:-1}"
 
 usage() {
   cat <<EOF
 Usage: ./scripts/dev
 
-Starts the backend in the background.
+Starts local infrastructure and the backend in the background.
 Logs and PID files are written directly under .runlogs/.
+
+Set EAOS_START_INFRA=0 to skip Docker Compose infra startup.
 EOF
 }
 
@@ -91,6 +95,26 @@ free_port "$BACKEND_PORT"
 
 rm -f "$LOG_DIR"/backend.log \
   "$LOG_DIR"/backend.pid
+
+wait_for_postgres() {
+  echo "Waiting for Postgres..."
+  for _ in {1..60}; do
+    if docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U eaos -d eaos >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "Postgres did not become ready. Recent logs:" >&2
+  docker compose -f "$COMPOSE_FILE" logs --tail=80 postgres >&2 || true
+  exit 1
+}
+
+if [[ "$START_INFRA" != "0" ]]; then
+  echo "Starting local infrastructure..."
+  docker compose -f "$COMPOSE_FILE" up -d postgres redis minio
+  wait_for_postgres
+fi
 
 (
   cd "$ROOT_DIR/apps/backend"

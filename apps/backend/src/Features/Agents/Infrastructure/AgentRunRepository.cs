@@ -24,6 +24,9 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         if (filter.AgentId.HasValue)
             query = query.Where(r => r.AgentId == filter.AgentId.Value);
 
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(r => r.WorkspaceId == filter.WorkspaceId.Value);
+
         if (filter.ParentRunId.HasValue)
             query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
 
@@ -46,6 +49,9 @@ internal sealed class AgentRunRepository : IAgentRunRepository
 
         if (filter.AgentId.HasValue)
             query = query.Where(r => r.AgentId == filter.AgentId.Value);
+
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(r => r.WorkspaceId == filter.WorkspaceId.Value);
 
         if (filter.ParentRunId.HasValue)
             query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);

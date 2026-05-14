@@ -1,7 +1,22 @@
 #!/usr/bin/env bun
 
 import { loginCommand, whoamiCommand } from "../features/auth";
-import { applyCommand, diffCommand, exportCommand, validateCommand } from "../features/manifests";
+import {
+  configCommand,
+  deleteCommand,
+  describeCommand,
+  getCommand,
+  logsCommand,
+  modelsCommand,
+  providersCommand,
+  runCommand,
+  waitCommand,
+} from "../features/control-plane";
+import {
+  applyCommand,
+  diffCommand,
+  validateCommand,
+} from "../features/manifests";
 import { print } from "../shell/output";
 
 const [command, ...args] = process.argv.slice(2);
@@ -23,8 +38,32 @@ try {
     case "apply":
       await applyCommand(args);
       break;
-    case "export":
-      await exportCommand(args);
+    case "get":
+      await getCommand(args);
+      break;
+    case "describe":
+      await describeCommand(args);
+      break;
+    case "delete":
+      await deleteCommand(args);
+      break;
+    case "run":
+      await runCommand(args);
+      break;
+    case "logs":
+      await logsCommand(args);
+      break;
+    case "wait":
+      await waitCommand(args);
+      break;
+    case "models":
+      await modelsCommand(args);
+      break;
+    case "providers":
+      await providersCommand(args);
+      break;
+    case "config":
+      await configCommand(args);
       break;
     case "help":
     case undefined:
@@ -39,7 +78,7 @@ try {
 }
 
 function help(): void {
-  print("Usage: eaos <command>");
+  print("Usage: officeos <command>");
   print("");
   print("Commands:");
   print("  login [--api-url <url>] [--context <name>]");
@@ -47,5 +86,13 @@ function help(): void {
   print("  validate -f <file>");
   print("  diff -f <file>");
   print("  apply -f <file>");
-  print("  export [agent <name>]");
+  print("  get <kind|kind/name> [-o json|yaml|name]");
+  print("  describe <kind/name>");
+  print("  delete <kind> <name>");
+  print("  run <agent> --task <text> [--engine opencode] [--wait]");
+  print("  logs run/<id>");
+  print("  wait run/<id> --for complete --timeout <duration>");
+  print("  models [-o json|yaml|name]");
+  print("  providers [-o json|yaml|name]");
+  print("  config get-contexts|current-context|use-context|set-context");
 }

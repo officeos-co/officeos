@@ -7,6 +7,7 @@ public interface IAgentLogService
     IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters, Guid? workspaceId = null);
     IQueryable<AuditEntry> AuditLog(Guid agentId, Guid? workspaceId = null);
     Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default);
+    Task<List<AgentLogRecord>> ListForRunAsync(Guid runId, Guid workspaceId, int limit, CancellationToken ct = default);
     Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default);
     Task<string?> GetLastRelevantMessageForAgentAsync(Guid agentId, Guid? workspaceId = null, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForAgentsAsync(IReadOnlyCollection<Guid> agentIds, Guid? workspaceId = null, CancellationToken ct = default);

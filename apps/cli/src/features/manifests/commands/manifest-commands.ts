@@ -4,8 +4,6 @@ import { print, printChanges } from "../../../shell/output";
 import {
   applyManifest,
   diffManifest,
-  exportAgent,
-  exportWorkspace,
   validateManifest,
 } from "../api/manifests-api";
 
@@ -37,20 +35,6 @@ export async function applyCommand(args: string[]): Promise<void> {
   const manifest = await readManifestFile(requireFile(args));
   const result = await applyManifest(context.apiUrl, context.token, manifest);
   printChanges(result.changes);
-}
-
-export async function exportCommand(args: string[]): Promise<void> {
-  const context = await requireContext();
-  if (args.length === 0) {
-    print(await exportWorkspace(context.apiUrl, context.token));
-    return;
-  }
-
-  if (args[0] !== "agent" || !args[1]) {
-    throw new Error("Usage: eaos export [agent <name>]");
-  }
-
-  print(await exportAgent(context.apiUrl, context.token, args[1]));
 }
 
 function requireFile(args: string[]): string {

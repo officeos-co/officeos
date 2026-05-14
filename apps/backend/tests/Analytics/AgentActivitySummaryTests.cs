@@ -140,7 +140,6 @@ public sealed class AgentActivitySummaryTests
             new AgentLogRepository(db),
             new AgentRepository(db),
             new NoopPublisher(),
-            null!,
             NullLogger<AgentLogService>.Instance);
 
     private static async Task AddAgentAsync(EaosDbContext db, Guid agentId, Guid workspaceId)

@@ -25,10 +25,6 @@ public sealed class UserContext
     {
         var http = _httpContextAccessor.HttpContext;
         return http?.Items["User"] as UserRecord
-            ?? throw new GraphQLException(
-                ErrorBuilder.New()
-                    .SetMessage("Unauthenticated. Sign in to access the dashboard.")
-                    .SetCode("UNAUTHENTICATED")
-                    .Build());
+            ?? throw new InvalidOperationException("Unauthenticated.");
     }
 }

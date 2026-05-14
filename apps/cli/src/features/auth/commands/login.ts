@@ -24,7 +24,7 @@ async function waitForToken(apiUrl: string, deviceCode: string, intervalSeconds:
     await sleep(intervalSeconds * 1000);
     const result = await pollDeviceToken(apiUrl, deviceCode);
     if (result.status === "authorized" && result.accessToken) return result.accessToken;
-    if (result.status === "expired") throw new Error("Device login expired. Run `eaos login` again.");
+    if (result.status === "expired") throw new Error("Device login expired. Run `officeos login` again.");
     intervalSeconds = result.intervalSeconds;
   }
 }

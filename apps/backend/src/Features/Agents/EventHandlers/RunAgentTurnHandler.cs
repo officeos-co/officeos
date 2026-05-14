@@ -2,27 +2,39 @@ namespace OffceOs.EventHandlers.Features.Agents;
 
 internal sealed class RunAgentTurnHandler : INotificationHandler<MessageReceivedEvent>
 {
-    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentRunRepository _agentRunRepository;
     private readonly ILogger<RunAgentTurnHandler> _logger;
 
-    public RunAgentTurnHandler(IServiceScopeFactory scopeFactory, ILogger<RunAgentTurnHandler> logger)
+    public RunAgentTurnHandler(
+        IAgentRepository agentRepository,
+        IAgentRunRepository agentRunRepository,
+        ILogger<RunAgentTurnHandler> logger)
     {
-        _serviceScopeFactory = scopeFactory;
+        _agentRepository = agentRepository;
+        _agentRunRepository = agentRunRepository;
         _logger = logger;
     }
 
-    public Task Handle(MessageReceivedEvent notification, CancellationToken ct)
+    public async Task Handle(MessageReceivedEvent notification, CancellationToken ct)
     {
-        BackgroundWork.Run<AgentTurnService>(
-            _serviceScopeFactory,
-            async svc =>
-            {
-                await svc.RunTurnAsync(
-                    notification.AgentId, notification.Content,
-                    notification.CorrelationId, CancellationToken.None);
-            },
-            _logger);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = notification.AgentId }, ct);
+        if (agent is null)
+        {
+            _logger.LogWarning("Ignoring message for missing agent {AgentId}", notification.AgentId);
+            return;
+        }
 
-        return Task.CompletedTask;
+        await _agentRunRepository.CreateAsync(new AgentRunRecord
+        {
+            AgentId = notification.AgentId,
+            WorkspaceId = agent.WorkspaceId,
+            ParentCorrelationId = notification.CorrelationId,
+            Kind = "opencode",
+            Status = "queued",
+            Name = agent.Name,
+            Description = "opencode",
+            Prompt = notification.Content,
+        }, ct);
     }
 }

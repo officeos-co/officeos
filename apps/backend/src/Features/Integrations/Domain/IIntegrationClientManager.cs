@@ -2,7 +2,7 @@ namespace OffceOs.Domain.Features.Integrations;
 
 /// <summary>
 /// Manages connections to integrations. Returns raw integration tool metadata.
-/// The Application layer wraps these as IAgentTool instances.
+/// The Application layer wraps these as runtime integration clients.
 /// </summary>
 public interface IIntegrationClientManager
 {
@@ -27,7 +27,7 @@ public sealed class IntegrationConnectionResult : IAsyncDisposable
 
 /// <summary>
 /// A tool discovered from an integration. Holds an opaque reference
-/// so the Application layer can create an IAgentTool wrapper.
+/// for engine adapters or integration clients that need native execution.
 /// </summary>
 public sealed class IntegrationDiscoveredTool
 {

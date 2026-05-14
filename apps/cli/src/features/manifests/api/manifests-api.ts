@@ -30,7 +30,7 @@ export async function validateManifest(
   manifest: string,
 ): Promise<ValidateResponse> {
   return await new ApiClient({ apiUrl, token }).post<ValidateResponse>(
-    "/api/declarative/validate",
+    "/api/control-plane/v1/manifests/validate",
     { manifest },
   );
 }
@@ -41,7 +41,7 @@ export async function diffManifest(
   manifest: string,
 ): Promise<DiffResponse> {
   return await new ApiClient({ apiUrl, token }).post<DiffResponse>(
-    "/api/declarative/diff",
+    "/api/control-plane/v1/manifests/diff",
     { manifest },
   );
 }
@@ -52,24 +52,7 @@ export async function applyManifest(
   manifest: string,
 ): Promise<DiffResponse> {
   return await new ApiClient({ apiUrl, token }).post<DiffResponse>(
-    "/api/declarative/apply",
+    "/api/control-plane/v1/manifests/apply",
     { manifest },
   );
-}
-
-export async function exportAgent(
-  apiUrl: string,
-  token: string,
-  name: string,
-): Promise<string> {
-  return await new ApiClient({ apiUrl, token }).getText(
-    `/api/declarative/agents/${encodeURIComponent(name)}/export`,
-  );
-}
-
-export async function exportWorkspace(
-  apiUrl: string,
-  token: string,
-): Promise<string> {
-  return await new ApiClient({ apiUrl, token }).getText("/api/declarative/export");
 }

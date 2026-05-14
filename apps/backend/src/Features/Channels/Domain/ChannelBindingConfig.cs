@@ -2,7 +2,7 @@ namespace OffceOs.Domain.Features.Channels;
 
 /// <summary>
 /// Typed shape for <see cref="AgentChannelBindingRecord.Config"/>. Stored as JSON in that
-/// column so existing rows do not migrate. Used by GraphQL inputs / outputs so the dashboard
+/// column so existing rows do not migrate. Used by API inputs and outputs so clients
 /// and backend agree on the shape without duplication.
 /// </summary>
 public sealed class ChannelBindingConfig

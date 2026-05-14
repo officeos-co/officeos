@@ -39,6 +39,9 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 ? query.Where(_ => false)
                 : query.Where(l => l.CorrelationId != null && filter.CorrelationIds.Contains(l.CorrelationId));
 
+        if (filter.RunId.HasValue)
+            query = query.Where(l => l.RunId == filter.RunId.Value);
+
         if (filter.Type.HasValue)
             query = query.Where(l => l.Type == filter.Type.Value);
 

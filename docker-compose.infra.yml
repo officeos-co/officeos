@@ -11,11 +11,21 @@ services:
       POSTGRES_PASSWORD: eaos
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eaos -d eaos"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   minio:
     image: minio/minio:latest
@@ -28,6 +38,11 @@ services:
       MINIO_ROOT_PASSWORD: ${WORKSPACESTORAGE__SECRETKEY:-change-me}
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   channels:
     build:

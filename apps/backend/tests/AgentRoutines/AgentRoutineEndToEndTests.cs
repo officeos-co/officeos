@@ -240,6 +240,9 @@ public sealed class AgentRoutineEndToEndTests
         public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default) =>
             Task.FromResult(new List<AgentLogRecord>());
 
+        public Task<List<AgentLogRecord>> ListForRunAsync(Guid runId, Guid workspaceId, int limit, CancellationToken ct = default) =>
+            Task.FromResult(new List<AgentLogRecord>());
+
         public Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default) =>
             Task.FromResult(new List<AgentLogRecord>());
 

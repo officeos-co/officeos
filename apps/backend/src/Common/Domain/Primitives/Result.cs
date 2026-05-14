@@ -3,7 +3,7 @@ namespace OffceOs.Domain.Common.Primitives;
 /// <summary>
 /// Discriminated result type that forces callers to handle success and failure.
 /// Used at infrastructure boundaries to replace exceptions with values.
-/// Named AgentResult to avoid conflict with GreenDonut.Result from HotChocolate.
+/// Named AgentResult to avoid conflict with other Result types.
 /// </summary>
 public readonly struct AgentResult<T>
 {

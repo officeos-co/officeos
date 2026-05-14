@@ -24,13 +24,13 @@ export interface MeResponse {
 }
 
 export async function createDeviceCode(apiUrl: string, runnerName?: string): Promise<DeviceCodeResponse> {
-  return await new ApiClient({ apiUrl }).post<DeviceCodeResponse>("/api/cli/device/code", { runnerName });
+  return await new ApiClient({ apiUrl }).post<DeviceCodeResponse>("/api/control-plane/v1/auth/device/code", { runnerName });
 }
 
 export async function pollDeviceToken(apiUrl: string, deviceCode: string): Promise<DeviceTokenResponse> {
-  return await new ApiClient({ apiUrl }).post<DeviceTokenResponse>("/api/cli/device/token", { deviceCode });
+  return await new ApiClient({ apiUrl }).post<DeviceTokenResponse>("/api/control-plane/v1/auth/device/token", { deviceCode });
 }
 
 export async function getMe(apiUrl: string, token: string): Promise<MeResponse> {
-  return await new ApiClient({ apiUrl, token }).get<MeResponse>("/api/cli/me");
+  return await new ApiClient({ apiUrl, token }).get<MeResponse>("/api/control-plane/v1/me");
 }

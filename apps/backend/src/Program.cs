@@ -17,7 +17,7 @@ string? FindRootEnvFile()
 static bool IsDevelopmentEnvironmentName(string? environmentName) =>
     string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase);
 
-const string FrontendCorsPolicy = "dashboard";
+const string FrontendCorsPolicy = "control-plane";
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -108,13 +108,12 @@ void RequireNotEmpty(string value, string name)
 // ── Core services ────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var redis = Require("Redis", "REDIS");
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = redis;
-    options.InstanceName = "eaos:";
+    options.InstanceName = "officeos:";
 });
 
 // Data Protection
@@ -262,27 +261,8 @@ builder.Services.AddSingleton(browserRuntimeConfig);
 var postHogConfig = RequireSection<PostHogConfig>("PostHog");
 builder.Services.AddSingleton(postHogConfig);
 
-// GraphQL — dashboard operator API
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UserContext>();
-
-var dashboardGql = builder.Services
-    .AddGraphQLServer("dashboard")
-    .AddQueryType<GraphQLQueries>()
-    .AddMutationType<GraphQLMutations>()
-    .AddSubscriptionType<GraphQLSubscriptions>()
-    .AddTypes()
-    .AddInMemorySubscriptions()
-    .ModifyPagingOptions(options =>
-    {
-        options.DefaultPageSize = 50;
-        options.MaxPageSize = 500;
-        options.IncludeTotalCount = true;
-        options.IncludeNodesField = true;
-    });
-dashboardGql
-    .UseField<DashboardAuthMiddleware>()
-    .DisableIntrospection(false);
 
 // CORS
 builder.Services.AddCors(options =>
@@ -303,12 +283,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EaosDbContext>();
     await db.Database.MigrateAsync();
-}
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -345,8 +319,6 @@ app.MapGet("/api/channels/active", ChannelActiveEndpoint.Handle);
 app.MapPost("/api/agent-routines/triggers/{triggerId:guid}/invoke", RoutineApiEndpoint.Handle);
 app.MapPost("/api/agent-routines/github/webhook", RoutineGitHubWebhookEndpoint.Handle);
 
-app.MapGraphQL("/api/dashboard/graphql", schemaName: "dashboard")
-    .RequireCors(FrontendCorsPolicy);
 app.MapControllers();
 app.Run();
 

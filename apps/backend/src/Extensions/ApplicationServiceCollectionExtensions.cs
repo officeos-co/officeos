@@ -6,7 +6,6 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddScoped<IAgentService, AgentService>();
         services.AddScoped<IAgentDashboardService, AgentDashboardService>();
-        services.AddScoped<IQuickstartAgentService, QuickstartAgentService>();
         services.AddScoped<IAgentRoutineService, AgentRoutineService>();
         services.AddScoped<AgentRoutineExecutionService>();
         services.AddScoped<IAgentRoutineExecutionService>(provider => provider.GetRequiredService<AgentRoutineExecutionService>());
@@ -17,7 +16,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IProviderSetupService, ProviderSetupService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
-        services.AddScoped<IIntegrationRuntimeService, IntegrationRuntimeService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<GitHubIntegrationClient>();
@@ -28,30 +26,15 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IGdprService, GdprService>();
         services.AddScoped<IOrganizationAuditLogService, OrganizationAuditLogService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
+        services.AddScoped<IControlPlaneRunService, OpenCodeRunService>();
         services.AddScoped<AgentDefinitionParser>();
         services.AddScoped<DeclarativeManifestParser>();
         services.AddScoped<IDeclarativeAgentService, DeclarativeAgentService>();
-        services.AddScoped<QuickstartBlueprintParser>();
         services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
         services.AddScoped<IAgentUsageService, AgentUsageService>();
         services.AddScoped<IAgentUsageAnalyticsService, AgentUsageAnalyticsService>();
         services.AddScoped<IChannelService, ChannelService>();
-        services.AddScoped<ICliCodeService, CliCodeService>();
         services.AddScoped<IBrowserService, BrowserService>();
-        services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();
-        services.AddScoped<IBrowserToolService, BrowserToolService>();
-        services.AddSingleton<AgentTaskStore>();
-        services.AddScoped<ToolRegistryFactory>();
-        services.AddScoped<IAgentToolCatalogService, AgentToolCatalogService>();
-        services.AddScoped<ConversationCompactionService>();
-        services.AddScoped<AgentRunLifecycle>();
-        services.AddScoped<TurnEventPublisher>();
-        services.AddScoped<TurnContextBuilder>();
-        services.AddScoped<BillingCheckpoint>();
-        services.AddScoped<LlmRequestBuilder>();
-        services.AddScoped<SseResponseParser>();
-        services.AddScoped<LlmTurnExecutor>();
-        services.AddScoped<ToolExecutionLoop>();
         services.AddScoped<AgentChannelBinder>();
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<IAuthService, AuthService>();
@@ -61,7 +44,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOrganizationPolicyService, OrganizationPolicyService>();
         services.AddScoped<IOrganizationProviderProfileService, OrganizationProviderProfileService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
-        services.AddScoped<AgentTurnService>();
 
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();

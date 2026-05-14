@@ -48,6 +48,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICloudProviderTokenService, CloudProviderTokenService>();
         services.AddScoped<IStripeWebhookService, StripeWebhookService>();
         services.AddScoped<IStripeMeteringService, StripeMeteringService>();
+        services.AddScoped<IOpenCodeProcessService, OpenCodeProcessAdapter>();
         // Adapters - integrations
         services.AddSingleton<IIntegrationClientManager, IntegrationClientManager>();
 

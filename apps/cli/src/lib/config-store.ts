@@ -13,11 +13,18 @@ export interface EaosConfig {
   contexts: Record<string, EaosContext>;
 }
 
-const configPath = join(homedir(), ".eaos", "config.yaml");
+const configPath = join(homedir(), ".officeos", "config.yaml");
+const legacyConfigPath = join(homedir(), ".eaos", "config.yaml");
 
 export async function readConfig(): Promise<EaosConfig | null> {
   try {
-    const raw = await readFile(configPath, "utf8");
+    let raw: string;
+    try {
+      raw = await readFile(configPath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      raw = await readFile(legacyConfigPath, "utf8");
+    }
     return parseConfig(raw);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -36,6 +43,17 @@ export async function writeContext(name: string, apiUrl: string, token: string):
   };
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, serializeConfig(next), { mode: 0o600 });
+}
+
+export async function useContext(name: string): Promise<void> {
+  const existing = await readConfig();
+  if (!existing?.contexts[name]) throw new Error(`Context '${name}' was not found.`);
+  await mkdir(dirname(configPath), { recursive: true });
+  await writeFile(configPath, serializeConfig({ ...existing, currentContext: name }), { mode: 0o600 });
+}
+
+export async function setContext(name: string, apiUrl: string, token: string): Promise<void> {
+  await writeContext(name, apiUrl, token);
 }
 
 function parseConfig(raw: string): EaosConfig {
@@ -75,7 +93,7 @@ export async function requireContext(): Promise<EaosContext> {
   const config = await readConfig();
   const context = config?.contexts[config.currentContext];
   if (!context) {
-    throw new Error("Not logged in. Run `eaos login` first.");
+    throw new Error("Not logged in. Run `officeos login` first.");
   }
   return context;
 }
