@@ -4,7 +4,6 @@ global using System.Diagnostics;
 global using System.Net.Http.Headers;
 global using System.Net.Http.Json;
 global using System.Net.Http;
-global using System.Net.WebSockets;
 global using System.Net;
 global using System.Reflection;
 global using System.Runtime.CompilerServices;

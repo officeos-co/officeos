@@ -6,7 +6,7 @@ using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Xunit;
 
@@ -34,7 +34,8 @@ public sealed class ChannelEndpointContractTests
         await repository.CreateConnectionAsync(telegramSupport);
         await repository.CreateConnectionAsync(disabledSlack);
 
-        var result = await ChannelActiveEndpoint.Handle(repository, protector, CancellationToken.None);
+        var controller = new ChannelSidecarController();
+        var result = await controller.Active(repository, protector, CancellationToken.None);
 
         var payloadJson = JsonSerializer.Serialize(GetResultValue(result));
         using var document = JsonDocument.Parse(payloadJson);
@@ -50,7 +51,7 @@ public sealed class ChannelEndpointContractTests
     {
         var connectionId = Guid.NewGuid();
         var service = new RecordingInboundChannelService([Guid.NewGuid(), Guid.NewGuid()]);
-        var request = new ChannelInboundEndpoint.ChannelInboundInput(
+        var request = new ChannelInboundInput(
             ConnectionId: connectionId,
             SenderIdentifier: "sender",
             MessageText: "hello",
@@ -58,15 +59,16 @@ public sealed class ChannelEndpointContractTests
             MessageId: "message",
             ChannelId: "chat");
 
-        var result = await ChannelInboundEndpoint.Handle(request, service, CancellationToken.None);
+        var controller = new ChannelSidecarController();
+        var result = await controller.Inbound(request, service, CancellationToken.None);
 
         Assert.Equal(connectionId, service.ConnectionId);
         Assert.Equal("hello", service.MessageText);
         Assert.Contains(service.AgentIds[0].ToString(), JsonSerializer.Serialize(GetResultValue(result)));
     }
 
-    private static object? GetResultValue(IResult result) =>
-        result.GetType().GetProperty("Value")?.GetValue(result);
+    private static object? GetResultValue(IActionResult result) =>
+        (result as ObjectResult)?.Value;
 
     private sealed class RecordingInboundChannelService : IChannelService
     {
