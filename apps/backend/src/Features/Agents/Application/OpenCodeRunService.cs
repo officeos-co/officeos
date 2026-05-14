@@ -3,6 +3,7 @@ namespace OffceOs.Application.Features.Agents;
 internal sealed class OpenCodeRunService : IAgentRunExecutionService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const string DefaultOpenCodeModel = "openai/gpt-5.2";
 
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentRunRepository _agentRunRepository;
@@ -122,20 +123,38 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
         try
         {
             var model = ResolveModel(agent);
+            var reportedError = false;
+            var reportedErrorLines = new List<string>();
             var result = await _openCodeProcessService.RunAsync(
                 new ProcessRunRequest(
                     "opencode",
-                    ["run", "--format", "json", "--print-logs", "--log-level", "DEBUG", "--model", model, "--agent", agent.Name, run.Prompt],
+                    ["run", "--format", "json", "--print-logs", "--log-level", "WARN", "--model", model, run.Prompt],
                     workspace,
                     new Dictionary<string, string>()),
-                (line, token) => AppendOpenCodeEventAsync(run, agent, line, "stdout", token),
-                (line, token) => AppendOpenCodeEventAsync(run, agent, line, "stderr", token),
+                async (line, token) =>
+                {
+                    var entry = await AppendOpenCodeEventAsync(run, agent, line, "stdout", token);
+                    if (entry?.Severity == ResourceLogSeverityKinds.Error)
+                    {
+                        reportedError = true;
+                        reportedErrorLines.Add(entry.Content);
+                    }
+                },
+                async (line, token) =>
+                {
+                    var entry = await AppendOpenCodeEventAsync(run, agent, line, "stderr", token);
+                    if (entry?.Severity == ResourceLogSeverityKinds.Error)
+                    {
+                        reportedError = true;
+                        reportedErrorLines.Add(entry.Content);
+                    }
+                },
                 ct);
 
-            if (result.ExitCode == 0)
+            if (result.ExitCode == 0 && !reportedError)
                 await CompleteAsync(run, "completed", run.Result, null, ct);
             else
-                await CompleteAsync(run, "failed", null, string.IsNullOrWhiteSpace(result.StandardError) ? $"OpenCode exited with {result.ExitCode}." : result.StandardError, ct);
+                await CompleteAsync(run, "failed", null, OpenCodeFailureMessage(result, reportedErrorLines), ct);
         }
         catch (Exception ex)
         {
@@ -144,10 +163,10 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
         }
     }
 
-    private async Task AppendOpenCodeEventAsync(AgentRunRecord run, AgentRecord agent, string line, string source, CancellationToken ct)
+    private async Task<OpenCodeLogEntry?> AppendOpenCodeEventAsync(AgentRunRecord run, AgentRecord agent, string line, string source, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(line))
-            return;
+            return null;
 
         var entry = ParseOpenCodeLine(line, source);
         if (entry.Type == AgentLogType.MessageOut)
@@ -170,6 +189,7 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             CorrelationId = run.Id.ToString("N"),
             MetadataJson = JsonSerializer.Serialize(entry.Metadata, JsonOptions),
         }, ct);
+        return entry;
     }
 
     private static OpenCodeLogEntry ParseOpenCodeLine(string line, string source)
@@ -216,7 +236,7 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
 
     private static OpenCodeLogEntry ParseOpenCodeDiagnosticLine(string line)
     {
-        var severity = line.StartsWith("ERROR ", StringComparison.Ordinal)
+        var severity = line.StartsWith("ERROR ", StringComparison.Ordinal) || LooksLikeOpenCodeException(line)
             ? ResourceLogSeverityKinds.Error
             : line.StartsWith("WARN ", StringComparison.Ordinal)
                 ? ResourceLogSeverityKinds.Warning
@@ -230,6 +250,23 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             severity,
             null,
             new Dictionary<string, object?> { ["source"] = "stderr" });
+    }
+
+    private static bool LooksLikeOpenCodeException(string line)
+    {
+        return line.Contains("ProviderModelNotFoundError", StringComparison.Ordinal)
+            || line.Contains("Error:", StringComparison.Ordinal)
+            || line.Contains("Exception:", StringComparison.Ordinal);
+    }
+
+    private static string OpenCodeFailureMessage(ProcessRunResult result, IReadOnlyList<string> reportedErrorLines)
+    {
+        if (reportedErrorLines.Count > 0)
+            return reportedErrorLines.Last();
+
+        return string.IsNullOrWhiteSpace(result.StandardError)
+            ? $"OpenCode exited with {result.ExitCode}."
+            : result.StandardError;
     }
 
     private static OpenCodeLogEntry ParseOpenCodePart(JsonElement part, string? eventType, string source)
@@ -416,7 +453,17 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
     }
 
     private static string ResolveModel(AgentRecord agent)
-        => string.IsNullOrWhiteSpace(agent.Model) || agent.Model.Equals(ProviderRegistry.DefaultModel, StringComparison.OrdinalIgnoreCase)
-            ? $"{agent.Provider}/{ProviderRegistry.DefaultModel}"
+    {
+        if (string.IsNullOrWhiteSpace(agent.Model) ||
+            agent.Model.Equals(ProviderRegistry.DefaultModel, StringComparison.OrdinalIgnoreCase) ||
+            agent.Model.Equals("gpt-4o-mini", StringComparison.OrdinalIgnoreCase) ||
+            agent.Model.Equals("gpt-4o", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultOpenCodeModel;
+        }
+
+        return agent.Model.Contains('/', StringComparison.Ordinal)
+            ? agent.Model
             : $"{agent.Provider}/{agent.Model}";
+    }
 }

@@ -27,8 +27,9 @@ internal sealed class OpenCodeProcessAdapter : IOpenCodeProcessService
         process.Start();
 
         var stderr = new StringBuilder();
-        var stdoutTask = ReadLinesAsync(process.StandardOutput, onStdoutLine, null, ct);
-        var stderrTask = ReadLinesAsync(process.StandardError, onStderrLine, stderr, ct);
+        using var callbackLock = new SemaphoreSlim(1, 1);
+        var stdoutTask = ReadLinesAsync(process.StandardOutput, onStdoutLine, null, callbackLock, ct);
+        var stderrTask = ReadLinesAsync(process.StandardError, onStderrLine, stderr, callbackLock, ct);
         await Task.WhenAll(stdoutTask, stderrTask);
         await process.WaitForExitAsync(ct);
         return new ProcessRunResult(process.ExitCode, stderr.ToString());
@@ -38,6 +39,7 @@ internal sealed class OpenCodeProcessAdapter : IOpenCodeProcessService
         StreamReader reader,
         Func<string, CancellationToken, Task> onLine,
         StringBuilder? capture,
+        SemaphoreSlim callbackLock,
         CancellationToken ct)
     {
         while (!reader.EndOfStream)
@@ -45,7 +47,15 @@ internal sealed class OpenCodeProcessAdapter : IOpenCodeProcessService
             var line = await reader.ReadLineAsync(ct);
             if (line is null) continue;
             capture?.AppendLine(line);
-            await onLine(line, ct);
+            await callbackLock.WaitAsync(ct);
+            try
+            {
+                await onLine(line, ct);
+            }
+            finally
+            {
+                callbackLock.Release();
+            }
         }
     }
 }

@@ -48,8 +48,10 @@ public sealed class OpenCodeRunServiceTests
         Assert.Contains("--format", process.Request.Arguments);
         Assert.Contains("--print-logs", process.Request.Arguments);
         Assert.Contains("--log-level", process.Request.Arguments);
+        Assert.Equal("WARN", process.Request.Arguments[Array.IndexOf(process.Request.Arguments.ToArray(), "--log-level") + 1]);
         Assert.Contains("--model", process.Request.Arguments);
-        Assert.Contains("--agent", process.Request.Arguments);
+        Assert.DoesNotContain("--agent", process.Request.Arguments);
+        Assert.Contains("openai/gpt-5.2", process.Request.Arguments);
         Assert.Equal("Answer this bootstrap message.", process.Request.Arguments[^1]);
         Assert.Equal(process.Request.WorkingDirectory, process.Request.WorkingDirectory.Trim());
     }
