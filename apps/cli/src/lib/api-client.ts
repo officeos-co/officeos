@@ -60,10 +60,24 @@ async function readResponse<T>(response: Response): Promise<T> {
 async function responseError(response: Response): Promise<string> {
   const text = await response.text();
   if (!text) return `${response.status} ${response.statusText}`;
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("text/html") || looksLikeHtml(text)) {
+    return `${response.status} ${response.statusText}${htmlTitle(text) ? ` (${htmlTitle(text)})` : ""}`;
+  }
   try {
     const parsed = JSON.parse(text) as { error?: string; message?: string };
     return parsed.error ?? parsed.message ?? text;
   } catch {
     return text;
   }
+}
+
+function looksLikeHtml(value: string): boolean {
+  const trimmed = value.trimStart().toLowerCase();
+  return trimmed.startsWith("<!doctype html") || trimmed.startsWith("<html");
+}
+
+function htmlTitle(value: string): string | null {
+  const match = /<title>\s*([^<]+?)\s*<\/title>/i.exec(value);
+  return match?.[1]?.trim() ?? null;
 }

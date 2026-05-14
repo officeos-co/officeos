@@ -47,6 +47,24 @@ test("auth API calls backend v1 identity route", async () => {
   ]);
 });
 
+test("API client summarizes HTML error responses", async () => {
+  globalThis.fetch = (() =>
+    Promise.resolve(
+      new Response(
+        "<!DOCTYPE html><html><head><title>officeos.co | 502: Bad gateway</title></head></html>",
+        {
+          status: 502,
+          statusText: "Bad Gateway",
+          headers: { "content-type": "text/html" },
+        },
+      ),
+    )) as typeof fetch;
+
+  await expect(getMe("http://localhost:5000", "token")).rejects.toThrow(
+    "502 Bad Gateway (officeos.co | 502: Bad gateway)",
+  );
+});
+
 test("manifest API calls backend v1 manifest route", async () => {
   const requests: Array<{ url: string; method?: string }> = [];
   mockFetch(requests, { valid: true, errors: [], resources: [] });

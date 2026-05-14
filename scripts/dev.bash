@@ -4,19 +4,22 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${EAOS_LOG_DIR:-$ROOT_DIR/.runlogs}"
 BACKEND_PORT="${EAOS_BACKEND_PORT:-5000}"
+DASHBOARD_PORT="${EAOS_DASHBOARD_PORT:-3000}"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.infra.yml"
 START_INFRA="${EAOS_START_INFRA:-1}"
+DASHBOARD_DIR="$ROOT_DIR/apps/dashboard"
 VSCODE_EXTENSION_DIR="$ROOT_DIR/apps/vscode-extension"
 
 usage() {
   cat <<EOF
 Usage: ./scripts/dev.bash
 
-Starts local infrastructure and the backend in the background, then opens a
-VS Code extension development window.
+Starts local infrastructure, the backend, and the dashboard in the background,
+then opens a VS Code extension development window.
 Logs and PID files are written directly under .runlogs/.
 
 Set EAOS_START_INFRA=0 to skip Docker Compose infra startup.
+Set EAOS_DASHBOARD_PORT=3001 to run the dashboard on a different port.
 EOF
 }
 
@@ -93,10 +96,14 @@ free_port() {
 }
 
 stop_pid_file "backend" "$LOG_DIR/backend.pid"
+stop_pid_file "dashboard" "$LOG_DIR/dashboard.pid"
 free_port "$BACKEND_PORT"
+free_port "$DASHBOARD_PORT"
 
 rm -f "$LOG_DIR"/backend.log \
-  "$LOG_DIR"/backend.pid
+  "$LOG_DIR"/backend.pid \
+  "$LOG_DIR"/dashboard.log \
+  "$LOG_DIR"/dashboard.pid
 
 wait_for_postgres() {
   echo "Waiting for Postgres..."
@@ -136,6 +143,30 @@ wait_for_backend() {
   exit 1
 }
 
+wait_for_dashboard() {
+  local pid="$1"
+
+  echo "Waiting for dashboard..."
+  for _ in {1..60}; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "Dashboard exited during startup. Recent logs:" >&2
+      tail -120 "$LOG_DIR/dashboard.log" >&2 || true
+      rm -f "$LOG_DIR/dashboard.pid"
+      exit 1
+    fi
+
+    if lsof -tiTCP:"$DASHBOARD_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+      return
+    fi
+
+    sleep 1
+  done
+
+  echo "Dashboard did not start listening on port $DASHBOARD_PORT. Recent logs:" >&2
+  tail -120 "$LOG_DIR/dashboard.log" >&2 || true
+  exit 1
+}
+
 if [[ "$START_INFRA" != "0" ]]; then
   echo "Starting local infrastructure..."
   docker compose -f "$COMPOSE_FILE" up -d postgres redis minio
@@ -144,10 +175,31 @@ fi
 
 (
   cd "$ROOT_DIR/apps/backend"
-  ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" dotnet run --project src/OffceOs.csproj
+  ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" \
+  FRONTEND_ORIGINS="http://localhost:$DASHBOARD_PORT" \
+  dotnet run --project src/OffceOs.csproj
 ) > "$LOG_DIR/backend.log" 2>&1 &
 echo "$!" > "$LOG_DIR/backend.pid"
 wait_for_backend "$(cat "$LOG_DIR/backend.pid")"
+
+echo "Preparing dashboard..."
+(
+  cd "$DASHBOARD_DIR"
+  bun install --frozen-lockfile
+)
+
+(
+  cd "$DASHBOARD_DIR"
+  APP_ENV=development \
+  EAOS_API_URL="http://localhost:$BACKEND_PORT" \
+  EAOS_DASHBOARD_URL="http://localhost:$DASHBOARD_PORT" \
+  NEXT_PUBLIC_API_BASE_URL="http://localhost:$BACKEND_PORT" \
+  NEXT_PUBLIC_DASHBOARD_URL="http://localhost:$DASHBOARD_PORT" \
+  NEXT_TELEMETRY_DISABLED=1 \
+  bun run dev -- -p "$DASHBOARD_PORT"
+) > "$LOG_DIR/dashboard.log" 2>&1 &
+echo "$!" > "$LOG_DIR/dashboard.pid"
+wait_for_dashboard "$(cat "$LOG_DIR/dashboard.pid")"
 
 echo "Preparing VS Code extension..."
 (
@@ -164,7 +216,12 @@ Dev processes started.
 
 Logs:
   $LOG_DIR/backend.log
+  $LOG_DIR/dashboard.log
+
+Dashboard:
+  http://localhost:$DASHBOARD_PORT
 
 Stop host processes:
   kill \$(cat $LOG_DIR/backend.pid)
+  kill \$(cat $LOG_DIR/dashboard.pid)
 EOF

@@ -135,6 +135,22 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     typeof(OffceOs.Extensions.ApplicationServiceCollectionExtensions).Assembly,
     typeof(Program).Assembly));
 
+var googleOAuthConfig = new GoogleOAuthConfig
+{
+    ClientId = builder.Configuration["GOOGLE_OAUTH_CLIENT_ID"] ?? builder.Configuration["GoogleOAuth:ClientId"] ?? string.Empty,
+    ClientSecret = builder.Configuration["GOOGLE_OAUTH_CLIENT_SECRET"] ?? builder.Configuration["GoogleOAuth:ClientSecret"] ?? string.Empty,
+    RedirectUri = builder.Configuration["GOOGLE_OAUTH_REDIRECT_URI"] ?? builder.Configuration["GoogleOAuth:RedirectUri"] ?? string.Empty,
+};
+builder.Services.AddSingleton(googleOAuthConfig);
+
+var gitHubOAuthConfig = new GitHubOAuthConfig
+{
+    ClientId = builder.Configuration["GITHUB_OAUTH_CLIENT_ID"] ?? builder.Configuration["GitHubOAuth:ClientId"] ?? string.Empty,
+    ClientSecret = builder.Configuration["GITHUB_OAUTH_CLIENT_SECRET"] ?? builder.Configuration["GitHubOAuth:ClientSecret"] ?? string.Empty,
+    RedirectUri = builder.Configuration["GITHUB_OAUTH_REDIRECT_URI"] ?? builder.Configuration["GitHubOAuth:RedirectUri"] ?? string.Empty,
+};
+builder.Services.AddSingleton(gitHubOAuthConfig);
+
 var integrationCredentialEncryptionConfig = builder.Configuration
     .GetSection("IntegrationCredentialEncryption")
     .Get<IntegrationCredentialEncryptionConfig>() ?? new IntegrationCredentialEncryptionConfig();
