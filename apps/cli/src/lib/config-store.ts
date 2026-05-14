@@ -32,7 +32,11 @@ export async function readConfig(): Promise<EaosConfig | null> {
   }
 }
 
-export async function writeContext(name: string, apiUrl: string, token: string): Promise<void> {
+export async function writeContext(
+  name: string,
+  apiUrl: string,
+  token: string,
+): Promise<void> {
   const existing = await readConfig();
   const next: EaosConfig = {
     currentContext: name,
@@ -47,18 +51,29 @@ export async function writeContext(name: string, apiUrl: string, token: string):
 
 export async function useContext(name: string): Promise<void> {
   const existing = await readConfig();
-  if (!existing?.contexts[name]) throw new Error(`Context '${name}' was not found.`);
+  if (!existing?.contexts[name])
+    throw new Error(`Context '${name}' was not found.`);
   await mkdir(dirname(configPath), { recursive: true });
-  await writeFile(configPath, serializeConfig({ ...existing, currentContext: name }), { mode: 0o600 });
+  await writeFile(
+    configPath,
+    serializeConfig({ ...existing, currentContext: name }),
+    { mode: 0o600 },
+  );
 }
 
-export async function setContext(name: string, apiUrl: string, token: string): Promise<void> {
+export async function setContext(
+  name: string,
+  apiUrl: string,
+  token: string,
+): Promise<void> {
   await writeContext(name, apiUrl, token);
 }
 
 function parseConfig(raw: string): EaosConfig {
   const lines = raw.split(/\r?\n/);
-  const currentContext = valueAfter(lines.find((line) => line.startsWith("currentContext:")) ?? "");
+  const currentContext = valueAfter(
+    lines.find((line) => line.startsWith("currentContext:")) ?? "",
+  );
   const contexts: Record<string, EaosContext> = {};
   let active: string | null = null;
   for (const line of lines) {
@@ -69,8 +84,10 @@ function parseConfig(raw: string): EaosConfig {
       continue;
     }
     if (!active) continue;
-    if (line.startsWith("    apiUrl:")) contexts[active].apiUrl = valueAfter(line);
-    if (line.startsWith("    token:")) contexts[active].token = valueAfter(line);
+    if (line.startsWith("    apiUrl:"))
+      contexts[active].apiUrl = valueAfter(line);
+    if (line.startsWith("    token:"))
+      contexts[active].token = valueAfter(line);
   }
   return { currentContext, contexts };
 }
