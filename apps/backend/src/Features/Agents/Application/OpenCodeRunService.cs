@@ -125,10 +125,11 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             var result = await _openCodeProcessService.RunAsync(
                 new ProcessRunRequest(
                     "opencode",
-                    ["run", "--format", "json", "--model", model, "--agent", agent.Name, run.Prompt],
+                    ["run", "--format", "json", "--print-logs", "--log-level", "DEBUG", "--model", model, "--agent", agent.Name, run.Prompt],
                     workspace,
                     new Dictionary<string, string>()),
-                (line, token) => AppendOpenCodeEventAsync(run, agent, line, token),
+                (line, token) => AppendOpenCodeEventAsync(run, agent, line, "stdout", token),
+                (line, token) => AppendOpenCodeEventAsync(run, agent, line, "stderr", token),
                 ct);
 
             if (result.ExitCode == 0)
@@ -143,52 +144,225 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
         }
     }
 
-    private async Task AppendOpenCodeEventAsync(AgentRunRecord run, AgentRecord agent, string line, CancellationToken ct)
+    private async Task AppendOpenCodeEventAsync(AgentRunRecord run, AgentRecord agent, string line, string source, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(line))
             return;
 
-        var (type, content) = ParseOpenCodeLine(line);
-        if (type == AgentLogType.MessageOut)
-            run.Result = content;
+        var entry = ParseOpenCodeLine(line, source);
+        if (entry.Type == AgentLogType.MessageOut)
+            run.Result = entry.Content;
 
         await _agentLogService.AppendAsync(new AgentLogRecord
         {
             AgentId = agent.Id,
             WorkspaceId = run.WorkspaceId,
-            Type = type,
-            Content = content,
+            ResourceKind = ResourceLogKinds.Run,
+            ResourceId = run.Id,
+            ResourceName = run.Id.ToString("N"),
+            ParentResourceKind = ResourceLogKinds.Agent,
+            ParentResourceId = agent.Id,
+            Type = entry.Type,
+            Severity = entry.Severity,
+            Tool = entry.Tool,
+            Content = entry.Content,
             RunId = run.Id,
             CorrelationId = run.Id.ToString("N"),
+            MetadataJson = JsonSerializer.Serialize(entry.Metadata, JsonOptions),
         }, ct);
     }
 
-    private static (AgentLogType Type, string Content) ParseOpenCodeLine(string line)
+    private static OpenCodeLogEntry ParseOpenCodeLine(string line, string source)
     {
+        if (source == "stderr")
+            return ParseOpenCodeDiagnosticLine(line);
+
         try
         {
             using var document = JsonDocument.Parse(line);
             var root = document.RootElement;
-            var kind = root.TryGetProperty("type", out var typeElement) ? typeElement.GetString() : null;
-            var content = root.TryGetProperty("message", out var message) ? message.GetString()
-                : root.TryGetProperty("content", out var contentElement) ? contentElement.GetString()
-                : root.TryGetProperty("text", out var text) ? text.GetString()
-                : root.GetRawText();
+            var kind = TryGetString(root, "type");
+            if (TryFindObject(root, "part", out var part))
+                return ParseOpenCodePart(part, kind, source);
+
+            var content = FirstString(root, "message", "content", "text", "error", "status") ?? root.GetRawText();
+            var metadata = new Dictionary<string, object?>
+            {
+                ["source"] = source,
+                ["opencodeType"] = kind,
+            };
 
             return kind?.ToLowerInvariant() switch
             {
-                "tool_call" or "tool-call" => (AgentLogType.ToolCall, content ?? line),
-                "tool_result" or "tool-result" => (AgentLogType.ToolResult, content ?? line),
-                "error" => (AgentLogType.Error, content ?? line),
-                "message" or "assistant" or "result" => (AgentLogType.MessageOut, content ?? line),
-                _ => (AgentLogType.System, content ?? line),
+                "tool_call" or "tool-call" or "tool_call_start" or "tool-call-start" => new(AgentLogType.ToolCall, content, ResourceLogSeverityKinds.Info, TryGetToolName(root), metadata),
+                "tool_result" or "tool-result" or "tool_call_complete" or "tool-call-complete" => new(AgentLogType.ToolResult, content, ResourceLogSeverityKinds.Info, TryGetToolName(root), metadata),
+                "tool_call_error" or "tool-call-error" or "error" => new(AgentLogType.Error, content, ResourceLogSeverityKinds.Error, TryGetToolName(root), metadata),
+                "content" or "message" or "assistant" or "result" => new(AgentLogType.MessageOut, content, ResourceLogSeverityKinds.Info, null, metadata),
+                "thinking" => new(AgentLogType.ModelCall, content, ResourceLogSeverityKinds.Debug, null, metadata),
+                "status" or "done" => new(AgentLogType.System, content, ResourceLogSeverityKinds.Debug, null, metadata),
+                _ => new(AgentLogType.System, content, ResourceLogSeverityKinds.Debug, null, metadata),
             };
         }
         catch (JsonException)
         {
-            return (AgentLogType.System, line);
+            return new OpenCodeLogEntry(
+                AgentLogType.System,
+                line,
+                ResourceLogSeverityKinds.Debug,
+                null,
+                new Dictionary<string, object?> { ["source"] = source });
         }
     }
+
+    private static OpenCodeLogEntry ParseOpenCodeDiagnosticLine(string line)
+    {
+        var severity = line.StartsWith("ERROR ", StringComparison.Ordinal)
+            ? ResourceLogSeverityKinds.Error
+            : line.StartsWith("WARN ", StringComparison.Ordinal)
+                ? ResourceLogSeverityKinds.Warning
+                : line.StartsWith("DEBUG ", StringComparison.Ordinal)
+                    ? ResourceLogSeverityKinds.Debug
+                    : ResourceLogSeverityKinds.Info;
+
+        return new OpenCodeLogEntry(
+            severity == ResourceLogSeverityKinds.Error ? AgentLogType.Error : AgentLogType.System,
+            line,
+            severity,
+            null,
+            new Dictionary<string, object?> { ["source"] = "stderr" });
+    }
+
+    private static OpenCodeLogEntry ParseOpenCodePart(JsonElement part, string? eventType, string source)
+    {
+        var partType = TryGetString(part, "type");
+        var metadata = new Dictionary<string, object?>
+        {
+            ["source"] = source,
+            ["opencodeType"] = eventType,
+            ["partType"] = partType,
+            ["partId"] = TryGetString(part, "id"),
+            ["messageId"] = TryGetString(part, "messageID"),
+            ["callId"] = TryGetString(part, "callID"),
+        };
+
+        if (partType?.Equals("tool", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var tool = TryGetString(part, "tool");
+            var state = part.TryGetProperty("state", out var stateElement) ? stateElement : default;
+            var status = state.ValueKind == JsonValueKind.Object ? TryGetString(state, "status") : null;
+            var input = state.ValueKind == JsonValueKind.Object && state.TryGetProperty("input", out var inputElement)
+                ? inputElement.GetRawText()
+                : part.GetRawText();
+            var output = state.ValueKind == JsonValueKind.Object
+                ? FirstString(state, "output", "result", "error")
+                : null;
+            var isCompleted = status is "completed" or "error";
+            var type = isCompleted ? AgentLogType.ToolResult : AgentLogType.ToolCall;
+            var severity = status == "error" ? ResourceLogSeverityKinds.Error : ResourceLogSeverityKinds.Info;
+            var content = isCompleted
+                ? string.IsNullOrWhiteSpace(output) ? state.GetRawText() : output
+                : input;
+
+            metadata["toolStatus"] = status;
+            return new OpenCodeLogEntry(type, content, severity, tool, metadata);
+        }
+
+        if (partType?.Equals("text", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return new OpenCodeLogEntry(
+                AgentLogType.MessageOut,
+                FirstString(part, "text", "content") ?? part.GetRawText(),
+                ResourceLogSeverityKinds.Info,
+                null,
+                metadata);
+        }
+
+        if (partType?.Equals("reasoning", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return new OpenCodeLogEntry(
+                AgentLogType.ModelCall,
+                FirstString(part, "text", "content") ?? part.GetRawText(),
+                ResourceLogSeverityKinds.Debug,
+                null,
+                metadata);
+        }
+
+        return new OpenCodeLogEntry(
+            AgentLogType.System,
+            part.GetRawText(),
+            ResourceLogSeverityKinds.Debug,
+            null,
+            metadata);
+    }
+
+    private static string? TryGetToolName(JsonElement root)
+    {
+        if (TryGetString(root, "tool") is { } tool)
+            return tool;
+
+        if (TryFindObject(root, "toolCall", out var toolCall))
+            return TryGetString(toolCall, "name");
+
+        return null;
+    }
+
+    private static string? FirstString(JsonElement element, params string[] propertyNames)
+    {
+        foreach (var propertyName in propertyNames)
+        {
+            var value = TryGetString(element, propertyName);
+            if (!string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+
+        return null;
+    }
+
+    private static string? TryGetString(JsonElement element, string propertyName)
+    {
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(propertyName, out var property))
+            return null;
+
+        return property.ValueKind switch
+        {
+            JsonValueKind.String => property.GetString(),
+            JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => property.ToString(),
+            _ => null,
+        };
+    }
+
+    private static bool TryFindObject(JsonElement element, string propertyName, out JsonElement value)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty(propertyName, out value) && value.ValueKind == JsonValueKind.Object)
+                return true;
+
+            foreach (var property in element.EnumerateObject())
+            {
+                if (TryFindObject(property.Value, propertyName, out value))
+                    return true;
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                if (TryFindObject(item, propertyName, out value))
+                    return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private sealed record OpenCodeLogEntry(
+        AgentLogType Type,
+        string Content,
+        string Severity,
+        string? Tool,
+        IReadOnlyDictionary<string, object?> Metadata);
 
     private async Task CompleteAsync(AgentRunRecord run, string status, string? result, string? error, CancellationToken ct)
     {

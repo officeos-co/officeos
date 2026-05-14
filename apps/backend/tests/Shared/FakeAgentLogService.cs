@@ -5,6 +5,10 @@ namespace OffceOs.Tests.Shared;
 
 public sealed class FakeAgentLogService : IAgentLogService
 {
+    private readonly List<AgentLogRecord> _records = [];
+
+    public IReadOnlyList<AgentLogRecord> Records => _records;
+
     public Task<AgentLogPage> ListAsync(AgentLogQueryRequest request, CancellationToken ct = default) =>
         Task.FromResult(new AgentLogPage([], 0));
 
@@ -15,6 +19,9 @@ public sealed class FakeAgentLogService : IAgentLogService
             ids.ToDictionary(id => id, _ => (string?)null));
     }
 
-    public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default) =>
-        Task.FromResult(record);
+    public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
+    {
+        _records.Add(record);
+        return Task.FromResult(record);
+    }
 }

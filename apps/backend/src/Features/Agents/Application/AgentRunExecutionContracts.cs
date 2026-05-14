@@ -29,7 +29,11 @@ public interface IAgentRunExecutionService
 
 public interface IOpenCodeProcessService
 {
-    Task<ProcessRunResult> RunAsync(ProcessRunRequest request, Func<string, CancellationToken, Task> onStdoutLine, CancellationToken ct = default);
+    Task<ProcessRunResult> RunAsync(
+        ProcessRunRequest request,
+        Func<string, CancellationToken, Task> onStdoutLine,
+        Func<string, CancellationToken, Task> onStderrLine,
+        CancellationToken ct = default);
 }
 
 public sealed record ProcessRunRequest(

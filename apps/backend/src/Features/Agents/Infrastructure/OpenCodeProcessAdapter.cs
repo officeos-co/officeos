@@ -2,7 +2,11 @@ namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class OpenCodeProcessAdapter : IOpenCodeProcessService
 {
-    public async Task<ProcessRunResult> RunAsync(ProcessRunRequest request, Func<string, CancellationToken, Task> onStdoutLine, CancellationToken ct = default)
+    public async Task<ProcessRunResult> RunAsync(
+        ProcessRunRequest request,
+        Func<string, CancellationToken, Task> onStdoutLine,
+        Func<string, CancellationToken, Task> onStderrLine,
+        CancellationToken ct = default)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -22,16 +26,26 @@ internal sealed class OpenCodeProcessAdapter : IOpenCodeProcessService
         using var process = new Process { StartInfo = startInfo };
         process.Start();
 
-        var stderrTask = process.StandardError.ReadToEndAsync(ct);
-        while (!process.StandardOutput.EndOfStream)
-        {
-            var line = await process.StandardOutput.ReadLineAsync(ct);
-            if (line is not null)
-                await onStdoutLine(line, ct);
-        }
-
+        var stderr = new StringBuilder();
+        var stdoutTask = ReadLinesAsync(process.StandardOutput, onStdoutLine, null, ct);
+        var stderrTask = ReadLinesAsync(process.StandardError, onStderrLine, stderr, ct);
+        await Task.WhenAll(stdoutTask, stderrTask);
         await process.WaitForExitAsync(ct);
-        var stderr = await stderrTask;
-        return new ProcessRunResult(process.ExitCode, stderr);
+        return new ProcessRunResult(process.ExitCode, stderr.ToString());
+    }
+
+    private static async Task ReadLinesAsync(
+        StreamReader reader,
+        Func<string, CancellationToken, Task> onLine,
+        StringBuilder? capture,
+        CancellationToken ct)
+    {
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(ct);
+            if (line is null) continue;
+            capture?.AppendLine(line);
+            await onLine(line, ct);
+        }
     }
 }
