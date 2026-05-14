@@ -4,22 +4,19 @@ internal sealed class WorkspaceService : IWorkspaceService
 {
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
-    private readonly IOrganizationRepository _organizationRepository;
+    private readonly IAgentLogService _agentLogService;
     private readonly IDistributedCache _distributedCache;
-    private readonly IPublisher _publisher;
 
     public WorkspaceService(
         IWorkspaceRepository workspaceRepository,
         IWorkspaceMemberRepository workspaceMemberRepository,
-        IOrganizationRepository organizationRepository,
-        IDistributedCache distributedCache,
-        IPublisher publisher)
+        IAgentLogService agentLogService,
+        IDistributedCache distributedCache)
     {
         _workspaceRepository = workspaceRepository;
         _workspaceMemberRepository = workspaceMemberRepository;
-        _organizationRepository = organizationRepository;
+        _agentLogService = agentLogService;
         _distributedCache = distributedCache;
-        _publisher = publisher;
     }
 
     public async Task<IReadOnlyList<WorkspaceRecord>> ListAsync(Guid userId, CancellationToken ct = default)
@@ -35,61 +32,29 @@ internal sealed class WorkspaceService : IWorkspaceService
     {
         var created = await _workspaceRepository.SaveAsync(WorkspaceRecord.CreatePersonal(userId, name), ct);
         await _workspaceMemberRepository.UpsertAsync(
-            WorkspaceMemberRecord.Create(created.Id, userId, WorkspaceRole.Admin),
+            WorkspaceMemberRecord.Create(created.Id, userId, WorkspaceRole.Owner),
             ct);
+        await AppendWorkspaceLogAsync(created, AgentLogType.System, "Workspace created.", ct);
         await InvalidateUserAsync(userId, ct);
-        return created;
-    }
-
-    public async Task<WorkspaceRecord> CreateOrganizationWorkspaceAsync(Guid userId, Guid organizationId, string? name, CancellationToken ct = default)
-    {
-        await RequireOrganizationWorkspaceCreatorAsync(userId, organizationId, ct);
-
-        var created = await _workspaceRepository.SaveAsync(WorkspaceRecord.CreateOrganization(organizationId, name), ct);
-        await SeedOrganizationWorkspaceMembersAsync(created.Id, organizationId, userId, ct);
-        await InvalidateUserAsync(userId, ct);
-        await _publisher.Publish(new OrganizationWorkspaceCreatedEvent(
-            organizationId,
-            userId,
-            created.Id,
-            created.Name), ct);
         return created;
     }
 
     public async Task<WorkspaceRecord> UpdateAsync(Guid userId, Guid id, string? name, CancellationToken ct = default)
     {
-        var workspace = await RequireAccessibleAsync(userId, id, ct);
-        if (!CanAdministerWorkspace(workspace, userId))
-        {
-            var membership = await _workspaceMemberRepository.GetByAsync(new WorkspaceMemberFilter { WorkspaceId = id, UserId = userId }, ct);
-            if (membership?.Role.CanAdminister() != true)
-                throw new InvalidOperationException("Workspace not found.");
-        }
-
-        workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = id }, ct)
+        await RequireWorkspaceAdminAsync(userId, id, ct);
+        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = id }, ct)
             ?? throw new InvalidOperationException("Workspace not found.");
 
-        var previousName = workspace.Name;
         workspace.Rename(name);
         var updated = await _workspaceRepository.SaveAsync(workspace, ct);
+        await AppendWorkspaceLogAsync(updated, AgentLogType.System, "Workspace updated.", ct);
         await InvalidateUserAsync(userId, ct);
-        if (updated.OrganizationId.HasValue)
-        {
-            await _publisher.Publish(new WorkspaceUpdatedEvent(
-                updated.OrganizationId.Value,
-                userId,
-                updated.Id,
-                previousName,
-                updated.Name), ct);
-        }
-
         return updated;
     }
 
     public async Task<WorkspaceRecord> SwitchAsync(Guid userId, Guid id, CancellationToken ct = default)
     {
         var workspace = await RequireAccessibleAsync(userId, id, ct);
-
         await _workspaceRepository.SetCurrentAsync(userId, id, ct);
         await InvalidateUserAsync(userId, ct);
         return workspace;
@@ -97,30 +62,16 @@ internal sealed class WorkspaceService : IWorkspaceService
 
     public async Task<bool> DeleteAsync(Guid userId, Guid id, CancellationToken ct = default)
     {
-        var workspace = await RequireAccessibleAsync(userId, id, ct);
+        var workspace = await RequireWorkspaceAdminAsync(userId, id, ct);
         if (workspace.IsDefault)
             throw new InvalidOperationException("Default workspaces cannot be deleted.");
-
-        if (!CanAdministerWorkspace(workspace, userId))
-        {
-            var membership = await _workspaceMemberRepository.GetByAsync(new WorkspaceMemberFilter { WorkspaceId = id, UserId = userId }, ct);
-            if (membership?.Role.CanAdminister() != true)
-                throw new InvalidOperationException("Workspace not found.");
-        }
 
         var deleted = await _workspaceRepository.DeleteAsync(id, ct);
         if (deleted)
         {
             await _workspaceRepository.GetCurrentAsync(userId, ct);
+            await AppendWorkspaceLogAsync(workspace, AgentLogType.System, "Workspace deleted.", ct);
             await InvalidateUserAsync(userId, ct);
-            if (workspace.OrganizationId.HasValue)
-            {
-                await _publisher.Publish(new WorkspaceDeletedEvent(
-                    workspace.OrganizationId.Value,
-                    userId,
-                    workspace.Id,
-                    workspace.Name), ct);
-            }
         }
 
         return deleted;
@@ -138,15 +89,6 @@ internal sealed class WorkspaceService : IWorkspaceService
         return await _workspaceMemberRepository.ListAsync(new WorkspaceMemberFilter { WorkspaceId = workspaceId }, ct);
     }
 
-    public async Task<IReadOnlyList<WorkspaceMemberRecord>> ListOrganizationMembersAsync(Guid actorUserId, Guid organizationId, CancellationToken ct = default)
-    {
-        var orgMembers = await _organizationRepository.ListMembersAsync(organizationId, ct);
-        if (!orgMembers.Any(member => member.UserId == actorUserId && member.Status == MemberStatus.Active))
-            throw new InvalidOperationException("Organization not found.");
-
-        return await _workspaceMemberRepository.ListAsync(new WorkspaceMemberFilter { OrganizationId = organizationId }, ct);
-    }
-
     public async Task<WorkspaceMemberRecord> AddMemberAsync(
         Guid actorUserId,
         Guid workspaceId,
@@ -158,17 +100,7 @@ internal sealed class WorkspaceService : IWorkspaceService
         var member = await _workspaceMemberRepository.UpsertAsync(
             WorkspaceMemberRecord.Create(workspaceId, memberUserId, ParseWorkspaceRole(role, WorkspaceRole.Editor)),
             ct);
-        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct);
-        if (workspace?.OrganizationId.HasValue == true)
-        {
-            await _publisher.Publish(new WorkspaceMemberAddedEvent(
-                workspace.OrganizationId.Value,
-                actorUserId,
-                workspaceId,
-                memberUserId,
-                member.Role.ToString()), ct);
-        }
-
+        await AppendWorkspaceBindingLogAsync(workspaceId, memberUserId, $"Workspace member added as {member.Role}.", ct);
         return member;
     }
 
@@ -184,21 +116,9 @@ internal sealed class WorkspaceService : IWorkspaceService
             new WorkspaceMemberFilter { WorkspaceId = workspaceId, UserId = memberUserId },
             ct) ?? throw new InvalidOperationException("Workspace member not found.");
 
-        var previousRole = existing.Role;
         existing.Role = ParseWorkspaceRole(role, WorkspaceRole.Editor);
         var updated = await _workspaceMemberRepository.UpsertAsync(existing, ct);
-        var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct);
-        if (workspace?.OrganizationId.HasValue == true)
-        {
-            await _publisher.Publish(new WorkspaceMemberRoleUpdatedEvent(
-                workspace.OrganizationId.Value,
-                actorUserId,
-                workspaceId,
-                memberUserId,
-                previousRole.ToString(),
-                updated.Role.ToString()), ct);
-        }
-
+        await AppendWorkspaceBindingLogAsync(workspaceId, memberUserId, $"Workspace member role updated to {updated.Role}.", ct);
         return updated;
     }
 
@@ -212,145 +132,19 @@ internal sealed class WorkspaceService : IWorkspaceService
             new WorkspaceMemberFilter { WorkspaceId = workspaceId, UserId = memberUserId },
             ct);
         if (removed)
-        {
-            var workspace = await _workspaceRepository.GetByAsync(new WorkspaceFilter { Id = workspaceId }, ct);
-            if (workspace?.OrganizationId.HasValue == true)
-            {
-                await _publisher.Publish(new WorkspaceMemberRemovedEvent(
-                    workspace.OrganizationId.Value,
-                    actorUserId,
-                    workspaceId,
-                    memberUserId), ct);
-            }
-        }
+            await AppendWorkspaceBindingLogAsync(workspaceId, memberUserId, "Workspace member removed.", ct);
 
         return removed;
     }
 
-    public async Task<WorkspaceOrganizationGrantRecord> GrantOrganizationAsync(
-        Guid actorUserId,
-        Guid workspaceId,
-        Guid organizationId,
-        string? maxRole,
-        CancellationToken ct = default)
-    {
-        var workspace = await RequireWorkspaceAdminAsync(actorUserId, workspaceId, ct);
-        if (workspace.OrganizationId == organizationId)
-            throw new InvalidOperationException("Cannot grant a workspace to its owning organization.");
-
-        var organization = await _organizationRepository.GetByAsync(new OrganizationFilter { Id = organizationId }, ct)
-            ?? throw new InvalidOperationException("Organization not found.");
-
-        _ = organization;
-        var grant = await _workspaceRepository.UpsertOrganizationGrantAsync(new WorkspaceOrganizationGrantRecord
-        {
-            WorkspaceId = workspaceId,
-            OrganizationId = organizationId,
-            MaxRole = ParseWorkspaceRole(maxRole, WorkspaceRole.Viewer),
-        }, ct);
-        if (workspace.OrganizationId.HasValue)
-        {
-            await _publisher.Publish(new WorkspaceOrganizationGrantCreatedEvent(
-                workspace.OrganizationId.Value,
-                actorUserId,
-                workspaceId,
-                organizationId,
-                grant.MaxRole.ToString()), ct);
-        }
-
-        return grant;
-    }
-
-    public async Task<bool> RevokeOrganizationGrantAsync(Guid actorUserId, Guid workspaceId, Guid organizationId, CancellationToken ct = default)
-    {
-        var workspace = await RequireWorkspaceAdminAsync(actorUserId, workspaceId, ct);
-        var revoked = await _workspaceRepository.DeleteOrganizationGrantAsync(workspaceId, organizationId, ct);
-        if (revoked && workspace.OrganizationId.HasValue)
-        {
-            await _publisher.Publish(new WorkspaceOrganizationGrantRevokedEvent(
-                workspace.OrganizationId.Value,
-                actorUserId,
-                workspaceId,
-                organizationId), ct);
-        }
-
-        return revoked;
-    }
-
-    private async Task RequireOrganizationAdminAsync(Guid userId, Guid organizationId, CancellationToken ct)
-    {
-        var members = await _organizationRepository.ListMembersAsync(organizationId, ct);
-        var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
-        if (member?.Role is not (OrgRole.Owner or OrgRole.Admin))
-            throw new InvalidOperationException("Workspace not found.");
-    }
-
-    private async Task RequireOrganizationWorkspaceCreatorAsync(Guid userId, Guid organizationId, CancellationToken ct)
-    {
-        var members = await _organizationRepository.ListMembersAsync(organizationId, ct);
-        var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
-        if (member?.Role is OrgRole.Owner or OrgRole.Admin)
-            return;
-
-        var workspaceMemberships = await _workspaceMemberRepository.ListAsync(
-            new WorkspaceMemberFilter { OrganizationId = organizationId, UserId = userId },
-            ct);
-        if (workspaceMemberships.Any(membership => membership.Role.CanAdminister()))
-            return;
-
-        throw new InvalidOperationException("Workspace not found.");
-    }
-
-    private async Task SeedOrganizationWorkspaceMembersAsync(
-        Guid workspaceId,
-        Guid organizationId,
-        Guid creatorUserId,
-        CancellationToken ct)
-    {
-        var members = await _organizationRepository.ListMembersAsync(organizationId, ct);
-        foreach (var member in members)
-        {
-            if (!member.UserId.HasValue || member.Status != MemberStatus.Active)
-                continue;
-
-            await _workspaceMemberRepository.UpsertAsync(
-                WorkspaceMemberRecord.Create(workspaceId, member.UserId.Value, ToWorkspaceRole(member.Role)),
-                ct);
-        }
-
-        await _workspaceMemberRepository.UpsertAsync(
-            WorkspaceMemberRecord.Create(workspaceId, creatorUserId, WorkspaceRole.Admin),
-            ct);
-    }
-
-    private static WorkspaceRole ToWorkspaceRole(OrgRole role) => role switch
-    {
-        OrgRole.Owner => WorkspaceRole.Admin,
-        OrgRole.Admin => WorkspaceRole.Admin,
-        OrgRole.Editor => WorkspaceRole.Editor,
-        OrgRole.Viewer => WorkspaceRole.Viewer,
-        _ => WorkspaceRole.Editor,
-    };
-
     private async Task<WorkspaceRecord> RequireWorkspaceAdminAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
         var workspace = await RequireAccessibleAsync(userId, workspaceId, ct);
-        if (CanAdministerWorkspace(workspace, userId))
-            return workspace;
-
         var membership = await _workspaceMemberRepository.GetByAsync(
             new WorkspaceMemberFilter { WorkspaceId = workspaceId, UserId = userId },
             ct);
         if (membership?.Role.CanAdminister() == true)
             return workspace;
-
-        if (workspace.OrganizationId.HasValue)
-        {
-            var members = await _organizationRepository.ListMembersAsync(workspace.OrganizationId.Value, ct);
-            var member = members.FirstOrDefault(m => m.UserId == userId && m.Status == MemberStatus.Active);
-            if (member?.Role is OrgRole.Owner or OrgRole.Admin)
-                return workspace;
-        }
 
         throw new InvalidOperationException("Workspace not found.");
     }
@@ -362,17 +156,38 @@ internal sealed class WorkspaceService : IWorkspaceService
 
         return value.Trim() switch
         {
+            "Owner" => WorkspaceRole.Owner,
             "Admin" => WorkspaceRole.Admin,
             "Editor" => WorkspaceRole.Editor,
             "Viewer" => WorkspaceRole.Viewer,
-            _ => throw new InvalidOperationException("Workspace role must be 'Admin', 'Editor', or 'Viewer'."),
+            _ => throw new InvalidOperationException("Workspace role must be 'Owner', 'Admin', 'Editor', or 'Viewer'."),
         };
     }
 
-    private static bool CanAdministerWorkspace(WorkspaceRecord workspace, Guid userId)
-    {
-        return workspace.OwnerKind == WorkspaceOwnerKind.Personal && workspace.OwnerUserId == userId;
-    }
+    private Task AppendWorkspaceLogAsync(WorkspaceRecord workspace, AgentLogType type, string content, CancellationToken ct)
+        => _agentLogService.AppendAsync(new AgentLogRecord
+        {
+            WorkspaceId = workspace.Id,
+            ResourceKind = ResourceLogKinds.Workspace,
+            ResourceId = workspace.Id,
+            ResourceName = workspace.Name,
+            Type = type,
+            Content = content,
+        }, ct);
+
+    private Task AppendWorkspaceBindingLogAsync(Guid workspaceId, Guid userId, string content, CancellationToken ct)
+        => _agentLogService.AppendAsync(new AgentLogRecord
+        {
+            WorkspaceId = workspaceId,
+            ResourceKind = ResourceLogKinds.WorkspaceBinding,
+            ResourceId = userId,
+            ResourceName = userId.ToString("N"),
+            ParentResourceKind = ResourceLogKinds.Workspace,
+            ParentResourceId = workspaceId,
+            Type = AgentLogType.System,
+            Content = content,
+            MetadataJson = JsonSerializer.Serialize(new { workspaceId, userId }),
+        }, ct);
 
     private async Task InvalidateUserAsync(Guid userId, CancellationToken ct)
     {

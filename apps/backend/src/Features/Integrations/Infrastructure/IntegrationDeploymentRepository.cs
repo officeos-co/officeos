@@ -32,7 +32,6 @@ internal sealed class IntegrationDeploymentRepository : IIntegrationDeploymentRe
             entity = new IntegrationDeploymentEntity
             {
                 Id = record.Id,
-                OrganizationId = record.OrganizationId,
                 WorkspaceId = record.WorkspaceId,
                 IntegrationName = record.IntegrationName,
                 CreatedById = record.CreatedById,
@@ -65,9 +64,6 @@ internal sealed class IntegrationDeploymentRepository : IIntegrationDeploymentRe
         if (filter.Id.HasValue)
             query = query.Where(d => d.Id == filter.Id.Value);
 
-        if (filter.OrganizationId.HasValue)
-            query = query.Where(d => d.OrganizationId == filter.OrganizationId.Value);
-
         if (filter.WorkspaceId.HasValue)
             query = query.Where(d => d.WorkspaceId == filter.WorkspaceId.Value);
 
@@ -83,7 +79,6 @@ internal sealed class IntegrationDeploymentRepository : IIntegrationDeploymentRe
     private static IntegrationDeploymentRecord ToRecord(IntegrationDeploymentEntity entity) => new()
     {
         Id = entity.Id,
-        OrganizationId = entity.OrganizationId,
         WorkspaceId = entity.WorkspaceId,
         IntegrationName = entity.IntegrationName,
         CreatedById = entity.CreatedById,

@@ -222,19 +222,10 @@ public sealed class FakeWorkspaceRepository : IWorkspaceRepository
     public Task<WorkspaceRecord> EnsurePersonalDefaultAsync(Guid userId, CancellationToken ct = default) =>
         Task.FromResult(WorkspaceRecord.CreatePersonal(userId, "Default", true));
 
-    public Task<WorkspaceRecord> EnsureOrganizationDefaultAsync(Guid organizationId, Guid ownerUserId, CancellationToken ct = default) =>
-        Task.FromResult(WorkspaceRecord.CreateOrganization(organizationId, "Organization", true));
-
     public Task<WorkspaceRecord> GetCurrentAsync(Guid userId, CancellationToken ct = default) =>
         EnsurePersonalDefaultAsync(userId, ct);
 
     public Task SetCurrentAsync(Guid userId, Guid workspaceId, CancellationToken ct = default) => Task.CompletedTask;
-
-    public Task<WorkspaceOrganizationGrantRecord> UpsertOrganizationGrantAsync(WorkspaceOrganizationGrantRecord record, CancellationToken ct = default) =>
-        Task.FromResult(record);
-
-    public Task<bool> DeleteOrganizationGrantAsync(Guid workspaceId, Guid organizationId, CancellationToken ct = default) =>
-        Task.FromResult(false);
 }
 
 public sealed class FakeWorkspaceMemberRepository : IWorkspaceMemberRepository
@@ -270,40 +261,4 @@ public sealed class FakeWorkspaceMemberRepository : IWorkspaceMemberRepository
             return Task.FromResult(_members.Remove((filter.WorkspaceId.Value, filter.UserId.Value)));
         return Task.FromResult(false);
     }
-}
-
-public sealed class FakeOrganizationRepository : IOrganizationRepository
-{
-    public Task<OrganizationRecord> CreateAsync(OrganizationRecord organization, OrgMemberRecord ownerMember, CancellationToken ct = default) =>
-        Task.FromResult(organization);
-
-    public Task<OrganizationRecord?> GetByAsync(OrganizationFilter filter, CancellationToken ct = default) =>
-        Task.FromResult<OrganizationRecord?>(null);
-
-    public Task<IReadOnlyList<OrganizationRecord>> ListForMemberAsync(Guid userId, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<OrganizationRecord>>([]);
-
-    public Task<IReadOnlyList<OrgMemberRecord>> ListMembersAsync(Guid organizationId, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<OrgMemberRecord>>([]);
-
-    public Task<OrgMemberRecord> EnsureOwnerMembershipAsync(Guid organizationId, Guid userId, string email, CancellationToken ct = default) =>
-        Task.FromResult(OrgMemberRecord.CreateOwner(organizationId, userId, email));
-
-    public Task<OrganizationRecord> SaveAsync(OrganizationRecord organization, CancellationToken ct = default) =>
-        Task.FromResult(organization);
-
-    public Task<IReadOnlyList<OrganizationInviteRecord>> ListPendingInvitesForEmailAsync(string email, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<OrganizationInviteRecord>>([]);
-
-    public Task<OrgMemberRecord> AddMemberAsync(OrgMemberRecord member, CancellationToken ct = default) => Task.FromResult(member);
-
-    public Task<OrgMemberRecord> AcceptInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default) =>
-        Task.FromResult(new OrgMemberRecord { Id = memberId, UserId = userId, Email = email, Status = MemberStatus.Active });
-
-    public Task<bool> DeclineInviteAsync(Guid memberId, Guid userId, string email, CancellationToken ct = default) => Task.FromResult(true);
-
-    public Task<bool> RemoveMemberAsync(Guid memberId, CancellationToken ct = default) => Task.FromResult(false);
-
-    public Task<OrganizationRecord> RenameAsync(Guid organizationId, string name, CancellationToken ct = default) =>
-        Task.FromResult(new OrganizationRecord { Id = organizationId, Name = name, OwnerUserId = TestIds.OwnerId });
 }

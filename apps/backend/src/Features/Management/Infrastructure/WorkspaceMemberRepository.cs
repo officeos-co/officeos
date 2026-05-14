@@ -62,9 +62,6 @@ internal sealed class WorkspaceMemberRepository : IWorkspaceMemberRepository
         if (filter.UserId.HasValue)
             query = query.Where(m => m.UserId == filter.UserId.Value);
 
-        if (filter.OrganizationId.HasValue)
-            query = query.Where(m => m.Workspace != null && m.Workspace.OrganizationId == filter.OrganizationId.Value);
-
         return query;
     }
 

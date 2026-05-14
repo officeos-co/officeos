@@ -1,8 +1,8 @@
 using OffceOs.Database;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Events;
-using OffceOs.Domain.Features.Analytics;
-using OffceOs.Infrastructure.Features.Analytics;
+using OffceOs.Domain.Features.Observability;
+using OffceOs.Infrastructure.Features.Observability;
 using MediatR;
 
 namespace OffceOs.Tests.Shared;

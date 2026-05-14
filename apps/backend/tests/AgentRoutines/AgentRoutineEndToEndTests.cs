@@ -1,13 +1,13 @@
 using System.Text;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Application.Features.Analytics;
+using OffceOs.Application.Features.Observability;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Analytics;
+using OffceOs.Domain.Features.Observability;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.AgentRoutines;

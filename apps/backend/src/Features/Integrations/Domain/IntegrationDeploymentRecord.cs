@@ -3,7 +3,6 @@ namespace OffceOs.Domain.Features.Integrations;
 public sealed class IntegrationDeploymentRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid OrganizationId { get; init; }
     public Guid WorkspaceId { get; init; }
     public string IntegrationName { get; init; } = string.Empty;
     public Guid CreatedById { get; init; }

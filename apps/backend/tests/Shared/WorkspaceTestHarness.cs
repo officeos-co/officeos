@@ -28,9 +28,6 @@ namespace OffceOs.Tests.Shared;
 
 public sealed record WorkspaceTestHarness(
     IWorkspaceService Workspaces,
-    IOrganizationService Organizations,
-    IAccessGroupService AccessGroups,
-    IOrganizationPolicyService Policy,
     IIntegrationDeploymentService IntegrationDeployments,
     IIntegrationDefinitionService Integrations,
     IAgentDashboardService AgentDashboard,
@@ -39,12 +36,8 @@ public sealed record WorkspaceTestHarness(
     public static WorkspaceTestHarness Create(EaosDbContext db)
     {
         var cache = new InMemoryDistributedCache();
-        var organizationRepository = new OrganizationRepository(db);
-        var userRepository = new UserRepository(db);
         var workspaceRepository = new WorkspaceRepository(db);
         var workspaceMemberRepository = new WorkspaceMemberRepository(db);
-        var accessGroupRepository = new AccessGroupRepository(db);
-        var organizationPolicyProfileRepository = new OrganizationPolicyProfileRepository(db);
         var integrationDeploymentRepository = new IntegrationDeploymentRepository(db);
         var agentRepository = new AgentRepository(db);
         var channelRepository = new ChannelRepository(db);
@@ -96,11 +89,8 @@ public sealed record WorkspaceTestHarness(
                 new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-routine-e2e-keys-{Guid.NewGuid():N}"))))));
 
         return new WorkspaceTestHarness(
-            new WorkspaceService(workspaceRepository, workspaceMemberRepository, organizationRepository, cache, new NoopPublisher()),
-            new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository, userRepository, new NoopPublisher()),
-            new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
-            new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
-            new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository, workspaceMemberRepository, new FakeAgentLogService()),
+            new WorkspaceService(workspaceRepository, workspaceMemberRepository, new FakeAgentLogService(), cache),
+            new IntegrationDeploymentService(integrationDeploymentRepository, workspaceMemberRepository, new FakeAgentLogService()),
             integrationService,
             agentDashboard,
             agentRepository);
@@ -153,7 +143,6 @@ public sealed record WorkspaceTestHarness(
             NullLogger<IntegrationDefinitionService>.Instance,
             new IntegrationDeploymentRepository(db),
             new WorkspaceRepository(db),
-            new WorkspaceMemberRepository(db),
-            new OrganizationRepository(db));
+            new WorkspaceMemberRepository(db));
     }
 }

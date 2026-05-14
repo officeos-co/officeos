@@ -64,7 +64,7 @@ public static class ProviderRegistry
                 new ModelDefinition("us.anthropic.claude-sonnet-4-6", "Claude Sonnet 4.6", CostWeight: 20, SmartRoutingTier.Standard),
                 new ModelDefinition("us.anthropic.claude-opus-4-7", "Claude Opus 4.7", CostWeight: 75, null),
             },
-            OrganizationProfileOnly: true,
+            ManagedCloudOnly: true,
             RequiresPinnedModels: true),
 
         new ProviderDefinition(
@@ -78,7 +78,7 @@ public static class ProviderRegistry
                 new ModelDefinition("claude-sonnet-4-6", "Claude Sonnet 4.6", CostWeight: 20, SmartRoutingTier.Standard),
                 new ModelDefinition("claude-opus-4-7", "Claude Opus 4.7", CostWeight: 75, null),
             },
-            OrganizationProfileOnly: true,
+            ManagedCloudOnly: true,
             RequiresPinnedModels: true),
 
         new ProviderDefinition(
@@ -92,7 +92,7 @@ public static class ProviderRegistry
                 new ModelDefinition("claude-sonnet-4-6", "Claude Sonnet 4.6", CostWeight: 20, SmartRoutingTier.Standard),
                 new ModelDefinition("claude-opus-4-7", "Claude Opus 4.7", CostWeight: 75, null),
             },
-            OrganizationProfileOnly: true,
+            ManagedCloudOnly: true,
             RequiresPinnedModels: true),
 
         // Dispatch-only providers: available for Provider manifests that pin their own models.
@@ -162,15 +162,15 @@ public static class ProviderRegistry
     public static IReadOnlyList<string> GetModelIds(string providerSlug) =>
         BySlug.TryGetValue(providerSlug, out var p) ? p.Models.Select(m => m.Id).ToList() : [];
 
-    public static bool IsOrganizationProfileProvider(string providerSlug) =>
-        BySlug.TryGetValue(providerSlug, out var p) && p.OrganizationProfileOnly;
+    public static bool IsManagedCloudProvider(string providerSlug) =>
+        BySlug.TryGetValue(providerSlug, out var p) && p.ManagedCloudOnly;
 
     public static string? GetSmartRouteModel(string providerSlug, SmartRoutingTier tier) =>
         SmartRouteMap.GetValueOrDefault((providerSlug, tier));
 
     /// <summary>Providers that expose selectable models in the dashboard.</summary>
     public static IReadOnlyList<ProviderDefinition> DashboardProviders =>
-        All.Where(p => p.Models.Count > 0 && !p.OrganizationProfileOnly).ToList();
+        All.Where(p => p.Models.Count > 0 && !p.ManagedCloudOnly).ToList();
 
     public const string DefaultModel = "auto";
     public const string AwsBedrockProviderSlug = "aws-bedrock";

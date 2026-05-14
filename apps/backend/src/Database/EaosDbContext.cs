@@ -14,7 +14,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<WorkspaceEntity> Workspaces => Set<WorkspaceEntity>();
     public DbSet<WorkspaceMemberEntity> WorkspaceMembers => Set<WorkspaceMemberEntity>();
-    public DbSet<WorkspaceOrganizationGrantEntity> WorkspaceOrganizationGrants => Set<WorkspaceOrganizationGrantEntity>();
     public DbSet<SessionEntity> Sessions => Set<SessionEntity>();
     public DbSet<DeviceCodeEntity> DeviceCodes => Set<DeviceCodeEntity>();
     public DbSet<BrowserSessionEntity> BrowserSessions => Set<BrowserSessionEntity>();
@@ -23,14 +22,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<SystemEventEntity> SystemEvents => Set<SystemEventEntity>();
     public DbSet<AgentRateLimitEntity> AgentRateLimits => Set<AgentRateLimitEntity>();
     public DbSet<ResourceLogEntity> ResourceLogs => Set<ResourceLogEntity>();
-    public DbSet<OrganizationEntity> Organizations => Set<OrganizationEntity>();
-    public DbSet<OrgMemberEntity> OrgMembers => Set<OrgMemberEntity>();
-    public DbSet<AccessGroupEntity> AccessGroups => Set<AccessGroupEntity>();
-    public DbSet<AccessGroupMemberEntity> AccessGroupMembers => Set<AccessGroupMemberEntity>();
-    public DbSet<AccessGroupWorkspaceGrantEntity> AccessGroupWorkspaceGrants => Set<AccessGroupWorkspaceGrantEntity>();
-    public DbSet<OrganizationPolicyProfileEntity> OrganizationPolicyProfiles => Set<OrganizationPolicyProfileEntity>();
     public DbSet<ProviderResourceEntity> ProviderResources => Set<ProviderResourceEntity>();
-    public DbSet<OrganizationAuditLogEntity> OrganizationAuditLogs => Set<OrganizationAuditLogEntity>();
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
     public DbSet<AgentRoutineEntity> AgentRoutines => Set<AgentRoutineEntity>();
@@ -38,8 +30,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
     public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
-    public DbSet<AgentUsageCallEntity> AgentUsageCalls => Set<AgentUsageCallEntity>();
-    public DbSet<AgentUsageContextPartEntity> AgentUsageContextParts => Set<AgentUsageContextPartEntity>();
     public DbSet<BrowserResourceEntity> BrowserResources => Set<BrowserResourceEntity>();
     public DbSet<MemoryStoreEntity> MemoryStores => Set<MemoryStoreEntity>();
     public DbSet<MemoryStoreEntryEntity> MemoryStoreEntries => Set<MemoryStoreEntryEntity>();
@@ -107,19 +97,16 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(u => u.GoogleSubjectId).IsUnique();
             e.HasIndex(u => u.Email).IsUnique();
             e.HasOne(u => u.CurrentWorkspace).WithMany().HasForeignKey(u => u.CurrentWorkspaceId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(u => u.CurrentOrganization).WithMany().HasForeignKey(u => u.CurrentOrganizationId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<WorkspaceEntity>(e =>
         {
             e.HasKey(w => w.Id);
             e.HasIndex(w => new { w.OwnerUserId, w.Name });
-            e.HasIndex(w => new { w.OrganizationId, w.Name });
             e.HasIndex(w => w.OwnerKind);
             e.Property(w => w.Name).IsRequired().HasMaxLength(200);
             e.Property(w => w.OwnerKind).IsRequired().HasMaxLength(32);
             e.HasOne(w => w.OwnerUser).WithMany().HasForeignKey(w => w.OwnerUserId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(w => w.Organization).WithMany().HasForeignKey(w => w.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<WorkspaceMemberEntity>(e =>
@@ -130,15 +117,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(m => m.Role).IsRequired().HasMaxLength(16);
             e.HasOne(m => m.Workspace).WithMany().HasForeignKey(m => m.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<WorkspaceOrganizationGrantEntity>(e =>
-        {
-            e.HasKey(g => g.Id);
-            e.HasIndex(g => new { g.WorkspaceId, g.OrganizationId }).IsUnique();
-            e.Property(g => g.MaxRole).IsRequired().HasMaxLength(16);
-            e.HasOne(g => g.Workspace).WithMany().HasForeignKey(g => g.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(g => g.Organization).WithMany().HasForeignKey(g => g.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SessionEntity>(e =>
@@ -223,61 +201,6 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(l => l.Workspace).WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<OrganizationEntity>(e =>
-        {
-            e.HasKey(o => o.Id);
-            e.Property(o => o.Name).IsRequired().HasMaxLength(200);
-            e.Property(o => o.Kind).IsRequired().HasMaxLength(32).HasDefaultValue("individual");
-        });
-
-        modelBuilder.Entity<OrgMemberEntity>(e =>
-        {
-            e.HasKey(m => m.Id);
-            e.HasIndex(m => new { m.OrganizationId, m.Email }).IsUnique();
-            e.HasIndex(m => m.UserId);
-            e.Property(m => m.Email).IsRequired().HasMaxLength(256);
-            e.Property(m => m.Role).IsRequired().HasMaxLength(16);
-            e.Property(m => m.Status).IsRequired().HasMaxLength(16);
-        });
-
-        modelBuilder.Entity<AccessGroupEntity>(e =>
-        {
-            e.HasKey(g => g.Id);
-            e.HasIndex(g => new { g.OrganizationId, g.Name }).IsUnique();
-            e.Property(g => g.Name).IsRequired().HasMaxLength(200);
-            e.HasOne(g => g.Organization).WithMany().HasForeignKey(g => g.OrganizationId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AccessGroupMemberEntity>(e =>
-        {
-            e.HasKey(m => m.Id);
-            e.HasIndex(m => new { m.AccessGroupId, m.UserId }).IsUnique();
-            e.HasIndex(m => m.UserId);
-            e.HasOne(m => m.AccessGroup).WithMany().HasForeignKey(m => m.AccessGroupId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AccessGroupWorkspaceGrantEntity>(e =>
-        {
-            e.HasKey(g => g.Id);
-            e.HasIndex(g => new { g.AccessGroupId, g.WorkspaceId }).IsUnique();
-            e.HasIndex(g => g.WorkspaceId);
-            e.Property(g => g.Role).IsRequired().HasMaxLength(16);
-            e.HasOne(g => g.AccessGroup).WithMany().HasForeignKey(g => g.AccessGroupId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(g => g.Workspace).WithMany().HasForeignKey(g => g.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<OrganizationPolicyProfileEntity>(e =>
-        {
-            e.HasKey(p => p.Id);
-            e.HasIndex(p => p.OrganizationId).IsUnique();
-            e.Property(p => p.AllowedToolsJson).HasColumnType("jsonb");
-            e.Property(p => p.DeniedToolsJson).HasColumnType("jsonb");
-            e.Property(p => p.AllowedIntegrationsJson).HasColumnType("jsonb");
-            e.Property(p => p.DeniedIntegrationsJson).HasColumnType("jsonb");
-            e.HasOne(p => p.Organization).WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
-        });
-
         modelBuilder.Entity<ProviderResourceEntity>(e =>
         {
             e.HasKey(p => p.Id);
@@ -290,27 +213,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(p => p.AuthKind).IsRequired().HasMaxLength(64);
             e.Property(p => p.EncryptedCredentialsJson).HasColumnType("text");
             e.HasOne(p => p.Workspace).WithMany().HasForeignKey(p => p.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<OrganizationAuditLogEntity>(e =>
-        {
-            e.HasKey(a => a.Id);
-            e.HasIndex(a => new { a.OrganizationId, a.OccurredAt });
-            e.HasIndex(a => a.Action);
-            e.HasIndex(a => a.ActorUserId);
-            e.HasIndex(a => a.WorkspaceId);
-            e.HasIndex(a => a.AgentId);
-            e.HasIndex(a => a.Outcome);
-            e.Property(a => a.Action).IsRequired().HasMaxLength(128);
-            e.Property(a => a.ResourceType).IsRequired().HasMaxLength(128);
-            e.Property(a => a.ResourceId).HasMaxLength(128);
-            e.Property(a => a.Outcome).IsRequired().HasMaxLength(32);
-            e.Property(a => a.CorrelationId).HasMaxLength(128);
-            e.Property(a => a.MetadataJson).HasColumnType("jsonb");
-            e.HasOne(a => a.Organization).WithMany().HasForeignKey(a => a.OrganizationId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(a => a.Actor).WithMany().HasForeignKey(a => a.ActorUserId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(a => a.Workspace).WithMany().HasForeignKey(a => a.WorkspaceId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(a => a.Agent).WithMany().HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<AgentMemoryEntity>(e =>
@@ -403,42 +305,6 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(r => r.Workspace).WithMany()
                 .HasForeignKey(r => r.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AgentUsageCallEntity>(e =>
-        {
-            e.ToTable("AgentUsageCalls");
-            e.HasKey(c => c.Id);
-            e.HasIndex(c => c.AgentId);
-            e.HasIndex(c => c.WorkspaceId);
-            e.HasIndex(c => c.OwnerId);
-            e.HasIndex(c => c.RunId);
-            e.HasIndex(c => c.CorrelationId);
-            e.HasIndex(c => new { c.OwnerId, c.Time });
-            e.HasIndex(c => new { c.OwnerId, c.Model, c.Time });
-            e.Property(c => c.CorrelationId).IsRequired().HasMaxLength(128);
-            e.Property(c => c.Provider).IsRequired().HasMaxLength(64);
-            e.Property(c => c.Model).IsRequired().HasMaxLength(128);
-            e.Property(c => c.Activity).IsRequired().HasMaxLength(64);
-            e.Property(c => c.Outcome).IsRequired().HasMaxLength(32);
-            e.HasOne(c => c.Agent).WithMany().HasForeignKey(c => c.AgentId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(c => c.Owner).WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(c => c.Run).WithMany().HasForeignKey(c => c.RunId).OnDelete(DeleteBehavior.SetNull);
-        });
-
-        modelBuilder.Entity<AgentUsageContextPartEntity>(e =>
-        {
-            e.ToTable("AgentUsageContextParts");
-            e.HasKey(p => p.Id);
-            e.HasIndex(p => p.CallId);
-            e.HasIndex(p => p.Kind);
-            e.Property(p => p.Kind).IsRequired().HasMaxLength(64);
-            e.Property(p => p.Label).IsRequired().HasMaxLength(256);
-            e.Property(p => p.Role).HasMaxLength(32);
-            e.Property(p => p.Tool).HasMaxLength(128);
-            e.Property(p => p.Integration).HasMaxLength(128);
-            e.HasOne(p => p.Call).WithMany(c => c.ContextParts).HasForeignKey(p => p.CallId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BrowserResourceEntity>(e =>
@@ -541,9 +407,7 @@ public sealed class EaosDbContext : DbContext
             e.ToTable("IntegrationDeployments");
             e.HasKey(d => d.Id);
             e.HasIndex(d => new { d.WorkspaceId, d.IntegrationName }).IsUnique();
-            e.HasIndex(d => d.OrganizationId);
             e.Property(d => d.IntegrationName).IsRequired().HasMaxLength(64);
-            e.HasOne(d => d.Organization).WithMany().HasForeignKey(d => d.OrganizationId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(d => d.Workspace).WithMany().HasForeignKey(d => d.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(d => d.CreatedBy).WithMany().HasForeignKey(d => d.CreatedById).OnDelete(DeleteBehavior.Restrict);
         });

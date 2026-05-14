@@ -5,7 +5,7 @@ internal sealed class AuthService : IAuthService
     private readonly GoogleOAuthConfig _googleOAuthConfig;
     private readonly GitHubOAuthConfig _gitHubOAuthConfig;
     private readonly IUserRepository _userRepository;
-    private readonly IOrganizationService _organizationService;
+    private readonly IWorkspaceService _workspaceService;
     private readonly ISessionRepository _sessionRepository;
     private readonly IOAuthTokenRepository _oauthTokenRepository;
     private readonly CredentialProtector _credentialProtector;
@@ -17,7 +17,7 @@ internal sealed class AuthService : IAuthService
         GoogleOAuthConfig googleOAuth,
         GitHubOAuthConfig gitHubOAuth,
         IUserRepository users,
-        IOrganizationService organizationService,
+        IWorkspaceService workspaceService,
         ISessionRepository sessions,
         IOAuthTokenRepository oauthTokens,
         CredentialProtector credentialProtector,
@@ -28,7 +28,7 @@ internal sealed class AuthService : IAuthService
         _googleOAuthConfig = googleOAuth;
         _gitHubOAuthConfig = gitHubOAuth;
         _userRepository = users;
-        _organizationService = organizationService;
+        _workspaceService = workspaceService;
         _sessionRepository = sessions;
         _oauthTokenRepository = oauthTokens;
         _credentialProtector = credentialProtector;
@@ -113,7 +113,7 @@ internal sealed class AuthService : IAuthService
 
         // Upsert user
         var user = await _userRepository.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
-        await _organizationService.EnsureOrganizationAsync(user.Id, user.Email, user.Name, ct);
+        await _workspaceService.GetCurrentAsync(user.Id, ct);
         _logger.LogInformation("OAuth: user upserted {Email} ({UserId})", email, user.Id);
 
         var existingGoogleToken = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = user.Id, Provider = "google" }, ct);
@@ -245,7 +245,7 @@ internal sealed class AuthService : IAuthService
 
         // Upsert user
         var user = await _userRepository.UpsertByGitHubSubjectAsync(sub, email, name, avatar, ct);
-        await _organizationService.EnsureOrganizationAsync(user.Id, user.Email, user.Name, ct);
+        await _workspaceService.GetCurrentAsync(user.Id, ct);
         _logger.LogInformation("OAuth: GitHub user upserted {Email} ({UserId})", email, user.Id);
 
         var existingGitHubToken = await _oauthTokenRepository.GetByAsync(new OAuthTokenFilter { UserId = user.Id, Provider = "github" }, ct);

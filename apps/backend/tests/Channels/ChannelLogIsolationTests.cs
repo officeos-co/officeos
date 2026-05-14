@@ -1,8 +1,8 @@
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Features.Analytics;
+using OffceOs.Domain.Features.Observability;
 using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Features.Analytics;
+using OffceOs.Infrastructure.Features.Observability;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
 using Xunit;

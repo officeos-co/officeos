@@ -1,7 +1,7 @@
 using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.Analytics;
+using OffceOs.Application.Features.Observability;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Analytics;
+using OffceOs.Domain.Features.Observability;
 
 namespace OffceOs.Tests.Shared;
 

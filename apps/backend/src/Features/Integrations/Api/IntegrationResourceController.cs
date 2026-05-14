@@ -79,7 +79,6 @@ public sealed class IntegrationResourceController : ControllerBase
         kind = "IntegrationDeployment",
         name = deployment.IntegrationName,
         id = deployment.Id,
-        deployment.OrganizationId,
         deployment.WorkspaceId,
         deployment.Enabled,
         deployment.CreatedAt,

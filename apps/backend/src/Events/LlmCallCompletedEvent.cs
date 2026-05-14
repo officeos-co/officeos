@@ -12,7 +12,6 @@ public sealed record LlmCallCompletedEvent(
     int? CacheWriteTokens = null,
     int? ReasoningTokens = null,
     bool EstimatedTokens = false,
-    string Activity = AgentUsageActivityKinds.General,
     IReadOnlyList<LlmUsageContextPartMessage>? ContextParts = null,
     Guid? RunId = null,
     Guid? ParentRunId = null) : DomainEvent;

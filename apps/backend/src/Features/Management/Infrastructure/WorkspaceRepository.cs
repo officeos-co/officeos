@@ -19,9 +19,6 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         if (filter.OwnerUserId.HasValue)
             query = query.Where(w => w.OwnerUserId == filter.OwnerUserId.Value);
 
-        if (filter.OrganizationId.HasValue)
-            query = query.Where(w => w.OrganizationId == filter.OrganizationId.Value);
-
         if (filter.OwnerKind.HasValue)
         {
             var ownerKind = filter.OwnerKind.Value.ToStorageString();
@@ -41,7 +38,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
     public async Task<IReadOnlyList<WorkspaceRecord>> ListAccessibleAsync(Guid userId, CancellationToken ct = default)
     {
-        var direct = await _eaosDbContext.WorkspaceMembers
+        var rows = await _eaosDbContext.WorkspaceMembers
             .AsNoTracking()
             .Where(m => m.UserId == userId)
             .Join(
@@ -49,50 +46,12 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
                 m => m.WorkspaceId,
                 w => w.Id,
                 (m, w) => new { Member = m, Workspace = w })
+            .OrderByDescending(row => row.Workspace.IsDefault)
+            .ThenBy(row => row.Workspace.Name)
+            .ThenBy(row => row.Workspace.CreatedAt)
             .ToListAsync(ct);
 
-        var granted = await _eaosDbContext.OrgMembers
-            .AsNoTracking()
-            .Where(m => m.UserId == userId && m.Status == MemberStatus.Active.ToStorageString())
-            .Join(
-                _eaosDbContext.WorkspaceOrganizationGrants.AsNoTracking(),
-                m => m.OrganizationId,
-                g => g.OrganizationId,
-                (m, g) => g)
-            .Join(
-                _eaosDbContext.Workspaces.AsNoTracking(),
-                g => g.WorkspaceId,
-                w => w.Id,
-                (g, w) => new { Grant = g, Workspace = w })
-            .ToListAsync(ct);
-
-        var groupGranted = await _eaosDbContext.AccessGroupMembers
-            .AsNoTracking()
-            .Where(m => m.UserId == userId)
-            .Join(
-                _eaosDbContext.AccessGroupWorkspaceGrants.AsNoTracking(),
-                m => m.AccessGroupId,
-                g => g.AccessGroupId,
-                (m, g) => g)
-            .Join(
-                _eaosDbContext.Workspaces.AsNoTracking(),
-                g => g.WorkspaceId,
-                w => w.Id,
-                (g, w) => new { Grant = g, Workspace = w })
-            .ToListAsync(ct);
-
-        var records = direct
-            .Select(row => ToRecord(row.Workspace, row.Member.Role.ToWorkspaceRole()))
-            .Concat(granted.Select(row => ToRecord(row.Workspace, row.Grant.MaxRole.ToWorkspaceRole())))
-            .Concat(groupGranted.Select(row => ToRecord(row.Workspace, row.Grant.Role.ToWorkspaceRole())))
-            .GroupBy(w => w.Id)
-            .Select(g => g.OrderByDescending(w => RoleRank(w.Role ?? WorkspaceRole.Viewer)).First())
-            .OrderBy(w => w.OwnerKind)
-            .ThenByDescending(w => w.IsDefault)
-            .ThenBy(w => w.Name)
-            .ToList();
-
-        return records;
+        return rows.Select(row => ToRecord(row.Workspace, row.Member.Role.ToWorkspaceRole())).ToList();
     }
 
     public async Task<WorkspaceRecord?> GetByAsync(WorkspaceFilter filter, CancellationToken ct = default)
@@ -107,9 +66,6 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
         if (filter.OwnerUserId.HasValue)
             query = query.Where(w => w.OwnerUserId == filter.OwnerUserId.Value);
-
-        if (filter.OrganizationId.HasValue)
-            query = query.Where(w => w.OrganizationId == filter.OrganizationId.Value);
 
         if (filter.OwnerKind.HasValue)
         {
@@ -126,7 +82,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
     public async Task<WorkspaceRecord?> GetAccessibleAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
     {
-        var direct = await _eaosDbContext.WorkspaceMembers
+        var row = await _eaosDbContext.WorkspaceMembers
             .AsNoTracking()
             .Where(m => m.WorkspaceId == workspaceId && m.UserId == userId)
             .Join(
@@ -136,64 +92,16 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
                 (m, w) => new { Member = m, Workspace = w })
             .FirstOrDefaultAsync(ct);
 
-        if (direct is not null)
-            return ToRecord(direct.Workspace, direct.Member.Role.ToWorkspaceRole());
-
-        var groupGrants = await _eaosDbContext.AccessGroupMembers
-            .AsNoTracking()
-            .Where(m => m.UserId == userId)
-            .Join(
-                _eaosDbContext.AccessGroupWorkspaceGrants.AsNoTracking().Where(g => g.WorkspaceId == workspaceId),
-                m => m.AccessGroupId,
-                g => g.AccessGroupId,
-                (m, g) => g)
-            .Join(
-                _eaosDbContext.Workspaces.AsNoTracking(),
-                g => g.WorkspaceId,
-                w => w.Id,
-                (g, w) => new { Grant = g, Workspace = w })
-            .ToListAsync(ct);
-
-        var groupGrant = groupGrants
-            .OrderByDescending(row => RoleRank(row.Grant.Role.ToWorkspaceRole()))
-            .FirstOrDefault();
-
-        if (groupGrant is not null)
-            return ToRecord(groupGrant.Workspace, groupGrant.Grant.Role.ToWorkspaceRole());
-
-        var grant = await _eaosDbContext.OrgMembers
-            .AsNoTracking()
-            .Where(m => m.UserId == userId && m.Status == MemberStatus.Active.ToStorageString())
-            .Join(
-                _eaosDbContext.WorkspaceOrganizationGrants.AsNoTracking().Where(g => g.WorkspaceId == workspaceId),
-                m => m.OrganizationId,
-                g => g.OrganizationId,
-                (m, g) => g)
-            .Join(
-                _eaosDbContext.Workspaces.AsNoTracking(),
-                g => g.WorkspaceId,
-                w => w.Id,
-                (g, w) => new { Grant = g, Workspace = w })
-            .FirstOrDefaultAsync(ct);
-
-        return grant is null ? null : ToRecord(grant.Workspace, grant.Grant.MaxRole.ToWorkspaceRole());
+        return row is null ? null : ToRecord(row.Workspace, row.Member.Role.ToWorkspaceRole());
     }
 
     public async Task<WorkspaceRecord> SaveAsync(WorkspaceRecord record, CancellationToken ct = default)
     {
-        var duplicateQuery = _eaosDbContext.Workspaces.AsNoTracking()
-            .Where(w => w.Id != record.Id && w.Name == record.Name);
-
-        duplicateQuery = record.OwnerKind switch
-        {
-            WorkspaceOwnerKind.Personal => duplicateQuery.Where(w => w.OwnerKind == WorkspaceOwnerKind.Personal.ToStorageString()
-                && w.OwnerUserId == record.OwnerUserId),
-            WorkspaceOwnerKind.Organization => duplicateQuery.Where(w => w.OwnerKind == WorkspaceOwnerKind.Organization.ToStorageString()
-                && w.OrganizationId == record.OrganizationId),
-            _ => duplicateQuery,
-        };
-
-        var duplicate = await duplicateQuery.AnyAsync(ct);
+        var duplicate = await _eaosDbContext.Workspaces.AsNoTracking()
+            .AnyAsync(w => w.Id != record.Id
+                && w.OwnerKind == WorkspaceOwnerKind.Personal.ToStorageString()
+                && w.OwnerUserId == record.OwnerUserId
+                && w.Name == record.Name, ct);
         if (duplicate)
             throw new InvalidOperationException("A workspace with that name already exists.");
 
@@ -211,7 +119,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
         await _eaosDbContext.SaveChangesAsync(ct);
 
-        if (record.OwnerKind == WorkspaceOwnerKind.Personal && record.OwnerUserId.HasValue)
+        if (record.OwnerUserId.HasValue)
         {
             var user = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Id == record.OwnerUserId.Value, ct);
             if (user is not null && user.CurrentWorkspaceId is null)
@@ -250,8 +158,8 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
         if (existing is not null)
         {
-            await EnsureMembershipAsync(existing.Id, userId, WorkspaceRole.Admin, ct);
-            return ToRecord(existing, WorkspaceRole.Admin);
+            await EnsureMembershipAsync(existing.Id, userId, WorkspaceRole.Owner, ct);
+            return ToRecord(existing, WorkspaceRole.Owner);
         }
 
         var workspace = new WorkspaceEntity
@@ -266,41 +174,9 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         };
         _eaosDbContext.Workspaces.Add(workspace);
         await _eaosDbContext.SaveChangesAsync(ct);
-        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Admin, ct);
-        return ToRecord(workspace, WorkspaceRole.Admin);
-    }
-
-    public async Task<WorkspaceRecord> EnsureOrganizationDefaultAsync(Guid organizationId, Guid ownerUserId, CancellationToken ct = default)
-    {
-        var existing = await _eaosDbContext.Workspaces
-            .AsNoTracking()
-            .Where(w => w.OwnerKind == WorkspaceOwnerKind.Organization.ToStorageString()
-                && w.OrganizationId == organizationId
-                && w.IsDefault)
-            .OrderBy(w => w.CreatedAt)
-            .FirstOrDefaultAsync(ct);
-
-        if (existing is not null)
-        {
-            await EnsureMembershipAsync(existing.Id, ownerUserId, WorkspaceRole.Admin, ct);
-            return ToRecord(existing, WorkspaceRole.Admin);
-        }
-
-        var organization = await _eaosDbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == organizationId, ct);
-        var workspace = new WorkspaceEntity
-        {
-            Id = Guid.NewGuid(),
-            OwnerKind = WorkspaceOwnerKind.Organization.ToStorageString(),
-            OrganizationId = organizationId,
-            Name = organization is null ? "Organization" : organization.Name,
-            IsDefault = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        };
-        _eaosDbContext.Workspaces.Add(workspace);
-        await _eaosDbContext.SaveChangesAsync(ct);
-        await EnsureMembershipAsync(workspace.Id, ownerUserId, WorkspaceRole.Admin, ct);
-        return ToRecord(workspace, WorkspaceRole.Admin);
+        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Owner, ct);
+        await SetCurrentAsync(userId, workspace.Id, ct);
+        return ToRecord(workspace, WorkspaceRole.Owner);
     }
 
     public async Task<WorkspaceRecord> GetCurrentAsync(Guid userId, CancellationToken ct = default)
@@ -308,7 +184,6 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         var user = await _eaosDbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new InvalidOperationException("User not found.");
 
-        WorkspaceEntity? workspace = null;
         if (user.CurrentWorkspaceId.HasValue)
         {
             var accessible = await GetAccessibleAsync(userId, user.CurrentWorkspaceId.Value, ct);
@@ -316,19 +191,17 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
                 return accessible;
         }
 
-        workspace ??= await _eaosDbContext.Workspaces.AsNoTracking()
+        var workspace = await _eaosDbContext.Workspaces.AsNoTracking()
             .Where(w => w.OwnerKind == WorkspaceOwnerKind.Personal.ToStorageString() && w.OwnerUserId == userId)
             .OrderBy(w => w.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
         if (workspace is null)
-            return await CreateDefaultAndSetCurrentAsync(userId, ct);
+            return await EnsurePersonalDefaultAsync(userId, ct);
 
-        if (user.CurrentWorkspaceId != workspace.Id)
-            await SetCurrentAsync(userId, workspace.Id, ct);
-
-        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Admin, ct);
-        return ToRecord(workspace, WorkspaceRole.Admin);
+        await EnsureMembershipAsync(workspace.Id, userId, WorkspaceRole.Owner, ct);
+        await SetCurrentAsync(userId, workspace.Id, ct);
+        return ToRecord(workspace, WorkspaceRole.Owner);
     }
 
     public async Task SetCurrentAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
@@ -341,64 +214,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
             ?? throw new InvalidOperationException("User not found.");
 
         user.CurrentWorkspaceId = workspaceId;
-        if (accessible.OrganizationId.HasValue)
-            user.CurrentOrganizationId = accessible.OrganizationId.Value;
         await _eaosDbContext.SaveChangesAsync(ct);
-    }
-
-    public async Task<WorkspaceOrganizationGrantRecord> UpsertOrganizationGrantAsync(
-        WorkspaceOrganizationGrantRecord record,
-        CancellationToken ct = default)
-    {
-        var entity = await _eaosDbContext.WorkspaceOrganizationGrants
-            .FirstOrDefaultAsync(g => g.WorkspaceId == record.WorkspaceId && g.OrganizationId == record.OrganizationId, ct);
-
-        if (entity is null)
-        {
-            entity = new WorkspaceOrganizationGrantEntity
-            {
-                Id = record.Id,
-                WorkspaceId = record.WorkspaceId,
-                OrganizationId = record.OrganizationId,
-                MaxRole = record.MaxRole.ToStorageString(),
-                CreatedAt = record.CreatedAt,
-            };
-            _eaosDbContext.WorkspaceOrganizationGrants.Add(entity);
-        }
-        else
-        {
-            entity.MaxRole = record.MaxRole.ToStorageString();
-        }
-
-        await _eaosDbContext.SaveChangesAsync(ct);
-        return new WorkspaceOrganizationGrantRecord
-        {
-            Id = entity.Id,
-            WorkspaceId = entity.WorkspaceId,
-            OrganizationId = entity.OrganizationId,
-            MaxRole = entity.MaxRole.ToWorkspaceRole(),
-            CreatedAt = entity.CreatedAt,
-        };
-    }
-
-    public async Task<bool> DeleteOrganizationGrantAsync(Guid workspaceId, Guid organizationId, CancellationToken ct = default)
-    {
-        var entity = await _eaosDbContext.WorkspaceOrganizationGrants
-            .FirstOrDefaultAsync(g => g.WorkspaceId == workspaceId && g.OrganizationId == organizationId, ct);
-        if (entity is null)
-            return false;
-
-        _eaosDbContext.WorkspaceOrganizationGrants.Remove(entity);
-        await _eaosDbContext.SaveChangesAsync(ct);
-        return true;
-    }
-
-    private async Task<WorkspaceRecord> CreateDefaultAndSetCurrentAsync(Guid userId, CancellationToken ct)
-    {
-        var record = await SaveAsync(WorkspaceRecord.CreatePersonal(userId, "Default", isDefault: true), ct);
-        await EnsureMembershipAsync(record.Id, userId, WorkspaceRole.Admin, ct);
-        await SetCurrentAsync(userId, record.Id, ct);
-        return record;
     }
 
     private async Task EnsureMembershipAsync(Guid workspaceId, Guid userId, WorkspaceRole role, CancellationToken ct)
@@ -427,6 +243,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
     private static int RoleRank(WorkspaceRole role) => role switch
     {
+        WorkspaceRole.Owner => 4,
         WorkspaceRole.Admin => 3,
         WorkspaceRole.Editor => 2,
         WorkspaceRole.Viewer => 1,
@@ -438,7 +255,6 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         Id = e.Id,
         OwnerKind = e.OwnerKind.ToWorkspaceOwnerKind(),
         OwnerUserId = e.OwnerUserId,
-        OrganizationId = e.OrganizationId,
         Name = e.Name,
         IsDefault = e.IsDefault,
         CreatedAt = e.CreatedAt,
@@ -451,7 +267,6 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         Id = r.Id,
         OwnerKind = r.OwnerKind.ToStorageString(),
         OwnerUserId = r.OwnerUserId,
-        OrganizationId = r.OrganizationId,
         Name = r.Name,
         IsDefault = r.IsDefault,
         CreatedAt = r.CreatedAt,

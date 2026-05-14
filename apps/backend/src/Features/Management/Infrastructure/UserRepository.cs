@@ -134,7 +134,6 @@ internal sealed class UserRepository : IUserRepository
         NotificationPrefsJson = e.NotificationPrefsJson,
         Preferences = e.Preferences,
         CurrentWorkspaceId = e.CurrentWorkspaceId,
-        CurrentOrganizationId = e.CurrentOrganizationId,
     };
 
     private static UserEntity ToUserEntity(UserRecord r) => new()
@@ -152,17 +151,7 @@ internal sealed class UserRepository : IUserRepository
         NotificationPrefsJson = r.NotificationPrefsJson,
         Preferences = r.Preferences,
         CurrentWorkspaceId = r.CurrentWorkspaceId,
-        CurrentOrganizationId = r.CurrentOrganizationId,
     };
-
-    public async Task SetCurrentOrganizationAsync(Guid id, Guid? organizationId, CancellationToken ct = default)
-    {
-        var entity = await _eaosDbContext.Users.FirstOrDefaultAsync(u => u.Id == id, ct)
-            ?? throw new InvalidOperationException($"user {id} not found");
-
-        entity.CurrentOrganizationId = organizationId;
-        await _eaosDbContext.SaveChangesAsync(ct);
-    }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 

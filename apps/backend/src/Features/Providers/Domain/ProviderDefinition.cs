@@ -6,5 +6,5 @@ public sealed record ProviderDefinition(
     ApiFormat ApiFormat,
     string BaseUrl,
     IReadOnlyList<ModelDefinition> Models,
-    bool OrganizationProfileOnly = false,
+    bool ManagedCloudOnly = false,
     bool RequiresPinnedModels = false);
