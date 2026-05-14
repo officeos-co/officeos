@@ -284,10 +284,15 @@ function ResourceInspector({
   const [activeTab, setActiveTab] = useState<"logs" | "details">("logs");
   const health = resourceHealth(details);
   const healthState = resourceHealthState(details);
+  const healthBannerClass = healthState === "red"
+    ? "border-red-200 bg-red-50 text-danger"
+    : healthState === "idle"
+      ? "border-sky-200 bg-sky-50 text-sky-800"
+      : "border-amber-200 bg-amber-50 text-amber-800";
   return (
     <aside className="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] border-l border-border bg-panel">
       {health && healthState !== "green" ? (
-        <div className={`m-3 mb-0 rounded-md border p-3 text-sm ${healthState === "red" ? "border-red-200 bg-red-50 text-danger" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+        <div className={`m-3 mb-0 rounded-md border p-3 text-sm ${healthBannerClass}`}>
           <div className="font-medium">{health.reason ?? health.status ?? "Needs attention"}</div>
           <div className="mt-1 text-xs">{health.message ?? "Inspect the latest bootstrap run and logs."}</div>
           {health.lastBootstrapRunId ? <div className="mt-2 font-mono text-xs">run/{health.lastBootstrapRunId}</div> : null}
@@ -344,9 +349,11 @@ function StatusPill({ resource }: { resource: ResourceValue }) {
     ? "bg-green-500"
     : state === "orange"
       ? "bg-amber-500"
-      : state === "red"
-        ? "bg-red-500"
-        : "bg-muted-foreground";
+      : state === "idle"
+        ? "bg-sky-500"
+        : state === "red"
+          ? "bg-red-500"
+          : "bg-muted-foreground";
   return (
     <span className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs text-foreground">
       <span className={`size-2 shrink-0 rounded-full ${color}`} />

@@ -12,13 +12,29 @@ public sealed class AgentHealthProjectionTests
     {
         var definitionId = Guid.NewGuid();
         var agent = Agent(definitionId);
-        var run = Bootstrap(agent, definitionId, "completed");
+        var now = DateTime.UtcNow;
+        var run = Bootstrap(agent, definitionId, "completed", createdAt: now.AddSeconds(-1));
 
-        var health = AgentHealthProjection.From(agent, [run]);
+        var health = AgentHealthProjection.From(agent, [run], now);
 
         Assert.Equal("Healthy", health.Status);
         Assert.Equal("green", health.State);
         Assert.Equal("BootstrapSucceeded", health.Reason);
+    }
+
+    [Fact]
+    public void From_marks_agent_idle_when_bootstrapped_without_recent_activity()
+    {
+        var definitionId = Guid.NewGuid();
+        var agent = Agent(definitionId);
+        var now = DateTime.UtcNow;
+        var run = Bootstrap(agent, definitionId, "completed", createdAt: now.AddSeconds(-10));
+
+        var health = AgentHealthProjection.From(agent, [run], now);
+
+        Assert.Equal("Idle", health.Status);
+        Assert.Equal("idle", health.State);
+        Assert.Equal("AgentIdle", health.Reason);
     }
 
     [Fact]
@@ -65,8 +81,10 @@ public sealed class AgentHealthProjectionTests
         AgentRecord agent,
         Guid definitionId,
         string status,
-        string? error = null) => new()
+        string? error = null,
+        DateTime? createdAt = null) => new()
     {
+        Id = Guid.NewGuid(),
         AgentId = agent.Id,
         DefinitionId = definitionId,
         Purpose = AgentRunPurposeKinds.Bootstrap,
@@ -74,7 +92,8 @@ public sealed class AgentHealthProjectionTests
         Status = status,
         Prompt = "Bootstrap",
         Error = error,
-        CreatedAt = DateTime.UtcNow,
-        CompletedAt = status == "completed" || status == "failed" ? DateTime.UtcNow : null,
+        CreatedAt = createdAt ?? DateTime.UtcNow,
+        UpdatedAt = createdAt ?? DateTime.UtcNow,
+        CompletedAt = status == "completed" || status == "failed" ? createdAt ?? DateTime.UtcNow : null,
     };
 }

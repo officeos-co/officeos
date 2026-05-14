@@ -44,7 +44,7 @@ export interface DashboardUser {
 
 export interface ResourceHealth {
   status?: string;
-  state?: "green" | "orange" | "red" | string;
+  state?: "green" | "orange" | "red" | "idle" | string;
   reason?: string;
   message?: string;
   lastBootstrapRunId?: string | null;
@@ -99,11 +99,12 @@ export function resourceHealth(value: unknown): ResourceHealth | null {
   return health && typeof health === "object" ? health as ResourceHealth : null;
 }
 
-export function resourceHealthState(value: unknown): "green" | "orange" | "red" | "neutral" {
+export function resourceHealthState(value: unknown): "green" | "orange" | "red" | "idle" | "neutral" {
   const health = resourceHealth(value);
-  if (health?.state === "green" || health?.state === "orange" || health?.state === "red") return health.state;
+  if (health?.state === "green" || health?.state === "orange" || health?.state === "red" || health?.state === "idle") return health.state;
   const status = resourceStatus(value).toLowerCase();
   if (["active", "running", "enabled", "configured", "ready", "succeeded", "healthy"].includes(status)) return "green";
+  if (["idle"].includes(status)) return "idle";
   if (["pending", "queued", "booting", "restarting", "working", "degraded"].includes(status)) return "orange";
   if (["error", "failed", "disabled", "unconfigured", "canceled", "cancelled"].includes(status)) return "red";
   return "neutral";

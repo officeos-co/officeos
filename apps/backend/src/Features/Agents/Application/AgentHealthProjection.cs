@@ -11,7 +11,12 @@ public sealed record AgentHealthResult(
 
 internal static class AgentHealthProjection
 {
+    private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(5);
+
     public static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentRunRecord> runs)
+        => From(agent, runs, DateTime.UtcNow);
+
+    internal static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentRunRecord> runs, DateTime now)
     {
         var ordered = runs
             .Where(run => run.AgentId == agent.Id)
@@ -109,6 +114,25 @@ internal static class AgentHealthProjection
                 latestBootstrap.CompletedAt);
         }
 
+        var latestActivityAt = ordered.Count == 0
+            ? latestBootstrap.CompletedAt ?? latestBootstrap.UpdatedAt
+            : ordered
+                .Select(ActivityAt)
+                .DefaultIfEmpty(latestBootstrap.CompletedAt ?? latestBootstrap.UpdatedAt)
+                .Max();
+
+        if (now - latestActivityAt >= IdleAfter)
+        {
+            return new AgentHealthResult(
+                "Idle",
+                "idle",
+                "AgentIdle",
+                $"No agent run activity for at least {IdleAfter.TotalMinutes:0} minutes.",
+                latestBootstrap.Id,
+                latestBootstrap.CreatedAt,
+                latestBootstrap.CompletedAt);
+        }
+
         return new AgentHealthResult(
             "Healthy",
             "green",
@@ -118,6 +142,9 @@ internal static class AgentHealthProjection
             latestBootstrap.CreatedAt,
             latestBootstrap.CompletedAt);
     }
+
+    private static DateTime ActivityAt(AgentRunRecord run) =>
+        run.CompletedAt ?? run.UpdatedAt;
 
     private static bool IsQueued(string status) =>
         status.Equals("queued", StringComparison.OrdinalIgnoreCase);

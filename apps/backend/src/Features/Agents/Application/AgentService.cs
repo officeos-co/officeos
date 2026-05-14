@@ -295,7 +295,6 @@ internal sealed class AgentService : IAgentService
             }
         }
 
-        // Bootstrap message
         if (!string.IsNullOrWhiteSpace(init.BootstrapMessage))
         {
             await SendMessageAsync(

@@ -322,7 +322,7 @@ function resourceTooltip(node: ResourceNode, label: string): string {
   return details.join("\n");
 }
 
-type ResourceState = "green" | "orange" | "red" | "neutral";
+type ResourceState = "green" | "orange" | "red" | "idle" | "neutral";
 
 interface ResourceHealth {
   status?: string;
@@ -344,13 +344,17 @@ function resourceHealth(value: unknown): ResourceHealth | undefined {
 
 function resourceState(value: unknown): ResourceState {
   const health = resourceHealth(value);
-  if (health?.state === "green" || health?.state === "orange" || health?.state === "red") {
+  if (health?.state === "green" || health?.state === "orange" || health?.state === "red" || health?.state === "idle") {
     return health.state;
   }
 
   const status = resourceStatus(value).toLowerCase();
   if (["active", "running", "enabled", "configured", "ready", "succeeded", "healthy", "completed"].includes(status)) {
     return "green";
+  }
+
+  if (status === "idle") {
+    return "idle";
   }
 
   if (["pending", "queued", "booting", "restarting", "working", "degraded"].includes(status)) {

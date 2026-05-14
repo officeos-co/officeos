@@ -116,12 +116,14 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
         run.UpdatedAt = DateTime.UtcNow;
         await _agentRunRepository.UpdateAsync(run, ct);
         await AppendRunSystemLogAsync(run, agent.Id, "Run started.", ct);
+        await AppendRunPromptLogAsync(run, agent.Id, ct);
 
         var workspace = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeos-runs", run.Id.ToString("N"));
         Directory.CreateDirectory(workspace);
 
         try
         {
+            await WriteOpenCodeContextAsync(workspace, agent, ct);
             var model = ResolveModel(agent);
             var reportedError = false;
             var reportedErrorLines = new List<string>();
@@ -161,6 +163,26 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             _logger.LogError(ex, "OpenCode run {RunId} failed", run.Id);
             await CompleteAsync(run, "failed", null, ex.Message, ct);
         }
+    }
+
+    private static Task WriteOpenCodeContextAsync(string workspace, AgentRecord agent, CancellationToken ct)
+    {
+        var context = $"""
+        # OfficeOS Agent Context
+
+        Agent name: {agent.Name}
+        Provider: {agent.Provider}
+        Model: {agent.Model}
+
+        ## Role Instructions
+
+        These instructions define how the agent should behave during real tasks.
+        They are context, not a user task by themselves.
+
+        {agent.Prompt}
+        """;
+
+        return File.WriteAllTextAsync(Path.Combine(workspace, "AGENTS.md"), context, ct);
     }
 
     private async Task<OpenCodeLogEntry?> AppendOpenCodeEventAsync(AgentRunRecord run, AgentRecord agent, string line, string source, CancellationToken ct)
@@ -428,6 +450,29 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             RunId = run.Id,
             CorrelationId = run.Id.ToString("N"),
             MetadataJson = JsonSerializer.Serialize(new { run.Status, run.Kind }),
+        }, ct);
+    }
+
+    private Task AppendRunPromptLogAsync(AgentRunRecord run, Guid agentId, CancellationToken ct)
+    {
+        if (!run.Purpose.Equals(AgentRunPurposeKinds.Bootstrap, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+
+        return _agentLogService.AppendAsync(new AgentLogRecord
+        {
+            AgentId = agentId,
+            WorkspaceId = run.WorkspaceId,
+            ResourceKind = ResourceLogKinds.Run,
+            ResourceId = run.Id,
+            ResourceName = run.Id.ToString("N"),
+            ParentResourceKind = ResourceLogKinds.Agent,
+            ParentResourceId = agentId,
+            Type = AgentLogType.MessageIn,
+            Severity = ResourceLogSeverityKinds.Info,
+            Content = $"Bootstrap prompt: {run.Prompt}",
+            RunId = run.Id,
+            CorrelationId = run.Id.ToString("N"),
+            MetadataJson = JsonSerializer.Serialize(new { run.Purpose }),
         }, ct);
     }
 

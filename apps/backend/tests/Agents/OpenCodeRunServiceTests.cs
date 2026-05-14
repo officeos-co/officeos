@@ -105,6 +105,49 @@ public sealed class OpenCodeRunServiceTests
         Assert.Contains(logs.Records, log => log.Type == AgentLogType.System && log.Content.Contains("message.part.updated"));
     }
 
+    [Fact]
+    public async Task ExecuteQueuedRunAsync_sends_bootstrap_prompt_and_logs_it()
+    {
+        var agentId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        const string BootstrapPrompt = "Bootstrap this agent with the configured instructions.";
+        var run = new AgentRunRecord
+        {
+            Id = Guid.NewGuid(),
+            AgentId = agentId,
+            WorkspaceId = workspaceId,
+            Kind = "opencode",
+            Purpose = AgentRunPurposeKinds.Bootstrap,
+            Status = "queued",
+            Prompt = BootstrapPrompt,
+        };
+        var logs = new FakeAgentLogService();
+        var process = new RecordingOpenCodeProcessService();
+        var service = new OpenCodeRunService(
+            new FakeAgentRepository(new AgentRecord
+            {
+                Id = agentId,
+                WorkspaceId = workspaceId,
+                Name = "engineering-agent",
+                Provider = "openai",
+                Model = "gpt-4o-mini",
+                Status = AgentStatus.Idle,
+            }),
+            new RecordingRunRepository(run),
+            logs,
+            process,
+            NullLogger<OpenCodeRunService>.Instance);
+
+        await service.ExecuteQueuedRunAsync(run);
+
+        Assert.NotNull(process.Request);
+        Assert.Contains("run", process.Request.Arguments);
+        Assert.Contains("--format", process.Request.Arguments);
+        Assert.Equal(BootstrapPrompt, process.Request.Arguments[^1]);
+        Assert.Equal("completed", run.Status);
+        Assert.Contains(logs.Records, log => log.Type == AgentLogType.MessageIn && log.Content == $"Bootstrap prompt: {BootstrapPrompt}");
+    }
+
     private sealed class RecordingOpenCodeProcessService : IOpenCodeProcessService
     {
         public ProcessRunRequest? Request { get; private set; }

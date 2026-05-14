@@ -156,10 +156,9 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         var toolNames = request.ToolNames is { Count: > 0 }
             ? request.ToolNames
             : request.IntegrationSlugs;
-
         var bootstrap = !string.IsNullOrWhiteSpace(request.BootstrapMessage)
             ? request.BootstrapMessage
-            : request.Prompt;
+            : AgentPersonalityRecord.CreateBootstrapContent(agent.Prompt);
 
         await _agentService.InitializeAgentAsync(
             agent.Id,
@@ -222,7 +221,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
             new AgentInitRequest(
                 config.McpServers.Select(server => server.Name).ToList(),
                 null,
-                config.System),
+                AgentPersonalityRecord.CreateBootstrapContent(config.System)),
             ct);
         return true;
     }
