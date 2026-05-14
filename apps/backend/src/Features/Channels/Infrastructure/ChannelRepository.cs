@@ -2,6 +2,13 @@ namespace OffceOs.Infrastructure.Features.Channels;
 
 internal sealed class ChannelRepository : IChannelRepository
 {
+    private static readonly string[] SupportedChannelTypes =
+    [
+        ChannelType.Internal.ToStorageString(),
+        ChannelType.Slack.ToStorageString(),
+        ChannelType.Telegram.ToStorageString(),
+    ];
+
     private readonly EaosDbContext _eaosDbContext;
 
     public ChannelRepository(EaosDbContext db)
@@ -13,7 +20,8 @@ internal sealed class ChannelRepository : IChannelRepository
 
     public async Task<IReadOnlyList<ChannelConnectionRecord>> ListConnectionsAsync(ChannelConnectionFilter? filter = null, CancellationToken ct = default)
     {
-        var query = _eaosDbContext.ChannelConnections.AsNoTracking();
+        var query = _eaosDbContext.ChannelConnections.AsNoTracking()
+            .Where(c => SupportedChannelTypes.Contains(c.ChannelType));
 
         if (filter?.Id is { } id)
             query = query.Where(c => c.Id == id);
@@ -33,7 +41,9 @@ internal sealed class ChannelRepository : IChannelRepository
 
     public async Task<ChannelConnectionRecord?> GetConnectionByAsync(ChannelConnectionFilter filter, CancellationToken ct = default)
     {
-        var query = _eaosDbContext.ChannelConnections.AsQueryable();
+        var query = _eaosDbContext.ChannelConnections
+            .Where(c => SupportedChannelTypes.Contains(c.ChannelType))
+            .AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(c => c.Id == filter.Id.Value);
@@ -94,6 +104,7 @@ internal sealed class ChannelRepository : IChannelRepository
             .AsNoTracking()
             .Include(b => b.ChannelConnection)
             .Where(b => b.AgentId == agentId)
+            .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
             .OrderBy(b => b.CreatedAt)
             .ToListAsync(ct);
         return entities.Select(ToAgentChannelBindingRecord).ToList();
@@ -101,7 +112,10 @@ internal sealed class ChannelRepository : IChannelRepository
 
     public async Task<AgentChannelBindingRecord?> GetBindingByAsync(AgentChannelBindingFilter filter, CancellationToken ct = default)
     {
-        var query = _eaosDbContext.AgentChannelBindings.Include(b => b.ChannelConnection).AsQueryable();
+        var query = _eaosDbContext.AgentChannelBindings
+            .Include(b => b.ChannelConnection)
+            .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
+            .AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(b => b.Id == filter.Id.Value);
@@ -121,6 +135,7 @@ internal sealed class ChannelRepository : IChannelRepository
         var existing = await _eaosDbContext.AgentChannelBindings
             .AsNoTracking()
             .Include(b => b.ChannelConnection)
+            .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
             .FirstOrDefaultAsync(
                 b => b.AgentId == record.AgentId
                     && b.ChannelConnectionId == record.ChannelConnectionId,
@@ -141,6 +156,7 @@ internal sealed class ChannelRepository : IChannelRepository
             existing = await _eaosDbContext.AgentChannelBindings
                 .AsNoTracking()
                 .Include(b => b.ChannelConnection)
+                .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
                 .FirstOrDefaultAsync(
                     b => b.AgentId == record.AgentId
                         && b.ChannelConnectionId == record.ChannelConnectionId,
@@ -155,6 +171,7 @@ internal sealed class ChannelRepository : IChannelRepository
         var reloaded = await _eaosDbContext.AgentChannelBindings
             .AsNoTracking()
             .Include(b => b.ChannelConnection)
+            .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
             .FirstAsync(b => b.Id == entity.Id, ct);
         return ToAgentChannelBindingRecord(reloaded);
     }
@@ -163,6 +180,7 @@ internal sealed class ChannelRepository : IChannelRepository
     {
         var entity = await _eaosDbContext.AgentChannelBindings
             .Include(b => b.ChannelConnection)
+            .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
             .FirstOrDefaultAsync(b => b.Id == bindingId, ct);
         if (entity is null) return null;
         var record = ToAgentChannelBindingRecord(entity);
@@ -190,6 +208,7 @@ internal sealed class ChannelRepository : IChannelRepository
             .Include(b => b.Agent)
             .Include(b => b.ChannelConnection)
             .Where(b => b.ChannelConnectionId == connectionId)
+            .Where(b => b.ChannelConnection != null && SupportedChannelTypes.Contains(b.ChannelConnection.ChannelType))
             .OrderBy(b => b.CreatedAt)
             .ToListAsync(ct);
         return entities.Select(ToAgentChannelBindingRecord).ToList();

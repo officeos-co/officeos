@@ -15,6 +15,100 @@ namespace OffceOs.Tests.Channels;
 public sealed class ChannelServiceCrudTests
 {
     [Fact]
+    public async Task Repository_skips_legacy_unsupported_channel_connections()
+    {
+        await using var db = TestDbFactory.Create("channel-legacy-type");
+        var ownerId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        var supportedConnectionId = Guid.NewGuid();
+        var legacyConnectionId = Guid.NewGuid();
+
+        db.ChannelConnections.Add(new ChannelConnectionEntity
+        {
+            Id = supportedConnectionId,
+            ChannelType = ChannelType.Telegram.ToStorageString(),
+            DisplayName = "Telegram",
+            Enabled = true,
+            CreatedById = ownerId,
+            WorkspaceId = workspaceId,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.ChannelConnections.Add(new ChannelConnectionEntity
+        {
+            Id = legacyConnectionId,
+            ChannelType = "whatsapp",
+            DisplayName = "WhatsApp",
+            Enabled = true,
+            CreatedById = ownerId,
+            WorkspaceId = workspaceId,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var repository = new ChannelRepository(db);
+
+        var rows = await repository.ListConnectionsAsync(new ChannelConnectionFilter { WorkspaceId = workspaceId });
+        var legacy = await repository.GetConnectionByAsync(new ChannelConnectionFilter { Id = legacyConnectionId, WorkspaceId = workspaceId });
+
+        Assert.Equal(supportedConnectionId, Assert.Single(rows).Id);
+        Assert.Null(legacy);
+    }
+
+    [Fact]
+    public async Task Repository_skips_bindings_for_legacy_unsupported_channel_connections()
+    {
+        await using var db = TestDbFactory.Create("channel-legacy-binding");
+        var ownerId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
+        var supportedConnectionId = Guid.NewGuid();
+        var legacyConnectionId = Guid.NewGuid();
+
+        db.Agents.Add(TestAgent(agentId, ownerId, workspaceId, "Agent"));
+        db.ChannelConnections.Add(new ChannelConnectionEntity
+        {
+            Id = supportedConnectionId,
+            ChannelType = ChannelType.Telegram.ToStorageString(),
+            DisplayName = "Telegram",
+            Enabled = true,
+            CreatedById = ownerId,
+            WorkspaceId = workspaceId,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.ChannelConnections.Add(new ChannelConnectionEntity
+        {
+            Id = legacyConnectionId,
+            ChannelType = "whatsapp",
+            DisplayName = "WhatsApp",
+            Enabled = true,
+            CreatedById = ownerId,
+            WorkspaceId = workspaceId,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.AgentChannelBindings.Add(new AgentChannelBindingEntity
+        {
+            Id = Guid.NewGuid(),
+            AgentId = agentId,
+            ChannelConnectionId = supportedConnectionId,
+            Enabled = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.AgentChannelBindings.Add(new AgentChannelBindingEntity
+        {
+            Id = Guid.NewGuid(),
+            AgentId = agentId,
+            ChannelConnectionId = legacyConnectionId,
+            Enabled = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var rows = await new ChannelRepository(db).ListBindingsAsync(agentId);
+
+        Assert.Equal(supportedConnectionId, Assert.Single(rows).ChannelConnectionId);
+    }
+
+    [Fact]
     public async Task Connection_crud_supports_multiple_channels_of_same_kind_without_cross_updates()
     {
         await using var db = TestDbFactory.Create("channel-crud");
