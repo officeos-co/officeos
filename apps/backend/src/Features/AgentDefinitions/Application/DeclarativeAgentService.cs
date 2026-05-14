@@ -23,7 +23,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         DeclarativeResourceKindItem.Routine,
     ];
 
-    private readonly IAgentDashboardService _agentDashboardService;
+    private readonly IAgentLifecycleService _agentLifecycleService;
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
@@ -41,7 +41,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly CredentialProtector? _credentialProtector;
 
     public DeclarativeAgentService(
-        IAgentDashboardService agentDashboardService,
+        IAgentLifecycleService agentLifecycleService,
         IAgentRepository agentRepository,
         IAgentDefinitionRepository agentDefinitionRepository,
         IAgentSessionRepository agentSessionRepository,
@@ -58,7 +58,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         IProviderResourceRepository? providerResourceRepository = null,
         CredentialProtector? credentialProtector = null)
     {
-        _agentDashboardService = agentDashboardService;
+        _agentLifecycleService = agentLifecycleService;
         _agentRepository = agentRepository;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentSessionRepository = agentSessionRepository;
@@ -548,8 +548,8 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         var existing = await FindAgentByNameAsync(resource.Name, workspaceId, ct);
         if (existing is null)
         {
-            var created = await _agentDashboardService.CreateAsync(
-                new CreateDashboardAgentRequest(
+            var created = await _agentLifecycleService.CreateAsync(
+                new CreateAgentLifecycleRequest(
                     config.Name,
                     spec.Provider.Trim().ToLowerInvariant(),
                     config.Model,
@@ -567,7 +567,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             return (created, new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "create", created.Id.ToString(), "Created agent."));
         }
 
-        var patched = await _agentDashboardService.PatchAsync(
+        var patched = await _agentLifecycleService.PatchAsync(
             existing.Id,
             ownerId,
             workspaceId,

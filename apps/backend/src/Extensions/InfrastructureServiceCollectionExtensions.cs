@@ -18,7 +18,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIntegrationCredentialRepository, IntegrationCredentialRepository>();
         services.AddScoped<IIntegrationDeploymentRepository, IntegrationDeploymentRepository>();
         services.AddScoped<IMemoryStoreRepository, MemoryStoreRepository>();
-        services.AddScoped<IOAuthTokenRepository, OAuthTokenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IDeviceCodeRepository, DeviceCodeRepository>();
         services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
@@ -49,7 +48,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIntegrationCredentialEncryptionService, IntegrationCredentialEncryptionService>();
 
         // HTTP clients
-        services.AddHttpClient<IPostHogService, PostHogService>();
         services.AddHttpClient("vault-transit");
         services.AddHttpClient("agent-proxy");
         services.AddHttpClient("llm-proxy");

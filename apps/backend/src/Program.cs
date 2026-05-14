@@ -17,7 +17,7 @@ string? FindRootEnvFile()
 static bool IsDevelopmentEnvironmentName(string? environmentName) =>
     string.Equals(environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase);
 
-const string FrontendCorsPolicy = "control-plane";
+const string ResourceCorsPolicy = "resource-api";
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -218,17 +218,13 @@ var browserRuntimeConfig = new BrowserRuntimeConfig
 };
 builder.Services.AddSingleton(browserRuntimeConfig);
 
-// PostHog
-var postHogConfig = RequireSection<PostHogConfig>("PostHog");
-builder.Services.AddSingleton(postHogConfig);
-
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UserContext>();
 
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(FrontendCorsPolicy, policy =>
+    options.AddPolicy(ResourceCorsPolicy, policy =>
     {
         policy
             .WithOrigins(frontendOrigins)
@@ -269,7 +265,7 @@ app.UseSerilogRequestLogging(options =>
 });
 
 app.UseRouting();
-app.UseCors(FrontendCorsPolicy);
+app.UseCors(ResourceCorsPolicy);
 app.UseMiddleware<SessionAuthMiddleware>();
 
 app.MapControllers();

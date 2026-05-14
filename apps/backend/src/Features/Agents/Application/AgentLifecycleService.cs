@@ -1,6 +1,6 @@
 namespace OffceOs.Application.Features.Agents;
 
-internal sealed class AgentDashboardService : IAgentDashboardService
+internal sealed class AgentLifecycleService : IAgentLifecycleService
 {
     private readonly IAgentService _agentService;
     private readonly IAgentRepository _agentRepository;
@@ -16,7 +16,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IAgentRoutineService _agentRoutineService;
 
-    public AgentDashboardService(
+    public AgentLifecycleService(
         IAgentService agents,
         IAgentRepository agentRepository,
         IAgentSessionRepository sessions,
@@ -46,22 +46,23 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         _agentRoutineService = agentRoutineService;
     }
 
-    public async Task<IReadOnlyList<AgentDashboardResult>> ListDashboardAgentsAsync(
+    public async Task<IReadOnlyList<AgentLifecycleResult>> ListAgentsAsync(
         Guid ownerId,
         Guid workspaceId,
         CancellationToken ct = default)
     {
         var agents = await _agentRepository.ListAsync(new AgentFilter { WorkspaceId = workspaceId }, ct);
-        var lastMessages = await _agentLogService.GetLastRelevantMessagesForAgentsAsync(
-            agents.Select(agent => agent.Id).ToList(),
-            workspaceId,
+        var lastMessages = await _agentLogService.GetLastRelevantMessagesAsync(
+            new LastRelevantLogQueryRequest(
+                AgentIds: agents.Select(agent => agent.Id).ToList(),
+                WorkspaceId: workspaceId),
             ct);
 
-        var results = new List<AgentDashboardResult>(agents.Count);
+        var results = new List<AgentLifecycleResult>(agents.Count);
         foreach (var agent in agents)
         {
             var status = await ResolveStatusAsync(agent, ct);
-            results.Add(new AgentDashboardResult(
+            results.Add(new AgentLifecycleResult(
                 agent,
                 status,
                 lastMessages.TryGetValue(agent.Id, out var lastMessage) ? lastMessage : null));
@@ -70,7 +71,7 @@ internal sealed class AgentDashboardService : IAgentDashboardService
         return results;
     }
 
-    public async Task<AgentDashboardResult?> GetDashboardAgentAsync(
+    public async Task<AgentLifecycleResult?> GetAgentAsync(
         Guid id,
         Guid ownerId,
         Guid workspaceId,
@@ -81,11 +82,14 @@ internal sealed class AgentDashboardService : IAgentDashboardService
             return null;
 
         var status = await ResolveStatusAsync(agent, ct);
-        var lastMessage = await _agentLogService.GetLastRelevantMessageForAgentAsync(agent.Id, workspaceId, ct);
-        return new AgentDashboardResult(agent, status, lastMessage);
+        var lastMessages = await _agentLogService.GetLastRelevantMessagesAsync(
+            new LastRelevantLogQueryRequest(AgentIds: [agent.Id], WorkspaceId: workspaceId),
+            ct);
+        var lastMessage = lastMessages.TryGetValue(agent.Id, out var value) ? value : null;
+        return new AgentLifecycleResult(agent, status, lastMessage);
     }
 
-    public async Task<AgentRecord> CreateAsync(CreateDashboardAgentRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<AgentRecord> CreateAsync(CreateAgentLifecycleRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         await EnsureChannelConnectionsExistAsync(request.ChannelConnectionIds, workspaceId, ct);
         var definitionConfig = string.IsNullOrWhiteSpace(request.ConfigJson)

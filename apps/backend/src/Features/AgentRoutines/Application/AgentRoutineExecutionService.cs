@@ -4,17 +4,20 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
 {
     private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly IAgentLogService _agentLogService;
+    private readonly IAgentService _agentService;
     private readonly CredentialProtector _credentialProtector;
     private readonly ILogger<AgentRoutineExecutionService> _logger;
 
     public AgentRoutineExecutionService(
         IAgentRoutineRepository agentRoutineRepository,
         IAgentLogService agentLogService,
+        IAgentService agentService,
         CredentialProtector credentialProtector,
         ILogger<AgentRoutineExecutionService> logger)
     {
         _agentRoutineRepository = agentRoutineRepository;
         _agentLogService = agentLogService;
+        _agentService = agentService;
         _credentialProtector = credentialProtector;
         _logger = logger;
     }
@@ -121,7 +124,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
     private async Task ExecuteAsync(AgentRoutineRecord routine, AgentRoutineTriggerRecord trigger, DateTime now, string? payloadJson, CancellationToken ct)
     {
         var prompt = BuildPrompt(routine, trigger, payloadJson);
-        await _agentLogService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct);
+        await _agentService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct);
         routine.MarkTriggered(now);
         trigger.MarkTriggered(now);
     }

@@ -1,7 +1,7 @@
 namespace OffceOs.Api.Features.AgentDefinitions;
 
 [ApiController]
-[Route("api/control-plane/v1/manifests")]
+[Route("api/v1/manifests")]
 public sealed class AgentDefinitionManifestController : ControllerBase
 {
     [HttpPost("validate")]

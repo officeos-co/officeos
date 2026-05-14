@@ -9,8 +9,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentEntity> Agents => Set<AgentEntity>();
     public DbSet<AgentDefinitionEntity> AgentDefinitions => Set<AgentDefinitionEntity>();
 
-    public DbSet<OAuthTokenEntity> OAuthTokens => Set<OAuthTokenEntity>();
-    public DbSet<OAuthGrantedScopeEntity> OAuthGrantedScopes => Set<OAuthGrantedScopeEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<WorkspaceEntity> Workspaces => Set<WorkspaceEntity>();
     public DbSet<WorkspaceMemberEntity> WorkspaceMembers => Set<WorkspaceMemberEntity>();
@@ -69,26 +67,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(d => d.ConfigJson).IsRequired().HasColumnType("jsonb");
             e.Property(d => d.ConfigHash).IsRequired().HasMaxLength(128);
             e.HasOne(d => d.Agent).WithMany().HasForeignKey(d => d.AgentId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<OAuthTokenEntity>(e =>
-        {
-            e.HasKey(o => o.Id);
-            e.HasIndex(o => o.UserId);
-            e.HasIndex(o => new { o.UserId, o.Provider }).IsUnique();
-            e.Property(o => o.Provider).IsRequired().HasMaxLength(32);
-            e.Property(o => o.EncryptedAccessToken);
-            e.Property(o => o.EncryptedRefreshToken).HasMaxLength(16384);
-            e.Property(o => o.Email).HasMaxLength(256);
-            e.HasOne<UserEntity>().WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.Cascade);
-            e.HasMany(o => o.GrantedScopes).WithOne(s => s.OAuthToken).HasForeignKey(s => s.OAuthTokenId).OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<OAuthGrantedScopeEntity>(e =>
-        {
-            e.HasKey(s => s.Id);
-            e.HasIndex(s => new { s.OAuthTokenId, s.Scope }).IsUnique();
-            e.Property(s => s.Scope).IsRequired().HasMaxLength(512);
         });
 
         modelBuilder.Entity<UserEntity>(e =>

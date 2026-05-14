@@ -1,7 +1,7 @@
 namespace OffceOs.Api.Features.Management;
 
 [ApiController]
-[Route("api/control-plane/v1")]
+[Route("api/v1")]
 public sealed class ManagementDeviceAuthController : ControllerBase
 {
     [HttpGet("me")]

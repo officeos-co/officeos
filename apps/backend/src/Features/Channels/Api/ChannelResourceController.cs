@@ -1,7 +1,7 @@
 namespace OffceOs.Api.Features.Channels;
 
 [ApiController]
-[Route("api/control-plane/v1/resources")]
+[Route("api/v1/resources")]
 public sealed class ChannelResourceController : ControllerBase
 {
     [HttpGet("channels")]

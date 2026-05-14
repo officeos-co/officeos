@@ -12,7 +12,7 @@ internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedE
     public Task Handle(AgentCreatedEvent notification, CancellationToken ct)
     {
         _ = ct;
-        _logger.LogInformation("Agent {AgentId} registered for control-plane execution; no backend harness pod is deployed.", notification.AgentId);
+        _logger.LogInformation("Agent {AgentId} registered for resource API execution; no backend harness pod is deployed.", notification.AgentId);
         return Task.CompletedTask;
     }
 }

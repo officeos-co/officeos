@@ -160,17 +160,6 @@ internal static class FakeIntegrationCredentialRecordExtensions
         };
 }
 
-public sealed class FakeOAuthTokenRepository : IOAuthTokenRepository
-{
-    public Task<OAuthTokenRecord?> GetByAsync(OAuthTokenFilter filter, CancellationToken ct = default) =>
-        Task.FromResult<OAuthTokenRecord?>(null);
-
-    public Task UpsertAsync(OAuthTokenRecord token, CancellationToken ct = default) => Task.CompletedTask;
-
-    public Task<bool> DeleteAsync(OAuthTokenFilter filter, CancellationToken ct = default) =>
-        Task.FromResult(false);
-}
-
 public sealed class FakeIntegrationCredentialEncryptionService : IIntegrationCredentialEncryptionService
 {
     public Task<string> ProtectAsync(Dictionary<string, string> secret, CancellationToken ct = default) =>

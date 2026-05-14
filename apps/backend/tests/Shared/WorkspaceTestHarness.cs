@@ -30,7 +30,7 @@ public sealed record WorkspaceTestHarness(
     IWorkspaceService Workspaces,
     IIntegrationDeploymentService IntegrationDeployments,
     IIntegrationDefinitionService Integrations,
-    IAgentDashboardService AgentDashboard,
+    IAgentLifecycleService AgentLifecycle,
     IAgentRepository Agents)
 {
     public static WorkspaceTestHarness Create(EaosDbContext db)
@@ -63,7 +63,7 @@ public sealed record WorkspaceTestHarness(
             integrationService,
             agentDefinitionRepository,
             agentDefinitionParser);
-        var agentDashboard = new AgentDashboardService(
+        var agentResource = new AgentLifecycleService(
             agentService,
             agentRepository,
             new AgentSessionRepository(db),
@@ -92,7 +92,7 @@ public sealed record WorkspaceTestHarness(
             new WorkspaceService(workspaceRepository, workspaceMemberRepository, new FakeAgentLogService(), cache),
             new IntegrationDeploymentService(integrationDeploymentRepository, workspaceMemberRepository, new FakeAgentLogService()),
             integrationService,
-            agentDashboard,
+            agentResource,
             agentRepository);
     }
 

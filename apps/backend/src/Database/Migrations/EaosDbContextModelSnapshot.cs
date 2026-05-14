@@ -995,72 +995,6 @@ namespace OffceOs.Database.Migrations
                     b.ToTable("MemoryStoreEntries");
                 });
 
-            modelBuilder.Entity("OffceOs.Database.Models.OAuthGrantedScopeEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("OAuthTokenId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OAuthTokenId", "Scope")
-                        .IsUnique();
-
-                    b.ToTable("OAuthGrantedScopes");
-                });
-
-            modelBuilder.Entity("OffceOs.Database.Models.OAuthTokenEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("EncryptedAccessToken")
-                        .HasColumnType("text");
-
-                    b.Property<string>("EncryptedRefreshToken")
-                        .HasMaxLength(16384)
-                        .HasColumnType("character varying(16384)");
-
-                    b.Property<DateTime?>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "Provider")
-                        .IsUnique();
-
-                    b.ToTable("OAuthTokens");
-                });
-
             modelBuilder.Entity("OffceOs.Database.Models.ProviderResourceEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1696,26 +1630,6 @@ namespace OffceOs.Database.Migrations
                     b.Navigation("MemoryStore");
                 });
 
-            modelBuilder.Entity("OffceOs.Database.Models.OAuthGrantedScopeEntity", b =>
-                {
-                    b.HasOne("OffceOs.Database.Models.OAuthTokenEntity", "OAuthToken")
-                        .WithMany("GrantedScopes")
-                        .HasForeignKey("OAuthTokenId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("OAuthToken");
-                });
-
-            modelBuilder.Entity("OffceOs.Database.Models.OAuthTokenEntity", b =>
-                {
-                    b.HasOne("OffceOs.Database.Models.UserEntity", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("OffceOs.Database.Models.ProviderResourceEntity", b =>
                 {
                     b.HasOne("OffceOs.Database.Models.WorkspaceEntity", "Workspace")
@@ -1799,10 +1713,6 @@ namespace OffceOs.Database.Migrations
                     b.Navigation("Triggers");
                 });
 
-            modelBuilder.Entity("OffceOs.Database.Models.OAuthTokenEntity", b =>
-                {
-                    b.Navigation("GrantedScopes");
-                });
 #pragma warning restore 612, 618
         }
     }

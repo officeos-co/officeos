@@ -1,6 +1,6 @@
 namespace OffceOs.Application.Features.Agents;
 
-internal sealed class OpenCodeRunService : IControlPlaneRunService
+internal sealed class OpenCodeRunService : IAgentRunExecutionService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -24,7 +24,7 @@ internal sealed class OpenCodeRunService : IControlPlaneRunService
         _logger = logger;
     }
 
-    public async Task<ControlPlaneRunResult> CreateAsync(CreateControlPlaneRunRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<AgentRunExecutionResult> CreateAsync(CreateAgentRunExecutionRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         var agent = await ResolveAgentAsync(request.AgentRef, workspaceId, ct)
             ?? throw new InvalidOperationException($"Agent '{request.AgentRef}' was not found.");
@@ -54,7 +54,7 @@ internal sealed class OpenCodeRunService : IControlPlaneRunService
             CorrelationId = run.Id.ToString("N"),
         }, ct);
 
-        return new ControlPlaneRunResult(run, "opencode", engineRef);
+        return new AgentRunExecutionResult(run, "opencode", engineRef);
     }
 
     public Task<IReadOnlyList<AgentRunRecord>> ListAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default)
@@ -86,11 +86,15 @@ internal sealed class OpenCodeRunService : IControlPlaneRunService
         return true;
     }
 
-    public async Task<ControlPlaneRunLogResult> LogsAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<AgentRunLogResult> LogsAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
     {
         _ = ownerId;
-        var entries = await _agentLogService.ListForRunAsync(runId, workspaceId, 500, ct);
-        return new ControlPlaneRunLogResult(entries);
+        var page = await _agentLogService.ListAsync(new AgentLogQueryRequest(
+            WorkspaceId: workspaceId,
+            RunId: runId,
+            Limit: 500,
+            Sort: AgentLogSort.TimeAscending), ct);
+        return new AgentRunLogResult(page.Items);
     }
 
     public async Task ExecuteQueuedRunAsync(AgentRunRecord run, CancellationToken ct = default)

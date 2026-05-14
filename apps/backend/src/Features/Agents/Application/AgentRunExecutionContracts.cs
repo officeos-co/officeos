@@ -1,6 +1,6 @@
 namespace OffceOs.Application.Features.Agents;
 
-public sealed record CreateControlPlaneRunRequest(
+public sealed record CreateAgentRunExecutionRequest(
     string AgentRef,
     string Task,
     string? EngineRef,
@@ -9,21 +9,21 @@ public sealed record CreateControlPlaneRunRequest(
     string? InputJson,
     bool Wait);
 
-public sealed record ControlPlaneRunResult(
+public sealed record AgentRunExecutionResult(
     AgentRunRecord Run,
     string EngineType,
     string EngineRef);
 
-public sealed record ControlPlaneRunLogResult(
+public sealed record AgentRunLogResult(
     IReadOnlyList<AgentLogRecord> Entries);
 
-public interface IControlPlaneRunService
+public interface IAgentRunExecutionService
 {
-    Task<ControlPlaneRunResult> CreateAsync(CreateControlPlaneRunRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
+    Task<AgentRunExecutionResult> CreateAsync(CreateAgentRunExecutionRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<IReadOnlyList<AgentRunRecord>> ListAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<AgentRunRecord?> GetAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task<bool> CancelAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
-    Task<ControlPlaneRunLogResult> LogsAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
+    Task<AgentRunLogResult> LogsAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default);
     Task ExecuteQueuedRunAsync(AgentRunRecord run, CancellationToken ct = default);
 }
 

@@ -226,6 +226,18 @@ internal sealed class AgentService : IAgentService
         return deleted;
     }
 
+    public async Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
+    {
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId }, ct);
+        if (agent is null)
+            throw new InvalidOperationException($"Agent {agentId} not found");
+
+        var correlationId = Guid.NewGuid().ToString("N");
+        var record = await _agentLogService.AppendAsync(AgentLogRecord.MessageIn(agentId, content, correlationId));
+        await _publisher.Publish(new MessageReceivedEvent(agentId, content, correlationId), ct);
+        return record;
+    }
+
     public async Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default)
     {
         await _agentChannelBinder.BindByConnectionIdsAsync(agentId, init.ChannelConnectionIds, ct);
@@ -275,7 +287,7 @@ internal sealed class AgentService : IAgentService
         // Bootstrap message
         if (!string.IsNullOrWhiteSpace(init.BootstrapMessage))
         {
-            await _agentLogService.SendMessageAsync(agentId, init.BootstrapMessage, userId, ct);
+            await SendMessageAsync(agentId, init.BootstrapMessage, userId, ct);
         }
     }
 

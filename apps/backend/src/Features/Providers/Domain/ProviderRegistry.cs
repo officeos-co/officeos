@@ -150,7 +150,7 @@ public static class ProviderRegistry
         rawTokens * GetCostWeight(model);
 
     public static IReadOnlyDictionary<string, int> GetCostWeights() =>
-        DashboardProviders
+        ResourceProviders
             .SelectMany(p => p.Models)
             .ToDictionary(m => m.Id, m => m.CostWeight, StringComparer.OrdinalIgnoreCase);
 
@@ -168,8 +168,8 @@ public static class ProviderRegistry
     public static string? GetSmartRouteModel(string providerSlug, SmartRoutingTier tier) =>
         SmartRouteMap.GetValueOrDefault((providerSlug, tier));
 
-    /// <summary>Providers that expose selectable models in the dashboard.</summary>
-    public static IReadOnlyList<ProviderDefinition> DashboardProviders =>
+    /// <summary>Providers that expose selectable models in the resource API.</summary>
+    public static IReadOnlyList<ProviderDefinition> ResourceProviders =>
         All.Where(p => p.Models.Count > 0 && !p.ManagedCloudOnly).ToList();
 
     public const string DefaultModel = "auto";

@@ -1,7 +1,7 @@
 namespace OffceOs.Api.Features.Observability;
 
 [ApiController]
-[Route("api/control-plane/v1/resources")]
+[Route("api/v1/resources")]
 public sealed class ResourceLogController : ControllerBase
 {
     [HttpGet("{kind}/{name}/logs")]
@@ -27,17 +27,17 @@ public sealed class ResourceLogController : ControllerBase
             return BadRequest(new { error = $"Log type '{type}' is not supported." });
 
         var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
-        var items = await logs.ListForResourceAsync(new ResourceLogQueryRequest(
-            NormalizeResourceLogKind(kind),
-            name,
-            scope.Value.WorkspaceId,
-            resourceId,
-            tail ?? 100,
-            sinceTime ?? ParseSince(since),
-            parsedType,
-            severity), ct);
+        var page = await logs.ListAsync(new AgentLogQueryRequest(
+            WorkspaceId: scope.Value.WorkspaceId,
+            ResourceKind: NormalizeResourceLogKind(kind),
+            ResourceName: name,
+            ResourceId: resourceId,
+            Type: parsedType,
+            Severity: severity,
+            FromInclusive: sinceTime ?? ParseSince(since),
+            Limit: tail ?? 100), ct);
 
-        var lines = items
+        var lines = page.Items
             .OrderBy(item => item.Time)
             .ThenBy(item => item.Id)
             .Select(FormatResourceLogLine);

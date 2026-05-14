@@ -1,7 +1,7 @@
 namespace OffceOs.Api.Features.Agents;
 
 [ApiController]
-[Route("api/control-plane/v1")]
+[Route("api/v1")]
 public sealed class AgentResourceController : ControllerBase
 {
     [HttpGet("resources/agents")]
@@ -39,7 +39,7 @@ public sealed class AgentResourceController : ControllerBase
     public async Task<IActionResult> DeleteAgent(
         string name,
         [FromServices] IWorkspaceService workspaces,
-        [FromServices] IAgentDashboardService agents,
+        [FromServices] IAgentLifecycleService agents,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
@@ -102,7 +102,7 @@ public sealed class AgentResourceController : ControllerBase
     [HttpPost("runs")]
     public async Task<IActionResult> CreateRun(
         [FromBody] AgentRunInput input,
-        [FromServices] IControlPlaneRunService runs,
+        [FromServices] IAgentRunExecutionService runs,
         [FromServices] IWorkspaceService workspaces,
         CancellationToken ct)
     {
@@ -111,7 +111,7 @@ public sealed class AgentResourceController : ControllerBase
 
         try
         {
-            return Ok(await runs.CreateAsync(new CreateControlPlaneRunRequest(
+            return Ok(await runs.CreateAsync(new CreateAgentRunExecutionRequest(
                 input.AgentRef,
                 input.Task,
                 input.EngineRef,
@@ -128,7 +128,7 @@ public sealed class AgentResourceController : ControllerBase
 
     [HttpGet("runs")]
     public async Task<IActionResult> ListRuns(
-        [FromServices] IControlPlaneRunService runs,
+        [FromServices] IAgentRunExecutionService runs,
         [FromServices] IWorkspaceService workspaces,
         CancellationToken ct)
     {
@@ -140,7 +140,7 @@ public sealed class AgentResourceController : ControllerBase
     [HttpGet("runs/{runId:guid}")]
     public async Task<IActionResult> GetRun(
         Guid runId,
-        [FromServices] IControlPlaneRunService runs,
+        [FromServices] IAgentRunExecutionService runs,
         [FromServices] IWorkspaceService workspaces,
         CancellationToken ct)
     {
@@ -153,7 +153,7 @@ public sealed class AgentResourceController : ControllerBase
     [HttpPost("runs/{runId:guid}/cancel")]
     public async Task<IActionResult> CancelRun(
         Guid runId,
-        [FromServices] IControlPlaneRunService runs,
+        [FromServices] IAgentRunExecutionService runs,
         [FromServices] IWorkspaceService workspaces,
         CancellationToken ct)
     {
@@ -167,7 +167,7 @@ public sealed class AgentResourceController : ControllerBase
     [HttpGet("runs/{runId:guid}/logs")]
     public async Task<IActionResult> GetRunLogs(
         Guid runId,
-        [FromServices] IControlPlaneRunService runs,
+        [FromServices] IAgentRunExecutionService runs,
         [FromServices] IWorkspaceService workspaces,
         CancellationToken ct)
     {

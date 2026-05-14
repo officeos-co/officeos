@@ -5,7 +5,7 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IAgentService, AgentService>();
-        services.AddScoped<IAgentDashboardService, AgentDashboardService>();
+        services.AddScoped<IAgentLifecycleService, AgentLifecycleService>();
         services.AddScoped<IAgentRoutineService, AgentRoutineService>();
         services.AddScoped<AgentRoutineExecutionService>();
         services.AddScoped<IAgentRoutineExecutionService>(provider => provider.GetRequiredService<AgentRoutineExecutionService>());
@@ -17,9 +17,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
-        services.AddScoped<GitHubIntegrationClient>();
         services.AddScoped<IAgentLogService, AgentLogService>();
-        services.AddScoped<IControlPlaneRunService, OpenCodeRunService>();
+        services.AddScoped<IAgentRunExecutionService, OpenCodeRunService>();
         services.AddScoped<AgentDefinitionParser>();
         services.AddScoped<DeclarativeManifestParser>();
         services.AddScoped<IDeclarativeAgentService, DeclarativeAgentService>();

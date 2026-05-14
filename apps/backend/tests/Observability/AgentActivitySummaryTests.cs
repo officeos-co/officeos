@@ -41,7 +41,9 @@ public sealed class AgentActivitySummaryTests
             Time = DateTime.UtcNow,
         });
 
-        var message = await service.GetLastRelevantMessageForAgentAsync(agentId, workspaceId);
+        var messages = await service.GetLastRelevantMessagesAsync(
+            new LastRelevantLogQueryRequest(AgentIds: [agentId], WorkspaceId: workspaceId));
+        var message = messages[agentId];
 
         Assert.Equal("Please check deployment", message);
     }
@@ -74,7 +76,9 @@ public sealed class AgentActivitySummaryTests
             Time = DateTime.UtcNow,
         });
 
-        var message = await service.GetLastRelevantMessageForChannelConnectionAsync(channelConnectionId, workspaceId);
+        var messages = await service.GetLastRelevantMessagesAsync(
+            new LastRelevantLogQueryRequest(ChannelConnectionIds: [channelConnectionId], WorkspaceId: workspaceId));
+        var message = messages[channelConnectionId];
 
         Assert.Equal("Deploy is fixed", message);
     }
@@ -98,7 +102,9 @@ public sealed class AgentActivitySummaryTests
             Time = DateTime.UtcNow,
         });
 
-        var message = await service.GetLastRelevantMessageForAgentAsync(agentId, workspaceId);
+        var messages = await service.GetLastRelevantMessagesAsync(
+            new LastRelevantLogQueryRequest(AgentIds: [agentId], WorkspaceId: workspaceId));
+        var message = messages[agentId];
 
         Assert.Equal("shell finished: build passed", message);
     }
@@ -129,18 +135,17 @@ public sealed class AgentActivitySummaryTests
             Time = DateTime.UtcNow,
         });
 
-        var logs = await service.AgentLogs(agentId, workspaceId).ToListAsync();
+        var page = await service.ListAsync(new AgentLogQueryRequest(
+            WorkspaceId: workspaceId,
+            AgentId: agentId,
+            Sort: AgentLogSort.TimeAscending));
 
-        var log = Assert.Single(logs);
+        var log = Assert.Single(page.Items);
         Assert.Equal("Ready", log.Content);
     }
 
     private static AgentLogService CreateService(EaosDbContext db) =>
-        new(
-            new AgentLogRepository(db),
-            new AgentRepository(db),
-            new NoopPublisher(),
-            NullLogger<AgentLogService>.Instance);
+        new(new AgentLogRepository(db));
 
     private static async Task AddAgentAsync(EaosDbContext db, Guid agentId, Guid workspaceId)
     {

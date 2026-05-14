@@ -154,16 +154,17 @@ public sealed class AgentRoutineEndToEndTests
         Assert.Contains("\"full_name\":\"acme/platform\"", sent.Content);
     }
 
-    private static (IAgentRoutineService Service, AgentRoutineExecutionService Execution, RecordingAgentLogService Logs) CreateServices(EaosDbContext db)
+    private static (IAgentRoutineService Service, AgentRoutineExecutionService Execution, RecordingAgentService Logs) CreateServices(EaosDbContext db)
     {
         var agentRepository = new AgentRepository(db);
         var routineRepository = new AgentRoutineRepository(db);
         var logs = new RecordingAgentLogService();
+        var agents = new RecordingAgentService();
         var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-routine-test-keys-{Guid.NewGuid():N}");
         var credentialProtector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
         var service = new AgentRoutineService(routineRepository, agentRepository, credentialProtector);
-        var execution = new AgentRoutineExecutionService(routineRepository, logs, credentialProtector, NullLogger<AgentRoutineExecutionService>.Instance);
-        return (service, execution, logs);
+        var execution = new AgentRoutineExecutionService(routineRepository, logs, agents, credentialProtector, NullLogger<AgentRoutineExecutionService>.Instance);
+        return (service, execution, agents);
     }
 
     private static async Task<(Guid OwnerId, Guid WorkspaceId, Guid AgentId)> SeedAgentAsync(EaosDbContext db)
@@ -223,65 +224,46 @@ public sealed class AgentRoutineEndToEndTests
 
     private sealed class RecordingAgentLogService : IAgentLogService
     {
-        public List<(Guid AgentId, string Content, Guid UserId)> Messages { get; } = [];
+        public Task<AgentLogPage> ListAsync(AgentLogQueryRequest request, CancellationToken ct = default) =>
+            Task.FromResult(new AgentLogPage([], 0));
 
-        public IQueryable<AgentLogProjection> AgentLogs(Guid agentId, Guid? workspaceId = null) =>
-            Enumerable.Empty<AgentLogProjection>().AsQueryable();
-
-        public IQueryable<AgentLogProjection> ChannelLogs(Guid channelConnectionId, Guid? workspaceId = null) =>
-            Enumerable.Empty<AgentLogProjection>().AsQueryable();
-
-        public IQueryable<AgentLogProjection> GlobalLogs(GlobalLogFiltersRequest filters, Guid? workspaceId = null) =>
-            Enumerable.Empty<AgentLogProjection>().AsQueryable();
-
-        public IQueryable<AuditEntry> AuditLog(Guid agentId, Guid? workspaceId = null) =>
-            Enumerable.Empty<AuditEntry>().AsQueryable();
-
-        public Task<List<AgentLogRecord>> ListForAgentAsync(Guid agentId, DateTime? before, int limit, CancellationToken ct = default) =>
-            Task.FromResult(new List<AgentLogRecord>());
-
-        public Task<List<AgentLogRecord>> ListForRunAsync(Guid runId, Guid workspaceId, int limit, CancellationToken ct = default) =>
-            Task.FromResult(new List<AgentLogRecord>());
-
-        public Task<List<AgentLogRecord>> ListForChannelConnectionAsync(Guid channelConnectionId, DateTime? before, int limit, CancellationToken ct = default) =>
-            Task.FromResult(new List<AgentLogRecord>());
-
-        public Task<List<AgentLogRecord>> ListForResourceAsync(ResourceLogQueryRequest request, CancellationToken ct = default) =>
-            Task.FromResult(new List<AgentLogRecord>());
-
-        public Task<string?> GetLastRelevantMessageForAgentAsync(Guid agentId, Guid? workspaceId = null, CancellationToken ct = default) =>
-            Task.FromResult<string?>(null);
-
-        public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForAgentsAsync(IReadOnlyCollection<Guid> agentIds, Guid? workspaceId = null, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<Guid, string?>>(
-                agentIds.Distinct().ToDictionary(agentId => agentId, _ => (string?)null));
-
-        public Task<string?> GetLastRelevantMessageForChannelConnectionAsync(Guid channelConnectionId, Guid? workspaceId = null, CancellationToken ct = default) =>
-            Task.FromResult<string?>(null);
-
-        public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesForChannelConnectionsAsync(IReadOnlyCollection<Guid> channelConnectionIds, Guid? workspaceId = null, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<Guid, string?>>(
-                channelConnectionIds.Distinct().ToDictionary(channelConnectionId => channelConnectionId, _ => (string?)null));
-
-        public Task<GlobalLogsPage> ListGlobalAsync(GlobalLogFiltersRequest filters, CancellationToken ct = default) =>
-            Task.FromResult(new GlobalLogsPage([], 0));
+        public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesAsync(LastRelevantLogQueryRequest request, CancellationToken ct = default)
+        {
+            var ids = (request.AgentIds ?? []).Concat(request.ChannelConnectionIds ?? []).Distinct();
+            return Task.FromResult<IReadOnlyDictionary<Guid, string?>>(
+                ids.ToDictionary(id => id, _ => (string?)null));
+        }
 
         public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default) =>
             Task.FromResult(record);
+    }
+
+    private sealed class RecordingAgentService : IAgentService
+    {
+        public List<(Guid AgentId, string Content, Guid UserId)> Messages { get; } = [];
+
+        public Task<IReadOnlyList<AgentRecord>> ListAsync(AgentFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<AgentRecord>>([]);
+
+        public Task<AgentRecord?> GetByAsync(AgentFilter filter, CancellationToken ct = default) =>
+            Task.FromResult<AgentRecord?>(null);
+
+        public Task<AgentRecord> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, Guid? workspaceId = null, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<AgentRecord?> PatchAsync(Guid id, PatchAgentRequest request, CancellationToken ct = default) =>
+            Task.FromResult<AgentRecord?>(null);
+
+        public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(false);
+
+        public Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default) =>
+            Task.CompletedTask;
 
         public Task<AgentLogRecord> SendMessageAsync(Guid agentId, string content, Guid userId, CancellationToken ct = default)
         {
             Messages.Add((agentId, content, userId));
             return Task.FromResult(AgentLogRecord.MessageIn(agentId, content));
         }
-
-        public Task RecordToolCallAsync(Guid agentId, Guid? userId, string skillName, string action, string paramsJson, string? resultSummary, long durationMs, CancellationToken ct = default) =>
-            Task.CompletedTask;
-
-        public Task<(List<AgentLogRecord> Items, int Total)> GetAuditLogAsync(Guid agentId, int limit, int offset, CancellationToken ct = default) =>
-            Task.FromResult((new List<AgentLogRecord>(), 0));
-
-        public Task<Dictionary<string, AgentLogRecord>> GetResultsByCorrelationAsync(Guid agentId, IReadOnlyCollection<string> correlationIds, CancellationToken ct = default) =>
-            Task.FromResult(new Dictionary<string, AgentLogRecord>());
     }
 }

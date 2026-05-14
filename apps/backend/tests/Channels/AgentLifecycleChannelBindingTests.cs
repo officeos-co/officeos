@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OffceOs.Tests.Channels;
 
-public sealed class AgentDashboardChannelBindingTests
+public sealed class AgentLifecycleChannelBindingTests
 {
     [Fact]
     public async Task CreateAgent_binds_exact_channel_connection_ids_when_multiple_connections_share_kind()
@@ -25,8 +25,8 @@ public sealed class AgentDashboardChannelBindingTests
         var telegramSupport = await channelRepository.CreateConnectionAsync(
             ChannelConnectionRecord.Create(ChannelType.Telegram, "Telegram Support", ownerId, workspace.Id));
 
-        var agent = await harness.AgentDashboard.CreateAsync(
-            new CreateDashboardAgentRequest(
+        var agent = await harness.AgentLifecycle.CreateAsync(
+            new CreateAgentLifecycleRequest(
                 Name: "Ops Agent",
                 Provider: "openai",
                 Model: "gpt-4o-mini",
@@ -58,8 +58,8 @@ public sealed class AgentDashboardChannelBindingTests
         var telegram = await channelRepository.CreateConnectionAsync(
             ChannelConnectionRecord.Create(ChannelType.Telegram, "Telegram Ops", ownerId, workspace.Id));
 
-        var agent = await harness.AgentDashboard.CreateAsync(
-            new CreateDashboardAgentRequest(
+        var agent = await harness.AgentLifecycle.CreateAsync(
+            new CreateAgentLifecycleRequest(
                 Name: "Ops Agent",
                 Provider: "openai",
                 Model: "gpt-4o-mini",
@@ -98,8 +98,8 @@ public sealed class AgentDashboardChannelBindingTests
             ChannelConnectionRecord.Create(ChannelType.Telegram, "Other Telegram", ownerId, otherWorkspace.Id));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.AgentDashboard.CreateAsync(
-                new CreateDashboardAgentRequest(
+            harness.AgentLifecycle.CreateAsync(
+                new CreateAgentLifecycleRequest(
                     Name: "Ops Agent",
                     Provider: "openai",
                     Model: "gpt-4o-mini",

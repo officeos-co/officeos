@@ -39,7 +39,7 @@ internal sealed class AgentRunDispatchService : BackgroundService
     {
         using var scope = _serviceScopeFactory.CreateScope();
         var agentRunRepository = scope.ServiceProvider.GetRequiredService<IAgentRunRepository>();
-        var controlPlaneRuns = scope.ServiceProvider.GetRequiredService<IControlPlaneRunService>();
+        var agentRunExecution = scope.ServiceProvider.GetRequiredService<IAgentRunExecutionService>();
 
         var queuedRuns = await agentRunRepository.ListAsync(new AgentRunFilter
         {
@@ -48,6 +48,6 @@ internal sealed class AgentRunDispatchService : BackgroundService
         }, 10, ct);
 
         foreach (var run in queuedRuns.OrderBy(run => run.CreatedAt))
-            await controlPlaneRuns.ExecuteQueuedRunAsync(run, ct);
+            await agentRunExecution.ExecuteQueuedRunAsync(run, ct);
     }
 }

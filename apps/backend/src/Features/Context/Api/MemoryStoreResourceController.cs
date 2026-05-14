@@ -1,7 +1,7 @@
 namespace OffceOs.Api.Features.Context;
 
 [ApiController]
-[Route("api/control-plane/v1/resources")]
+[Route("api/v1/resources")]
 public sealed class MemoryStoreResourceController : ControllerBase
 {
     [HttpGet("memorystores")]
