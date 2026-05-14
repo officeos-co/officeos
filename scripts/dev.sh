@@ -4,23 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${EAOS_LOG_DIR:-$ROOT_DIR/.runlogs}"
 BACKEND_PORT="${EAOS_BACKEND_PORT:-5000}"
-DASHBOARD_PORT="${EAOS_DASHBOARD_PORT:-3000}"
-BUILD_POD_EXECUTOR=false
 
 usage() {
   cat <<EOF
-Usage: ./scripts/dev [--build-pod-executor]
+Usage: ./scripts/dev
 
-Starts Docker infrastructure, backend, and dashboard in the background.
+Starts the backend in the background.
 Logs and PID files are written directly under .runlogs/.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --build-pod-executor)
-      BUILD_POD_EXECUTOR=true
-      ;;
     -h|--help)
       usage
       exit 0
@@ -92,24 +87,10 @@ free_port() {
 }
 
 stop_pid_file "backend" "$LOG_DIR/backend.pid"
-stop_pid_file "dashboard" "$LOG_DIR/dashboard.pid"
 free_port "$BACKEND_PORT"
-free_port "$DASHBOARD_PORT"
 
 rm -f "$LOG_DIR"/backend.log \
-  "$LOG_DIR"/dashboard.log \
-  "$LOG_DIR"/pod-executor-build.log \
-  "$LOG_DIR"/backend.pid \
-  "$LOG_DIR"/dashboard.pid
-
-echo "Starting infrastructure..."
-docker compose -f "$ROOT_DIR/docker-compose.infra.yml" up -d
-
-if [[ "$BUILD_POD_EXECUTOR" == true ]]; then
-  echo "Building pod executor image..."
-  docker build -t harkro123/eaos-pod-executor:latest "$ROOT_DIR/packages/pod-executor" \
-    2>&1 | tee "$LOG_DIR/pod-executor-build.log"
-fi
+  "$LOG_DIR"/backend.pid
 
 (
   cd "$ROOT_DIR/apps/backend"
@@ -117,22 +98,12 @@ fi
 ) > "$LOG_DIR/backend.log" 2>&1 &
 echo "$!" > "$LOG_DIR/backend.pid"
 
-(
-  cd "$ROOT_DIR/apps/dashboard"
-  bun dev --port "$DASHBOARD_PORT"
-) > "$LOG_DIR/dashboard.log" 2>&1 &
-echo "$!" > "$LOG_DIR/dashboard.pid"
-
 cat <<EOF
 Dev processes started.
 
 Logs:
   $LOG_DIR/backend.log
-  $LOG_DIR/dashboard.log
 
 Stop host processes:
-  kill \$(cat $LOG_DIR/backend.pid) \$(cat $LOG_DIR/dashboard.pid)
-
-Infrastructure logs:
-  docker compose -f docker-compose.infra.yml logs -f
+  kill \$(cat $LOG_DIR/backend.pid)
 EOF
