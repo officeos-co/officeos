@@ -1,5 +1,5 @@
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: MemoryStore
 metadata:
   name: mesh-routing-map

@@ -221,7 +221,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         {
             var kind = NormalizeKind(item.Kind);
             var name = NormalizeName(item.Metadata?.Name);
-            if (!string.Equals(item.ApiVersion, ApiVersion, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(item.ApiVersion, ApiVersion, StringComparison.Ordinal))
             {
                 errors.Add(new DeclarativeValidationErrorItem(item.Kind, name ?? string.Empty, $"apiVersion must be {ApiVersion}."));
                 continue;

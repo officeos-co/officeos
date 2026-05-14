@@ -1,5 +1,5 @@
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: agent-mesh-internal
@@ -8,7 +8,7 @@ spec:
   displayName: Agent Mesh Internal Channel
   enabled: true
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-product
@@ -18,7 +18,7 @@ spec:
   enabled: true
   token: "${SLACK_PRODUCT_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-engineering
@@ -28,7 +28,7 @@ spec:
   enabled: true
   token: "${SLACK_ENGINEERING_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-support
@@ -38,7 +38,7 @@ spec:
   enabled: true
   token: "${SLACK_SUPPORT_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-sales
@@ -48,7 +48,7 @@ spec:
   enabled: true
   token: "${SLACK_SALES_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-marketing
@@ -58,7 +58,7 @@ spec:
   enabled: true
   token: "${SLACK_MARKETING_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-finance
@@ -68,7 +68,7 @@ spec:
   enabled: true
   token: "${SLACK_FINANCE_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-legal
@@ -78,7 +78,7 @@ spec:
   enabled: true
   token: "${SLACK_LEGAL_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-hr
@@ -88,7 +88,7 @@ spec:
   enabled: true
   token: "${SLACK_HR_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-operations
@@ -98,7 +98,7 @@ spec:
   enabled: true
   token: "${SLACK_OPERATIONS_BOT_TOKEN}"
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Channel
 metadata:
   name: slack-security

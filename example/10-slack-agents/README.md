@@ -22,11 +22,11 @@ cat \
   example/10-slack-agents/agents.yaml \
   > /tmp/10-slack-agents.yaml
 
-eaos validate -f /tmp/10-slack-agents.yaml
-eaos diff -f /tmp/10-slack-agents.yaml
-eaos apply -f /tmp/10-slack-agents.yaml
+officeos validate -f /tmp/10-slack-agents.yaml
+officeos diff -f /tmp/10-slack-agents.yaml
+officeos apply -f /tmp/10-slack-agents.yaml
 ```
 
 Replace the `${...}` placeholders before applying. The CLI sends manifest files as-is; it does not interpolate environment variables.
 
-Internal channel support exists through the `internal_channel_send` tool. The current tool requires the internal channel UUID, not the manifest name. After `eaos diff` or `eaos apply`, use the `resourceId` for `Channel/agent-mesh-internal` as the `channel_connection_id`.
+Internal channel support exists through the `internal_channel_send` tool. The current tool requires the internal channel UUID, not the manifest name. After `officeos diff` or `officeos apply`, use the `resourceId` for `Channel/agent-mesh-internal` as the `channel_connection_id`.

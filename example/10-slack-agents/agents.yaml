@@ -1,5 +1,5 @@
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: main-coordinator-agent
@@ -30,7 +30,7 @@ spec:
       accessMode: read_only
       instructions: Use this map to decide which specialist agents to ask.
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: product-agent
@@ -51,7 +51,7 @@ spec:
         canReceive: true
         label: product-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: engineering-agent
@@ -72,7 +72,7 @@ spec:
         canReceive: true
         label: engineering-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: support-agent
@@ -93,7 +93,7 @@ spec:
         canReceive: true
         label: support-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: sales-agent
@@ -114,7 +114,7 @@ spec:
         canReceive: true
         label: sales-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: marketing-agent
@@ -135,7 +135,7 @@ spec:
         canReceive: true
         label: marketing-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: finance-agent
@@ -156,7 +156,7 @@ spec:
         canReceive: true
         label: finance-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: legal-agent
@@ -177,7 +177,7 @@ spec:
         canReceive: true
         label: legal-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: hr-agent
@@ -198,7 +198,7 @@ spec:
         canReceive: true
         label: hr-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: operations-agent
@@ -219,7 +219,7 @@ spec:
         canReceive: true
         label: operations-specialist
 ---
-apiVersion: eaos.dev/v1
+apiVersion: officeos.io/v1
 kind: Agent
 metadata:
   name: security-agent

@@ -16,3 +16,7 @@ The extension uses the `officeos` CLI from `PATH`. In this repository it falls b
 ```bash
 bun ../../apps/cli/src/app/main.ts
 ```
+
+```bash
+code --extensionDevelopmentPath="$PWD" --new-window
+```

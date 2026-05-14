@@ -11,6 +11,7 @@ internal sealed class DeclarativeManifestParser
 
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .WithAttemptingUnquotedStringTypeDeserialization()
         .Build();
 
     private static readonly ISerializer YamlSerializer = new SerializerBuilder()

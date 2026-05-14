@@ -128,7 +128,7 @@ officeos validate -f <file|dir|url> [--recursive]
 officeos diff -f <file|dir|url> [--recursive]
 officeos apply -f <file|dir|url> [--recursive] [--dry-run] [--wait]
 officeos delete -f <file|dir|url> [--recursive] [--dry-run]
-officeos explain <kind>[.<field>] [--api-version <version>]
+officeos explain <kind>[.<field>]
 ```
 
 Examples:
@@ -230,10 +230,10 @@ officeos provider set-default <provider-name> [--model <model>]
 
 ```text
 officeos completion <bash|zsh|fish|powershell>
-officeos schema [--api-version officeos.io/v1] [-o json]
+officeos schema [-o json]
 ```
 
-The VS Code extension should consume `officeos schema -o json` for completion, diagnostics, and hover docs.
+The only supported manifest API version is `officeos.io/v1`. The VS Code extension should consume `officeos schema -o json` for completion, diagnostics, and hover docs.
 
 ## Output Contracts
 
