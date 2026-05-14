@@ -1712,7 +1712,6 @@ namespace OffceOs.Database.Migrations
                 {
                     b.Navigation("Triggers");
                 });
-
 #pragma warning restore 612, 618
         }
     }
