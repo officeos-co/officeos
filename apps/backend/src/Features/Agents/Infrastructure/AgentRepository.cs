@@ -173,7 +173,7 @@ internal sealed class AgentRepository : IAgentRepository
     private static AgentChannelBindingRecord ToAgentChannelBindingRecord(AgentChannelBindingEntity e) => new()
     {
         Id = e.Id, AgentId = e.AgentId, ChannelConnectionId = e.ChannelConnectionId,
-        Enabled = e.Enabled, Config = e.Config,
+        Enabled = e.Enabled, Config = e.Config, CreatedAt = e.CreatedAt,
     };
 
     // ── Mapping: agent ──────────────────────────────────────────────

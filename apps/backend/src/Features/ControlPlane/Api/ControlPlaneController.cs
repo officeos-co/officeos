@@ -151,6 +151,17 @@ public sealed class ControlPlaneController : ControllerBase
         [FromServices] IProviderResourceRepository providers,
         CancellationToken ct)
     {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
+
+        if (NormalizeKind(kind) == "agents")
+        {
+            var agent = await FindAgentAsync(agents, name, scope.Value.WorkspaceId, ct);
+            return agent is null
+                ? NotFound(new { error = $"{kind}/{name} was not found." })
+                : Ok(ToAgentDetailsResource(agent));
+        }
+
         var list = await ListResources(kind, workspaces, agents, runs, channels, routines, memoryStores, providers, ct);
         if (list is not OkObjectResult ok || ok.Value is not IEnumerable<object> values)
             return list;
@@ -349,6 +360,58 @@ public sealed class ControlPlaneController : ControllerBase
         createdAt = agent.CreatedAt,
     };
 
+    private static object ToAgentDetailsResource(AgentRecord agent) => new
+    {
+        kind = "Agent",
+        name = agent.Name,
+        id = agent.Id,
+        provider = agent.Provider,
+        model = agent.Model,
+        status = agent.Status.ToString(),
+        prompt = agent.Prompt,
+        systemPrompt = SystemPromptComposer.Compose(agent),
+        podName = agent.PodName,
+        serviceUrl = agent.ServiceUrl,
+        activeDefinitionId = agent.ActiveDefinitionId,
+        workspaceId = agent.WorkspaceId,
+        createdAt = agent.CreatedAt,
+        personalityFiles = agent.PersonalityFiles
+            .OrderBy(file => file.CompositionOrder)
+            .Select(file => new
+            {
+                file.FileName,
+                file.Content,
+                file.CreatedAt,
+                file.UpdatedAt,
+            }),
+        memories = agent.Memories.Select(memory => new
+        {
+            memory.Key,
+            memory.Content,
+            memory.CreatedAt,
+            memory.UpdatedAt,
+        }),
+        channelBindings = agent.ChannelBindings.Select(binding => new
+        {
+            binding.Id,
+            binding.ChannelConnectionId,
+            binding.Enabled,
+            binding.Config,
+            binding.CreatedAt,
+        }),
+        activeSession = agent.ActiveSession is null
+            ? null
+            : new
+            {
+                agent.ActiveSession.Id,
+                status = agent.ActiveSession.Status.ToString(),
+                agent.ActiveSession.MessageCount,
+                agent.ActiveSession.LastActivityAt,
+                agent.ActiveSession.CreatedAt,
+                agent.ActiveSession.EndedAt,
+            },
+    };
+
     private static object ToRunResource(AgentRunRecord run) => new
     {
         kind = "Run",
@@ -406,6 +469,24 @@ public sealed class ControlPlaneController : ControllerBase
         createdAt = provider.CreatedAt,
         updatedAt = provider.UpdatedAt,
     };
+
+    private static async Task<AgentRecord?> FindAgentAsync(
+        IAgentRepository agents,
+        string name,
+        Guid workspaceId,
+        CancellationToken ct)
+    {
+        if (Guid.TryParse(name, out var id))
+            return await agents.GetByAsync(new AgentFilter { Id = id, WorkspaceId = workspaceId }, ct);
+
+        var matches = await agents.ListAsync(new AgentFilter { WorkspaceId = workspaceId }, ct);
+        var match = matches.FirstOrDefault(agent =>
+            agent.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        return match is null
+            ? null
+            : await agents.GetByAsync(new AgentFilter { Id = match.Id, WorkspaceId = workspaceId }, ct);
+    }
 
     private static string ResourceName(object value)
     {
