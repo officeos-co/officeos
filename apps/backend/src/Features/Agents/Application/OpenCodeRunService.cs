@@ -123,7 +123,7 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             var result = await _openCodeProcessService.RunAsync(
                 new ProcessRunRequest(
                     "opencode",
-                    ["run", "--format", "json", "--dir", workspace, "--model", model, "--agent", agent.Name, run.Prompt],
+                    ["run", "--format", "json", "--model", model, "--agent", agent.Name, run.Prompt],
                     workspace,
                     new Dictionary<string, string>()),
                 (line, token) => AppendOpenCodeEventAsync(run, agent, line, token),
