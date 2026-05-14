@@ -1,0 +1,113 @@
+namespace OffceOs.Api.Features.Channels;
+
+// ── Output types (projections that exclude sensitive/nav fields) ─────────
+
+public sealed record ChannelConnectionPayload(
+    Guid Id,
+    string ChannelType,
+    string DisplayName,
+    bool Enabled,
+    DateTime CreatedAt,
+    string? LastRelevantMessage);
+
+public sealed record AgentChannelBindingPayload(
+    Guid Id,
+    Guid AgentId,
+    Guid ChannelConnectionId,
+    bool Enabled,
+    ChannelBindingConfig? Config,
+    DateTime CreatedAt);
+
+// ── Input types ───────────────────────────────────────────────────────────
+
+public sealed record CreateChannelConnectionInput(
+    string ChannelType,
+    string DisplayName,
+    string ConfigJson,
+    string? DefaultChannelId = null);
+
+public sealed record UpdateChannelConnectionInput(
+    string? DisplayName,
+    string? ConfigJson,
+    bool? Enabled);
+
+public sealed record ChannelBindingConfigInput(
+    string? PlatformId,
+    string? ThreadId,
+    bool? CanSend = null,
+    bool? CanReceive = null,
+    bool? ReplyOnly = null,
+    string? Label = null);
+
+public sealed record CreateInternalChannelConnectionInput(
+    string DisplayName,
+    IReadOnlyList<InternalChannelBindingInput> Bindings);
+
+public sealed record InternalChannelBindingInput(
+    Guid AgentId,
+    bool CanSend = true,
+    bool CanReceive = true,
+    bool ReplyOnly = false,
+    string? Label = null);
+
+// ── Mapping helpers (shared bcetween queries + mutations) ──────────────────
+
+internal static class ChannelGraphQLMapper
+{
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
+    public static ChannelConnectionPayload ToPayload(ChannelConnectionRecord r, string? lastRelevantMessage = null) => new(
+        r.Id,
+        r.ChannelType.ToStorageString(),
+        r.DisplayName,
+        r.Enabled,
+        r.CreatedAt,
+        lastRelevantMessage);
+
+    public static AgentChannelBindingPayload ToPayload(AgentChannelBindingRecord r) => new(
+        r.Id,
+        r.AgentId,
+        r.ChannelConnectionId,
+        r.Enabled,
+        DeserializeConfig(r.Config),
+        r.CreatedAt);
+
+    public static ChannelBindingConfig? DeserializeConfig(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<ChannelBindingConfig>(json, JsonOpts);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public static string SerializeConfig(ChannelBindingConfigInput input)
+    {
+        var cfg = new ChannelBindingConfig
+        {
+            PlatformId = input.PlatformId,
+            ThreadId = input.ThreadId,
+            CanSend = input.CanSend,
+            CanReceive = input.CanReceive,
+            ReplyOnly = input.ReplyOnly,
+            Label = input.Label,
+        };
+        return JsonSerializer.Serialize(cfg);
+    }
+
+    public static IReadOnlyList<InternalChannelBindingRequest> ToRequests(
+        IReadOnlyList<InternalChannelBindingInput> inputs)
+        => inputs.Select(input => new InternalChannelBindingRequest(
+            input.AgentId,
+            input.CanSend,
+            input.CanReceive,
+            input.ReplyOnly,
+            input.Label)).ToList();
+}

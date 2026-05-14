@@ -1,0 +1,37 @@
+namespace OffceOs.Api.Features.Context;
+
+[ExtendObjectType(typeof(GraphQLQueries))]
+public sealed class MemoryStoreQueries
+{
+    public async Task<IReadOnlyList<MemoryStorePayload>> GetMemoryStores(
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        [Service] IMemoryStoreRepository memoryStores,
+        CancellationToken ct)
+    {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var rows = await memoryStores.ListAsync(null, workspace.Id, ct);
+        return rows.Select(row => ToPayload(row, null)).ToList();
+    }
+
+    public async Task<MemoryStorePayload?> GetMemoryStore(
+        Guid id,
+        [Service] UserContext user,
+        [Service] IWorkspaceService workspaces,
+        [Service] IMemoryStoreRepository memoryStores,
+        CancellationToken ct)
+    {
+        var workspace = await workspaces.GetCurrentAsync(user.Id, ct);
+        var row = await memoryStores.GetAsync(id, null, workspace.Id, ct);
+        if (row is null) return null;
+
+        var entries = await memoryStores.ListEntriesAsync(id, null, workspace.Id, ct);
+        return ToPayload(row, entries);
+    }
+
+    private static MemoryStorePayload ToPayload(MemoryStoreRecord row, IReadOnlyList<MemoryStoreEntryRecord>? entries) =>
+        new(row.Id, row.OwnerId, row.DisplayName, row.CreatedAt, row.UpdatedAt, entries?.Select(ToPayload).ToList());
+
+    private static MemoryStoreEntryPayload ToPayload(MemoryStoreEntryRecord row) =>
+        new(row.Id, row.MemoryStoreId, row.Key, row.Content, row.CreatedAt, row.UpdatedAt);
+}
