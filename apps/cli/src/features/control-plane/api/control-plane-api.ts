@@ -1,5 +1,7 @@
 import { ApiClient } from "../../../lib/api-client";
 
+const ApiBasePath = "/api/v1";
+
 export interface RunResponse {
   run?: RunRecord;
   engineType?: string;
@@ -30,19 +32,19 @@ export interface RunLogResponse {
 }
 
 export async function listResources(apiUrl: string, token: string, kind: string): Promise<unknown[]> {
-  return await new ApiClient({ apiUrl, token }).get<unknown[]>(`/api/control-plane/v1/resources/${encodeURIComponent(kind)}`);
+  return await new ApiClient({ apiUrl, token }).get<unknown[]>(`${ApiBasePath}/resources/${encodeURIComponent(kind)}`);
 }
 
 export async function describeResource(apiUrl: string, token: string, kind: string, name: string): Promise<unknown> {
-  return await new ApiClient({ apiUrl, token }).get<unknown>(`/api/control-plane/v1/resources/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`);
+  return await new ApiClient({ apiUrl, token }).get<unknown>(`${ApiBasePath}/resources/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`);
 }
 
 export async function deleteResource(apiUrl: string, token: string, kind: string, name: string): Promise<unknown> {
-  return await new ApiClient({ apiUrl, token }).delete<unknown>(`/api/control-plane/v1/resources/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`);
+  return await new ApiClient({ apiUrl, token }).delete<unknown>(`${ApiBasePath}/resources/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`);
 }
 
 export async function createRun(apiUrl: string, token: string, agentRef: string, task: string, engineRef: string, wait: boolean): Promise<RunResponse> {
-  return await new ApiClient({ apiUrl, token }).post<RunResponse>("/api/control-plane/v1/runs", {
+  return await new ApiClient({ apiUrl, token }).post<RunResponse>(`${ApiBasePath}/runs`, {
     agentRef,
     task,
     engineRef,
@@ -51,21 +53,21 @@ export async function createRun(apiUrl: string, token: string, agentRef: string,
 }
 
 export async function listRuns(apiUrl: string, token: string): Promise<RunRecord[]> {
-  return await new ApiClient({ apiUrl, token }).get<RunRecord[]>("/api/control-plane/v1/runs");
+  return await new ApiClient({ apiUrl, token }).get<RunRecord[]>(`${ApiBasePath}/runs`);
 }
 
 export async function getRun(apiUrl: string, token: string, id: string): Promise<RunRecord> {
-  return await new ApiClient({ apiUrl, token }).get<RunRecord>(`/api/control-plane/v1/runs/${encodeURIComponent(id)}`);
+  return await new ApiClient({ apiUrl, token }).get<RunRecord>(`${ApiBasePath}/runs/${encodeURIComponent(id)}`);
 }
 
 export async function getRunLogs(apiUrl: string, token: string, id: string): Promise<RunLogResponse> {
-  return await new ApiClient({ apiUrl, token }).get<RunLogResponse>(`/api/control-plane/v1/runs/${encodeURIComponent(id)}/logs`);
+  return await new ApiClient({ apiUrl, token }).get<RunLogResponse>(`${ApiBasePath}/runs/${encodeURIComponent(id)}/logs`);
 }
 
 export async function listProviders(apiUrl: string, token: string): Promise<unknown[]> {
-  return await new ApiClient({ apiUrl, token }).get<unknown[]>("/api/control-plane/v1/providers");
+  return await new ApiClient({ apiUrl, token }).get<unknown[]>(`${ApiBasePath}/providers`);
 }
 
 export async function listModels(apiUrl: string, token: string): Promise<unknown[]> {
-  return await new ApiClient({ apiUrl, token }).get<unknown[]>("/api/control-plane/v1/models");
+  return await new ApiClient({ apiUrl, token }).get<unknown[]>(`${ApiBasePath}/models`);
 }

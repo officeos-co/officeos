@@ -6,12 +6,14 @@ LOG_DIR="${EAOS_LOG_DIR:-$ROOT_DIR/.runlogs}"
 BACKEND_PORT="${EAOS_BACKEND_PORT:-5000}"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.infra.yml"
 START_INFRA="${EAOS_START_INFRA:-1}"
+VSCODE_EXTENSION_DIR="$ROOT_DIR/apps/vscode-extension"
 
 usage() {
   cat <<EOF
 Usage: ./scripts/dev.bash
 
-Starts local infrastructure and the backend in the background.
+Starts local infrastructure and the backend in the background, then opens a
+VS Code extension development window.
 Logs and PID files are written directly under .runlogs/.
 
 Set EAOS_START_INFRA=0 to skip Docker Compose infra startup.
@@ -146,6 +148,16 @@ fi
 ) > "$LOG_DIR/backend.log" 2>&1 &
 echo "$!" > "$LOG_DIR/backend.pid"
 wait_for_backend "$(cat "$LOG_DIR/backend.pid")"
+
+echo "Preparing VS Code extension..."
+(
+  cd "$VSCODE_EXTENSION_DIR"
+  npm install
+  npm run compile
+)
+
+echo "Opening VS Code extension development window..."
+code --extensionDevelopmentPath="$VSCODE_EXTENSION_DIR" --new-window
 
 cat <<EOF
 Dev processes started.

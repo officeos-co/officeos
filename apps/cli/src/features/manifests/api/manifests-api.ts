@@ -1,5 +1,7 @@
 import { ApiClient } from "../../../lib/api-client";
 
+const ApiBasePath = "/api/v1";
+
 export interface DeclarativeChange {
   kind: string;
   name: string;
@@ -30,7 +32,7 @@ export async function validateManifest(
   manifest: string,
 ): Promise<ValidateResponse> {
   return await new ApiClient({ apiUrl, token }).post<ValidateResponse>(
-    "/api/control-plane/v1/manifests/validate",
+    `${ApiBasePath}/manifests/validate`,
     { manifest },
   );
 }
@@ -41,7 +43,7 @@ export async function diffManifest(
   manifest: string,
 ): Promise<DiffResponse> {
   return await new ApiClient({ apiUrl, token }).post<DiffResponse>(
-    "/api/control-plane/v1/manifests/diff",
+    `${ApiBasePath}/manifests/diff`,
     { manifest },
   );
 }
@@ -52,7 +54,7 @@ export async function applyManifest(
   manifest: string,
 ): Promise<DiffResponse> {
   return await new ApiClient({ apiUrl, token }).post<DiffResponse>(
-    "/api/control-plane/v1/manifests/apply",
+    `${ApiBasePath}/manifests/apply`,
     { manifest },
   );
 }
