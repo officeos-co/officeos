@@ -22,15 +22,6 @@ export interface RunRecord {
   completedAt?: string | null;
 }
 
-export interface RunLogResponse {
-  entries: Array<{
-    id: string;
-    time: string;
-    type: string;
-    content: string;
-  }>;
-}
-
 export interface ResourceLogOptions {
   tail?: number;
   since?: string;
@@ -67,10 +58,6 @@ export async function listRuns(apiUrl: string, token: string): Promise<RunRecord
 
 export async function getRun(apiUrl: string, token: string, id: string): Promise<RunRecord> {
   return await new ApiClient({ apiUrl, token }).get<RunRecord>(`${ApiBasePath}/runs/${encodeURIComponent(id)}`);
-}
-
-export async function getRunLogs(apiUrl: string, token: string, id: string): Promise<RunLogResponse> {
-  return await new ApiClient({ apiUrl, token }).get<RunLogResponse>(`${ApiBasePath}/runs/${encodeURIComponent(id)}/logs`);
 }
 
 export async function getResourceLogs(apiUrl: string, token: string, kind: string, name: string, options: ResourceLogOptions = {}): Promise<string> {
