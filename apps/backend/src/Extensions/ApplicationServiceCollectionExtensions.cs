@@ -18,7 +18,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<GitHubIntegrationClient>();
-        services.AddScoped<IGdprService, GdprService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
         services.AddScoped<IControlPlaneRunService, OpenCodeRunService>();
         services.AddScoped<AgentDefinitionParser>();
