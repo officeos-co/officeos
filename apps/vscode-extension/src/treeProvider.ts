@@ -1,3 +1,4 @@
+import path from "node:path";
 import * as vscode from "vscode";
 import {
   OfficeOsCli,
@@ -73,7 +74,10 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
   >();
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
-  constructor(private cli: OfficeOsCli) {}
+  constructor(
+    private cli: OfficeOsCli,
+    private readonly extensionPath: string,
+  ) {}
 
   setCli(cli: OfficeOsCli): void {
     this.cli = cli;
@@ -155,9 +159,9 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
     item.contextValue = canDeleteResource(node)
       ? "officeosDeletableResource"
       : "officeosResource";
-    item.iconPath = new vscode.ThemeIcon(node.category.icon);
+    item.iconPath = stateIconPath(this.extensionPath, resourceState(node.value));
     item.description = resourceDescription(node.value);
-    item.tooltip = `${node.kind}/${label}`;
+    item.tooltip = resourceTooltip(node, label);
     item.command = {
       command: "officeos.showResourceLogs",
       title: "Show Resource Logs",
@@ -275,6 +279,11 @@ function resourceDescription(value: unknown): string | undefined {
   }
 
   const record = value as Record<string, unknown>;
+  const health = resourceHealth(record);
+  if (health?.state || health?.reason) {
+    return [health.state, health.reason].filter(Boolean).join(": ");
+  }
+
   for (const key of [
     "phase",
     "status",
@@ -295,6 +304,83 @@ function resourceDescription(value: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function resourceTooltip(node: ResourceNode, label: string): string {
+  const health = resourceHealth(node.value);
+  if (!health) {
+    return `${node.kind}/${label}`;
+  }
+
+  const details = [
+    `${node.kind}/${label}`,
+    health.status ? `status: ${health.status}` : undefined,
+    health.state ? `state: ${health.state}` : undefined,
+    health.reason ? `reason: ${health.reason}` : undefined,
+    health.message,
+  ].filter(Boolean);
+  return details.join("\n");
+}
+
+type ResourceState = "green" | "orange" | "red" | "neutral";
+
+interface ResourceHealth {
+  status?: string;
+  state?: string;
+  reason?: string;
+  message?: string;
+}
+
+function resourceHealth(value: unknown): ResourceHealth | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const health = (value as Record<string, unknown>).health;
+  return health && typeof health === "object"
+    ? (health as ResourceHealth)
+    : undefined;
+}
+
+function resourceState(value: unknown): ResourceState {
+  const health = resourceHealth(value);
+  if (health?.state === "green" || health?.state === "orange" || health?.state === "red") {
+    return health.state;
+  }
+
+  const status = resourceStatus(value).toLowerCase();
+  if (["active", "running", "enabled", "configured", "ready", "succeeded", "healthy", "completed"].includes(status)) {
+    return "green";
+  }
+
+  if (["pending", "queued", "booting", "restarting", "working", "degraded"].includes(status)) {
+    return "orange";
+  }
+
+  if (["error", "failed", "disabled", "unconfigured", "canceled", "cancelled"].includes(status)) {
+    return "red";
+  }
+
+  return "neutral";
+}
+
+function resourceStatus(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const record = value as Record<string, unknown>;
+  const health = resourceHealth(record);
+  if (health?.status) return health.status;
+  if (typeof record.status === "string") return record.status;
+  if (typeof record.phase === "string") return record.phase;
+  if (typeof record.enabled === "boolean") return record.enabled ? "enabled" : "disabled";
+  if (typeof record.configured === "boolean") return record.configured ? "configured" : "unconfigured";
+  return "";
+}
+
+function stateIconPath(extensionPath: string, state: ResourceState): vscode.Uri {
+  return vscode.Uri.file(path.join(extensionPath, "resources", `state-${state}.svg`));
 }
 
 function canDeleteResource(node: ResourceNode): boolean {

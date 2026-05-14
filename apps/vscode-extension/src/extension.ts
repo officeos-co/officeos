@@ -10,7 +10,7 @@ import {
 
 export function activate(context: vscode.ExtensionContext): void {
   let cli = createCli(context);
-  const treeProvider = new OfficeOsTreeProvider(cli);
+  const treeProvider = new OfficeOsTreeProvider(cli, context.extensionPath);
   const documentProvider = new ResourceDocumentProvider(cli);
   let terminal: vscode.Terminal | undefined;
 
