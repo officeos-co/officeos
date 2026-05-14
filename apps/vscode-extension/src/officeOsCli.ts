@@ -78,6 +78,10 @@ export class OfficeOsCli {
     );
   }
 
+  async resourceLogs(kind: string, name: string): Promise<string> {
+    return await this.runText(["logs", `${kind}/${name}`]);
+  }
+
   async deleteResource(kind: string, name: string): Promise<void> {
     if (kind === "models") {
       throw new Error(

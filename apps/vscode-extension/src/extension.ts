@@ -67,6 +67,18 @@ export function activate(context: vscode.ExtensionContext): void {
       });
     }),
     vscode.commands.registerCommand(
+      "officeos.showResourceLogs",
+      async (node?: ResourceNode) => {
+        await runWithErrors(async () => {
+          if (!node) {
+            throw new Error("Select an OfficeOS resource first.");
+          }
+
+          await documentProvider.openResourceLogs(node);
+        });
+      },
+    ),
+    vscode.commands.registerCommand(
       "officeos.describeResource",
       async (node?: ResourceNode) => {
         await runWithErrors(async () => {

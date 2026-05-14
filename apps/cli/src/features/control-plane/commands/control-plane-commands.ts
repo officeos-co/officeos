@@ -9,12 +9,11 @@ import {
   createRun,
   deleteResource,
   describeResource,
+  getResourceLogs,
   getRun,
-  getRunLogs,
   listModels,
   listProviders,
   listResources,
-  listRuns,
 } from "../api/control-plane-api";
 
 const ResourceKinds = [
@@ -31,6 +30,15 @@ const ResourceKinds = [
   { kind: "providers", aliases: "provider", description: "Configured provider resources" },
   { kind: "engines", aliases: "engine", description: "Execution engines" },
 ] as const;
+
+interface LogsOptions {
+  tail?: number;
+  since?: string;
+  sinceTime?: string;
+  type?: string;
+  severity?: string;
+  follow?: boolean;
+}
 
 export async function getCommand(args: string[]): Promise<void> {
   const output = readOutput(args);
@@ -91,12 +99,15 @@ export async function runCommand(args: string[]): Promise<void> {
 
 export async function logsCommand(args: string[]): Promise<void> {
   const context = await requireContext();
-  const id = normalizeRunId(
-    requireArg(args[0], "Usage: officeos logs run/<id>"),
+  const { kind, name, options } = readLogsTarget(args);
+  const result = await getResourceLogs(
+    context.apiUrl,
+    context.token,
+    kind,
+    name,
+    options,
   );
-  const result = await getRunLogs(context.apiUrl, context.token, id);
-  for (const entry of result.entries)
-    print(`${entry.time} ${entry.type} ${entry.content}`);
+  if (result.length > 0) print(result);
 }
 
 export async function waitCommand(args: string[]): Promise<void> {
@@ -182,6 +193,83 @@ function splitResource(value: string): [string, string?] {
 
 function normalizeRunId(value: string): string {
   return value.startsWith("run/") ? value.slice("run/".length) : value;
+}
+
+function readLogsTarget(args: string[]): {
+  kind: string;
+  name: string;
+  options: LogsOptions;
+} {
+  const target = requireArg(
+    args[0],
+    "Usage: officeos logs <kind/name> [--tail <n>] [--since <duration>] [--type <type>] [--severity <level>]",
+  );
+  let optionStart = 1;
+  let kind: string;
+  let name: string | undefined;
+
+  if (target.includes("/")) {
+    [kind, name] = splitResource(target);
+  } else {
+    kind = target;
+    if (args[1] && !args[1].startsWith("-")) {
+      name = args[1];
+      optionStart = 2;
+    } else {
+      kind = "run";
+      name = normalizeRunId(target);
+    }
+  }
+
+  if (!name) {
+    if (kind === "run" || kind === "runs") {
+      name = normalizeRunId(target);
+    } else {
+      throw new Error("Logs requires <kind/name>.");
+    }
+  }
+
+  const options: LogsOptions = {};
+  for (let index = optionStart; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case "--tail": {
+        const value = requireArg(args[++index], "Missing --tail value.");
+        const tail = Number(value);
+        if (!Number.isInteger(tail) || tail <= 0) {
+          throw new Error("--tail must be a positive integer.");
+        }
+        options.tail = tail;
+        break;
+      }
+      case "--since":
+        options.since = requireArg(args[++index], "Missing --since value.");
+        break;
+      case "--since-time":
+        options.sinceTime = requireArg(
+          args[++index],
+          "Missing --since-time value.",
+        );
+        break;
+      case "--type":
+        options.type = requireArg(args[++index], "Missing --type value.");
+        break;
+      case "--severity":
+        options.severity = requireArg(
+          args[++index],
+          "Missing --severity value.",
+        );
+        break;
+      case "-f":
+      case "--follow":
+        options.follow = true;
+        break;
+      default:
+        throw new Error(`Unknown logs option '${arg}'.`);
+    }
+  }
+
+  return { kind, name, options };
 }
 
 function readOutput(args: string[]): "table" | "json" | "yaml" | "name" {

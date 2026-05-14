@@ -159,8 +159,8 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
     item.description = resourceDescription(node.value);
     item.tooltip = `${node.kind}/${label}`;
     item.command = {
-      command: "officeos.describeResource",
-      title: "Describe Resource",
+      command: "officeos.showResourceLogs",
+      title: "Show Resource Logs",
       arguments: [node],
     };
     return item;

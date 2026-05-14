@@ -90,7 +90,7 @@ function help(): void {
   print("  describe <kind/name>");
   print("  delete <kind> <name>");
   print("  run <agent> --task <text> [--engine opencode] [--wait]");
-  print("  logs run/<id>");
+  print("  logs <kind/name> [--tail <n>] [--since <duration>] [--type <type>] [--severity <level>]");
   print("  wait run/<id> --for complete --timeout <duration>");
   print("  models [-o json|yaml|name]");
   print("  providers [-o json|yaml|name]");

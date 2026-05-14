@@ -18,6 +18,7 @@
     "onCommand:officeos.currentContext",
     "onCommand:officeos.useContext",
     "onCommand:officeos.reloadResource",
+    "onCommand:officeos.showResourceLogs",
     "onCommand:officeos.describeResource",
     "onCommand:officeos.copyResourceName",
     "onCommand:officeos.deleteResource"
@@ -63,8 +64,13 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "officeos.showResourceLogs",
+        "title": "OfficeOS: Show Logs",
+        "icon": "$(output)"
+      },
+      {
         "command": "officeos.describeResource",
-        "title": "OfficeOS: Describe Resource",
+        "title": "OfficeOS: Description",
         "icon": "$(open-preview)"
       },
       {
@@ -98,14 +104,19 @@
           "group": "inline"
         },
         {
+          "command": "officeos.showResourceLogs",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
+          "group": "navigation@1"
+        },
+        {
           "command": "officeos.describeResource",
           "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "officeos.copyResourceName",
           "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
-          "group": "navigation"
+          "group": "navigation@3"
         },
         {
           "command": "officeos.deleteResource",

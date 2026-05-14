@@ -1,6 +1,10 @@
 import { afterEach, expect, test } from "bun:test";
 import { getMe } from "../features/auth/api/auth-api";
-import { listModels, listResources } from "../features/control-plane/api/control-plane-api";
+import {
+  getResourceLogs,
+  listModels,
+  listResources,
+} from "../features/control-plane/api/control-plane-api";
 import { validateManifest } from "../features/manifests/api/manifests-api";
 
 const originalFetch = globalThis.fetch;
@@ -15,10 +19,20 @@ test("control-plane API calls backend v1 resource routes", async () => {
 
   await listModels("http://localhost:5000/", "token");
   await listResources("http://localhost:5000/", "token", "agents");
+  await getResourceLogs("http://localhost:5000/", "token", "agents", "alice", {
+    tail: 50,
+    since: "10m",
+    type: "message-out",
+    severity: "error",
+  });
 
   expect(requests).toEqual([
     { url: "http://localhost:5000/api/v1/models", method: "GET" },
     { url: "http://localhost:5000/api/v1/resources/agents", method: "GET" },
+    {
+      url: "http://localhost:5000/api/v1/resources/agents/alice/logs?tail=50&since=10m&type=message-out&severity=error",
+      method: "GET",
+    },
   ]);
 });
 

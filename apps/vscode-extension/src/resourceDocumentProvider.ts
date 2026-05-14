@@ -33,10 +33,27 @@ export class ResourceDocumentProvider
     await vscode.window.showTextDocument(document, { preview: false });
   }
 
+  async openResourceLogs(node: ResourceNode): Promise<void> {
+    const logs = await this.cli.resourceLogs(node.kind, node.name);
+    const uri = this.resourceLogsUri(node);
+    this.documents.set(uri.toString(), logs);
+    this.onDidChangeEmitter.fire(uri);
+
+    const document = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(document, { preview: false });
+  }
+
   private resourceUri(node: ResourceNode): vscode.Uri {
     const title = encodeURIComponent(
       resourceDocumentTitle(node).replace(/[\\/]/g, "-"),
     );
     return vscode.Uri.parse(`officeos:/resources/${node.kind}/${title}.json`);
+  }
+
+  private resourceLogsUri(node: ResourceNode): vscode.Uri {
+    const title = encodeURIComponent(
+      resourceDocumentTitle(node).replace(/[\\/]/g, "-"),
+    );
+    return vscode.Uri.parse(`officeos:/resources/${node.kind}/${title}.log`);
   }
 }
