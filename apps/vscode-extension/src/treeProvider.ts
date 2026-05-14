@@ -19,6 +19,7 @@ const Categories: readonly ResourceCategory[] = [
   { label: "Runs", cliKind: "runs", icon: "play-circle" },
   { label: "Channels", cliKind: "channels", icon: "broadcast" },
   { label: "Routines", cliKind: "routines", icon: "clock" },
+  { label: "Browsers", cliKind: "browsers", icon: "browser" },
   { label: "Memory Stores", cliKind: "memorystores", icon: "database" },
   { label: "Engines", cliKind: "engines", icon: "server-process" },
   { label: "Providers", cliKind: "providers", icon: "plug" },
@@ -297,9 +298,14 @@ function resourceDescription(value: unknown): string | undefined {
 }
 
 function canDeleteResource(node: ResourceNode): boolean {
-  return ["agents", "channels", "routines", "memorystores", "providers"].includes(
-    node.kind,
-  );
+  return [
+    "agents",
+    "channels",
+    "routines",
+    "browsers",
+    "memorystores",
+    "providers",
+  ].includes(node.kind);
 }
 
 function fieldDescription(value: unknown): string | undefined {

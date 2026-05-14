@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Features.Agents.Adapters;
+namespace OffceOs.Infrastructure.Features.Browser;
 
 internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
 {

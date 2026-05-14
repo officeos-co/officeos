@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.Browser;
 
 internal sealed class BrowserService : IBrowserService
 {
@@ -7,12 +7,12 @@ internal sealed class BrowserService : IBrowserService
     private readonly ILogger<BrowserService> _logger;
 
     public BrowserService(
-        IBrowserSessionRepository sessions,
-        IBrowserRuntimeClient runtime,
+        IBrowserSessionRepository browserSessionRepository,
+        IBrowserRuntimeClient browserRuntimeClient,
         ILogger<BrowserService> logger)
     {
-        _browserSessionRepository = sessions;
-        _browserRuntimeClient = runtime;
+        _browserSessionRepository = browserSessionRepository;
+        _browserRuntimeClient = browserRuntimeClient;
         _logger = logger;
     }
 

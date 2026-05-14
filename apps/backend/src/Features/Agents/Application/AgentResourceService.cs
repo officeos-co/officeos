@@ -16,16 +16,6 @@ internal sealed class AgentResourceService : IAgentResourceService
         _agentRepository = agents;
     }
 
-    public Task<BrowserResourceRecord> CreateBrowserResourceAsync(
-        Guid ownerId,
-        Guid workspaceId,
-        string? displayName,
-        CancellationToken ct = default) =>
-        _agentResourceRepository.CreateBrowserResourceAsync(BrowserResourceRecord.Create(ownerId, workspaceId, displayName ?? "Browser"), ct);
-
-    public Task<bool> DeleteBrowserResourceAsync(Guid id, Guid ownerId, Guid workspaceId, CancellationToken ct = default) =>
-        _agentResourceRepository.DeleteBrowserResourceAsync(id, null, workspaceId, ct);
-
     public async Task<IReadOnlyList<AgentSessionResourceAttachmentRecord>> ListSessionAttachmentsAsync(
         Guid sessionId,
         Guid ownerId,

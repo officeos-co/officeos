@@ -24,6 +24,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IDeclarativeAgentService, DeclarativeAgentService>();
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IBrowserService, BrowserService>();
+        services.AddScoped<IBrowserResourceService, BrowserResourceService>();
         services.AddScoped<AgentChannelBinder>();
         services.AddSingleton<ChannelReplyContext>();
         services.AddScoped<ICliAuthService, CliAuthService>();

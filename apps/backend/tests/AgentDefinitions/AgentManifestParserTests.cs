@@ -102,6 +102,7 @@ public sealed class AgentManifestParserTests
             null!,
             null!,
             null!,
+            null!,
             new DeclarativeManifestParser(),
             null!);
 
@@ -128,6 +129,7 @@ public sealed class AgentManifestParserTests
     {
         var workspaceId = Guid.NewGuid();
         var service = new DeclarativeAgentService(
+            null!,
             null!,
             null!,
             null!,
@@ -222,6 +224,7 @@ public sealed class AgentManifestParserTests
     }
 
     private static DeclarativeAgentService CreateValidationService() => new(
+        null!,
         null!,
         null!,
         null!,

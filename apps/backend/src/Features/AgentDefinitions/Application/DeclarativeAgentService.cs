@@ -28,6 +28,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentResourceRepository _agentResourceRepository;
+    private readonly IBrowserResourceRepository _browserResourceRepository;
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelService _channelService;
     private readonly IIntegrationDefinitionRepository _integrationDefinitionRepository;
@@ -46,6 +47,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         IAgentDefinitionRepository agentDefinitionRepository,
         IAgentSessionRepository agentSessionRepository,
         IAgentResourceRepository agentResourceRepository,
+        IBrowserResourceRepository browserResourceRepository,
         IChannelRepository channelRepository,
         IChannelService channelService,
         IIntegrationDefinitionRepository integrationDefinitionRepository,
@@ -63,6 +65,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentSessionRepository = agentSessionRepository;
         _agentResourceRepository = agentResourceRepository;
+        _browserResourceRepository = browserResourceRepository;
         _channelRepository = channelRepository;
         _channelService = channelService;
         _integrationDefinitionRepository = integrationDefinitionRepository;
@@ -177,7 +180,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     entries.Select(entry => new DeclarativeMemoryStoreEntryItem(entry.Key, entry.Content)).ToList())));
         }
 
-        var browsers = await _agentResourceRepository.ListBrowserResourcesAsync(null, workspaceId, ct);
+        var browsers = await _browserResourceRepository.ListAsync(new BrowserResourceFilter { WorkspaceId = workspaceId }, ct);
         items.AddRange(browsers.Select(browser => NewItem(
             DeclarativeResourceKindItem.Browser,
             browser.Id.ToString(),
@@ -512,10 +515,10 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         var spec = Spec<DeclarativeBrowserSpecItem>(resource);
         var id = ResourceId(workspaceId, resource.Kind, resource.Name);
         var displayName = DisplayName(resource.Name, spec.DisplayName);
-        var existing = await _agentResourceRepository.GetBrowserResourceAsync(id, null, workspaceId, ct);
+        var existing = await _browserResourceRepository.GetByAsync(new BrowserResourceFilter { Id = id, WorkspaceId = workspaceId }, ct);
         if (existing is null)
         {
-            var created = await _agentResourceRepository.CreateBrowserResourceAsync(new BrowserResourceRecord
+            var created = await _browserResourceRepository.SaveAsync(new BrowserResourceRecord
             {
                 Id = id,
                 OwnerId = ownerId,
@@ -525,7 +528,8 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "create", created.Id.ToString(), "Created browser.");
         }
 
-        var updated = await _agentResourceRepository.UpdateBrowserResourceAsync(id, null, workspaceId, displayName, ct);
+        existing.DisplayName = displayName;
+        var updated = await _browserResourceRepository.SaveAsync(existing, ct);
         return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "update", updated?.Id.ToString(), "Updated browser.");
     }
 
@@ -636,7 +640,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             }
 
             if (resource.Type == AgentResourceKinds.Browser)
-                await _agentResourceRepository.SetBrowserCurrentAgentAsync(resource.ResourceId, agentId, ct);
+                await _browserResourceRepository.SetCurrentAgentAsync(resource.ResourceId, agentId, ct);
             if (resource.Type == AgentResourceKinds.Channel)
             {
                 var channelRef = spec.Channels?.FirstOrDefault(channel => ResourceId(workspaceId, DeclarativeResourceKindItem.Channel, channel.Ref) == resource.ResourceId);
@@ -767,7 +771,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private async Task<Guid?> ExistingBrowserIdAsync(DeclarativeResourceDescriptorItem resource, Guid workspaceId, CancellationToken ct)
     {
         var id = ResourceId(workspaceId, resource.Kind, resource.Name);
-        return (await _agentResourceRepository.GetBrowserResourceAsync(id, null, workspaceId, ct))?.Id;
+        return (await _browserResourceRepository.GetByAsync(new BrowserResourceFilter { Id = id, WorkspaceId = workspaceId }, ct))?.Id;
     }
 
     private async Task<Guid?> ExistingRoutineIdAsync(DeclarativeResourceDescriptorItem resource, Guid ownerId, Guid workspaceId, CancellationToken ct)

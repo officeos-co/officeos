@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Application.Features.Browser;
 
 public interface IBrowserService
 {

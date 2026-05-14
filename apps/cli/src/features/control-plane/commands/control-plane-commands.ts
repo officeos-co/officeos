@@ -22,6 +22,7 @@ const ResourceKinds = [
   { kind: "runs", aliases: "run", description: "Run resources" },
   { kind: "channels", aliases: "channel", description: "Channel connections" },
   { kind: "routines", aliases: "routine", description: "Agent routines" },
+  { kind: "browsers", aliases: "browser", description: "Browser resources" },
   {
     kind: "memory-stores",
     aliases: "memorystore, memorystores",

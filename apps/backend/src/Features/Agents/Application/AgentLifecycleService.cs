@@ -6,6 +6,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentResourceRepository _agentResourceRepository;
+    private readonly IBrowserResourceRepository _browserResourceRepository;
     private readonly IMemoryStoreRepository _memoryStoreRepository;
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelService _channelService;
@@ -21,6 +22,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         IAgentRepository agentRepository,
         IAgentSessionRepository sessions,
         IAgentResourceRepository resources,
+        IBrowserResourceRepository browserResourceRepository,
         IMemoryStoreRepository memoryStores,
         IChannelRepository channelRepository,
         IChannelService channelService,
@@ -35,6 +37,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         _agentRepository = agentRepository;
         _agentSessionRepository = sessions;
         _agentResourceRepository = resources;
+        _browserResourceRepository = browserResourceRepository;
         _memoryStoreRepository = memoryStores;
         _channelRepository = channelRepository;
         _channelService = channelService;
@@ -141,7 +144,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
                 }, ct);
 
                 if (resourceType == AgentResourceKinds.Browser)
-                    await _agentResourceRepository.SetBrowserCurrentAgentAsync(resource.ResourceId, agent.Id, ct);
+                    await _browserResourceRepository.SetCurrentAgentAsync(resource.ResourceId, agent.Id, ct);
                 if (resourceType == AgentResourceKinds.Channel)
                     await _channelService.BindAgentAsync(agent.Id, resource.ResourceId, null, ct);
             }
@@ -269,7 +272,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
     {
         var exists = resourceType switch
         {
-            AgentResourceKinds.Browser => await _agentResourceRepository.GetBrowserResourceAsync(resourceId, null, workspaceId, ct) is not null,
+            AgentResourceKinds.Browser => await _browserResourceRepository.GetByAsync(new BrowserResourceFilter { Id = resourceId, WorkspaceId = workspaceId }, ct) is not null,
             AgentResourceKinds.MemoryStore => await _memoryStoreRepository.GetAsync(resourceId, null, workspaceId, ct) is not null,
             AgentResourceKinds.Channel => await _channelRepository.GetConnectionByAsync(new ChannelConnectionFilter
             {

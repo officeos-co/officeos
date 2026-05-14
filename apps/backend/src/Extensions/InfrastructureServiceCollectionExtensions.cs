@@ -12,6 +12,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAgentRepository, AgentRepository>();
         services.AddScoped<IAgentDefinitionRepository, AgentDefinitionRepository>();
 
+        services.AddScoped<IBrowserResourceRepository, BrowserResourceRepository>();
         services.AddScoped<IBrowserSessionRepository, BrowserSessionRepository>();
         services.AddScoped<IIntegrationDefinitionRepository, IntegrationDefinitionRepository>();
         services.AddScoped<IAgentIntegrationRepository, AgentIntegrationRepository>();

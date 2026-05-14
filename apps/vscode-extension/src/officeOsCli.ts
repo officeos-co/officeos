@@ -30,6 +30,7 @@ export const ResourceKinds = [
   "runs",
   "channels",
   "routines",
+  "browsers",
   "memorystores",
   "engines",
   "providers",

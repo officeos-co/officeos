@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Domain.Features.Browser;
 
 public sealed record BrowserSessionFilter
 {
