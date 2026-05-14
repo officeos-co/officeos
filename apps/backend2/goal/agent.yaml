@@ -1,0 +1,144 @@
+apiVersion: officeos.io/v1alpha1
+kind: Engine
+metadata:
+  name: opencode
+spec:
+  type: opencode
+  mode: sandboxed-cli
+  modelGateway: officeos
+  description: Runs OpenCode inside an OfficeOS-managed workspace.
+---
+apiVersion: officeos.io/v1alpha1
+kind: WorkspaceRuntime
+metadata:
+  name: coding-sandbox
+spec:
+  type: docker
+  image: officeos/agent-workspace:latest
+  resetPolicy: fresh-per-run
+  workingDirectory: /workspace
+  network:
+    egress: restricted
+  mounts:
+    - name: repo
+      target: /workspace/repo
+      accessMode: read_write
+---
+apiVersion: officeos.io/v1alpha1
+kind: MemoryStore
+metadata:
+  name: engineering-memory
+spec:
+  type: markdown
+  entries:
+    - key: product-direction
+      content: >
+        OfficeOS is the declarative control plane for async agent work, not a
+        replacement for interactive coding tools.
+    - key: architecture-rule
+      content: >
+        Backend code follows clean architecture with Domain, Application,
+        Infrastructure, and Api boundaries.
+---
+apiVersion: officeos.io/v1alpha1
+kind: Browser
+metadata:
+  name: default-browser
+spec:
+  profile: ephemeral
+  viewport:
+    width: 1440
+    height: 1000
+---
+apiVersion: officeos.io/v1alpha1
+kind: Integration
+metadata:
+  name: repo-tools
+spec:
+  type: builtin
+  tools:
+    - file.read
+    - file.write
+    - file.edit
+    - shell
+    - content.search
+    - glob.search
+  auth:
+    mode: none
+---
+apiVersion: officeos.io/v1alpha1
+kind: Policy
+metadata:
+  name: coding-run-policy
+spec:
+  approvals:
+    requireFor:
+      - shell.network
+      - git.push
+      - secrets.read
+  tools:
+    allow:
+      - shell
+      - file.read
+      - file.write
+      - file.edit
+      - content.search
+      - glob.search
+      - browser.*
+      - builtin.repo-tools.*
+    deny:
+      - host.reset
+---
+apiVersion: officeos.io/v1alpha1
+kind: Secret
+metadata:
+  name: placeholder-token
+spec:
+  source: inline
+  value: not-required-for-first-e2e
+  required: false
+---
+apiVersion: officeos.io/v1alpha1
+kind: Agent
+metadata:
+  name: repo-engineer
+spec:
+  engineRef: opencode
+  workspaceRuntimeRef: coding-sandbox
+  model: officeos/default-coding
+  system: >
+    You are an async software engineering agent. Follow the repository
+    architecture, make narrow changes, preserve user work, and produce typed
+    logs, artifacts, and a final result.
+  memoryStores:
+    - ref: engineering-memory
+      accessMode: read_write
+  browsers:
+    - ref: default-browser
+  integrations:
+    - ref: repo-tools
+  policies:
+    - ref: coding-run-policy
+---
+apiVersion: officeos.io/v1alpha1
+kind: AgentJob
+metadata:
+  name: fix-ci
+spec:
+  agentRef: repo-engineer
+  task: >
+    Inspect the repository, run the relevant quality gates, fix failures, and
+    return a final summary with changed files and verification results.
+  triggers:
+    - type: manual
+    - type: schedule
+      cron: "0 8 * * 1-5"
+  outputs:
+    artifacts:
+      - name: patch
+        type: git-diff
+      - name: verification
+        type: markdown-report
+  retention:
+    logsDays: 30
+    artifactsDays: 14
