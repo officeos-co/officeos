@@ -2,13 +2,16 @@ namespace OffceOs.Infrastructure.Features.Management;
 
 internal sealed class WorkspaceRepository : IWorkspaceRepository
 {
+    private static readonly string PersonalOwnerKind = WorkspaceOwnerKind.Personal.ToStorageString();
     private readonly EaosDbContext _eaosDbContext;
 
     public WorkspaceRepository(EaosDbContext db) => _eaosDbContext = db;
 
     public async Task<IReadOnlyList<WorkspaceRecord>> ListAsync(WorkspaceFilter filter, CancellationToken ct = default)
     {
-        var query = _eaosDbContext.Workspaces.AsNoTracking().AsQueryable();
+        var query = _eaosDbContext.Workspaces.AsNoTracking()
+            .Where(w => w.OwnerKind == PersonalOwnerKind)
+            .AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(w => w.Id == filter.Id.Value);
@@ -42,7 +45,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
             .AsNoTracking()
             .Where(m => m.UserId == userId)
             .Join(
-                _eaosDbContext.Workspaces.AsNoTracking(),
+                _eaosDbContext.Workspaces.AsNoTracking().Where(w => w.OwnerKind == PersonalOwnerKind),
                 m => m.WorkspaceId,
                 w => w.Id,
                 (m, w) => new { Member = m, Workspace = w })
@@ -56,7 +59,9 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
 
     public async Task<WorkspaceRecord?> GetByAsync(WorkspaceFilter filter, CancellationToken ct = default)
     {
-        var query = _eaosDbContext.Workspaces.AsNoTracking().AsQueryable();
+        var query = _eaosDbContext.Workspaces.AsNoTracking()
+            .Where(w => w.OwnerKind == PersonalOwnerKind)
+            .AsQueryable();
 
         if (filter.Id.HasValue)
             query = query.Where(w => w.Id == filter.Id.Value);
@@ -86,7 +91,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
             .AsNoTracking()
             .Where(m => m.WorkspaceId == workspaceId && m.UserId == userId)
             .Join(
-                _eaosDbContext.Workspaces.AsNoTracking(),
+                _eaosDbContext.Workspaces.AsNoTracking().Where(w => w.OwnerKind == PersonalOwnerKind),
                 m => m.WorkspaceId,
                 w => w.Id,
                 (m, w) => new { Member = m, Workspace = w })
@@ -99,7 +104,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
     {
         var duplicate = await _eaosDbContext.Workspaces.AsNoTracking()
             .AnyAsync(w => w.Id != record.Id
-                && w.OwnerKind == WorkspaceOwnerKind.Personal.ToStorageString()
+                && w.OwnerKind == PersonalOwnerKind
                 && w.OwnerUserId == record.OwnerUserId
                 && w.Name == record.Name, ct);
         if (duplicate)
@@ -152,7 +157,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
     {
         var existing = await _eaosDbContext.Workspaces
             .AsNoTracking()
-            .Where(w => w.OwnerKind == WorkspaceOwnerKind.Personal.ToStorageString() && w.OwnerUserId == userId)
+            .Where(w => w.OwnerKind == PersonalOwnerKind && w.OwnerUserId == userId)
             .OrderBy(w => w.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
@@ -165,7 +170,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         var workspace = new WorkspaceEntity
         {
             Id = Guid.NewGuid(),
-            OwnerKind = WorkspaceOwnerKind.Personal.ToStorageString(),
+            OwnerKind = PersonalOwnerKind,
             OwnerUserId = userId,
             Name = "Default",
             IsDefault = true,
@@ -192,7 +197,7 @@ internal sealed class WorkspaceRepository : IWorkspaceRepository
         }
 
         var workspace = await _eaosDbContext.Workspaces.AsNoTracking()
-            .Where(w => w.OwnerKind == WorkspaceOwnerKind.Personal.ToStorageString() && w.OwnerUserId == userId)
+            .Where(w => w.OwnerKind == PersonalOwnerKind && w.OwnerUserId == userId)
             .OrderBy(w => w.CreatedAt)
             .FirstOrDefaultAsync(ct);
 

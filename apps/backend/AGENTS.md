@@ -138,6 +138,8 @@ Avoid:
 - Database entities live under `src/Database/Models`.
 - The EF context and design-time factory live directly under `src/Database`.
 - EF migrations live under `src/Database/Migrations`.
+- Prefer generated EF migrations for schema changes. Hand-written SQL is acceptable for data cleanup, but every manual data step must be reviewed against existing persisted values and foreign-key relationships.
+- Destructive migrations must delete or normalize legacy rows before removing the domain/schema that can read them. When removing a storage discriminator, enum value, owner kind, provider type, or feature table, also clear dependent pointers such as current-context columns and add a focused repository or migration-adjacent test for the old value.
 - Database entities stay decoupled from domain records. Repositories map EF entities to rich domain records and back.
 - Put repository filters next to their repository interfaces.
 - Repository methods should use filter records instead of primitive-heavy method variants.
