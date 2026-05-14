@@ -7,16 +7,16 @@ internal sealed class CliAuthService : ICliAuthService
     private const int PollIntervalSeconds = 5;
 
     private readonly IDeviceCodeRepository _deviceCodeRepository;
-    private readonly IAuthService _authService;
+    private readonly ISessionRepository _sessionRepository;
     private readonly FrontendConfig _frontendConfig;
 
     public CliAuthService(
         IDeviceCodeRepository deviceCodeRepository,
-        IAuthService authService,
+        ISessionRepository sessionRepository,
         FrontendConfig frontendConfig)
     {
         _deviceCodeRepository = deviceCodeRepository;
-        _authService = authService;
+        _sessionRepository = sessionRepository;
         _frontendConfig = frontendConfig;
     }
 
@@ -88,7 +88,7 @@ internal sealed class CliAuthService : ICliAuthService
         if (record.UserId is null)
             throw new InvalidOperationException("Authorized device code has no user.");
 
-        var token = await _authService.CreateSessionTokenAsync(record.UserId.Value, CliTokenLifetime, ct);
+        var token = await CreateSessionTokenAsync(record.UserId.Value, CliTokenLifetime, ct);
         record.Status = DeviceCodeStatus.Expired;
         await _deviceCodeRepository.UpdateAsync(record, ct);
         return new CliDeviceTokenResult("authorized", token, DateTime.UtcNow.Add(CliTokenLifetime), PollIntervalSeconds);
@@ -115,5 +115,13 @@ internal sealed class CliAuthService : ICliAuthService
     {
         var normalized = NormalizeUserCode(userCode);
         return normalized.Length <= 4 ? normalized : $"{normalized[..4]}-{normalized[4..]}";
+    }
+
+    private async Task<string> CreateSessionTokenAsync(Guid userId, TimeSpan lifetime, CancellationToken ct)
+    {
+        var sessionToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var tokenHash = SessionTokenHasher.Hash(sessionToken);
+        await _sessionRepository.CreateAsync(userId, tokenHash, DateTime.UtcNow.Add(lifetime), ct);
+        return sessionToken;
     }
 }

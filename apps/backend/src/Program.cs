@@ -135,12 +135,6 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     typeof(OffceOs.Extensions.ApplicationServiceCollectionExtensions).Assembly,
     typeof(Program).Assembly));
 
-var googleOAuthConfig = RequireSection<GoogleOAuthConfig>("GoogleOAuth");
-builder.Services.AddSingleton(googleOAuthConfig);
-
-var gitHubOAuthConfig = RequireSection<GitHubOAuthConfig>("GitHubOAuth");
-builder.Services.AddSingleton(gitHubOAuthConfig);
-
 var integrationCredentialEncryptionConfig = builder.Configuration
     .GetSection("IntegrationCredentialEncryption")
     .Get<IntegrationCredentialEncryptionConfig>() ?? new IntegrationCredentialEncryptionConfig();
