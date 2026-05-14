@@ -191,6 +191,15 @@ internal sealed record DeclarativeChannelSpecItem(
     string? Token,
     Dictionary<string, string>? Credentials);
 
+internal sealed record DeclarativeProviderSpecItem(
+    string Type,
+    string? DisplayName,
+    bool? Enabled,
+    string? DefaultModel,
+    IReadOnlyList<string>? Models,
+    string? AuthKind,
+    Dictionary<string, string>? Credentials);
+
 internal sealed record DeclarativeIntegrationSpecItem(
     bool? Builtin,
     string? Provider,

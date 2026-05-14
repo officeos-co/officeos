@@ -299,15 +299,6 @@ public sealed class WorkspaceOrganizationEndToEndTests
         var workspace = await harness.Workspaces.CreateOrganizationWorkspaceAsync(ownerId, organization.Id, "Ops");
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            harness.ProviderProfiles.SaveAsync(
-                memberId,
-                organization.Id,
-                "openai",
-                "OpenAI",
-                ["gpt-4o-mini"],
-                "key",
-                true));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             harness.Policy.UpdateAsync(
                 memberId,
                 new OrganizationPolicyProfileRecord

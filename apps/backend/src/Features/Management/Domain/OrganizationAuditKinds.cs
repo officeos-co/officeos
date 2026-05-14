@@ -15,7 +15,6 @@ public static class OrganizationAuditKinds
     public const string AccessGroupMember = "access_group_member";
     public const string AccessGroupWorkspaceGrant = "access_group_workspace_grant";
     public const string OrganizationPolicy = "organization_policy";
-    public const string ProviderProfile = "provider_profile";
     public const string Agent = "agent";
     public const string Tool = "tool";
 
@@ -39,8 +38,6 @@ public static class OrganizationAuditKinds
     public const string AccessGroupWorkspaceGrantCreated = "access_group.workspace_grant.created";
     public const string AccessGroupWorkspaceGrantRevoked = "access_group.workspace_grant.revoked";
     public const string OrganizationPolicyUpdated = "organization.policy.updated";
-    public const string ProviderProfileSaved = "provider.profile.saved";
-    public const string ProviderProfileDeleted = "provider.profile.deleted";
     public const string AgentProviderModelUsed = "agent.provider_model.used";
     public const string AgentToolUsed = "agent.tool.used";
     public const string AgentToolPolicyDenied = "agent.tool.policy_denied";

@@ -31,7 +31,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IOrganizationAuditLogRepository, OrganizationAuditLogRepository>();
         services.AddScoped<IOrganizationPolicyProfileRepository, OrganizationPolicyProfileRepository>();
-        services.AddScoped<IOrganizationProviderProfileRepository, OrganizationProviderProfileRepository>();
+        services.AddScoped<IProviderResourceRepository, ProviderResourceRepository>();
         services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
         services.AddScoped<IOrgSubscriptionRepository, OrgSubscriptionRepository>();
         services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();

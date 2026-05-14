@@ -7,22 +7,19 @@ internal sealed class CreditRecordingService : ICreditRecordingService
     private readonly IUserSubscriptionRepository _userSubscriptionRepository;
     private readonly IStripeMeteringService _stripeMeteringService;
     private readonly ILogger<CreditRecordingService> _logger;
-    private readonly CustomLlmProviderConfig _customLlmProviderConfig;
 
     public CreditRecordingService(
         StripeConfig config,
         IAgentRepository agentRepo,
         IUserSubscriptionRepository subRepo,
         IStripeMeteringService stripeMeteringService,
-        ILogger<CreditRecordingService> logger,
-        CustomLlmProviderConfig? customLlmProviderConfig = null)
+        ILogger<CreditRecordingService> logger)
     {
         _stripeConfig = config;
         _agentRepository = agentRepo;
         _userSubscriptionRepository = subRepo;
         _stripeMeteringService = stripeMeteringService;
         _logger = logger;
-        _customLlmProviderConfig = customLlmProviderConfig ?? new CustomLlmProviderConfig();
         StripeConfiguration.ApiKey = _stripeConfig.SecretKey;
     }
 
@@ -82,12 +79,6 @@ internal sealed class CreditRecordingService : ICreditRecordingService
 
     private int GetCostWeight(string model)
     {
-        if (_customLlmProviderConfig.IsConfigured &&
-            string.Equals(model, _customLlmProviderConfig.ModelId.Trim(), StringComparison.OrdinalIgnoreCase))
-        {
-            return _customLlmProviderConfig.EffectiveCostWeight;
-        }
-
         return ProviderRegistry.GetCostWeight(model);
     }
 }

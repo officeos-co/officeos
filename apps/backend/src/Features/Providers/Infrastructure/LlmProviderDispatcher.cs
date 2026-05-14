@@ -10,27 +10,24 @@ public sealed class LlmProviderDispatcher
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<LlmProviderDispatcher> _logger;
-    private readonly CustomLlmProviderConfig _customLlmProviderConfig;
     private readonly ICloudProviderTokenService _cloudProviderTokenService;
     private readonly Func<DateTimeOffset> _utcNow;
 
     public LlmProviderDispatcher(
         IHttpClientFactory httpFactory,
         ILogger<LlmProviderDispatcher> logger,
-        CustomLlmProviderConfig? customLlmProviderConfig = null,
         ICloudProviderTokenService? cloudProviderTokenService = null,
         Func<DateTimeOffset>? utcNow = null)
     {
         _httpClientFactory = httpFactory;
         _logger = logger;
-        _customLlmProviderConfig = customLlmProviderConfig ?? new CustomLlmProviderConfig();
         _cloudProviderTokenService = cloudProviderTokenService ?? new CloudProviderTokenService();
         _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
     }
 
     public bool IsSupported(string provider) =>
         ProviderRegistry.Get(provider) is not null ||
-        (ProviderRegistry.IsCustomProvider(provider) && _customLlmProviderConfig.IsConfigured);
+        ProviderRegistry.IsCustomProvider(provider);
 
     /// <summary>
     /// Dispatch a chat-completions request to the upstream provider.
@@ -64,15 +61,14 @@ public sealed class LlmProviderDispatcher
         var definition = ProviderRegistry.Get(provider);
         var isCustomProvider = definition is null &&
             ProviderRegistry.IsCustomProvider(provider);
-        var customBaseUrl = auth.Get("baseUrl") ?? _customLlmProviderConfig.BaseUrl;
+        var customBaseUrl = auth.Get("baseUrl");
         var isConfiguredCustomProvider = isCustomProvider &&
             !string.IsNullOrWhiteSpace(customBaseUrl);
 
         if (definition is null && !isConfiguredCustomProvider)
             return new AgentError(AgentErrorCategory.Configuration, $"Unsupported provider: {provider}");
-        if (definition?.ApiFormat == ApiFormat.CodexAppServer)
-            return new AgentError(AgentErrorCategory.Configuration, $"Provider '{provider}' must be dispatched through Codex app-server.");
-
+        if (isCustomProvider && string.IsNullOrWhiteSpace(customBaseUrl))
+            return new AgentError(AgentErrorCategory.Configuration, "Provider 'custom' requires credentials.baseUrl.");
         if (isConfiguredCustomProvider && model.Equals("auto", StringComparison.OrdinalIgnoreCase))
         {
             return new AgentError(
@@ -90,9 +86,7 @@ public sealed class LlmProviderDispatcher
         }
 
         var resolvedModel = isConfiguredCustomProvider
-            ? string.IsNullOrWhiteSpace(auth.Get("baseUrl"))
-                ? _customLlmProviderConfig.ModelId.Trim()
-                : model
+            ? model
             : definition!.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase)
                 ? SmartRouter.Resolve(model, requestBody, definition.Slug)
                 : model;
@@ -105,7 +99,7 @@ public sealed class LlmProviderDispatcher
                 return await DispatchAnthropicAsync(definition.Slug, auth, resolvedModel, requestBody, ct);
 
             var baseUrl = isConfiguredCustomProvider
-                ? customBaseUrl
+                ? customBaseUrl!
                 : definition!.Slug.Equals(ProviderRegistry.AzureFoundryProviderSlug, StringComparison.OrdinalIgnoreCase) && HasFoundryEndpoint(auth)
                     ? $"{FoundryEndpoint(auth).TrimEnd('/')}/openai/v1"
                     : definition!.BaseUrl;

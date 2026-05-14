@@ -31,7 +31,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AccessGroupMemberEntity> AccessGroupMembers => Set<AccessGroupMemberEntity>();
     public DbSet<AccessGroupWorkspaceGrantEntity> AccessGroupWorkspaceGrants => Set<AccessGroupWorkspaceGrantEntity>();
     public DbSet<OrganizationPolicyProfileEntity> OrganizationPolicyProfiles => Set<OrganizationPolicyProfileEntity>();
-    public DbSet<OrganizationProviderProfileEntity> OrganizationProviderProfiles => Set<OrganizationProviderProfileEntity>();
+    public DbSet<ProviderResourceEntity> ProviderResources => Set<ProviderResourceEntity>();
     public DbSet<OrganizationAuditLogEntity> OrganizationAuditLogs => Set<OrganizationAuditLogEntity>();
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
@@ -294,15 +294,18 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(p => p.Organization).WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<OrganizationProviderProfileEntity>(e =>
+        modelBuilder.Entity<ProviderResourceEntity>(e =>
         {
             e.HasKey(p => p.Id);
-            e.HasIndex(p => new { p.OrganizationId, p.Provider }).IsUnique();
-            e.Property(p => p.Provider).IsRequired().HasMaxLength(64);
+            e.HasIndex(p => new { p.WorkspaceId, p.Name }).IsUnique();
+            e.Property(p => p.Name).IsRequired().HasMaxLength(64);
+            e.Property(p => p.Type).IsRequired().HasMaxLength(64);
             e.Property(p => p.DisplayName).IsRequired().HasMaxLength(128);
+            e.Property(p => p.DefaultModel).HasMaxLength(128);
             e.Property(p => p.AllowedModelsJson).HasColumnType("jsonb");
-            e.Property(p => p.EncryptedApiKey).HasMaxLength(4096);
-            e.HasOne(p => p.Organization).WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(p => p.AuthKind).IsRequired().HasMaxLength(64);
+            e.Property(p => p.EncryptedCredentialsJson).HasColumnType("text");
+            e.HasOne(p => p.Workspace).WithMany().HasForeignKey(p => p.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<OrganizationAuditLogEntity>(e =>

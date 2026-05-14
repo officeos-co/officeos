@@ -77,6 +77,16 @@ export class OfficeOsCli {
     );
   }
 
+  async deleteResource(kind: string, name: string): Promise<void> {
+    if (kind === "models") {
+      throw new Error(
+        "OfficeOS models are discovered from providers and cannot be deleted.",
+      );
+    }
+
+    await this.runText(["delete", kind, name]);
+  }
+
   async getContexts(): Promise<string[]> {
     const output = await this.runText(["config", "get-contexts"]);
     return output

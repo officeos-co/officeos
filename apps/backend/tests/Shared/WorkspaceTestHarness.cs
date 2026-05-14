@@ -5,7 +5,6 @@ using OffceOs.Application.Features.Channels;
 using OffceOs.Application.Features.Integrations;
 using OffceOs.Application.Features.Management;
 using OffceOs.Application.Features.Providers;
-using OffceOs.Configuration;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Features.Agents;
@@ -32,7 +31,6 @@ public sealed record WorkspaceTestHarness(
     IOrganizationService Organizations,
     IAccessGroupService AccessGroups,
     IOrganizationPolicyService Policy,
-    IOrganizationProviderProfileService ProviderProfiles,
     IIntegrationDeploymentService IntegrationDeployments,
     IIntegrationDefinitionService Integrations,
     IAgentDashboardService AgentDashboard,
@@ -47,7 +45,6 @@ public sealed record WorkspaceTestHarness(
         var workspaceMemberRepository = new WorkspaceMemberRepository(db);
         var accessGroupRepository = new AccessGroupRepository(db);
         var organizationPolicyProfileRepository = new OrganizationPolicyProfileRepository(db);
-        var organizationProviderProfileRepository = new OrganizationProviderProfileRepository(db);
         var integrationDeploymentRepository = new IntegrationDeploymentRepository(db);
         var agentRepository = new AgentRepository(db);
         var channelRepository = new ChannelRepository(db);
@@ -103,11 +100,6 @@ public sealed record WorkspaceTestHarness(
             new OrganizationService(organizationRepository, workspaceRepository, workspaceMemberRepository, userRepository, new NoopPublisher()),
             new AccessGroupService(accessGroupRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
             new OrganizationPolicyService(organizationPolicyProfileRepository, organizationRepository, workspaceRepository, new NoopPublisher()),
-            new OrganizationProviderProfileService(
-                organizationProviderProfileRepository,
-                organizationRepository,
-                new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-provider-e2e-keys-{Guid.NewGuid():N}")))),
-                new NoopPublisher()),
             new IntegrationDeploymentService(integrationDeploymentRepository, organizationRepository, workspaceRepository, workspaceMemberRepository),
             integrationService,
             agentDashboard,

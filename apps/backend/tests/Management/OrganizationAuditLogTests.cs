@@ -78,8 +78,6 @@ public sealed class OrganizationAuditLogTests
         await handler.Handle(new AccessGroupWorkspaceGrantCreatedEvent(organizationId, ownerId, Guid.NewGuid(), workspaceId, "Viewer"), CancellationToken.None);
         await handler.Handle(new AccessGroupWorkspaceGrantRevokedEvent(organizationId, ownerId, Guid.NewGuid(), workspaceId), CancellationToken.None);
         await handler.Handle(new OrganizationPolicyProfileUpdatedEvent(organizationId, ownerId, false, true, false, true, 1, 2, 3, 4), CancellationToken.None);
-        await handler.Handle(new OrganizationProviderProfileSavedEvent(organizationId, ownerId, "openai", "OpenAI", "apiKey", 2, true), CancellationToken.None);
-        await handler.Handle(new OrganizationProviderProfileDeletedEvent(organizationId, ownerId, "openai"), CancellationToken.None);
         await handler.Handle(new LlmCallCompletedEvent(agentId, "corr-1", "openai", "gpt-4o-mini", 123, 10, 20), CancellationToken.None);
         await handler.Handle(new ToolCallCompletedEvent(agentId, "corr-1", "shell", false, "blocked", 17), CancellationToken.None);
         await handler.Handle(new AgentToolPolicyDeniedEvent(agentId, "corr-2", "file_write", "file write tools are disabled by organization policy"), CancellationToken.None);
@@ -108,14 +106,12 @@ public sealed class OrganizationAuditLogTests
             [OrganizationAuditKinds.AccessGroupWorkspaceGrantCreated] = (OrganizationAuditKinds.AccessGroupWorkspaceGrant, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.AccessGroupWorkspaceGrantRevoked] = (OrganizationAuditKinds.AccessGroupWorkspaceGrant, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.OrganizationPolicyUpdated] = (OrganizationAuditKinds.OrganizationPolicy, OrganizationAuditKinds.Success),
-            [OrganizationAuditKinds.ProviderProfileSaved] = (OrganizationAuditKinds.ProviderProfile, OrganizationAuditKinds.Success),
-            [OrganizationAuditKinds.ProviderProfileDeleted] = (OrganizationAuditKinds.ProviderProfile, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.AgentProviderModelUsed] = (OrganizationAuditKinds.Agent, OrganizationAuditKinds.Success),
             [OrganizationAuditKinds.AgentToolUsed] = (OrganizationAuditKinds.Tool, OrganizationAuditKinds.Failure),
             [OrganizationAuditKinds.AgentToolPolicyDenied] = (OrganizationAuditKinds.Tool, OrganizationAuditKinds.Denied),
         };
 
-        Assert.Equal(25, rows.Count);
+        Assert.Equal(23, rows.Count);
         foreach (var (action, expectation) in expected)
         {
             var row = byAction[action];
@@ -126,7 +122,6 @@ public sealed class OrganizationAuditLogTests
         }
 
         Assert.Equal(workspaceId, byAction[OrganizationAuditKinds.WorkspaceUpdated].WorkspaceId);
-        Assert.Contains("\"authKind\":\"apiKey\"", byAction[OrganizationAuditKinds.ProviderProfileSaved].MetadataJson);
         Assert.Equal(agentId, byAction[OrganizationAuditKinds.AgentProviderModelUsed].AgentId);
         Assert.Contains("\"provider\":\"openai\"", byAction[OrganizationAuditKinds.AgentProviderModelUsed].MetadataJson);
     }
@@ -234,8 +229,8 @@ public sealed class OrganizationAuditLogTests
             Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             OrganizationId = organizationId,
             ActorUserId = ownerId,
-            Action = OrganizationAuditKinds.ProviderProfileSaved,
-            ResourceType = OrganizationAuditKinds.ProviderProfile,
+            Action = OrganizationAuditKinds.AgentProviderModelUsed,
+            ResourceType = OrganizationAuditKinds.Agent,
             ResourceId = "openai",
             Outcome = OrganizationAuditKinds.Success,
             MetadataJson = """{"z":"last","apiKey":"secret-value","nested":{"password":"p","alpha":"first"}}""",

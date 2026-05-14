@@ -10,7 +10,7 @@ Install these tools:
 - .NET SDK 9
 - Bun
 
-You also need at least one LLM provider key. OfficeOS can run with Anthropic, OpenAI, Gemini, xAI, or another configured provider.
+You also need at least one Provider manifest with credentials for the model provider you want to use. OfficeOS does not read model provider keys from backend environment variables.
 
 ## Step 1: Clone the repository
 
@@ -21,22 +21,15 @@ cd EnterpriseAgentOs
 
 ## Step 2: Configure environment variables
 
-Copy the example environment file and add at least one provider key.
+Copy the example environment file.
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set one of these values:
-
-```bash
-PLATFORMKEYS__ANTHROPICAPIKEY=
-PLATFORMKEYS__OPENAIAPIKEY=
-PLATFORMKEYS__GEMINIAPIKEY=
-PLATFORMKEYS__XAIAPIKEY=
-```
-
 For local development, keep the default Postgres, Redis, MinIO, browser, and Docker settings unless you are running those services elsewhere.
+
+Provider credentials are declared through `officeos.io/v1` Provider manifests. Keep local files that contain real keys in an ignored path such as `example/local-secrets/`.
 
 ## Step 3: Build the agent runtime image
 
@@ -100,7 +93,7 @@ In the dashboard:
 
 1. Open Agents.
 2. Create a new agent.
-3. Select a configured provider and model.
+3. Select a provider and model that you applied through a Provider manifest.
 4. Add a system prompt.
 5. Launch the agent.
 

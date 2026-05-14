@@ -1,5 +1,4 @@
 using OffceOs.Application.Features.Providers;
-using OffceOs.Domain.Common.Primitives;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
@@ -12,34 +11,8 @@ namespace OffceOs.Tests.Providers;
 public sealed class ProviderDispatchServiceTests
 {
     [Fact]
-    public async Task Dispatch_routes_openai_codex_to_codex_adapter()
-    {
-        var codex = new FakeCodexAppServerService();
-        var service = new ProviderDispatchService(
-            new StaticProviderService(new ProviderAuthResult(
-                ProviderAuthKind.CodexChatGptOAuth,
-                new Dictionary<string, string> { ["authJson"] = "{}" })),
-            new LlmProviderDispatcher(
-                new FakeHttpClientFactory(new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"))),
-                NullLogger<LlmProviderDispatcher>.Instance),
-            codex);
-        using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
-
-        var result = await service.DispatchAsync(
-            ProviderRegistry.OpenAiCodexProviderSlug,
-            null,
-            "gpt-5.5",
-            document.RootElement);
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal(1, codex.DispatchCount);
-        Assert.Equal("gpt-5.5", result.Value.Model);
-    }
-
-    [Fact]
     public async Task Dispatch_routes_regular_openai_to_llm_dispatcher()
     {
-        var codex = new FakeCodexAppServerService();
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var service = new ProviderDispatchService(
             new StaticProviderService(new ProviderAuthResult(
@@ -47,21 +20,18 @@ public sealed class ProviderDispatchServiceTests
                 new Dictionary<string, string> { ["apiKey"] = "sk-test" })),
             new LlmProviderDispatcher(
                 new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance),
-            codex);
+                NullLogger<LlmProviderDispatcher>.Instance));
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("openai", null, "gpt-4o-mini", document.RootElement);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0, codex.DispatchCount);
         Assert.Single(handler.Requests);
     }
 
     [Fact]
-    public async Task Dispatch_routes_dashboard_configured_custom_provider_to_profile_base_url()
+    public async Task Dispatch_routes_custom_provider_to_declared_base_url()
     {
-        var codex = new FakeCodexAppServerService();
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var service = new ProviderDispatchService(
             new StaticProviderService(new ProviderAuthResult(
@@ -73,8 +43,7 @@ public sealed class ProviderDispatchServiceTests
                 })),
             new LlmProviderDispatcher(
                 new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance),
-            codex);
+                NullLogger<LlmProviderDispatcher>.Instance));
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("custom", null, "llama3.1", document.RootElement);
@@ -111,20 +80,4 @@ public sealed class ProviderDispatchServiceTests
             Task.FromResult(true);
     }
 
-    private sealed class FakeCodexAppServerService : ICodexAppServerService
-    {
-        public int DispatchCount { get; private set; }
-
-        public Task<CodexOAuthLoginResult> StartLoginAsync(Guid userId, CancellationToken ct = default) =>
-            throw new NotImplementedException();
-
-        public Task<CodexOAuthStatusResult> PollLoginAsync(string loginId, CancellationToken ct = default) =>
-            throw new NotImplementedException();
-
-        public Task<AgentResult<LlmDispatchResponse>> DispatchAsync(ProviderAuthResult auth, string model, JsonElement requestBody, CancellationToken ct = default)
-        {
-            DispatchCount++;
-            return Task.FromResult<AgentResult<LlmDispatchResponse>>(new LlmDispatchResponse(HttpResponseFactory.SseResponse("data: [DONE]\n\n"), model));
-        }
-    }
 }

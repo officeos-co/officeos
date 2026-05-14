@@ -13,6 +13,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
 
     private static readonly string[] ApplyOrder =
     [
+        DeclarativeResourceKindItem.Provider,
         DeclarativeResourceKindItem.Integration,
         DeclarativeResourceKindItem.Channel,
         DeclarativeResourceKindItem.MemoryStore,
@@ -36,6 +37,8 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly DeclarativeManifestParser _declarativeManifestParser;
     private readonly ChannelCredentialProtector _channelCredentialProtector;
+    private readonly IProviderResourceRepository? _providerResourceRepository;
+    private readonly CredentialProtector? _credentialProtector;
 
     public DeclarativeAgentService(
         IAgentDashboardService agentDashboardService,
@@ -51,7 +54,9 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         IAgentRoutineService agentRoutineService,
         AgentDefinitionParser agentDefinitionParser,
         DeclarativeManifestParser declarativeManifestParser,
-        ChannelCredentialProtector channelCredentialProtector)
+        ChannelCredentialProtector channelCredentialProtector,
+        IProviderResourceRepository? providerResourceRepository = null,
+        CredentialProtector? credentialProtector = null)
     {
         _agentDashboardService = agentDashboardService;
         _agentRepository = agentRepository;
@@ -67,6 +72,8 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         _agentDefinitionParser = agentDefinitionParser;
         _declarativeManifestParser = declarativeManifestParser;
         _channelCredentialProtector = channelCredentialProtector;
+        _providerResourceRepository = providerResourceRepository;
+        _credentialProtector = credentialProtector;
     }
 
     public async Task<DeclarativeManifestValidationResult> ValidateAsync(string manifest, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
@@ -98,6 +105,9 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         {
             switch (resource.Kind)
             {
+                case DeclarativeResourceKindItem.Provider:
+                    changes.Add(await ApplyProviderAsync(resource, workspaceId, ct));
+                    break;
                 case DeclarativeResourceKindItem.Integration:
                     changes.Add(await ApplyIntegrationAsync(resource, ownerId, workspaceId, ct));
                     break;
@@ -250,12 +260,15 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         var resourceNames = resources
             .GroupBy(resource => resource.Kind)
             .ToDictionary(group => group.Key, group => group.Select(resource => resource.Name).ToHashSet(StringComparer.OrdinalIgnoreCase));
+        var providerSpecs = resources
+            .Where(resource => resource.Kind == DeclarativeResourceKindItem.Provider)
+            .ToDictionary(resource => resource.Name, Spec<DeclarativeProviderSpecItem>, StringComparer.OrdinalIgnoreCase);
 
         foreach (var resource in resources)
         {
             try
             {
-                ValidateResource(resource, resourceNames);
+                await ValidateResourceAsync(resource, resourceNames, providerSpecs, ownerId, workspaceId, ct);
             }
             catch (InvalidOperationException ex)
             {
@@ -287,10 +300,19 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         return validation;
     }
 
-    private static void ValidateResource(DeclarativeResourceDescriptorItem resource, IReadOnlyDictionary<string, HashSet<string>> resourceNames)
+    private async Task ValidateResourceAsync(
+        DeclarativeResourceDescriptorItem resource,
+        IReadOnlyDictionary<string, HashSet<string>> resourceNames,
+        IReadOnlyDictionary<string, DeclarativeProviderSpecItem> providerSpecs,
+        Guid ownerId,
+        Guid workspaceId,
+        CancellationToken ct)
     {
         switch (resource.Kind)
         {
+            case DeclarativeResourceKindItem.Provider:
+                ValidateProvider(resource, Spec<DeclarativeProviderSpecItem>(resource));
+                break;
             case DeclarativeResourceKindItem.Channel:
                 var channel = Spec<DeclarativeChannelSpecItem>(resource);
                 if (ChannelKinds.GetByType(channel.Type) is null)
@@ -328,14 +350,16 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     throw new InvalidOperationException("Agent spec.provider is required.");
                 if (string.IsNullOrWhiteSpace(agent.Model))
                     throw new InvalidOperationException("Agent spec.model is required.");
-                RequireDeclaredRefs(resource, DeclarativeResourceKindItem.Integration, agent.Integrations?.Select(item => item.Ref), resourceNames);
-                RequireDeclaredRefs(resource, DeclarativeResourceKindItem.Channel, agent.Channels?.Select(item => item.Ref), resourceNames);
-                RequireDeclaredRefs(resource, DeclarativeResourceKindItem.MemoryStore, agent.MemoryStores?.Select(item => item.Ref), resourceNames);
-                RequireDeclaredRefs(resource, DeclarativeResourceKindItem.Browser, agent.Browsers?.Select(item => item.Ref), resourceNames);
+                await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.Provider, [agent.Provider], resourceNames, ownerId, workspaceId, ct);
+                await RequireAllowedProviderModelAsync(resource, agent.Provider, agent.Model, providerSpecs, workspaceId, ct);
+                await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.Integration, agent.Integrations?.Select(item => item.Ref), resourceNames, ownerId, workspaceId, ct);
+                await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.Channel, agent.Channels?.Select(item => item.Ref), resourceNames, ownerId, workspaceId, ct);
+                await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.MemoryStore, agent.MemoryStores?.Select(item => item.Ref), resourceNames, ownerId, workspaceId, ct);
+                await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.Browser, agent.Browsers?.Select(item => item.Ref), resourceNames, ownerId, workspaceId, ct);
                 break;
             case DeclarativeResourceKindItem.Routine:
                 var routine = Spec<DeclarativeRoutineSpecItem>(resource);
-                RequireDeclaredRefs(resource, DeclarativeResourceKindItem.Agent, [routine.AgentRef], resourceNames);
+                await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.Agent, [routine.AgentRef], resourceNames, ownerId, workspaceId, ct);
                 if (string.IsNullOrWhiteSpace(routine.Prompt))
                     throw new InvalidOperationException("Routine spec.prompt is required.");
                 if ((routine.ScheduleTriggers?.Count ?? 0) == 0
@@ -351,6 +375,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         var existingId = resource.Kind switch
         {
             DeclarativeResourceKindItem.Integration => await ExistingIntegrationIdAsync(resource, ownerId, workspaceId, ct),
+            DeclarativeResourceKindItem.Provider => await ExistingProviderIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.Channel => await ExistingChannelIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.MemoryStore => await ExistingMemoryStoreIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.Browser => await ExistingBrowserIdAsync(resource, workspaceId, ct),
@@ -363,6 +388,38 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         return existingId.HasValue
             ? new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "update", existingId.Value.ToString(), $"{resource.Kind} will be reconciled.")
             : new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "create", null, $"{resource.Kind} will be created.");
+    }
+
+    private async Task<DeclarativeResourceChangeItem> ApplyProviderAsync(DeclarativeResourceDescriptorItem resource, Guid workspaceId, CancellationToken ct)
+    {
+        var repository = _providerResourceRepository ?? throw new InvalidOperationException("Provider resource repository is not configured.");
+        var protector = _credentialProtector ?? throw new InvalidOperationException("Credential protector is not configured.");
+        var spec = Spec<DeclarativeProviderSpecItem>(resource);
+        var type = spec.Type.Trim().ToLowerInvariant();
+        var existing = await repository.GetByNameAsync(workspaceId, resource.Name, ct);
+        var credentials = NormalizeProviderCredentials(spec);
+        var encryptedCredentials = credentials.Count == 0
+            ? existing?.EncryptedCredentialsJson ?? string.Empty
+            : protector.Protect(credentials);
+        var definition = ProviderRegistry.Get(type);
+        var saved = await repository.UpsertAsync(new ProviderResourceRecord
+        {
+            Id = existing?.Id ?? ResourceId(workspaceId, DeclarativeResourceKindItem.Provider, resource.Name),
+            WorkspaceId = workspaceId,
+            Name = resource.Name.Trim().ToLowerInvariant(),
+            Type = type,
+            DisplayName = DisplayName(resource.Name, spec.DisplayName ?? definition?.DisplayName),
+            Enabled = spec.Enabled ?? true,
+            DefaultModel = string.IsNullOrWhiteSpace(spec.DefaultModel) ? null : spec.DefaultModel.Trim(),
+            Models = NormalizeProviderModels(spec, definition),
+            AuthKind = NormalizeProviderAuthKind(spec).ToStorageString(),
+            EncryptedCredentialsJson = encryptedCredentials,
+            CreatedAt = existing?.CreatedAt ?? DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        }, ct);
+
+        var action = existing is null ? "create" : "update";
+        return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, action, saved.Id.ToString(), $"{action}d provider.");
     }
 
     private async Task<DeclarativeResourceChangeItem> ApplyIntegrationAsync(DeclarativeResourceDescriptorItem resource, Guid ownerId, Guid workspaceId, CancellationToken ct)
@@ -690,6 +747,11 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         => (IntegrationDefinitionProvider.GetBuiltin(resource.Name)
             ?? await _integrationDefinitionRepository.GetByNameAsync(ownerId, resource.Name, workspaceId, ct))?.Id;
 
+    private async Task<Guid?> ExistingProviderIdAsync(DeclarativeResourceDescriptorItem resource, Guid workspaceId, CancellationToken ct)
+        => _providerResourceRepository is null
+            ? null
+            : (await _providerResourceRepository.GetByNameAsync(workspaceId, resource.Name, ct))?.Id;
+
     private async Task<Guid?> ExistingChannelIdAsync(DeclarativeResourceDescriptorItem resource, Guid workspaceId, CancellationToken ct)
     {
         var id = ResourceId(workspaceId, resource.Kind, resource.Name);
@@ -744,11 +806,14 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             .ThenBy(resource => resource.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    private static void RequireDeclaredRefs(
+    private async Task RequireResourceRefsAsync(
         DeclarativeResourceDescriptorItem resource,
         string kind,
         IEnumerable<string>? refs,
-        IReadOnlyDictionary<string, HashSet<string>> resourceNames)
+        IReadOnlyDictionary<string, HashSet<string>> resourceNames,
+        Guid ownerId,
+        Guid workspaceId,
+        CancellationToken ct)
     {
         if (refs is null)
             return;
@@ -756,9 +821,33 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         resourceNames.TryGetValue(kind, out var names);
         foreach (var reference in refs.Where(reference => !string.IsNullOrWhiteSpace(reference)))
         {
-            if (names is null || !names.Contains(reference.Trim()))
-                throw new InvalidOperationException($"{resource.Kind} references {kind}/{reference}, but that resource is not declared in the manifest.");
+            var name = reference.Trim();
+            if ((names is not null && names.Contains(name))
+                || await ExistingResourceRefAsync(kind, name, ownerId, workspaceId, ct))
+                continue;
+
+            throw new InvalidOperationException($"{resource.Kind} references {kind}/{name}, but that resource is not declared in the manifest or current workspace.");
         }
+    }
+
+    private async Task<bool> ExistingResourceRefAsync(string kind, string name, Guid ownerId, Guid workspaceId, CancellationToken ct)
+    {
+        var resource = new DeclarativeResourceDescriptorItem(
+            kind,
+            name,
+            new DeclarativeResourceItem(ApiVersion, kind, new DeclarativeMetadataItem(name), null));
+
+        return kind switch
+        {
+            DeclarativeResourceKindItem.Provider => await ExistingProviderIdAsync(resource, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.Integration => await ExistingIntegrationIdAsync(resource, ownerId, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.Channel => await ExistingChannelIdAsync(resource, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.MemoryStore => await ExistingMemoryStoreIdAsync(resource, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.Browser => await ExistingBrowserIdAsync(resource, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.Agent => await FindAgentByNameAsync(name, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.Engine => EngineId(name) != Guid.Empty,
+            _ => false,
+        };
     }
 
     private static string? NormalizeKind(string? kind)
@@ -769,6 +858,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         return kind.Trim().ToLowerInvariant() switch
         {
             "agent" => DeclarativeResourceKindItem.Agent,
+            "provider" => DeclarativeResourceKindItem.Provider,
             "channel" => DeclarativeResourceKindItem.Channel,
             "integration" => DeclarativeResourceKindItem.Integration,
             "memorystore" or "memory-store" or "memory_store" => DeclarativeResourceKindItem.MemoryStore,
@@ -794,6 +884,86 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             ? spec.Credentials
             : null;
     }
+
+    private static void ValidateProvider(DeclarativeResourceDescriptorItem resource, DeclarativeProviderSpecItem spec)
+    {
+        if (string.IsNullOrWhiteSpace(spec.Type))
+            throw new InvalidOperationException("Provider spec.type is required.");
+
+        var type = spec.Type.Trim().ToLowerInvariant();
+        var definition = ProviderRegistry.Get(type);
+        if (definition is null && !ProviderRegistry.IsCustomProvider(type))
+            throw new InvalidOperationException($"Provider type '{spec.Type}' is not supported.");
+
+        var models = NormalizeProviderModels(spec, definition);
+        if (models.Count == 0)
+            throw new InvalidOperationException("Provider spec.models requires at least one model.");
+
+        foreach (var model in models)
+        {
+            if (definition is not null &&
+                definition.Models.Count > 0 &&
+                !definition.Models.Any(item => item.Id.Equals(model, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Provider model '{model}' is not supported for provider type '{type}'.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(spec.DefaultModel) && !models.Any(model => model.Equals(spec.DefaultModel.Trim(), StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Provider spec.defaultModel must be included in spec.models.");
+
+        if ((spec.Enabled ?? true) && NormalizeProviderCredentials(spec).Count == 0)
+            throw new InvalidOperationException("Provider spec.credentials is required when provider is enabled.");
+
+        _ = resource;
+    }
+
+    private async Task RequireAllowedProviderModelAsync(
+        DeclarativeResourceDescriptorItem resource,
+        string provider,
+        string model,
+        IReadOnlyDictionary<string, DeclarativeProviderSpecItem> providerSpecs,
+        Guid workspaceId,
+        CancellationToken ct)
+    {
+        if (providerSpecs.TryGetValue(provider.Trim(), out var declared))
+        {
+            var allowed = NormalizeProviderModels(declared, ProviderRegistry.Get(declared.Type.Trim().ToLowerInvariant()));
+            if (!allowed.Any(item => item.Equals(model.Trim(), StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Agent model '{model}' is not allowed by Provider/{provider}.");
+            return;
+        }
+
+        var existing = _providerResourceRepository is null
+            ? null
+            : await _providerResourceRepository.GetByNameAsync(workspaceId, provider, ct);
+        if (existing is null || !existing.Enabled)
+            throw new InvalidOperationException($"{resource.Kind} references Provider/{provider}, but that resource is not declared in the manifest or current workspace.");
+        if (!existing.Models.Any(item => item.Equals(model.Trim(), StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"Agent model '{model}' is not allowed by Provider/{provider}.");
+    }
+
+    private static IReadOnlyList<string> NormalizeProviderModels(DeclarativeProviderSpecItem spec, ProviderDefinition? definition)
+    {
+        var models = (spec.Models ?? [])
+            .Where(model => !string.IsNullOrWhiteSpace(model))
+            .Select(model => model.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return models.Count > 0
+            ? models
+            : definition?.Models.Select(model => model.Id).ToList() ?? [];
+    }
+
+    private static ProviderAuthKind NormalizeProviderAuthKind(DeclarativeProviderSpecItem spec)
+        => string.IsNullOrWhiteSpace(spec.AuthKind)
+            ? ProviderAuthKind.ApiKey
+            : spec.AuthKind.Trim().ToProviderAuthKind();
+
+    private static Dictionary<string, string> NormalizeProviderCredentials(DeclarativeProviderSpecItem spec)
+        => spec.Credentials is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : spec.Credentials
+                .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
 
     private static IntegrationTransportType ResolveTransport(DeclarativeIntegrationSpecItem spec)
     {
@@ -843,6 +1013,7 @@ internal sealed record DeclarativeResourceDescriptorItem(
 
 internal static class DeclarativeResourceKindItem
 {
+    public const string Provider = "Provider";
     public const string Agent = "Agent";
     public const string Channel = "Channel";
     public const string Integration = "Integration";

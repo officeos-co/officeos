@@ -118,12 +118,42 @@ internal sealed class ChannelRepository : IChannelRepository
 
     public async Task<AgentChannelBindingRecord> CreateBindingAsync(AgentChannelBindingRecord record, CancellationToken ct = default)
     {
+        var existing = await _eaosDbContext.AgentChannelBindings
+            .AsNoTracking()
+            .Include(b => b.ChannelConnection)
+            .FirstOrDefaultAsync(
+                b => b.AgentId == record.AgentId
+                    && b.ChannelConnectionId == record.ChannelConnectionId,
+                ct);
+        if (existing is not null)
+            return ToAgentChannelBindingRecord(existing);
+
         var entity = ToAgentChannelBindingEntity(record);
         _eaosDbContext.AgentChannelBindings.Add(entity);
-        await _eaosDbContext.SaveChangesAsync(ct);
+        try
+        {
+            await _eaosDbContext.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            _eaosDbContext.Entry(entity).State = EntityState.Detached;
+
+            existing = await _eaosDbContext.AgentChannelBindings
+                .AsNoTracking()
+                .Include(b => b.ChannelConnection)
+                .FirstOrDefaultAsync(
+                    b => b.AgentId == record.AgentId
+                        && b.ChannelConnectionId == record.ChannelConnectionId,
+                    ct);
+            if (existing is null)
+                throw;
+
+            return ToAgentChannelBindingRecord(existing);
+        }
 
         // Reload with connection included
         var reloaded = await _eaosDbContext.AgentChannelBindings
+            .AsNoTracking()
             .Include(b => b.ChannelConnection)
             .FirstAsync(b => b.Id == entity.Id, ct);
         return ToAgentChannelBindingRecord(reloaded);

@@ -119,6 +119,7 @@ public sealed class ControlPlaneController : ControllerBase
         [FromServices] IChannelRepository channels,
         [FromServices] IAgentRoutineService routines,
         [FromServices] IMemoryStoreRepository memoryStores,
+        [FromServices] IProviderResourceRepository providers,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
@@ -131,6 +132,7 @@ public sealed class ControlPlaneController : ControllerBase
             "channels" => Ok((await channels.ListConnectionsAsync(new ChannelConnectionFilter { WorkspaceId = scope.Value.WorkspaceId }, ct)).Select(ToChannelResource)),
             "routines" => Ok((await routines.ListForOwnerAsync(scope.Value.UserId, scope.Value.WorkspaceId, ct)).Select(ToRoutineResource)),
             "memorystores" => Ok((await memoryStores.ListAsync(null, scope.Value.WorkspaceId, ct)).Select(ToMemoryStoreResource)),
+            "providers" => Ok((await providers.ListAsync(scope.Value.WorkspaceId, ct)).Select(ToProviderResource)),
             "engines" => Ok(new[] { new { kind = "Engine", name = "opencode", type = "opencode" } }),
             _ => NotFound(new { error = $"Resource kind '{kind}' was not found." }),
         };
@@ -146,9 +148,10 @@ public sealed class ControlPlaneController : ControllerBase
         [FromServices] IChannelRepository channels,
         [FromServices] IAgentRoutineService routines,
         [FromServices] IMemoryStoreRepository memoryStores,
+        [FromServices] IProviderResourceRepository providers,
         CancellationToken ct)
     {
-        var list = await ListResources(kind, workspaces, agents, runs, channels, routines, memoryStores, ct);
+        var list = await ListResources(kind, workspaces, agents, runs, channels, routines, memoryStores, providers, ct);
         if (list is not OkObjectResult ok || ok.Value is not IEnumerable<object> values)
             return list;
 
@@ -165,6 +168,7 @@ public sealed class ControlPlaneController : ControllerBase
         [FromServices] IChannelRepository channels,
         [FromServices] IAgentRoutineService routines,
         [FromServices] IMemoryStoreRepository memoryStores,
+        [FromServices] IProviderResourceRepository providers,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
@@ -188,6 +192,9 @@ public sealed class ControlPlaneController : ControllerBase
             case "memorystores":
                 if (Guid.TryParse(name, out var memoryStoreId))
                     deleted = await memoryStores.DeleteAsync(memoryStoreId, null, scope.Value.WorkspaceId, ct);
+                break;
+            case "providers":
+                deleted = await providers.DeleteAsync(scope.Value.WorkspaceId, name, ct);
                 break;
             case "engines":
                 return BadRequest(new { error = "The built-in OpenCode engine cannot be deleted." });
@@ -325,6 +332,7 @@ public sealed class ControlPlaneController : ControllerBase
             "channel" or "channels" => "channels",
             "routine" or "routines" => "routines",
             "memorystore" or "memorystores" or "memory-store" or "memory-stores" or "memory_store" or "memory_stores" => "memorystores",
+            "provider" or "providers" => "providers",
             "engine" or "engines" => "engines",
             _ => value,
         };
@@ -382,6 +390,21 @@ public sealed class ControlPlaneController : ControllerBase
         id = store.Id,
         store.DisplayName,
         store.CreatedAt,
+    };
+
+    private static object ToProviderResource(ProviderResourceRecord provider) => new
+    {
+        kind = "Provider",
+        name = provider.Name,
+        id = provider.Id,
+        type = provider.Type,
+        displayName = provider.DisplayName,
+        enabled = provider.Enabled,
+        configured = provider.Enabled && !string.IsNullOrWhiteSpace(provider.EncryptedCredentialsJson),
+        defaultModel = provider.DefaultModel,
+        models = provider.Models,
+        createdAt = provider.CreatedAt,
+        updatedAt = provider.UpdatedAt,
     };
 
     private static string ResourceName(object value)

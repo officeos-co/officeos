@@ -5,7 +5,6 @@ public sealed record ProviderDefinition(
     string DisplayName,
     ApiFormat ApiFormat,
     string BaseUrl,
-    string? PlatformKeyConfigName,
     IReadOnlyList<ModelDefinition> Models,
     bool OrganizationProfileOnly = false,
     bool RequiresPinnedModels = false);

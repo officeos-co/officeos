@@ -27,6 +27,7 @@ const ResourceKinds = [
     aliases: "memorystore, memorystores",
     description: "Memory stores",
   },
+  { kind: "providers", aliases: "provider", description: "Configured provider resources" },
   { kind: "engines", aliases: "engine", description: "Execution engines" },
 ] as const;
 
@@ -129,18 +130,14 @@ export async function waitCommand(args: string[]): Promise<void> {
 
 export async function modelsCommand(args: string[] = []): Promise<void> {
   const context = await requireContext();
-  printFormatted(
-    await listModels(context.apiUrl, context.token),
-    readOutput(args),
-  );
+  const models = await listModels(context.apiUrl, context.token);
+  printFormatted(models, readOutput(args));
 }
 
 export async function providersCommand(args: string[] = []): Promise<void> {
   const context = await requireContext();
-  printFormatted(
-    await listProviders(context.apiUrl, context.token),
-    readOutput(args),
-  );
+  const providers = await listProviders(context.apiUrl, context.token);
+  printFormatted(providers, readOutput(args));
 }
 
 export async function configCommand(args: string[]): Promise<void> {

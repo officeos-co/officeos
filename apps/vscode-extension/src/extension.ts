@@ -4,6 +4,7 @@ import { ResourceDocumentProvider } from "./resourceDocumentProvider";
 import {
   OfficeOsTreeProvider,
   ResourceNode,
+  resourceDeleteName,
   resourceRef,
 } from "./treeProvider";
 
@@ -20,6 +21,9 @@ export function activate(context: vscode.ExtensionContext): void {
       documentProvider,
     ),
     vscode.commands.registerCommand("officeos.refresh", () =>
+      treeProvider.refresh(),
+    ),
+    vscode.commands.registerCommand("officeos.reloadResource", () =>
       treeProvider.refresh(),
     ),
     vscode.commands.registerCommand("officeos.login", async () => {
@@ -82,7 +86,38 @@ export function activate(context: vscode.ExtensionContext): void {
             throw new Error("Select an OfficeOS resource first.");
           }
 
-          await vscode.env.clipboard.writeText(resourceRef(node));
+          if (!node.name) {
+            throw new Error("OfficeOS resource has no name to copy.");
+          }
+
+          await vscode.env.clipboard.writeText(node.name);
+        });
+      },
+    ),
+    vscode.commands.registerCommand(
+      "officeos.deleteResource",
+      async (node?: ResourceNode) => {
+        await runWithErrors(async () => {
+          if (!node) {
+            throw new Error("Select an OfficeOS resource first.");
+          }
+
+          const deleteName = resourceDeleteName(node);
+          if (!deleteName) {
+            throw new Error("OfficeOS resource has no name to delete.");
+          }
+
+          const ref = resourceRef(node);
+          const confirmed = await vscode.window.showWarningMessage(
+            `Delete ${ref}?`,
+            { modal: true },
+            "Delete",
+          );
+          if (confirmed !== "Delete") return;
+
+          await cli.deleteResource(node.kind, deleteName);
+          treeProvider.refresh();
+          void vscode.window.showInformationMessage(`Deleted ${ref}.`);
         });
       },
     ),

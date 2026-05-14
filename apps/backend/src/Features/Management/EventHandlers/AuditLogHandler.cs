@@ -21,8 +21,6 @@ internal sealed class AuditLogHandler :
     INotificationHandler<AccessGroupWorkspaceGrantCreatedEvent>,
     INotificationHandler<AccessGroupWorkspaceGrantRevokedEvent>,
     INotificationHandler<OrganizationPolicyProfileUpdatedEvent>,
-    INotificationHandler<OrganizationProviderProfileSavedEvent>,
-    INotificationHandler<OrganizationProviderProfileDeletedEvent>,
     INotificationHandler<LlmCallCompletedEvent>,
     INotificationHandler<ToolCallCompletedEvent>,
     INotificationHandler<AgentToolPolicyDeniedEvent>
@@ -183,23 +181,6 @@ internal sealed class AuditLogHandler :
                 ["allowedIntegrationsCount"] = e.AllowedIntegrationsCount,
                 ["deniedIntegrationsCount"] = e.DeniedIntegrationsCount,
             }, e.OccurredAt, ct);
-
-    public Task Handle(OrganizationProviderProfileSavedEvent e, CancellationToken ct)
-        => SaveAsync(e.OrganizationId, e.ActorUserId, null, null, OrganizationAuditKinds.ProviderProfileSaved,
-            OrganizationAuditKinds.ProviderProfile, e.Provider, OrganizationAuditKinds.Success, null,
-            new Dictionary<string, object?>
-            {
-                ["provider"] = e.Provider,
-                ["displayName"] = e.DisplayName,
-                ["authKind"] = e.AuthKind,
-                ["allowedModelsCount"] = e.AllowedModelsCount,
-                ["enabled"] = e.Enabled,
-            }, e.OccurredAt, ct);
-
-    public Task Handle(OrganizationProviderProfileDeletedEvent e, CancellationToken ct)
-        => SaveAsync(e.OrganizationId, e.ActorUserId, null, null, OrganizationAuditKinds.ProviderProfileDeleted,
-            OrganizationAuditKinds.ProviderProfile, e.Provider, OrganizationAuditKinds.Success, null,
-            new Dictionary<string, object?> { ["provider"] = e.Provider }, e.OccurredAt, ct);
 
     public async Task Handle(LlmCallCompletedEvent e, CancellationToken ct)
     {

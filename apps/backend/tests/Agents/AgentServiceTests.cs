@@ -22,19 +22,19 @@ public sealed class AgentServiceTests
             db,
             new FakeProviderService(
                 new ProviderAuthResult(
-                    ProviderAuthKind.CodexChatGptOAuth,
-                    new Dictionary<string, string> { ["authJson"] = "{}" })));
+                    ProviderAuthKind.AwsBedrockApiKey,
+                    new Dictionary<string, string> { ["apiKey"] = "bedrock-key" })));
 
         var agent = await service.CreateAsync(
             new CreateAgentRequest(
-                "Codex Agent",
-                ProviderRegistry.OpenAiCodexProviderSlug,
-                "gpt-5.5"),
+                "Bedrock Agent",
+                ProviderRegistry.AwsBedrockProviderSlug,
+                "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
             ownerId: Guid.NewGuid(),
             workspaceId: Guid.NewGuid());
 
-        Assert.Equal(ProviderRegistry.OpenAiCodexProviderSlug, agent.Provider);
-        Assert.Equal("gpt-5.5", agent.Model);
+        Assert.Equal(ProviderRegistry.AwsBedrockProviderSlug, agent.Provider);
+        Assert.Equal("us.anthropic.claude-haiku-4-5-20251001-v1:0", agent.Model);
     }
 
     private static AgentService CreateService(EaosDbContext db, IProviderService providerService)

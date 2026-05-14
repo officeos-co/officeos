@@ -205,26 +205,7 @@ var frontendOrigin = frontendOrigins[0];
 var frontendConfig = new FrontendConfig(frontendOrigin);
 builder.Services.AddSingleton(frontendConfig);
 
-// LLM
-var platformKeysConfig = RequireSection<PlatformKeysConfig>("PlatformKeys");
-builder.Services.AddSingleton(platformKeysConfig);
-var customLlmProviderConfig = RequireSection<CustomLlmProviderConfig>("CustomLlmProvider");
-builder.Services.AddSingleton(customLlmProviderConfig);
-var codexAppServerConfig = new CodexAppServerConfig();
-builder.Configuration.GetSection("CodexAppServer").Bind(codexAppServerConfig);
-builder.Services.AddSingleton(codexAppServerConfig);
-if (isDevelopment)
-{
-    builder.Services.AddScoped<IProviderService, DevelopmentProviderService>();
-    builder.Services.AddScoped<ICodexProviderSetupService, CodexProviderSetupService>();
-    builder.Services.AddSingleton<ICodexAppServerService, CodexAppServerAdapter>();
-}
-else
-{
-    builder.Services.AddScoped<IProviderService>(sp => sp.GetRequiredService<ProviderService>());
-    builder.Services.AddScoped<ICodexProviderSetupService, DisabledCodexProviderSetupService>();
-    builder.Services.AddSingleton<ICodexAppServerService, DisabledCodexAppServerService>();
-}
+builder.Services.AddScoped<IProviderService>(sp => sp.GetRequiredService<ProviderService>());
 builder.Services.AddSingleton(new BillingPolicyConfig
 {
     EnforceUsageLimits = !isDevelopment,

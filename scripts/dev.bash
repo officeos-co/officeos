@@ -9,7 +9,7 @@ START_INFRA="${EAOS_START_INFRA:-1}"
 
 usage() {
   cat <<EOF
-Usage: ./scripts/dev
+Usage: ./scripts/dev.bash
 
 Starts local infrastructure and the backend in the background.
 Logs and PID files are written directly under .runlogs/.
@@ -110,6 +110,30 @@ wait_for_postgres() {
   exit 1
 }
 
+wait_for_backend() {
+  local pid="$1"
+
+  echo "Waiting for backend..."
+  for _ in {1..60}; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "Backend exited during startup. Recent logs:" >&2
+      tail -120 "$LOG_DIR/backend.log" >&2 || true
+      rm -f "$LOG_DIR/backend.pid"
+      exit 1
+    fi
+
+    if lsof -tiTCP:"$BACKEND_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+      return
+    fi
+
+    sleep 1
+  done
+
+  echo "Backend did not start listening on port $BACKEND_PORT. Recent logs:" >&2
+  tail -120 "$LOG_DIR/backend.log" >&2 || true
+  exit 1
+}
+
 if [[ "$START_INFRA" != "0" ]]; then
   echo "Starting local infrastructure..."
   docker compose -f "$COMPOSE_FILE" up -d postgres redis minio
@@ -121,6 +145,7 @@ fi
   ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" dotnet run --project src/OffceOs.csproj
 ) > "$LOG_DIR/backend.log" 2>&1 &
 echo "$!" > "$LOG_DIR/backend.pid"
+wait_for_backend "$(cat "$LOG_DIR/backend.pid")"
 
 cat <<EOF
 Dev processes started.

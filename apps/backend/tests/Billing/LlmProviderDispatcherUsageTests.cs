@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using OffceOs.Domain.Features.Providers;
-using OffceOs.Configuration;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -70,23 +69,16 @@ public sealed class LlmProviderDispatcherUsageTests
     }
 
     [Fact]
-    public async Task Custom_provider_uses_configured_base_url_and_model_without_authorization_when_key_is_empty()
+    public async Task Custom_provider_uses_declared_base_url_without_authorization_when_key_is_empty()
     {
         var handler = new CapturingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
-        var dispatcher = new LlmProviderDispatcher(
-            new FakeHttpClientFactory(handler),
-            NullLogger<LlmProviderDispatcher>.Instance,
-            new CustomLlmProviderConfig
-            {
-                BaseUrl = "http://self-hosted:8000/v1",
-                ModelId = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-            });
+        var dispatcher = new LlmProviderDispatcher(new FakeHttpClientFactory(handler), NullLogger<LlmProviderDispatcher>.Instance);
 
         var result = await dispatcher.DispatchAsync(
             "custom",
-            string.Empty,
-            "dashboard-model-id",
-            LlmProviderDispatcherTestData.RequestBody("dashboard-model-id"),
+            new ProviderAuthResult(ProviderAuthKind.ApiKey, new Dictionary<string, string> { ["baseUrl"] = "http://self-hosted:8000/v1" }),
+            "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+            LlmProviderDispatcherTestData.RequestBody("deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"),
             CancellationToken.None);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
@@ -104,18 +96,17 @@ public sealed class LlmProviderDispatcherUsageTests
     public async Task Custom_provider_sends_bearer_authorization_when_key_is_configured()
     {
         var handler = new CapturingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
-        var dispatcher = new LlmProviderDispatcher(
-            new FakeHttpClientFactory(handler),
-            NullLogger<LlmProviderDispatcher>.Instance,
-            new CustomLlmProviderConfig
-            {
-                BaseUrl = "http://self-hosted:8000/v1",
-                ModelId = "deepseek-r1:8b",
-            });
+        var dispatcher = new LlmProviderDispatcher(new FakeHttpClientFactory(handler), NullLogger<LlmProviderDispatcher>.Instance);
 
         var result = await dispatcher.DispatchAsync(
             "custom",
-            "custom-key",
+            new ProviderAuthResult(
+                ProviderAuthKind.ApiKey,
+                new Dictionary<string, string>
+                {
+                    ["baseUrl"] = "http://self-hosted:8000/v1",
+                    ["apiKey"] = "custom-key",
+                }),
             "deepseek-r1:8b",
             LlmProviderDispatcherTestData.RequestBody("deepseek-r1:8b"),
             CancellationToken.None);

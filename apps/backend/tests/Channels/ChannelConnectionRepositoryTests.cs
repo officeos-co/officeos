@@ -81,6 +81,37 @@ public sealed class ChannelConnectionRepositoryTests
         Assert.NotNull(supportConnection);
     }
 
+    [Fact]
+    public async Task CreateBinding_is_idempotent_for_agent_and_channel_connection()
+    {
+        await using var db = TestDbFactory.Create("channel-binding-idempotent");
+        var repository = new ChannelRepository(db);
+        var ownerId = Guid.NewGuid();
+        var workspaceId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
+        db.Agents.Add(TestAgent(agentId, ownerId, workspaceId, "Agent"));
+        await db.SaveChangesAsync();
+
+        var telegram = await repository.CreateConnectionAsync(
+            ChannelConnectionRecord.Create(ChannelType.Telegram, "Telegram Ops", ownerId, workspaceId));
+
+        var created = await repository.CreateBindingAsync(new AgentChannelBindingRecord
+        {
+            AgentId = agentId,
+            ChannelConnectionId = telegram.Id,
+        });
+        var duplicate = await repository.CreateBindingAsync(new AgentChannelBindingRecord
+        {
+            AgentId = agentId,
+            ChannelConnectionId = telegram.Id,
+        });
+
+        var bindings = await repository.ListBindingsAsync(agentId);
+        var binding = Assert.Single(bindings);
+        Assert.Equal(created.Id, duplicate.Id);
+        Assert.Equal(created.Id, binding.Id);
+    }
+
     private static AgentEntity TestAgent(Guid agentId, Guid ownerId, Guid workspaceId, string name) => new()
     {
         Id = agentId,

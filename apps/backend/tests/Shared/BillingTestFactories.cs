@@ -27,15 +27,13 @@ internal static class CreditRecordingServiceTestFactory
     public static CreditRecordingService CreateService(
         IAgentRepository agents,
         IUserSubscriptionRepository subscriptions,
-        IStripeMeteringService stripe,
-        CustomLlmProviderConfig? customLlmProviderConfig = null) =>
+        IStripeMeteringService stripe) =>
         new(
             new StripeConfig(),
             agents,
             subscriptions,
             stripe,
-            NullLogger<CreditRecordingService>.Instance,
-            customLlmProviderConfig);
+            NullLogger<CreditRecordingService>.Instance);
 }
 
 public static class AgentRecordFactory

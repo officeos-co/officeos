@@ -151,7 +151,9 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
       label,
       vscode.TreeItemCollapsibleState.Collapsed,
     );
-    item.contextValue = "officeosResource";
+    item.contextValue = canDeleteResource(node)
+      ? "officeosDeletableResource"
+      : "officeosResource";
     item.iconPath = new vscode.ThemeIcon(node.category.icon);
     item.description = resourceDescription(node.value);
     item.tooltip = `${node.kind}/${label}`;
@@ -193,6 +195,12 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
 
 export function resourceRef(node: ResourceNode): string {
   return `${node.kind}/${node.name}`;
+}
+
+export function resourceDeleteName(node: ResourceNode): string {
+  return node.kind === "providers"
+    ? node.name
+    : resourceId(node.value) || node.name;
 }
 
 export function resourceDocumentTitle(node: ResourceNode): string {
@@ -286,6 +294,12 @@ function resourceDescription(value: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function canDeleteResource(node: ResourceNode): boolean {
+  return ["agents", "channels", "routines", "memorystores", "providers"].includes(
+    node.kind,
+  );
 }
 
 function fieldDescription(value: unknown): string | undefined {

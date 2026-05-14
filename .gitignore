@@ -10,6 +10,7 @@ reference
 todo.md
 plan
 references
+test
 
 # ── Node / Next.js ───────────────────────────────────────────
 node_modules/
@@ -63,6 +64,7 @@ lcov.info
 # ── Docker ───────────────────────────────────────────────────
 docker-compose.override.yml
 playground/
+example/local-secrets/
 
 # ── ESP32 / firmware ─────────────────────────────────────────
 .embuild/

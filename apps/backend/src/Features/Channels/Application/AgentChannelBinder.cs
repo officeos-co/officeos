@@ -21,18 +21,21 @@ internal sealed class AgentChannelBinder
             if (match is null)
                 throw new InvalidOperationException("Channel connection not found.");
 
-            try
-            {
-                await _channelRepository.CreateBindingAsync(new AgentChannelBindingRecord
+            var existing = await _channelRepository.GetBindingByAsync(
+                new AgentChannelBindingFilter
                 {
                     AgentId = agentId,
                     ChannelConnectionId = match.Id,
-                }, ct);
-            }
-            catch (DbUpdateException)
+                },
+                ct);
+            if (existing is not null)
+                continue;
+
+            await _channelRepository.CreateBindingAsync(new AgentChannelBindingRecord
             {
-                // Already bound; treat binding-by-slug as idempotent.
-            }
+                AgentId = agentId,
+                ChannelConnectionId = match.Id,
+            }, ct);
         }
     }
 }

@@ -143,20 +143,6 @@ public sealed record OrganizationPolicyProfileUpdatedEvent(
     int AllowedIntegrationsCount,
     int DeniedIntegrationsCount) : DomainEvent;
 
-public sealed record OrganizationProviderProfileSavedEvent(
-    Guid OrganizationId,
-    Guid ActorUserId,
-    string Provider,
-    string DisplayName,
-    string AuthKind,
-    int AllowedModelsCount,
-    bool Enabled) : DomainEvent;
-
-public sealed record OrganizationProviderProfileDeletedEvent(
-    Guid OrganizationId,
-    Guid ActorUserId,
-    string Provider) : DomainEvent;
-
 public sealed record AgentToolPolicyDeniedEvent(
     Guid AgentId,
     string CorrelationId,

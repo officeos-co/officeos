@@ -1,7 +1,6 @@
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Billing;
-using OffceOs.Configuration;
 using OffceOs.Tests.Shared;
 using Xunit;
 
@@ -24,28 +23,6 @@ public sealed class CreditRecordingServiceTests
         Assert.Equal(10 * ProviderRegistry.GetCostWeight("gpt-4o"), subscriptions.Current!.CreditsUsedThisMonth);
         Assert.Equal(1, subscriptions.UpdateCount);
         Assert.Empty(stripe.Events);
-    }
-
-    [Fact]
-    public async Task RecordCreditUsageAsync_uses_custom_provider_cost_weight_for_configured_model()
-    {
-        var ownerId = Guid.NewGuid();
-        var agentId = Guid.NewGuid();
-        var subscriptions = new FakeUserSubscriptionRepository(UserSubscriptionRecord.CreateDefaultFree(ownerId));
-        var service = CreditRecordingServiceTestFactory.CreateService(
-            new FakeAgentRepository(AgentRecordFactory.Agent(agentId, ownerId)),
-            subscriptions,
-            new FakeStripeMeteringService(),
-            new CustomLlmProviderConfig
-            {
-                BaseUrl = "http://localhost:8000/v1",
-                ModelId = "deepseek-r1:8b",
-                CostWeight = 4,
-            });
-
-        await service.RecordCreditUsageAsync(agentId, "deepseek-r1:8b", rawTokens: 10, CancellationToken.None);
-
-        Assert.Equal(40, subscriptions.Current!.CreditsUsedThisMonth);
     }
 
     [Fact]

@@ -13,7 +13,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentResourceService, AgentResourceService>();
         services.AddScoped<ProviderService>();
         services.AddScoped<IProviderDispatchService, ProviderDispatchService>();
-        services.AddScoped<IProviderSetupService, ProviderSetupService>();
         services.AddScoped<IIntegrationDefinitionService, IntegrationDefinitionService>();
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
@@ -42,7 +41,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOrganizationService, OrganizationService>();
         services.AddScoped<IAccessGroupService, AccessGroupService>();
         services.AddScoped<IOrganizationPolicyService, OrganizationPolicyService>();
-        services.AddScoped<IOrganizationProviderProfileService, OrganizationProviderProfileService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
 
         // Background services

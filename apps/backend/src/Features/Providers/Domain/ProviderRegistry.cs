@@ -14,7 +14,6 @@ public static class ProviderRegistry
             DisplayName: "Anthropic",
             ApiFormat: ApiFormat.Anthropic,
             BaseUrl: "https://api.anthropic.com/v1",
-            PlatformKeyConfigName: AnthropicKey,
             Models: new[]
             {
                 new ModelDefinition("claude-haiku-4-5", "Claude Haiku 4.5", CostWeight: 5, SmartRoutingTier.Simple),
@@ -27,7 +26,6 @@ public static class ProviderRegistry
             DisplayName: "OpenAI",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://api.openai.com/v1",
-            PlatformKeyConfigName: OpenAiKey,
             Models: new[]
             {
                 new ModelDefinition("gpt-4o-mini", "GPT-4o Mini", CostWeight: 1, SmartRoutingTier.Simple),
@@ -35,26 +33,10 @@ public static class ProviderRegistry
             }),
 
         new ProviderDefinition(
-            Slug: OpenAiCodexProviderSlug,
-            DisplayName: "OpenAI Codex",
-            ApiFormat: ApiFormat.CodexAppServer,
-            BaseUrl: "codex-app-server",
-            PlatformKeyConfigName: null,
-            Models: new[]
-            {
-                new ModelDefinition("gpt-5.5", "GPT-5.5", CostWeight: 20, SmartRoutingTier.Standard),
-                new ModelDefinition("gpt-5.4", "GPT-5.4", CostWeight: 18, null),
-                new ModelDefinition("gpt-5.4-mini", "GPT-5.4 Mini", CostWeight: 5, SmartRoutingTier.Simple),
-                new ModelDefinition("gpt-5.3-codex", "GPT-5.3 Codex", CostWeight: 20, null),
-                new ModelDefinition("gpt-5.3-codex-spark", "GPT-5.3 Codex Spark", CostWeight: 3, null),
-            }),
-
-        new ProviderDefinition(
             Slug: "google",
             DisplayName: "Google Gemini",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-            PlatformKeyConfigName: GeminiKey,
             Models: new[]
             {
                 new ModelDefinition("gemini-2.5-flash", "Gemini 2.5 Flash", CostWeight: 1, SmartRoutingTier.Simple),
@@ -66,7 +48,6 @@ public static class ProviderRegistry
             DisplayName: "xAI Grok",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://api.x.ai/v1",
-            PlatformKeyConfigName: XaiKey,
             Models: new[]
             {
                 new ModelDefinition("grok-4", "Grok 4", CostWeight: 20, SmartRoutingTier.Standard),
@@ -77,7 +58,6 @@ public static class ProviderRegistry
             DisplayName: "Amazon Bedrock",
             ApiFormat: ApiFormat.Anthropic,
             BaseUrl: "https://bedrock-runtime.aws.amazon.com",
-            PlatformKeyConfigName: null,
             Models: new[]
             {
                 new ModelDefinition("us.anthropic.claude-haiku-4-5-20251001-v1:0", "Claude Haiku 4.5 20251001", CostWeight: 5, SmartRoutingTier.Simple),
@@ -92,7 +72,6 @@ public static class ProviderRegistry
             DisplayName: "Google Vertex AI",
             ApiFormat: ApiFormat.Anthropic,
             BaseUrl: "https://aiplatform.googleapis.com",
-            PlatformKeyConfigName: null,
             Models: new[]
             {
                 new ModelDefinition("claude-haiku-4-5@20251001", "Claude Haiku 4.5 20251001", CostWeight: 5, SmartRoutingTier.Simple),
@@ -107,7 +86,6 @@ public static class ProviderRegistry
             DisplayName: "Microsoft Foundry",
             ApiFormat: ApiFormat.OpenAiCompat,
             BaseUrl: "https://models.inference.ai.azure.com",
-            PlatformKeyConfigName: null,
             Models: new[]
             {
                 new ModelDefinition("claude-haiku-4-5", "Claude Haiku 4.5", CostWeight: 5, SmartRoutingTier.Simple),
@@ -117,10 +95,10 @@ public static class ProviderRegistry
             OrganizationProfileOnly: true,
             RequiresPinnedModels: true),
 
-        // Dispatch-only providers — no models exposed in dashboard, no seeding, no platform keys
-        new ProviderDefinition("groq", "Groq", ApiFormat.OpenAiCompat, "https://api.groq.com/openai/v1", null, Array.Empty<ModelDefinition>()),
-        new ProviderDefinition("deepseek", "DeepSeek", ApiFormat.OpenAiCompat, "https://api.deepseek.com/v1", null, Array.Empty<ModelDefinition>()),
-        new ProviderDefinition("openrouter", "OpenRouter", ApiFormat.OpenAiCompat, "https://openrouter.ai/api/v1", null, Array.Empty<ModelDefinition>()),
+        // Dispatch-only providers: available for Provider manifests that pin their own models.
+        new ProviderDefinition("groq", "Groq", ApiFormat.OpenAiCompat, "https://api.groq.com/openai/v1", Array.Empty<ModelDefinition>()),
+        new ProviderDefinition("deepseek", "DeepSeek", ApiFormat.OpenAiCompat, "https://api.deepseek.com/v1", Array.Empty<ModelDefinition>()),
+        new ProviderDefinition("openrouter", "OpenRouter", ApiFormat.OpenAiCompat, "https://openrouter.ai/api/v1", Array.Empty<ModelDefinition>()),
     };
 
     // ── Lookup indexes (built once) ─────────────────────────────────────
@@ -198,15 +176,6 @@ public static class ProviderRegistry
     public const string AwsBedrockProviderSlug = "aws-bedrock";
     public const string GoogleVertexProviderSlug = "google-vertex";
     public const string AzureFoundryProviderSlug = "azure-foundry";
-    public const string OpenAiCodexProviderSlug = "openai-codex";
-
-    // ── Stable well-known config property names (referenced by PlatformKeyConfigName) ──
-    // These are just string constants so Domain doesn't depend on PlatformKeysConfig.
-    private const string AnthropicKey = "AnthropicApiKey";
-    private const string OpenAiKey = "OpenAiApiKey";
-    private const string GeminiKey = "GeminiApiKey";
-    private const string XaiKey = "XaiApiKey";
-
     private sealed class SlugTierComparer : IEqualityComparer<(string Slug, SmartRoutingTier Tier)>
     {
         public bool Equals((string Slug, SmartRoutingTier Tier) x, (string Slug, SmartRoutingTier Tier) y) =>

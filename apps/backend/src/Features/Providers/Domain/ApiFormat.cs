@@ -1,3 +1,3 @@
 namespace OffceOs.Domain.Features.Providers;
 
-public enum ApiFormat { OpenAiCompat, Anthropic, CodexAppServer }
+public enum ApiFormat { OpenAiCompat, Anthropic }

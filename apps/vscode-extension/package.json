@@ -17,8 +17,10 @@
     "onCommand:officeos.login",
     "onCommand:officeos.currentContext",
     "onCommand:officeos.useContext",
+    "onCommand:officeos.reloadResource",
     "onCommand:officeos.describeResource",
-    "onCommand:officeos.copyResourceName"
+    "onCommand:officeos.copyResourceName",
+    "onCommand:officeos.deleteResource"
   ],
   "main": "./out/src/extension.js",
   "scripts": {
@@ -56,12 +58,24 @@
         "title": "OfficeOS: Use Context"
       },
       {
+        "command": "officeos.reloadResource",
+        "title": "OfficeOS: Reload",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "officeos.describeResource",
-        "title": "OfficeOS: Describe Resource"
+        "title": "OfficeOS: Describe Resource",
+        "icon": "$(open-preview)"
       },
       {
         "command": "officeos.copyResourceName",
-        "title": "OfficeOS: Copy Resource Name"
+        "title": "OfficeOS: Copy Resource Name",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "officeos.deleteResource",
+        "title": "OfficeOS: Delete Resource",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -74,14 +88,29 @@
       ],
       "view/item/context": [
         {
-          "command": "officeos.describeResource",
-          "when": "view == officeos.resources && viewItem == officeosResource",
+          "command": "officeos.reloadResource",
+          "when": "view == officeos.resources && viewItem == officeosCategory",
           "group": "inline"
         },
         {
-          "command": "officeos.copyResourceName",
-          "when": "view == officeos.resources && viewItem == officeosResource",
+          "command": "officeos.reloadResource",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
           "group": "inline"
+        },
+        {
+          "command": "officeos.describeResource",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
+          "group": "navigation"
+        },
+        {
+          "command": "officeos.copyResourceName",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
+          "group": "navigation"
+        },
+        {
+          "command": "officeos.deleteResource",
+          "when": "view == officeos.resources && viewItem == officeosDeletableResource",
+          "group": "destructive"
         }
       ]
     },

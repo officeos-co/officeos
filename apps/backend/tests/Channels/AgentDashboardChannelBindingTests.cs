@@ -47,6 +47,44 @@ public sealed class AgentDashboardChannelBindingTests
     }
 
     [Fact]
+    public async Task CreateAgent_deduplicates_channel_resource_and_init_bindings()
+    {
+        await using var db = WorkspaceTestHarness.CreateDb("agent-dashboard-channel-dedupe");
+        var ownerId = Guid.NewGuid();
+        await WorkspaceTestHarness.SeedUserAsync(db, ownerId, "owner@example.com");
+        var harness = WorkspaceTestHarness.Create(db);
+        var workspace = await harness.Workspaces.GetCurrentAsync(ownerId);
+        var channelRepository = new ChannelRepository(db);
+        var telegram = await channelRepository.CreateConnectionAsync(
+            ChannelConnectionRecord.Create(ChannelType.Telegram, "Telegram Ops", ownerId, workspace.Id));
+
+        var agent = await harness.AgentDashboard.CreateAsync(
+            new CreateDashboardAgentRequest(
+                Name: "Ops Agent",
+                Provider: "openai",
+                Model: "gpt-4o-mini",
+                Prompt: null,
+                ConfigJson: null,
+                IntegrationSlugs: null,
+                ChannelConnectionIds: [telegram.Id],
+                ToolNames: null,
+                Resources:
+                [
+                    new AgentResourceAttachmentRequest(
+                        AgentResourceKinds.Channel,
+                        telegram.Id,
+                        AgentResourceAccessModes.ReadWrite,
+                        null),
+                ],
+                BootstrapMessage: null),
+            ownerId,
+            workspace.Id);
+
+        var binding = Assert.Single(await channelRepository.ListBindingsAsync(agent.Id));
+        Assert.Equal(telegram.Id, binding.ChannelConnectionId);
+    }
+
+    [Fact]
     public async Task CreateAgent_rejects_channel_connection_ids_from_another_workspace()
     {
         await using var db = WorkspaceTestHarness.CreateDb("agent-dashboard-channel-scope");
