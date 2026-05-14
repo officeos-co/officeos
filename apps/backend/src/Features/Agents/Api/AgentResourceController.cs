@@ -91,6 +91,26 @@ public sealed class AgentResourceController : ControllerBase
         return run is null ? NotFound(new { error = $"runs/{name} was not found." }) : Ok(ToRunResource(run));
     }
 
+    [HttpDelete("resources/runs/{name}")]
+    [HttpDelete("resources/run/{name}")]
+    public async Task<IActionResult> DeleteRunResource(
+        string name,
+        [FromServices] IWorkspaceService workspaces,
+        [FromServices] IAgentRunRepository runs,
+        [FromServices] IAgentLogRepository logs,
+        CancellationToken ct)
+    {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
+        if (!Guid.TryParse(name, out var runId))
+            return NotFound(new { error = $"runs/{name} was not found." });
+
+        await logs.DeleteByRunIdsAsync([runId], ct);
+        return await runs.DeleteAsync(new AgentRunFilter { Id = runId, WorkspaceId = scope.Value.WorkspaceId }, ct)
+            ? Ok(new { deleted = true })
+            : NotFound(new { error = $"runs/{name} was not found." });
+    }
+
     [HttpGet("resources/engines")]
     [HttpGet("resources/engine")]
     public IActionResult ListEngines() => Ok(new[] { new { kind = "Engine", name = "opencode", type = "opencode" } });

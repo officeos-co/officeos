@@ -33,6 +33,7 @@ const ResourceKinds = [
 ] as const;
 
 const DeletableResourceKinds = [
+  "runs",
   "routines",
   "channels",
   "integrations",
@@ -83,13 +84,25 @@ export async function deleteCommand(args: string[]): Promise<void> {
   if (args[0] === "--all") {
     let deleted = 0;
     for (const kind of DeletableResourceKinds) {
-      const resources = await listResources(context.apiUrl, context.token, kind);
-      for (const resource of resources) {
-        const name = resourceDeleteIdentifier(kind, resource);
-        if (!name) continue;
-        await deleteResource(context.apiUrl, context.token, kind, name);
-        deleted += 1;
-        print(`${kind}/${resourceDisplayName(resource) || name} deleted`);
+      for (;;) {
+        const resources = await listResources(context.apiUrl, context.token, kind);
+        if (resources.length === 0) break;
+
+        let deletedInBatch = 0;
+        for (const resource of resources) {
+          const name = resourceDeleteIdentifier(kind, resource);
+          if (!name) continue;
+          try {
+            await deleteResource(context.apiUrl, context.token, kind, name);
+            deleted += 1;
+            deletedInBatch += 1;
+            print(`${kind}/${resourceDisplayName(resource) || name} deleted`);
+          } catch (error) {
+            if (!isNotFoundError(error)) throw error;
+          }
+        }
+
+        if (deletedInBatch === 0) break;
       }
     }
     print(`${deleted} resources deleted`);
@@ -358,6 +371,10 @@ function resourceDisplayName(value: unknown): string {
   const record = value as Record<string, unknown>;
   const name = record.name ?? record.displayName ?? record.id;
   return typeof name === "string" || typeof name === "number" ? String(name) : "";
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return error instanceof Error && /was not found|404\b/i.test(error.message);
 }
 
 function readOption(args: string[], name: string): string | undefined {

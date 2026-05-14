@@ -153,6 +153,14 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             .ExecuteDeleteAsync(ct);
     }
 
+    public async Task DeleteByRunIdsAsync(IReadOnlyList<Guid> runIds, CancellationToken ct = default)
+    {
+        if (runIds.Count == 0) return;
+        await _eaosDbContext.ResourceLogs
+            .Where(l => l.RunId.HasValue && runIds.Contains(l.RunId.Value))
+            .ExecuteDeleteAsync(ct);
+    }
+
     private static IQueryable<AgentLogRecord> ProjectAgentLogRecords(IQueryable<ResourceLogEntity> query) =>
         query.Select(log => new AgentLogRecord
         {

@@ -25,4 +25,5 @@ public interface IAgentLogRepository
     Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default);
     Task<AgentLogRecord?> GetByAsync(AgentLogFilter filter, CancellationToken ct = default);
     Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default);
+    Task DeleteByRunIdsAsync(IReadOnlyList<Guid> runIds, CancellationToken ct = default);
 }

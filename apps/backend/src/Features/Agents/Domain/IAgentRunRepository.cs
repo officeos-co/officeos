@@ -7,4 +7,5 @@ public interface IAgentRunRepository
     Task<IReadOnlyList<AgentRunRecord>> ListAsync(AgentRunFilter filter, int limit = 100, CancellationToken ct = default);
     Task<IReadOnlyList<AgentRunRecord>> ListForAgentAsync(Guid agentId, Guid? parentRunId = null, CancellationToken ct = default);
     Task UpdateAsync(AgentRunRecord run, CancellationToken ct = default);
+    Task<bool> DeleteAsync(AgentRunFilter filter, CancellationToken ct = default);
 }

@@ -104,6 +104,40 @@ internal sealed class AgentRunRepository : IAgentRunRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> DeleteAsync(AgentRunFilter filter, CancellationToken ct = default)
+    {
+        if (!filter.Id.HasValue && !filter.AgentId.HasValue && !filter.WorkspaceId.HasValue)
+            throw new ArgumentException("DeleteAsync requires at least one AgentRunFilter selector.", nameof(filter));
+
+        var query = _eaosDbContext.AgentRuns.AsQueryable();
+
+        if (filter.Id.HasValue)
+            query = query.Where(r => r.Id == filter.Id.Value);
+
+        if (filter.AgentId.HasValue)
+            query = query.Where(r => r.AgentId == filter.AgentId.Value);
+
+        if (filter.WorkspaceId.HasValue)
+            query = query.Where(r => r.WorkspaceId == filter.WorkspaceId.Value);
+
+        if (filter.ParentRunId.HasValue)
+            query = query.Where(r => r.ParentRunId == filter.ParentRunId.Value);
+
+        if (filter.DefinitionId.HasValue)
+            query = query.Where(r => r.DefinitionId == filter.DefinitionId.Value);
+
+        if (!string.IsNullOrEmpty(filter.Kind))
+            query = query.Where(r => r.Kind == filter.Kind);
+
+        if (!string.IsNullOrEmpty(filter.Purpose))
+            query = query.Where(r => r.Purpose == filter.Purpose);
+
+        if (!string.IsNullOrEmpty(filter.Status))
+            query = query.Where(r => r.Status == filter.Status);
+
+        return await query.ExecuteDeleteAsync(ct) > 0;
+    }
+
     private static AgentRunRecord ToRecord(AgentRunEntity e) => new()
     {
         Id = e.Id,
