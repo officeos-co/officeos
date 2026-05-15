@@ -150,6 +150,7 @@ Avoid:
 - Storage strings should be converted through value-object/enum helpers such as `ToStorageString()` and `ToAgentStatus()`.
 - Add/update EF model configuration in `EaosDbContext.OnModelCreating` when an entity changes.
 - Add migrations for schema changes. Do not manually edit snapshots except as part of a generated/fixed migration.
+- Prefer `dotnet ef migrations add` for schema changes. If you must hand-fix or hand-create a migration, it must be runtime-discoverable: include the EF `[DbContext(typeof(EaosDbContext))]` and `[Migration("...")]` metadata, keep the model snapshot consistent, and verify it appears in `dotnet ef migrations list --project apps/backend/src/OffceOs.csproj --no-connect` before claiming the schema fix is done.
 
 ## Domain DTO Policy
 
