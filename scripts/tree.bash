@@ -1,0 +1,1 @@
+cd apps/backend && tree --gitignore

@@ -161,7 +161,7 @@ internal sealed class ChannelService : IChannelService
                 binding.AgentId,
                 plainText,
                 correlationId,
-                AgentRunPurposeKinds.Channel,
+                AgentWorkPurposeKinds.Channel,
                 binding.Agent?.ActiveDefinitionId), ct);
 
             agentIds.Add(binding.AgentId);
@@ -217,7 +217,7 @@ internal sealed class ChannelService : IChannelService
                 receiverBinding.AgentId,
                 content,
                 correlationId,
-                AgentRunPurposeKinds.Channel,
+                AgentWorkPurposeKinds.Channel,
                 receiverBinding.Agent?.ActiveDefinitionId), ct);
 
             receiverIds.Add(receiverBinding.AgentId);

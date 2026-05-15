@@ -2,6 +2,7 @@ namespace OffceOs.Infrastructure.Features.Observability;
 
 internal sealed class AgentLogRepository : IAgentLogRepository
 {
+    private static readonly SemaphoreSlim WorkQueueLock = new(1, 1);
     private readonly EaosDbContext _eaosDbContext;
 
     public AgentLogRepository(EaosDbContext db) => _eaosDbContext = db;
@@ -54,9 +55,6 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 ? query.Where(_ => false)
                 : query.Where(l => l.CorrelationId != null && filter.CorrelationIds.Contains(l.CorrelationId));
 
-        if (filter.RunId.HasValue)
-            query = query.Where(l => l.RunId == filter.RunId.Value);
-
         if (filter.Type.HasValue)
             query = query.Where(l => l.Type == filter.Type.Value);
 
@@ -64,6 +62,20 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             query = filter.Types.Count == 0
                 ? query.Where(_ => false)
                 : query.Where(l => filter.Types.Contains(l.Type));
+
+        if (!string.IsNullOrWhiteSpace(filter.WorkStatus))
+            query = query.Where(l => l.WorkStatus == filter.WorkStatus.Trim().ToLowerInvariant());
+
+        if (!string.IsNullOrWhiteSpace(filter.WorkPurpose))
+            query = query.Where(l => l.WorkPurpose == filter.WorkPurpose.Trim().ToLowerInvariant());
+
+        if (filter.DefinitionId.HasValue)
+            query = query.Where(l => l.DefinitionId == filter.DefinitionId.Value);
+
+        if (filter.HasWorkStatus.HasValue)
+            query = filter.HasWorkStatus.Value
+                ? query.Where(l => l.WorkStatus != null)
+                : query.Where(l => l.WorkStatus == null);
 
         if (!string.IsNullOrWhiteSpace(filter.AgentName))
         {
@@ -153,12 +165,86 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             .ExecuteDeleteAsync(ct);
     }
 
-    public async Task DeleteByRunIdsAsync(IReadOnlyList<Guid> runIds, CancellationToken ct = default)
+    public async Task<AgentLogRecord> UpsertQueuedWorkAsync(AgentLogRecord record, CancellationToken ct = default)
     {
-        if (runIds.Count == 0) return;
-        await _eaosDbContext.ResourceLogs
-            .Where(l => l.RunId.HasValue && runIds.Contains(l.RunId.Value))
-            .ExecuteDeleteAsync(ct);
+        var existing = string.IsNullOrWhiteSpace(record.CorrelationId)
+            ? null
+            : await _eaosDbContext.ResourceLogs
+                .FirstOrDefaultAsync(l =>
+                    l.AgentId == record.AgentId &&
+                    l.CorrelationId == record.CorrelationId &&
+                    l.Type == AgentLogType.MessageIn,
+                    ct);
+
+        if (existing is null)
+        {
+            _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(record, ct));
+            await _eaosDbContext.SaveChangesAsync(ct);
+            return record;
+        }
+
+        existing.WorkStatus ??= AgentWorkStatusKinds.Queued;
+        existing.WorkPurpose ??= AgentWorkPurposeKinds.Normalize(record.WorkPurpose);
+        existing.DefinitionId ??= record.DefinitionId;
+        existing.WorkspaceId ??= record.WorkspaceId;
+        existing.ResourceKind = ResourceLogKinds.Agent;
+        existing.ResourceId = record.AgentId;
+        existing.AgentId = record.AgentId;
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return ToRecord(existing);
+    }
+
+    public async Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
+    {
+        await WorkQueueLock.WaitAsync(ct);
+        try
+        {
+            var runningAgentIds = await _eaosDbContext.ResourceLogs
+                .Where(log => log.Type == AgentLogType.MessageIn
+                    && log.WorkStatus == AgentWorkStatusKinds.Running
+                    && log.AgentId.HasValue)
+                .Select(log => log.AgentId!.Value)
+                .Distinct()
+                .ToListAsync(ct);
+
+            var work = await _eaosDbContext.ResourceLogs
+                .Where(log => log.Type == AgentLogType.MessageIn
+                    && log.WorkStatus == AgentWorkStatusKinds.Queued
+                    && log.AgentId.HasValue
+                    && !runningAgentIds.Contains(log.AgentId.Value))
+                .OrderBy(log => log.Time)
+                .ThenBy(log => log.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (work is null)
+                return null;
+
+            var now = DateTime.UtcNow;
+            work.WorkStatus = AgentWorkStatusKinds.Running;
+            work.StartedAt ??= now;
+            work.WorkError = null;
+            await _eaosDbContext.SaveChangesAsync(ct);
+            return ToRecord(work);
+        }
+        finally
+        {
+            WorkQueueLock.Release();
+        }
+    }
+
+    public async Task MarkWorkAsync(Guid workLogId, string status, string? error = null, CancellationToken ct = default)
+    {
+        var work = await _eaosDbContext.ResourceLogs.FirstOrDefaultAsync(log => log.Id == workLogId, ct);
+        if (work is null)
+            return;
+
+        var normalized = AgentWorkStatusKinds.Normalize(status);
+        work.WorkStatus = normalized;
+        work.WorkError = string.IsNullOrWhiteSpace(error) ? null : error;
+        if (normalized is AgentWorkStatusKinds.Completed or AgentWorkStatusKinds.Failed or AgentWorkStatusKinds.Canceled)
+            work.CompletedAt = DateTime.UtcNow;
+
+        await _eaosDbContext.SaveChangesAsync(ct);
     }
 
     private static IQueryable<AgentLogRecord> ProjectAgentLogRecords(IQueryable<ResourceLogEntity> query) =>
@@ -194,8 +280,12 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             MetadataJson = log.MetadataJson,
             Usage = new TokenUsage(log.InputTokens, log.OutputTokens, log.DurationMs),
             CorrelationId = log.CorrelationId,
-            RunId = log.RunId,
-            ParentRunId = log.ParentRunId,
+            WorkStatus = log.WorkStatus,
+            WorkPurpose = log.WorkPurpose,
+            DefinitionId = log.DefinitionId,
+            StartedAt = log.StartedAt,
+            CompletedAt = log.CompletedAt,
+            WorkError = log.WorkError,
         });
 
     private async Task<ResourceLogEntity> ToAgentLogEntityAsync(AgentLogRecord r, CancellationToken ct)
@@ -214,7 +304,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 .Select(a => new { a.WorkspaceId, a.Name })
                 .FirstOrDefaultAsync(ct);
             workspaceId = agent?.WorkspaceId;
-            if (resourceId is null && !r.RunId.HasValue)
+            if (resourceId is null)
                 resourceId = r.AgentId.Value;
             resourceName ??= agent?.Name;
         }
@@ -229,18 +319,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             resourceName ??= channel?.DisplayName;
         }
 
-        if (r.RunId.HasValue)
-        {
-            resourceKind = ResourceLogKinds.Run;
-            resourceId = r.RunId.Value;
-            resourceName ??= r.RunId.Value.ToString("N");
-            if (r.AgentId.HasValue)
-            {
-                parentResourceKind ??= ResourceLogKinds.Agent;
-                parentResourceId ??= r.AgentId.Value;
-            }
-        }
-        else if (r.ChannelConnectionId.HasValue)
+        if (r.ChannelConnectionId.HasValue)
         {
             resourceKind = ResourceLogKinds.Channel;
             resourceId = r.ChannelConnectionId.Value;
@@ -274,10 +353,43 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             InputTokens = r.Usage.InputTokens,
             OutputTokens = r.Usage.OutputTokens,
             CorrelationId = r.CorrelationId,
-            RunId = r.RunId,
-            ParentRunId = r.ParentRunId,
+            WorkStatus = string.IsNullOrWhiteSpace(r.WorkStatus) ? null : AgentWorkStatusKinds.Normalize(r.WorkStatus),
+            WorkPurpose = string.IsNullOrWhiteSpace(r.WorkPurpose) ? null : AgentWorkPurposeKinds.Normalize(r.WorkPurpose),
+            DefinitionId = r.DefinitionId,
+            StartedAt = r.StartedAt,
+            CompletedAt = r.CompletedAt,
+            WorkError = r.WorkError,
         };
     }
+
+    private static AgentLogRecord ToRecord(ResourceLogEntity log) => new()
+    {
+        Id = log.Id,
+        ResourceKind = log.ResourceKind,
+        ResourceId = log.ResourceId,
+        ResourceName = log.ResourceName,
+        ParentResourceKind = log.ParentResourceKind,
+        ParentResourceId = log.ParentResourceId,
+        AgentId = log.AgentId,
+        WorkspaceId = log.WorkspaceId,
+        Time = log.Time,
+        Type = log.Type,
+        Severity = log.Severity,
+        Tool = log.Tool,
+        Integration = log.Integration,
+        Channel = log.Channel,
+        ChannelConnectionId = log.ChannelConnectionId,
+        Content = log.Content,
+        MetadataJson = log.MetadataJson,
+        Usage = new TokenUsage(log.InputTokens, log.OutputTokens, log.DurationMs),
+        CorrelationId = log.CorrelationId,
+        WorkStatus = log.WorkStatus,
+        WorkPurpose = log.WorkPurpose,
+        DefinitionId = log.DefinitionId,
+        StartedAt = log.StartedAt,
+        CompletedAt = log.CompletedAt,
+        WorkError = log.WorkError,
+    };
 
     private static string NormalizeSeverity(AgentLogRecord record)
     {

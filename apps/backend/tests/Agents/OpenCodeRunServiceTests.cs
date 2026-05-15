@@ -117,7 +117,7 @@ public sealed class OpenCodeRunServiceTests
             AgentId = agentId,
             WorkspaceId = workspaceId,
             Kind = "opencode",
-            Purpose = AgentRunPurposeKinds.Bootstrap,
+            Purpose = AgentWorkPurposeKinds.Bootstrap,
             Status = "queued",
             Prompt = BootstrapPrompt,
         };

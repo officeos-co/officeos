@@ -239,12 +239,18 @@ internal sealed class AgentService : IAgentService
             throw new InvalidOperationException($"Agent {agentId} not found");
 
         var correlationId = Guid.NewGuid().ToString("N");
-        var record = await _agentLogService.AppendAsync(AgentLogRecord.MessageIn(agentId, content, correlationId));
+        var record = await _agentLogService.QueueWorkAsync(new QueueAgentWorkRequest(
+            agentId,
+            agent.WorkspaceId,
+            content,
+            correlationId,
+            AgentWorkPurposeKinds.Normalize(runPurpose),
+            definitionId), ct);
         await _publisher.Publish(new MessageReceivedEvent(
             agentId,
             content,
             correlationId,
-            AgentRunPurposeKinds.Normalize(runPurpose),
+            AgentWorkPurposeKinds.Normalize(runPurpose),
             definitionId), ct);
         return record;
     }
@@ -302,7 +308,7 @@ internal sealed class AgentService : IAgentService
                 init.BootstrapMessage,
                 userId,
                 ct,
-                AgentRunPurposeKinds.Bootstrap,
+                AgentWorkPurposeKinds.Bootstrap,
                 activeDefinition?.Id);
         }
     }

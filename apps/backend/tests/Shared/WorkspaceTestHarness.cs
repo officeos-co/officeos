@@ -84,7 +84,6 @@ public sealed record WorkspaceTestHarness(
                 NullLogger<ChannelService>.Instance),
             new FakeBrowserService(),
             new FakeAgentDeployer(),
-            new AgentRunRepository(db),
             new FakeAgentLogService(),
             agentDefinitionRepository,
             agentDefinitionParser,

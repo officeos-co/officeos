@@ -9,15 +9,19 @@ public sealed class AgentResourceController : ControllerBase
     public async Task<IActionResult> ListAgents(
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentRepository agents,
-        [FromServices] IAgentRunRepository runs,
+        [FromServices] IAgentLogService logs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
         if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
         var agentRecords = await agents.ListAsync(new AgentFilter { WorkspaceId = scope.Value.WorkspaceId }, ct);
-        var runRecords = await runs.ListAsync(new AgentRunFilter { WorkspaceId = scope.Value.WorkspaceId }, 1000, ct);
-        return Ok(agentRecords.Select(agent => ToAgentResource(agent, AgentHealthProjection.From(agent, runRecords))));
+        var workLogs = await logs.ListAsync(new AgentLogQueryRequest(
+            WorkspaceId: scope.Value.WorkspaceId,
+            Type: AgentLogType.MessageIn,
+            WorkStatus: string.Empty,
+            Limit: 1000), ct);
+        return Ok(agentRecords.Select(agent => ToAgentResource(agent, AgentHealthProjection.From(agent, workLogs.Items))));
     }
 
     [HttpGet("resources/agents/{name}")]
@@ -26,7 +30,7 @@ public sealed class AgentResourceController : ControllerBase
         string name,
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentRepository agents,
-        [FromServices] IAgentRunRepository runs,
+        [FromServices] IAgentLogService logs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
@@ -38,8 +42,12 @@ public sealed class AgentResourceController : ControllerBase
             return NotFound(new { error = $"agents/{name} was not found." });
         }
 
-        var agentRuns = await runs.ListForAgentAsync(agent.Id, ct: ct);
-        return Ok(ToAgentDetailsResource(agent, AgentHealthProjection.From(agent, agentRuns)));
+        var workLogs = await logs.ListAsync(new AgentLogQueryRequest(
+            WorkspaceId: scope.Value.WorkspaceId,
+            AgentId: agent.Id,
+            Type: AgentLogType.MessageIn,
+            Limit: 1000), ct);
+        return Ok(ToAgentDetailsResource(agent, AgentHealthProjection.From(agent, workLogs.Items)));
     }
 
     [HttpDelete("resources/agents/{name}")]
@@ -61,56 +69,6 @@ public sealed class AgentResourceController : ControllerBase
             : NotFound(new { error = $"agents/{name} was not found." });
     }
 
-    [HttpGet("resources/runs")]
-    [HttpGet("resources/run")]
-    public async Task<IActionResult> ListRunResources(
-        [FromServices] IWorkspaceService workspaces,
-        [FromServices] IAgentRunRepository runs,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-
-        return Ok((await runs.ListAsync(new AgentRunFilter { WorkspaceId = scope.Value.WorkspaceId }, 100, ct)).Select(ToRunResource));
-    }
-
-    [HttpGet("resources/runs/{name}")]
-    [HttpGet("resources/run/{name}")]
-    public async Task<IActionResult> DescribeRunResource(
-        string name,
-        [FromServices] IWorkspaceService workspaces,
-        [FromServices] IAgentRunRepository runs,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-        if (!Guid.TryParse(name, out var runId))
-            return NotFound(new { error = $"runs/{name} was not found." });
-
-        var run = await runs.GetByAsync(new AgentRunFilter { Id = runId, WorkspaceId = scope.Value.WorkspaceId }, ct);
-        return run is null ? NotFound(new { error = $"runs/{name} was not found." }) : Ok(ToRunResource(run));
-    }
-
-    [HttpDelete("resources/runs/{name}")]
-    [HttpDelete("resources/run/{name}")]
-    public async Task<IActionResult> DeleteRunResource(
-        string name,
-        [FromServices] IWorkspaceService workspaces,
-        [FromServices] IAgentRunRepository runs,
-        [FromServices] IAgentLogRepository logs,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-        if (!Guid.TryParse(name, out var runId))
-            return NotFound(new { error = $"runs/{name} was not found." });
-
-        await logs.DeleteByRunIdsAsync([runId], ct);
-        return await runs.DeleteAsync(new AgentRunFilter { Id = runId, WorkspaceId = scope.Value.WorkspaceId }, ct)
-            ? Ok(new { deleted = true })
-            : NotFound(new { error = $"runs/{name} was not found." });
-    }
-
     [HttpGet("resources/engines")]
     [HttpGet("resources/engine")]
     public IActionResult ListEngines() => Ok(new[] { new { kind = "Engine", name = "opencode", type = "opencode" } });
@@ -128,83 +86,6 @@ public sealed class AgentResourceController : ControllerBase
         name.Equals("opencode", StringComparison.OrdinalIgnoreCase)
             ? BadRequest(new { error = "The built-in OpenCode engine cannot be deleted." })
             : NotFound(new { error = $"engines/{name} was not found." });
-
-    [HttpPost("runs")]
-    public async Task<IActionResult> CreateRun(
-        [FromBody] AgentRunInput input,
-        [FromServices] IAgentRunExecutionService runs,
-        [FromServices] IWorkspaceService workspaces,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-
-        try
-        {
-            return Ok(await runs.CreateAsync(new CreateAgentRunExecutionRequest(
-                input.AgentRef,
-                input.Task,
-                input.EngineRef,
-                input.Repository,
-                input.Ref,
-                input.InputJson,
-                input.Wait), scope.Value.UserId, scope.Value.WorkspaceId, ct));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
-    [HttpGet("runs")]
-    public async Task<IActionResult> ListRuns(
-        [FromServices] IAgentRunExecutionService runs,
-        [FromServices] IWorkspaceService workspaces,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-        return Ok(await runs.ListAsync(scope.Value.UserId, scope.Value.WorkspaceId, ct));
-    }
-
-    [HttpGet("runs/{runId:guid}")]
-    public async Task<IActionResult> GetRun(
-        Guid runId,
-        [FromServices] IAgentRunExecutionService runs,
-        [FromServices] IWorkspaceService workspaces,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-        var run = await runs.GetAsync(runId, scope.Value.UserId, scope.Value.WorkspaceId, ct);
-        return run is null ? NotFound(new { error = "Run not found." }) : Ok(run);
-    }
-
-    [HttpPost("runs/{runId:guid}/cancel")]
-    public async Task<IActionResult> CancelRun(
-        Guid runId,
-        [FromServices] IAgentRunExecutionService runs,
-        [FromServices] IWorkspaceService workspaces,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-        return await runs.CancelAsync(runId, scope.Value.UserId, scope.Value.WorkspaceId, ct)
-            ? Ok(new { canceled = true })
-            : NotFound(new { error = "Run not found." });
-    }
-
-    [HttpGet("runs/{runId:guid}/logs")]
-    public async Task<IActionResult> GetRunLogs(
-        Guid runId,
-        [FromServices] IAgentRunExecutionService runs,
-        [FromServices] IWorkspaceService workspaces,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-        return Ok(await runs.LogsAsync(runId, scope.Value.UserId, scope.Value.WorkspaceId, ct));
-    }
 
     private async Task<(Guid UserId, Guid WorkspaceId)?> RequireScopeAsync(IWorkspaceService workspaces, CancellationToken ct)
     {
@@ -280,21 +161,6 @@ public sealed class AgentResourceController : ControllerBase
             },
     };
 
-    private static object ToRunResource(AgentRunRecord run) => new
-    {
-        kind = "Run",
-        name = run.Id.ToString(),
-        id = run.Id,
-        agentId = run.AgentId,
-        engine = run.Kind,
-        purpose = run.Purpose,
-        definitionId = run.DefinitionId,
-        phase = run.Status,
-        error = run.Error,
-        createdAt = run.CreatedAt,
-        completedAt = run.CompletedAt,
-    };
-
     private static async Task<AgentRecord?> FindAgentAsync(
         IAgentRepository agents,
         string name,
@@ -311,12 +177,3 @@ public sealed class AgentResourceController : ControllerBase
             : await agents.GetByAsync(new AgentFilter { Id = match.Id, WorkspaceId = workspaceId }, ct);
     }
 }
-
-public sealed record AgentRunInput(
-    string AgentRef,
-    string Task,
-    string? EngineRef,
-    string? Repository,
-    string? Ref,
-    string? InputJson,
-    bool Wait);

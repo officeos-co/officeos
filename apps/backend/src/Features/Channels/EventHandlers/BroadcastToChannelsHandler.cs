@@ -47,7 +47,7 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
                         internalTarget.SourceAgentId,
                         internalContent,
                         internalCorrelationId,
-                        AgentRunPurposeKinds.Channel));
+                        AgentWorkPurposeKinds.Channel));
                 },
                 _logger);
 

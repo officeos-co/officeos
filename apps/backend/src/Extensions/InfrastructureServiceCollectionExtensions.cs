@@ -32,7 +32,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAgentRoutineRepository, AgentRoutineRepository>();
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
         services.AddScoped<IAgentSessionContextRepository, AgentSessionContextRepository>();
-        services.AddScoped<IAgentRunRepository, AgentRunRepository>();
         services.AddScoped<IAgentResourceRepository, AgentResourceRepository>();
 
         // Adapters

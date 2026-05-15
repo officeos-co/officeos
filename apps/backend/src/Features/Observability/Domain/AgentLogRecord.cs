@@ -88,8 +88,16 @@ public sealed class AgentLogRecord
     [MaxLength(128)]
     public string? CorrelationId { get; init; }
 
-    public Guid? RunId { get; init; }
-    public Guid? ParentRunId { get; init; }
+    [MaxLength(32)]
+    public string? WorkStatus { get; init; }
+
+    [MaxLength(32)]
+    public string? WorkPurpose { get; init; }
+
+    public Guid? DefinitionId { get; init; }
+    public DateTime? StartedAt { get; init; }
+    public DateTime? CompletedAt { get; init; }
+    public string? WorkError { get; init; }
 
     // ── Factory methods ─────────────────────────────────────────────────────
 
@@ -146,7 +154,6 @@ public sealed class AgentLogRecord
 public static class ResourceLogKinds
 {
     public const string Agent = "Agent";
-    public const string Run = "Run";
     public const string Channel = "Channel";
     public const string IntegrationDeployment = "IntegrationDeployment";
     public const string Provider = "Provider";

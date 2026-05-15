@@ -59,7 +59,6 @@ public sealed class ResourceLogController : ControllerBase
         return value switch
         {
             "agent" or "agents" => ResourceLogKinds.Agent,
-            "run" or "runs" => ResourceLogKinds.Run,
             "channel" or "channels" => ResourceLogKinds.Channel,
             "provider" or "providers" => ResourceLogKinds.Provider,
             "integration" or "integrations" or "integrationdeployment" or "integrationdeployments" or "integration-deployment" or "integration-deployments" => ResourceLogKinds.IntegrationDeployment,

@@ -26,7 +26,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly IAgentLifecycleService _agentLifecycleService;
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
-    private readonly IAgentRunRepository? _agentRunRepository;
+    private readonly IAgentLogService _agentLogService;
     private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentResourceRepository _agentResourceRepository;
     private readonly IBrowserResourceRepository _browserResourceRepository;
@@ -55,12 +55,12 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         IIntegrationDefinitionService integrationDefinitionService,
         IMemoryStoreRepository memoryStoreRepository,
         IAgentRoutineService agentRoutineService,
+        IAgentLogService agentLogService,
         AgentDefinitionParser agentDefinitionParser,
         DeclarativeManifestParser declarativeManifestParser,
         ChannelCredentialProtector channelCredentialProtector,
         IProviderResourceRepository? providerResourceRepository = null,
-        CredentialProtector? credentialProtector = null,
-        IAgentRunRepository? agentRunRepository = null)
+        CredentialProtector? credentialProtector = null)
     {
         _agentLifecycleService = agentLifecycleService;
         _agentRepository = agentRepository;
@@ -74,10 +74,10 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         _integrationDefinitionService = integrationDefinitionService;
         _memoryStoreRepository = memoryStoreRepository;
         _agentRoutineService = agentRoutineService;
+        _agentLogService = agentLogService;
         _agentDefinitionParser = agentDefinitionParser;
         _declarativeManifestParser = declarativeManifestParser;
         _channelCredentialProtector = channelCredentialProtector;
-        _agentRunRepository = agentRunRepository;
         _providerResourceRepository = providerResourceRepository;
         _credentialProtector = credentialProtector;
     }
@@ -605,20 +605,21 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     {
         if (specChanged)
             return true;
-        if (_agentRunRepository is null)
-            return false;
 
-        var runs = await _agentRunRepository.ListForAgentAsync(agent.Id, ct: ct);
-        var activeBootstrap = runs
-            .Where(run => run.Purpose == AgentRunPurposeKinds.Bootstrap
-                && (!agent.ActiveDefinitionId.HasValue || run.DefinitionId == agent.ActiveDefinitionId))
-            .OrderByDescending(run => run.CreatedAt)
+        var work = await _agentLogService.ListAsync(new AgentLogQueryRequest(
+            AgentId: agent.Id,
+            Type: AgentLogType.MessageIn,
+            WorkPurpose: AgentWorkPurposeKinds.Bootstrap,
+            DefinitionId: agent.ActiveDefinitionId,
+            Limit: 20), ct);
+        var activeBootstrap = work.Items
+            .OrderByDescending(log => log.Time)
             .FirstOrDefault();
 
         return activeBootstrap is null
-            || activeBootstrap.Status.Equals("failed", StringComparison.OrdinalIgnoreCase)
-            || activeBootstrap.Status.Equals("canceled", StringComparison.OrdinalIgnoreCase)
-            || activeBootstrap.Status.Equals("cancelled", StringComparison.OrdinalIgnoreCase);
+            || activeBootstrap.WorkStatus?.Equals(AgentWorkStatusKinds.Failed, StringComparison.OrdinalIgnoreCase) == true
+            || activeBootstrap.WorkStatus?.Equals(AgentWorkStatusKinds.Canceled, StringComparison.OrdinalIgnoreCase) == true
+            || activeBootstrap.WorkStatus?.Equals("cancelled", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private async Task<DeclarativeResourceChangeItem> ApplyRoutineAsync(

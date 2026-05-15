@@ -12,7 +12,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
     private readonly IChannelService _channelService;
     private readonly IBrowserService _browserService;
     private readonly IAgentDeployer _agentDeployer;
-    private readonly IAgentRunRepository _agentRunRepository;
     private readonly IAgentLogService _agentLogService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
@@ -29,7 +28,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         IChannelService channelService,
         IBrowserService browser,
         IAgentDeployer agentDeployer,
-        IAgentRunRepository runs,
         IAgentLogService agentLogService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
@@ -45,7 +43,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         _channelService = channelService;
         _browserService = browser;
         _agentDeployer = agentDeployer;
-        _agentRunRepository = runs;
         _agentLogService = agentLogService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
@@ -235,17 +232,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         return await _agentService.DeleteAsync(id, ct);
     }
 
-    public async Task<IReadOnlyList<AgentRunRecord>> ListRunsAsync(
-        Guid ownerId,
-        Guid workspaceId,
-        Guid agentId,
-        Guid? parentRunId,
-        CancellationToken ct = default)
-    {
-        await EnsureAgentOwnedAsync(agentId, ownerId, workspaceId, ct);
-        return await _agentRunRepository.ListForAgentAsync(agentId, parentRunId, ct);
-    }
-
     private async Task<bool> AgentIsOwnedAsync(Guid agentId, Guid ownerId, Guid workspaceId, CancellationToken ct)
     {
         var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspaceId }, ct);
@@ -267,13 +253,16 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         if (runtimeStatus is AgentStatus.Failed or AgentStatus.Booting or AgentStatus.Restarting)
             return runtimeStatus;
 
-        var runningRun = await _agentRunRepository.GetByAsync(new AgentRunFilter
-        {
-            AgentId = agent.Id,
-            Status = "running",
-        }, ct);
+        var runningWork = await _agentLogService.ListAsync(new AgentLogQueryRequest(
+            WorkspaceId: agent.WorkspaceId,
+            AgentId: agent.Id,
+            Type: AgentLogType.MessageIn,
+            WorkStatus: AgentWorkStatusKinds.Running,
+            Limit: 1), ct);
 
-        return runningRun is null ? AgentStatus.Idle : AgentStatus.Working;
+        return runningWork.Items.Count > 0
+            ? AgentStatus.Working
+            : AgentStatus.Idle;
     }
 
     private async Task<AgentStatus> GetRuntimeStatusAsync(AgentRecord agent, CancellationToken ct)

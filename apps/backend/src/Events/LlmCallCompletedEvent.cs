@@ -12,9 +12,7 @@ public sealed record LlmCallCompletedEvent(
     int? CacheWriteTokens = null,
     int? ReasoningTokens = null,
     bool EstimatedTokens = false,
-    IReadOnlyList<LlmUsageContextPartMessage>? ContextParts = null,
-    Guid? RunId = null,
-    Guid? ParentRunId = null) : DomainEvent;
+    IReadOnlyList<LlmUsageContextPartMessage>? ContextParts = null) : DomainEvent;
 
 public sealed record LlmUsageContextPartMessage(
     string Kind,

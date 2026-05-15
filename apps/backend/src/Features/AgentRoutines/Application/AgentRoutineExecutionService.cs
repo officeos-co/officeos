@@ -124,7 +124,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
     private async Task ExecuteAsync(AgentRoutineRecord routine, AgentRoutineTriggerRecord trigger, DateTime now, string? payloadJson, CancellationToken ct)
     {
         var prompt = BuildPrompt(routine, trigger, payloadJson);
-        await _agentService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct, AgentRunPurposeKinds.Routine);
+        await _agentService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct, AgentWorkPurposeKinds.Routine);
         routine.MarkTriggered(now);
         trigger.MarkTriggered(now);
     }

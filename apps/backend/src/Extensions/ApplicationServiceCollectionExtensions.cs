@@ -18,7 +18,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
         services.AddScoped<IAgentLogService, AgentLogService>();
-        services.AddScoped<IAgentRunExecutionService, OpenCodeRunService>();
+        services.AddScoped<IAgentWorkExecutionService, OpenCodeAgentWorkService>();
         services.AddScoped<AgentDefinitionParser>();
         services.AddScoped<DeclarativeManifestParser>();
         services.AddScoped<IDeclarativeAgentService, DeclarativeAgentService>();
@@ -34,7 +34,7 @@ public static class ApplicationServiceCollectionExtensions
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();
         services.AddHostedService<AgentRuntimeCleanupService>();
-        services.AddHostedService<AgentRunDispatchService>();
+        services.AddHostedService<AgentWorkDispatchService>();
 
         return services;
     }

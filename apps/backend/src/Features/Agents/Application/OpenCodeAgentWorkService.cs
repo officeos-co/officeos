@@ -1,124 +1,49 @@
 namespace OffceOs.Application.Features.Agents;
 
-internal sealed class OpenCodeRunService : IAgentRunExecutionService
+internal sealed class OpenCodeAgentWorkService : IAgentWorkExecutionService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private const string DefaultOpenCodeModel = "openai/gpt-5.2";
 
     private readonly IAgentRepository _agentRepository;
-    private readonly IAgentRunRepository _agentRunRepository;
     private readonly IAgentLogService _agentLogService;
     private readonly IOpenCodeProcessService _openCodeProcessService;
-    private readonly ILogger<OpenCodeRunService> _logger;
+    private readonly ILogger<OpenCodeAgentWorkService> _logger;
 
-    public OpenCodeRunService(
+    public OpenCodeAgentWorkService(
         IAgentRepository agentRepository,
-        IAgentRunRepository agentRunRepository,
         IAgentLogService agentLogService,
         IOpenCodeProcessService openCodeProcessService,
-        ILogger<OpenCodeRunService> logger)
+        ILogger<OpenCodeAgentWorkService> logger)
     {
         _agentRepository = agentRepository;
-        _agentRunRepository = agentRunRepository;
         _agentLogService = agentLogService;
         _openCodeProcessService = openCodeProcessService;
         _logger = logger;
     }
 
-    public async Task<AgentRunExecutionResult> CreateAsync(CreateAgentRunExecutionRequest request, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
+    public async Task ExecuteQueuedWorkAsync(AgentLogRecord work, CancellationToken ct = default)
     {
-        var agent = await ResolveAgentAsync(request.AgentRef, workspaceId, ct)
-            ?? throw new InvalidOperationException($"Agent '{request.AgentRef}' was not found.");
-
-        var engineRef = NormalizeEngineRef(request.EngineRef);
-        var now = DateTime.UtcNow;
-        var run = await _agentRunRepository.CreateAsync(new AgentRunRecord
+        if (work.Type != AgentLogType.MessageIn
+            || work.WorkStatus != AgentWorkStatusKinds.Running
+            || !work.AgentId.HasValue)
         {
-            AgentId = agent.Id,
-            WorkspaceId = workspaceId,
-            Kind = "opencode",
-            Purpose = AgentRunPurposeKinds.Manual,
-            DefinitionId = agent.ActiveDefinitionId,
-            Status = "queued",
-            Name = request.AgentRef,
-            Description = engineRef,
-            Prompt = request.Task.Trim(),
-            CreatedAt = now,
-            UpdatedAt = now,
-        }, ct);
-
-        await _agentLogService.AppendAsync(new AgentLogRecord
-        {
-            AgentId = agent.Id,
-            WorkspaceId = workspaceId,
-            Type = AgentLogType.MessageIn,
-            Content = request.Task.Trim(),
-            RunId = run.Id,
-            CorrelationId = run.Id.ToString("N"),
-        }, ct);
-
-        return new AgentRunExecutionResult(run, "opencode", engineRef);
-    }
-
-    public Task<IReadOnlyList<AgentRunRecord>> ListAsync(Guid ownerId, Guid workspaceId, CancellationToken ct = default)
-    {
-        _ = ownerId;
-        return _agentRunRepository.ListAsync(new AgentRunFilter { WorkspaceId = workspaceId }, 100, ct);
-    }
-
-    public async Task<AgentRunRecord?> GetAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
-    {
-        _ = ownerId;
-        return await _agentRunRepository.GetByAsync(new AgentRunFilter { Id = runId, WorkspaceId = workspaceId }, ct);
-    }
-
-    public async Task<bool> CancelAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
-    {
-        var run = await GetAsync(runId, ownerId, workspaceId, ct);
-        if (run is null)
-            return false;
-
-        if (run.Status is "completed" or "failed" or "canceled")
-            return true;
-
-        run.Status = run.Status == "queued" ? "canceled" : "cancel-requested";
-        run.UpdatedAt = DateTime.UtcNow;
-        if (run.Status == "canceled")
-            run.CompletedAt = DateTime.UtcNow;
-        await _agentRunRepository.UpdateAsync(run, ct);
-        return true;
-    }
-
-    public async Task<AgentRunLogResult> LogsAsync(Guid runId, Guid ownerId, Guid workspaceId, CancellationToken ct = default)
-    {
-        _ = ownerId;
-        var page = await _agentLogService.ListAsync(new AgentLogQueryRequest(
-            WorkspaceId: workspaceId,
-            RunId: runId,
-            Limit: 500,
-            Sort: AgentLogSort.TimeAscending), ct);
-        return new AgentRunLogResult(page.Items);
-    }
-
-    public async Task ExecuteQueuedRunAsync(AgentRunRecord run, CancellationToken ct = default)
-    {
-        if (run.Status != "queued" || run.Kind != "opencode")
-            return;
-
-        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = run.AgentId, WorkspaceId = run.WorkspaceId }, ct);
-        if (agent is null)
-        {
-            await CompleteAsync(run, "failed", null, "Agent not found.", ct);
             return;
         }
 
-        run.Status = "running";
-        run.UpdatedAt = DateTime.UtcNow;
-        await _agentRunRepository.UpdateAsync(run, ct);
-        await AppendRunSystemLogAsync(run, agent.Id, "Run started.", ct);
-        await AppendRunPromptLogAsync(run, agent.Id, ct);
+        var agent = await _agentRepository.GetByAsync(
+            new AgentFilter { Id = work.AgentId.Value, WorkspaceId = work.WorkspaceId },
+            ct);
+        if (agent is null)
+        {
+            await _agentLogService.FailWorkAsync(work.Id, "Agent not found.", ct);
+            return;
+        }
 
-        var workspace = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeos-runs", run.Id.ToString("N"));
+        await AppendWorkSystemLogAsync(work, agent.Id, "Work started.", ct);
+        await AppendBootstrapPromptLogAsync(work, agent.Id, ct);
+
+        var workspace = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeos-agent-work", work.Id.ToString("N"));
         Directory.CreateDirectory(workspace);
 
         try
@@ -130,12 +55,12 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
             var result = await _openCodeProcessService.RunAsync(
                 new ProcessRunRequest(
                     "opencode",
-                    ["run", "--format", "json", "--print-logs", "--log-level", "WARN", "--model", model, run.Prompt],
+                    ["run", "--format", "json", "--print-logs", "--log-level", "WARN", "--model", model, work.Content],
                     workspace,
                     new Dictionary<string, string>()),
                 async (line, token) =>
                 {
-                    var entry = await AppendOpenCodeEventAsync(run, agent, line, "stdout", token);
+                    var entry = await AppendOpenCodeEventAsync(work, agent, line, "stdout", token);
                     if (entry?.Severity == ResourceLogSeverityKinds.Error)
                     {
                         reportedError = true;
@@ -144,7 +69,7 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
                 },
                 async (line, token) =>
                 {
-                    var entry = await AppendOpenCodeEventAsync(run, agent, line, "stderr", token);
+                    var entry = await AppendOpenCodeEventAsync(work, agent, line, "stderr", token);
                     if (entry?.Severity == ResourceLogSeverityKinds.Error)
                     {
                         reportedError = true;
@@ -154,14 +79,22 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
                 ct);
 
             if (result.ExitCode == 0 && !reportedError)
-                await CompleteAsync(run, "completed", run.Result, null, ct);
+            {
+                await _agentLogService.CompleteWorkAsync(work.Id, ct);
+                await AppendWorkSystemLogAsync(work, agent.Id, "Work completed.", ct);
+            }
             else
-                await CompleteAsync(run, "failed", null, OpenCodeFailureMessage(result, reportedErrorLines), ct);
+            {
+                var failure = OpenCodeFailureMessage(result, reportedErrorLines);
+                await _agentLogService.FailWorkAsync(work.Id, failure, ct);
+                await AppendWorkSystemLogAsync(work, agent.Id, $"Work failed: {failure}", ct);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "OpenCode run {RunId} failed", run.Id);
-            await CompleteAsync(run, "failed", null, ex.Message, ct);
+            _logger.LogError(ex, "OpenCode work {WorkLogId} failed", work.Id);
+            await _agentLogService.FailWorkAsync(work.Id, ex.Message, ct);
+            await AppendWorkSystemLogAsync(work, agent.Id, $"Work failed: {ex.Message}", ct);
         }
     }
 
@@ -185,30 +118,29 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
         return File.WriteAllTextAsync(Path.Combine(workspace, "AGENTS.md"), context, ct);
     }
 
-    private async Task<OpenCodeLogEntry?> AppendOpenCodeEventAsync(AgentRunRecord run, AgentRecord agent, string line, string source, CancellationToken ct)
+    private async Task<OpenCodeLogEntry?> AppendOpenCodeEventAsync(
+        AgentLogRecord work,
+        AgentRecord agent,
+        string line,
+        string source,
+        CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(line))
             return null;
 
         var entry = ParseOpenCodeLine(line, source);
-        if (entry.Type == AgentLogType.MessageOut)
-            run.Result = entry.Content;
 
         await _agentLogService.AppendAsync(new AgentLogRecord
         {
             AgentId = agent.Id,
-            WorkspaceId = run.WorkspaceId,
-            ResourceKind = ResourceLogKinds.Run,
-            ResourceId = run.Id,
-            ResourceName = run.Id.ToString("N"),
-            ParentResourceKind = ResourceLogKinds.Agent,
-            ParentResourceId = agent.Id,
+            WorkspaceId = work.WorkspaceId,
+            ResourceKind = ResourceLogKinds.Agent,
+            ResourceId = agent.Id,
             Type = entry.Type,
             Severity = entry.Severity,
             Tool = entry.Tool,
             Content = entry.Content,
-            RunId = run.Id,
-            CorrelationId = run.Id.ToString("N"),
+            CorrelationId = work.CorrelationId,
             MetadataJson = JsonSerializer.Serialize(entry.Metadata, JsonOptions),
         }, ct);
         return entry;
@@ -423,78 +355,43 @@ internal sealed class OpenCodeRunService : IAgentRunExecutionService
         string? Tool,
         IReadOnlyDictionary<string, object?> Metadata);
 
-    private async Task CompleteAsync(AgentRunRecord run, string status, string? result, string? error, CancellationToken ct)
-    {
-        run.Status = status;
-        run.Result = result;
-        run.Error = error;
-        run.CompletedAt = DateTime.UtcNow;
-        run.UpdatedAt = DateTime.UtcNow;
-        await _agentRunRepository.UpdateAsync(run, ct);
-        await AppendRunSystemLogAsync(run, run.AgentId, error is null ? $"Run {status}." : $"Run {status}: {error}", ct);
-    }
-
-    private Task AppendRunSystemLogAsync(AgentRunRecord run, Guid agentId, string content, CancellationToken ct)
+    private Task AppendWorkSystemLogAsync(AgentLogRecord work, Guid agentId, string content, CancellationToken ct)
     {
         return _agentLogService.AppendAsync(new AgentLogRecord
         {
             AgentId = agentId,
-            WorkspaceId = run.WorkspaceId,
-            ResourceKind = ResourceLogKinds.Run,
-            ResourceId = run.Id,
-            ResourceName = run.Id.ToString("N"),
-            ParentResourceKind = ResourceLogKinds.Agent,
-            ParentResourceId = agentId,
+            WorkspaceId = work.WorkspaceId,
+            ResourceKind = ResourceLogKinds.Agent,
+            ResourceId = agentId,
             Type = content.Contains("failed", StringComparison.OrdinalIgnoreCase) ? AgentLogType.Error : AgentLogType.System,
             Content = content,
-            RunId = run.Id,
-            CorrelationId = run.Id.ToString("N"),
-            MetadataJson = JsonSerializer.Serialize(new { run.Status, run.Kind }),
+            CorrelationId = work.CorrelationId,
+            MetadataJson = JsonSerializer.Serialize(new
+            {
+                WorkLogId = work.Id,
+                Status = work.WorkStatus,
+                Purpose = work.WorkPurpose,
+            }),
         }, ct);
     }
 
-    private Task AppendRunPromptLogAsync(AgentRunRecord run, Guid agentId, CancellationToken ct)
+    private Task AppendBootstrapPromptLogAsync(AgentLogRecord work, Guid agentId, CancellationToken ct)
     {
-        if (!run.Purpose.Equals(AgentRunPurposeKinds.Bootstrap, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(work.WorkPurpose, AgentWorkPurposeKinds.Bootstrap, StringComparison.OrdinalIgnoreCase))
             return Task.CompletedTask;
 
         return _agentLogService.AppendAsync(new AgentLogRecord
         {
             AgentId = agentId,
-            WorkspaceId = run.WorkspaceId,
-            ResourceKind = ResourceLogKinds.Run,
-            ResourceId = run.Id,
-            ResourceName = run.Id.ToString("N"),
-            ParentResourceKind = ResourceLogKinds.Agent,
-            ParentResourceId = agentId,
+            WorkspaceId = work.WorkspaceId,
+            ResourceKind = ResourceLogKinds.Agent,
+            ResourceId = agentId,
             Type = AgentLogType.MessageIn,
             Severity = ResourceLogSeverityKinds.Info,
-            Content = $"Bootstrap prompt: {run.Prompt}",
-            RunId = run.Id,
-            CorrelationId = run.Id.ToString("N"),
-            MetadataJson = JsonSerializer.Serialize(new { run.Purpose }),
+            Content = $"Bootstrap prompt: {work.Content}",
+            CorrelationId = work.CorrelationId,
+            MetadataJson = JsonSerializer.Serialize(new { Purpose = work.WorkPurpose }),
         }, ct);
-    }
-
-    private async Task<AgentRecord?> ResolveAgentAsync(string agentRef, Guid workspaceId, CancellationToken ct)
-    {
-        if (Guid.TryParse(agentRef, out var agentId))
-            return await _agentRepository.GetByAsync(new AgentFilter { Id = agentId, WorkspaceId = workspaceId }, ct);
-
-        var agents = await _agentRepository.ListAsync(new AgentFilter { WorkspaceId = workspaceId }, ct);
-        return agents.FirstOrDefault(agent => string.Equals(agent.Name, agentRef, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string NormalizeEngineRef(string? engineRef)
-    {
-        if (string.IsNullOrWhiteSpace(engineRef))
-            return "opencode";
-
-        var trimmed = engineRef.Trim();
-        if (!trimmed.Equals("opencode", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Only the OpenCode engine is supported in v1.");
-
-        return "opencode";
     }
 
     private static string ResolveModel(AgentRecord agent)

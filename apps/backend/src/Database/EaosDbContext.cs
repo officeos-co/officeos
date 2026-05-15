@@ -27,7 +27,6 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentRoutineTriggerEntity> AgentRoutineTriggers => Set<AgentRoutineTriggerEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
-    public DbSet<AgentRunEntity> AgentRuns => Set<AgentRunEntity>();
     public DbSet<BrowserResourceEntity> BrowserResources => Set<BrowserResourceEntity>();
     public DbSet<MemoryStoreEntity> MemoryStores => Set<MemoryStoreEntity>();
     public DbSet<MemoryStoreEntryEntity> MemoryStoreEntries => Set<MemoryStoreEntryEntity>();
@@ -168,8 +167,13 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(l => l.ChannelConnectionId);
             e.HasIndex(l => new { l.AgentId, l.Time });
             e.HasIndex(l => l.CorrelationId);
+            e.HasIndex(l => new { l.WorkspaceId, l.WorkStatus, l.Time });
+            e.HasIndex(l => new { l.AgentId, l.WorkStatus, l.Time });
             e.Property(l => l.Content).HasColumnType("text");
             e.Property(l => l.MetadataJson).HasColumnType("text");
+            e.Property(l => l.WorkStatus).HasMaxLength(32);
+            e.Property(l => l.WorkPurpose).HasMaxLength(32);
+            e.Property(l => l.WorkError).HasColumnType("text");
             e.Property(l => l.ResourceKind).IsRequired().HasMaxLength(64);
             e.Property(l => l.ResourceName).HasMaxLength(200);
             e.Property(l => l.ParentResourceKind).HasMaxLength(64);
@@ -260,30 +264,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(c => c.Summary).HasColumnType("text");
             e.HasOne(c => c.Agent).WithMany()
                 .HasForeignKey(c => c.AgentId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AgentRunEntity>(e =>
-        {
-            e.HasKey(r => r.Id);
-            e.HasIndex(r => r.AgentId);
-            e.HasIndex(r => r.WorkspaceId);
-            e.HasIndex(r => r.ParentRunId);
-            e.HasIndex(r => r.DefinitionId);
-            e.HasIndex(r => r.Status);
-            e.Property(r => r.Kind).IsRequired().HasMaxLength(16);
-            e.Property(r => r.Purpose).IsRequired().HasMaxLength(32).HasDefaultValue("manual");
-            e.Property(r => r.Status).IsRequired().HasMaxLength(32);
-            e.Property(r => r.Name).IsRequired().HasMaxLength(128);
-            e.Property(r => r.Description).HasColumnType("text");
-            e.Property(r => r.Prompt).HasColumnType("text");
-            e.Property(r => r.Result).HasColumnType("text");
-            e.Property(r => r.Error).HasColumnType("text");
-            e.HasOne(r => r.Agent).WithMany()
-                .HasForeignKey(r => r.AgentId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(r => r.Workspace).WithMany()
-                .HasForeignKey(r => r.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

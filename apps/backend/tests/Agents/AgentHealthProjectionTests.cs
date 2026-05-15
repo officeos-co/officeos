@@ -87,7 +87,7 @@ public sealed class AgentHealthProjectionTests
         Id = Guid.NewGuid(),
         AgentId = agent.Id,
         DefinitionId = definitionId,
-        Purpose = AgentRunPurposeKinds.Bootstrap,
+        Purpose = AgentWorkPurposeKinds.Bootstrap,
         Kind = "opencode",
         Status = status,
         Prompt = "Bootstrap",

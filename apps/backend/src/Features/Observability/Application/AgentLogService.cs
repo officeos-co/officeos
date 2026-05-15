@@ -44,6 +44,31 @@ internal sealed class AgentLogService : IAgentLogService
         return saved;
     }
 
+    public Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default)
+        => _agentLogRepository.UpsertQueuedWorkAsync(new AgentLogRecord
+        {
+            AgentId = request.AgentId,
+            WorkspaceId = request.WorkspaceId,
+            ResourceKind = ResourceLogKinds.Agent,
+            ResourceId = request.AgentId,
+            Type = AgentLogType.MessageIn,
+            Content = request.Content,
+            CorrelationId = request.CorrelationId,
+            Time = request.Time ?? DateTime.UtcNow,
+            WorkStatus = AgentWorkStatusKinds.Queued,
+            WorkPurpose = AgentWorkPurposeKinds.Normalize(request.Purpose),
+            DefinitionId = request.DefinitionId,
+        }, ct);
+
+    public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
+        => _agentLogRepository.ClaimNextQueuedWorkAsync(ct);
+
+    public Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default)
+        => _agentLogRepository.MarkWorkAsync(workLogId, AgentWorkStatusKinds.Completed, null, ct);
+
+    public Task FailWorkAsync(Guid workLogId, string error, CancellationToken ct = default)
+        => _agentLogRepository.MarkWorkAsync(workLogId, AgentWorkStatusKinds.Failed, error, ct);
+
     private async Task<string?> GetLastRelevantMessageAsync(AgentLogFilter filter, CancellationToken ct)
     {
         var log = await RelevantActivityLogs(_agentLogRepository.Query(filter))
@@ -65,7 +90,6 @@ internal sealed class AgentLogService : IAgentLogService
         return value switch
         {
             "agent" or "agents" => ResourceLogKinds.Agent,
-            "run" or "runs" => ResourceLogKinds.Run,
             "channel" or "channels" => ResourceLogKinds.Channel,
             "integration" or "integrations" or "integrationdeployment" or "integrationdeployments" or "integration-deployment" or "integration-deployments" => ResourceLogKinds.IntegrationDeployment,
             "provider" or "providers" => ResourceLogKinds.Provider,
@@ -78,13 +102,15 @@ internal sealed class AgentLogService : IAgentLogService
         WorkspaceId = request.WorkspaceId,
         AgentId = request.AgentId,
         AgentIds = request.AgentIds,
-        RunId = request.RunId,
         ChannelConnectionId = request.ChannelConnectionId,
         ResourceKind = string.IsNullOrWhiteSpace(request.ResourceKind) ? null : NormalizeResourceKind(request.ResourceKind),
         ResourceId = request.ResourceId,
         ResourceName = request.ResourceId.HasValue ? null : request.ResourceName,
         Type = request.Type,
         Types = request.Types,
+        WorkStatus = request.WorkStatus,
+        WorkPurpose = request.WorkPurpose,
+        DefinitionId = request.DefinitionId,
         Severity = request.Severity,
         Search = request.Search,
         AgentName = request.AgentName,

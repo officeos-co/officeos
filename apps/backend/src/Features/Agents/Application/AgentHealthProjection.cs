@@ -5,7 +5,7 @@ public sealed record AgentHealthResult(
     string State,
     string Reason,
     string Message,
-    Guid? LastBootstrapRunId,
+    Guid? LastBootstrapWorkLogId,
     DateTime? LastBootstrapAt,
     DateTime? LastSuccessfulBootstrapAt);
 
@@ -13,26 +13,26 @@ internal static class AgentHealthProjection
 {
     private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(5);
 
-    public static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentRunRecord> runs)
-        => From(agent, runs, DateTime.UtcNow);
+    public static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentLogRecord> logs)
+        => From(agent, logs, DateTime.UtcNow);
 
-    internal static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentRunRecord> runs, DateTime now)
+    internal static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentLogRecord> logs, DateTime now)
     {
-        var ordered = runs
-            .Where(run => run.AgentId == agent.Id)
-            .OrderByDescending(run => run.CreatedAt)
+        var ordered = logs
+            .Where(log => log.AgentId == agent.Id)
+            .OrderByDescending(log => ActivityAt(log))
             .ToList();
 
-        var bootstrapRuns = ordered
-            .Where(run => run.Purpose == AgentRunPurposeKinds.Bootstrap)
+        var bootstrapWork = ordered
+            .Where(log => log.WorkPurpose == AgentWorkPurposeKinds.Bootstrap)
             .ToList();
         var activeBootstrapRuns = agent.ActiveDefinitionId.HasValue
-            ? bootstrapRuns.Where(run => run.DefinitionId == agent.ActiveDefinitionId).ToList()
-            : bootstrapRuns;
+            ? bootstrapWork.Where(log => log.DefinitionId == agent.ActiveDefinitionId).ToList()
+            : bootstrapWork;
         var latestBootstrap = activeBootstrapRuns.FirstOrDefault();
-        var latestAnyBootstrap = bootstrapRuns.FirstOrDefault();
+        var latestAnyBootstrap = bootstrapWork.FirstOrDefault();
         var lastSuccessfulBootstrap = activeBootstrapRuns
-            .FirstOrDefault(run => IsCompleted(run.Status));
+            .FirstOrDefault(log => IsCompleted(log.WorkStatus));
 
         if (latestBootstrap is null)
         {
@@ -44,7 +44,7 @@ internal static class AgentHealthProjection
                     "DefinitionChangedNeedsBootstrap",
                     "Agent definition changed and has not bootstrapped successfully yet.",
                     latestAnyBootstrap.Id,
-                    latestAnyBootstrap.CreatedAt,
+                    latestAnyBootstrap.Time,
                     lastSuccessfulBootstrap?.CompletedAt);
             }
 
@@ -52,73 +52,73 @@ internal static class AgentHealthProjection
                 "Pending",
                 "orange",
                 "BootstrapMissing",
-                "No bootstrap run exists for this agent.",
+                "No bootstrap work exists for this agent.",
                 null,
                 null,
                 null);
         }
 
-        if (IsQueued(latestBootstrap.Status))
+        if (IsQueued(latestBootstrap.WorkStatus))
         {
             return new AgentHealthResult(
                 "Pending",
                 "orange",
                 "BootstrapQueued",
-                "Bootstrap run is queued.",
+                "Bootstrap work is queued.",
                 latestBootstrap.Id,
-                latestBootstrap.CreatedAt,
+                latestBootstrap.Time,
                 lastSuccessfulBootstrap?.CompletedAt);
         }
 
-        if (IsRunning(latestBootstrap.Status))
+        if (IsRunning(latestBootstrap.WorkStatus))
         {
             return new AgentHealthResult(
                 "Pending",
                 "orange",
                 "BootstrapRunning",
-                "Bootstrap run is running.",
+                "Bootstrap work is running.",
                 latestBootstrap.Id,
-                latestBootstrap.CreatedAt,
+                latestBootstrap.Time,
                 lastSuccessfulBootstrap?.CompletedAt);
         }
 
-        if (IsFailed(latestBootstrap.Status))
+        if (IsFailed(latestBootstrap.WorkStatus))
         {
             return new AgentHealthResult(
                 "Failed",
                 "red",
                 "BootstrapFailed",
-                string.IsNullOrWhiteSpace(latestBootstrap.Error)
-                    ? "Latest bootstrap run failed."
-                    : $"Latest bootstrap failed: {latestBootstrap.Error}",
+                string.IsNullOrWhiteSpace(latestBootstrap.WorkError)
+                    ? "Latest bootstrap work failed."
+                    : $"Latest bootstrap failed: {latestBootstrap.WorkError}",
                 latestBootstrap.Id,
-                latestBootstrap.CreatedAt,
+                latestBootstrap.Time,
                 lastSuccessfulBootstrap?.CompletedAt);
         }
 
-        var newerFailedRun = ordered.FirstOrDefault(run =>
-            run.Purpose != AgentRunPurposeKinds.Bootstrap
-            && run.CreatedAt > latestBootstrap.CreatedAt
-            && IsFailed(run.Status));
-        if (newerFailedRun is not null)
+        var newerFailedWork = ordered.FirstOrDefault(log =>
+            log.WorkPurpose != AgentWorkPurposeKinds.Bootstrap
+            && log.Time > latestBootstrap.Time
+            && IsFailed(log.WorkStatus));
+        if (newerFailedWork is not null)
         {
             return new AgentHealthResult(
                 "Degraded",
                 "orange",
-                "RecentRunFailed",
-                string.IsNullOrWhiteSpace(newerFailedRun.Error)
-                    ? "A recent non-bootstrap run failed."
-                    : $"Recent run failed: {newerFailedRun.Error}",
+                "RecentWorkFailed",
+                string.IsNullOrWhiteSpace(newerFailedWork.WorkError)
+                    ? "A recent non-bootstrap work item failed."
+                    : $"Recent work failed: {newerFailedWork.WorkError}",
                 latestBootstrap.Id,
-                latestBootstrap.CreatedAt,
+                latestBootstrap.Time,
                 latestBootstrap.CompletedAt);
         }
 
         var latestActivityAt = ordered.Count == 0
-            ? latestBootstrap.CompletedAt ?? latestBootstrap.UpdatedAt
+            ? latestBootstrap.CompletedAt ?? latestBootstrap.Time
             : ordered
                 .Select(ActivityAt)
-                .DefaultIfEmpty(latestBootstrap.CompletedAt ?? latestBootstrap.UpdatedAt)
+                .DefaultIfEmpty(latestBootstrap.CompletedAt ?? latestBootstrap.Time)
                 .Max();
 
         if (now - latestActivityAt >= IdleAfter)
@@ -127,9 +127,9 @@ internal static class AgentHealthProjection
                 "Idle",
                 "idle",
                 "AgentIdle",
-                $"No agent run activity for at least {IdleAfter.TotalMinutes:0} minutes.",
+                $"No agent work activity for at least {IdleAfter.TotalMinutes:0} minutes.",
                 latestBootstrap.Id,
-                latestBootstrap.CreatedAt,
+                latestBootstrap.Time,
                 latestBootstrap.CompletedAt);
         }
 
@@ -139,25 +139,25 @@ internal static class AgentHealthProjection
             "BootstrapSucceeded",
             "Latest bootstrap completed successfully.",
             latestBootstrap.Id,
-            latestBootstrap.CreatedAt,
+            latestBootstrap.Time,
             latestBootstrap.CompletedAt);
     }
 
-    private static DateTime ActivityAt(AgentRunRecord run) =>
-        run.CompletedAt ?? run.UpdatedAt;
+    private static DateTime ActivityAt(AgentLogRecord log) =>
+        log.CompletedAt ?? log.StartedAt ?? log.Time;
 
-    private static bool IsQueued(string status) =>
-        status.Equals("queued", StringComparison.OrdinalIgnoreCase);
+    private static bool IsQueued(string? status) =>
+        status?.Equals(AgentWorkStatusKinds.Queued, StringComparison.OrdinalIgnoreCase) == true;
 
-    private static bool IsRunning(string status) =>
-        status.Equals("running", StringComparison.OrdinalIgnoreCase);
+    private static bool IsRunning(string? status) =>
+        status?.Equals(AgentWorkStatusKinds.Running, StringComparison.OrdinalIgnoreCase) == true;
 
-    private static bool IsCompleted(string status) =>
-        status.Equals("completed", StringComparison.OrdinalIgnoreCase)
-        || status.Equals("succeeded", StringComparison.OrdinalIgnoreCase);
+    private static bool IsCompleted(string? status) =>
+        status?.Equals(AgentWorkStatusKinds.Completed, StringComparison.OrdinalIgnoreCase) == true
+        || status?.Equals("succeeded", StringComparison.OrdinalIgnoreCase) == true;
 
-    private static bool IsFailed(string status) =>
-        status.Equals("failed", StringComparison.OrdinalIgnoreCase)
-        || status.Equals("canceled", StringComparison.OrdinalIgnoreCase)
-        || status.Equals("cancelled", StringComparison.OrdinalIgnoreCase);
+    private static bool IsFailed(string? status) =>
+        status?.Equals(AgentWorkStatusKinds.Failed, StringComparison.OrdinalIgnoreCase) == true
+        || status?.Equals(AgentWorkStatusKinds.Canceled, StringComparison.OrdinalIgnoreCase) == true
+        || status?.Equals("cancelled", StringComparison.OrdinalIgnoreCase) == true;
 }

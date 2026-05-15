@@ -20,15 +20,15 @@ internal sealed class TurnLoggingHandler :
     {
         var preview = e.UserMessage.Length > 100 ? e.UserMessage[..100] + "..." : e.UserMessage;
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt)), ct);
+            AgentLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(TurnCompletedEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.System(e.AgentId,
+            AgentLogRecord.System(e.AgentId,
                 $"Turn complete: {e.Iterations} iterations, {e.ToolCallCount} tool calls",
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
     }
 
     public Task Handle(PodConnectedEvent e, CancellationToken ct)
@@ -39,14 +39,14 @@ internal sealed class TurnLoggingHandler :
     public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.System(e.AgentId, e.Message,
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
+            AgentLogRecord.System(e.AgentId, e.Message,
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
     }
 
     public async Task Handle(LlmCallCompletedEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(new AgentLogRecord
+            new AgentLogRecord
             {
                 AgentId = e.AgentId,
                 Type = AgentLogType.ModelCall,
@@ -66,16 +66,14 @@ internal sealed class TurnLoggingHandler :
                     e.ReasoningTokens,
                     e.EstimatedTokens,
                     e.DurationMs,
-                    e.RunId,
-                    e.ParentRunId,
                 }),
-            }), ct);
+            }, ct);
     }
 
     public async Task Handle(ToolCallStartedEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt)), ct);
+            AgentLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(ToolCallCompletedEvent e, CancellationToken ct)
@@ -83,51 +81,27 @@ internal sealed class TurnLoggingHandler :
         var content = e.Output.Length > 10000 ? e.Output[..10000] + "\n[truncated]" : e.Output;
         if (!e.Success) content = $"[failed] {content}";
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.ToolResultEntry(e.AgentId, e.ToolName, content,
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs))), ct);
+            AgentLogRecord.ToolResultEntry(e.AgentId, e.ToolName, content,
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
     }
 
     public async Task Handle(AgentErrorOccurredEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt)), ct);
+            AgentLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(MessageOutEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt)), ct);
+            AgentLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(ConversationCompactedEvent e, CancellationToken ct)
     {
         await _agentLogService.AppendAsync(
-            WithRun(AgentLogRecord.System(e.AgentId,
+            AgentLogRecord.System(e.AgentId,
                 $"Conversation compacted through log {e.LastCompactedLogId:N} ({e.PreCompactTokens} -> {e.PostCompactTokens} estimated tokens)",
-                e.CorrelationId, e.OccurredAt)), ct);
+                e.CorrelationId, e.OccurredAt), ct);
     }
-
-    private static AgentLogRecord WithRun(AgentLogRecord record) => new()
-    {
-        Id = record.Id,
-        ResourceKind = record.ResourceKind,
-        ResourceId = record.ResourceId,
-        ResourceName = record.ResourceName,
-        ParentResourceKind = record.ParentResourceKind,
-        ParentResourceId = record.ParentResourceId,
-        AgentId = record.AgentId,
-        Time = record.Time,
-        Type = record.Type,
-        Severity = record.Severity,
-        Tool = record.Tool,
-        Integration = record.Integration,
-        Channel = record.Channel,
-        ChannelConnectionId = record.ChannelConnectionId,
-        Content = record.Content,
-        MetadataJson = record.MetadataJson,
-        Usage = record.Usage,
-        CorrelationId = record.CorrelationId,
-        RunId = AgentRunContext.RunId,
-        ParentRunId = AgentRunContext.ParentRunId,
-    };
 }

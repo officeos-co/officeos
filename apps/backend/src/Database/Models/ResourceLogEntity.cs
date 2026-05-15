@@ -23,8 +23,12 @@ public sealed class ResourceLogEntity
     public int? InputTokens { get; set; }
     public int? OutputTokens { get; set; }
     public string? CorrelationId { get; set; }
-    public Guid? RunId { get; set; }
-    public Guid? ParentRunId { get; set; }
+    public string? WorkStatus { get; set; }
+    public string? WorkPurpose { get; set; }
+    public Guid? DefinitionId { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public string? WorkError { get; set; }
     public AgentEntity? Agent { get; set; }
     public WorkspaceEntity? Workspace { get; set; }
 }
