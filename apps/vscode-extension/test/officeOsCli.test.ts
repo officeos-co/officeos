@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   ExecFileLike,
   OfficeOsCli,
+  ResourceKinds,
   buildDevFallback,
   parseJsonOutput,
   resourceName,
@@ -123,4 +124,9 @@ test("resource helpers prefer stable names and canonical singular kinds", () => 
   assert.equal(resourceName({ name: "fix-ci", id: "agent-1" }), "fix-ci");
   assert.equal(singularKind("memorystores"), "MemoryStore");
   assert.equal(singularKind("providers"), "Provider");
+});
+
+test("resource kinds expose agents but not removed runs", () => {
+  assert.ok(ResourceKinds.includes("agents"));
+  assert.ok(!(ResourceKinds as readonly string[]).includes("runs"));
 });

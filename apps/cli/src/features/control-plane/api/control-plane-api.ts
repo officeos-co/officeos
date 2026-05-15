@@ -2,24 +2,14 @@ import { ApiClient } from "../../../lib/api-client";
 
 const ApiBasePath = "/api/v1";
 
-export interface RunResponse {
-  run?: RunRecord;
-  engineType?: string;
-  engineRef?: string;
-}
-
-export interface RunRecord {
-  id: string;
+export interface AgentWorkResponse {
+  kind: "AgentWork";
   agentId: string;
-  kind: string;
+  agentName: string;
+  workLogId: string;
+  correlationId?: string | null;
   status: string;
-  name: string;
-  prompt: string;
-  result?: string | null;
-  error?: string | null;
   createdAt: string;
-  updatedAt: string;
-  completedAt?: string | null;
 }
 
 export interface ResourceLogOptions {
@@ -43,21 +33,11 @@ export async function deleteResource(apiUrl: string, token: string, kind: string
   return await new ApiClient({ apiUrl, token }).delete<unknown>(`${ApiBasePath}/resources/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`);
 }
 
-export async function createRun(apiUrl: string, token: string, agentRef: string, task: string, engineRef: string, wait: boolean): Promise<RunResponse> {
-  return await new ApiClient({ apiUrl, token }).post<RunResponse>(`${ApiBasePath}/runs`, {
-    agentRef,
-    task,
-    engineRef,
-    wait,
+export async function sendAgentMessage(apiUrl: string, token: string, agentRef: string, message: string): Promise<AgentWorkResponse> {
+  return await new ApiClient({ apiUrl, token }).post<AgentWorkResponse>(`${ApiBasePath}/resources/agents/${encodeURIComponent(agentRef)}/messages`, {
+    message,
+    purpose: "manual",
   });
-}
-
-export async function listRuns(apiUrl: string, token: string): Promise<RunRecord[]> {
-  return await new ApiClient({ apiUrl, token }).get<RunRecord[]>(`${ApiBasePath}/runs`);
-}
-
-export async function getRun(apiUrl: string, token: string, id: string): Promise<RunRecord> {
-  return await new ApiClient({ apiUrl, token }).get<RunRecord>(`${ApiBasePath}/runs/${encodeURIComponent(id)}`);
 }
 
 export async function getResourceLogs(apiUrl: string, token: string, kind: string, name: string, options: ResourceLogOptions = {}): Promise<string> {

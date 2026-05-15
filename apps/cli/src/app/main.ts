@@ -10,7 +10,6 @@ import {
   modelsCommand,
   providersCommand,
   runCommand,
-  waitCommand,
 } from "../features/control-plane";
 import {
   applyCommand,
@@ -53,9 +52,6 @@ try {
     case "logs":
       await logsCommand(args);
       break;
-    case "wait":
-      await waitCommand(args);
-      break;
     case "models":
       await modelsCommand(args);
       break;
@@ -89,9 +85,8 @@ function help(): void {
   print("  get <kind|kind/name> [-o json|yaml|name]");
   print("  describe <kind/name>");
   print("  delete <kind> <name> | delete --all");
-  print("  run <agent> --task <text> [--engine opencode] [--wait]");
+  print("  run <agent> --task <text>");
   print("  logs <kind/name> [--tail <n>] [--since <duration>] [--type <type>] [--severity <level>]");
-  print("  wait run/<id> --for complete --timeout <duration>");
   print("  models [-o json|yaml|name]");
   print("  providers [-o json|yaml|name]");
   print("  config get-contexts|current-context|use-context|set-context");

@@ -17,7 +17,6 @@ interface ResourceCategory {
 
 const Categories: readonly ResourceCategory[] = [
   { label: "Agents", cliKind: "agents", icon: "hubot" },
-  { label: "Runs", cliKind: "runs", icon: "play-circle" },
   { label: "Channels", cliKind: "channels", icon: "broadcast" },
   { label: "Routines", cliKind: "routines", icon: "clock" },
   { label: "Browsers", cliKind: "browsers", icon: "browser" },

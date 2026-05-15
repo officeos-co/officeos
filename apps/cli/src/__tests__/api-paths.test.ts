@@ -5,6 +5,7 @@ import {
   getResourceLogs,
   listModels,
   listResources,
+  sendAgentMessage,
 } from "../features/control-plane/api/control-plane-api";
 import { validateManifest } from "../features/manifests/api/manifests-api";
 
@@ -21,6 +22,7 @@ test("control-plane API calls backend v1 resource routes", async () => {
   await listModels("http://localhost:5000/", "token");
   await listResources("http://localhost:5000/", "token", "agents");
   await deleteResource("http://localhost:5000/", "token", "agents", "alice");
+  await sendAgentMessage("http://localhost:5000/", "token", "alice", "hello");
   await getResourceLogs("http://localhost:5000/", "token", "agents", "alice", {
     tail: 50,
     since: "10m",
@@ -32,6 +34,7 @@ test("control-plane API calls backend v1 resource routes", async () => {
     { url: "http://localhost:5000/api/v1/models", method: "GET" },
     { url: "http://localhost:5000/api/v1/resources/agents", method: "GET" },
     { url: "http://localhost:5000/api/v1/resources/agents/alice", method: "DELETE" },
+    { url: "http://localhost:5000/api/v1/resources/agents/alice/messages", method: "POST" },
     {
       url: "http://localhost:5000/api/v1/resources/agents/alice/logs?tail=50&since=10m&type=message-out&severity=error",
       method: "GET",
@@ -51,7 +54,7 @@ test("auth API calls backend v1 identity route", async () => {
 });
 
 test("API client summarizes HTML error responses", async () => {
-  globalThis.fetch = (() =>
+  globalThis.fetch = ((() =>
     Promise.resolve(
       new Response(
         "<!DOCTYPE html><html><head><title>officeos.co | 502: Bad gateway</title></head></html>",
@@ -61,7 +64,7 @@ test("API client summarizes HTML error responses", async () => {
           headers: { "content-type": "text/html" },
         },
       ),
-    )) as typeof fetch;
+    )) as unknown) as typeof fetch;
 
   await expect(getMe("http://localhost:5000", "token")).rejects.toThrow(
     "502 Bad Gateway (officeos.co | 502: Bad gateway)",

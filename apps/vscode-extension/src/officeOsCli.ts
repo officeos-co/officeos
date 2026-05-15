@@ -27,7 +27,6 @@ export interface CliInvocation {
 
 export const ResourceKinds = [
   "agents",
-  "runs",
   "channels",
   "routines",
   "browsers",

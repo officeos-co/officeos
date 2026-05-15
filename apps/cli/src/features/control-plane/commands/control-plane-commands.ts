@@ -6,19 +6,17 @@ import {
 } from "../../../lib/config-store";
 import { print } from "../../../shell/output";
 import {
-  createRun,
   deleteResource,
   describeResource,
   getResourceLogs,
-  getRun,
   listModels,
   listProviders,
   listResources,
+  sendAgentMessage,
 } from "../api/control-plane-api";
 
 const ResourceKinds = [
   { kind: "agents", aliases: "agent", description: "Agent resources" },
-  { kind: "runs", aliases: "run", description: "Run resources" },
   { kind: "channels", aliases: "channel", description: "Channel connections" },
   { kind: "routines", aliases: "routine", description: "Agent routines" },
   { kind: "browsers", aliases: "browser", description: "Browser resources" },
@@ -33,7 +31,6 @@ const ResourceKinds = [
 ] as const;
 
 const DeletableResourceKinds = [
-  "runs",
   "routines",
   "channels",
   "integrations",
@@ -119,22 +116,18 @@ export async function runCommand(args: string[]): Promise<void> {
   const context = await requireContext();
   const agent = requireArg(
     args[0],
-    "Usage: officeos run <agent> --task <text> [--engine opencode] [--wait]",
+    "Usage: officeos run <agent> --task <text>",
   );
   const task = readOption(args, "--task");
   if (!task) throw new Error("Missing task. Use `--task <text>`.");
-  const engine = readOption(args, "--engine") ?? "opencode";
-  const wait = args.includes("--wait");
-  const result = await createRun(
+  rejectRemovedRunOptions(args);
+  const result = await sendAgentMessage(
     context.apiUrl,
     context.token,
     agent,
     task,
-    engine,
-    wait,
   );
-  const run = result.run ?? (result as unknown as { id: string });
-  print(`run/${run.id}`);
+  print(`agent/${result.agentName}\twork/${result.workLogId}\t${result.status}`);
 }
 
 export async function logsCommand(args: string[]): Promise<void> {
@@ -148,36 +141,6 @@ export async function logsCommand(args: string[]): Promise<void> {
     options,
   );
   if (result.length > 0) print(result);
-}
-
-export async function waitCommand(args: string[]): Promise<void> {
-  const context = await requireContext();
-  const id = normalizeRunId(
-    requireArg(
-      args[0],
-      "Usage: officeos wait run/<id> --for complete --timeout <duration>",
-    ),
-  );
-  const timeout = parseDuration(readOption(args, "--timeout") ?? "10m");
-  const deadline = Date.now() + timeout;
-  for (;;) {
-    const run = await getRun(context.apiUrl, context.token, id);
-    if (["completed", "failed", "canceled"].includes(run.status)) {
-      if (run.status !== "completed") {
-        process.exitCode = 12;
-        throw new Error(
-          `Run ${run.status}${run.error ? `: ${run.error}` : ""}`,
-        );
-      }
-      print(`run/${run.id} completed`);
-      return;
-    }
-    if (Date.now() >= deadline) {
-      process.exitCode = 10;
-      throw new Error("Timed out waiting for run.");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
 }
 
 export async function modelsCommand(args: string[] = []): Promise<void> {
@@ -231,10 +194,6 @@ function splitResource(value: string): [string, string?] {
   return [kind, name];
 }
 
-function normalizeRunId(value: string): string {
-  return value.startsWith("run/") ? value.slice("run/".length) : value;
-}
-
 function readLogsTarget(args: string[]): {
   kind: string;
   name: string;
@@ -255,18 +214,11 @@ function readLogsTarget(args: string[]): {
     if (args[1] && !args[1].startsWith("-")) {
       name = args[1];
       optionStart = 2;
-    } else {
-      kind = "run";
-      name = normalizeRunId(target);
     }
   }
 
   if (!name) {
-    if (kind === "run" || kind === "runs") {
-      name = normalizeRunId(target);
-    } else {
-      throw new Error("Logs requires <kind/name>.");
-    }
+    throw new Error("Logs requires <kind/name>.");
   }
 
   const options: LogsOptions = {};
@@ -310,6 +262,14 @@ function readLogsTarget(args: string[]): {
   }
 
   return { kind, name, options };
+}
+
+function rejectRemovedRunOptions(args: string[]): void {
+  for (const option of ["--engine", "--wait"]) {
+    if (args.includes(option)) {
+      throw new Error(`${option} was removed with run resources; agent work now uses the agent's configured execution path.`);
+    }
+  }
 }
 
 function readOutput(args: string[]): "table" | "json" | "yaml" | "name" {
@@ -420,12 +380,4 @@ function printResourceKinds(output: "table" | "json" | "yaml" | "name"): void {
 function requireArg(value: string | undefined, message: string): string {
   if (!value) throw new Error(message);
   return value;
-}
-
-function parseDuration(value: string): number {
-  const match = value.match(/^(\d+)(ms|s|m)?$/);
-  if (!match) throw new Error(`Invalid duration '${value}'.`);
-  const amount = Number(match[1]);
-  const unit = match[2] ?? "ms";
-  return unit === "m" ? amount * 60_000 : unit === "s" ? amount * 1000 : amount;
 }
