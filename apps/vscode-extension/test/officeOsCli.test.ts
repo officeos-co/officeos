@@ -109,6 +109,29 @@ test("configured cli path disables development fallback", async () => {
   ]);
 });
 
+test("sendAgentMessage shells out through the send command", async () => {
+  const calls: Array<{ file: string; args: readonly string[] }> = [];
+  const execFile: ExecFileLike = async (file, args) => {
+    calls.push({ file, args });
+    return { stdout: "agent/fix-ci\twork/1\tqueued\n", stderr: "" };
+  };
+
+  const cli = new OfficeOsCli({
+    extensionPath: process.cwd(),
+    configuredCliPath: "/bin/officeos",
+    execFile,
+  });
+
+  await cli.sendAgentMessage("fix-ci", "please check this");
+
+  assert.deepEqual(calls, [
+    {
+      file: "/bin/officeos",
+      args: ["send", "fix-ci", "--message", "please check this"],
+    },
+  ]);
+});
+
 test("buildDevFallback resolves the repository CLI entry from the extension path", () => {
   const fallback = buildDevFallback(path.resolve(process.cwd()));
 

@@ -18,6 +18,7 @@
     "onCommand:officeos.currentContext",
     "onCommand:officeos.useContext",
     "onCommand:officeos.reloadResource",
+    "onCommand:officeos.sendAgentMessage",
     "onCommand:officeos.showResourceLogs",
     "onCommand:officeos.describeResource",
     "onCommand:officeos.copyResourceName",
@@ -64,6 +65,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "officeos.sendAgentMessage",
+        "title": "OfficeOS: Send Message",
+        "icon": "$(send)"
+      },
+      {
         "command": "officeos.showResourceLogs",
         "title": "OfficeOS: Show Logs",
         "icon": "$(output)"
@@ -104,23 +110,28 @@
           "group": "inline"
         },
         {
-          "command": "officeos.showResourceLogs",
-          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
+          "command": "officeos.sendAgentMessage",
+          "when": "view == officeos.resources && viewItem == officeosAgentResource",
           "group": "navigation@1"
         },
         {
-          "command": "officeos.describeResource",
-          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
+          "command": "officeos.showResourceLogs",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource || viewItem == officeosAgentResource)",
           "group": "navigation@2"
         },
         {
-          "command": "officeos.copyResourceName",
-          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource)",
+          "command": "officeos.describeResource",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource || viewItem == officeosAgentResource)",
           "group": "navigation@3"
         },
         {
+          "command": "officeos.copyResourceName",
+          "when": "view == officeos.resources && (viewItem == officeosResource || viewItem == officeosDeletableResource || viewItem == officeosAgentResource)",
+          "group": "navigation@4"
+        },
+        {
           "command": "officeos.deleteResource",
-          "when": "view == officeos.resources && viewItem == officeosDeletableResource",
+          "when": "view == officeos.resources && (viewItem == officeosDeletableResource || viewItem == officeosAgentResource)",
           "group": "destructive"
         }
       ]

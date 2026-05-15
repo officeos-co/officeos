@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { getMe } from "../features/auth/api/auth-api";
 import {
+  authenticateCodexProvider,
   deleteResource,
   getResourceLogs,
   listModels,
@@ -29,6 +30,10 @@ test("control-plane API calls backend v1 resource routes", async () => {
     type: "message-out",
     severity: "error",
   });
+  await authenticateCodexProvider("http://localhost:5000/", "token", {
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+  });
 
   expect(requests).toEqual([
     { url: "http://localhost:5000/api/v1/models", method: "GET" },
@@ -39,6 +44,7 @@ test("control-plane API calls backend v1 resource routes", async () => {
       url: "http://localhost:5000/api/v1/resources/agents/alice/logs?tail=50&since=10m&type=message-out&severity=error",
       method: "GET",
     },
+    { url: "http://localhost:5000/api/v1/resources/providers/codex/auth", method: "POST" },
   ]);
 });
 

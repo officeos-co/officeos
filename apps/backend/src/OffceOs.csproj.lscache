@@ -108,6 +108,7 @@ Database/
   20260514204327_AddAgentRunPurpose.Designer.cs
   20260515122353_RemoveAgentRuns.cs
   20260515122353_RemoveAgentRuns.Designer.cs
+  20260515153000_AddProviderResourceStatus.cs
   EaosDbContextModelSnapshot.cs
  Models/
   AgentChannelBindingEntity.cs

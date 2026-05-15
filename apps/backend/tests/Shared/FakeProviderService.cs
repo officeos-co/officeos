@@ -40,4 +40,7 @@ public sealed class FakeProviderService : IProviderService
 
     public Task<bool> IsModelAllowedAsync(string provider, string? model, Guid? workspaceId, CancellationToken ct = default) =>
         Task.FromResult(_modelAllowed);
+
+    public Task<ProviderResourceAuthResult> AuthenticateCodexAsync(Guid workspaceId, CodexProviderAuthRequest request, CancellationToken ct = default) =>
+        throw new NotSupportedException();
 }

@@ -45,6 +45,29 @@ public sealed class ProviderResourceController : ControllerBase
             : NotFound(new { error = $"providers/{name} was not found." });
     }
 
+    [HttpPost("resources/providers/codex/auth")]
+    [HttpPost("resources/provider/codex/auth")]
+    public async Task<IActionResult> AuthenticateCodexProvider(
+        [FromBody] CodexProviderAuthInput input,
+        [FromServices] IWorkspaceService workspaces,
+        [FromServices] IProviderService providers,
+        CancellationToken ct)
+    {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
+
+        var result = await providers.AuthenticateCodexAsync(scope.Value.WorkspaceId, new CodexProviderAuthRequest(
+            input.AccessToken,
+            input.RefreshToken,
+            input.ExpiresAt,
+            input.AccountEmail,
+            input.AccountId,
+            input.ClientId,
+            input.TokenUrl,
+            input.Scopes), ct);
+        return Ok(result);
+    }
+
     [HttpGet("providers")]
     public async Task<IActionResult> Providers(
         [FromServices] IProviderService providers,
@@ -93,9 +116,24 @@ public sealed class ProviderResourceController : ControllerBase
         displayName = provider.DisplayName,
         enabled = provider.Enabled,
         configured = provider.Enabled && !string.IsNullOrWhiteSpace(provider.EncryptedCredentialsJson),
+        phase = provider.Phase,
+        statusMessage = provider.StatusMessage,
+        account = provider.Account,
+        expiresAt = provider.ExpiresAt,
+        lastValidatedAt = provider.LastValidatedAt,
         defaultModel = provider.DefaultModel,
         models = provider.Models,
         createdAt = provider.CreatedAt,
         updatedAt = provider.UpdatedAt,
     };
 }
+
+public sealed record CodexProviderAuthInput(
+    string AccessToken,
+    string RefreshToken,
+    DateTime? ExpiresAt,
+    string? AccountEmail,
+    string? AccountId,
+    string? ClientId,
+    string? TokenUrl,
+    IReadOnlyList<string>? Scopes);

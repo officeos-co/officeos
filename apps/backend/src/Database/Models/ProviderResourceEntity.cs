@@ -12,6 +12,11 @@ public sealed class ProviderResourceEntity
     public string AllowedModelsJson { get; set; } = "[]";
     public string AuthKind { get; set; } = "api_key";
     public string EncryptedCredentialsJson { get; set; } = string.Empty;
+    public string Phase { get; set; } = "Pending";
+    public string StatusMessage { get; set; } = string.Empty;
+    public string? Account { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public DateTime? LastValidatedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public WorkspaceEntity? Workspace { get; set; }

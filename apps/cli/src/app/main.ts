@@ -8,8 +8,10 @@ import {
   getCommand,
   logsCommand,
   modelsCommand,
+  providerCommand,
   providersCommand,
   runCommand,
+  sendCommand,
 } from "../features/control-plane";
 import {
   applyCommand,
@@ -49,6 +51,9 @@ try {
     case "run":
       await runCommand(args);
       break;
+    case "send":
+      await sendCommand(args);
+      break;
     case "logs":
       await logsCommand(args);
       break;
@@ -57,6 +62,9 @@ try {
       break;
     case "providers":
       await providersCommand(args);
+      break;
+    case "provider":
+      await providerCommand(args);
       break;
     case "config":
       await configCommand(args);
@@ -86,8 +94,10 @@ function help(): void {
   print("  describe <kind/name>");
   print("  delete <kind> <name> | delete --all");
   print("  run <agent> --task <text>");
+  print("  send <agent> --message <text>");
   print("  logs <kind/name> [--tail <n>] [--since <duration>] [--type <type>] [--severity <level>]");
   print("  models [-o json|yaml|name]");
   print("  providers [-o json|yaml|name]");
+  print("  provider auth codex [--no-browser]");
   print("  config get-contexts|current-context|use-context|set-context");
 }

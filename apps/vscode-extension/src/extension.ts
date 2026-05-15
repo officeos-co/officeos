@@ -67,6 +67,33 @@ export function activate(context: vscode.ExtensionContext): void {
       });
     }),
     vscode.commands.registerCommand(
+      "officeos.sendAgentMessage",
+      async (node?: ResourceNode) => {
+        await runWithErrors(async () => {
+          if (!node || node.kind !== "agents") {
+            throw new Error("Select an OfficeOS agent first.");
+          }
+          if (!node.name) {
+            throw new Error("OfficeOS agent has no name to message.");
+          }
+
+          const message = await vscode.window.showInputBox({
+            prompt: `Send a message to ${node.name}`,
+            placeHolder: "Message",
+            ignoreFocusOut: true,
+          });
+          const trimmed = message?.trim();
+          if (!trimmed) return;
+
+          await cli.sendAgentMessage(node.name, trimmed);
+          treeProvider.refresh(node);
+          void vscode.window.showInformationMessage(
+            `Message sent to agent/${node.name}.`,
+          );
+        });
+      },
+    ),
+    vscode.commands.registerCommand(
       "officeos.showResourceLogs",
       async (node?: ResourceNode) => {
         await runWithErrors(async () => {

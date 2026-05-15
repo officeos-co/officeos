@@ -33,6 +33,17 @@ public static class ProviderRegistry
             }),
 
         new ProviderDefinition(
+            Slug: CodexProviderSlug,
+            DisplayName: "Codex",
+            ApiFormat: ApiFormat.OpenAiCompat,
+            BaseUrl: "https://chatgpt.com/backend-api/codex",
+            Models: new[]
+            {
+                new ModelDefinition("gpt-5.3-codex-spark", "GPT-5.3 Codex Spark", CostWeight: 5, SmartRoutingTier.Simple),
+                new ModelDefinition("gpt-5.3-codex", "GPT-5.3 Codex", CostWeight: 20, SmartRoutingTier.Standard),
+            }),
+
+        new ProviderDefinition(
             Slug: "google",
             DisplayName: "Google Gemini",
             ApiFormat: ApiFormat.OpenAiCompat,
@@ -173,6 +184,7 @@ public static class ProviderRegistry
         All.Where(p => p.Models.Count > 0 && !p.ManagedCloudOnly).ToList();
 
     public const string DefaultModel = "auto";
+    public const string CodexProviderSlug = "codex";
     public const string AwsBedrockProviderSlug = "aws-bedrock";
     public const string GoogleVertexProviderSlug = "google-vertex";
     public const string AzureFoundryProviderSlug = "azure-foundry";

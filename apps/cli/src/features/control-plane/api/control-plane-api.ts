@@ -21,6 +21,17 @@ export interface ResourceLogOptions {
   follow?: boolean;
 }
 
+export interface CodexProviderAuthRequest {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt?: string;
+  accountEmail?: string;
+  accountId?: string;
+  clientId?: string;
+  tokenUrl?: string;
+  scopes?: string[];
+}
+
 export async function listResources(apiUrl: string, token: string, kind: string): Promise<unknown[]> {
   return await new ApiClient({ apiUrl, token }).get<unknown[]>(`${ApiBasePath}/resources/${encodeURIComponent(kind)}`);
 }
@@ -61,4 +72,8 @@ export async function listProviders(apiUrl: string, token: string): Promise<unkn
 
 export async function listModels(apiUrl: string, token: string): Promise<unknown[]> {
   return await new ApiClient({ apiUrl, token }).get<unknown[]>(`${ApiBasePath}/models`);
+}
+
+export async function authenticateCodexProvider(apiUrl: string, token: string, body: CodexProviderAuthRequest): Promise<unknown> {
+  return await new ApiClient({ apiUrl, token }).post<unknown>(`${ApiBasePath}/resources/providers/codex/auth`, body);
 }

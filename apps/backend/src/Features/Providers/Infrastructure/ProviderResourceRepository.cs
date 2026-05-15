@@ -47,6 +47,11 @@ internal sealed class ProviderResourceRepository : IProviderResourceRepository
             entity.AllowedModelsJson = JsonSerializer.Serialize(record.Models);
             entity.AuthKind = record.AuthKind;
             entity.EncryptedCredentialsJson = record.EncryptedCredentialsJson;
+            entity.Phase = record.Phase;
+            entity.StatusMessage = record.StatusMessage;
+            entity.Account = record.Account;
+            entity.ExpiresAt = record.ExpiresAt;
+            entity.LastValidatedAt = record.LastValidatedAt;
             entity.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -74,6 +79,11 @@ internal sealed class ProviderResourceRepository : IProviderResourceRepository
         Models = ParseModels(entity.AllowedModelsJson),
         AuthKind = entity.AuthKind,
         EncryptedCredentialsJson = entity.EncryptedCredentialsJson,
+        Phase = entity.Phase,
+        StatusMessage = entity.StatusMessage,
+        Account = entity.Account,
+        ExpiresAt = entity.ExpiresAt,
+        LastValidatedAt = entity.LastValidatedAt,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt,
     };
@@ -90,6 +100,11 @@ internal sealed class ProviderResourceRepository : IProviderResourceRepository
         AllowedModelsJson = JsonSerializer.Serialize(withName.Models),
         AuthKind = withName.AuthKind,
         EncryptedCredentialsJson = withName.EncryptedCredentialsJson,
+        Phase = withName.Phase,
+        StatusMessage = withName.StatusMessage,
+        Account = withName.Account,
+        ExpiresAt = withName.ExpiresAt,
+        LastValidatedAt = withName.LastValidatedAt,
         CreatedAt = withName.CreatedAt,
         UpdatedAt = withName.UpdatedAt,
     };

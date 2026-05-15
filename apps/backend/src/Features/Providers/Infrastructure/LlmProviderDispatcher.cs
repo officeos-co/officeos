@@ -78,7 +78,7 @@ public sealed class LlmProviderDispatcher
 
         if (definition is not null &&
             model.Equals("auto", StringComparison.OrdinalIgnoreCase) &&
-            !definition.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
+            ProviderRegistry.GetSmartRouteModel(definition.Slug, SmartRoutingTier.Standard) is null)
         {
             return new AgentError(
                 AgentErrorCategory.Configuration,
@@ -87,8 +87,8 @@ public sealed class LlmProviderDispatcher
 
         var resolvedModel = isConfiguredCustomProvider
             ? model
-            : definition!.Slug.Equals("anthropic", StringComparison.OrdinalIgnoreCase)
-                ? SmartRouter.Resolve(model, requestBody, definition.Slug)
+            : model.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                ? SmartRouter.Resolve(model, requestBody, definition!.Slug)
                 : model;
 
         _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, resolvedModel);
@@ -218,6 +218,11 @@ public sealed class LlmProviderDispatcher
                 request.Headers.Authorization = new AuthenticationHeaderValue(
                     "Bearer",
                     await _cloudProviderTokenService.GetAzureAccessTokenAsync(auth, ct));
+                break;
+            case ProviderAuthKind.CodexChatGptOAuth:
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Required(auth, "accessToken"));
+                if (!string.IsNullOrWhiteSpace(auth.Get("accountId")))
+                    request.Headers.Add("ChatGPT-Account-Id", auth.Get("accountId"));
                 break;
             default:
                 throw new InvalidOperationException($"Authentication kind '{auth.Kind.ToStorageString()}' is not supported for OpenAI-compatible dispatch.");

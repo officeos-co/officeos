@@ -92,6 +92,7 @@ Observability/
 Providers/
  CloudProviderNativeAuthTests.cs
  ProviderDispatchServiceTests.cs
+ ProviderServiceTests.cs
 Shared/
  ChannelEventPersistingPublisher.cs
  ChannelTestHarness.cs

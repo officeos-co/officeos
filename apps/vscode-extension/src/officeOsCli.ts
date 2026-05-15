@@ -91,6 +91,10 @@ export class OfficeOsCli {
     await this.runText(["delete", kind, name]);
   }
 
+  async sendAgentMessage(agent: string, message: string): Promise<void> {
+    await this.runText(["send", agent, "--message", message]);
+  }
+
   async getContexts(): Promise<string[]> {
     const output = await this.runText(["config", "get-contexts"]);
     return output

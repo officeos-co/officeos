@@ -194,6 +194,9 @@ public sealed class EaosDbContext : DbContext
             e.Property(p => p.AllowedModelsJson).HasColumnType("jsonb");
             e.Property(p => p.AuthKind).IsRequired().HasMaxLength(64);
             e.Property(p => p.EncryptedCredentialsJson).HasColumnType("text");
+            e.Property(p => p.Phase).IsRequired().HasMaxLength(32);
+            e.Property(p => p.StatusMessage).HasMaxLength(512);
+            e.Property(p => p.Account).HasMaxLength(256);
             e.HasOne(p => p.Workspace).WithMany().HasForeignKey(p => p.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 

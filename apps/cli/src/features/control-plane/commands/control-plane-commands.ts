@@ -1,3 +1,5 @@
+import { createHash, randomBytes } from "node:crypto";
+import { createServer, type Server } from "node:http";
 import {
   readConfig,
   requireContext,
@@ -6,6 +8,7 @@ import {
 } from "../../../lib/config-store";
 import { print } from "../../../shell/output";
 import {
+  authenticateCodexProvider,
   deleteResource,
   describeResource,
   getResourceLogs,
@@ -14,6 +17,7 @@ import {
   listResources,
   sendAgentMessage,
 } from "../api/control-plane-api";
+import { openBrowser } from "../../../shell/browser";
 
 const ResourceKinds = [
   { kind: "agents", aliases: "agent", description: "Agent resources" },
@@ -118,8 +122,11 @@ export async function runCommand(args: string[]): Promise<void> {
     args[0],
     "Usage: officeos run <agent> --task <text>",
   );
-  const task = readOption(args, "--task");
-  if (!task) throw new Error("Missing task. Use `--task <text>`.");
+  const task = readRequiredTextOption(
+    args,
+    ["--task"],
+    "Missing task. Use `--task <text>`.",
+  );
   rejectRemovedRunOptions(args);
   const result = await sendAgentMessage(
     context.apiUrl,
@@ -127,6 +134,32 @@ export async function runCommand(args: string[]): Promise<void> {
     agent,
     task,
   );
+  printAgentWork(result);
+}
+
+export async function sendCommand(args: string[]): Promise<void> {
+  const context = await requireContext();
+  const agent = requireArg(
+    args[0],
+    "Usage: officeos send <agent> --message <text>",
+  );
+  const message = readRequiredTextOption(
+    args,
+    ["--message", "-m"],
+    "Missing message. Use `--message <text>`.",
+  );
+  const result = await sendAgentMessage(
+    context.apiUrl,
+    context.token,
+    agent,
+    message,
+  );
+  printAgentWork(result);
+}
+
+function printAgentWork(
+  result: Awaited<ReturnType<typeof sendAgentMessage>>,
+): void {
   print(`agent/${result.agentName}\twork/${result.workLogId}\t${result.status}`);
 }
 
@@ -153,6 +186,70 @@ export async function providersCommand(args: string[] = []): Promise<void> {
   const context = await requireContext();
   const providers = await listProviders(context.apiUrl, context.token);
   printFormatted(providers, readOutput(args));
+}
+
+export async function providerCommand(args: string[]): Promise<void> {
+  const sub = requireArg(args[0], "Usage: officeos provider auth codex");
+  switch (sub) {
+    case "auth":
+      await providerAuthCommand(args.slice(1));
+      break;
+    default:
+      throw new Error(`Unknown provider command '${sub}'.`);
+  }
+}
+
+async function providerAuthCommand(args: string[]): Promise<void> {
+  const provider = requireArg(args[0], "Usage: officeos provider auth codex");
+  if (provider !== "codex") {
+    throw new Error(`Unsupported provider auth target '${provider}'.`);
+  }
+
+  const context = await requireContext();
+  const oauth = codexOAuthOptions(args);
+  const codeVerifier = base64Url(randomBytes(32));
+  const codeChallenge = base64Url(createHash("sha256").update(codeVerifier).digest());
+  const state = base64Url(randomBytes(24));
+  const redirectUri = new URL(oauth.redirectUri);
+  const callback = waitForOAuthCallback(redirectUri, state);
+
+  const authUrl = new URL(oauth.authorizationUrl);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("client_id", oauth.clientId);
+  authUrl.searchParams.set("redirect_uri", oauth.redirectUri);
+  authUrl.searchParams.set("code_challenge", codeChallenge);
+  authUrl.searchParams.set("code_challenge_method", "S256");
+  authUrl.searchParams.set("state", state);
+  if (oauth.scope) authUrl.searchParams.set("scope", oauth.scope);
+
+  print(`Open this URL to authenticate Codex: ${authUrl.toString()}`);
+  if (!args.includes("--no-browser")) {
+    await openBrowser(authUrl.toString()).catch(() => undefined);
+  }
+
+  try {
+    const code = await callback.code;
+    const token = await exchangeCodexCode(oauth, code, codeVerifier);
+    const idClaims = token.id_token ? decodeJwtPayload(token.id_token) : {};
+    const authClaims = objectValue(idClaims["https://api.openai.com/auth"]);
+    const accountId = stringValue(authClaims?.chatgpt_account_id)
+      ?? stringValue(authClaims?.account_id)
+      ?? stringValue(idClaims.account_id);
+    const accountEmail = stringValue(idClaims.email);
+    const result = await authenticateCodexProvider(context.apiUrl, context.token, {
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token,
+      expiresAt: token.expires_in ? new Date(Date.now() + token.expires_in * 1000).toISOString() : undefined,
+      accountEmail,
+      accountId,
+      clientId: oauth.clientId,
+      tokenUrl: oauth.tokenUrl,
+      scopes: oauth.scope ? oauth.scope.split(/\s+/).filter(Boolean) : undefined,
+    });
+    printFormatted(result, readOutput(args));
+  } finally {
+    await callback.close();
+  }
 }
 
 export async function configCommand(args: string[]): Promise<void> {
@@ -264,6 +361,144 @@ function readLogsTarget(args: string[]): {
   return { kind, name, options };
 }
 
+interface CodexOAuthOptions {
+  authorizationUrl: string;
+  tokenUrl: string;
+  clientId: string;
+  redirectUri: string;
+  scope: string;
+}
+
+interface CodexTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  id_token?: string;
+  expires_in?: number;
+}
+
+function codexOAuthOptions(args: string[]): CodexOAuthOptions {
+  return {
+    authorizationUrl: readOption(args, "--auth-url")
+      ?? process.env.CODEX_OAUTH_AUTHORIZATION_URL
+      ?? "https://auth.openai.com/oauth/authorize",
+    tokenUrl: readOption(args, "--token-url")
+      ?? process.env.CODEX_OAUTH_TOKEN_URL
+      ?? "https://auth.openai.com/oauth/token",
+    clientId: readOption(args, "--client-id")
+      ?? process.env.CODEX_OAUTH_CLIENT_ID
+      ?? "app_EMoamEEZ73f0CkXaXp7hrann",
+    redirectUri: readOption(args, "--redirect-uri")
+      ?? process.env.CODEX_OAUTH_REDIRECT_URI
+      ?? "http://localhost:1455/auth/callback",
+    scope: readOption(args, "--scope")
+      ?? process.env.CODEX_OAUTH_SCOPE
+      ?? "openid profile email offline_access",
+  };
+}
+
+function waitForOAuthCallback(redirectUri: URL, expectedState: string): {
+  code: Promise<string>;
+  close: () => Promise<void>;
+} {
+  let server: Server | undefined;
+  const code = new Promise<string>((resolve, reject) => {
+    server = createServer((req, res) => {
+      const requestUrl = new URL(req.url ?? "/", redirectUri.origin);
+      if (requestUrl.pathname !== redirectUri.pathname) {
+        res.writeHead(404).end("Not found");
+        return;
+      }
+
+      const error = requestUrl.searchParams.get("error");
+      const state = requestUrl.searchParams.get("state");
+      const authCode = requestUrl.searchParams.get("code");
+      if (error) {
+        res.writeHead(400).end("Codex authentication failed. Return to the terminal.");
+        reject(new Error(`Codex authentication failed: ${error}`));
+        return;
+      }
+      if (state !== expectedState) {
+        res.writeHead(400).end("Invalid OAuth state. Return to the terminal.");
+        reject(new Error("Invalid OAuth state."));
+        return;
+      }
+      if (!authCode) {
+        res.writeHead(400).end("Missing authorization code. Return to the terminal.");
+        reject(new Error("Missing authorization code."));
+        return;
+      }
+
+      res.writeHead(200, { "content-type": "text/plain" }).end("Codex authenticated. You can close this tab.");
+      resolve(authCode);
+    });
+
+    const port = Number(redirectUri.port);
+    if (!Number.isInteger(port) || port <= 0) {
+      reject(new Error("Codex redirect URI must include a fixed localhost port."));
+      return;
+    }
+    server.once("error", (error) => reject(error));
+    server.listen(port, redirectUri.hostname);
+  });
+
+  return {
+    code,
+    close: () => new Promise((resolve) => server?.close(() => resolve()) ?? resolve()),
+  };
+}
+
+async function exchangeCodexCode(options: CodexOAuthOptions, code: string, codeVerifier: string): Promise<CodexTokenResponse> {
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: options.redirectUri,
+    code_verifier: codeVerifier,
+    client_id: options.clientId,
+  });
+  const response = await fetch(options.tokenUrl, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  if (!response.ok) {
+    throw new Error(`Codex token exchange failed: ${response.status} ${response.statusText}`);
+  }
+
+  const token = (await response.json()) as Partial<CodexTokenResponse>;
+  if (!token.access_token || !token.refresh_token) {
+    throw new Error("Codex token exchange did not return access and refresh tokens.");
+  }
+  return token as CodexTokenResponse;
+}
+
+function decodeJwtPayload(jwt: string): Record<string, unknown> {
+  const [, payload] = jwt.split(".");
+  if (!payload) return {};
+  try {
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function objectValue(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function base64Url(bytes: Uint8Array): string {
+  return Buffer.from(bytes)
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
 function rejectRemovedRunOptions(args: string[]): void {
   for (const option of ["--engine", "--wait"]) {
     if (args.includes(option)) {
@@ -340,6 +575,17 @@ function isNotFoundError(error: unknown): boolean {
 function readOption(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
+}
+
+function readRequiredTextOption(
+  args: string[],
+  names: readonly string[],
+  missingMessage: string,
+): string {
+  const value = names.map((name) => readOption(args, name)).find(Boolean);
+  const trimmed = value?.trim();
+  if (!trimmed) throw new Error(missingMessage);
+  return trimmed;
 }
 
 function readResourceTarget(args: string[]): string | undefined {

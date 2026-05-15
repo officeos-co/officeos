@@ -155,9 +155,12 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
       label,
       vscode.TreeItemCollapsibleState.Collapsed,
     );
-    item.contextValue = canDeleteResource(node)
-      ? "officeosDeletableResource"
-      : "officeosResource";
+    item.contextValue =
+      node.kind === "agents"
+        ? "officeosAgentResource"
+        : canDeleteResource(node)
+          ? "officeosDeletableResource"
+          : "officeosResource";
     item.iconPath = stateIconPath(this.extensionPath, resourceState(node.value));
     item.description = resourceDescription(node.value);
     item.tooltip = resourceTooltip(node, label);

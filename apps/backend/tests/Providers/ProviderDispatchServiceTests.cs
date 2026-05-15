@@ -57,6 +57,34 @@ public sealed class ProviderDispatchServiceTests
         Assert.Equal("local-key", request.Headers.Authorization?.Parameter);
     }
 
+    [Fact]
+    public async Task Dispatch_routes_codex_provider_with_chatgpt_oauth_headers()
+    {
+        var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
+        var service = new ProviderDispatchService(
+            new StaticProviderService(new ProviderAuthResult(
+                ProviderAuthKind.CodexChatGptOAuth,
+                new Dictionary<string, string>
+                {
+                    ["accessToken"] = "codex-token",
+                    ["accountId"] = "account-1",
+                })),
+            new LlmProviderDispatcher(
+                new FakeHttpClientFactory(handler),
+                NullLogger<LlmProviderDispatcher>.Instance),
+            new FakeAgentLogService());
+        using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
+
+        var result = await service.DispatchAsync("codex", null, "gpt-5.3-codex", document.RootElement);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("https://chatgpt.com/backend-api/codex/chat/completions", request.RequestUri?.ToString());
+        Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
+        Assert.Equal("codex-token", request.Headers.Authorization?.Parameter);
+        Assert.Equal("account-1", request.Headers.GetValues("ChatGPT-Account-Id").Single());
+    }
+
     private sealed class StaticProviderService : IProviderService
     {
         private readonly ProviderAuthResult _providerAuthResult;
@@ -80,6 +108,9 @@ public sealed class ProviderDispatchServiceTests
 
         public Task<bool> IsModelAllowedAsync(string provider, string? model, Guid? workspaceId, CancellationToken ct = default) =>
             Task.FromResult(true);
+
+        public Task<ProviderResourceAuthResult> AuthenticateCodexAsync(Guid workspaceId, CodexProviderAuthRequest request, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
 }
