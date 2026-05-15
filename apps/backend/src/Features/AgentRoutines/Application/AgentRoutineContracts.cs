@@ -15,6 +15,7 @@ public interface IAgentRoutineExecutionService
     Task<AgentRoutineExecutionResult> RunDueSchedulesAsync(DateTime now, CancellationToken ct = default);
     Task<AgentRoutineExecutionResult> ExecuteApiTriggerAsync(Guid triggerId, string secret, string? payloadJson, CancellationToken ct = default);
     Task<AgentRoutineExecutionResult> ExecuteGitHubWebhookAsync(GitHubRoutineWebhookRequest request, CancellationToken ct = default);
+    Task<AgentRoutineExecutionResult> ExecuteGitHubPollTriggerAsync(Guid triggerId, string payloadJson, CancellationToken ct = default);
 }
 
 public sealed record CreateAgentRoutineRequest(
@@ -34,10 +35,11 @@ public sealed record CreateApiRoutineTriggerRequest(
 
 public sealed record CreateGitHubRoutineTriggerRequest(
     string Name,
-    string Owner,
     string Repo,
     IReadOnlyList<string> Events,
-    string Secret);
+    string? Secret,
+    string? Mode = null,
+    int? PollIntervalSeconds = null);
 
 public sealed record AgentRoutineCreateResult(
     AgentRoutineRecord Routine,

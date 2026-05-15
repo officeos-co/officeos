@@ -50,10 +50,11 @@ public sealed record AgentRoutineApiTriggerConfig(
 
 public sealed record AgentRoutineGitHubTriggerConfig(
     string Name,
-    string Owner,
     string Repo,
     IReadOnlyList<string> Events,
-    string Secret);
+    string? Secret,
+    string? Mode,
+    int? PollIntervalSeconds);
 
 public static class AgentToolsetKinds
 {

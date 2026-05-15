@@ -268,7 +268,8 @@ internal sealed record DeclarativeApiTriggerItem(string Name);
 
 internal sealed record DeclarativeGitHubTriggerItem(
     string Name,
-    string Owner,
     string Repo,
     IReadOnlyList<string>? Events,
-    string Secret);
+    string? Secret,
+    string? Mode,
+    int? PollIntervalSeconds);

@@ -9,6 +9,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAgentRoutineService, AgentRoutineService>();
         services.AddScoped<AgentRoutineExecutionService>();
         services.AddScoped<IAgentRoutineExecutionService>(provider => provider.GetRequiredService<AgentRoutineExecutionService>());
+        services.AddScoped<AgentRoutineGitHubPollerService.AgentRoutineGitHubPollingService>();
         services.AddScoped<IAgentSessionService, AgentSessionService>();
         services.AddScoped<IAgentResourceService, AgentResourceService>();
         services.AddScoped<ProviderService>();
@@ -46,6 +47,7 @@ public static class ApplicationServiceCollectionExtensions
 
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();
+        services.AddHostedService<AgentRoutineGitHubPollerService>();
         services.AddHostedService<AgentRuntimeCleanupService>();
 
         return services;

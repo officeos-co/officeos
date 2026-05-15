@@ -25,6 +25,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
     public DbSet<AgentRoutineEntity> AgentRoutines => Set<AgentRoutineEntity>();
     public DbSet<AgentRoutineTriggerEntity> AgentRoutineTriggers => Set<AgentRoutineTriggerEntity>();
+    public DbSet<AgentRoutinePollCursorEntity> AgentRoutinePollCursors => Set<AgentRoutinePollCursorEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
     public DbSet<BrowserResourceEntity> BrowserResources => Set<BrowserResourceEntity>();
@@ -247,6 +248,17 @@ public sealed class EaosDbContext : DbContext
             e.Property(t => t.EncryptedSecret).HasColumnType("text");
             e.HasOne(t => t.Routine).WithMany(r => r.Triggers)
                 .HasForeignKey(t => t.RoutineId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentRoutinePollCursorEntity>(e =>
+        {
+            e.ToTable("AgentRoutinePollCursors");
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => new { c.TriggerId, c.Event }).IsUnique();
+            e.Property(c => c.Event).IsRequired().HasMaxLength(128);
+            e.HasOne(c => c.Trigger).WithMany()
+                .HasForeignKey(c => c.TriggerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

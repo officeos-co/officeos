@@ -100,7 +100,8 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
             foreach (var trigger in routine.Triggers.Where(trigger => trigger.Enabled && trigger.Kind == AgentRoutineTriggerKinds.GitHub))
             {
                 var config = DeserializeGitHubConfig(trigger.ConfigJson);
-                if (!config.Owner.Equals(parts[0], StringComparison.OrdinalIgnoreCase)
+                if (!config.Mode.Equals(GitHubRoutineTriggerModes.Webhook, StringComparison.OrdinalIgnoreCase)
+                    || !config.Owner.Equals(parts[0], StringComparison.OrdinalIgnoreCase)
                     || !config.Repo.Equals(parts[1], StringComparison.OrdinalIgnoreCase)
                     || !config.Events.Any(item => item.Equals(request.Event, StringComparison.OrdinalIgnoreCase)))
                     continue;
@@ -119,6 +120,22 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
         }
 
         return new AgentRoutineExecutionResult(fired.Count, fired);
+    }
+
+    public async Task<AgentRoutineExecutionResult> ExecuteGitHubPollTriggerAsync(Guid triggerId, string payloadJson, CancellationToken ct = default)
+    {
+        var trigger = await _agentRoutineRepository.GetTriggerByAsync(triggerId, ct);
+        if (trigger is null || trigger.Kind != AgentRoutineTriggerKinds.GitHub || !trigger.Enabled)
+            return new AgentRoutineExecutionResult(0, []);
+
+        var routine = await _agentRoutineRepository.GetByAsync(new AgentRoutineFilter { Id = trigger.RoutineId, Enabled = true }, ct);
+        if (routine is null)
+            return new AgentRoutineExecutionResult(0, []);
+
+        var currentTrigger = routine.Triggers.First(item => item.Id == trigger.Id);
+        await ExecuteAsync(routine, currentTrigger, DateTime.UtcNow, payloadJson, ct);
+        await _agentRoutineRepository.UpsertAsync(routine, ct);
+        return new AgentRoutineExecutionResult(1, [routine.Id]);
     }
 
     private async Task ExecuteAsync(AgentRoutineRecord routine, AgentRoutineTriggerRecord trigger, DateTime now, string? payloadJson, CancellationToken ct)
@@ -175,7 +192,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
     private static GitHubRoutineTriggerConfig DeserializeGitHubConfig(string configJson)
     {
         return JsonSerializer.Deserialize<GitHubRoutineTriggerConfig>(configJson)
-            ?? new GitHubRoutineTriggerConfig(string.Empty, string.Empty, []);
+            ?? new GitHubRoutineTriggerConfig();
     }
 
     private string? UnprotectSecret(string? encryptedSecret)

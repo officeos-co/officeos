@@ -626,7 +626,13 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                 spec.Prompt,
                 spec.ScheduleTriggers?.Select(trigger => new CreateScheduleRoutineTriggerRequest(trigger.Name, trigger.Expression)).ToList() ?? [],
                 spec.ApiTriggers?.Select(trigger => new CreateApiRoutineTriggerRequest(trigger.Name)).ToList() ?? [],
-                spec.GitHubTriggers?.Select(trigger => new CreateGitHubRoutineTriggerRequest(trigger.Name, trigger.Owner, trigger.Repo, trigger.Events ?? [], trigger.Secret)).ToList() ?? []),
+                spec.GitHubTriggers?.Select(trigger => new CreateGitHubRoutineTriggerRequest(
+                    trigger.Name,
+                    trigger.Repo,
+                    trigger.Events ?? [],
+                    trigger.Secret,
+                    trigger.Mode,
+                    trigger.PollIntervalSeconds)).ToList() ?? []),
             ownerId,
             workspaceId,
             ct);

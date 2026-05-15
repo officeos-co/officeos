@@ -109,6 +109,8 @@ Database/
   20260515122353_RemoveAgentRuns.cs
   20260515122353_RemoveAgentRuns.Designer.cs
   20260515153000_AddProviderResourceStatus.cs
+  20260515164039_AddAgentRoutinePollCursors.cs
+  20260515164039_AddAgentRoutinePollCursors.Designer.cs
   EaosDbContextModelSnapshot.cs
  Models/
   AgentChannelBindingEntity.cs
@@ -119,6 +121,7 @@ Database/
   AgentPersonalityEntity.cs
   AgentRateLimitEntity.cs
   AgentRoutineEntity.cs
+  AgentRoutinePollCursorEntity.cs
   AgentRoutineTriggerEntity.cs
   AgentSessionContextEntity.cs
   AgentSessionEntity.cs
@@ -253,6 +256,7 @@ Features/AgentRoutines/Api/
 Features/AgentRoutines/Application/
  AgentRoutineContracts.cs
  AgentRoutineExecutionService.cs
+ AgentRoutineGitHubPollerService.cs
  AgentRoutineSchedulerService.cs
  AgentRoutineService.cs
 Features/AgentRoutines/Domain/

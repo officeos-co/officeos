@@ -57,6 +57,24 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
         return entities.Select(ToAgentRoutineRecord).ToList();
     }
 
+    public async Task<IReadOnlyList<AgentRoutineExecutionRecord>> ListAllEnabledForExecutionAsync(CancellationToken ct = default)
+    {
+        var rows = await _eaosDbContext.AgentRoutines
+            .AsNoTracking()
+            .Include(routine => routine.Triggers)
+            .Join(
+                _eaosDbContext.Agents.AsNoTracking(),
+                routine => routine.AgentId,
+                agent => agent.Id,
+                (routine, agent) => new { routine, agent })
+            .Where(row => row.routine.Enabled && !row.agent.IsDeleted && row.agent.OwnerId.HasValue && row.agent.WorkspaceId.HasValue)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(row => new AgentRoutineExecutionRecord(ToAgentRoutineRecord(row.routine), row.agent.OwnerId!.Value, row.agent.WorkspaceId!.Value))
+            .ToList();
+    }
+
     public async Task<AgentRoutineRecord?> GetByAsync(AgentRoutineFilter filter, CancellationToken ct = default)
     {
         var entity = await ApplyFilter(_eaosDbContext.AgentRoutines.AsNoTracking(), filter)
@@ -118,6 +136,47 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
 
         await _eaosDbContext.SaveChangesAsync(ct);
         return ToAgentRoutineRecord(entity);
+    }
+
+    public async Task<AgentRoutinePollCursorRecord?> GetPollCursorAsync(Guid triggerId, string @event, CancellationToken ct = default)
+    {
+        var normalizedEvent = NormalizeEvent(@event);
+        var entity = await _eaosDbContext.AgentRoutinePollCursors
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cursor => cursor.TriggerId == triggerId && cursor.Event == normalizedEvent, ct);
+
+        return entity is null ? null : ToPollCursorRecord(entity);
+    }
+
+    public async Task<AgentRoutinePollCursorRecord> UpsertPollCursorAsync(AgentRoutinePollCursorRecord record, CancellationToken ct = default)
+    {
+        var normalizedEvent = NormalizeEvent(record.Event);
+        var entity = await _eaosDbContext.AgentRoutinePollCursors
+            .FirstOrDefaultAsync(cursor => cursor.TriggerId == record.TriggerId && cursor.Event == normalizedEvent, ct);
+
+        if (entity is null)
+        {
+            entity = new AgentRoutinePollCursorEntity
+            {
+                Id = record.Id,
+                TriggerId = record.TriggerId,
+                Event = normalizedEvent,
+                CursorAt = record.CursorAt,
+                LastPolledAt = record.LastPolledAt,
+                CreatedAt = record.CreatedAt,
+                UpdatedAt = record.UpdatedAt,
+            };
+            _eaosDbContext.AgentRoutinePollCursors.Add(entity);
+        }
+        else
+        {
+            entity.CursorAt = record.CursorAt;
+            entity.LastPolledAt = record.LastPolledAt;
+            entity.UpdatedAt = record.UpdatedAt;
+        }
+
+        await _eaosDbContext.SaveChangesAsync(ct);
+        return ToPollCursorRecord(entity);
     }
 
     public async Task SetEnabledAsync(Guid id, bool enabled, CancellationToken ct = default)
@@ -183,6 +242,17 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
         CreatedAt = entity.CreatedAt,
     };
 
+    private static AgentRoutinePollCursorRecord ToPollCursorRecord(AgentRoutinePollCursorEntity entity) => new()
+    {
+        Id = entity.Id,
+        TriggerId = entity.TriggerId,
+        Event = entity.Event,
+        CursorAt = entity.CursorAt,
+        LastPolledAt = entity.LastPolledAt,
+        CreatedAt = entity.CreatedAt,
+        UpdatedAt = entity.UpdatedAt,
+    };
+
     private static AgentRoutineEntity ToAgentRoutineEntity(AgentRoutineRecord record) => new()
     {
         Id = record.Id,
@@ -242,4 +312,6 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
         entity.LastTriggeredAt = record.LastTriggeredAt;
         entity.NextRunAt = record.NextRunAt;
     }
+
+    private static string NormalizeEvent(string @event) => @event.Trim().ToLowerInvariant();
 }

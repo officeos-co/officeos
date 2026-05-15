@@ -50,13 +50,20 @@ internal sealed class AgentRoutineService : IAgentRoutineService
             if (trigger.Events.Count == 0)
                 throw new InvalidOperationException("GitHub routine triggers require at least one event.");
 
-            var encryptedSecret = _credentialProtector.Protect(new Dictionary<string, string> { ["secret"] = trigger.Secret });
+            var mode = GitHubRoutineTriggerModes.Normalize(trigger.Mode);
+            if (mode == GitHubRoutineTriggerModes.Webhook && string.IsNullOrWhiteSpace(trigger.Secret))
+                throw new InvalidOperationException("GitHub webhook routine triggers require a secret.");
+
+            var encryptedSecret = string.IsNullOrWhiteSpace(trigger.Secret)
+                ? null
+                : _credentialProtector.Protect(new Dictionary<string, string> { ["secret"] = trigger.Secret });
             routine.Triggers.Add(AgentRoutineTriggerRecord.CreateGitHub(
                 routine.Id,
                 trigger.Name,
-                trigger.Owner,
                 trigger.Repo,
                 trigger.Events,
+                mode,
+                TimeSpan.FromSeconds(trigger.PollIntervalSeconds ?? 60),
                 encryptedSecret));
         }
 

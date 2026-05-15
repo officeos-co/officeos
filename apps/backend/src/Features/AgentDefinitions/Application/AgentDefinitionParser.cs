@@ -186,10 +186,11 @@ internal sealed class AgentDefinitionParser
                 (routine.GitHubTriggers ?? [])
                     .Select(trigger => new AgentRoutineGitHubTriggerConfig(
                         RequireTrimmed(trigger.Name, "GitHub routine trigger name is required."),
-                        RequireTrimmed(trigger.Owner, "GitHub routine trigger owner is required."),
-                        RequireTrimmed(trigger.Repo, "GitHub routine trigger repo is required."),
+                        GitHubRepositoryRecord.Parse(RequireTrimmed(trigger.Repo, "GitHub routine trigger repo is required.")).Url,
                         (trigger.Events ?? []).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
-                        RequireTrimmed(trigger.Secret, "GitHub routine trigger secret is required.")))
+                        string.IsNullOrWhiteSpace(trigger.Secret) ? null : trigger.Secret.Trim(),
+                        GitHubRoutineTriggerModes.Normalize(trigger.Mode),
+                        trigger.PollIntervalSeconds))
                     .ToList()))
             .ToList();
 
@@ -367,10 +368,11 @@ internal sealed class AgentDefinitionParser
                 ["github_triggers"] = routine.GitHubTriggers?.Select(trigger => new Dictionary<string, object?>
                 {
                     ["name"] = trigger.Name,
-                    ["owner"] = trigger.Owner,
                     ["repo"] = trigger.Repo,
                     ["events"] = trigger.Events,
                     ["secret"] = trigger.Secret,
+                    ["mode"] = trigger.Mode,
+                    ["poll_interval_seconds"] = trigger.PollIntervalSeconds,
                 }).ToList(),
             }).ToList(),
             ["metadata"] = config.Metadata is null ? null : JsonElementToObject(config.Metadata.Value),

@@ -176,10 +176,11 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
                         routine.ApiTriggers?.Select(trigger => new CreateApiRoutineTriggerRequest(trigger.Name)).ToList() ?? [],
                         routine.GitHubTriggers?.Select(trigger => new CreateGitHubRoutineTriggerRequest(
                             trigger.Name,
-                            trigger.Owner,
                             trigger.Repo,
                             trigger.Events,
-                            trigger.Secret)).ToList() ?? []),
+                            trigger.Secret,
+                            trigger.Mode,
+                            trigger.PollIntervalSeconds)).ToList() ?? []),
                     ownerId,
                     workspaceId,
                     ct);
