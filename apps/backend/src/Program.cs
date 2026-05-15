@@ -130,6 +130,9 @@ builder.Services
 // DI — each layer registers its own services
 var connectionString = Require("ConnectionString", "CONNECTION_STRING");
 builder.Services.AddInfrastructure(connectionString);
+var agentHarnessToolPermissionConfig = new AgentHarnessToolPermissionConfig();
+builder.Configuration.GetSection("AgentHarness:ToolPermissions").Bind(agentHarnessToolPermissionConfig);
+builder.Services.AddSingleton(agentHarnessToolPermissionConfig);
 builder.Services.AddApplication();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     typeof(OffceOs.Extensions.ApplicationServiceCollectionExtensions).Assembly,

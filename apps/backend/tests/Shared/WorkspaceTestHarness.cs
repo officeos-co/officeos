@@ -1,4 +1,5 @@
 using OffceOs.Application.Features.AgentDefinitions;
+using OffceOs.Application.Features.AgentHarness;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Application.Features.Browser;
 using OffceOs.Application.Features.AgentRoutines;

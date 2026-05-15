@@ -27,6 +27,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<LlmTurnExecutor>();
         services.AddScoped<ToolRegistryFactory>();
         services.AddScoped<ToolExecutionLoop>();
+        services.AddScoped<AgentHarnessToolPermissionPolicy>();
         services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();
         services.AddScoped<IBrowserToolService, BrowserToolService>();
         services.AddScoped<IAgentToolCatalogService, AgentToolCatalogService>();
