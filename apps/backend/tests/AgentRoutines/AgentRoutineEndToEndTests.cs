@@ -236,6 +236,18 @@ public sealed class AgentRoutineEndToEndTests
 
         public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default) =>
             Task.FromResult(record);
+
+        public Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default) =>
+            Task.FromResult(AgentLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId));
+
+        public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
+            Task.FromResult<AgentLogRecord?>(null);
+
+        public Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
+        public Task FailWorkAsync(Guid workLogId, string error, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 
     private sealed class RecordingAgentService : IAgentService

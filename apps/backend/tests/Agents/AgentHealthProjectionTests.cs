@@ -1,6 +1,7 @@
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Observability;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -77,7 +78,7 @@ public sealed class AgentHealthProjectionTests
         ActiveDefinitionId = definitionId,
     };
 
-    private static AgentRunRecord Bootstrap(
+    private static AgentLogRecord Bootstrap(
         AgentRecord agent,
         Guid definitionId,
         string status,
@@ -87,13 +88,13 @@ public sealed class AgentHealthProjectionTests
         Id = Guid.NewGuid(),
         AgentId = agent.Id,
         DefinitionId = definitionId,
-        Purpose = AgentWorkPurposeKinds.Bootstrap,
-        Kind = "opencode",
-        Status = status,
-        Prompt = "Bootstrap",
-        Error = error,
-        CreatedAt = createdAt ?? DateTime.UtcNow,
-        UpdatedAt = createdAt ?? DateTime.UtcNow,
+        Type = AgentLogType.MessageIn,
+        WorkPurpose = AgentWorkPurposeKinds.Bootstrap,
+        WorkStatus = status,
+        Content = "Bootstrap",
+        WorkError = error,
+        Time = createdAt ?? DateTime.UtcNow,
+        StartedAt = createdAt ?? DateTime.UtcNow,
         CompletedAt = status == "completed" || status == "failed" ? createdAt ?? DateTime.UtcNow : null,
     };
 }

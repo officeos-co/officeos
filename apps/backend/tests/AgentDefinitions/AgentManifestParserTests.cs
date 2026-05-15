@@ -103,6 +103,7 @@ public sealed class AgentManifestParserTests
             null!,
             null!,
             null!,
+            null!,
             new DeclarativeManifestParser(),
             null!);
 
@@ -136,6 +137,7 @@ public sealed class AgentManifestParserTests
             null!,
             null!,
             new ExistingChannelRepository(),
+            null!,
             null!,
             null!,
             null!,
@@ -236,6 +238,7 @@ public sealed class AgentManifestParserTests
         null!,
         null!,
         null!,
+            null!,
         null!,
         new DeclarativeManifestParser(),
         null!);

@@ -8,24 +8,18 @@ using Xunit;
 
 namespace OffceOs.Tests.Agents;
 
-public sealed class OpenCodeRunServiceTests
+public sealed class OpenCodeAgentWorkServiceTests
 {
     [Fact]
-    public async Task ExecuteQueuedRunAsync_invokes_opencode_with_prompt_and_working_directory()
+    public async Task ExecuteQueuedWorkAsync_invokes_opencode_with_prompt_and_working_directory()
     {
         var agentId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
-        var run = new AgentRunRecord
-        {
-            Id = Guid.NewGuid(),
-            AgentId = agentId,
-            WorkspaceId = workspaceId,
-            Kind = "opencode",
-            Status = "queued",
-            Prompt = "Answer this bootstrap message.",
-        };
+        var work = Work(agentId, workspaceId, "Answer this bootstrap message.");
+        var logs = new FakeAgentLogService();
+        await logs.AppendAsync(work);
         var process = new RecordingOpenCodeProcessService();
-        var service = new OpenCodeRunService(
+        var service = new OpenCodeAgentWorkService(
             new FakeAgentRepository(new AgentRecord
             {
                 Id = agentId,
@@ -35,12 +29,11 @@ public sealed class OpenCodeRunServiceTests
                 Model = "gpt-4o-mini",
                 Status = AgentStatus.Idle,
             }),
-            new RecordingRunRepository(run),
-            new FakeAgentLogService(),
+            logs,
             process,
-            NullLogger<OpenCodeRunService>.Instance);
+            NullLogger<OpenCodeAgentWorkService>.Instance);
 
-        await service.ExecuteQueuedRunAsync(run);
+        await service.ExecuteQueuedWorkAsync(work);
 
         Assert.NotNull(process.Request);
         Assert.Equal("opencode", process.Request.FileName);
@@ -57,20 +50,13 @@ public sealed class OpenCodeRunServiceTests
     }
 
     [Fact]
-    public async Task ExecuteQueuedRunAsync_records_opencode_stdout_and_stderr_lines()
+    public async Task ExecuteQueuedWorkAsync_records_opencode_stdout_and_stderr_lines()
     {
         var agentId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
-        var run = new AgentRunRecord
-        {
-            Id = Guid.NewGuid(),
-            AgentId = agentId,
-            WorkspaceId = workspaceId,
-            Kind = "opencode",
-            Status = "queued",
-            Prompt = "Inspect repository.",
-        };
+        var work = Work(agentId, workspaceId, "Inspect repository.");
         var logs = new FakeAgentLogService();
+        await logs.AppendAsync(work);
         var process = new RecordingOpenCodeProcessService
         {
             StdoutLines =
@@ -83,7 +69,7 @@ public sealed class OpenCodeRunServiceTests
                 """DEBUG 2026-05-14T21:02:14 service=bus type=message.part.updated publishing""",
             ],
         };
-        var service = new OpenCodeRunService(
+        var service = new OpenCodeAgentWorkService(
             new FakeAgentRepository(new AgentRecord
             {
                 Id = agentId,
@@ -93,12 +79,11 @@ public sealed class OpenCodeRunServiceTests
                 Model = "gpt-4o-mini",
                 Status = AgentStatus.Idle,
             }),
-            new RecordingRunRepository(run),
             logs,
             process,
-            NullLogger<OpenCodeRunService>.Instance);
+            NullLogger<OpenCodeAgentWorkService>.Instance);
 
-        await service.ExecuteQueuedRunAsync(run);
+        await service.ExecuteQueuedWorkAsync(work);
 
         Assert.Contains(logs.Records, log => log.Type == AgentLogType.MessageOut && log.Content == "Done.");
         Assert.Contains(logs.Records, log => log.Type == AgentLogType.ToolResult && log.Tool == "bash" && log.Content == "/tmp");
@@ -106,24 +91,16 @@ public sealed class OpenCodeRunServiceTests
     }
 
     [Fact]
-    public async Task ExecuteQueuedRunAsync_sends_bootstrap_prompt_and_logs_it()
+    public async Task ExecuteQueuedWorkAsync_sends_bootstrap_prompt_and_logs_it()
     {
         var agentId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
         const string BootstrapPrompt = "Bootstrap this agent with the configured instructions.";
-        var run = new AgentRunRecord
-        {
-            Id = Guid.NewGuid(),
-            AgentId = agentId,
-            WorkspaceId = workspaceId,
-            Kind = "opencode",
-            Purpose = AgentWorkPurposeKinds.Bootstrap,
-            Status = "queued",
-            Prompt = BootstrapPrompt,
-        };
+        var work = Work(agentId, workspaceId, BootstrapPrompt, AgentWorkPurposeKinds.Bootstrap);
         var logs = new FakeAgentLogService();
+        await logs.AppendAsync(work);
         var process = new RecordingOpenCodeProcessService();
-        var service = new OpenCodeRunService(
+        var service = new OpenCodeAgentWorkService(
             new FakeAgentRepository(new AgentRecord
             {
                 Id = agentId,
@@ -133,20 +110,35 @@ public sealed class OpenCodeRunServiceTests
                 Model = "gpt-4o-mini",
                 Status = AgentStatus.Idle,
             }),
-            new RecordingRunRepository(run),
             logs,
             process,
-            NullLogger<OpenCodeRunService>.Instance);
+            NullLogger<OpenCodeAgentWorkService>.Instance);
 
-        await service.ExecuteQueuedRunAsync(run);
+        await service.ExecuteQueuedWorkAsync(work);
 
         Assert.NotNull(process.Request);
         Assert.Contains("run", process.Request.Arguments);
         Assert.Contains("--format", process.Request.Arguments);
         Assert.Equal(BootstrapPrompt, process.Request.Arguments[^1]);
-        Assert.Equal("completed", run.Status);
+        Assert.Contains(logs.Records, log => log.Id == work.Id && log.WorkStatus == AgentWorkStatusKinds.Completed);
         Assert.Contains(logs.Records, log => log.Type == AgentLogType.MessageIn && log.Content == $"Bootstrap prompt: {BootstrapPrompt}");
     }
+
+    private static AgentLogRecord Work(
+        Guid agentId,
+        Guid workspaceId,
+        string content,
+        string purpose = AgentWorkPurposeKinds.Manual) => new()
+    {
+        Id = Guid.NewGuid(),
+        AgentId = agentId,
+        WorkspaceId = workspaceId,
+        Type = AgentLogType.MessageIn,
+        WorkStatus = AgentWorkStatusKinds.Running,
+        WorkPurpose = purpose,
+        Content = content,
+        CorrelationId = Guid.NewGuid().ToString("N"),
+    };
 
     private sealed class RecordingOpenCodeProcessService : IOpenCodeProcessService
     {
@@ -169,28 +161,4 @@ public sealed class OpenCodeRunServiceTests
         }
     }
 
-    private sealed class RecordingRunRepository : IAgentRunRepository
-    {
-        private readonly AgentRunRecord _run;
-
-        public RecordingRunRepository(AgentRunRecord run) => _run = run;
-
-        public Task<AgentRunRecord> CreateAsync(AgentRunRecord run, CancellationToken ct = default) =>
-            Task.FromResult(run);
-
-        public Task<AgentRunRecord?> GetByAsync(AgentRunFilter filter, CancellationToken ct = default) =>
-            Task.FromResult<AgentRunRecord?>(_run);
-
-        public Task<IReadOnlyList<AgentRunRecord>> ListAsync(AgentRunFilter filter, int limit = 100, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<AgentRunRecord>>([_run]);
-
-        public Task<IReadOnlyList<AgentRunRecord>> ListForAgentAsync(Guid agentId, Guid? parentRunId = null, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<AgentRunRecord>>([_run]);
-
-        public Task UpdateAsync(AgentRunRecord run, CancellationToken ct = default) =>
-            Task.CompletedTask;
-
-        public Task<bool> DeleteAsync(AgentRunFilter filter, CancellationToken ct = default) =>
-            Task.FromResult(true);
-    }
 }
