@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>
 /// Parses streamed OpenAI-compatible server-sent events into assistant output and tool calls.

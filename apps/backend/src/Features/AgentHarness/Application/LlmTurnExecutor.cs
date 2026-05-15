@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>
 /// Executes one streamed LLM call inside an agent turn.

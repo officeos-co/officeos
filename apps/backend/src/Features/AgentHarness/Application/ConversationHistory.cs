@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>
 /// Manages conversation messages with token-based pruning.

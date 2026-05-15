@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>
 /// Detects repetitive tool call patterns to prevent infinite loops.

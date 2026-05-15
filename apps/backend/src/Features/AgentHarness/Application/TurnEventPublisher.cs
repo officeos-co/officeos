@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>
 /// Publishes typed events produced by the agent turn application flow.

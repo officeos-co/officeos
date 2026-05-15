@@ -1,4 +1,4 @@
-using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.AgentHarness;
 
 namespace OffceOs.Tests.Shared;
 

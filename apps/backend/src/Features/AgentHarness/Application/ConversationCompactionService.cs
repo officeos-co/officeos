@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Agents;
+namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed record ConversationContextWindow(string? Summary, IReadOnlyList<AgentLogRecord> Logs);
 

@@ -1,10 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
-using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.AgentHarness;
 using OffceOs.Tests.Shared;
 using Xunit;
 
-namespace OffceOs.Tests.Sandbox;
+namespace OffceOs.Tests.AgentHarness;
 
 public sealed class PodExecutorClientTests
 {
