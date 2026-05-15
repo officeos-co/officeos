@@ -240,6 +240,12 @@ public sealed class AgentRoutineEndToEndTests
         public Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default) =>
             Task.FromResult(AgentLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId));
 
+        public Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
+            Task.FromResult<AgentLogRecord?>(null);
+
+        public Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default) =>
+            Task.FromResult<AgentLogRecord?>(null);
+
         public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
             Task.FromResult<AgentLogRecord?>(null);
 

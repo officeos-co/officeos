@@ -13,6 +13,9 @@ public sealed class ResourceLogController : ControllerBase
         [FromQuery] DateTime? sinceTime,
         [FromQuery] string? type,
         [FromQuery] string? severity,
+        [FromQuery] string? correlationId,
+        [FromQuery] string? workStatus,
+        [FromQuery] string? purpose,
         [FromQuery] bool? follow,
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentLogService logs,
@@ -26,6 +29,9 @@ public sealed class ResourceLogController : ControllerBase
         if (type is not null && parsedType is null)
             return BadRequest(new { error = $"Log type '{type}' is not supported." });
 
+        if (follow == true)
+            return await StreamResourceLogs(kind, name, tail, since, sinceTime, parsedType, severity, correlationId, workStatus, purpose, scope.Value.WorkspaceId, logs, ct);
+
         var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
         var page = await logs.ListAsync(new AgentLogQueryRequest(
             WorkspaceId: scope.Value.WorkspaceId,
@@ -33,7 +39,10 @@ public sealed class ResourceLogController : ControllerBase
             ResourceName: name,
             ResourceId: resourceId,
             Type: parsedType,
+            WorkStatus: workStatus,
+            WorkPurpose: purpose,
             Severity: severity,
+            CorrelationId: correlationId,
             FromInclusive: sinceTime ?? ParseSince(since),
             Limit: tail ?? 100), ct);
 
@@ -42,6 +51,32 @@ public sealed class ResourceLogController : ControllerBase
             .ThenBy(item => item.Id)
             .Select(FormatResourceLogLine);
         return Content(string.Join('\n', lines), "text/plain; charset=utf-8");
+    }
+
+    [HttpGet("agents/{name}/logs/stream")]
+    [HttpGet("agent/{name}/logs/stream")]
+    public async Task<IActionResult> StreamAgentLogs(
+        string name,
+        [FromQuery] int? tail,
+        [FromQuery] string? since,
+        [FromQuery] DateTime? sinceTime,
+        [FromQuery] string? type,
+        [FromQuery] string? severity,
+        [FromQuery] string? correlationId,
+        [FromQuery] string? workStatus,
+        [FromQuery] string? purpose,
+        [FromServices] IWorkspaceService workspaces,
+        [FromServices] IAgentLogService logs,
+        CancellationToken ct)
+    {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
+
+        var parsedType = ParseLogType(type);
+        if (type is not null && parsedType is null)
+            return BadRequest(new { error = $"Log type '{type}' is not supported." });
+
+        return await StreamResourceLogs(ResourceLogKinds.Agent, name, tail, since, sinceTime, parsedType, severity, correlationId, workStatus, purpose, scope.Value.WorkspaceId, logs, ct);
     }
 
     private async Task<(Guid UserId, Guid WorkspaceId)?> RequireScopeAsync(IWorkspaceService workspaces, CancellationToken ct)
@@ -104,4 +139,95 @@ public sealed class ResourceLogController : ControllerBase
         var resource = log.ResourceName ?? log.ResourceId?.ToString("N") ?? "-";
         return $"{log.Time:O} {log.Severity} {log.ResourceKind}/{resource} {log.Type}: {log.Content}";
     }
+
+    private async Task<IActionResult> StreamResourceLogs(
+        string kind,
+        string name,
+        int? tail,
+        string? since,
+        DateTime? sinceTime,
+        AgentLogType? type,
+        string? severity,
+        string? correlationId,
+        string? workStatus,
+        string? purpose,
+        Guid workspaceId,
+        IAgentLogService logs,
+        CancellationToken ct)
+    {
+        Response.ContentType = "text/event-stream; charset=utf-8";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
+        var sent = new HashSet<Guid>();
+        var from = sinceTime ?? ParseSince(since);
+        var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
+
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var page = await logs.ListAsync(new AgentLogQueryRequest(
+                    WorkspaceId: workspaceId,
+                    ResourceKind: NormalizeResourceLogKind(kind),
+                    ResourceName: name,
+                    ResourceId: resourceId,
+                    Type: type,
+                    WorkStatus: workStatus,
+                    WorkPurpose: purpose,
+                    Severity: severity,
+                    CorrelationId: correlationId,
+                    FromInclusive: from,
+                    Limit: tail ?? 100,
+                    Sort: AgentLogSort.TimeAscending), ct);
+
+                foreach (var log in page.Items.OrderBy(item => item.Time).ThenBy(item => item.Id))
+                {
+                    if (!sent.Add(log.Id))
+                        continue;
+
+                    await Response.WriteAsync($"id: {log.Id:N}\n", ct);
+                    await Response.WriteAsync("event: log\n", ct);
+                    await Response.WriteAsync($"data: {JsonSerializer.Serialize(ToStreamPayload(log))}\n\n", ct);
+                    await Response.Body.FlushAsync(ct);
+                }
+
+                if (page.Items.Count > 0)
+                    from = page.Items.Max(item => item.Time);
+
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+
+        return new EmptyResult();
+    }
+
+    private static object ToStreamPayload(AgentLogRecord log) => new
+    {
+        log.Id,
+        log.AgentId,
+        log.WorkspaceId,
+        log.ResourceKind,
+        log.ResourceId,
+        log.ResourceName,
+        log.Type,
+        log.Severity,
+        log.Tool,
+        log.Integration,
+        log.Channel,
+        log.ChannelConnectionId,
+        log.Content,
+        log.MetadataJson,
+        log.CorrelationId,
+        log.WorkStatus,
+        log.WorkPurpose,
+        log.DefinitionId,
+        log.Time,
+        log.StartedAt,
+        log.CompletedAt,
+        log.WorkError,
+    };
 }

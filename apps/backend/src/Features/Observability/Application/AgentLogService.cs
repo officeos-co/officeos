@@ -60,6 +60,15 @@ internal sealed class AgentLogService : IAgentLogService
             DefinitionId = request.DefinitionId,
         }, ct);
 
+    public Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default)
+        => _agentLogRepository.GetByAsync(new AgentLogFilter { Id = logId }, ct);
+
+    public async Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default)
+    {
+        await _agentLogRepository.MarkWorkAsync(workLogId, AgentWorkStatusKinds.Running, null, ct);
+        return await GetAsync(workLogId, ct);
+    }
+
     public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
         => _agentLogRepository.ClaimNextQueuedWorkAsync(ct);
 
@@ -106,6 +115,7 @@ internal sealed class AgentLogService : IAgentLogService
         ResourceKind = string.IsNullOrWhiteSpace(request.ResourceKind) ? null : NormalizeResourceKind(request.ResourceKind),
         ResourceId = request.ResourceId,
         ResourceName = request.ResourceId.HasValue ? null : request.ResourceName,
+        CorrelationId = request.CorrelationId,
         Type = request.Type,
         Types = request.Types,
         WorkStatus = request.WorkStatus,

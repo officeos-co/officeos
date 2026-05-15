@@ -43,14 +43,14 @@ public sealed class AgentHealthProjectionTests
     {
         var definitionId = Guid.NewGuid();
         var agent = Agent(definitionId);
-        var run = Bootstrap(agent, definitionId, "failed", "OpenCode exited with 1.");
+        var run = Bootstrap(agent, definitionId, "failed", "Harness exited with 1.");
 
         var health = AgentHealthProjection.From(agent, [run]);
 
         Assert.Equal("Failed", health.Status);
         Assert.Equal("red", health.State);
         Assert.Equal("BootstrapFailed", health.Reason);
-        Assert.Contains("OpenCode exited with 1", health.Message);
+        Assert.Contains("Harness exited with 1", health.Message);
     }
 
     [Fact]

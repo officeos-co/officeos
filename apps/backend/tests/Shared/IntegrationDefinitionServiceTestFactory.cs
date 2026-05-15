@@ -2,6 +2,7 @@ using OffceOs.Application.Features.Integrations;
 using OffceOs.Configuration;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Integrations;
+using OffceOs.Domain.Features.Management;
 using OffceOs.Infrastructure.Common.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,6 +16,12 @@ internal static class IntegrationDefinitionServiceTestFactory
         FakeIntegrationDefinitionRepository? servers = null,
         FakeIntegrationCredentialRepository? credentials = null)
     {
+        var workspaceMemberRepository = new FakeWorkspaceMemberRepository();
+        workspaceMemberRepository
+            .UpsertAsync(WorkspaceMemberRecord.Create(TestIds.WorkspaceId, TestIds.OwnerId, WorkspaceRole.Owner))
+            .GetAwaiter()
+            .GetResult();
+
         return new IntegrationDefinitionService(
             agentServers ?? new FakeAgentIntegrationRepository(),
             new FakeAgentRepository(),
@@ -24,7 +31,7 @@ internal static class IntegrationDefinitionServiceTestFactory
             NullLogger<IntegrationDefinitionService>.Instance,
             new FakeIntegrationDeploymentRepository(),
             new FakeWorkspaceRepository(),
-            new FakeWorkspaceMemberRepository());
+            workspaceMemberRepository);
     }
 
     public static IntegrationDefinitionRecord CustomServer(

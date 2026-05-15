@@ -171,17 +171,37 @@ public sealed class FakeIntegrationCredentialEncryptionService : IIntegrationCre
 
 public sealed class FakeIntegrationDeploymentRepository : IIntegrationDeploymentRepository
 {
-    public Task<IReadOnlyList<IntegrationDeploymentRecord>> ListAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<IntegrationDeploymentRecord>>([]);
+    private readonly Dictionary<(Guid WorkspaceId, string IntegrationName), IntegrationDeploymentRecord> _deployments = new();
 
-    public Task<IntegrationDeploymentRecord?> GetByAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
-        Task.FromResult<IntegrationDeploymentRecord?>(null);
+    public Task<IReadOnlyList<IntegrationDeploymentRecord>> ListAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default)
+    {
+        var rows = _deployments.Values.AsEnumerable();
+        if (filter.Id.HasValue)
+            rows = rows.Where(deployment => deployment.Id == filter.Id.Value);
+        if (filter.WorkspaceId.HasValue)
+            rows = rows.Where(deployment => deployment.WorkspaceId == filter.WorkspaceId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.IntegrationName))
+            rows = rows.Where(deployment => string.Equals(deployment.IntegrationName, filter.IntegrationName, StringComparison.OrdinalIgnoreCase));
+        if (filter.Enabled.HasValue)
+            rows = rows.Where(deployment => deployment.Enabled == filter.Enabled.Value);
+        return Task.FromResult<IReadOnlyList<IntegrationDeploymentRecord>>(rows.ToList());
+    }
 
-    public Task<IntegrationDeploymentRecord> UpsertAsync(IntegrationDeploymentRecord record, CancellationToken ct = default) =>
-        Task.FromResult(record);
+    public async Task<IntegrationDeploymentRecord?> GetByAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
+        (await ListAsync(filter, ct)).FirstOrDefault();
 
-    public Task<bool> DeleteAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default) =>
-        Task.FromResult(false);
+    public Task<IntegrationDeploymentRecord> UpsertAsync(IntegrationDeploymentRecord record, CancellationToken ct = default)
+    {
+        _deployments[(record.WorkspaceId, record.IntegrationName)] = record;
+        return Task.FromResult(record);
+    }
+
+    public Task<bool> DeleteAsync(IntegrationDeploymentFilter filter, CancellationToken ct = default)
+    {
+        if (filter.WorkspaceId.HasValue && !string.IsNullOrWhiteSpace(filter.IntegrationName))
+            return Task.FromResult(_deployments.Remove((filter.WorkspaceId.Value, filter.IntegrationName)));
+        return Task.FromResult(false);
+    }
 }
 
 public sealed class FakeWorkspaceRepository : IWorkspaceRepository

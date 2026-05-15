@@ -241,6 +241,8 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         var normalized = AgentWorkStatusKinds.Normalize(status);
         work.WorkStatus = normalized;
         work.WorkError = string.IsNullOrWhiteSpace(error) ? null : error;
+        if (normalized == AgentWorkStatusKinds.Running)
+            work.StartedAt ??= DateTime.UtcNow;
         if (normalized is AgentWorkStatusKinds.Completed or AgentWorkStatusKinds.Failed or AgentWorkStatusKinds.Canceled)
             work.CompletedAt = DateTime.UtcNow;
 

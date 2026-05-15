@@ -6,6 +6,8 @@ public interface IAgentLogService
     Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesAsync(LastRelevantLogQueryRequest request, CancellationToken ct = default);
     Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default);
     Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default);
+    Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default);
+    Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default);
     Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default);
     Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default);
     Task FailWorkAsync(Guid workLogId, string error, CancellationToken ct = default);
@@ -19,6 +21,7 @@ public sealed record AgentLogQueryRequest(
     string? ResourceKind = null,
     string? ResourceName = null,
     Guid? ResourceId = null,
+    string? CorrelationId = null,
     AgentLogType? Type = null,
     IReadOnlyList<AgentLogType>? Types = null,
     string? WorkStatus = null,

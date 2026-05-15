@@ -4,15 +4,18 @@ internal sealed class QueueAgentWorkHandler : INotificationHandler<MessageReceiv
 {
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentLogService _agentLogService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<QueueAgentWorkHandler> _logger;
 
     public QueueAgentWorkHandler(
         IAgentRepository agentRepository,
         IAgentLogService agentLogService,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<QueueAgentWorkHandler> logger)
     {
         _agentRepository = agentRepository;
         _agentLogService = agentLogService;
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
     }
 
@@ -25,12 +28,17 @@ internal sealed class QueueAgentWorkHandler : INotificationHandler<MessageReceiv
             return;
         }
 
-        await _agentLogService.QueueWorkAsync(new QueueAgentWorkRequest(
+        var work = await _agentLogService.QueueWorkAsync(new QueueAgentWorkRequest(
             notification.AgentId,
             agent.WorkspaceId,
             notification.Content,
             notification.CorrelationId,
             AgentWorkPurposeKinds.Normalize(notification.Purpose),
             notification.DefinitionId), ct);
+
+        BackgroundWork.Run<IAgentHarnessService>(
+            _serviceScopeFactory,
+            harness => harness.RunWorkAsync(work.Id, CancellationToken.None),
+            _logger);
     }
 }

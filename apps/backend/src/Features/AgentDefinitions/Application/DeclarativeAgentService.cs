@@ -18,7 +18,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         DeclarativeResourceKindItem.Channel,
         DeclarativeResourceKindItem.MemoryStore,
         DeclarativeResourceKindItem.Browser,
-        DeclarativeResourceKindItem.Engine,
         DeclarativeResourceKindItem.Agent,
         DeclarativeResourceKindItem.Routine,
     ];
@@ -125,9 +124,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     break;
                 case DeclarativeResourceKindItem.Browser:
                     changes.Add(await ApplyBrowserAsync(resource, ownerId, workspaceId, ct));
-                    break;
-                case DeclarativeResourceKindItem.Engine:
-                    changes.Add(ApplyEngine(resource));
                     break;
                 case DeclarativeResourceKindItem.Agent:
                     var (agent, change) = await ApplyAgentAsync(resource, ownerId, workspaceId, ct);
@@ -345,11 +341,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             case DeclarativeResourceKindItem.Browser:
                 _ = Spec<DeclarativeBrowserSpecItem>(resource);
                 break;
-            case DeclarativeResourceKindItem.Engine:
-                var engine = Spec<DeclarativeEngineSpecItem>(resource);
-                if (!string.Equals(engine.Type, "opencode", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Only engine spec.type 'opencode' is supported in v1.");
-                break;
             case DeclarativeResourceKindItem.Agent:
                 var agent = Spec<DeclarativeAgentSpecItem>(resource);
                 if (string.IsNullOrWhiteSpace(agent.Provider))
@@ -385,7 +376,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             DeclarativeResourceKindItem.Channel => await ExistingChannelIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.MemoryStore => await ExistingMemoryStoreIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.Browser => await ExistingBrowserIdAsync(resource, workspaceId, ct),
-            DeclarativeResourceKindItem.Engine => EngineId(resource.Name),
             DeclarativeResourceKindItem.Agent => (await FindAgentByNameAsync(resource.Name, workspaceId, ct))?.Id,
             DeclarativeResourceKindItem.Routine => await ExistingRoutineIdAsync(resource, ownerId, workspaceId, ct),
             _ => null,
@@ -534,17 +524,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         existing.DisplayName = displayName;
         var updated = await _browserResourceRepository.SaveAsync(existing, ct);
         return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "update", updated?.Id.ToString(), "Updated browser.");
-    }
-
-    private static DeclarativeResourceChangeItem ApplyEngine(DeclarativeResourceDescriptorItem resource)
-    {
-        var spec = Spec<DeclarativeEngineSpecItem>(resource);
-        return new DeclarativeResourceChangeItem(
-            resource.Kind,
-            resource.Name,
-            "configure",
-            EngineId(resource.Name).ToString(),
-            $"Configured {spec.Type.Trim().ToLowerInvariant()} engine.");
     }
 
     private async Task<(AgentRecord Agent, DeclarativeResourceChangeItem Change)> ApplyAgentAsync(DeclarativeResourceDescriptorItem resource, Guid ownerId, Guid workspaceId, CancellationToken ct)
@@ -890,7 +869,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             DeclarativeResourceKindItem.MemoryStore => await ExistingMemoryStoreIdAsync(resource, workspaceId, ct) is not null,
             DeclarativeResourceKindItem.Browser => await ExistingBrowserIdAsync(resource, workspaceId, ct) is not null,
             DeclarativeResourceKindItem.Agent => await FindAgentByNameAsync(name, workspaceId, ct) is not null,
-            DeclarativeResourceKindItem.Engine => EngineId(name) != Guid.Empty,
             _ => false,
         };
     }
@@ -908,7 +886,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             "integration" => DeclarativeResourceKindItem.Integration,
             "memorystore" or "memory-store" or "memory_store" => DeclarativeResourceKindItem.MemoryStore,
             "browser" => DeclarativeResourceKindItem.Browser,
-            "engine" => DeclarativeResourceKindItem.Engine,
             "routine" => DeclarativeResourceKindItem.Routine,
             _ => null,
         };
@@ -1040,11 +1017,6 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         return new Guid(hash.AsSpan(0, 16));
     }
 
-    private static Guid EngineId(string name)
-    {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes($"engine:{name.Trim().ToLowerInvariant()}"));
-        return new Guid(hash.AsSpan(0, 16));
-    }
 }
 
 internal sealed record DeclarativeValidationItem(
@@ -1064,7 +1036,6 @@ internal static class DeclarativeResourceKindItem
     public const string Integration = "Integration";
     public const string MemoryStore = "MemoryStore";
     public const string Browser = "Browser";
-    public const string Engine = "Engine";
     public const string Routine = "Routine";
 }
 

@@ -38,7 +38,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();
         services.AddScoped<LlmProviderDispatcher>();
         services.AddScoped<ICloudProviderTokenService, CloudProviderTokenService>();
-        services.AddScoped<IOpenCodeProcessService, OpenCodeProcessAdapter>();
         // Adapters - integrations
         services.AddSingleton<IIntegrationClientManager, IntegrationClientManager>();
 

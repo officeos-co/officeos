@@ -69,23 +69,46 @@ public sealed class AgentResourceController : ControllerBase
             : NotFound(new { error = $"agents/{name} was not found." });
     }
 
-    [HttpGet("resources/engines")]
-    [HttpGet("resources/engine")]
-    public IActionResult ListEngines() => Ok(new[] { new { kind = "Engine", name = "opencode", type = "opencode" } });
+    [HttpPost("resources/agents/{name}/messages")]
+    [HttpPost("resources/agent/{name}/messages")]
+    public async Task<IActionResult> SendAgentMessage(
+        string name,
+        [FromBody] AgentMessageInput input,
+        [FromServices] IWorkspaceService workspaces,
+        [FromServices] IAgentRepository agentRepository,
+        [FromServices] IAgentService agents,
+        CancellationToken ct)
+    {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
-    [HttpGet("resources/engines/{name}")]
-    [HttpGet("resources/engine/{name}")]
-    public IActionResult DescribeEngine(string name) =>
-        name.Equals("opencode", StringComparison.OrdinalIgnoreCase)
-            ? Ok(new { kind = "Engine", name = "opencode", type = "opencode" })
-            : NotFound(new { error = $"engines/{name} was not found." });
+        var agent = await FindAgentAsync(agentRepository, name, scope.Value.WorkspaceId, ct);
+        if (agent is null)
+            return NotFound(new { error = $"agents/{name} was not found." });
 
-    [HttpDelete("resources/engines/{name}")]
-    [HttpDelete("resources/engine/{name}")]
-    public IActionResult DeleteEngine(string name) =>
-        name.Equals("opencode", StringComparison.OrdinalIgnoreCase)
-            ? BadRequest(new { error = "The built-in OpenCode engine cannot be deleted." })
-            : NotFound(new { error = $"engines/{name} was not found." });
+        if (string.IsNullOrWhiteSpace(input.Message))
+            return BadRequest(new { error = "Message is required." });
+
+        var work = await agents.SendMessageAsync(
+            agent.Id,
+            input.Message.Trim(),
+            scope.Value.UserId,
+            ct,
+            string.IsNullOrWhiteSpace(input.Purpose) ? AgentWorkPurposeKinds.Manual : input.Purpose,
+            agent.ActiveDefinitionId);
+
+        return Ok(new
+        {
+            kind = "AgentWork",
+            agentId = agent.Id,
+            agentName = agent.Name,
+            workLogId = work.Id,
+            correlationId = work.CorrelationId,
+            status = work.WorkStatus,
+            purpose = work.WorkPurpose,
+            createdAt = work.Time,
+        });
+    }
 
     private async Task<(Guid UserId, Guid WorkspaceId)?> RequireScopeAsync(IWorkspaceService workspaces, CancellationToken ct)
     {
@@ -177,3 +200,5 @@ public sealed class AgentResourceController : ControllerBase
             : await agents.GetByAsync(new AgentFilter { Id = match.Id, WorkspaceId = workspaceId }, ct);
     }
 }
+
+public sealed record AgentMessageInput(string Message, string? Purpose = null);

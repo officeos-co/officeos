@@ -51,6 +51,15 @@ public sealed class FakeAgentLogService : IAgentLogService
         return Task.FromResult(record);
     }
 
+    public Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
+        Task.FromResult(_records.FirstOrDefault(record => record.Id == logId));
+
+    public Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default)
+    {
+        MarkWork(workLogId, AgentWorkStatusKinds.Running, null);
+        return GetAsync(workLogId, ct);
+    }
+
     public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
     {
         var runningAgentIds = _records
