@@ -199,6 +199,17 @@ export async function providerCommand(args: string[]): Promise<void> {
   }
 }
 
+export async function integrationCommand(args: string[]): Promise<void> {
+  const sub = requireArg(args[0], "Usage: officeos integration auth github");
+  switch (sub) {
+    case "auth":
+      await integrationAuthCommand(args.slice(1));
+      break;
+    default:
+      throw new Error(`Unknown integration command '${sub}'.`);
+  }
+}
+
 async function providerAuthCommand(args: string[]): Promise<void> {
   const provider = requireArg(args[0], "Usage: officeos provider auth codex");
   if (provider !== "codex") {
@@ -250,6 +261,24 @@ async function providerAuthCommand(args: string[]): Promise<void> {
   } finally {
     await callback.close();
   }
+}
+
+async function integrationAuthCommand(args: string[]): Promise<void> {
+  const integration = requireArg(args[0], "Usage: officeos integration auth github");
+  if (integration !== "github") {
+    throw new Error(`Unsupported integration auth target '${integration}'.`);
+  }
+
+  const context = await requireContext();
+  const returnTo = readOption(args, "--return-to") ?? "/integrations";
+  const authUrl = new URL("/api/auth/github", context.apiUrl);
+  authUrl.searchParams.set("returnTo", returnTo);
+
+  print(`Open this URL to authenticate GitHub: ${authUrl.toString()}`);
+  if (!args.includes("--no-browser")) {
+    await openBrowser(authUrl.toString()).catch(() => undefined);
+  }
+  print("Complete the GitHub OAuth flow in the dashboard. The credential is saved to the selected workspace.");
 }
 
 export async function configCommand(args: string[]): Promise<void> {
@@ -396,7 +425,7 @@ function codexOAuthOptions(args: string[]): CodexOAuthOptions {
   };
 }
 
-function waitForOAuthCallback(redirectUri: URL, expectedState: string): {
+function waitForOAuthCallback(redirectUri: URL, expectedState: string, label = "Codex"): {
   code: Promise<string>;
   close: () => Promise<void>;
 } {
@@ -413,8 +442,8 @@ function waitForOAuthCallback(redirectUri: URL, expectedState: string): {
       const state = requestUrl.searchParams.get("state");
       const authCode = requestUrl.searchParams.get("code");
       if (error) {
-        res.writeHead(400).end("Codex authentication failed. Return to the terminal.");
-        reject(new Error(`Codex authentication failed: ${error}`));
+        res.writeHead(400).end(`${label} authentication failed. Return to the terminal.`);
+        reject(new Error(`${label} authentication failed: ${error}`));
         return;
       }
       if (state !== expectedState) {
@@ -428,13 +457,13 @@ function waitForOAuthCallback(redirectUri: URL, expectedState: string): {
         return;
       }
 
-      res.writeHead(200, { "content-type": "text/plain" }).end("Codex authenticated. You can close this tab.");
+      res.writeHead(200, { "content-type": "text/plain" }).end(`${label} authenticated. You can close this tab.`);
       resolve(authCode);
     });
 
     const port = Number(redirectUri.port);
     if (!Number.isInteger(port) || port <= 0) {
-      reject(new Error("Codex redirect URI must include a fixed localhost port."));
+      reject(new Error(`${label} redirect URI must include a fixed localhost port.`));
       return;
     }
     server.once("error", (error) => reject(error));
