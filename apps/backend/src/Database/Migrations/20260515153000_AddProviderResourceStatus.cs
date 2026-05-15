@@ -1,11 +1,15 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using OffceOs.Database;
 
 #nullable disable
 
 namespace OffceOs.Database.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(EaosDbContext))]
+    [Migration("20260515153000_AddProviderResourceStatus")]
     public partial class AddProviderResourceStatus : Migration
     {
         /// <inheritdoc />
