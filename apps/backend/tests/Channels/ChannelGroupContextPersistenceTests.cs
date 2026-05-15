@@ -1,5 +1,5 @@
 using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Events;
+using OffceOs.Domain.Features.AgentHarness;
 using OffceOs.Domain.Features.Observability;
 using OffceOs.Infrastructure.Features.Observability;
 using OffceOs.Tests.Shared;

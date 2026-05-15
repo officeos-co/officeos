@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Events;
+namespace OffceOs.Domain.Features.Channels;
 
 public sealed record ChannelMessageRoutedEvent(
     Guid? AgentId,

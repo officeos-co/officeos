@@ -1,7 +1,7 @@
 using OffceOs.Application.Features.Channels;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Events;
+using OffceOs.Domain.Features.AgentHarness;
 using OffceOs.Domain.Features.Channels;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;

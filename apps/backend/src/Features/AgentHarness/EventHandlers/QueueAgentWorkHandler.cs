@@ -1,4 +1,4 @@
-namespace OffceOs.EventHandlers.Features.Agents;
+namespace OffceOs.EventHandlers.Features.AgentHarness;
 
 internal sealed class QueueAgentWorkHandler : INotificationHandler<MessageReceivedEvent>
 {

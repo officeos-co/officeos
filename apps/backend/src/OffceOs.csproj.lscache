@@ -55,11 +55,12 @@ TemporaryDependencyNodeTargetIdentifier=net9.0
 [sourceFiles]
 Common/
  Application/BackgroundWork.cs
- Domain/Primitives/
-  AgentError.cs
-  AgentErrorCategory.cs
-  Result.cs
  Domain/
+  DomainEvent.cs
+  Primitives/
+   AgentError.cs
+   AgentErrorCategory.cs
+   Result.cs
   Services/SystemPromptComposer.cs
   SystemEventRecord.cs
   ValueObjects/
@@ -137,24 +138,6 @@ Database/
   UserEntity.cs
   WorkspaceEntity.cs
   WorkspaceMemberEntity.cs
-Events/
- AgentCreatedEvent.cs
- AgentDeletedEvent.cs
- AgentErrorOccurredEvent.cs
- AgentUpdatedEvent.cs
- ChannelCredsStoredEvent.cs
- ChannelMessageRoutedEvent.cs
- ConversationCompactedEvent.cs
- DomainEvent.cs
- LlmCallCompletedEvent.cs
- MessageOutEvent.cs
- MessageReceivedEvent.cs
- PodConnectedEvent.cs
- ToolCallCompletedEvent.cs
- ToolCallStartedEvent.cs
- TurnCompletedEvent.cs
- TurnDiagnosticEvent.cs
- TurnStartedEvent.cs
 Extensions/
  ApplicationServiceCollectionExtensions.cs
  InfrastructureServiceCollectionExtensions.cs
@@ -240,16 +223,29 @@ Features/AgentHarness/Application/
  TurnContextBuilder.cs
  TurnEventPublisher.cs
 Features/AgentHarness/Domain/
+ AgentErrorOccurredEvent.cs
+ ConversationCompactedEvent.cs
  IAgentDeployer.cs
  IAgentRuntimeCleaner.cs
  IAgentSandbox.cs
-Features/AgentHarness/Infrastructure/
- DockerAgentSandbox.cs
- IAgentWorkspaceStore.cs
- KubernetesAgentSandbox.cs
- PodExecutorClient.cs
- PromptCacheInjector.cs
- S3AgentWorkspaceStore.cs
+ LlmCallCompletedEvent.cs
+ MessageOutEvent.cs
+ MessageReceivedEvent.cs
+ PodConnectedEvent.cs
+ ToolCallCompletedEvent.cs
+ ToolCallStartedEvent.cs
+ TurnCompletedEvent.cs
+ TurnDiagnosticEvent.cs
+ TurnStartedEvent.cs
+Features/AgentHarness/
+ EventHandlers/QueueAgentWorkHandler.cs
+ Infrastructure/
+  DockerAgentSandbox.cs
+  IAgentWorkspaceStore.cs
+  KubernetesAgentSandbox.cs
+  PodExecutorClient.cs
+  PromptCacheInjector.cs
+  S3AgentWorkspaceStore.cs
 Features/AgentRoutines/Api/
  RoutineResourceController.cs
  RoutineTriggerController.cs
@@ -278,7 +274,9 @@ Features/
    AgentSessionContracts.cs
    AgentSessionService.cs
   Domain/
+   AgentCreatedEvent.cs
    AgentDefinitionRecord.cs
+   AgentDeletedEvent.cs
    AgentFilter.cs
    AgentPersonalityRecord.cs
    AgentRateLimitRecord.cs
@@ -288,6 +286,7 @@ Features/
    AgentSessionContextRecord.cs
    AgentSessionFilter.cs
    AgentSessionRecord.cs
+   AgentUpdatedEvent.cs
    AgentWorkPurposeKinds.cs
    IAgentDefinitionRepository.cs
    IAgentPersonalityRepository.cs
@@ -298,7 +297,6 @@ Features/
   EventHandlers/
    DeployAgentPodHandler.cs
    InvalidateAgentCacheHandler.cs
-   QueueAgentWorkHandler.cs
    RemoveAgentPodHandler.cs
   Infrastructure/
    AgentDefinitionRepository.cs
@@ -338,7 +336,9 @@ Features/
   ChannelBindingConfig.cs
   ChannelConnectionFilter.cs
   ChannelConnectionRecord.cs
+  ChannelCredsStoredEvent.cs
   ChannelMessage.cs
+  ChannelMessageRoutedEvent.cs
   ChannelReplyContext.cs
   ChannelTypeDefinitions.cs
   IChannelBroadcastService.cs

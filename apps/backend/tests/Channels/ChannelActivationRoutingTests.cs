@@ -1,4 +1,4 @@
-using OffceOs.Domain.Events;
+using OffceOs.Domain.Features.AgentHarness;
 using OffceOs.Tests.Shared;
 using Xunit;
 

@@ -1,6 +1,6 @@
 using OffceOs.Database;
 using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Events;
+using OffceOs.Domain.Features.Channels;
 using OffceOs.Domain.Features.Observability;
 using OffceOs.Infrastructure.Features.Observability;
 using MediatR;

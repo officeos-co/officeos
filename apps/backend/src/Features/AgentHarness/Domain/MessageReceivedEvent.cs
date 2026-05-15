@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Events;
+namespace OffceOs.Domain.Features.AgentHarness;
 
 public sealed record MessageReceivedEvent(
     Guid AgentId,

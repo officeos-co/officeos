@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Events;
+namespace OffceOs.Domain.Common;
 
 public abstract record DomainEvent : INotification
 {

@@ -45,7 +45,6 @@ global using OffceOs.Domain.Common.Primitives;
 global using OffceOs.Domain.Common.Services;
 global using OffceOs.Domain.Common.ValueObjects;
 global using OffceOs.Domain.Common;
-global using OffceOs.Domain.Events;
 global using OffceOs.Domain.Features.AgentDefinitions;
 global using OffceOs.Domain.Features.AgentHarness;
 global using OffceOs.Domain.Features.Agents;
