@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Domain;
 
 public interface IAgentRoutineCredentialRepository
 {

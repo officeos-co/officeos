@@ -1,13 +1,13 @@
-using OffceOs.Application.Features.Channels;
-using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Features.Channels.Application;
+using OffceOs.Features.ResourceLogs.Application;
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Infrastructure.Features.Agents;
-using OffceOs.Infrastructure.Features.Channels;
-using OffceOs.Infrastructure.Features.ResourceLogs;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Common.Infrastructure.Security;
+using OffceOs.Features.Agents.Infrastructure;
+using OffceOs.Features.Channels.Infrastructure;
+using OffceOs.Features.ResourceLogs.Infrastructure;
 
 namespace OffceOs.Tests.Shared;
 

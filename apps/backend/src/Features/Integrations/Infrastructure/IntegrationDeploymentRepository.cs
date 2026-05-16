@@ -1,7 +1,7 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Integrations;
-namespace OffceOs.Infrastructure.Features.Integrations;
+using OffceOs.Features.Integrations.Domain;
+namespace OffceOs.Features.Integrations.Infrastructure;
 
 internal sealed class IntegrationDeploymentRepository : IIntegrationDeploymentRepository
 {

@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Browser;
+using OffceOs.Features.Browser.Domain;
 
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application.BrowserTools;
 
 internal sealed class BrowserSaveAuthProfileTool(IReadOnlyDictionary<string, BrowserToolDescriptor> descriptors, IBrowserService browser, IBrowserRuntimeClient runtime, Guid agentId)
     : BrowserRuntimeTool(RuntimeName, Description, descriptors, browser, runtime, agentId)

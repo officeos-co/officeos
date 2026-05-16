@@ -1,5 +1,5 @@
-using OffceOs.Domain.Common;
+using OffceOs.Common.Domain;
 
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Features.Agents.Domain;
 
 public sealed record AgentDeletedEvent(Guid AgentId, string? PodName, bool HasPod, Guid? OwnerId) : DomainEvent;

@@ -1,16 +1,17 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentDefinitions;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Browser;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Context;
-using OffceOs.Domain.Features.Providers;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Application.Features.Agents;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.AgentRoutines.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentDefinitions.Domain;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Browser.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Context.Domain;
+using OffceOs.Features.Providers.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.AgentHarness.Application;
+
+namespace OffceOs.Features.Agents.Application;
 
 internal sealed class AgentLifecycleService : IAgentLifecycleService
 {

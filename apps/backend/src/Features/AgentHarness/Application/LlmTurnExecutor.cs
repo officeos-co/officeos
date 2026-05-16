@@ -1,8 +1,9 @@
-using OffceOs.Application.Features.Providers;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Common.Primitives;
-using OffceOs.Domain.Features.AgentHarness;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.Providers.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Common.Domain.Primitives;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.AgentHarness.Application.Tools;
+namespace OffceOs.Features.AgentHarness.Application;
 
 /// <summary>
 /// Executes one streamed LLM call inside an agent turn.

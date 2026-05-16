@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Application.Features.Agents;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.Agents.Application;
 
 public interface IAgentService
 {

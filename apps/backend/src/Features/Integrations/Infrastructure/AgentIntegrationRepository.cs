@@ -1,7 +1,7 @@
 using OffceOs.Database;
-using OffceOs.Domain.Features.Integrations;
+using OffceOs.Features.Integrations.Domain;
 using OffceOs.Database.Models;
-namespace OffceOs.Infrastructure.Features.Integrations;
+namespace OffceOs.Features.Integrations.Infrastructure;
 
 internal sealed class AgentIntegrationRepository : IAgentIntegrationRepository
 {

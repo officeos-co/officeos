@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace OffceOs.Database.Migrations
-{
+namespace OffceOs.Database.Migrations{
     /// <inheritdoc />
     public partial class AddAgentRoutinePollCursors : Migration
     {

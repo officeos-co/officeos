@@ -1,9 +1,9 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Context;
-namespace OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Context.Domain;
+namespace OffceOs.Features.Agents.Infrastructure;
 
 internal sealed class AgentRepository : IAgentRepository
 {

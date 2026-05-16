@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.Management;
+using OffceOs.Features.Management.Application;
 using OffceOs.Configuration;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Infrastructure.Features.Management;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.Management.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Management;

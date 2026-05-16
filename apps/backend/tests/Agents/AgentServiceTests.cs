@@ -1,11 +1,11 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.Channels;
-using OffceOs.Application.Features.Providers;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.Channels.Application;
+using OffceOs.Features.Providers.Application;
 using OffceOs.Database;
-using OffceOs.Domain.Features.Providers;
-using OffceOs.Infrastructure.Features.Agents;
-using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Features.Providers.Domain;
+using OffceOs.Features.Agents.Infrastructure;
+using OffceOs.Features.Channels.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Agents;

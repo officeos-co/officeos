@@ -8,8 +8,7 @@ using OffceOs.Database;
 
 #nullable disable
 
-namespace OffceOs.Database.Migrations
-{
+namespace OffceOs.Database.Migrations{
     [DbContext(typeof(EaosDbContext))]
     partial class EaosDbContextModelSnapshot : ModelSnapshot
     {

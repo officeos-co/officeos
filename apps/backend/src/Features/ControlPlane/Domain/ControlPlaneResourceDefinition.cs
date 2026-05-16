@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.ControlPlane;
+namespace OffceOs.Features.ControlPlane.Domain;
 
 public abstract class ControlPlaneResourceDefinition
 {

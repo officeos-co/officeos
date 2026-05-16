@@ -1,8 +1,8 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Infrastructure.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.ResourceLogs.Infrastructure;
 
 internal sealed class ResourceLogRepository : IResourceLogRepository
 {

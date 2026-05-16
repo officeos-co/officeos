@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 internal static partial class ToolShell
 {

@@ -1,4 +1,6 @@
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.AgentHarness.Application.Tools;
+
+namespace OffceOs.Features.AgentHarness.Application.BrowserTools;
 
 internal interface IBrowserToolService
 {

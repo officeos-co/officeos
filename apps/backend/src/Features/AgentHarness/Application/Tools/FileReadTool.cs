@@ -1,6 +1,6 @@
-using OffceOs.Domain.Common.Primitives;
+using OffceOs.Common.Domain.Primitives;
 
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 /// <summary>Read a file with line numbers.</summary>
 internal sealed class FileReadTool : IAgentTool

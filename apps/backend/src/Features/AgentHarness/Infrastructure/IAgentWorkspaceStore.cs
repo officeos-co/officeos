@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Infrastructure;
 
 internal interface IAgentWorkspaceStore
 {

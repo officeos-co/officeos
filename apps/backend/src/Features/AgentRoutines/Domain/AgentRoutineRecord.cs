@@ -1,5 +1,5 @@
 
-namespace OffceOs.Domain.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Domain;
 
 public sealed class AgentRoutineRecord
 {

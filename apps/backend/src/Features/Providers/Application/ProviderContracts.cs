@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Providers;
+using OffceOs.Features.Providers.Domain;
 
-namespace OffceOs.Application.Features.Providers;
+namespace OffceOs.Features.Providers.Application;
 
 public interface IProviderService
 {

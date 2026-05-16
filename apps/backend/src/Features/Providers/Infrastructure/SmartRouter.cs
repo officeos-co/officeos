@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Providers;
+using OffceOs.Features.Providers.Domain;
 
-namespace OffceOs.Infrastructure.Features.Providers;
+namespace OffceOs.Features.Providers.Infrastructure;
 
 /// <summary>
 /// Classifies request complexity and returns a concrete model name.

@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Agents;
+using OffceOs.Features.Agents.Domain;
 
-namespace OffceOs.Api.Common.Middleware;
+namespace OffceOs.Common.Middleware;
 
 /// <summary>
 /// Validates <c>Authorization: Bearer &lt;agent-uuid&gt;</c> by looking up

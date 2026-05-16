@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.Context;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.Context.Application;
+using OffceOs.Common.Domain.Primitives;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 internal sealed class MemoryStoreTool : IAgentTool
 {

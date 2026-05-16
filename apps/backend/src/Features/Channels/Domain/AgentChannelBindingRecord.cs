@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Agents;
+using OffceOs.Features.Agents.Domain;
 
-namespace OffceOs.Domain.Features.Channels;
+namespace OffceOs.Features.Channels.Domain;
 
 /// <summary>
 /// Per-agent channel binding. Links an agent to an org-level channel connection

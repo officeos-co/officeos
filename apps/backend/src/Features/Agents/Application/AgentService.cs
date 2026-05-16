@@ -1,16 +1,17 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.Channels;
-using OffceOs.Application.Features.Providers;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentDefinitions;
-using OffceOs.Domain.Features.Providers;
-using OffceOs.Infrastructure.Common.Caching;
-namespace OffceOs.Application.Features.Agents;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.Channels.Application;
+using OffceOs.Features.Providers.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.AgentDefinitions.Domain;
+using OffceOs.Features.Providers.Domain;
+using OffceOs.Common.Infrastructure.Caching;
+using OffceOs.Features.AgentHarness.Application;
+
+namespace OffceOs.Features.Agents.Application;
 
 internal sealed class AgentService : IAgentService
 {

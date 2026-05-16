@@ -1,7 +1,7 @@
-using OffceOs.Api.Features.ControlPlane;
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Domain.Features.ControlPlane;
-using OffceOs.Domain.Features.Management;
+using OffceOs.Features.ControlPlane.Api;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.ControlPlane.Domain;
+using OffceOs.Features.Management.Domain;
 using OffceOs.Extensions;
 
 namespace OffceOs.Tests.Common;

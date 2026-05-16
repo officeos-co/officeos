@@ -1,8 +1,8 @@
 using OffceOs.Configuration;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Infrastructure.Common.Caching;
-namespace OffceOs.Api.Common.Middleware;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Common.Infrastructure.Caching;
+namespace OffceOs.Common.Middleware;
 
 public sealed class SessionAuthMiddleware
 {

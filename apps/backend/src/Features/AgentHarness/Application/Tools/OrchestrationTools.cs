@@ -1,10 +1,10 @@
-using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Common.Primitives;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.AgentRoutines.Application;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Common.Domain.Primitives;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 internal sealed class AgentTaskStore
 {

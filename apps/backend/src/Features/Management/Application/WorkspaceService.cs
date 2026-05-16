@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Application.Features.Management;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.Management.Application;
 
 internal sealed class WorkspaceService : IWorkspaceService
 {

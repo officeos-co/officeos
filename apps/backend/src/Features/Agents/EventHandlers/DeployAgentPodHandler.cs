@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Agents;
+using OffceOs.Features.Agents.Domain;
 
-namespace OffceOs.EventHandlers.Features.Agents;
+namespace OffceOs.Features.Agents.EventHandlers;
 
 internal sealed class DeployAgentPodHandler : INotificationHandler<AgentCreatedEvent>
 {

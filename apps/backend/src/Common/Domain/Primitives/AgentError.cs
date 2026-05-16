@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Domain;
 
-namespace OffceOs.Domain.Common.Primitives;
+namespace OffceOs.Common.Domain.Primitives;
 
 /// <summary>
 /// Structured agent error with category for dashboard filtering.

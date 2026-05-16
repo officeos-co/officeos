@@ -5,8 +5,7 @@ using OffceOs.Database;
 
 #nullable disable
 
-namespace OffceOs.Database.Migrations
-{
+namespace OffceOs.Database.Migrations{
     /// <inheritdoc />
     [DbContext(typeof(EaosDbContext))]
     [Migration("20260515153000_AddProviderResourceStatus")]

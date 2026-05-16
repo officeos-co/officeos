@@ -1,7 +1,7 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Providers;
-namespace OffceOs.Infrastructure.Features.Providers;
+using OffceOs.Features.Providers.Domain;
+namespace OffceOs.Features.Providers.Infrastructure;
 
 internal sealed class ProviderResourceRepository : IProviderResourceRepository
 {

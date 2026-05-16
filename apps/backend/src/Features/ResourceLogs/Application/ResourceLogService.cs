@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.ResourceLogs.Application;
 
 internal sealed class ResourceLogService : IResourceLogService
 {

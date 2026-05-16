@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Context;
+namespace OffceOs.Features.Context.Domain;
 
 public sealed record AgentMemoryFilter
 {

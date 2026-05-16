@@ -1,7 +1,7 @@
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Infrastructure.Common.Security;
-namespace OffceOs.Application.Features.AgentRoutines;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Common.Infrastructure.Security;
+namespace OffceOs.Features.AgentRoutines.Application;
 
 internal sealed class AgentRoutineService : IAgentRoutineService
 {

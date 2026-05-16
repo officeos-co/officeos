@@ -1,4 +1,4 @@
-using OffceOs.Domain.Features.Channels;
+using OffceOs.Features.Channels.Domain;
 
 namespace OffceOs.Tests.Shared;
 

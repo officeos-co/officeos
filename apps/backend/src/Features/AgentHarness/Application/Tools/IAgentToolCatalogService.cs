@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 public interface IAgentToolCatalogService
 {

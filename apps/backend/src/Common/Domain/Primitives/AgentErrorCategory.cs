@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.Primitives;
+namespace OffceOs.Common.Domain.Primitives;
 
 public enum AgentErrorCategory
 {

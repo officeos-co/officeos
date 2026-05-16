@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.EventHandlers.Features.ResourceLogs;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.ResourceLogs.EventHandlers;
 
 namespace OffceOs.Tests.ResourceLogs;
 

@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.AgentDefinitions;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.AgentDefinitions.Api;
 
 [ApiController]
 [Route("api/v1/manifests")]

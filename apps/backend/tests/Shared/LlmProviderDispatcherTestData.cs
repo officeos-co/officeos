@@ -1,4 +1,4 @@
-using OffceOs.Domain.Features.Providers;
+using OffceOs.Features.Providers.Domain;
 
 namespace OffceOs.Tests.Shared;
 

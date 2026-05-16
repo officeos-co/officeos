@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.AgentRoutines;
+using OffceOs.Features.AgentRoutines.Domain;
 
-namespace OffceOs.Application.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Application;
 
 public interface IAgentRoutineService
 {

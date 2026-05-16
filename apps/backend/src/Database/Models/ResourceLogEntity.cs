@@ -1,4 +1,4 @@
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Domain;
 
 namespace OffceOs.Database.Models;
 

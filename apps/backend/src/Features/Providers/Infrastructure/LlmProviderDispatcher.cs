@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Providers;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Infrastructure.Features.Providers;
+using OffceOs.Features.Providers.Domain;
+using OffceOs.Common.Domain.Primitives;
+namespace OffceOs.Features.Providers.Infrastructure;
 
 /// <summary>
 /// Routes an OpenAI-compatible chat-completions request to the real upstream

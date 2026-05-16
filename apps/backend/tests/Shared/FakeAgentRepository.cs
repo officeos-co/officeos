@@ -1,4 +1,4 @@
-using OffceOs.Domain.Features.Agents;
+using OffceOs.Features.Agents.Domain;
 
 namespace OffceOs.Tests.Shared;
 

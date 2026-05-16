@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Providers;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Providers.Domain;
 
 namespace OffceOs.Tests.AgentDefinitions;
 

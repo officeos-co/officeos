@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Domain;
 
 public sealed record AgentDeployment(string PodName, string ServiceUrl);
 

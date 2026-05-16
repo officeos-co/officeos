@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Common.Domain.Primitives;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 internal sealed partial class IntegrationTool : IAgentTool
 {

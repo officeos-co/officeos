@@ -9,8 +9,7 @@ using OffceOs.Database;
 
 #nullable disable
 
-namespace OffceOs.Database.Migrations
-{
+namespace OffceOs.Database.Migrations{
     [DbContext(typeof(EaosDbContext))]
     [Migration("20260514204327_AddAgentRunPurpose")]
     partial class AddAgentRunPurpose

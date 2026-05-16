@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.AgentDefinitions;
+namespace OffceOs.Features.AgentDefinitions.Application;
 
 public sealed record DeclarativeManifestValidationResult(
     bool Valid,

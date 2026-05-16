@@ -111,6 +111,14 @@ internal static class ArchitectureDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor NamespacePathRule = new(
+        "EAOS014",
+        "Namespace must match source file path",
+        "Namespace '{0}' must match the source path namespace '{1}'",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly ImmutableArray<DiagnosticDescriptor> All = ImmutableArray.Create(
         DomainDtoTypeRule,
         BroadTypesFileRule,
@@ -124,5 +132,6 @@ internal static class ArchitectureDiagnostics
         DependencyFieldNamingRule,
         ApplicationInterfaceFileRule,
         UnusedUsingDirectiveRule,
-        ExternalLocalUsingDirectiveRule);
+        ExternalLocalUsingDirectiveRule,
+        NamespacePathRule);
 }

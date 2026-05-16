@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.ControlPlane;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.ControlPlane.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

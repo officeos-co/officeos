@@ -1,6 +1,6 @@
 using OffceOs.Configuration;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Application.Features.Management;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Management.Application;
 
 internal sealed class AuthService : IAuthService
 {

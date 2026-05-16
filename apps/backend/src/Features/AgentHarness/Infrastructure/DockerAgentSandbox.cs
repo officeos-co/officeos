@@ -1,7 +1,7 @@
 using OffceOs.Configuration;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Infrastructure.Features.AgentHarness;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Common.Domain.Primitives;
+namespace OffceOs.Features.AgentHarness.Infrastructure;
 
 internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgentRuntimeCleaner
 {

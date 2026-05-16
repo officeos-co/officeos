@@ -1,6 +1,6 @@
 using OffceOs.Configuration;
-using OffceOs.Domain.Features.Browser;
-namespace OffceOs.Infrastructure.Features.Browser;
+using OffceOs.Features.Browser.Domain;
+namespace OffceOs.Features.Browser.Infrastructure;
 
 internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
 {

@@ -15,6 +15,7 @@ public sealed class BackendArchitectureAnalyzer : DiagnosticAnalyzer
         new FieldNamingArchitectureRule(),
         new ParameterArchitectureRule(),
         new UnusedUsingDirectiveArchitectureRule(),
+        new NamespacePathArchitectureRule(),
     ];
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ArchitectureDiagnostics.All;

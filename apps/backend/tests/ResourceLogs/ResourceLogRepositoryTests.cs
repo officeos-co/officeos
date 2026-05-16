@@ -1,7 +1,7 @@
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Infrastructure.Features.ResourceLogs;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.ResourceLogs.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.ResourceLogs;

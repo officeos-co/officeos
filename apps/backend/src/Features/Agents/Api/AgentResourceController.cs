@@ -1,9 +1,9 @@
-using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Api.Features.Agents;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.Agents.Api;
 
 [ApiController]
 [Route("api/v1")]

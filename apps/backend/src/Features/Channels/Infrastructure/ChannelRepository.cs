@@ -1,8 +1,8 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Features.Agents;
-namespace OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Agents.Infrastructure;
+namespace OffceOs.Features.Channels.Infrastructure;
 
 internal sealed class ChannelRepository : IChannelRepository
 {

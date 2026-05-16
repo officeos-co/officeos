@@ -1,5 +1,6 @@
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Application.Features.Agents;
+using OffceOs.Features.Agents.Domain;
+
+namespace OffceOs.Features.Agents.Application;
 
 public interface IAgentLifecycleService
 {

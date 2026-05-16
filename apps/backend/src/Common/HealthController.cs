@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Common;
+namespace OffceOs.Common;
 
 [ApiController]
 [Route("api")]

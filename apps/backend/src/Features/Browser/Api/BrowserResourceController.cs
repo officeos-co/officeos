@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.Browser;
-using OffceOs.Domain.Features.Browser;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.Browser;
+using OffceOs.Features.Browser.Application;
+using OffceOs.Features.Browser.Domain;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Browser.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

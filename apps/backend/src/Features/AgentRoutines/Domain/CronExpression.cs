@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Domain;
 
 /// <summary>
 /// A validated cron expression (5 or 6 fields).

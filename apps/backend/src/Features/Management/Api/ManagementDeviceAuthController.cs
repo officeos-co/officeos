@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.Management;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.Management;
+using OffceOs.Features.Management.Application;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Management.Api;
 
 [ApiController]
 [Route("api/v1")]

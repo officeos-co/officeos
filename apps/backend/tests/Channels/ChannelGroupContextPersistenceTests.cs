@@ -1,7 +1,7 @@
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Infrastructure.Features.ResourceLogs;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.ResourceLogs.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Channels;

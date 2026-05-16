@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Integrations;
+using OffceOs.Features.Integrations.Domain;
 
-namespace OffceOs.Infrastructure.Features.Integrations;
+namespace OffceOs.Features.Integrations.Infrastructure;
 
 internal sealed class IntegrationClientManager : IIntegrationClientManager
 {

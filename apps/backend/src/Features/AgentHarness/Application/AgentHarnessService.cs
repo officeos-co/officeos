@@ -1,6 +1,7 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.AgentHarness.Application.Tools;
+namespace OffceOs.Features.AgentHarness.Application;
 
 internal sealed class AgentHarnessService : IAgentHarnessService
 {

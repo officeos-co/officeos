@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Providers;
+namespace OffceOs.Features.Providers.Domain;
 
 /// <summary>
 /// Single source of truth for all supported LLM providers, their models, and metadata.

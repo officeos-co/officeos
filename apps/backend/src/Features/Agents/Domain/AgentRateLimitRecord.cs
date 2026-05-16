@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Features.Agents.Domain;
 
 /// <summary>
 /// DB-backed sliding window counter for per-agent rate limiting.

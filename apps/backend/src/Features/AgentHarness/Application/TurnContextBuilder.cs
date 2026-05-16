@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Domain;
 
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application;
 
 /// <summary>
 /// Builds the LLM conversation history for a turn.

@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Providers;
+namespace OffceOs.Features.Providers.Domain;
 
 public sealed record ProviderResourceRecord
 {

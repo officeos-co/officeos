@@ -1,10 +1,10 @@
-using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Domain.Common.Primitives;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Application.Features.AgentRoutines;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Common.Infrastructure.Security;
+using OffceOs.Common.Domain.Primitives;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.AgentRoutines.Application;
 
 internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionService
 {

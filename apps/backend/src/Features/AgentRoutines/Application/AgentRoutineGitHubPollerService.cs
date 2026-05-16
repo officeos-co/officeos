@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Application.Features.AgentRoutines;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Common.Infrastructure.Security;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.AgentRoutines.Application;
 
 internal sealed class AgentRoutineGitHubPollerService : BackgroundService
 {

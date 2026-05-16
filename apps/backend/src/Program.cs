@@ -1,12 +1,12 @@
-using OffceOs.Api.Common;
-using OffceOs.Api.Common.Middleware;
-using OffceOs.Application.Features.Providers;
+using OffceOs.Common;
+using OffceOs.Common.Middleware;
+using OffceOs.Features.Providers.Application;
 using OffceOs.Configuration;
 using OffceOs.Database;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Management;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Management.Domain;
 using OffceOs.Extensions;
-using OffceOs.Infrastructure.Features.AgentHarness;
+using OffceOs.Features.AgentHarness.Infrastructure;
 string? FindRootEnvFile()
 {
     var current = new DirectoryInfo(Directory.GetCurrentDirectory());

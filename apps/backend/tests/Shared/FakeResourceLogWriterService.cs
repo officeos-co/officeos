@@ -1,5 +1,5 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.ResourceLogs.Domain;
 
 namespace OffceOs.Tests.Shared;
 

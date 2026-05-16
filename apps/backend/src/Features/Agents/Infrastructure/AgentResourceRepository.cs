@@ -1,7 +1,7 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.Agents.Infrastructure;
 
 internal sealed class AgentResourceRepository : IAgentResourceRepository
 {

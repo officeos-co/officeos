@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Browser;
+namespace OffceOs.Features.Browser.Domain;
 
 public sealed record BrowserSessionState(
     Guid AgentId,

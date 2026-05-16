@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.ResourceLogs;
+namespace OffceOs.Features.ResourceLogs.Application;
 
 internal sealed record ResourceLogTemplateItem(string Name, object? Value);
 

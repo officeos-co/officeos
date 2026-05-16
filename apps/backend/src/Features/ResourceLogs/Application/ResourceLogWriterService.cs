@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Domain;
 
-namespace OffceOs.Application.Features.ResourceLogs;
+namespace OffceOs.Features.ResourceLogs.Application;
 
 internal sealed class ResourceLogWriterService : IResourceLogWriterService
 {

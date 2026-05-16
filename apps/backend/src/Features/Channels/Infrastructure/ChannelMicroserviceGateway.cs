@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Channels;
+using OffceOs.Features.Channels.Domain;
 
-namespace OffceOs.Infrastructure.Features.Channels;
+namespace OffceOs.Features.Channels.Infrastructure;
 
 /// <summary>
 /// HTTP proxy to the channel sidecar (same K8s pod, localhost:3100).

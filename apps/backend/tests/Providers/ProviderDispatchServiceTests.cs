@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.Providers;
-using OffceOs.Domain.Features.Providers;
-using OffceOs.Infrastructure.Features.Providers;
+using OffceOs.Features.Providers.Application;
+using OffceOs.Features.Providers.Domain;
+using OffceOs.Features.Providers.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Providers;

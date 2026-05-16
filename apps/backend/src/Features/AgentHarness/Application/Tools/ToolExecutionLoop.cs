@@ -1,7 +1,7 @@
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Integrations;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Integrations.Domain;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 /// <summary>
 /// Owns per-turn tool registry creation and assistant-requested tool execution.

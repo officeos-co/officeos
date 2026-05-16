@@ -1,7 +1,7 @@
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentHarness;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.AgentHarness.Domain;
+namespace OffceOs.Features.AgentHarness.Application;
 
 internal sealed record ConversationContextWindow(string? Summary, IReadOnlyList<ResourceLogRecord> Logs);
 

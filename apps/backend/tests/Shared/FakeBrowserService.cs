@@ -1,5 +1,5 @@
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Domain.Features.Browser;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.Browser.Domain;
 
 namespace OffceOs.Tests.Shared;
 

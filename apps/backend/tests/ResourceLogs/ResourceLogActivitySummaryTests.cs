@@ -1,11 +1,11 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Domain.Features.ControlPlane;
-using OffceOs.Infrastructure.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.ControlPlane.Domain;
+using OffceOs.Features.ResourceLogs.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.ResourceLogs;

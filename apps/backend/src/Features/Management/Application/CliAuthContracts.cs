@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.Management;
+namespace OffceOs.Features.Management.Application;
 
 public sealed record CliDeviceCodeRequest(string? RunnerName);
 

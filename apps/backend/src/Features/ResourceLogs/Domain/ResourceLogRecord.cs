@@ -1,5 +1,6 @@
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.Agents.Domain;
+
+namespace OffceOs.Features.ResourceLogs.Domain;
 
 /// <summary>
 /// Type of a single entry in an agent's append-only activity log.

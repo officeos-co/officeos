@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.AgentRoutines;
+using OffceOs.Features.AgentRoutines.Application;
 
-namespace OffceOs.Api.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Api;
 
 [ApiController]
 [Route("api/agent-routines")]

@@ -1,5 +1,5 @@
-using OffceOs.Domain.Common;
+using OffceOs.Common.Domain;
 
-namespace OffceOs.Domain.Features.Channels;
+namespace OffceOs.Features.Channels.Domain;
 
 public sealed record ChannelCredsStoredEvent(Guid ConnectionId) : DomainEvent;

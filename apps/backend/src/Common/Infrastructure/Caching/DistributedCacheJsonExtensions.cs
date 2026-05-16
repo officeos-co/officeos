@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Common.Caching;
+namespace OffceOs.Common.Infrastructure.Caching;
 
 public static class DistributedCacheJsonExtensions
 {

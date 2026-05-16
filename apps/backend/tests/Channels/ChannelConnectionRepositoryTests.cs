@@ -1,6 +1,6 @@
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Channels.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Channels;

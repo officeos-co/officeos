@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.Integrations;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Features.Integrations;
+using OffceOs.Features.Integrations.Application;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.Integrations.Domain;
 
 namespace OffceOs.Tests.Shared;
 

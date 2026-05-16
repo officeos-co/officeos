@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Application.Features.Integrations;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Integrations.Application;
 
 internal sealed class IntegrationDefinitionService : IIntegrationDefinitionService
 {

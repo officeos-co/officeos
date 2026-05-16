@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Common.Domain.Primitives;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 /// <summary>Result from a tool execution.</summary>
 public record ToolResult(bool Success, string Output, string? Error = null);

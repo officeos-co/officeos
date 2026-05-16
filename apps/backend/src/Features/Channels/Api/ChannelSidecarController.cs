@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Common.Security;
-namespace OffceOs.Api.Features.Channels;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Common.Infrastructure.Security;
+namespace OffceOs.Features.Channels.Api;
 
 [ApiController]
 [Route("api/channels")]

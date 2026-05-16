@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.AgentRoutines;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.AgentRoutines.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

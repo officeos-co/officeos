@@ -1,14 +1,15 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Application.Features.Context;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Common.Primitives;
-using OffceOs.Application.Features.Channels;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.AgentRoutines.Application;
+using OffceOs.Features.Context.Application;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Common.Domain.Primitives;
+using OffceOs.Features.Channels.Application;
+using OffceOs.Features.AgentHarness.Application.BrowserTools;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 {

@@ -1,9 +1,9 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Domain.Features.AgentHarness;
-namespace OffceOs.Application.Features.Channels;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Common.Infrastructure.Security;
+using OffceOs.Features.AgentHarness.Domain;
+namespace OffceOs.Features.Channels.Application;
 
 internal sealed class ChannelService : IChannelService
 {

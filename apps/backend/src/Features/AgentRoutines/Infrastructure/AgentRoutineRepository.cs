@@ -1,7 +1,7 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.AgentRoutines;
-namespace OffceOs.Infrastructure.Features.AgentRoutines;
+using OffceOs.Features.AgentRoutines.Domain;
+namespace OffceOs.Features.AgentRoutines.Infrastructure;
 
 internal sealed class AgentRoutineRepository : IAgentRoutineRepository
 {

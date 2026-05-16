@@ -1,19 +1,22 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.Browser;
-using OffceOs.Application.Features.Channels;
-using OffceOs.Application.Features.Context;
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Application.Features.Integrations;
-using OffceOs.Application.Features.Management;
-using OffceOs.Application.Features.Providers;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Context;
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Features.Management;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.AgentHarness.Application.BrowserTools;
+using OffceOs.Features.AgentHarness.Application.Tools;
+using OffceOs.Features.AgentRoutines.Application;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.Browser.Application;
+using OffceOs.Features.Channels.Application;
+using OffceOs.Features.Context.Application;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.Integrations.Application;
+using OffceOs.Features.Management.Application;
+using OffceOs.Features.Providers.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Context.Domain;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Features.Management.Domain;
+
 namespace OffceOs.Extensions;
 
 public static class ApplicationServiceCollectionExtensions

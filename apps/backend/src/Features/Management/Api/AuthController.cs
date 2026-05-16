@@ -1,10 +1,10 @@
-using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Application;
 using OffceOs.Configuration;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Infrastructure.Common.Security;
-namespace OffceOs.Api.Features.Management;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Common.Infrastructure.Security;
+namespace OffceOs.Features.Management.Api;
 
 [ApiController]
 [Route("api/auth")]

@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.Agents;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
 
 namespace OffceOs.Tests.Agents;
 

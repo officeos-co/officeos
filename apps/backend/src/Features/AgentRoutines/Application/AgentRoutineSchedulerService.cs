@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Application;
 
-namespace OffceOs.Application.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Application;
 
 internal sealed class AgentRoutineSchedulerService : BackgroundService
 {

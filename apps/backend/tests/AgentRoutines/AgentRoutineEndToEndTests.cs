@@ -1,16 +1,16 @@
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.AgentRoutines.Application;
+using OffceOs.Features.ResourceLogs.Application;
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Infrastructure.Features.Agents;
-using OffceOs.Infrastructure.Features.AgentRoutines;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Common.Infrastructure.Security;
+using OffceOs.Features.Agents.Infrastructure;
+using OffceOs.Features.AgentRoutines.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.AgentRoutines;

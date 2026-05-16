@@ -1,5 +1,5 @@
 
-namespace OffceOs.Domain.Features.Management;
+namespace OffceOs.Features.Management.Domain;
 
 public sealed class WorkspaceRecord
 {

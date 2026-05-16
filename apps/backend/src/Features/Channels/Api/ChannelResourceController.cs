@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.Channels;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Channels.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

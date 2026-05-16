@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Channels;
+namespace OffceOs.Features.Channels.Domain;
 
 /// <summary>
 /// Static definitions of supported channel types and their config field schemas.

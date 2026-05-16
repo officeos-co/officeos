@@ -1,6 +1,6 @@
-using OffceOs.Domain.Common;
+using OffceOs.Common.Domain;
 
-namespace OffceOs.Domain.Features.AgentRoutines;
+namespace OffceOs.Features.AgentRoutines.Domain;
 
 public sealed record RoutineTriggerFiredEvent(
     Guid RoutineId,

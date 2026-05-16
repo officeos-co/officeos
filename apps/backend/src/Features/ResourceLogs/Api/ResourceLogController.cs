@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Api.Features.ResourceLogs;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.ResourceLogs.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

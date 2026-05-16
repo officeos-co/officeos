@@ -1,5 +1,5 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.AgentHarness.Application;
 
 namespace OffceOs.Tests.AgentHarness;
 

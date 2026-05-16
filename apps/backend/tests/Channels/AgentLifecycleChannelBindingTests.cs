@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.Agents;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Domain.Features.Management;
-using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Features.Agents.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Features.Management.Domain;
+using OffceOs.Features.Channels.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Channels;

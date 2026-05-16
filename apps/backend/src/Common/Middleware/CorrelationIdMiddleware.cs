@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Common.Middleware;
+namespace OffceOs.Common.Middleware;
 
 public sealed class CorrelationIdMiddleware
 {

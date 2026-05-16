@@ -1,5 +1,5 @@
-using OffceOs.Domain.Common.Primitives;
-using OffceOs.Domain.Features.AgentHarness;
+using OffceOs.Common.Domain.Primitives;
+using OffceOs.Features.AgentHarness.Domain;
 
 namespace OffceOs.Tests.Shared;
 

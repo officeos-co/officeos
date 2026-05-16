@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Browser;
+using OffceOs.Features.Browser.Domain;
 
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application;
 
 public interface IBrowserService
 {

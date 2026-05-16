@@ -1,6 +1,6 @@
-using OffceOs.Domain.Common.Primitives;
+using OffceOs.Common.Domain.Primitives;
 
-namespace OffceOs.Application.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Application.Tools;
 
 /// <summary>Find files by glob pattern.</summary>
 internal sealed class GlobSearchTool : IAgentTool

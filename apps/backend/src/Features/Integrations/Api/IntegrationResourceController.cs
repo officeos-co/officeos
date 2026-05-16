@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Integrations;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.Integrations;
+using OffceOs.Features.Integrations.Domain;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Integrations.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

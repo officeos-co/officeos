@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Context;
+using OffceOs.Features.Context.Domain;
 
-namespace OffceOs.Application.Features.Context;
+namespace OffceOs.Features.Context.Application;
 
 internal sealed class MemoryStoreService : IMemoryStoreService
 {

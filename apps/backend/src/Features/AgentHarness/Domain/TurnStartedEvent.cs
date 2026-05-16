@@ -1,5 +1,5 @@
-using OffceOs.Domain.Common;
+using OffceOs.Common.Domain;
 
-namespace OffceOs.Domain.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Domain;
 
 public sealed record TurnStartedEvent(Guid AgentId, string CorrelationId, string UserMessage) : DomainEvent;

@@ -1,9 +1,9 @@
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Application.Features;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.EventHandlers.Features.Channels;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Common.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.Channels.EventHandlers;
 
 internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageOutEvent>
 {

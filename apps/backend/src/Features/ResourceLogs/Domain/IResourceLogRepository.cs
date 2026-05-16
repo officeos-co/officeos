@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.ResourceLogs;
+namespace OffceOs.Features.ResourceLogs.Domain;
 
 public enum ResourceLogSort
 {

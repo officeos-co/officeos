@@ -1,8 +1,8 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Infrastructure.Features.Providers;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Application.Features.Providers;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.ResourceLogs.Domain;
+using OffceOs.Features.Providers.Infrastructure;
+using OffceOs.Common.Domain.Primitives;
+namespace OffceOs.Features.Providers.Application;
 
 internal sealed class ProviderDispatchService : IProviderDispatchService
 {

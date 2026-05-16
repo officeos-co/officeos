@@ -1,5 +1,6 @@
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Domain.Features.Channels;
+using OffceOs.Features.Management.Domain;
+
+namespace OffceOs.Features.Channels.Domain;
 
 /// <summary>
 /// Lightweight metadata record for a channel connection. The backend stores only

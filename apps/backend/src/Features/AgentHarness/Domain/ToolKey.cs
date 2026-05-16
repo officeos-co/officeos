@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Domain;
 
 /// <summary>
 /// Represents a "skill:tool" key. Keys without ":" are treated as

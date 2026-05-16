@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Context;
-using OffceOs.Domain.Features.Management;
-namespace OffceOs.Api.Features.Context;
+using OffceOs.Features.Context.Domain;
+using OffceOs.Features.Management.Domain;
+namespace OffceOs.Features.Context.Api;
 
 [ApiController]
 [Route("api/v1/resources")]

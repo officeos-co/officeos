@@ -9,8 +9,7 @@ using OffceOs.Database;
 
 #nullable disable
 
-namespace OffceOs.Database.Migrations
-{
+namespace OffceOs.Database.Migrations{
     [DbContext(typeof(EaosDbContext))]
     [Migration("20260514172034_InitialCreate")]
     partial class InitialCreate

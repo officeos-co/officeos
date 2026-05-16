@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Context;
+using OffceOs.Features.Context.Domain;
 
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Features.Agents.Domain;
 
 /// <summary>
 /// Pure domain service that composes the system prompt from domain models.

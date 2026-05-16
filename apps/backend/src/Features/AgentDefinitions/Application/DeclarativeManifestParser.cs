@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.AgentDefinitions;
+namespace OffceOs.Features.AgentDefinitions.Application;
 
 internal sealed class DeclarativeManifestParser
 {

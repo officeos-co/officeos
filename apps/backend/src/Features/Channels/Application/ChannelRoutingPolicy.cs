@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Channels;
+using OffceOs.Features.Channels.Domain;
 
-namespace OffceOs.Application.Features.Channels;
+namespace OffceOs.Features.Channels.Application;
 
 internal static class ChannelRoutingPolicy
 {

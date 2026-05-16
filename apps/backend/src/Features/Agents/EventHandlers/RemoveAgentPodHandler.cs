@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.EventHandlers.Features.Agents;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.Agents.EventHandlers;
 
 internal sealed class RemoveAgentPodHandler : INotificationHandler<AgentDeletedEvent>
 {

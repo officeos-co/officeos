@@ -1,7 +1,7 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Context;
-namespace OffceOs.Infrastructure.Features.Context;
+using OffceOs.Features.Context.Domain;
+namespace OffceOs.Features.Context.Infrastructure;
 
 internal sealed class AgentMemoryRepository : IAgentMemoryRepository
 {

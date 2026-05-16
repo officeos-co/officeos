@@ -1,6 +1,6 @@
-using OffceOs.Domain.Common;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Domain.Features.AgentHarness;
+using OffceOs.Common.Domain;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.AgentHarness.Domain;
 
 public sealed record MessageReceivedEvent(
     Guid AgentId,

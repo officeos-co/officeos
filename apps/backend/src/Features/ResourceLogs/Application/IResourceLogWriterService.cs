@@ -1,4 +1,4 @@
-namespace OffceOs.Application.Features.ResourceLogs;
+namespace OffceOs.Features.ResourceLogs.Application;
 
 public interface IResourceLogWriterService
 {

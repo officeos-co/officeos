@@ -1,9 +1,10 @@
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Application.Features;
-namespace OffceOs.EventHandlers.Features.AgentHarness;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Common.Application;
+using OffceOs.Features.AgentHarness.Application;
+
+namespace OffceOs.Features.AgentHarness.EventHandlers;
 
 internal sealed class QueueAgentWorkHandler : INotificationHandler<MessageReceivedEvent>
 {

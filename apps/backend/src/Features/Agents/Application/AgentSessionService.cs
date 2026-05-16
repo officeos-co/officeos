@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.Application.Features.Agents;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.Agents.Application;
 
 internal sealed class AgentSessionService : IAgentSessionService
 {

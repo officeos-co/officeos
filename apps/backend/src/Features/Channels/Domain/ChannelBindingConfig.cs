@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Channels;
+namespace OffceOs.Features.Channels.Domain;
 
 /// <summary>
 /// Typed shape for <see cref="AgentChannelBindingRecord.Config"/>. Stored as JSON in that

@@ -1,6 +1,6 @@
-using OffceOs.Domain.Common.Primitives;
+using OffceOs.Common.Domain.Primitives;
 
-namespace OffceOs.Domain.Features.AgentHarness;
+namespace OffceOs.Features.AgentHarness.Domain;
 
 public sealed record AgentSandboxDeployment(string SandboxId, string? ServiceUrl);
 

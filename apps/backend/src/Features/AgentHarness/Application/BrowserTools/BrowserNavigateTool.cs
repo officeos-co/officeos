@@ -1,6 +1,7 @@
-using OffceOs.Domain.Features.Browser;
-using OffceOs.Domain.Common.Primitives;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.Browser.Domain;
+using OffceOs.Common.Domain.Primitives;
+using OffceOs.Features.AgentHarness.Application.Tools;
+namespace OffceOs.Features.AgentHarness.Application.BrowserTools;
 
 internal sealed class BrowserNavigateTool : IAgentTool
 {

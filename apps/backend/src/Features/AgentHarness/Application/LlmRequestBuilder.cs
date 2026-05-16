@@ -1,5 +1,6 @@
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.AgentHarness.Application.Tools;
+namespace OffceOs.Features.AgentHarness.Application;
 
 /// <summary>
 /// Builds OpenAI-compatible LLM request payloads from an agent, history, and available tools.

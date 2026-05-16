@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.ControlPlane;
+using OffceOs.Features.ControlPlane.Domain;
 
-namespace OffceOs.Application.Features.ControlPlane;
+namespace OffceOs.Features.ControlPlane.Application;
 
 public interface IControlPlaneResourceCatalogService
 {

@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.AgentHarness;
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
 
 namespace OffceOs.Tests.Shared;
 

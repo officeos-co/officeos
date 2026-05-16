@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Application.Features.Agents;
-namespace OffceOs.EventHandlers.Features.Agents;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.Agents.Application;
+namespace OffceOs.Features.Agents.EventHandlers;
 
 internal sealed class InvalidateAgentCacheHandler :
     INotificationHandler<AgentCreatedEvent>,

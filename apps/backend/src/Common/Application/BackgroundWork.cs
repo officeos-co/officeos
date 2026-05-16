@@ -1,6 +1,6 @@
-using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Application;
 
-namespace OffceOs.Application.Features;
+namespace OffceOs.Common.Application;
 
 /// <summary>
 /// Runs a scoped async action on a background thread. Replaces the

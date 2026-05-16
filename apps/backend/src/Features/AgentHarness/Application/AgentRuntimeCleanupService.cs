@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Application.Features.AgentHarness;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.AgentHarness.Application;
 
 internal sealed class AgentRuntimeCleanupService : BackgroundService
 {

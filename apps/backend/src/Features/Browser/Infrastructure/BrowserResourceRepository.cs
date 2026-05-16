@@ -1,8 +1,8 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Browser;
-using OffceOs.Domain.Features.Agents;
-namespace OffceOs.Infrastructure.Features.Browser;
+using OffceOs.Features.Browser.Domain;
+using OffceOs.Features.Agents.Domain;
+namespace OffceOs.Features.Browser.Infrastructure;
 
 internal sealed class BrowserResourceRepository : IBrowserResourceRepository
 {

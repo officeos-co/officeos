@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Integrations;
+namespace OffceOs.Features.Integrations.Domain;
 
 /// <summary>
 /// Manages connections to integrations. Returns raw integration tool metadata.

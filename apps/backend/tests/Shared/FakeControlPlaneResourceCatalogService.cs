@@ -1,5 +1,5 @@
-using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Domain.Features.ControlPlane;
+using OffceOs.Features.ControlPlane.Application;
+using OffceOs.Features.ControlPlane.Domain;
 
 namespace OffceOs.Tests.Shared;
 

@@ -1,7 +1,7 @@
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Features.Browser;
-namespace OffceOs.Infrastructure.Features.Browser;
+using OffceOs.Features.Browser.Domain;
+namespace OffceOs.Features.Browser.Infrastructure;
 
 internal sealed class BrowserSessionRepository : IBrowserSessionRepository
 {

@@ -1,5 +1,5 @@
-using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Domain.Features.AgentDefinitions;
+using OffceOs.Features.AgentDefinitions.Application;
+using OffceOs.Features.AgentDefinitions.Domain;
 
 namespace OffceOs.Tests.AgentDefinitions;
 

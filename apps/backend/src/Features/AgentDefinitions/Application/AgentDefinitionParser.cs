@@ -1,8 +1,8 @@
-using OffceOs.Domain.Features.AgentDefinitions;
-using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.AgentRoutines;
-namespace OffceOs.Application.Features.AgentDefinitions;
+using OffceOs.Features.AgentDefinitions.Domain;
+using OffceOs.Features.AgentHarness.Domain;
+using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.AgentRoutines.Domain;
+namespace OffceOs.Features.AgentDefinitions.Application;
 
 internal sealed class AgentDefinitionParser
 {

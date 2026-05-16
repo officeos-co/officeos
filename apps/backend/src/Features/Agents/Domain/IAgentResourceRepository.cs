@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Agents;
+namespace OffceOs.Features.Agents.Domain;
 
 public interface IAgentResourceRepository
 {

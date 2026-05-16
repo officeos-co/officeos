@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Features.Channels;
+namespace OffceOs.Features.Channels.Domain;
 
 /// <summary>
 /// In-memory store that maps a turn's correlationId to the channel it should

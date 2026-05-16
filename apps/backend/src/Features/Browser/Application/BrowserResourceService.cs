@@ -1,6 +1,6 @@
-using OffceOs.Domain.Features.Browser;
+using OffceOs.Features.Browser.Domain;
 
-namespace OffceOs.Application.Features.Browser;
+namespace OffceOs.Features.Browser.Application;
 
 internal sealed class BrowserResourceService : IBrowserResourceService
 {

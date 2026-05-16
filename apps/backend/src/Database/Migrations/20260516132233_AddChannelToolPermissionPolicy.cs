@@ -2,8 +2,7 @@
 
 #nullable disable
 
-namespace OffceOs.Database.Migrations
-{
+namespace OffceOs.Database.Migrations{
     /// <inheritdoc />
     public partial class AddChannelToolPermissionPolicy : Migration
     {

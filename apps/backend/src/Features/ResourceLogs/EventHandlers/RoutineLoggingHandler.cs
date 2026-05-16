@@ -1,7 +1,7 @@
-using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.ResourceLogs;
-namespace OffceOs.EventHandlers.Features.ResourceLogs;
+using OffceOs.Features.ResourceLogs.Application;
+using OffceOs.Features.AgentRoutines.Domain;
+using OffceOs.Features.ResourceLogs.Domain;
+namespace OffceOs.Features.ResourceLogs.EventHandlers;
 
 internal sealed class RoutineLoggingHandler :
     INotificationHandler<RoutineTriggerFiredEvent>,

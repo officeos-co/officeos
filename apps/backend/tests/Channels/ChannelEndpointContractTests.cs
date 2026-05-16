@@ -1,7 +1,7 @@
-using OffceOs.Api.Features.Channels;
-using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Common.Security;
-using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Features.Channels.Api;
+using OffceOs.Features.Channels.Domain;
+using OffceOs.Common.Infrastructure.Security;
+using OffceOs.Features.Channels.Infrastructure;
 using OffceOs.Tests.Shared;
 
 namespace OffceOs.Tests.Channels;

@@ -1,4 +1,4 @@
-namespace OffceOs.Infrastructure.Common.Security;
+namespace OffceOs.Common.Infrastructure.Security;
 
 internal sealed class AgentBackendTokenProtector
 {
