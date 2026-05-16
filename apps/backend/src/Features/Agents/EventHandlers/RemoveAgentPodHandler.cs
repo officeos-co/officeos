@@ -3,20 +3,15 @@ namespace OffceOs.EventHandlers.Features.Agents;
 internal sealed class RemoveAgentPodHandler : INotificationHandler<AgentDeletedEvent>
 {
     private readonly IAgentDeployer _agentDeployer;
-    private readonly ILogger<RemoveAgentPodHandler> _logger;
 
-    public RemoveAgentPodHandler(IAgentDeployer deployer, ILogger<RemoveAgentPodHandler> logger)
-    {
-        _agentDeployer = deployer;
-        _logger = logger;
-    }
+    public RemoveAgentPodHandler(IAgentDeployer deployer)
+        => _agentDeployer = deployer;
 
     public async Task Handle(AgentDeletedEvent notification, CancellationToken ct)
     {
         if (!notification.HasPod || string.IsNullOrEmpty(notification.PodName))
             return;
 
-        _logger.LogInformation("Removing pod {PodName} for agent {AgentId}", notification.PodName, notification.AgentId);
         await _agentDeployer.RemoveAsync(notification.PodName, ct);
     }
 }

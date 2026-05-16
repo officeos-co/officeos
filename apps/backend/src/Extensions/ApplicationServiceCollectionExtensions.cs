@@ -18,7 +18,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IIntegrationDeploymentService, IntegrationDeploymentService>();
         services.AddScoped<IAgentMemoryService, AgentMemoryService>();
         services.AddScoped<IMemoryStoreService, MemoryStoreService>();
-        services.AddScoped<IAgentLogService, AgentLogService>();
+        services.AddScoped<IResourceLogService, ResourceLogService>();
+        services.AddScoped<IResourceLogWriterService, ResourceLogWriterService>();
+        services.AddScoped<IAgentWorkQueueService, AgentWorkQueueService>();
         services.AddScoped<IAgentHarnessService, AgentHarnessService>();
         services.AddScoped<TurnEventPublisher>();
         services.AddScoped<ConversationCompactionService>();

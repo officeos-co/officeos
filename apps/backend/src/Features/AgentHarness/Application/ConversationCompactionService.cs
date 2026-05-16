@@ -1,6 +1,6 @@
 namespace OffceOs.Application.Features.AgentHarness;
 
-internal sealed record ConversationContextWindow(string? Summary, IReadOnlyList<AgentLogRecord> Logs);
+internal sealed record ConversationContextWindow(string? Summary, IReadOnlyList<ResourceLogRecord> Logs);
 
 internal sealed class ConversationCompactionService
 {
@@ -10,29 +10,29 @@ internal sealed class ConversationCompactionService
     private const int SummaryMaxChars = 12_000;
 
     private readonly IAgentSessionContextRepository _agentSessionContextRepository;
-    private readonly IAgentLogRepository _agentLogRepository;
+    private readonly IResourceLogRepository _resourceLogRepository;
     private readonly IPublisher _publisher;
 
     public ConversationCompactionService(
         IAgentSessionContextRepository contextRepository,
-        IAgentLogRepository logRepository,
+        IResourceLogRepository logRepository,
         IPublisher publisher)
     {
         _agentSessionContextRepository = contextRepository;
-        _agentLogRepository = logRepository;
+        _resourceLogRepository = logRepository;
         _publisher = publisher;
     }
 
     public async Task<ConversationContextWindow> LoadAsync(Guid agentId, string correlationId, CancellationToken ct)
     {
         var context = await _agentSessionContextRepository.GetByAsync(new AgentSessionContextFilter { AgentId = agentId }, ct);
-        var logs = await _agentLogRepository.ListAsync(
-            new AgentLogFilter { AgentId = agentId },
-            new AgentLogListOptions
+        var logs = await _resourceLogRepository.ListAsync(
+            new ResourceLogFilter { AgentId = agentId },
+            new ResourceLogListOptions
             {
                 AfterLogId = context?.LastCompactedLogId,
                 Limit = LoadLimit,
-                Sort = AgentLogSort.TimeAscending,
+                Sort = ResourceLogSort.TimeAscending,
             },
             ct);
 
@@ -70,15 +70,15 @@ internal sealed class ConversationCompactionService
         return new ConversationContextWindow(summary, tail);
     }
 
-    private static string BuildSummary(string? previousSummary, IReadOnlyList<AgentLogRecord> logs)
+    private static string BuildSummary(string? previousSummary, IReadOnlyList<ResourceLogRecord> logs)
     {
-        var userGoals = logs.Where(l => l.Type is AgentLogType.MessageIn or AgentLogType.ChannelIn)
+        var userGoals = logs.Where(l => l.Type is ResourceLogType.MessageIn or ResourceLogType.ChannelIn)
             .Select(l => Trim(l.Content, 400))
             .TakeLast(8);
-        var assistantState = logs.Where(l => l.Type == AgentLogType.MessageOut)
+        var assistantState = logs.Where(l => l.Type == ResourceLogType.MessageOut)
             .Select(l => Trim(l.Content, 400))
             .TakeLast(8);
-        var tools = logs.Where(l => l.Type is AgentLogType.ToolCall or AgentLogType.ToolResult)
+        var tools = logs.Where(l => l.Type is ResourceLogType.ToolCall or ResourceLogType.ToolResult)
             .Select(l => $"{l.Type}: {l.Tool ?? "unknown"} {Trim(l.Content, 240)}")
             .TakeLast(16);
         var errors = logs.Where(l => l.Type.ToString().StartsWith("Error", StringComparison.Ordinal))

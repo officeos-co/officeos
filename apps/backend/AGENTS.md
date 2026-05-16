@@ -197,7 +197,7 @@ If a new `Dto` appears under `Features/*/Domain`, treat it as a failing architec
 - Domain events represent lifecycle facts: agent creation/update/deletion, turn start/completion/diagnostics, pod connection, LLM usage, tool calls/results, message in/out, channel routing, compaction, and errors.
 - Put event side effects in EventHandlers.
 - Agent interactions are structured log entries, not chat messages. Preserve typed log semantics such as `MessageIn`, `ToolCall`, `ToolResult`, `MessageOut`, `System`, and typed error categories.
-- Use `AgentLogRecord` factory methods when they match the entry being created.
+- Use `ResourceLogRecord` factory methods when they match the entry being created.
 - Serilog/`ILogger` is for operational diagnostics, not the agent timeline.
 
 ## API And GraphQL
@@ -306,7 +306,7 @@ Dependency field naming enforced by `EAOS010`:
 - Private readonly injected dependency fields use the dependency type name without shortening.
 - Strip only the leading interface `I`, then camel-case the remaining type name.
 - Examples: `IChannelRepository _channelRepository`, `IChannelGateway _channelGateway`, `IAgentRepository _agentRepository`, `ChannelCredentialProtector _channelCredentialProtector`, `ChannelReplyContext _channelReplyContext`.
-- Framework/common exceptions keep the obvious type-derived names: `ILogger<T> _logger`, `IPublisher _publisher`, `HttpClient _httpClient`, `EaosDbContext _eaosDbContext`, `IDistributedCache _distributedCache`.
+- Framework/common exceptions keep the obvious type-derived names: `IPublisher _publisher`, `HttpClient _httpClient`, `EaosDbContext _eaosDbContext`, `IDistributedCache _distributedCache`.
 - Avoid aliases such as `_repo`, `_db`, `_agents`, `_gateway`, `_protector`, `_events`, `_cache`, `_http`, `_browser`, or `_runtime`.
 
 ## Running

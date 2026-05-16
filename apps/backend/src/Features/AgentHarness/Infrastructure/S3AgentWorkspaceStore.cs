@@ -6,17 +6,14 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
     private readonly WorkspaceStorageConfig _workspaceStorageConfig;
     private readonly PodExecutorClient _podExecutorClient;
     private readonly IAmazonS3 _amazonS3;
-    private readonly ILogger<S3AgentWorkspaceStore> _logger;
     private bool _bucketChecked;
 
     public S3AgentWorkspaceStore(
         WorkspaceStorageConfig config,
-        PodExecutorClient executor,
-        ILogger<S3AgentWorkspaceStore> logger)
+        PodExecutorClient executor)
     {
         _workspaceStorageConfig = config;
         _podExecutorClient = executor;
-        _logger = logger;
         _amazonS3 = new AmazonS3Client(
             _workspaceStorageConfig.AccessKey,
             _workspaceStorageConfig.SecretKey,
@@ -33,10 +30,7 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
         await EnsureBucketAsync(ct);
         var key = ObjectKey(sandboxId);
         if (!await ObjectExistsAsync(key, ct))
-        {
-            _logger.LogDebug("No workspace checkpoint found for sandbox {SandboxId}", sandboxId);
             return;
-        }
 
         using var response = await _amazonS3.GetObjectAsync(_workspaceStorageConfig.Bucket, key, ct);
         var upload = await _podExecutorClient.UploadFileStreamAsync(
@@ -60,7 +54,6 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
         if (extract.Value.ExitCode != 0)
             throw new InvalidOperationException($"Workspace restore failed: {extract.Value.Output}");
 
-        _logger.LogInformation("Restored workspace checkpoint {ObjectKey} for sandbox {SandboxId}", key, sandboxId);
     }
 
     public async Task CheckpointAsync(string sandboxId, string serviceUrl, CancellationToken ct = default)
@@ -98,7 +91,6 @@ internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore
             TimeSpan.FromSeconds(10),
             ct);
 
-        _logger.LogInformation("Checkpointed workspace for sandbox {SandboxId} to {ObjectKey}", sandboxId, key);
     }
 
     internal static string ObjectKey(string sandboxId) => $"workspaces/{sandboxId}/workspace.tar.gz";

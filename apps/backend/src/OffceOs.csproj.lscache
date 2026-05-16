@@ -355,7 +355,7 @@ Features/Channels/Domain/
  ChannelConnectionRecord.cs
  ChannelCredsStoredEvent.cs
  ChannelMessage.cs
- ChannelMessageRoutedEvent.cs
+ 
  ChannelReplyContext.cs
  ChannelTypeDefinitions.cs
  IChannelBroadcastService.cs
@@ -445,21 +445,21 @@ Features/Management/Infrastructure/
  UserRepository.cs
  WorkspaceMemberRepository.cs
  WorkspaceRepository.cs
-Features/Observability/
+Features/ResourceLogs/
  Api/ResourceLogController.cs
  Application/
-  AgentLogContracts.cs
-  AgentLogProjections.cs
-  AgentLogService.cs
+  ResourceLogContracts.cs
+  ResourceLogProjections.cs
+  ResourceLogService.cs
  Domain/
-  AgentLogFilter.cs
-  AgentLogRecord.cs
-  AgentLogTopics.cs
-  IAgentLogRepository.cs
+  ResourceLogFilter.cs
+  ResourceLogRecord.cs
+  ResourceLogTopics.cs
+  IResourceLogRepository.cs
  EventHandlers/
   LogChannelInboundHandler.cs
   TurnLoggingHandler.cs
- Infrastructure/AgentLogRepository.cs
+ Infrastructure/ResourceLogRepository.cs
 Features/Providers/
  Api/ProviderResourceController.cs
  Application/

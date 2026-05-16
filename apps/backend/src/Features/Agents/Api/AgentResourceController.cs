@@ -9,16 +9,16 @@ public sealed class AgentResourceController : ControllerBase
     public async Task<IActionResult> ListAgents(
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentRepository agents,
-        [FromServices] IAgentLogService logs,
+        [FromServices] IResourceLogService logs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
         if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
         var agentRecords = await agents.ListAsync(new AgentFilter { WorkspaceId = scope.Value.WorkspaceId }, ct);
-        var workLogs = await logs.ListAsync(new AgentLogQueryRequest(
+        var workLogs = await logs.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: scope.Value.WorkspaceId,
-            Type: AgentLogType.MessageIn,
+            Type: ResourceLogType.MessageIn,
             WorkStatus: string.Empty,
             Limit: 1000), ct);
         return Ok(agentRecords.Select(agent => ToAgentResource(agent, AgentHealthProjection.From(agent, workLogs.Items))));
@@ -30,7 +30,7 @@ public sealed class AgentResourceController : ControllerBase
         string name,
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IAgentRepository agents,
-        [FromServices] IAgentLogService logs,
+        [FromServices] IResourceLogService logs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
@@ -42,10 +42,10 @@ public sealed class AgentResourceController : ControllerBase
             return NotFound(new { error = $"agents/{name} was not found." });
         }
 
-        var workLogs = await logs.ListAsync(new AgentLogQueryRequest(
+        var workLogs = await logs.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: scope.Value.WorkspaceId,
             AgentId: agent.Id,
-            Type: AgentLogType.MessageIn,
+            Type: ResourceLogType.MessageIn,
             Limit: 1000), ct);
         return Ok(ToAgentDetailsResource(agent, AgentHealthProjection.From(agent, workLogs.Items)));
     }

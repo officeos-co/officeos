@@ -39,7 +39,7 @@ internal sealed class TurnContextBuilder
         }
 
         var outCorrelations = new HashSet<string>(
-            ordered.Where(l => l.Type == AgentLogType.MessageOut && l.CorrelationId is not null)
+            ordered.Where(l => l.Type == ResourceLogType.MessageOut && l.CorrelationId is not null)
                 .Select(l => l.CorrelationId!));
 
         var pendingToolCallIds = new Queue<string>();
@@ -48,21 +48,21 @@ internal sealed class TurnContextBuilder
         {
             switch (log.Type)
             {
-                case AgentLogType.MessageIn:
+                case ResourceLogType.MessageIn:
                     history.Push(new ChatMessage { Role = "user", Content = log.Content ?? "" });
                     break;
-                case AgentLogType.ChannelIn:
+                case ResourceLogType.ChannelIn:
                     history.Push(new ChatMessage { Role = "user", Content = ExtractPlainText(log.Content ?? "") });
                     break;
-                case AgentLogType.MessageOut:
+                case ResourceLogType.MessageOut:
                     history.Push(new ChatMessage { Role = "assistant", Content = log.Content ?? "" });
                     break;
-                case AgentLogType.ChannelOut when log.CorrelationId is not null && outCorrelations.Contains(log.CorrelationId):
+                case ResourceLogType.ChannelOut when log.CorrelationId is not null && outCorrelations.Contains(log.CorrelationId):
                     break;
-                case AgentLogType.ChannelOut:
+                case ResourceLogType.ChannelOut:
                     history.Push(new ChatMessage { Role = "assistant", Content = log.Content ?? "" });
                     break;
-                case AgentLogType.ToolCall:
+                case ResourceLogType.ToolCall:
                     var tcId = log.Id.ToString("N");
                     pendingToolCallIds.Enqueue(tcId);
                     history.Push(new ChatMessage
@@ -80,7 +80,7 @@ internal sealed class TurnContextBuilder
                         ],
                     });
                     break;
-                case AgentLogType.ToolResult:
+                case ResourceLogType.ToolResult:
                     var matchId = pendingToolCallIds.Count > 0 ? pendingToolCallIds.Dequeue() : log.Id.ToString("N");
                     history.Push(new ChatMessage { Role = "tool", Content = log.Content ?? "", ToolCallId = matchId });
                     break;

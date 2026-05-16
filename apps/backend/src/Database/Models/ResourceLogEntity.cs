@@ -11,7 +11,7 @@ public sealed class ResourceLogEntity
     public Guid? AgentId { get; set; }
     public Guid? WorkspaceId { get; set; }
     public DateTime Time { get; set; }
-    public AgentLogType Type { get; set; }
+    public ResourceLogType Type { get; set; }
     public string Severity { get; set; } = ResourceLogSeverityKinds.Info;
     public string? Tool { get; set; }
     public string? Integration { get; set; }

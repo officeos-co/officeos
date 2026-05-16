@@ -4,18 +4,18 @@ internal sealed class WorkspaceService : IWorkspaceService
 {
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
     private readonly IDistributedCache _distributedCache;
 
     public WorkspaceService(
         IWorkspaceRepository workspaceRepository,
         IWorkspaceMemberRepository workspaceMemberRepository,
-        IAgentLogService agentLogService,
+        IResourceLogService resourceLogService,
         IDistributedCache distributedCache)
     {
         _workspaceRepository = workspaceRepository;
         _workspaceMemberRepository = workspaceMemberRepository;
-        _agentLogService = agentLogService;
+        _resourceLogService = resourceLogService;
         _distributedCache = distributedCache;
     }
 
@@ -34,7 +34,7 @@ internal sealed class WorkspaceService : IWorkspaceService
         await _workspaceMemberRepository.UpsertAsync(
             WorkspaceMemberRecord.Create(created.Id, userId, WorkspaceRole.Owner),
             ct);
-        await AppendWorkspaceLogAsync(created, AgentLogType.System, "Workspace created.", ct);
+        await AppendWorkspaceLogAsync(created, ResourceLogType.System, "Workspace created.", ct);
         await InvalidateUserAsync(userId, ct);
         return created;
     }
@@ -47,7 +47,7 @@ internal sealed class WorkspaceService : IWorkspaceService
 
         workspace.Rename(name);
         var updated = await _workspaceRepository.SaveAsync(workspace, ct);
-        await AppendWorkspaceLogAsync(updated, AgentLogType.System, "Workspace updated.", ct);
+        await AppendWorkspaceLogAsync(updated, ResourceLogType.System, "Workspace updated.", ct);
         await InvalidateUserAsync(userId, ct);
         return updated;
     }
@@ -70,7 +70,7 @@ internal sealed class WorkspaceService : IWorkspaceService
         if (deleted)
         {
             await _workspaceRepository.GetCurrentAsync(userId, ct);
-            await AppendWorkspaceLogAsync(workspace, AgentLogType.System, "Workspace deleted.", ct);
+            await AppendWorkspaceLogAsync(workspace, ResourceLogType.System, "Workspace deleted.", ct);
             await InvalidateUserAsync(userId, ct);
         }
 
@@ -164,8 +164,8 @@ internal sealed class WorkspaceService : IWorkspaceService
         };
     }
 
-    private Task AppendWorkspaceLogAsync(WorkspaceRecord workspace, AgentLogType type, string content, CancellationToken ct)
-        => _agentLogService.AppendAsync(new AgentLogRecord
+    private Task AppendWorkspaceLogAsync(WorkspaceRecord workspace, ResourceLogType type, string content, CancellationToken ct)
+        => _resourceLogService.AppendAsync(new ResourceLogRecord
         {
             WorkspaceId = workspace.Id,
             ResourceKind = ResourceLogKinds.Workspace,
@@ -176,7 +176,7 @@ internal sealed class WorkspaceService : IWorkspaceService
         }, ct);
 
     private Task AppendWorkspaceBindingLogAsync(Guid workspaceId, Guid userId, string content, CancellationToken ct)
-        => _agentLogService.AppendAsync(new AgentLogRecord
+        => _resourceLogService.AppendAsync(new ResourceLogRecord
         {
             WorkspaceId = workspaceId,
             ResourceKind = ResourceLogKinds.WorkspaceBinding,
@@ -184,7 +184,7 @@ internal sealed class WorkspaceService : IWorkspaceService
             ResourceName = userId.ToString("N"),
             ParentResourceKind = ResourceLogKinds.Workspace,
             ParentResourceId = workspaceId,
-            Type = AgentLogType.System,
+            Type = ResourceLogType.System,
             Content = content,
             MetadataJson = JsonSerializer.Serialize(new { workspaceId, userId }),
         }, ct);

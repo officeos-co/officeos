@@ -1,4 +1,5 @@
 using OffceOs.Application.Features.Channels;
+using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Features.AgentHarness;
@@ -6,16 +7,16 @@ using OffceOs.Domain.Features.Channels;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using MediatR;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace OffceOs.Tests.Shared;
 
 internal sealed class ChannelTestHarness : IAsyncDisposable
 {
-    private ChannelTestHarness(EaosDbContext db, IPublisher publisher)
+    private ChannelTestHarness(EaosDbContext db, IPublisher publisher, IResourceLogWriterService resourceLogWriterService)
     {
         Db = db;
         Publisher = publisher;
@@ -28,7 +29,7 @@ internal sealed class ChannelTestHarness : IAsyncDisposable
                 Path.Combine(Path.GetTempPath(), $"eaos-channel-test-keys-{Guid.NewGuid():N}")))),
             publisher,
             new ChannelReplyContext(),
-            NullLogger<ChannelService>.Instance);
+            resourceLogWriterService);
     }
 
     public EaosDbContext Db { get; }
@@ -41,7 +42,6 @@ internal sealed class ChannelTestHarness : IAsyncDisposable
     public IReadOnlyList<object> Notifications => Publisher switch
     {
         RecordingPublisher publisher => publisher.Notifications,
-        ChannelEventPersistingPublisher publisher => publisher.Notifications,
         _ => [],
     };
 
@@ -49,12 +49,13 @@ internal sealed class ChannelTestHarness : IAsyncDisposable
         Notifications.OfType<MessageReceivedEvent>().ToList();
 
     public static ChannelTestHarness Create(string namePrefix) =>
-        new(TestDbFactory.Create(namePrefix), new RecordingPublisher());
+        new(TestDbFactory.Create(namePrefix), new RecordingPublisher(), new FakeResourceLogWriterService());
 
     public static ChannelTestHarness CreatePersisting(string namePrefix)
     {
         var db = TestDbFactory.Create(namePrefix);
-        return new ChannelTestHarness(db, new ChannelEventPersistingPublisher(db));
+        var resourceLogService = new ResourceLogService(new ResourceLogRepository(db), new FakeControlPlaneResourceCatalogService());
+        return new ChannelTestHarness(db, new RecordingPublisher(), new FakeResourceLogWriterService(resourceLogService));
     }
 
     public void SeedAgents(params Guid[] agentIds)
@@ -83,9 +84,6 @@ internal sealed class ChannelTestHarness : IAsyncDisposable
     {
         Assert.Empty(notified);
         Assert.Empty(MessageEvents);
-        Assert.DoesNotContain(
-            Notifications.OfType<ChannelMessageRoutedEvent>(),
-            ev => ev.AgentId.HasValue && agentIds.Contains(ev.AgentId.Value));
     }
 
     public async ValueTask DisposeAsync()

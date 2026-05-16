@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using OffceOs.Api.Common.Middleware;
 using OffceOs.Configuration;
 using OffceOs.Database.Models;
@@ -47,7 +46,6 @@ public sealed class SessionAuthMiddlewareTests
 
         var middleware = new SessionAuthMiddleware(
             _ => Task.CompletedTask,
-            NullLogger<SessionAuthMiddleware>.Instance,
             new SessionAuthConfig());
 
         await middleware.InvokeAsync(context);

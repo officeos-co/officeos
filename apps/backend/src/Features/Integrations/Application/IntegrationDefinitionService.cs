@@ -10,7 +10,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
     private readonly IIntegrationCredentialEncryptionService _integrationCredentialEncryptionService;
-    private readonly ILogger<IntegrationDefinitionService> _logger;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
 
     public IntegrationDefinitionService(
         IAgentIntegrationRepository agentIntegrations,
@@ -18,7 +18,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         IIntegrationDefinitionRepository definitions,
         IIntegrationCredentialRepository credentials,
         IIntegrationCredentialEncryptionService integrationCredentialEncryptionService,
-        ILogger<IntegrationDefinitionService> logger,
+        IResourceLogWriterService resourceLogWriterService,
         IIntegrationDeploymentRepository integrationDeploymentRepository,
         IWorkspaceRepository workspaceRepository,
         IWorkspaceMemberRepository workspaceMemberRepository)
@@ -31,7 +31,7 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         _workspaceRepository = workspaceRepository;
         _workspaceMemberRepository = workspaceMemberRepository;
         _integrationCredentialEncryptionService = integrationCredentialEncryptionService;
-        _logger = logger;
+        _resourceLogWriterService = resourceLogWriterService;
     }
 
     public async Task<IReadOnlyList<IntegrationDefinitionRecord>> ListAsync(Guid ownerId, Guid? workspaceId = null, CancellationToken ct = default)
@@ -89,7 +89,6 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
         if (!effectiveOwnerId.HasValue) return [];
 
         var names = await _agentIntegrationRepository.ListIntegrationNamesForAgentAsync(agentId, ct);
-        _logger.LogDebug("integration catalog for agent {AgentId}: assigned integrations [{Integrations}]", agentId, string.Join(", ", names));
         if (names.Count == 0) return [];
 
         var allowed = names.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -112,7 +111,9 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             throw new InvalidOperationException($"integration '{integrationName}' is not deployed to this workspace.");
 
         await _agentIntegrationRepository.AssignAsync(agentId, server.Name, ct);
-        _logger.LogInformation("Assigned integration {Integration} to agent {AgentId}", server.Name, agentId);
+        await _resourceLogWriterService
+            .ForAgent(agentId)
+            .InfoAsync("Assigned integration {Integration}", server.Name, ct);
     }
 
     public Task UnassignFromAgentAsync(Guid agentId, string integrationName, CancellationToken ct = default)

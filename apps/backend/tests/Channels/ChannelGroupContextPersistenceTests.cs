@@ -1,7 +1,7 @@
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.AgentHarness;
-using OffceOs.Domain.Features.Observability;
-using OffceOs.Infrastructure.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
 using Xunit;
 
@@ -26,16 +26,16 @@ public sealed class ChannelGroupContextPersistenceTests
             messageId: "1710000000.000100",
             channelId: "C-ops");
 
-        var repository = new AgentLogRepository(harness.Db);
-        var agentLogs = await repository.ListAsync(new AgentLogFilter { AgentId = agentId });
-        var channelLogs = await repository.ListAsync(new AgentLogFilter { ChannelConnectionId = slack.Id });
+        var repository = new ResourceLogRepository(harness.Db);
+        var agentLogs = await repository.ListAsync(new ResourceLogFilter { AgentId = agentId });
+        var channelLogs = await repository.ListAsync(new ResourceLogFilter { ChannelConnectionId = slack.Id });
 
         Assert.Empty(notified);
         Assert.Empty(harness.Notifications.OfType<MessageReceivedEvent>());
         Assert.Empty(agentLogs);
         var rejectedLog = Assert.Single(channelLogs);
         Assert.Null(rejectedLog.AgentId);
-        Assert.Equal(AgentLogType.ChannelIn, rejectedLog.Type);
+        Assert.Equal(ResourceLogType.ChannelIn, rejectedLog.Type);
         Assert.Equal(slack.Id, rejectedLog.ChannelConnectionId);
     }
 

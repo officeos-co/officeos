@@ -4,16 +4,16 @@ internal sealed class AgentSessionService : IAgentSessionService
 {
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
 
     public AgentSessionService(
         IAgentRepository agents,
         IAgentSessionRepository sessions,
-        IAgentLogService logs)
+        IResourceLogService logs)
     {
         _agentRepository = agents;
         _agentSessionRepository = sessions;
-        _agentLogService = logs;
+        _resourceLogService = logs;
     }
 
     public async Task<IReadOnlyList<AgentSessionRecord>> ListByAgentAsync(
@@ -48,7 +48,7 @@ internal sealed class AgentSessionService : IAgentSessionService
         await _agentSessionRepository.CreateAsync(session, ct);
 
         var bootstrapMsg = session.FormatBootstrapMessage(agent.PersonalityFiles, isFirst);
-        await _agentLogService.AppendAsync(AgentLogRecord.System(agentId, bootstrapMsg), ct);
+        await _resourceLogService.AppendAsync(ResourceLogRecord.System(agentId, bootstrapMsg), ct);
 
         return session;
     }

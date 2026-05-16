@@ -1,20 +1,20 @@
 using System.Text;
+using OffceOs.Application.Features.AgentHarness;
 using OffceOs.Application.Features.Agents;
 using OffceOs.Application.Features.AgentRoutines;
-using OffceOs.Application.Features.Observability;
+using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.AgentRoutines;
 using OffceOs.Tests.Shared;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace OffceOs.Tests.AgentRoutines;
@@ -156,12 +156,12 @@ public sealed class AgentRoutineEndToEndTests
     {
         var agentRepository = new AgentRepository(db);
         var routineRepository = new AgentRoutineRepository(db);
-        var logs = new RecordingAgentLogService();
+        var logs = new RecordingResourceLogService();
         var agents = new RecordingAgentService();
         var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-routine-test-keys-{Guid.NewGuid():N}");
         var credentialProtector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
         var service = new AgentRoutineService(routineRepository, agentRepository, credentialProtector);
-        var execution = new AgentRoutineExecutionService(routineRepository, logs, agents, credentialProtector, new NoopPublisher(), NullLogger<AgentRoutineExecutionService>.Instance);
+        var execution = new AgentRoutineExecutionService(routineRepository, logs, agents, credentialProtector, new NoopPublisher());
         return (service, execution, agents);
     }
 
@@ -213,10 +213,10 @@ public sealed class AgentRoutineEndToEndTests
         return new EaosDbContext(options);
     }
 
-    private sealed class RecordingAgentLogService : IAgentLogService
+    private sealed class RecordingResourceLogService : IResourceLogService
     {
-        public Task<AgentLogPage> ListAsync(AgentLogQueryRequest request, CancellationToken ct = default) =>
-            Task.FromResult(new AgentLogPage([], 0));
+        public Task<ResourceLogPage> ListAsync(ResourceLogQueryRequest request, CancellationToken ct = default) =>
+            Task.FromResult(new ResourceLogPage([], 0));
 
         public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesAsync(LastRelevantLogQueryRequest request, CancellationToken ct = default)
         {
@@ -225,20 +225,20 @@ public sealed class AgentRoutineEndToEndTests
                 ids.ToDictionary(id => id, _ => (string?)null));
         }
 
-        public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default) =>
+        public Task<ResourceLogRecord> AppendAsync(ResourceLogRecord record, CancellationToken ct = default) =>
             Task.FromResult(record);
 
-        public Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default) =>
-            Task.FromResult(AgentLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId));
+        public Task<ResourceLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default) =>
+            Task.FromResult(ResourceLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId));
 
-        public Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
-            Task.FromResult<AgentLogRecord?>(null);
+        public Task<ResourceLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
 
-        public Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default) =>
-            Task.FromResult<AgentLogRecord?>(null);
+        public Task<ResourceLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
 
-        public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
-            Task.FromResult<AgentLogRecord?>(null);
+        public Task<ResourceLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
 
         public Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default) =>
             Task.CompletedTask;
@@ -269,7 +269,7 @@ public sealed class AgentRoutineEndToEndTests
         public Task InitializeAgentAsync(Guid agentId, Guid userId, AgentInitRequest init, CancellationToken ct = default) =>
             Task.CompletedTask;
 
-        public Task<AgentLogRecord> SendMessageAsync(
+        public Task<ResourceLogRecord> SendMessageAsync(
             Guid agentId,
             string content,
             Guid userId,
@@ -278,7 +278,7 @@ public sealed class AgentRoutineEndToEndTests
             Guid? definitionId = null)
         {
             Messages.Add((agentId, content, userId, runPurpose));
-            return Task.FromResult(AgentLogRecord.MessageIn(agentId, content));
+            return Task.FromResult(ResourceLogRecord.MessageIn(agentId, content));
         }
     }
 }

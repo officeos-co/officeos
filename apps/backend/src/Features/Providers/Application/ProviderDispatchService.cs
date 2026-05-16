@@ -4,16 +4,16 @@ internal sealed class ProviderDispatchService : IProviderDispatchService
 {
     private readonly IProviderService _providerService;
     private readonly LlmProviderDispatcher _llmProviderDispatcher;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
 
     public ProviderDispatchService(
         IProviderService providerService,
         LlmProviderDispatcher llmProviderDispatcher,
-        IAgentLogService agentLogService)
+        IResourceLogService resourceLogService)
     {
         _providerService = providerService;
         _llmProviderDispatcher = llmProviderDispatcher;
-        _agentLogService = agentLogService;
+        _resourceLogService = resourceLogService;
     }
 
     public async Task<AgentResult<LlmDispatchResponse>> DispatchAsync(
@@ -27,12 +27,12 @@ internal sealed class ProviderDispatchService : IProviderDispatchService
         if (auth is null)
         {
             if (workspaceId.HasValue)
-                await AppendProviderLogAsync(provider, workspaceId.Value, AgentLogType.ErrorConfiguration, $"Provider '{provider}' has no authentication configured.", model, ct);
+                await AppendProviderLogAsync(provider, workspaceId.Value, ResourceLogType.ErrorConfiguration, $"Provider '{provider}' has no authentication configured.", model, ct);
             return new AgentError(AgentErrorCategory.Configuration, $"Provider '{provider}' has no authentication configured.");
         }
 
         if (workspaceId.HasValue)
-            await AppendProviderLogAsync(provider, workspaceId.Value, AgentLogType.System, $"Dispatching LLM request to provider '{provider}' model '{model}'.", model, ct);
+            await AppendProviderLogAsync(provider, workspaceId.Value, ResourceLogType.System, $"Dispatching LLM request to provider '{provider}' model '{model}'.", model, ct);
 
         var result = await _llmProviderDispatcher.DispatchAsync(provider, auth, model, requestBody, ct);
         if (result.IsFailure && workspaceId.HasValue)
@@ -44,12 +44,12 @@ internal sealed class ProviderDispatchService : IProviderDispatchService
     private Task AppendProviderLogAsync(
         string provider,
         Guid workspaceId,
-        AgentLogType type,
+        ResourceLogType type,
         string content,
         string model,
         CancellationToken ct)
     {
-        return _agentLogService.AppendAsync(new AgentLogRecord
+        return _resourceLogService.AppendAsync(new ResourceLogRecord
         {
             WorkspaceId = workspaceId,
             ResourceKind = ResourceLogKinds.Provider,

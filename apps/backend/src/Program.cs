@@ -262,7 +262,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseSerilogRequestLogging(options =>
 {
     options.GetLevel = (httpContext, elapsed, ex) =>

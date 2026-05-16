@@ -88,9 +88,9 @@ obj/Debug/net9.0/
  .NETCoreApp,Version=v9.0.AssemblyAttributes.cs
  OffceOs.Tests.AssemblyInfo.cs
  OffceOs.Tests.GlobalUsings.g.cs
-Observability/
- AgentActivitySummaryTests.cs
- AgentLogWorkQueueTests.cs
+ResourceLogs/
+ ResourceLogActivitySummaryTests.cs
+ ResourceLogWorkQueueTests.cs
 Providers/
  CloudProviderNativeAuthTests.cs
  ProviderDispatchServiceTests.cs
@@ -100,7 +100,7 @@ Shared/
  ChannelTestHarness.cs
  ChannelTestPayloads.cs
  FakeAgentDeployer.cs
- FakeAgentLogService.cs
+ FakeResourceLogService.cs
  FakeAgentRepository.cs
  FakeAgentSandbox.cs
  FakeBrowserService.cs

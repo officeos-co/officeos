@@ -4,14 +4,12 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
 {
     private readonly HttpClient _httpClient;
     private readonly BrowserRuntimeConfig _browserRuntimeConfig;
-    private readonly ILogger<AutoBrowserRuntimeClient> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public AutoBrowserRuntimeClient(HttpClient http, BrowserRuntimeConfig config, ILogger<AutoBrowserRuntimeClient> logger)
+    public AutoBrowserRuntimeClient(HttpClient http, BrowserRuntimeConfig config)
     {
         _httpClient = http;
         _browserRuntimeConfig = config;
-        _logger = logger;
 
         _httpClient.BaseAddress = new Uri(_browserRuntimeConfig.BaseUrl.TrimEnd('/') + "/");
         _httpClient.Timeout = TimeSpan.FromSeconds(Math.Max(1, _browserRuntimeConfig.TimeoutSeconds));
@@ -29,7 +27,7 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Browser runtime health check failed");
+            _ = ex;
             return false;
         }
     }
@@ -46,7 +44,7 @@ internal sealed class AutoBrowserRuntimeClient : IBrowserRuntimeClient
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to get browser session {RuntimeSessionId}", runtimeSessionId);
+            _ = ex;
             return null;
         }
     }

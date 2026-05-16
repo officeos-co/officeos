@@ -26,7 +26,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly IAgentLifecycleService _agentLifecycleService;
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
     private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentResourceRepository _agentResourceRepository;
     private readonly IBrowserResourceRepository _browserResourceRepository;
@@ -57,7 +57,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         IAgentRoutineCredentialRepository agentRoutineCredentialRepository,
         IMemoryStoreRepository memoryStoreRepository,
         IAgentRoutineService agentRoutineService,
-        IAgentLogService agentLogService,
+        IResourceLogService resourceLogService,
         AgentDefinitionParser agentDefinitionParser,
         DeclarativeManifestParser declarativeManifestParser,
         ChannelCredentialProtector channelCredentialProtector,
@@ -77,7 +77,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         _agentRoutineCredentialRepository = agentRoutineCredentialRepository;
         _memoryStoreRepository = memoryStoreRepository;
         _agentRoutineService = agentRoutineService;
-        _agentLogService = agentLogService;
+        _resourceLogService = resourceLogService;
         _agentDefinitionParser = agentDefinitionParser;
         _declarativeManifestParser = declarativeManifestParser;
         _channelCredentialProtector = channelCredentialProtector;
@@ -645,9 +645,9 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         if (specChanged)
             return true;
 
-        var work = await _agentLogService.ListAsync(new AgentLogQueryRequest(
+        var work = await _resourceLogService.ListAsync(new ResourceLogQueryRequest(
             AgentId: agent.Id,
-            Type: AgentLogType.MessageIn,
+            Type: ResourceLogType.MessageIn,
             WorkPurpose: AgentWorkPurposeKinds.Bootstrap,
             DefinitionId: agent.ActiveDefinitionId,
             Limit: 20), ct);

@@ -1,10 +1,10 @@
-namespace OffceOs.Domain.Features.Observability;
+namespace OffceOs.Domain.Features.ResourceLogs;
 
 /// <summary>
 /// Type of a single entry in an agent's append-only activity log.
 /// The dashboard renders different icons/colors per type.
 /// </summary>
-public enum AgentLogType
+public enum ResourceLogType
 {
     ToolCall,
     ToolResult,
@@ -26,7 +26,7 @@ public enum AgentLogType
     ErrorConfiguration,
 }
 
-public sealed class AgentLogRecord
+public sealed class ResourceLogRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -49,7 +49,7 @@ public sealed class AgentLogRecord
 
     public DateTime Time { get; init; } = DateTime.UtcNow;
 
-    public AgentLogType Type { get; init; }
+    public ResourceLogType Type { get; init; }
 
     [MaxLength(16)]
     public string Severity { get; init; } = ResourceLogSeverityKinds.Info;
@@ -101,52 +101,52 @@ public sealed class AgentLogRecord
 
     // ── Factory methods ─────────────────────────────────────────────────────
 
-    public static AgentLogRecord System(Guid agentId, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null) => new()
+    public static ResourceLogRecord System(Guid agentId, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.System, Content = content,
+        AgentId = agentId, Type = ResourceLogType.System, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow, Usage = usage ?? TokenUsage.Empty,
     };
 
-    public static AgentLogRecord MessageIn(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    public static ResourceLogRecord MessageIn(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.MessageIn, Content = content,
+        AgentId = agentId, Type = ResourceLogType.MessageIn, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static AgentLogRecord MessageOut(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    public static ResourceLogRecord MessageOut(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.MessageOut, Content = content,
+        AgentId = agentId, Type = ResourceLogType.MessageOut, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static AgentLogRecord ToolCallEntry(Guid agentId, string toolName, string argsJson, string? correlationId = null, DateTime? time = null, string? integration = null) => new()
+    public static ResourceLogRecord ToolCallEntry(Guid agentId, string toolName, string argsJson, string? correlationId = null, DateTime? time = null, string? integration = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.ToolCall, Tool = toolName, Integration = integration,
+        AgentId = agentId, Type = ResourceLogType.ToolCall, Tool = toolName, Integration = integration,
         Content = argsJson, CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static AgentLogRecord ToolResultEntry(Guid agentId, string toolName, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null, string? integration = null) => new()
+    public static ResourceLogRecord ToolResultEntry(Guid agentId, string toolName, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null, string? integration = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.ToolResult, Tool = toolName, Integration = integration,
+        AgentId = agentId, Type = ResourceLogType.ToolResult, Tool = toolName, Integration = integration,
         Content = content, CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
         Usage = usage ?? TokenUsage.Empty,
     };
 
-    public static AgentLogRecord Error(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    public static ResourceLogRecord Error(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.Error, Content = content,
+        AgentId = agentId, Type = ResourceLogType.Error, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static AgentLogRecord ChannelIn(Guid? agentId, string channel, string content, string? correlationId = null, Guid? channelConnectionId = null) => new()
+    public static ResourceLogRecord ChannelIn(Guid? agentId, string channel, string content, string? correlationId = null, Guid? channelConnectionId = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.ChannelIn, Channel = channel,
+        AgentId = agentId, Type = ResourceLogType.ChannelIn, Channel = channel,
         ChannelConnectionId = channelConnectionId, Content = content, CorrelationId = correlationId,
     };
 
-    public static AgentLogRecord ChannelOut(Guid agentId, string channel, string content, string? correlationId = null, Guid? channelConnectionId = null) => new()
+    public static ResourceLogRecord ChannelOut(Guid agentId, string channel, string content, string? correlationId = null, Guid? channelConnectionId = null) => new()
     {
-        AgentId = agentId, Type = AgentLogType.ChannelOut, Channel = channel,
+        AgentId = agentId, Type = ResourceLogType.ChannelOut, Channel = channel,
         ChannelConnectionId = channelConnectionId, Content = content, CorrelationId = correlationId,
     };
 }
@@ -156,6 +156,7 @@ public static class ResourceLogKinds
     public const string Agent = "Agent";
     public const string Browser = "Browser";
     public const string Channel = "Channel";
+    public const string ControlPlane = "ControlPlane";
     public const string Credential = "Credential";
     public const string IntegrationDeployment = "IntegrationDeployment";
     public const string MemoryStore = "MemoryStore";

@@ -6,36 +6,36 @@ internal sealed class AgentHarnessService : IAgentHarnessService
 
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IAgentWorkQueueService _agentWorkQueueService;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly TurnContextBuilder _turnContextBuilder;
     private readonly LlmTurnExecutor _llmTurnExecutor;
     private readonly ToolExecutionLoop _toolExecutionLoop;
-    private readonly ILogger<AgentHarnessService> _logger;
 
     public AgentHarnessService(
         IAgentRepository agentRepository,
         IAgentSessionRepository agentSessionRepository,
-        IAgentLogService agentLogService,
+        IAgentWorkQueueService agentWorkQueueService,
+        IResourceLogWriterService resourceLogWriterService,
         TurnEventPublisher turnEventPublisher,
         TurnContextBuilder turnContextBuilder,
         LlmTurnExecutor llmTurnExecutor,
-        ToolExecutionLoop toolExecutionLoop,
-        ILogger<AgentHarnessService> logger)
+        ToolExecutionLoop toolExecutionLoop)
     {
         _agentRepository = agentRepository;
         _agentSessionRepository = agentSessionRepository;
-        _agentLogService = agentLogService;
+        _agentWorkQueueService = agentWorkQueueService;
+        _resourceLogWriterService = resourceLogWriterService;
         _turnEventPublisher = turnEventPublisher;
         _turnContextBuilder = turnContextBuilder;
         _llmTurnExecutor = llmTurnExecutor;
         _toolExecutionLoop = toolExecutionLoop;
-        _logger = logger;
     }
 
     public async Task RunWorkAsync(Guid workLogId, CancellationToken ct = default)
     {
-        var work = await _agentLogService.StartWorkAsync(workLogId, ct);
+        var work = await _agentWorkQueueService.StartWorkAsync(workLogId, ct);
         if (work is null || work.AgentId is null)
             return;
 
@@ -132,7 +132,10 @@ internal sealed class AgentHarnessService : IAgentHarnessService
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            _logger.LogError(ex, "Agent work {WorkLogId} failed", workLogId);
+            await _resourceLogWriterService
+                .ForAgent(agentId)
+                .WithCorrelation(correlationId)
+                .ErrorAsync(ex, "Agent work {WorkLogId} failed", workLogId, CancellationToken.None);
             await FailAsync(workLogId, agentId, correlationId, ex.Message, CancellationToken.None);
         }
     }
@@ -163,14 +166,14 @@ internal sealed class AgentHarnessService : IAgentHarnessService
         int toolCalls,
         CancellationToken ct)
     {
-        await _agentLogService.CompleteWorkAsync(workLogId, ct);
+        await _agentWorkQueueService.CompleteWorkAsync(workLogId, ct);
         var durationMs = (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         await _turnEventPublisher.PublishTurnCompletedAsync(agentId, correlationId, durationMs, iterations, toolCalls, ct);
     }
 
     private async Task FailAsync(Guid workLogId, Guid agentId, string correlationId, string error, CancellationToken ct)
     {
-        await _agentLogService.FailWorkAsync(workLogId, error, ct);
+        await _agentWorkQueueService.FailWorkAsync(workLogId, error, ct);
         await _turnEventPublisher.PublishErrorAsync(agentId, correlationId, error, ct);
     }
 }

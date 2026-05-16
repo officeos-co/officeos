@@ -2,7 +2,6 @@ using OffceOs.Application.Features.Providers;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 using Xunit;
 
@@ -19,9 +18,8 @@ public sealed class ProviderDispatchServiceTests
                 ProviderAuthKind.ApiKey,
                 new Dictionary<string, string> { ["apiKey"] = "sk-test" })),
             new LlmProviderDispatcher(
-                new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance),
-            new FakeAgentLogService());
+                new FakeHttpClientFactory(handler)),
+            new FakeResourceLogService());
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("openai", null, "gpt-4o-mini", document.RootElement);
@@ -43,9 +41,8 @@ public sealed class ProviderDispatchServiceTests
                     ["apiKey"] = "local-key",
                 })),
             new LlmProviderDispatcher(
-                new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance),
-            new FakeAgentLogService());
+                new FakeHttpClientFactory(handler)),
+            new FakeResourceLogService());
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("custom", null, "llama3.1", document.RootElement);
@@ -70,9 +67,8 @@ public sealed class ProviderDispatchServiceTests
                     ["accountId"] = "account-1",
                 })),
             new LlmProviderDispatcher(
-                new FakeHttpClientFactory(handler),
-                NullLogger<LlmProviderDispatcher>.Instance),
-            new FakeAgentLogService());
+                new FakeHttpClientFactory(handler)),
+            new FakeResourceLogService());
         using var document = JsonDocument.Parse("""{"messages":[],"stream":true}""");
 
         var result = await service.DispatchAsync("codex", null, "gpt-5.3-codex", document.RootElement);

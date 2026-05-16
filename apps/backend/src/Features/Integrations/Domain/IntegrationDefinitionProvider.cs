@@ -902,7 +902,7 @@ public static class IntegrationDefinitionProvider
         },
         // new()
         // {
-        // ── Monitoring & Observability ───────────────────────────────────
+        // ── Monitoring ───────────────────────────────────
 
         new()
         {

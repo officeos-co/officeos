@@ -3,15 +3,13 @@ namespace OffceOs.Api.Common.Middleware;
 public sealed class SessionAuthMiddleware
 {
     private readonly RequestDelegate _requestDelegate;
-    private readonly ILogger<SessionAuthMiddleware> _logger;
     private readonly string[] _skipPrefixes;
 
     private static readonly TimeSpan SessionCacheTtl = TimeSpan.FromMinutes(5);
 
-    public SessionAuthMiddleware(RequestDelegate next, ILogger<SessionAuthMiddleware> logger, SessionAuthConfig config)
+    public SessionAuthMiddleware(RequestDelegate next, SessionAuthConfig config)
     {
         _requestDelegate = next;
-        _logger = logger;
         _skipPrefixes = config.SkipPrefixes;
     }
 
@@ -28,7 +26,6 @@ public sealed class SessionAuthMiddleware
         var token = ResolveToken(context);
         if (string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogDebug("No dashboard cookie or bearer token on {Path}", path);
             await _requestDelegate(context);
             return;
         }
@@ -49,24 +46,21 @@ public sealed class SessionAuthMiddleware
 
                 if (session is null)
                 {
-                    _logger.LogWarning("Session not found for hash {HashPrefix}... on {Path}",
-                        tokenHash[..8], path);
+                    await AppendWarningAsync(context, "Session not found for hash {HashPrefix} on {Path}", [tokenHash[..8], path]);
                     await _requestDelegate(context);
                     return;
                 }
 
                 if (session.ExpiresAt < DateTime.UtcNow)
                 {
-                    _logger.LogWarning("Session expired for user {UserId} on {Path} (expired {Expiry})",
-                        session.UserId, path, session.ExpiresAt);
+                    await AppendWarningAsync(context, "Session expired for user {UserId} on {Path}", [session.UserId, path]);
                     await _requestDelegate(context);
                     return;
                 }
 
                 if (session.User is null)
                 {
-                    _logger.LogWarning("Session has no user loaded for user ID {UserId} on {Path}",
-                        session.UserId, path);
+                    await AppendWarningAsync(context, "Session has no user loaded for user {UserId} on {Path}", [session.UserId, path]);
                     await _requestDelegate(context);
                     return;
                 }
@@ -75,18 +69,26 @@ public sealed class SessionAuthMiddleware
                 await cache.SetJsonAsync(cacheKey, cachedUser, SessionCacheTtl, context.RequestAborted);
             }
 
-            _logger.LogDebug("Authenticated {Email} on {Path}", cachedUser.Email, path);
             context.Items["User"] = cachedUser;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Session auth failed on {Path}", path);
+            await context.RequestServices
+                .GetRequiredService<IResourceLogWriterService>()
+                .ForControlPlane()
+                .ErrorAsync(ex, "Session auth failed on {Path}", path, context.RequestAborted);
         }
 
         await _requestDelegate(context);
     }
 
     public static string HashToken(string token) => SessionTokenHasher.Hash(token);
+
+    private static Task AppendWarningAsync(HttpContext context, string messageTemplate, IReadOnlyList<object?> values) =>
+        context.RequestServices
+            .GetRequiredService<IResourceLogWriterService>()
+            .ForControlPlane()
+            .WarningAsync(messageTemplate, values, context.RequestAborted);
 
     private static string? ResolveToken(HttpContext context)
     {

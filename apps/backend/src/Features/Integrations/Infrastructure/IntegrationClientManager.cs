@@ -2,15 +2,6 @@ namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationClientManager : IIntegrationClientManager
 {
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<IntegrationClientManager> _logger;
-
-    public IntegrationClientManager(ILoggerFactory loggerFactory, ILogger<IntegrationClientManager> logger)
-    {
-        _loggerFactory = loggerFactory;
-        _logger = logger;
-    }
-
     public async Task<IntegrationConnectionResult> ConnectAsync(
         IntegrationDefinitionRecord server,
         Dictionary<string, string> credentials,
@@ -25,7 +16,7 @@ internal sealed class IntegrationClientManager : IIntegrationClientManager
                 _ => throw new ArgumentException($"Unsupported transport: {server.TransportType}"),
             };
 
-            var client = await McpClient.CreateAsync(transport, loggerFactory: _loggerFactory, cancellationToken: ct);
+            var client = await McpClient.CreateAsync(transport, cancellationToken: ct);
             var integrationTools = await client.ListToolsAsync(cancellationToken: ct);
 
             var tools = integrationTools.Select(t => new IntegrationDiscoveredTool
@@ -39,15 +30,11 @@ internal sealed class IntegrationClientManager : IIntegrationClientManager
                 NativeHandle = new IntegrationNativeHandle(t, client),
             }).ToList();
 
-            _logger.LogInformation(
-                "Connected to integration {Server} ({Transport}), discovered {Count} tools",
-                server.Name, server.TransportType, tools.Count);
-
             return new IntegrationConnectionResult { Tools = tools, NativeClient = client, Connection = client };
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to connect to integration {Server}", server.Name);
+            _ = ex;
             return new IntegrationConnectionResult();
         }
     }
@@ -101,7 +88,7 @@ internal sealed class IntegrationClientManager : IIntegrationClientManager
         {
             Endpoint = new Uri(url),
             Name = server.Name,
-        }, _loggerFactory);
+        });
     }
 }
 

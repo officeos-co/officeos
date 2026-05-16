@@ -4,16 +4,13 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
 {
     private readonly ChannelReplyContext _channelReplyContext;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ILogger<BroadcastToChannelsHandler> _logger;
 
     public BroadcastToChannelsHandler(
         ChannelReplyContext replyContext,
-        IServiceScopeFactory scopeFactory,
-        ILogger<BroadcastToChannelsHandler> logger)
+        IServiceScopeFactory scopeFactory)
     {
         _channelReplyContext = replyContext;
         _serviceScopeFactory = scopeFactory;
-        _logger = logger;
     }
 
     public Task Handle(MessageOutEvent notification, CancellationToken ct)
@@ -31,25 +28,28 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
             var internalCorrelationId = notification.CorrelationId;
             var internalContent = notification.Content;
 
-            BackgroundWork.Run<IPublisher>(
+            BackgroundWork.Run<IPublisher, IResourceLogWriterService>(
                 _serviceScopeFactory,
-                async publisher =>
+                async (publisher, resourceLogWriterService) =>
                 {
-                    await publisher.Publish(new ChannelMessageRoutedEvent(
-                        replyingAgentId, AgentLogType.ChannelOut, ChannelType.Internal.ToStorageString(),
-                        internalContent, internalCorrelationId, internalTarget.ChannelConnectionId));
+                    await resourceLogWriterService
+                        .ForChannel(internalTarget.ChannelConnectionId)
+                        .WithAgent(replyingAgentId)
+                        .WithCorrelation(internalCorrelationId)
+                        .ChannelOutAsync(ChannelType.Internal.ToStorageString(), internalContent);
 
-                    await publisher.Publish(new ChannelMessageRoutedEvent(
-                        internalTarget.SourceAgentId, AgentLogType.ChannelIn, ChannelType.Internal.ToStorageString(),
-                        internalContent, internalCorrelationId, internalTarget.ChannelConnectionId));
+                    await resourceLogWriterService
+                        .ForChannel(internalTarget.ChannelConnectionId)
+                        .WithAgent(internalTarget.SourceAgentId)
+                        .WithCorrelation(internalCorrelationId)
+                        .ChannelInAsync(ChannelType.Internal.ToStorageString(), internalContent);
 
                     await publisher.Publish(new MessageReceivedEvent(
                         internalTarget.SourceAgentId,
                         internalContent,
                         internalCorrelationId,
                         AgentWorkPurposeKinds.Channel));
-                },
-                _logger);
+                });
 
             return Task.CompletedTask;
         }
@@ -57,40 +57,37 @@ internal sealed class BroadcastToChannelsHandler : INotificationHandler<MessageO
         // Check if this turn was triggered by a channel message
         var reply = _channelReplyContext.Take(notification.CorrelationId);
         if (reply is null)
-        {
-            _logger.LogDebug("No reply context for correlation {CorrelationId} — message not from a channel",
-                notification.CorrelationId);
             return Task.CompletedTask;
-        }
 
         var (channelType, platformId, threadId, channelConnectionId) = reply.Value;
         var agentId = notification.AgentId;
         var correlationId = notification.CorrelationId;
         var content = notification.Content;
 
-        BackgroundWork.Run<IChannelGateway, IPublisher>(
+        BackgroundWork.Run<IChannelGateway, IResourceLogWriterService>(
             _serviceScopeFactory,
-            async (gateway, publisher) =>
+            async (gateway, resourceLogWriterService) =>
             {
                 try
                 {
                     await gateway.SendAsync(channelConnectionId, channelType, platformId, threadId,
                         ChannelMessage.Text(content), CancellationToken.None);
 
-                    await publisher.Publish(new ChannelMessageRoutedEvent(
-                        agentId, AgentLogType.ChannelOut, channelType, content, correlationId, channelConnectionId));
+                    await resourceLogWriterService
+                        .ForChannel(channelConnectionId)
+                        .WithAgent(agentId)
+                        .WithCorrelation(correlationId)
+                        .ChannelOutAsync(channelType, content);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Channel reply failed for {ChannelType} platformId={PlatformId}",
-                        channelType, platformId);
-
-                    await publisher.Publish(new ChannelMessageRoutedEvent(
-                        agentId, AgentLogType.Error, channelType,
-                        $"Failed to deliver reply via {channelType}: {ex.Message}", correlationId, channelConnectionId));
+                    await resourceLogWriterService
+                        .ForChannel(channelConnectionId)
+                        .WithAgent(agentId)
+                        .WithCorrelation(correlationId)
+                        .ErrorAsync(ex, "Failed to deliver reply via {ChannelType}", channelType);
                 }
-            },
-            _logger);
+            });
 
         return Task.CompletedTask;
     }

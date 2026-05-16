@@ -6,19 +6,12 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ILogger<AgentRoutineGitHubPollerService> _logger;
 
-    public AgentRoutineGitHubPollerService(
-        IServiceScopeFactory serviceScopeFactory,
-        ILogger<AgentRoutineGitHubPollerService> logger)
-    {
-        _serviceScopeFactory = serviceScopeFactory;
-        _logger = logger;
-    }
+    public AgentRoutineGitHubPollerService(IServiceScopeFactory serviceScopeFactory)
+        => _serviceScopeFactory = serviceScopeFactory;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("AgentRoutineGitHubPollerService started");
         await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -31,7 +24,11 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "GitHub routine poller tick failed");
+                using var scope = _serviceScopeFactory.CreateScope();
+                var resourceLogWriterService = scope.ServiceProvider.GetRequiredService<IResourceLogWriterService>();
+                await resourceLogWriterService
+                    .ForControlPlane()
+                    .ErrorAsync(ex, "GitHub routine poller tick failed", stoppingToken);
             }
 
             await Task.Delay(TickInterval, stoppingToken);
@@ -45,7 +42,7 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
         private readonly IAgentRoutineExecutionService _agentRoutineExecutionService;
         private readonly CredentialProtector _credentialProtector;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<AgentRoutineGitHubPollingService> _logger;
+        private readonly IResourceLogWriterService _resourceLogWriterService;
 
         public AgentRoutineGitHubPollingService(
             IAgentRoutineRepository agentRoutineRepository,
@@ -53,14 +50,14 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
             IAgentRoutineExecutionService executionService,
             CredentialProtector credentialProtector,
             IHttpClientFactory httpClientFactory,
-            ILogger<AgentRoutineGitHubPollingService> logger)
+            IResourceLogWriterService resourceLogWriterService)
         {
             _agentRoutineRepository = agentRoutineRepository;
             _agentRoutineCredentialRepository = agentRoutineCredentialRepository;
             _agentRoutineExecutionService = executionService;
             _credentialProtector = credentialProtector;
             _httpClientFactory = httpClientFactory;
-            _logger = logger;
+            _resourceLogWriterService = resourceLogWriterService;
         }
 
         public async Task PollAsync(CancellationToken ct)
@@ -107,7 +104,10 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
             var credential = await _agentRoutineCredentialRepository.GetByNameAsync(routine.WorkspaceId, config.AuthRef ?? string.Empty, ct);
             if (credential is null)
             {
-                _logger.LogWarning("GitHub polling routine trigger {TriggerId} skipped because credential {AuthRef} was not found in workspace {WorkspaceId}", trigger.Id, config.AuthRef, routine.WorkspaceId);
+                await _resourceLogWriterService
+                    .ForResource(ResourceLogKinds.Routine, routine.Routine.Id)
+                    .WithAgent(routine.Routine.AgentId)
+                    .WarningAsync("GitHub polling routine trigger {TriggerId} skipped because credential {AuthRef} was not found", [trigger.Id, config.AuthRef], ct);
                 cursor.LastPolledAt = now;
                 cursor.UpdatedAt = now;
                 await _agentRoutineRepository.UpsertPollCursorAsync(cursor, ct);
@@ -117,7 +117,10 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
             var credentials = _credentialProtector.Unprotect(credential.EncryptedSecret);
             if (!credentials.TryGetValue("GITHUB_PERSONAL_ACCESS_TOKEN", out var token) || string.IsNullOrWhiteSpace(token))
             {
-                _logger.LogWarning("GitHub polling routine trigger {TriggerId} skipped because credential {AuthRef} has no GitHub token", trigger.Id, config.AuthRef);
+                await _resourceLogWriterService
+                    .ForResource(ResourceLogKinds.Routine, routine.Routine.Id)
+                    .WithAgent(routine.Routine.AgentId)
+                    .WarningAsync("GitHub polling routine trigger {TriggerId} skipped because credential {AuthRef} has no GitHub token", [trigger.Id, config.AuthRef], ct);
                 cursor.LastPolledAt = now;
                 cursor.UpdatedAt = now;
                 await _agentRoutineRepository.UpsertPollCursorAsync(cursor, ct);

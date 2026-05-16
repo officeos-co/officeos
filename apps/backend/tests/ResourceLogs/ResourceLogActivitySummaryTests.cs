@@ -1,21 +1,20 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using OffceOs.Database;
 using OffceOs.Database.Models;
-using OffceOs.Application.Features.Observability;
+using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Application.Features.ControlPlane;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.ControlPlane;
-using OffceOs.Domain.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.Infrastructure.Features.Agents;
-using OffceOs.Infrastructure.Features.Observability;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
 using Xunit;
 
-namespace OffceOs.Tests.Observability;
+namespace OffceOs.Tests.ResourceLogs;
 
-public sealed class AgentActivitySummaryTests
+public sealed class ResourceLogActivitySummaryTests
 {
     [Fact]
     public async Task Last_relevant_agent_message_skips_pod_startup_logs()
@@ -26,19 +25,19 @@ public sealed class AgentActivitySummaryTests
         await AddAgentAsync(db, agentId, workspaceId);
         var service = CreateService(db);
 
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
             WorkspaceId = workspaceId,
-            Type = AgentLogType.MessageIn,
+            Type = ResourceLogType.MessageIn,
             Content = "Please check deployment",
             Time = DateTime.UtcNow.AddSeconds(-2),
         });
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
             WorkspaceId = workspaceId,
-            Type = AgentLogType.System,
+            Type = ResourceLogType.System,
             Content = "Pod connected",
             Time = DateTime.UtcNow,
         });
@@ -59,20 +58,20 @@ public sealed class AgentActivitySummaryTests
         var otherChannelConnectionId = Guid.NewGuid();
         var service = CreateService(db);
 
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             WorkspaceId = workspaceId,
             ChannelConnectionId = otherChannelConnectionId,
-            Type = AgentLogType.ChannelIn,
+            Type = ResourceLogType.ChannelIn,
             Channel = "slack",
             Content = "Other channel",
             Time = DateTime.UtcNow.AddSeconds(1),
         });
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             WorkspaceId = workspaceId,
             ChannelConnectionId = channelConnectionId,
-            Type = AgentLogType.ChannelOut,
+            Type = ResourceLogType.ChannelOut,
             Channel = "slack",
             Content = "Deploy is fixed",
             Time = DateTime.UtcNow,
@@ -94,11 +93,11 @@ public sealed class AgentActivitySummaryTests
         await AddAgentAsync(db, agentId, workspaceId);
         var service = CreateService(db);
 
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
             WorkspaceId = workspaceId,
-            Type = AgentLogType.ToolResult,
+            Type = ResourceLogType.ToolResult,
             Tool = "shell",
             Content = "build passed",
             Time = DateTime.UtcNow,
@@ -120,34 +119,34 @@ public sealed class AgentActivitySummaryTests
         await AddAgentAsync(db, agentId, workspaceId);
         var service = CreateService(db);
 
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
             WorkspaceId = workspaceId,
-            Type = AgentLogType.System,
+            Type = ResourceLogType.System,
             Content = "Pod connected",
             Time = DateTime.UtcNow.AddSeconds(-1),
         });
-        await service.AppendAsync(new AgentLogRecord
+        await service.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
             WorkspaceId = workspaceId,
-            Type = AgentLogType.MessageOut,
+            Type = ResourceLogType.MessageOut,
             Content = "Ready",
             Time = DateTime.UtcNow,
         });
 
-        var page = await service.ListAsync(new AgentLogQueryRequest(
+        var page = await service.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: workspaceId,
             AgentId: agentId,
-            Sort: AgentLogSort.TimeAscending));
+            Sort: ResourceLogSort.TimeAscending));
 
         var log = Assert.Single(page.Items);
         Assert.Equal("Ready", log.Content);
     }
 
-    private static AgentLogService CreateService(EaosDbContext db) =>
-        new(new AgentLogRepository(db), new FakeControlPlaneResourceCatalogService());
+    private static ResourceLogService CreateService(EaosDbContext db) =>
+        new(new ResourceLogRepository(db), new FakeControlPlaneResourceCatalogService());
 
     private static async Task AddAgentAsync(EaosDbContext db, Guid agentId, Guid workspaceId)
     {

@@ -1,12 +1,12 @@
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Observability;
-using OffceOs.Infrastructure.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
 using Xunit;
 
-namespace OffceOs.Tests.Observability;
+namespace OffceOs.Tests.ResourceLogs;
 
 public sealed class ResourceLogRepositoryTests
 {
@@ -14,7 +14,7 @@ public sealed class ResourceLogRepositoryTests
     public async Task Agent_context_does_not_rewrite_explicit_routine_resource_identity()
     {
         await using var db = TestDbFactory.Create("routine-resource-log-kind");
-        var repository = new AgentLogRepository(db);
+        var repository = new ResourceLogRepository(db);
         var workspaceId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
         var routineId = Guid.NewGuid();
@@ -30,7 +30,7 @@ public sealed class ResourceLogRepositoryTests
         });
         await db.SaveChangesAsync();
 
-        await repository.AppendAsync(new AgentLogRecord
+        await repository.AppendAsync(new ResourceLogRecord
         {
             ResourceKind = ResourceLogKinds.Routine,
             ResourceId = routineId,
@@ -38,11 +38,11 @@ public sealed class ResourceLogRepositoryTests
             ParentResourceKind = ResourceLogKinds.Agent,
             ParentResourceId = agentId,
             AgentId = agentId,
-            Type = AgentLogType.System,
+            Type = ResourceLogType.System,
             Content = "Routine trigger fired.",
         });
 
-        var saved = await repository.GetByAsync(new AgentLogFilter
+        var saved = await repository.GetByAsync(new ResourceLogFilter
         {
             ResourceKind = ResourceLogKinds.Routine,
             ResourceId = routineId,

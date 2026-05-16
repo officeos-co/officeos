@@ -10,7 +10,7 @@ public sealed class AuthController : ControllerBase
     private readonly IAgentRoutineCredentialRepository _agentRoutineCredentialRepository;
     private readonly CredentialProtector _credentialProtector;
     private readonly FrontendConfig _frontendConfig;
-    private readonly ILogger<AuthController> _logger;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
 
     public AuthController(
         IAuthService authService,
@@ -19,7 +19,7 @@ public sealed class AuthController : ControllerBase
         IAgentRoutineCredentialRepository agentRoutineCredentialRepository,
         CredentialProtector credentialProtector,
         FrontendConfig frontendConfig,
-        ILogger<AuthController> logger)
+        IResourceLogWriterService resourceLogWriterService)
     {
         _authService = authService;
         _workspaceService = workspaceService;
@@ -27,7 +27,7 @@ public sealed class AuthController : ControllerBase
         _agentRoutineCredentialRepository = agentRoutineCredentialRepository;
         _credentialProtector = credentialProtector;
         _frontendConfig = frontendConfig;
-        _logger = logger;
+        _resourceLogWriterService = resourceLogWriterService;
     }
 
     [HttpGet("google")]
@@ -56,17 +56,16 @@ public sealed class AuthController : ControllerBase
             await SaveIntegrationOAuthCredentialAsync("google", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
             SetSessionCookie(result.SessionToken);
 
-            _logger.LogInformation("OAuth: Google login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
             return Redirect(BuildFrontendRedirect(returnTo));
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Google OAuth callback failed");
+            await _resourceLogWriterService.ForControlPlane().WarningAsync("Google OAuth callback failed: {Message}", ex.Message, ct);
             return RedirectWithError(ex.Message, returnTo);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Google OAuth callback failed");
+            await _resourceLogWriterService.ForControlPlane().ErrorAsync(ex, "Google OAuth callback failed", ct);
             return RedirectWithError("OAuth connection failed. Please try again.", returnTo);
         }
     }
@@ -98,17 +97,16 @@ public sealed class AuthController : ControllerBase
             await SaveRoutineCredentialOAuthAsync("github", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
             SetSessionCookie(result.SessionToken);
 
-            _logger.LogInformation("OAuth: GitHub login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
             return Redirect(BuildFrontendRedirect(returnTo));
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "GitHub OAuth callback failed");
+            await _resourceLogWriterService.ForControlPlane().WarningAsync("GitHub OAuth callback failed: {Message}", ex.Message, ct);
             return RedirectWithError(ex.Message, returnTo);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "GitHub OAuth callback failed");
+            await _resourceLogWriterService.ForControlPlane().ErrorAsync(ex, "GitHub OAuth callback failed", ct);
             return RedirectWithError("OAuth connection failed. Please try again.", returnTo);
         }
     }

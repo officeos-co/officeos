@@ -68,6 +68,18 @@ public sealed class ChannelControlPlaneResourceDefinition : ControlPlaneResource
     public override IReadOnlyList<string> DisplayFields => ["name", "platform", "enabled"];
 }
 
+public sealed class ControlPlaneControlPlaneResourceDefinition : ControlPlaneResourceDefinition
+{
+    public override string Kind => "control-plane";
+    public override string Singular => "control-plane";
+    public override IReadOnlyList<string> Aliases => ["controlplane", "system"];
+    public override string DisplayName => "Control Plane";
+    public override string Description => "Workspace control plane logs";
+    public override string Icon => "server-process";
+    public override IReadOnlyList<string> DisplayFields => ["name", "workspaceId"];
+    protected override bool SupportsDelete => false;
+}
+
 public sealed class CredentialControlPlaneResourceDefinition : ControlPlaneResourceDefinition
 {
     public override string Kind => "credentials";

@@ -8,16 +8,16 @@ public sealed record AgentError(
     string Message,
     string? Detail = null)
 {
-    public AgentLogType LogType => Category switch
+    public ResourceLogType LogType => Category switch
     {
-        AgentErrorCategory.PodConnection => AgentLogType.ErrorPodConnection,
-        AgentErrorCategory.LlmCall => AgentLogType.ErrorLlmCall,
-        AgentErrorCategory.ToolExecution => AgentLogType.ErrorToolExecution,
-        AgentErrorCategory.SkillExecution => AgentLogType.ErrorSkillExecution,
-        AgentErrorCategory.TurnOrchestration => AgentLogType.ErrorTurnOrchestration,
-        AgentErrorCategory.Memory => AgentLogType.ErrorMemory,
-        AgentErrorCategory.Configuration => AgentLogType.ErrorConfiguration,
-        _ => AgentLogType.Error,
+        AgentErrorCategory.PodConnection => ResourceLogType.ErrorPodConnection,
+        AgentErrorCategory.LlmCall => ResourceLogType.ErrorLlmCall,
+        AgentErrorCategory.ToolExecution => ResourceLogType.ErrorToolExecution,
+        AgentErrorCategory.SkillExecution => ResourceLogType.ErrorSkillExecution,
+        AgentErrorCategory.TurnOrchestration => ResourceLogType.ErrorTurnOrchestration,
+        AgentErrorCategory.Memory => ResourceLogType.ErrorMemory,
+        AgentErrorCategory.Configuration => ResourceLogType.ErrorConfiguration,
+        _ => ResourceLogType.Error,
     };
 
     public string FormattedContent => Detail is not null
@@ -25,10 +25,10 @@ public sealed record AgentError(
         : $"{Category}: {Message}";
 
     /// <summary>
-    /// Creates an AgentLogRecord from this error. Use this anywhere outside the turn loop
+    /// Creates an ResourceLogRecord from this error. Use this anywhere outside the turn loop
     /// where TurnLogger isn't available.
     /// </summary>
-    public AgentLogRecord ToLogRecord(Guid agentId) => new()
+    public ResourceLogRecord ToLogRecord(Guid agentId) => new()
     {
         AgentId = agentId,
         Type = LogType,

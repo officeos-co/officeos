@@ -26,7 +26,6 @@ using OffceOs.Infrastructure.Features.Management;
 using OffceOs.Infrastructure.Features.Providers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace OffceOs.Tests.Shared;
 
@@ -58,12 +57,12 @@ public sealed record WorkspaceTestHarness(
             agentRepository,
             new FakeAgentDeployer(),
             new FakeProviderService(),
-            NullLogger<AgentService>.Instance,
             cache,
             new AgentPersonalityRepository(db),
             new NoopPublisher(),
             new AgentChannelBinder(channelRepository),
-            new FakeAgentLogService(),
+            new FakeResourceLogService(),
+            new FakeResourceLogWriterService(),
             integrationService,
             agentDefinitionRepository,
             agentDefinitionParser);
@@ -82,10 +81,10 @@ public sealed record WorkspaceTestHarness(
                 new ChannelCredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-channel-e2e-keys-{Guid.NewGuid():N}")))),
                 new NoopPublisher(),
                 new ChannelReplyContext(),
-                NullLogger<ChannelService>.Instance),
+                new FakeResourceLogWriterService()),
             new FakeBrowserService(),
             new FakeAgentDeployer(),
-            new FakeAgentLogService(),
+            new FakeResourceLogService(),
             agentDefinitionRepository,
             agentDefinitionParser,
             new AgentRoutineService(
@@ -94,8 +93,8 @@ public sealed record WorkspaceTestHarness(
                 new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(Path.GetTempPath(), $"eaos-routine-e2e-keys-{Guid.NewGuid():N}"))))));
 
         return new WorkspaceTestHarness(
-            new WorkspaceService(workspaceRepository, workspaceMemberRepository, new FakeAgentLogService(), cache),
-            new IntegrationDeploymentService(integrationDeploymentRepository, workspaceMemberRepository, new FakeAgentLogService()),
+            new WorkspaceService(workspaceRepository, workspaceMemberRepository, new FakeResourceLogService(), cache),
+            new IntegrationDeploymentService(integrationDeploymentRepository, workspaceMemberRepository, new FakeResourceLogService()),
             integrationService,
             agentResource,
             agentRepository);
@@ -145,7 +144,7 @@ public sealed record WorkspaceTestHarness(
             integrationDefinitionRepository,
             integrationCredentialRepository,
             new FakeIntegrationCredentialEncryptionService(),
-            NullLogger<IntegrationDefinitionService>.Instance,
+            new FakeResourceLogWriterService(),
             new IntegrationDeploymentRepository(db),
             new WorkspaceRepository(db),
             new WorkspaceMemberRepository(db));

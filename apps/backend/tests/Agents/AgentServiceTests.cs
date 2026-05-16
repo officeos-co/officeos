@@ -7,7 +7,6 @@ using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -45,12 +44,12 @@ public sealed class AgentServiceTests
             agentRepository,
             new FakeAgentDeployer(),
             providerService,
-            NullLogger<AgentService>.Instance,
             new InMemoryDistributedCache(),
             new AgentPersonalityRepository(db),
             new NoopPublisher(),
             new AgentChannelBinder(new ChannelRepository(db)),
-            new FakeAgentLogService(),
+            new FakeResourceLogService(),
+            new FakeResourceLogWriterService(),
             IntegrationDefinitionServiceTestFactory.CreateService(),
             agentDefinitionRepository,
             new AgentDefinitionParser());

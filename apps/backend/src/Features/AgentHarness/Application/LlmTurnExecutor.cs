@@ -18,20 +18,17 @@ internal sealed class LlmTurnExecutor
     private readonly LlmRequestBuilder _llmRequestBuilder;
     private readonly SseResponseParser _sseResponseParser;
     private readonly TurnEventPublisher _turnEventPublisher;
-    private readonly ILogger<LlmTurnExecutor> _logger;
 
     public LlmTurnExecutor(
         IProviderDispatchService providerDispatchService,
         LlmRequestBuilder requestBuilder,
         SseResponseParser sseResponseParser,
-        TurnEventPublisher events,
-        ILogger<LlmTurnExecutor> logger)
+        TurnEventPublisher events)
     {
         _providerDispatchService = providerDispatchService;
         _llmRequestBuilder = requestBuilder;
         _sseResponseParser = sseResponseParser;
         _turnEventPublisher = events;
-        _logger = logger;
     }
 
     public async Task<AgentResult<LlmTurnResult>> ExecuteAsync(
@@ -50,16 +47,6 @@ internal sealed class LlmTurnExecutor
             $"LLM iteration {iteration}: request built",
             ElapsedMs(requestStart),
             ct);
-
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug(
-                "LLM request payload for agent {AgentId} correlation {CorrelationId} iteration {Iteration}: {Payload}",
-                agent.Id,
-                correlationId,
-                iteration,
-                requestBody.GetRawText());
-        }
 
         var llmStart = Stopwatch.GetTimestamp();
         var llmResult = await _providerDispatchService.DispatchAsync(agent.Provider, agent.WorkspaceId, agent.Model ?? "auto", requestBody, ct);
@@ -86,12 +73,12 @@ internal sealed class LlmTurnExecutor
         var usage = ResolveUsage(requestBody, sseResult);
         if (usage.EstimatedTokens)
         {
-            _logger.LogWarning(
-                "LLM provider did not return complete token usage for agent {AgentId} correlation {CorrelationId}; using estimated usage {InputTokens}/{OutputTokens}",
+            await _turnEventPublisher.PublishDiagnosticAsync(
                 agent.Id,
                 correlationId,
-                usage.InputTokens,
-                usage.OutputTokens);
+                $"LLM provider did not return complete token usage; using estimated usage {usage.InputTokens}/{usage.OutputTokens}",
+                durationMs,
+                ct);
         }
 
         return new LlmTurnResult(

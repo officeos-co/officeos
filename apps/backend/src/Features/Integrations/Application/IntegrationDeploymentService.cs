@@ -4,16 +4,16 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
 {
     private readonly IIntegrationDeploymentRepository _integrationDeploymentRepository;
     private readonly IWorkspaceMemberRepository _workspaceMemberRepository;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
 
     public IntegrationDeploymentService(
         IIntegrationDeploymentRepository integrationDeploymentRepository,
         IWorkspaceMemberRepository workspaceMemberRepository,
-        IAgentLogService agentLogService)
+        IResourceLogService resourceLogService)
     {
         _integrationDeploymentRepository = integrationDeploymentRepository;
         _workspaceMemberRepository = workspaceMemberRepository;
-        _agentLogService = agentLogService;
+        _resourceLogService = resourceLogService;
     }
 
     public async Task<IReadOnlyList<IntegrationDeploymentRecord>> ListAsync(
@@ -44,7 +44,7 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
             CreatedById = actorUserId,
             Enabled = true,
         }, ct);
-        await AppendDeploymentLogAsync(deployment, AgentLogType.System, $"Integration '{deployment.IntegrationName}' deployed.", ct);
+        await AppendDeploymentLogAsync(deployment, ResourceLogType.System, $"Integration '{deployment.IntegrationName}' deployed.", ct);
         return deployment;
     }
 
@@ -68,13 +68,13 @@ internal sealed class IntegrationDeploymentService : IIntegrationDeploymentServi
                 WorkspaceId = workspaceId,
                 IntegrationName = integrationName.Trim(),
                 CreatedById = actorUserId,
-            }, AgentLogType.System, $"Integration '{integrationName.Trim()}' revoked.", ct);
+            }, ResourceLogType.System, $"Integration '{integrationName.Trim()}' revoked.", ct);
         return deleted;
     }
 
-    private Task AppendDeploymentLogAsync(IntegrationDeploymentRecord deployment, AgentLogType type, string content, CancellationToken ct)
+    private Task AppendDeploymentLogAsync(IntegrationDeploymentRecord deployment, ResourceLogType type, string content, CancellationToken ct)
     {
-        return _agentLogService.AppendAsync(new AgentLogRecord
+        return _resourceLogService.AppendAsync(new ResourceLogRecord
         {
             WorkspaceId = deployment.WorkspaceId,
             ResourceKind = ResourceLogKinds.IntegrationDeployment,

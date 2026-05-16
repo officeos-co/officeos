@@ -8,7 +8,7 @@ internal sealed class ChannelService : IChannelService
     private readonly ChannelCredentialProtector _channelCredentialProtector;
     private readonly IPublisher _publisher;
     private readonly ChannelReplyContext _channelReplyContext;
-    private readonly ILogger<ChannelService> _logger;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
     private readonly ChannelGroupContextStore _channelGroupContextStore = new();
 
     public ChannelService(
@@ -18,7 +18,7 @@ internal sealed class ChannelService : IChannelService
         ChannelCredentialProtector protector,
         IPublisher publisher,
         ChannelReplyContext replyContext,
-        ILogger<ChannelService> logger)
+        IResourceLogWriterService resourceLogWriterService)
     {
         _channelRepository = repo;
         _channelGateway = gateway;
@@ -26,7 +26,7 @@ internal sealed class ChannelService : IChannelService
         _channelCredentialProtector = protector;
         _publisher = publisher;
         _channelReplyContext = replyContext;
-        _logger = logger;
+        _resourceLogWriterService = resourceLogWriterService;
     }
 
     public async Task<ChannelConnectionRecord> CreateConnectionAsync(
@@ -109,9 +109,10 @@ internal sealed class ChannelService : IChannelService
         {
             var channelType = connection.ChannelType.ToStorageString();
 
-            await _publisher.Publish(new ChannelMessageRoutedEvent(
-                null, AgentLogType.ChannelIn, channelType,
-                messageText, Guid.NewGuid().ToString("N"), connectionId), ct);
+            await _resourceLogWriterService
+                .ForChannel(connectionId)
+                .WithCorrelation(Guid.NewGuid().ToString("N"))
+                .ChannelInAsync(channelType, messageText, ct);
         }
 
         var loggedConnectionOnly = false;
@@ -123,9 +124,11 @@ internal sealed class ChannelService : IChannelService
 
             if (!binding.Enabled)
             {
-                await _publisher.Publish(new ChannelMessageRoutedEvent(
-                    binding.AgentId, AgentLogType.ChannelIn, channelType,
-                    messageText, correlationId, binding.ChannelConnectionId), ct);
+                await _resourceLogWriterService
+                    .ForChannel(binding.ChannelConnectionId)
+                    .WithAgent(binding.AgentId)
+                    .WithCorrelation(correlationId)
+                    .ChannelInAsync(channelType, messageText, ct);
                 continue;
             }
 
@@ -137,18 +140,21 @@ internal sealed class ChannelService : IChannelService
 
                 if (!loggedConnectionOnly)
                 {
-                    await _publisher.Publish(new ChannelMessageRoutedEvent(
-                        null, AgentLogType.ChannelIn, channelType,
-                        messageText, correlationId, binding.ChannelConnectionId), ct);
+                    await _resourceLogWriterService
+                        .ForChannel(binding.ChannelConnectionId)
+                        .WithCorrelation(correlationId)
+                        .ChannelInAsync(channelType, messageText, ct);
                     loggedConnectionOnly = true;
                 }
 
                 continue;
             }
 
-            await _publisher.Publish(new ChannelMessageRoutedEvent(
-                binding.AgentId, AgentLogType.ChannelIn, channelType,
-                messageText, correlationId, binding.ChannelConnectionId), ct);
+            await _resourceLogWriterService
+                .ForChannel(binding.ChannelConnectionId)
+                .WithAgent(binding.AgentId)
+                .WithCorrelation(correlationId)
+                .ChannelInAsync(channelType, messageText, ct);
 
             var plainText = _channelGroupContextStore.BuildAgentMessageContent(binding, config, inbound, channelType);
 
@@ -205,13 +211,17 @@ internal sealed class ChannelService : IChannelService
             var correlationId = Guid.NewGuid().ToString("N");
             _channelReplyContext.SetInternal(correlationId, channelConnectionId, senderAgentId, receiverBinding.AgentId);
 
-            await _publisher.Publish(new ChannelMessageRoutedEvent(
-                senderAgentId, AgentLogType.ChannelOut, ChannelType.Internal.ToStorageString(),
-                content, correlationId, channelConnectionId), ct);
+            await _resourceLogWriterService
+                .ForChannel(channelConnectionId)
+                .WithAgent(senderAgentId)
+                .WithCorrelation(correlationId)
+                .ChannelOutAsync(ChannelType.Internal.ToStorageString(), content, ct);
 
-            await _publisher.Publish(new ChannelMessageRoutedEvent(
-                receiverBinding.AgentId, AgentLogType.ChannelIn, ChannelType.Internal.ToStorageString(),
-                content, correlationId, channelConnectionId), ct);
+            await _resourceLogWriterService
+                .ForChannel(channelConnectionId)
+                .WithAgent(receiverBinding.AgentId)
+                .WithCorrelation(correlationId)
+                .ChannelInAsync(ChannelType.Internal.ToStorageString(), content, ct);
 
             await _publisher.Publish(new MessageReceivedEvent(
                 receiverBinding.AgentId,
@@ -253,7 +263,11 @@ internal sealed class ChannelService : IChannelService
 
             if (string.IsNullOrEmpty(platformId))
             {
-                _logger.LogWarning("Binding {BindingId} has no PlatformId configured, skipping", binding.Id);
+                await _resourceLogWriterService
+                    .ForChannel(binding.ChannelConnectionId)
+                    .WithAgent(agentId)
+                    .WithCorrelation(correlationId)
+                    .WarningAsync("Binding {BindingId} has no PlatformId configured, skipping", binding.Id, ct);
                 continue;
             }
 
@@ -262,16 +276,19 @@ internal sealed class ChannelService : IChannelService
                 await _channelGateway.SendAsync(binding.ChannelConnectionId, channelType, platformId, threadId,
                     ChannelMessage.Text(text), ct);
 
-                await _publisher.Publish(new ChannelMessageRoutedEvent(
-                    agentId, AgentLogType.ChannelOut, channelType, text, correlationId, binding.ChannelConnectionId), ct);
+                await _resourceLogWriterService
+                    .ForChannel(binding.ChannelConnectionId)
+                    .WithAgent(agentId)
+                    .WithCorrelation(correlationId)
+                    .ChannelOutAsync(channelType, text, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Broadcast failed for binding {BindingId}", binding.Id);
-
-                await _publisher.Publish(new ChannelMessageRoutedEvent(
-                    agentId, AgentLogType.Error, channelType,
-                    $"Failed to deliver message via {channelType}: {ex.Message}", correlationId, binding.ChannelConnectionId), ct);
+                await _resourceLogWriterService
+                    .ForChannel(binding.ChannelConnectionId)
+                    .WithAgent(agentId)
+                    .WithCorrelation(correlationId)
+                    .ErrorAsync(ex, "Failed to deliver message via {ChannelType}", channelType, ct);
             }
         }
     }
@@ -292,7 +309,9 @@ internal sealed class ChannelService : IChannelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Test message failed on connection {Id}", connectionId);
+            await _resourceLogWriterService
+                .ForChannel(connectionId)
+                .ErrorAsync(ex, "Test message failed on connection {ConnectionId}", connectionId, ct);
         }
     }
 

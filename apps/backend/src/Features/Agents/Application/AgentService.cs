@@ -5,12 +5,12 @@ internal sealed class AgentService : IAgentService
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentDeployer _agentDeployer;
     private readonly IProviderService _providerService;
-    private readonly ILogger<AgentService> _logger;
     private readonly IDistributedCache _distributedCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
     private readonly AgentChannelBinder _agentChannelBinder;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IAgentWorkQueueService _agentWorkQueueService;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
@@ -20,12 +20,12 @@ internal sealed class AgentService : IAgentService
         IAgentRepository repository,
         IAgentDeployer deployer,
         IProviderService providerService,
-        ILogger<AgentService> logger,
         IDistributedCache cache,
         IAgentPersonalityRepository personalityRepo,
         IPublisher publisher,
         AgentChannelBinder channelBinder,
-        IAgentLogService agentLogService,
+        IAgentWorkQueueService agentWorkQueueService,
+        IResourceLogWriterService resourceLogWriterService,
         IIntegrationDefinitionService integrationDefinitionService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser)
@@ -33,12 +33,12 @@ internal sealed class AgentService : IAgentService
         _agentRepository = repository;
         _agentDeployer = deployer;
         _providerService = providerService;
-        _logger = logger;
         _distributedCache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
         _agentChannelBinder = channelBinder;
-        _agentLogService = agentLogService;
+        _agentWorkQueueService = agentWorkQueueService;
+        _resourceLogWriterService = resourceLogWriterService;
         _integrationDefinitionService = integrationDefinitionService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
@@ -52,7 +52,6 @@ internal sealed class AgentService : IAgentService
             return cached;
 
         var records = await _agentRepository.ListAsync(filter, ct);
-        _logger.LogDebug("Listing {Count} agents, refreshing pod status", records.Count);
         await Task.WhenAll(records
             .Where(r => !string.IsNullOrEmpty(r.PodName))
             .Select(r => RefreshStatusAsync(r, ct)));
@@ -70,10 +69,7 @@ internal sealed class AgentService : IAgentService
 
         var record = await _agentRepository.GetByAsync(filter, ct);
         if (record is null)
-        {
-            _logger.LogDebug("Agent not found for filter {@Filter}", filter);
             return null;
-        }
         await RefreshStatusAsync(record, ct);
 
         await _distributedCache.SetJsonAsync(key, record, AgentCacheTtl, ct);
@@ -82,9 +78,6 @@ internal sealed class AgentService : IAgentService
 
     public async Task<AgentRecord> CreateAsync(CreateAgentRequest request, Guid? ownerId = null, Guid? workspaceId = null, CancellationToken ct = default)
     {
-        _logger.LogInformation("Creating agent {AgentName} with provider {Provider} model {Model}",
-            request.Name, request.Provider, request.Model);
-
         if (!await HasConfiguredProviderAuthAsync(request.Provider, workspaceId, ct))
         {
             throw new InvalidOperationException(
@@ -131,8 +124,12 @@ internal sealed class AgentService : IAgentService
                 record.Id, "BOOTSTRAP.md", AgentPersonalityRecord.CreateBootstrapContent(record.Prompt), ct);
         }
 
-        _logger.LogInformation("Agent {AgentId} record created: {AgentName} ({Provider}/{Model})",
-            record.Id, record.Name, record.Provider, record.Model);
+        await _resourceLogWriterService
+            .ForAgent(record.Id)
+            .InfoAsync(
+                "Agent {AgentName} created with provider {Provider} and model {Model}",
+                [record.Name, record.Provider, record.Model],
+                ct);
 
         await _publisher.Publish(new AgentCreatedEvent(record.Id, record.Provider, record.Model, ownerId), ct);
 
@@ -143,12 +140,7 @@ internal sealed class AgentService : IAgentService
     {
         var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
         if (record is null)
-        {
-            _logger.LogWarning("Patch failed: agent {AgentId} not found", id);
             return null;
-        }
-        _logger.LogInformation("Patching agent {AgentId}: Provider={Provider} Model={Model}",
-            id, request.Provider, request.Model);
 
         var provider = record.Provider;
         if (!string.IsNullOrWhiteSpace(request.Provider))
@@ -203,6 +195,12 @@ internal sealed class AgentService : IAgentService
         record.ActiveDefinitionId = definition.Id;
         await _agentDefinitionRepository.AddAsync(definition, ct);
         await _agentRepository.UpdateAsync(record, ct);
+        await _resourceLogWriterService
+            .ForAgent(id)
+            .InfoAsync(
+                "Agent updated with provider {Provider} and model {Model}",
+                [record.Provider, record.Model],
+                ct);
         await _publisher.Publish(new AgentUpdatedEvent(id), ct);
         return record;
     }
@@ -211,22 +209,22 @@ internal sealed class AgentService : IAgentService
     {
         var record = await _agentRepository.GetByAsync(new AgentFilter { Id = id }, ct);
         if (record is null)
-        {
-            _logger.LogWarning("Delete failed: agent {AgentId} not found", id);
             return false;
-        }
-
-        _logger.LogInformation("Deleting agent {AgentId} ({AgentName})", id, record.Name);
 
         var deleted = await _agentRepository.SoftDeleteAsync(new AgentFilter { Id = id }, ct);
 
         if (deleted)
+        {
+            await _resourceLogWriterService
+                .ForAgent(id)
+                .InfoAsync("Agent {AgentName} deleted", record.Name, ct);
             await _publisher.Publish(new AgentDeletedEvent(id, record.PodName, record.HasPod, record.OwnerId), ct);
+        }
 
         return deleted;
     }
 
-    public async Task<AgentLogRecord> SendMessageAsync(
+    public async Task<ResourceLogRecord> SendMessageAsync(
         Guid agentId,
         string content,
         Guid userId,
@@ -239,7 +237,7 @@ internal sealed class AgentService : IAgentService
             throw new InvalidOperationException($"Agent {agentId} not found");
 
         var correlationId = Guid.NewGuid().ToString("N");
-        var record = await _agentLogService.QueueWorkAsync(new QueueAgentWorkRequest(
+        var record = await _agentWorkQueueService.QueueWorkAsync(new QueueAgentWorkRequest(
             agentId,
             agent.WorkspaceId,
             content,
@@ -334,7 +332,9 @@ internal sealed class AgentService : IAgentService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to refresh status for agent {AgentId}", record.Id);
+            await _resourceLogWriterService
+                .ForAgent(record.Id)
+                .WarningAsync("Failed to refresh agent runtime status: {Message}", ex.Message, ct);
         }
     }
 }

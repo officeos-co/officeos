@@ -1,19 +1,19 @@
 using OffceOs.Database;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Observability;
-using OffceOs.Infrastructure.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
-namespace OffceOs.Tests.Observability;
+namespace OffceOs.Tests.ResourceLogs;
 
-public sealed class AgentLogWorkQueueTests
+public sealed class ResourceLogWorkQueueTests
 {
     [Fact]
     public async Task ClaimNextQueuedWorkAsync_claims_oldest_queued_work()
     {
         using var db = CreateDb();
-        var repository = new AgentLogRepository(db);
+        var repository = new ResourceLogRepository(db);
         var agentId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
         var newer = Work(agentId, workspaceId, DateTime.UtcNow);
@@ -32,7 +32,7 @@ public sealed class AgentLogWorkQueueTests
     public async Task ClaimNextQueuedWorkAsync_skips_agent_that_already_has_running_work()
     {
         using var db = CreateDb();
-        var repository = new AgentLogRepository(db);
+        var repository = new ResourceLogRepository(db);
         var busyAgentId = Guid.NewGuid();
         var freeAgentId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
@@ -51,19 +51,19 @@ public sealed class AgentLogWorkQueueTests
     public async Task MarkWorkAsync_records_completion_state_on_work_log()
     {
         using var db = CreateDb();
-        var repository = new AgentLogRepository(db);
+        var repository = new ResourceLogRepository(db);
         var work = Work(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow);
         await repository.UpsertQueuedWorkAsync(work);
 
         await repository.MarkWorkAsync(work.Id, AgentWorkStatusKinds.Completed);
 
-        var saved = await repository.GetByAsync(new AgentLogFilter { Id = work.Id });
+        var saved = await repository.GetByAsync(new ResourceLogFilter { Id = work.Id });
         Assert.NotNull(saved);
         Assert.Equal(AgentWorkStatusKinds.Completed, saved.WorkStatus);
         Assert.NotNull(saved.CompletedAt);
     }
 
-    private static AgentLogRecord Work(
+    private static ResourceLogRecord Work(
         Guid agentId,
         Guid workspaceId,
         DateTime time,
@@ -74,7 +74,7 @@ public sealed class AgentLogWorkQueueTests
         WorkspaceId = workspaceId,
         ResourceKind = ResourceLogKinds.Agent,
         ResourceId = agentId,
-        Type = AgentLogType.MessageIn,
+        Type = ResourceLogType.MessageIn,
         Content = "Do work.",
         CorrelationId = Guid.NewGuid().ToString("N"),
         Time = time,

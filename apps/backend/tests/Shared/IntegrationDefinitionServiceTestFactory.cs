@@ -5,7 +5,6 @@ using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Infrastructure.Common.Security;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace OffceOs.Tests.Shared;
 
@@ -28,7 +27,7 @@ internal static class IntegrationDefinitionServiceTestFactory
             servers ?? new FakeIntegrationDefinitionRepository(),
             credentials ?? new FakeIntegrationCredentialRepository(),
             new FakeIntegrationCredentialEncryptionService(),
-            NullLogger<IntegrationDefinitionService>.Instance,
+            new FakeResourceLogWriterService(),
             new FakeIntegrationDeploymentRepository(),
             new FakeWorkspaceRepository(),
             workspaceMemberRepository);

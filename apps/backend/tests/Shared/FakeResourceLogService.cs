@@ -1,17 +1,18 @@
-using OffceOs.Application.Features.Observability;
+using OffceOs.Application.Features.AgentHarness;
+using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
 
 namespace OffceOs.Tests.Shared;
 
-public sealed class FakeAgentLogService : IAgentLogService
+public sealed class FakeResourceLogService : IResourceLogService, IAgentWorkQueueService
 {
-    private readonly List<AgentLogRecord> _records = [];
+    private readonly List<ResourceLogRecord> _records = [];
 
-    public IReadOnlyList<AgentLogRecord> Records => _records;
+    public IReadOnlyList<ResourceLogRecord> Records => _records;
 
-    public Task<AgentLogPage> ListAsync(AgentLogQueryRequest request, CancellationToken ct = default) =>
-        Task.FromResult(new AgentLogPage([], 0));
+    public Task<ResourceLogPage> ListAsync(ResourceLogQueryRequest request, CancellationToken ct = default) =>
+        Task.FromResult(new ResourceLogPage([], 0));
 
     public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesAsync(LastRelevantLogQueryRequest request, CancellationToken ct = default)
     {
@@ -20,26 +21,26 @@ public sealed class FakeAgentLogService : IAgentLogService
             ids.ToDictionary(id => id, _ => (string?)null));
     }
 
-    public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
+    public Task<ResourceLogRecord> AppendAsync(ResourceLogRecord record, CancellationToken ct = default)
     {
         _records.Add(record);
         return Task.FromResult(record);
     }
 
-    public Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default)
+    public Task<ResourceLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default)
     {
         var existing = _records.FirstOrDefault(record =>
             record.AgentId == request.AgentId &&
             record.CorrelationId == request.CorrelationId &&
-            record.Type == AgentLogType.MessageIn);
+            record.Type == ResourceLogType.MessageIn);
         if (existing is not null)
             return Task.FromResult(existing);
 
-        var record = new AgentLogRecord
+        var record = new ResourceLogRecord
         {
             AgentId = request.AgentId,
             WorkspaceId = request.WorkspaceId,
-            Type = AgentLogType.MessageIn,
+            Type = ResourceLogType.MessageIn,
             Content = request.Content,
             CorrelationId = request.CorrelationId,
             WorkStatus = AgentWorkStatusKinds.Queued,
@@ -51,35 +52,35 @@ public sealed class FakeAgentLogService : IAgentLogService
         return Task.FromResult(record);
     }
 
-    public Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
+    public Task<ResourceLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
         Task.FromResult(_records.FirstOrDefault(record => record.Id == logId));
 
-    public Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default)
+    public Task<ResourceLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default)
     {
         MarkWork(workLogId, AgentWorkStatusKinds.Running, null);
         return GetAsync(workLogId, ct);
     }
 
-    public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
+    public Task<ResourceLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
     {
         var runningAgentIds = _records
             .Where(record => record.WorkStatus == AgentWorkStatusKinds.Running && record.AgentId.HasValue)
             .Select(record => record.AgentId!.Value)
             .ToHashSet();
         var queued = _records
-            .Where(record => record.Type == AgentLogType.MessageIn
+            .Where(record => record.Type == ResourceLogType.MessageIn
                 && record.WorkStatus == AgentWorkStatusKinds.Queued
                 && record.AgentId.HasValue
                 && !runningAgentIds.Contains(record.AgentId.Value))
             .OrderBy(record => record.Time)
             .FirstOrDefault();
         if (queued is null)
-            return Task.FromResult<AgentLogRecord?>(null);
+            return Task.FromResult<ResourceLogRecord?>(null);
 
         var claimed = CopyWork(queued, AgentWorkStatusKinds.Running, null);
         _records.Remove(queued);
         _records.Add(claimed);
-        return Task.FromResult<AgentLogRecord?>(claimed);
+        return Task.FromResult<ResourceLogRecord?>(claimed);
     }
 
     public Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default)
@@ -105,7 +106,7 @@ public sealed class FakeAgentLogService : IAgentLogService
         _records.Add(updated);
     }
 
-    private static AgentLogRecord CopyWork(AgentLogRecord record, string status, string? error) => new()
+    private static ResourceLogRecord CopyWork(ResourceLogRecord record, string status, string? error) => new()
     {
         Id = record.Id,
         ResourceKind = record.ResourceKind,

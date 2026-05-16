@@ -9,18 +9,15 @@ namespace OffceOs.Infrastructure.Features.Providers;
 public sealed class LlmProviderDispatcher
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<LlmProviderDispatcher> _logger;
     private readonly ICloudProviderTokenService _cloudProviderTokenService;
     private readonly Func<DateTimeOffset> _utcNow;
 
     public LlmProviderDispatcher(
         IHttpClientFactory httpFactory,
-        ILogger<LlmProviderDispatcher> logger,
         ICloudProviderTokenService? cloudProviderTokenService = null,
         Func<DateTimeOffset>? utcNow = null)
     {
         _httpClientFactory = httpFactory;
-        _logger = logger;
         _cloudProviderTokenService = cloudProviderTokenService ?? new CloudProviderTokenService();
         _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
     }
@@ -90,8 +87,6 @@ public sealed class LlmProviderDispatcher
             : model.Equals("auto", StringComparison.OrdinalIgnoreCase)
                 ? SmartRouter.Resolve(model, requestBody, definition!.Slug)
                 : model;
-
-        _logger.LogInformation("Dispatching LLM request to {Provider} model {Model}", provider, resolvedModel);
 
         try
         {

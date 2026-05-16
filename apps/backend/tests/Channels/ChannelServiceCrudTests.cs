@@ -7,7 +7,6 @@ using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace OffceOs.Tests.Channels;
@@ -198,7 +197,7 @@ public sealed class ChannelServiceCrudTests
             new ChannelCredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath))),
             publisher,
             new ChannelReplyContext(),
-            NullLogger<ChannelService>.Instance);
+            new FakeResourceLogWriterService());
     }
 
     private static AgentEntity TestAgent(Guid agentId, Guid ownerId, Guid workspaceId, string name) => new()

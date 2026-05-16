@@ -6,19 +6,12 @@ internal sealed class AgentRuntimeCleanupService : BackgroundService
     private static readonly TimeSpan TickInterval = TimeSpan.FromMinutes(10);
 
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ILogger<AgentRuntimeCleanupService> _logger;
 
-    public AgentRuntimeCleanupService(
-        IServiceScopeFactory scopeFactory,
-        ILogger<AgentRuntimeCleanupService> logger)
-    {
-        _serviceScopeFactory = scopeFactory;
-        _logger = logger;
-    }
+    public AgentRuntimeCleanupService(IServiceScopeFactory scopeFactory)
+        => _serviceScopeFactory = scopeFactory;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("AgentRuntimeCleanupService started");
         await Task.Delay(StartupDelay, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -29,7 +22,11 @@ internal sealed class AgentRuntimeCleanupService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Agent runtime cleanup tick failed");
+                using var scope = _serviceScopeFactory.CreateScope();
+                var resourceLogWriterService = scope.ServiceProvider.GetRequiredService<IResourceLogWriterService>();
+                await resourceLogWriterService
+                    .ForControlPlane()
+                    .ErrorAsync(ex, "Agent runtime cleanup tick failed", stoppingToken);
             }
 
             await Task.Delay(TickInterval, stoppingToken);
@@ -47,13 +44,15 @@ internal sealed class AgentRuntimeCleanupService : BackgroundService
             .ToHashSet();
 
         var result = await cleaner.CleanupUnusedAsync(activeAgentIds, ct);
-        if (result.Pods > 0 || result.Services > 0 || result.Volumes > 0)
-        {
-            _logger.LogInformation(
-                "Cleaned unused agent runtimes: {Pods} pods/containers, {Services} services, {Volumes} volumes/PVCs",
-                result.Pods,
-                result.Services,
-                result.Volumes);
-        }
+        if (result.Pods == 0 && result.Services == 0 && result.Volumes == 0)
+            return;
+
+        var resourceLogWriterService = scope.ServiceProvider.GetRequiredService<IResourceLogWriterService>();
+        await resourceLogWriterService
+            .ForControlPlane()
+            .InfoAsync(
+                "Cleaned unused agent runtimes: {Pods} pods or containers, {Services} services, {Volumes} volumes or PVCs",
+                [result.Pods, result.Services, result.Volumes],
+                ct);
     }
 }

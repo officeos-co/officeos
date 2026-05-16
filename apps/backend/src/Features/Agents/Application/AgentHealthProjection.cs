@@ -13,10 +13,10 @@ internal static class AgentHealthProjection
 {
     private static readonly TimeSpan IdleAfter = TimeSpan.FromSeconds(5);
 
-    public static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentLogRecord> logs)
+    public static AgentHealthResult From(AgentRecord agent, IReadOnlyList<ResourceLogRecord> logs)
         => From(agent, logs, DateTime.UtcNow);
 
-    internal static AgentHealthResult From(AgentRecord agent, IReadOnlyList<AgentLogRecord> logs, DateTime now)
+    internal static AgentHealthResult From(AgentRecord agent, IReadOnlyList<ResourceLogRecord> logs, DateTime now)
     {
         var ordered = logs
             .Where(log => log.AgentId == agent.Id)
@@ -143,7 +143,7 @@ internal static class AgentHealthProjection
             latestBootstrap.CompletedAt);
     }
 
-    private static DateTime ActivityAt(AgentLogRecord log) =>
+    private static DateTime ActivityAt(ResourceLogRecord log) =>
         log.CompletedAt ?? log.StartedAt ?? log.Time;
 
     private static bool IsQueued(string? status) =>

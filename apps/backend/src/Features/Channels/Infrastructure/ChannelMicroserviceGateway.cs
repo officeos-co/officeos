@@ -6,12 +6,10 @@ namespace OffceOs.Infrastructure.Features.Channels;
 public sealed class ChannelSidecarGateway : IChannelGateway
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<ChannelSidecarGateway> _logger;
 
-    public ChannelSidecarGateway(IHttpClientFactory httpClientFactory, ILogger<ChannelSidecarGateway> logger)
+    public ChannelSidecarGateway(IHttpClientFactory httpClientFactory)
     {
         _httpClient = httpClientFactory.CreateClient("channel-sidecar");
-        _logger = logger;
     }
 
     public async Task SendAsync(Guid connectionId, string channelType, string platformId, string? threadId,
@@ -38,7 +36,7 @@ public sealed class ChannelSidecarGateway : IChannelGateway
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Channel sidecar reload failed — sidecar may not be running");
+            _ = ex;
         }
     }
 }

@@ -1,7 +1,7 @@
 using OffceOs.Application.Features.Agents;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
 using Xunit;
 
 namespace OffceOs.Tests.Agents;
@@ -78,7 +78,7 @@ public sealed class AgentHealthProjectionTests
         ActiveDefinitionId = definitionId,
     };
 
-    private static AgentLogRecord Bootstrap(
+    private static ResourceLogRecord Bootstrap(
         AgentRecord agent,
         Guid definitionId,
         string status,
@@ -88,7 +88,7 @@ public sealed class AgentHealthProjectionTests
         Id = Guid.NewGuid(),
         AgentId = agent.Id,
         DefinitionId = definitionId,
-        Type = AgentLogType.MessageIn,
+        Type = ResourceLogType.MessageIn,
         WorkPurpose = AgentWorkPurposeKinds.Bootstrap,
         WorkStatus = status,
         Content = "Bootstrap",

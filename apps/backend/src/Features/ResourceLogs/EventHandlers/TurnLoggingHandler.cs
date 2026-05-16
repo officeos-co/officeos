@@ -1,4 +1,4 @@
-namespace OffceOs.EventHandlers.Features.Observability;
+namespace OffceOs.EventHandlers.Features.ResourceLogs;
 
 internal sealed class TurnLoggingHandler :
     INotificationHandler<TurnStartedEvent>,
@@ -12,21 +12,21 @@ internal sealed class TurnLoggingHandler :
     INotificationHandler<MessageOutEvent>,
     INotificationHandler<ConversationCompactedEvent>
 {
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
 
-    public TurnLoggingHandler(IAgentLogService logService) => _agentLogService = logService;
+    public TurnLoggingHandler(IResourceLogService logService) => _resourceLogService = logService;
 
     public async Task Handle(TurnStartedEvent e, CancellationToken ct)
     {
         var preview = e.UserMessage.Length > 100 ? e.UserMessage[..100] + "..." : e.UserMessage;
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt), ct);
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(TurnCompletedEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.System(e.AgentId,
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.System(e.AgentId,
                 $"Turn complete: {e.Iterations} iterations, {e.ToolCallCount} tool calls",
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
     }
@@ -38,18 +38,18 @@ internal sealed class TurnLoggingHandler :
 
     public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.System(e.AgentId, e.Message,
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.System(e.AgentId, e.Message,
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
     }
 
     public async Task Handle(LlmCallCompletedEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            new AgentLogRecord
+        await _resourceLogService.AppendAsync(
+            new ResourceLogRecord
             {
                 AgentId = e.AgentId,
-                Type = AgentLogType.ModelCall,
+                Type = ResourceLogType.ModelCall,
                 Tool = e.Model,
                 Content = $"LLM call complete: {e.Model} ({e.InputTokens ?? 0} in, {e.OutputTokens ?? 0} out)",
                 CorrelationId = e.CorrelationId,
@@ -72,35 +72,35 @@ internal sealed class TurnLoggingHandler :
 
     public async Task Handle(ToolCallStartedEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt), ct);
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(ToolCallCompletedEvent e, CancellationToken ct)
     {
         var content = e.Output.Length > 10000 ? e.Output[..10000] + "\n[truncated]" : e.Output;
         if (!e.Success) content = $"[failed] {content}";
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.ToolResultEntry(e.AgentId, e.ToolName, content,
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.ToolResultEntry(e.AgentId, e.ToolName, content,
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
     }
 
     public async Task Handle(AgentErrorOccurredEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt), ct);
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(MessageOutEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt), ct);
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt), ct);
     }
 
     public async Task Handle(ConversationCompactedEvent e, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(
-            AgentLogRecord.System(e.AgentId,
+        await _resourceLogService.AppendAsync(
+            ResourceLogRecord.System(e.AgentId,
                 $"Conversation compacted through log {e.LastCompactedLogId:N} ({e.PreCompactTokens} -> {e.PostCompactTokens} estimated tokens)",
                 e.CorrelationId, e.OccurredAt), ct);
     }

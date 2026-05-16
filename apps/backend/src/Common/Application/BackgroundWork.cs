@@ -9,7 +9,6 @@ internal static class BackgroundWork
     public static void Run<TService>(
         IServiceScopeFactory scopeFactory,
         Func<TService, Task> work,
-        Microsoft.Extensions.Logging.ILogger logger,
         TimeSpan? delay = null) where TService : notnull
     {
         _ = Task.Run(async () =>
@@ -25,7 +24,11 @@ internal static class BackgroundWork
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Background work failed for {Service}", typeof(TService).Name);
+                using var scope = scopeFactory.CreateScope();
+                var resourceLogWriterService = scope.ServiceProvider.GetRequiredService<IResourceLogWriterService>();
+                await resourceLogWriterService
+                    .ForControlPlane()
+                    .ErrorAsync(ex, "Background work failed for {Service}", typeof(TService).Name);
             }
         });
     }
@@ -33,7 +36,6 @@ internal static class BackgroundWork
     public static void Run<T1, T2>(
         IServiceScopeFactory scopeFactory,
         Func<T1, T2, Task> work,
-        Microsoft.Extensions.Logging.ILogger logger,
         TimeSpan? delay = null)
         where T1 : notnull where T2 : notnull
     {
@@ -51,8 +53,12 @@ internal static class BackgroundWork
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Background work failed for {Service1}+{Service2}",
-                    typeof(T1).Name, typeof(T2).Name);
+                using var scope = scopeFactory.CreateScope();
+                var resourceLogWriterService = scope.ServiceProvider.GetRequiredService<IResourceLogWriterService>();
+                await resourceLogWriterService
+                    .ForControlPlane()
+                    .ErrorAsync(ex, "Background work failed for {Service1}+{Service2}",
+                        [typeof(T1).Name, typeof(T2).Name]);
             }
         });
     }

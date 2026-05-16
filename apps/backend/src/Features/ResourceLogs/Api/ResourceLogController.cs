@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Features.Observability;
+namespace OffceOs.Api.Features.ResourceLogs;
 
 [ApiController]
 [Route("api/v1/resources")]
@@ -19,7 +19,7 @@ public sealed class ResourceLogController : ControllerBase
         [FromQuery] bool? follow,
         [FromServices] IWorkspaceService workspaces,
         [FromServices] IControlPlaneResourceCatalogService catalog,
-        [FromServices] IAgentLogService logs,
+        [FromServices] IResourceLogService logs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
@@ -37,7 +37,7 @@ public sealed class ResourceLogController : ControllerBase
             return await StreamResourceLogs(resourceKind, name, tail, since, sinceTime, parsedType, severity, correlationId, workStatus, purpose, scope.Value.WorkspaceId, logs, ct);
 
         var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
-        var page = await logs.ListAsync(new AgentLogQueryRequest(
+        var page = await logs.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: scope.Value.WorkspaceId,
             ResourceKind: resourceKind,
             ResourceName: name,
@@ -75,16 +75,16 @@ public sealed class ResourceLogController : ControllerBase
     private static string? ResolveResourceLogKind(string kind, IControlPlaneResourceCatalogService catalog)
     {
         var descriptor = catalog.Find(kind);
-        return descriptor is null ? null : AgentLogService.ResourceLogKindFor(descriptor.Singular);
+        return descriptor is null ? null : ResourceLogService.ResourceLogKindFor(descriptor.Singular);
     }
 
-    private static AgentLogType? ParseLogType(string? type)
+    private static ResourceLogType? ParseLogType(string? type)
     {
         if (string.IsNullOrWhiteSpace(type))
             return null;
 
         var normalized = type.Replace("-", string.Empty).Replace("_", string.Empty);
-        return Enum.TryParse<AgentLogType>(normalized, true, out var parsed) ? parsed : null;
+        return Enum.TryParse<ResourceLogType>(normalized, true, out var parsed) ? parsed : null;
     }
 
     private static DateTime? ParseSince(string? since)
@@ -117,13 +117,13 @@ public sealed class ResourceLogController : ControllerBase
         int? tail,
         string? since,
         DateTime? sinceTime,
-        AgentLogType? type,
+        ResourceLogType? type,
         string? severity,
         string? correlationId,
         string? workStatus,
         string? purpose,
         Guid workspaceId,
-        IAgentLogService logs,
+        IResourceLogService logs,
         CancellationToken ct)
     {
         Response.ContentType = "text/event-stream; charset=utf-8";
@@ -138,7 +138,7 @@ public sealed class ResourceLogController : ControllerBase
         {
             while (!ct.IsCancellationRequested)
             {
-                var page = await logs.ListAsync(new AgentLogQueryRequest(
+                var page = await logs.ListAsync(new ResourceLogQueryRequest(
                     WorkspaceId: workspaceId,
                     ResourceKind: kind,
                     ResourceName: name,
@@ -150,7 +150,7 @@ public sealed class ResourceLogController : ControllerBase
                     CorrelationId: correlationId,
                     FromInclusive: from,
                     Limit: tail ?? 100,
-                    Sort: AgentLogSort.TimeAscending), ct);
+                    Sort: ResourceLogSort.TimeAscending), ct);
 
                 foreach (var log in page.Items.OrderBy(item => item.Time).ThenBy(item => item.Id))
                 {
@@ -176,7 +176,7 @@ public sealed class ResourceLogController : ControllerBase
         return new EmptyResult();
     }
 
-    private static object ToResourceLogPayload(AgentLogRecord log) => new
+    private static object ToResourceLogPayload(ResourceLogRecord log) => new
     {
         log.Id,
         log.AgentId,

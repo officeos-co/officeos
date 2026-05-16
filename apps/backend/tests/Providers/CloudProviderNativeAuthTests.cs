@@ -4,7 +4,6 @@ using OffceOs.Configuration;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace OffceOs.Tests.Providers;
@@ -17,7 +16,6 @@ public sealed class CloudProviderNativeAuthTests
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler),
-            NullLogger<LlmProviderDispatcher>.Instance,
             utcNow: () => new DateTimeOffset(2026, 5, 10, 12, 0, 0, TimeSpan.Zero));
 
         var result = await dispatcher.DispatchAsync(
@@ -54,7 +52,6 @@ public sealed class CloudProviderNativeAuthTests
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler),
-            NullLogger<LlmProviderDispatcher>.Instance,
             cloudProviderTokenService: new FakeCloudProviderTokenService(googleToken: "google-token", azureToken: "unused"));
 
         var result = await dispatcher.DispatchAsync(
@@ -86,7 +83,6 @@ public sealed class CloudProviderNativeAuthTests
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
             new FakeHttpClientFactory(handler),
-            NullLogger<LlmProviderDispatcher>.Instance,
             cloudProviderTokenService: new FakeCloudProviderTokenService(googleToken: "unused", azureToken: "azure-token"));
 
         var result = await dispatcher.DispatchAsync(
@@ -119,8 +115,7 @@ public sealed class CloudProviderNativeAuthTests
     {
         var handler = new RecordingHandler(_ => HttpResponseFactory.SseResponse("data: [DONE]\n\n"));
         var dispatcher = new LlmProviderDispatcher(
-            new FakeHttpClientFactory(handler),
-            NullLogger<LlmProviderDispatcher>.Instance);
+            new FakeHttpClientFactory(handler));
 
         var result = await dispatcher.DispatchAsync(
             ProviderRegistry.AzureFoundryProviderSlug,

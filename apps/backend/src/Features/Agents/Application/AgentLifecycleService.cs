@@ -12,7 +12,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
     private readonly IChannelService _channelService;
     private readonly IBrowserService _browserService;
     private readonly IAgentDeployer _agentDeployer;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IAgentRoutineService _agentRoutineService;
@@ -28,7 +28,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         IChannelService channelService,
         IBrowserService browser,
         IAgentDeployer agentDeployer,
-        IAgentLogService agentLogService,
+        IResourceLogService resourceLogService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
         IAgentRoutineService agentRoutineService)
@@ -43,7 +43,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         _channelService = channelService;
         _browserService = browser;
         _agentDeployer = agentDeployer;
-        _agentLogService = agentLogService;
+        _resourceLogService = resourceLogService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
         _agentRoutineService = agentRoutineService;
@@ -55,7 +55,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         CancellationToken ct = default)
     {
         var agents = await _agentRepository.ListAsync(new AgentFilter { WorkspaceId = workspaceId }, ct);
-        var lastMessages = await _agentLogService.GetLastRelevantMessagesAsync(
+        var lastMessages = await _resourceLogService.GetLastRelevantMessagesAsync(
             new LastRelevantLogQueryRequest(
                 AgentIds: agents.Select(agent => agent.Id).ToList(),
                 WorkspaceId: workspaceId),
@@ -85,7 +85,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
             return null;
 
         var status = await ResolveStatusAsync(agent, ct);
-        var lastMessages = await _agentLogService.GetLastRelevantMessagesAsync(
+        var lastMessages = await _resourceLogService.GetLastRelevantMessagesAsync(
             new LastRelevantLogQueryRequest(AgentIds: [agent.Id], WorkspaceId: workspaceId),
             ct);
         var lastMessage = lastMessages.TryGetValue(agent.Id, out var value) ? value : null;
@@ -255,10 +255,10 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         if (runtimeStatus is AgentStatus.Failed or AgentStatus.Booting or AgentStatus.Restarting)
             return runtimeStatus;
 
-        var runningWork = await _agentLogService.ListAsync(new AgentLogQueryRequest(
+        var runningWork = await _resourceLogService.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: agent.WorkspaceId,
             AgentId: agent.Id,
-            Type: AgentLogType.MessageIn,
+            Type: ResourceLogType.MessageIn,
             WorkStatus: AgentWorkStatusKinds.Running,
             Limit: 1), ct);
 

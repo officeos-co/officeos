@@ -1,8 +1,8 @@
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.Domain.Features.Channels;
-using OffceOs.Infrastructure.Features.Observability;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
 using Xunit;
@@ -16,7 +16,7 @@ public sealed class ChannelLogIsolationTests
     {
         await using var db = TestDbFactory.Create("channel-log-isolation");
         var channelRepository = new ChannelRepository(db);
-        var logRepository = new AgentLogRepository(db);
+        var logRepository = new ResourceLogRepository(db);
         var ownerId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
@@ -37,27 +37,27 @@ public sealed class ChannelLogIsolationTests
         var telegramSupport = await channelRepository.CreateConnectionAsync(
             ChannelConnectionRecord.Create(ChannelType.Telegram, "Telegram Support", ownerId, workspaceId));
 
-        await logRepository.AppendAsync(new AgentLogRecord
+        await logRepository.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
-            Type = AgentLogType.ChannelIn,
+            Type = ResourceLogType.ChannelIn,
             Channel = "telegram",
             ChannelConnectionId = telegramOps.Id,
             Content = "ops",
             CorrelationId = "ops-correlation",
         });
-        await logRepository.AppendAsync(new AgentLogRecord
+        await logRepository.AppendAsync(new ResourceLogRecord
         {
             AgentId = agentId,
-            Type = AgentLogType.ChannelIn,
+            Type = ResourceLogType.ChannelIn,
             Channel = "telegram",
             ChannelConnectionId = telegramSupport.Id,
             Content = "support",
             CorrelationId = "support-correlation",
         });
 
-        var opsLogs = await logRepository.ListAsync(new AgentLogFilter { ChannelConnectionId = telegramOps.Id });
-        var supportLogs = await logRepository.ListAsync(new AgentLogFilter { ChannelConnectionId = telegramSupport.Id });
+        var opsLogs = await logRepository.ListAsync(new ResourceLogFilter { ChannelConnectionId = telegramOps.Id });
+        var supportLogs = await logRepository.ListAsync(new ResourceLogFilter { ChannelConnectionId = telegramSupport.Id });
 
         var opsLog = Assert.Single(opsLogs);
         var supportLog = Assert.Single(supportLogs);

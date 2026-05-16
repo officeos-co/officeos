@@ -9,7 +9,6 @@ internal sealed class AuthService : IAuthService
     private readonly ISessionRepository _sessionRepository;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDistributedCache _distributedCache;
-    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         GoogleOAuthConfig googleOAuth,
@@ -18,8 +17,7 @@ internal sealed class AuthService : IAuthService
         IWorkspaceService workspaceService,
         ISessionRepository sessions,
         IHttpClientFactory httpFactory,
-        IDistributedCache cache,
-        ILogger<AuthService> logger)
+        IDistributedCache cache)
     {
         _googleOAuthConfig = googleOAuth;
         _gitHubOAuthConfig = gitHubOAuth;
@@ -28,7 +26,6 @@ internal sealed class AuthService : IAuthService
         _sessionRepository = sessions;
         _httpClientFactory = httpFactory;
         _distributedCache = cache;
-        _logger = logger;
     }
 
     public GoogleLoginResult BuildGoogleLoginUrl(string? redirectUri = null)
@@ -104,7 +101,6 @@ internal sealed class AuthService : IAuthService
 
         var user = await _userRepository.UpsertByGoogleSubjectAsync(sub, email, name, avatar, ct);
         await _workspaceService.GetCurrentAsync(user.Id, ct);
-        _logger.LogInformation("OAuth: Google user upserted {Email} ({UserId})", email, user.Id);
 
         var sessionToken = await CreateSessionTokenAsync(user.Id, TimeSpan.FromDays(7), ct);
         var integrationCredentials = new Dictionary<string, string>
@@ -191,7 +187,6 @@ internal sealed class AuthService : IAuthService
 
         var user = await _userRepository.UpsertByGitHubSubjectAsync(sub, email, name, avatar, ct);
         await _workspaceService.GetCurrentAsync(user.Id, ct);
-        _logger.LogInformation("OAuth: GitHub user upserted {Email} ({UserId})", email, user.Id);
 
         var sessionToken = await CreateSessionTokenAsync(user.Id, TimeSpan.FromDays(7), ct);
         var integrationCredentials = new Dictionary<string, string>

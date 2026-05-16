@@ -3,26 +3,23 @@ namespace OffceOs.Application.Features.AgentRoutines;
 internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionService
 {
     private readonly IAgentRoutineRepository _agentRoutineRepository;
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
     private readonly IAgentService _agentService;
     private readonly CredentialProtector _credentialProtector;
     private readonly IPublisher _publisher;
-    private readonly ILogger<AgentRoutineExecutionService> _logger;
 
     public AgentRoutineExecutionService(
         IAgentRoutineRepository agentRoutineRepository,
-        IAgentLogService agentLogService,
+        IResourceLogService resourceLogService,
         IAgentService agentService,
         CredentialProtector credentialProtector,
-        IPublisher publisher,
-        ILogger<AgentRoutineExecutionService> logger)
+        IPublisher publisher)
     {
         _agentRoutineRepository = agentRoutineRepository;
-        _agentLogService = agentLogService;
+        _resourceLogService = resourceLogService;
         _agentService = agentService;
         _credentialProtector = credentialProtector;
         _publisher = publisher;
-        _logger = logger;
     }
 
     public async Task<AgentRoutineExecutionResult> RunDueSchedulesAsync(DateTime now, CancellationToken ct = default)
@@ -55,9 +52,8 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to execute scheduled routine trigger {TriggerId}", trigger.Id);
                     var error = new AgentError(AgentErrorCategory.TurnOrchestration, $"Routine trigger '{trigger.Name}' failed: {ex.Message}", ex.ToString());
-                    await _agentLogService.AppendAsync(error.ToLogRecord(routine.AgentId), ct);
+                    await _resourceLogService.AppendAsync(error.ToLogRecord(routine.AgentId), ct);
                     await _publisher.Publish(new RoutineTriggerFailedEvent(
                         routine.Id,
                         routine.Name,

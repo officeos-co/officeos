@@ -1,4 +1,5 @@
 using OffceOs.Application.Features.Channels;
+using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.AgentHarness;
@@ -6,9 +7,9 @@ using OffceOs.Domain.Features.Channels;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace OffceOs.Tests.Channels;
@@ -43,11 +44,11 @@ public sealed class ChannelInboundRoutingTests
             "chat-ops");
 
         var messageEvents = publisher.Notifications.OfType<MessageReceivedEvent>().ToList();
-        var logEvents = publisher.Notifications.OfType<ChannelMessageRoutedEvent>().ToList();
+        var logEvents = db.ResourceLogs.ToList();
         Assert.Equal(opsAgentIds.OrderBy(id => id), notified.OrderBy(id => id));
         Assert.Equal(opsAgentIds.OrderBy(id => id), messageEvents.Select(ev => ev.AgentId).OrderBy(id => id));
         Assert.DoesNotContain(messageEvents, ev => supportAgentIds.Contains(ev.AgentId));
-        Assert.All(logEvents, ev => Assert.Equal(telegramOps.Id, ev.ChannelConnectionId));
+        Assert.All(logEvents, log => Assert.Equal(telegramOps.Id, log.ChannelConnectionId));
         Assert.All(messageEvents, ev => Assert.Equal("ops incident", ev.Content));
     }
 
@@ -71,11 +72,11 @@ public sealed class ChannelInboundRoutingTests
         var notified = await service.RouteInboundAsync(telegram.Id, "sender", "hello", false, "message", "chat");
 
         var messageEvents = publisher.Notifications.OfType<MessageReceivedEvent>().ToList();
-        var logEvents = publisher.Notifications.OfType<ChannelMessageRoutedEvent>().ToList();
+        var logEvents = db.ResourceLogs.ToList();
         Assert.Equal([enabledAgentId], notified);
         Assert.Equal([enabledAgentId], messageEvents.Select(ev => ev.AgentId));
-        Assert.Contains(logEvents, ev => ev.AgentId == enabledAgentId && ev.ChannelConnectionId == telegram.Id);
-        Assert.Contains(logEvents, ev => ev.AgentId == disabledAgentId && ev.ChannelConnectionId == telegram.Id);
+        Assert.Contains(logEvents, log => log.AgentId == enabledAgentId && log.ChannelConnectionId == telegram.Id);
+        Assert.Contains(logEvents, log => log.AgentId == disabledAgentId && log.ChannelConnectionId == telegram.Id);
     }
 
     [Fact]
@@ -98,7 +99,7 @@ public sealed class ChannelInboundRoutingTests
         Assert.Empty(disabledResult);
         Assert.Empty(missingResult);
         Assert.Empty(publisher.Notifications.OfType<MessageReceivedEvent>());
-        Assert.Empty(publisher.Notifications.OfType<ChannelMessageRoutedEvent>());
+        Assert.Empty(db.ResourceLogs);
     }
 
     [Fact]
@@ -151,7 +152,8 @@ public sealed class ChannelInboundRoutingTests
             new ChannelCredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath))),
             publisher,
             new ChannelReplyContext(),
-            NullLogger<ChannelService>.Instance);
+            new FakeResourceLogWriterService(
+                new ResourceLogService(new ResourceLogRepository(db), new FakeControlPlaneResourceCatalogService())));
     }
 
     private static void SeedAgents(OffceOs.Database.EaosDbContext db, Guid ownerId, Guid workspaceId, params Guid[] agentIds)

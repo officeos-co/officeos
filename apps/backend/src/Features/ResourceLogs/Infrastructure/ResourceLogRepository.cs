@@ -1,13 +1,13 @@
-namespace OffceOs.Infrastructure.Features.Observability;
+namespace OffceOs.Infrastructure.Features.ResourceLogs;
 
-internal sealed class AgentLogRepository : IAgentLogRepository
+internal sealed class ResourceLogRepository : IResourceLogRepository
 {
     private static readonly SemaphoreSlim WorkQueueLock = new(1, 1);
     private readonly EaosDbContext _eaosDbContext;
 
-    public AgentLogRepository(EaosDbContext db) => _eaosDbContext = db;
+    public ResourceLogRepository(EaosDbContext db) => _eaosDbContext = db;
 
-    public IQueryable<AgentLogRecord> Query(AgentLogFilter filter)
+    public IQueryable<ResourceLogRecord> Query(ResourceLogFilter filter)
     {
         var query = _eaosDbContext.ResourceLogs.AsNoTracking().AsQueryable();
 
@@ -101,15 +101,15 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         if (filter.Before.HasValue)
             query = query.Where(l => l.Time < filter.Before.Value);
 
-        return ProjectAgentLogRecords(query);
+        return ProjectResourceLogRecords(query);
     }
 
-    public async Task<List<AgentLogRecord>> ListAsync(
-        AgentLogFilter filter,
-        AgentLogListOptions? options = null,
+    public async Task<List<ResourceLogRecord>> ListAsync(
+        ResourceLogFilter filter,
+        ResourceLogListOptions? options = null,
         CancellationToken ct = default)
     {
-        options ??= new AgentLogListOptions();
+        options ??= new ResourceLogListOptions();
         var query = Query(filter);
 
         if (options.AfterLogId.HasValue)
@@ -124,7 +124,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
 
         query = options.Sort switch
         {
-            AgentLogSort.TimeAscending => query.OrderBy(l => l.Time).ThenBy(l => l.Id),
+            ResourceLogSort.TimeAscending => query.OrderBy(l => l.Time).ThenBy(l => l.Id),
             _ => query.OrderByDescending(l => l.Time).ThenByDescending(l => l.Id),
         };
 
@@ -137,24 +137,24 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         return await query.ToListAsync(ct);
     }
 
-    public Task<int> CountAsync(AgentLogFilter filter, CancellationToken ct = default)
+    public Task<int> CountAsync(ResourceLogFilter filter, CancellationToken ct = default)
         => Query(filter).CountAsync(ct);
 
-    public async Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
+    public async Task<ResourceLogRecord> AppendAsync(ResourceLogRecord record, CancellationToken ct = default)
     {
-        _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(record, ct));
+        _eaosDbContext.ResourceLogs.Add(await ToResourceLogEntityAsync(record, ct));
         await _eaosDbContext.SaveChangesAsync(ct);
         return record;
     }
 
-    public async Task AppendPairAsync(AgentLogRecord toolCall, AgentLogRecord toolResult, CancellationToken ct = default)
+    public async Task AppendPairAsync(ResourceLogRecord toolCall, ResourceLogRecord toolResult, CancellationToken ct = default)
     {
-        _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(toolCall, ct));
-        _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(toolResult, ct));
+        _eaosDbContext.ResourceLogs.Add(await ToResourceLogEntityAsync(toolCall, ct));
+        _eaosDbContext.ResourceLogs.Add(await ToResourceLogEntityAsync(toolResult, ct));
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    public Task<AgentLogRecord?> GetByAsync(AgentLogFilter filter, CancellationToken ct = default)
+    public Task<ResourceLogRecord?> GetByAsync(ResourceLogFilter filter, CancellationToken ct = default)
         => Query(filter).FirstOrDefaultAsync(ct);
 
     public async Task DeleteByAgentIdsAsync(IReadOnlyList<Guid> agentIds, CancellationToken ct = default)
@@ -165,7 +165,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             .ExecuteDeleteAsync(ct);
     }
 
-    public async Task<AgentLogRecord> UpsertQueuedWorkAsync(AgentLogRecord record, CancellationToken ct = default)
+    public async Task<ResourceLogRecord> UpsertQueuedWorkAsync(ResourceLogRecord record, CancellationToken ct = default)
     {
         var existing = string.IsNullOrWhiteSpace(record.CorrelationId)
             ? null
@@ -173,12 +173,12 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 .FirstOrDefaultAsync(l =>
                     l.AgentId == record.AgentId &&
                     l.CorrelationId == record.CorrelationId &&
-                    l.Type == AgentLogType.MessageIn,
+                    l.Type == ResourceLogType.MessageIn,
                     ct);
 
         if (existing is null)
         {
-            _eaosDbContext.ResourceLogs.Add(await ToAgentLogEntityAsync(record, ct));
+            _eaosDbContext.ResourceLogs.Add(await ToResourceLogEntityAsync(record, ct));
             await _eaosDbContext.SaveChangesAsync(ct);
             return record;
         }
@@ -194,13 +194,13 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         return ToRecord(existing);
     }
 
-    public async Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
+    public async Task<ResourceLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
     {
         await WorkQueueLock.WaitAsync(ct);
         try
         {
             var runningAgentIds = await _eaosDbContext.ResourceLogs
-                .Where(log => log.Type == AgentLogType.MessageIn
+                .Where(log => log.Type == ResourceLogType.MessageIn
                     && log.WorkStatus == AgentWorkStatusKinds.Running
                     && log.AgentId.HasValue)
                 .Select(log => log.AgentId!.Value)
@@ -208,7 +208,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
                 .ToListAsync(ct);
 
             var work = await _eaosDbContext.ResourceLogs
-                .Where(log => log.Type == AgentLogType.MessageIn
+                .Where(log => log.Type == ResourceLogType.MessageIn
                     && log.WorkStatus == AgentWorkStatusKinds.Queued
                     && log.AgentId.HasValue
                     && !runningAgentIds.Contains(log.AgentId.Value))
@@ -249,8 +249,8 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         await _eaosDbContext.SaveChangesAsync(ct);
     }
 
-    private static IQueryable<AgentLogRecord> ProjectAgentLogRecords(IQueryable<ResourceLogEntity> query) =>
-        query.Select(log => new AgentLogRecord
+    private static IQueryable<ResourceLogRecord> ProjectResourceLogRecords(IQueryable<ResourceLogEntity> query) =>
+        query.Select(log => new ResourceLogRecord
         {
             Id = log.Id,
             ResourceKind = log.ResourceKind,
@@ -290,7 +290,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             WorkError = log.WorkError,
         });
 
-    private async Task<ResourceLogEntity> ToAgentLogEntityAsync(AgentLogRecord r, CancellationToken ct)
+    private async Task<ResourceLogEntity> ToResourceLogEntityAsync(ResourceLogRecord r, CancellationToken ct)
     {
         var workspaceId = r.WorkspaceId;
         var resourceKind = r.ResourceKind;
@@ -363,7 +363,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         };
     }
 
-    private static AgentLogRecord ToRecord(ResourceLogEntity log) => new()
+    private static ResourceLogRecord ToRecord(ResourceLogEntity log) => new()
     {
         Id = log.Id,
         ResourceKind = log.ResourceKind,
@@ -392,7 +392,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
         WorkError = log.WorkError,
     };
 
-    private static string NormalizeSeverity(AgentLogRecord record)
+    private static string NormalizeSeverity(ResourceLogRecord record)
     {
         if (!string.IsNullOrWhiteSpace(record.Severity) &&
             !record.Severity.Equals(ResourceLogSeverityKinds.Info, StringComparison.OrdinalIgnoreCase))
@@ -400,7 +400,7 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             return record.Severity.Trim().ToLowerInvariant();
         }
 
-        return record.Type.ToString().StartsWith("Error", StringComparison.Ordinal) || record.Type == AgentLogType.Error
+        return record.Type.ToString().StartsWith("Error", StringComparison.Ordinal) || record.Type == ResourceLogType.Error
             ? ResourceLogSeverityKinds.Error
             : ResourceLogSeverityKinds.Info;
     }

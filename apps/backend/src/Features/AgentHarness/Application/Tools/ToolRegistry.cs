@@ -130,7 +130,7 @@ internal sealed class ToolRegistryFactory
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly AgentHarnessToolPermissionPolicy _agentHarnessToolPermissionPolicy;
     private readonly AgentHarnessToolPermissionResolver _agentHarnessToolPermissionResolver;
-    private readonly ILogger<ToolRegistryFactory> _logger;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
 
     public ToolRegistryFactory(
         IAgentMemoryService agentMemoryService,
@@ -148,7 +148,7 @@ internal sealed class ToolRegistryFactory
         TurnEventPublisher turnEventPublisher,
         AgentHarnessToolPermissionPolicy agentHarnessToolPermissionPolicy,
         AgentHarnessToolPermissionResolver agentHarnessToolPermissionResolver,
-        ILogger<ToolRegistryFactory> logger)
+        IResourceLogWriterService resourceLogWriterService)
     {
         _agentMemoryService = agentMemoryService;
         _agentRoutineRepository = agentRoutineRepository;
@@ -165,7 +165,7 @@ internal sealed class ToolRegistryFactory
         _turnEventPublisher = turnEventPublisher;
         _agentHarnessToolPermissionPolicy = agentHarnessToolPermissionPolicy;
         _agentHarnessToolPermissionResolver = agentHarnessToolPermissionResolver;
-        _logger = logger;
+        _resourceLogWriterService = resourceLogWriterService;
     }
 
     public async Task<ToolRegistry> CreateAsync(ToolRegistryRequest request, CancellationToken ct)
@@ -319,7 +319,10 @@ internal sealed class ToolRegistryFactory
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            _logger.LogWarning(ex, "Browser tools unavailable for agent {AgentId}", request.AgentId);
+            await _resourceLogWriterService
+                .ForAgent(request.AgentId)
+                .WithCorrelation(request.CorrelationId)
+                .WarningAsync("Browser tools unavailable: {Message}", ex.Message, ct);
         }
     }
 
@@ -344,7 +347,10 @@ internal sealed class ToolRegistryFactory
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
-                _logger.LogWarning(ex, "Integration {IntegrationName} unavailable for agent {AgentId}", server.Name, request.AgentId);
+                await _resourceLogWriterService
+                    .ForAgent(request.AgentId)
+                    .WithCorrelation(request.CorrelationId)
+                    .WarningAsync("Integration {IntegrationName} unavailable: {Message}", [server.Name, ex.Message], ct);
             }
 
             foreach (var catalogTool in server.Tools)

@@ -11,14 +11,12 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     private readonly DockerConfig _dockerConfig;
     private readonly PodExecutorClient _podExecutorClient;
     private readonly IAgentWorkspaceStore _agentWorkspaceStore;
-    private readonly ILogger<DockerAgentSandbox> _logger;
 
     public DockerAgentSandbox(
         DockerConfig config,
         PodExecutorClient executor,
-        IAgentWorkspaceStore workspaceStore,
-        ILogger<DockerAgentSandbox> logger)
-        : this(CreateDockerClient(config.SocketPath), config, executor, workspaceStore, logger)
+        IAgentWorkspaceStore workspaceStore)
+        : this(CreateDockerClient(config.SocketPath), config, executor, workspaceStore)
     {
     }
 
@@ -26,14 +24,12 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         HttpClient docker,
         DockerConfig config,
         PodExecutorClient executor,
-        IAgentWorkspaceStore workspaceStore,
-        ILogger<DockerAgentSandbox> logger)
+        IAgentWorkspaceStore workspaceStore)
     {
         _httpClient = docker;
         _dockerConfig = config;
         _podExecutorClient = executor;
         _agentWorkspaceStore = workspaceStore;
-        _logger = logger;
     }
 
     public async Task<AgentSandboxDeployment> CreateAsync(
@@ -49,12 +45,6 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     public async Task<AgentDeployment> DeployAsync(Guid agentId, CancellationToken ct = default)
     {
         var sandboxId = SandboxName(agentId);
-        _logger.LogInformation(
-            "Deploying agent {AgentId} as Docker pod executor {SandboxId} using image {Image}",
-            agentId,
-            sandboxId,
-            _dockerConfig.Image);
-
         using var content = JsonContent.Create(BuildCreateContainerBody(agentId, _dockerConfig));
         var createResponse = await _httpClient.PostAsync($"/containers/create?name={sandboxId}", content, ct);
 
@@ -118,7 +108,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to remove Docker pod executor {SandboxId}", podName);
+            _ = ex;
             return false;
         }
     }

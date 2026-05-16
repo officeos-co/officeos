@@ -1,17 +1,18 @@
-using OffceOs.Application.Features.Observability;
+using OffceOs.Application.Features.AgentHarness;
+using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Domain.Features.AgentRoutines;
-using OffceOs.Domain.Features.Observability;
-using OffceOs.EventHandlers.Features.Observability;
+using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.EventHandlers.Features.ResourceLogs;
 using Xunit;
 
-namespace OffceOs.Tests.Observability;
+namespace OffceOs.Tests.ResourceLogs;
 
 public sealed class RoutineLoggingHandlerTests
 {
     [Fact]
     public async Task Fired_routine_trigger_writes_routine_scoped_resource_log()
     {
-        var logs = new RecordingAgentLogService();
+        var logs = new RecordingResourceLogService();
         var handler = new RoutineLoggingHandler(logs);
         var routineId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
@@ -42,33 +43,33 @@ public sealed class RoutineLoggingHandlerTests
         Assert.Contains(triggerId.ToString(), log.MetadataJson ?? string.Empty);
     }
 
-    private sealed class RecordingAgentLogService : IAgentLogService
+    private sealed class RecordingResourceLogService : IResourceLogService
     {
-        public List<AgentLogRecord> Records { get; } = [];
+        public List<ResourceLogRecord> Records { get; } = [];
 
-        public Task<AgentLogPage> ListAsync(AgentLogQueryRequest request, CancellationToken ct = default) =>
-            Task.FromResult(new AgentLogPage([], 0));
+        public Task<ResourceLogPage> ListAsync(ResourceLogQueryRequest request, CancellationToken ct = default) =>
+            Task.FromResult(new ResourceLogPage([], 0));
 
         public Task<IReadOnlyDictionary<Guid, string?>> GetLastRelevantMessagesAsync(LastRelevantLogQueryRequest request, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<Guid, string?>>(new Dictionary<Guid, string?>());
 
-        public Task<AgentLogRecord> AppendAsync(AgentLogRecord record, CancellationToken ct = default)
+        public Task<ResourceLogRecord> AppendAsync(ResourceLogRecord record, CancellationToken ct = default)
         {
             Records.Add(record);
             return Task.FromResult(record);
         }
 
-        public Task<AgentLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default) =>
-            Task.FromResult(AgentLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId));
+        public Task<ResourceLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default) =>
+            Task.FromResult(ResourceLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId));
 
-        public Task<AgentLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
-            Task.FromResult<AgentLogRecord?>(null);
+        public Task<ResourceLogRecord?> GetAsync(Guid logId, CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
 
-        public Task<AgentLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default) =>
-            Task.FromResult<AgentLogRecord?>(null);
+        public Task<ResourceLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
 
-        public Task<AgentLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
-            Task.FromResult<AgentLogRecord?>(null);
+        public Task<ResourceLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
 
         public Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default) =>
             Task.CompletedTask;

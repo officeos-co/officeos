@@ -5,19 +5,12 @@ internal sealed class AgentRoutineSchedulerService : BackgroundService
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(30);
 
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly ILogger<AgentRoutineSchedulerService> _logger;
 
-    public AgentRoutineSchedulerService(
-        IServiceScopeFactory serviceScopeFactory,
-        ILogger<AgentRoutineSchedulerService> logger)
-    {
-        _serviceScopeFactory = serviceScopeFactory;
-        _logger = logger;
-    }
+    public AgentRoutineSchedulerService(IServiceScopeFactory serviceScopeFactory)
+        => _serviceScopeFactory = serviceScopeFactory;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("AgentRoutineSchedulerService started");
         await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -30,7 +23,11 @@ internal sealed class AgentRoutineSchedulerService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Agent routine scheduler tick failed");
+                using var scope = _serviceScopeFactory.CreateScope();
+                var resourceLogWriterService = scope.ServiceProvider.GetRequiredService<IResourceLogWriterService>();
+                await resourceLogWriterService
+                    .ForControlPlane()
+                    .ErrorAsync(ex, "Agent routine scheduler tick failed", stoppingToken);
             }
 
             await Task.Delay(TickInterval, stoppingToken);

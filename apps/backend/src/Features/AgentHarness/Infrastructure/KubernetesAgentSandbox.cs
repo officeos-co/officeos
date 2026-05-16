@@ -11,20 +11,17 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
     private readonly KubernetesConfig _kubernetesConfig;
     private readonly PodExecutorClient _podExecutorClient;
     private readonly IAgentWorkspaceStore _agentWorkspaceStore;
-    private readonly ILogger<KubernetesAgentSandbox> _logger;
 
     public KubernetesAgentSandbox(
         IKubernetes kubernetes,
         KubernetesConfig config,
         PodExecutorClient executor,
-        IAgentWorkspaceStore workspaceStore,
-        ILogger<KubernetesAgentSandbox> logger)
+        IAgentWorkspaceStore workspaceStore)
     {
         _kubernetes = kubernetes;
         _kubernetesConfig = config;
         _podExecutorClient = executor;
         _agentWorkspaceStore = workspaceStore;
-        _logger = logger;
     }
 
     public async Task<AgentSandboxDeployment> CreateAsync(
@@ -58,7 +55,6 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
 
         await _agentWorkspaceStore.RestoreAsync(sandboxId, serviceUrl, ct);
 
-        _logger.LogInformation("Deployed agent {AgentId} as pod executor {SandboxId}", agentId, sandboxId);
         return new AgentDeployment(sandboxId, serviceUrl);
     }
 
@@ -107,7 +103,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to remove pod executor {SandboxId}", podName);
+            _ = ex;
             return false;
         }
     }

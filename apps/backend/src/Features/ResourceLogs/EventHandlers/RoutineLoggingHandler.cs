@@ -1,17 +1,17 @@
-namespace OffceOs.EventHandlers.Features.Observability;
+namespace OffceOs.EventHandlers.Features.ResourceLogs;
 
 internal sealed class RoutineLoggingHandler :
     INotificationHandler<RoutineTriggerFiredEvent>,
     INotificationHandler<RoutineTriggerFailedEvent>
 {
-    private readonly IAgentLogService _agentLogService;
+    private readonly IResourceLogService _resourceLogService;
 
-    public RoutineLoggingHandler(IAgentLogService agentLogService)
-        => _agentLogService = agentLogService;
+    public RoutineLoggingHandler(IResourceLogService resourceLogService)
+        => _resourceLogService = resourceLogService;
 
     public async Task Handle(RoutineTriggerFiredEvent notification, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(new AgentLogRecord
+        await _resourceLogService.AppendAsync(new ResourceLogRecord
         {
             ResourceKind = ResourceLogKinds.Routine,
             ResourceId = notification.RoutineId,
@@ -20,7 +20,7 @@ internal sealed class RoutineLoggingHandler :
             ParentResourceId = notification.AgentId,
             AgentId = notification.AgentId,
             WorkspaceId = notification.WorkspaceId,
-            Type = AgentLogType.System,
+            Type = ResourceLogType.System,
             Content = $"Routine trigger fired: {notification.TriggerName}",
             CorrelationId = notification.CorrelationId,
             Time = notification.OccurredAt,
@@ -38,7 +38,7 @@ internal sealed class RoutineLoggingHandler :
 
     public async Task Handle(RoutineTriggerFailedEvent notification, CancellationToken ct)
     {
-        await _agentLogService.AppendAsync(new AgentLogRecord
+        await _resourceLogService.AppendAsync(new ResourceLogRecord
         {
             ResourceKind = ResourceLogKinds.Routine,
             ResourceId = notification.RoutineId,
@@ -47,7 +47,7 @@ internal sealed class RoutineLoggingHandler :
             ParentResourceId = notification.AgentId,
             AgentId = notification.AgentId,
             WorkspaceId = notification.WorkspaceId,
-            Type = AgentLogType.ErrorTurnOrchestration,
+            Type = ResourceLogType.ErrorTurnOrchestration,
             Severity = ResourceLogSeverityKinds.Error,
             Content = $"Routine trigger failed: {notification.TriggerName}: {notification.Error}",
             Time = notification.OccurredAt,

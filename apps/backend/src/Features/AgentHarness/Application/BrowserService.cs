@@ -4,16 +4,16 @@ internal sealed class BrowserService : IBrowserService
 {
     private readonly IBrowserSessionRepository _browserSessionRepository;
     private readonly IBrowserRuntimeClient _browserRuntimeClient;
-    private readonly ILogger<BrowserService> _logger;
+    private readonly IResourceLogWriterService _resourceLogWriterService;
 
     public BrowserService(
         IBrowserSessionRepository browserSessionRepository,
         IBrowserRuntimeClient browserRuntimeClient,
-        ILogger<BrowserService> logger)
+        IResourceLogWriterService resourceLogWriterService)
     {
         _browserSessionRepository = browserSessionRepository;
         _browserRuntimeClient = browserRuntimeClient;
-        _logger = logger;
+        _resourceLogWriterService = resourceLogWriterService;
     }
 
     public async Task<BrowserSessionState> GetOrCreateAsync(Guid agentId, CancellationToken ct = default)
@@ -74,7 +74,9 @@ internal sealed class BrowserService : IBrowserService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to close browser session {RuntimeSessionId} for agent {AgentId}", existing.RuntimeSessionId, agentId);
+            await _resourceLogWriterService
+                .ForAgent(agentId)
+                .WarningAsync("Failed to close browser session {RuntimeSessionId}: {Message}", [existing.RuntimeSessionId, ex.Message], ct);
         }
 
         await _browserSessionRepository.DeleteByAgentAsync(agentId, ct);
