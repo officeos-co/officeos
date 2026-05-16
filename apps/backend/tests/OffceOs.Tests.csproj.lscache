@@ -76,6 +76,7 @@ Channels/
  ChannelInboundRoutingTests.cs
  ChannelLogIsolationTests.cs
  ChannelServiceCrudTests.cs
+Common/ControlPlaneResourceCatalogTests.cs
 Integrations/IntegrationDefinitionServiceTests.cs
 Management/
  CliAuthServiceTests.cs

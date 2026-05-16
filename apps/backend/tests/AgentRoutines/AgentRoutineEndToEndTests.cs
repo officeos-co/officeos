@@ -36,8 +36,8 @@ public sealed class AgentRoutineEndToEndTests
                 [new CreateScheduleRoutineTriggerRequest("Weekday check", "*/5 * * * *")],
                 [new CreateApiRoutineTriggerRequest("Manual deployment hook")],
                 [
-                    new CreateGitHubRoutineTriggerRequest("Pull requests", "acme", "platform", ["pull_request"], "github-secret"),
-                    new CreateGitHubRoutineTriggerRequest("Pushes", "acme", "platform", ["push"], "github-secret")
+                    new CreateGitHubRoutineTriggerRequest("Pull requests", "acme/platform", ["pull_request"], null, "github-secret", "webhook"),
+                    new CreateGitHubRoutineTriggerRequest("Pushes", "acme/platform", ["push"], null, "github-secret", "webhook")
                 ]),
             ownerId,
             workspaceId);
@@ -137,7 +137,7 @@ public sealed class AgentRoutineEndToEndTests
                 "Review the pull request update.",
                 [],
                 [],
-                [new CreateGitHubRoutineTriggerRequest("PR events", "acme", "platform", ["pull_request"], "github-secret")]),
+                [new CreateGitHubRoutineTriggerRequest("PR events", "acme/platform", ["pull_request"], null, "github-secret", "webhook")]),
             ownerId,
             workspaceId);
 

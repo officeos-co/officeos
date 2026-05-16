@@ -25,19 +25,18 @@ export interface CliInvocation {
   argsPrefix: readonly string[];
 }
 
-export const ResourceKinds = [
-  "agents",
-  "channels",
-  "routines",
-  "credentials",
-  "browsers",
-  "memorystores",
-  "engines",
-  "providers",
-  "models",
-] as const;
+export interface ResourceDescriptor {
+  kind: string;
+  singular: string;
+  aliases: string[];
+  displayName: string;
+  description: string;
+  icon: string;
+  capabilities: string[];
+  displayFields: string[];
+}
 
-export type ResourceKind = (typeof ResourceKinds)[number];
+export type ResourceKind = string;
 
 export class OfficeOsCli {
   private readonly extensionPath: string;
@@ -52,26 +51,17 @@ export class OfficeOsCli {
     this.execFile = options.execFile ?? defaultExecFile;
   }
 
+  async listResourceCatalog(): Promise<ResourceDescriptor[]> {
+    const value = await this.runJson<unknown>(["get", "-o", "json"], "resources");
+    return Array.isArray(value) ? value.map(coerceResourceDescriptor) : [];
+  }
+
   async listResources(kind: ResourceKind): Promise<unknown[]> {
-    const args =
-      kind === "providers" || kind === "models"
-        ? [kind, "-o", "json"]
-        : ["get", kind, "-o", "json"];
-    const value = await this.runJson<unknown>(args, kind);
+    const value = await this.runJson<unknown>(["get", kind, "-o", "json"], kind);
     return Array.isArray(value) ? value : [value];
   }
 
   async describeResource(kind: string, name: string): Promise<unknown> {
-    if (kind === "providers" || kind === "models") {
-      const resources = await this.listResources(kind);
-      return (
-        resources.find(
-          (resource) =>
-            resourceName(resource) === name || resourceId(resource) === name,
-        ) ?? { kind: singularKind(kind), name }
-      );
-    }
-
     return await this.runJson<unknown>(
       ["describe", `${kind}/${name}`, "-o", "json"],
       `${kind}/${name}`,
@@ -207,6 +197,29 @@ export function parseJsonOutput<T>(output: string, label: string): T {
   }
 }
 
+function coerceResourceDescriptor(value: unknown): ResourceDescriptor {
+  const record = value && typeof value === "object"
+    ? value as Record<string, unknown>
+    : {};
+
+  return {
+    kind: String(record.kind ?? ""),
+    singular: String(record.singular ?? ""),
+    aliases: arrayOfStrings(record.aliases),
+    displayName: String(record.displayName ?? record.kind ?? ""),
+    description: String(record.description ?? ""),
+    icon: String(record.icon ?? "folder"),
+    capabilities: arrayOfStrings(record.capabilities),
+    displayFields: arrayOfStrings(record.displayFields),
+  };
+}
+
+function arrayOfStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 export function buildDevFallback(
   extensionPath: string,
 ): CliInvocation | undefined {
@@ -237,7 +250,10 @@ export function resourceId(value: unknown): string {
 
 export function singularKind(kind: string): string {
   const normalized = kind.toLowerCase();
-  if (normalized === "memorystores") return "MemoryStore";
+  if (normalized === "memorystores" || normalized === "memory-stores") {
+    return "MemoryStore";
+  }
+  if (normalized === "credentials") return "Credential";
   return normalized.endsWith("s")
     ? `${normalized.slice(0, -1).charAt(0).toUpperCase()}${normalized.slice(1, -1)}`
     : `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`;

@@ -5,6 +5,7 @@ import {
   deleteResource,
   getResourceLogs,
   listModels,
+  listResourceCatalog,
   listResources,
   sendAgentMessage,
 } from "../features/control-plane/api/control-plane-api";
@@ -20,6 +21,7 @@ test("control-plane API calls backend v1 resource routes", async () => {
   const requests: Array<{ url: string; method?: string }> = [];
   mockFetch(requests, []);
 
+  await listResourceCatalog("http://localhost:5000/", "token");
   await listModels("http://localhost:5000/", "token");
   await listResources("http://localhost:5000/", "token", "agents");
   await deleteResource("http://localhost:5000/", "token", "agents", "alice");
@@ -36,7 +38,8 @@ test("control-plane API calls backend v1 resource routes", async () => {
   });
 
   expect(requests).toEqual([
-    { url: "http://localhost:5000/api/v1/models", method: "GET" },
+    { url: "http://localhost:5000/api/v1/resources", method: "GET" },
+    { url: "http://localhost:5000/api/v1/resources/models", method: "GET" },
     { url: "http://localhost:5000/api/v1/resources/agents", method: "GET" },
     { url: "http://localhost:5000/api/v1/resources/agents/alice", method: "DELETE" },
     { url: "http://localhost:5000/api/v1/resources/agents/alice/messages", method: "POST" },

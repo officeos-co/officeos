@@ -2,8 +2,8 @@ import path from "node:path";
 import * as vscode from "vscode";
 import {
   OfficeOsCli,
+  ResourceDescriptor,
   ResourceKind,
-  ResourceKinds,
   resourceId,
   resourceName,
   singularKind,
@@ -13,19 +13,8 @@ interface ResourceCategory {
   readonly label: string;
   readonly cliKind: ResourceKind;
   readonly icon: string;
+  readonly capabilities: readonly string[];
 }
-
-const Categories: readonly ResourceCategory[] = [
-  { label: "Agents", cliKind: "agents", icon: "hubot" },
-  { label: "Channels", cliKind: "channels", icon: "broadcast" },
-  { label: "Routines", cliKind: "routines", icon: "clock" },
-  { label: "Credentials", cliKind: "credentials", icon: "key" },
-  { label: "Browsers", cliKind: "browsers", icon: "browser" },
-  { label: "Memory Stores", cliKind: "memorystores", icon: "database" },
-  { label: "Engines", cliKind: "engines", icon: "server-process" },
-  { label: "Providers", cliKind: "providers", icon: "plug" },
-  { label: "Models", cliKind: "models", icon: "symbol-method" },
-] as const;
 
 export type OfficeOsNode =
   | CategoryNode
@@ -103,7 +92,7 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
 
   async getChildren(element?: OfficeOsNode): Promise<OfficeOsNode[]> {
     if (!element) {
-      return Categories.map((category) => new CategoryNode(category));
+      return await this.loadCategories();
     }
 
     if (element.nodeType === "category") {
@@ -119,6 +108,19 @@ export class OfficeOsTreeProvider implements vscode.TreeDataProvider<OfficeOsNod
     }
 
     return [];
+  }
+
+  private async loadCategories(): Promise<OfficeOsNode[]> {
+    try {
+      return (await this.cli.listResourceCatalog()).map(
+        (resource) => new CategoryNode(toResourceCategory(resource)),
+      );
+    } catch (error) {
+      void vscode.window.showErrorMessage(
+        `OfficeOS resources failed to load: ${errorMessage(error)}`,
+      );
+      return [new MessageNode("Unable to load resource catalog")];
+    }
   }
 
   private async loadCategory(
@@ -206,9 +208,7 @@ export function resourceRef(node: ResourceNode): string {
 }
 
 export function resourceDeleteName(node: ResourceNode): string {
-  return node.kind === "providers"
-    ? node.name
-    : resourceId(node.value) || node.name;
+  return node.name || resourceId(node.value);
 }
 
 export function resourceDocumentTitle(node: ResourceNode): string {
@@ -271,9 +271,7 @@ function resourceKind(value: unknown, fallback: string): string {
     }
   }
 
-  return ResourceKinds.includes(fallback as ResourceKind)
-    ? singularKind(fallback)
-    : fallback;
+  return singularKind(fallback);
 }
 
 function resourceDescription(value: unknown): string | undefined {
@@ -391,15 +389,18 @@ function stateIconPath(extensionPath: string, state: ResourceState): vscode.Uri 
 }
 
 function canDeleteResource(node: ResourceNode): boolean {
-  return [
-    "agents",
-    "channels",
-    "routines",
-    "credentials",
-    "browsers",
-    "memorystores",
-    "providers",
-  ].includes(node.kind);
+  return node.category.capabilities.some(
+    (capability) => capability.toLowerCase() === "delete",
+  );
+}
+
+function toResourceCategory(resource: ResourceDescriptor): ResourceCategory {
+  return {
+    label: resource.displayName || resource.kind,
+    cliKind: resource.kind,
+    icon: resource.icon || "folder",
+    capabilities: resource.capabilities,
+  };
 }
 
 function fieldDescription(value: unknown): string | undefined {

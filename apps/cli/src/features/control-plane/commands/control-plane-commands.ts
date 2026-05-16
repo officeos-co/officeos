@@ -12,39 +12,14 @@ import {
   deleteResource,
   describeResource,
   getResourceLogs,
+  listResourceCatalog,
   listModels,
   listProviders,
   listResources,
+  type ResourceDescriptor,
   sendAgentMessage,
 } from "../api/control-plane-api";
 import { openBrowser } from "../../../shell/browser";
-
-const ResourceKinds = [
-  { kind: "agents", aliases: "agent", description: "Agent resources" },
-  { kind: "channels", aliases: "channel", description: "Channel connections" },
-  { kind: "routines", aliases: "routine", description: "Agent routines" },
-  { kind: "credentials", aliases: "credential", description: "Routine credentials" },
-  { kind: "browsers", aliases: "browser", description: "Browser resources" },
-  { kind: "integrations", aliases: "integration", description: "Integration deployments" },
-  {
-    kind: "memory-stores",
-    aliases: "memorystore, memorystores",
-    description: "Memory stores",
-  },
-  { kind: "providers", aliases: "provider", description: "Configured provider resources" },
-  { kind: "engines", aliases: "engine", description: "Execution engines" },
-] as const;
-
-const DeletableResourceKinds = [
-  "routines",
-  "credentials",
-  "channels",
-  "integrations",
-  "browsers",
-  "memory-stores",
-  "agents",
-  "providers",
-] as const;
 
 interface LogsOptions {
   tail?: number;
@@ -57,49 +32,55 @@ interface LogsOptions {
 
 export async function getCommand(args: string[]): Promise<void> {
   const output = readOutput(args);
+  const context = await requireContext();
+  const catalog = await listResourceCatalog(context.apiUrl, context.token);
   const target = readResourceTarget(args);
   if (!target) {
-    printResourceKinds(output);
+    printResourceKinds(catalog, output);
     return;
   }
 
-  const context = await requireContext();
   const [kind, name] = splitResource(target);
+  const resource = requireResourceDescriptor(catalog, kind);
   const result = name
-    ? await describeResource(context.apiUrl, context.token, kind, name)
-    : await listResources(context.apiUrl, context.token, kind);
+    ? await describeResource(context.apiUrl, context.token, resource.kind, name)
+    : await listResources(context.apiUrl, context.token, resource.kind);
   printFormatted(result, output);
 }
 
 export async function describeCommand(args: string[]): Promise<void> {
   const context = await requireContext();
+  const catalog = await listResourceCatalog(context.apiUrl, context.token);
   const target = requireArg(args[0], "Usage: officeos describe <kind/name>");
   const [kind, name] = splitResource(target);
   if (!name) throw new Error("Describe requires <kind/name>.");
+  const resource = requireResourceDescriptor(catalog, kind);
+  requireResourceCapability(resource, "describe");
   printFormatted(
-    await describeResource(context.apiUrl, context.token, kind, name),
+    await describeResource(context.apiUrl, context.token, resource.kind, name),
     readOutput(args),
   );
 }
 
 export async function deleteCommand(args: string[]): Promise<void> {
   const context = await requireContext();
+  const catalog = await listResourceCatalog(context.apiUrl, context.token);
   if (args[0] === "--all") {
     let deleted = 0;
-    for (const kind of DeletableResourceKinds) {
+    for (const resource of catalog.filter((item) => hasResourceCapability(item, "delete"))) {
       for (;;) {
-        const resources = await listResources(context.apiUrl, context.token, kind);
+        const resources = await listResources(context.apiUrl, context.token, resource.kind);
         if (resources.length === 0) break;
 
         let deletedInBatch = 0;
-        for (const resource of resources) {
-          const name = resourceDeleteIdentifier(kind, resource);
+        for (const item of resources) {
+          const name = resourceDeleteIdentifier(item);
           if (!name) continue;
           try {
-            await deleteResource(context.apiUrl, context.token, kind, name);
+            await deleteResource(context.apiUrl, context.token, resource.kind, name);
             deleted += 1;
             deletedInBatch += 1;
-            print(`${kind}/${resourceDisplayName(resource) || name} deleted`);
+            print(`${resource.kind}/${resourceDisplayName(item) || name} deleted`);
           } catch (error) {
             if (!isNotFoundError(error)) throw error;
           }
@@ -114,8 +95,10 @@ export async function deleteCommand(args: string[]): Promise<void> {
 
   const kind = requireArg(args[0], "Usage: officeos delete <kind> <name>");
   const name = requireArg(args[1], "Usage: officeos delete <kind> <name>");
-  await deleteResource(context.apiUrl, context.token, kind, name);
-  print(`${kind}/${name} deleted`);
+  const resource = requireResourceDescriptor(catalog, kind);
+  requireResourceCapability(resource, "delete");
+  await deleteResource(context.apiUrl, context.token, resource.kind, name);
+  print(`${resource.kind}/${name} deleted`);
 }
 
 export async function runCommand(args: string[]): Promise<void> {
@@ -167,11 +150,14 @@ function printAgentWork(
 
 export async function logsCommand(args: string[]): Promise<void> {
   const context = await requireContext();
+  const catalog = await listResourceCatalog(context.apiUrl, context.token);
   const { kind, name, options } = readLogsTarget(args);
+  const resource = requireResourceDescriptor(catalog, kind);
+  requireResourceCapability(resource, "logs");
   const result = await getResourceLogs(
     context.apiUrl,
     context.token,
-    kind,
+    resource.kind,
     name,
     options,
   );
@@ -584,12 +570,10 @@ function resourceName(value: unknown): string {
   return `${String(record.kind ?? "").toLowerCase()}/${record.name ?? record.id ?? ""}`;
 }
 
-function resourceDeleteIdentifier(kind: typeof DeletableResourceKinds[number], value: unknown): string {
+function resourceDeleteIdentifier(value: unknown): string {
   if (!value || typeof value !== "object") return "";
   const record = value as Record<string, unknown>;
-  const name = kind === "integrations" || kind === "providers"
-    ? record.name ?? record.id
-    : record.id ?? record.name;
+  const name = record.name ?? record.id;
   return typeof name === "string" || typeof name === "number" ? String(name) : "";
 }
 
@@ -638,21 +622,57 @@ function readResourceTarget(args: string[]): string | undefined {
   return undefined;
 }
 
-function printResourceKinds(output: "table" | "json" | "yaml" | "name"): void {
+function printResourceKinds(
+  resources: ResourceDescriptor[],
+  output: "table" | "json" | "yaml" | "name",
+): void {
   if (output === "json" || output === "yaml") {
-    print(JSON.stringify(ResourceKinds, null, 2));
+    print(JSON.stringify(resources, null, 2));
     return;
   }
 
   if (output === "name") {
-    for (const resource of ResourceKinds) print(resource.kind);
+    for (const resource of resources) print(resource.kind);
     return;
   }
 
   print("KIND\tALIASES\tDESCRIPTION");
-  for (const resource of ResourceKinds) {
-    print(`${resource.kind}\t${resource.aliases}\t${resource.description}`);
+  for (const resource of resources) {
+    print(`${resource.kind}\t${resource.aliases.join(", ")}\t${resource.description}`);
   }
+}
+
+function requireResourceDescriptor(
+  catalog: ResourceDescriptor[],
+  kindOrAlias: string,
+): ResourceDescriptor {
+  const resource = catalog.find((item) =>
+    equalsResourceName(item.kind, kindOrAlias)
+    || equalsResourceName(item.singular, kindOrAlias)
+    || item.aliases.some((alias) => equalsResourceName(alias, kindOrAlias)),
+  );
+  if (!resource) throw new Error(`Unknown resource kind '${kindOrAlias}'.`);
+  return resource;
+}
+
+function requireResourceCapability(
+  resource: ResourceDescriptor,
+  capability: string,
+): void {
+  if (!hasResourceCapability(resource, capability)) {
+    throw new Error(`${resource.kind} does not support ${capability}.`);
+  }
+}
+
+function hasResourceCapability(
+  resource: ResourceDescriptor,
+  capability: string,
+): boolean {
+  return resource.capabilities.some((item) => equalsResourceName(item, capability));
+}
+
+function equalsResourceName(left: string, right: string): boolean {
+  return left.toLowerCase() === right.toLowerCase();
 }
 
 function requireArg(value: string | undefined, message: string): string {

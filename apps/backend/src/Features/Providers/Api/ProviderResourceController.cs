@@ -79,6 +79,39 @@ public sealed class ProviderResourceController : ControllerBase
         return Ok(await providers.ListForWorkspaceAsync(scope.Value.WorkspaceId, ct));
     }
 
+    [HttpGet("resources/models")]
+    [HttpGet("resources/model")]
+    public async Task<IActionResult> ListModelResources(
+        [FromServices] IProviderService providers,
+        [FromServices] IWorkspaceService workspaces,
+        CancellationToken ct)
+    {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
+        var rows = await providers.ListForWorkspaceAsync(scope.Value.WorkspaceId, ct);
+        return Ok(rows.SelectMany(provider => provider.Models.Select(model => ToModelResource(provider, model))));
+    }
+
+    [HttpGet("resources/models/{name}")]
+    [HttpGet("resources/model/{name}")]
+    public async Task<IActionResult> DescribeModelResource(
+        string name,
+        [FromServices] IProviderService providers,
+        [FromServices] IWorkspaceService workspaces,
+        CancellationToken ct)
+    {
+        var scope = await RequireScopeAsync(workspaces, ct);
+        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
+        var rows = await providers.ListForWorkspaceAsync(scope.Value.WorkspaceId, ct);
+        var model = rows
+            .SelectMany(provider => provider.Models.Select(item => ToModelResource(provider, item)))
+            .FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.Id, name, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.DisplayName, name, StringComparison.OrdinalIgnoreCase));
+
+        return model is null ? NotFound(new { error = $"models/{name} was not found." }) : Ok(model);
+    }
+
     [HttpGet("models")]
     public async Task<IActionResult> Models(
         [FromServices] IProviderService providers,
@@ -126,7 +159,25 @@ public sealed class ProviderResourceController : ControllerBase
         createdAt = provider.CreatedAt,
         updatedAt = provider.UpdatedAt,
     };
+
+    private static ModelResourcePayload ToModelResource(ProviderResult provider, ProviderModelResult model) => new(
+        Kind: "Model",
+        Name: model.Id,
+        Provider: provider.Name,
+        Id: model.Id,
+        DisplayName: model.DisplayName,
+        CostWeight: model.CostWeight,
+        Configured: provider.Configured);
 }
+
+public sealed record ModelResourcePayload(
+    string Kind,
+    string Name,
+    string Provider,
+    string Id,
+    string DisplayName,
+    int CostWeight,
+    bool Configured);
 
 public sealed record CodexProviderAuthInput(
     string AccessToken,

@@ -4,7 +4,6 @@ import test from "node:test";
 import {
   ExecFileLike,
   OfficeOsCli,
-  ResourceKinds,
   buildDevFallback,
   parseJsonOutput,
   resourceName,
@@ -45,7 +44,39 @@ test("listResources uses normal get command for control-plane resources", async 
   ]);
 });
 
-test("listResources uses top-level commands for providers and models", async () => {
+test("listResourceCatalog shells out through get without a target", async () => {
+  const calls: Array<readonly string[]> = [];
+  const execFile: ExecFileLike = async (_file, args) => {
+    calls.push(args);
+    return {
+      stdout:
+        '[{"kind":"widgets","singular":"widget","aliases":["widget"],"displayName":"Widgets","description":"Widget resources","icon":"package","capabilities":["list"],"displayFields":["name"]}]',
+      stderr: "",
+    };
+  };
+
+  const cli = new OfficeOsCli({
+    extensionPath: process.cwd(),
+    configuredCliPath: "/bin/officeos",
+    execFile,
+  });
+
+  assert.deepEqual(await cli.listResourceCatalog(), [
+    {
+      kind: "widgets",
+      singular: "widget",
+      aliases: ["widget"],
+      displayName: "Widgets",
+      description: "Widget resources",
+      icon: "package",
+      capabilities: ["list"],
+      displayFields: ["name"],
+    },
+  ]);
+  assert.deepEqual(calls, [["get", "-o", "json"]]);
+});
+
+test("listResources uses generic get command for providers and models", async () => {
   const calls: Array<readonly string[]> = [];
   const execFile: ExecFileLike = async (_file, args) => {
     calls.push(args);
@@ -61,8 +92,8 @@ test("listResources uses top-level commands for providers and models", async () 
   await cli.listResources("models");
 
   assert.deepEqual(calls, [
-    ["providers", "-o", "json"],
-    ["models", "-o", "json"],
+    ["get", "providers", "-o", "json"],
+    ["get", "models", "-o", "json"],
   ]);
 });
 
@@ -146,10 +177,6 @@ test("resource helpers prefer stable names and canonical singular kinds", () => 
   assert.equal(resourceName({ displayName: "Claude", id: "claude" }), "claude");
   assert.equal(resourceName({ name: "fix-ci", id: "agent-1" }), "fix-ci");
   assert.equal(singularKind("memorystores"), "MemoryStore");
+  assert.equal(singularKind("memory-stores"), "MemoryStore");
   assert.equal(singularKind("providers"), "Provider");
-});
-
-test("resource kinds expose agents but not removed runs", () => {
-  assert.ok(ResourceKinds.includes("agents"));
-  assert.ok(!(ResourceKinds as readonly string[]).includes("runs"));
 });

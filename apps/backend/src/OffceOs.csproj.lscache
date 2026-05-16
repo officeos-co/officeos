@@ -53,8 +53,11 @@ TemporaryDependencyNodeTargetIdentifier=net9.0
 /warnaserror+:NU1605,SYSLIB0011
 
 [sourceFiles]
+Common/Application/
+ BackgroundWork.cs
+ ControlPlaneResourceCatalog.cs
 Common/
- Application/BackgroundWork.cs
+ ControlPlaneResourceCatalogController.cs
  Domain/
   DomainEvent.cs
   Primitives/

@@ -104,6 +104,7 @@ public sealed class AgentManifestParserTests
             null!,
             null!,
             null!,
+            new AgentDefinitionParser(),
             new DeclarativeManifestParser(),
             null!);
 
@@ -144,6 +145,7 @@ public sealed class AgentManifestParserTests
             null!,
             null!,
             null!,
+            new AgentDefinitionParser(),
             new DeclarativeManifestParser(),
             null!,
             new ExistingProviderResourceRepository());
@@ -240,6 +242,7 @@ public sealed class AgentManifestParserTests
         null!,
             null!,
         null!,
+        new AgentDefinitionParser(),
         new DeclarativeManifestParser(),
         null!);
 
