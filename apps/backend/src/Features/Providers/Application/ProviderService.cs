@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Providers;
+using OffceOs.Infrastructure.Common.Security;
 namespace OffceOs.Application.Features.Providers;
 
 internal sealed class ProviderService : IProviderService

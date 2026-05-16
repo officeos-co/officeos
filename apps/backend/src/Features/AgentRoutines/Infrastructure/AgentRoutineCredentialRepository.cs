@@ -1,3 +1,6 @@
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Features.AgentRoutines;
 namespace OffceOs.Infrastructure.Features.AgentRoutines;
 
 internal sealed class AgentRoutineCredentialRepository : IAgentRoutineCredentialRepository

@@ -1,3 +1,6 @@
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Features.Browser;
 namespace OffceOs.Infrastructure.Features.Browser;
 
 internal sealed class BrowserSessionRepository : IBrowserSessionRepository

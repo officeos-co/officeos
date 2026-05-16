@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.AgentHarness;
+using OffceOs.Domain.Common.Primitives;
 namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>Result from a tool execution.</summary>

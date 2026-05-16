@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.ResourceLogs;
+
 namespace OffceOs.Application.Features.ResourceLogs;
 
 public sealed class ResourceLogScope

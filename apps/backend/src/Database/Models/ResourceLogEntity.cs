@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.ResourceLogs;
+
 namespace OffceOs.Database.Models;
 
 public sealed class ResourceLogEntity

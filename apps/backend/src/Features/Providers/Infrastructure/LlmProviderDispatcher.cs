@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Providers;
+using OffceOs.Domain.Common.Primitives;
 namespace OffceOs.Infrastructure.Features.Providers;
 
 /// <summary>

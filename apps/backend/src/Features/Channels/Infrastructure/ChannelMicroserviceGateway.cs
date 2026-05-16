@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Channels;
+
 namespace OffceOs.Infrastructure.Features.Channels;
 
 /// <summary>

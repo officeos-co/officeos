@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Application.Features.Agents;
 namespace OffceOs.EventHandlers.Features.Agents;
 
 internal sealed class InvalidateAgentCacheHandler :

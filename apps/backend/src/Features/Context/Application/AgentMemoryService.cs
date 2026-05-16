@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Context;
 namespace OffceOs.Application.Features.Context;
 
 internal sealed class AgentMemoryService : IAgentMemoryService

@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Integrations;
+
 namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationClientManager : IIntegrationClientManager

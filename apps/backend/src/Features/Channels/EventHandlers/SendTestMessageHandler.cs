@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Channels;
+using OffceOs.Application.Features;
 namespace OffceOs.EventHandlers.Features.Channels;
 
 internal sealed class SendTestMessageHandler : INotificationHandler<ChannelCredsStoredEvent>

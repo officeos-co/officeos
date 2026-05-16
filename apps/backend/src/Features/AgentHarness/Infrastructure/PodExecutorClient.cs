@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.Primitives;
+using OffceOs.Domain.Features.AgentHarness;
 namespace OffceOs.Infrastructure.Features.AgentHarness;
 
 internal sealed class PodExecutorClient

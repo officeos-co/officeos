@@ -1,3 +1,5 @@
+using OffceOs.Database.Models;
+
 namespace OffceOs.Database;
 
 public sealed class EaosDbContext : DbContext

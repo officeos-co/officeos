@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Providers;
+
 namespace OffceOs.Application.Features.Providers;
 
 public interface IProviderService

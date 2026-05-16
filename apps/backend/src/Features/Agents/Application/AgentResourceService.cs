@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Agents;
+
 namespace OffceOs.Application.Features.Agents;
 
 internal sealed class AgentResourceService : IAgentResourceService

@@ -1,3 +1,23 @@
+using OffceOs.Database;
+using OffceOs.Domain.Features.AgentRoutines;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Browser;
+using OffceOs.Domain.Features.Channels;
+using OffceOs.Domain.Features.Context;
+using OffceOs.Domain.Features.Integrations;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Domain.Features.Providers;
+using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Infrastructure.Common.Security;
+using OffceOs.Infrastructure.Features.AgentRoutines;
+using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Infrastructure.Features.Browser;
+using OffceOs.Infrastructure.Features.Channels;
+using OffceOs.Infrastructure.Features.Context;
+using OffceOs.Infrastructure.Features.Integrations;
+using OffceOs.Infrastructure.Features.Management;
+using OffceOs.Infrastructure.Features.Providers;
+using OffceOs.Infrastructure.Features.ResourceLogs;
 namespace OffceOs.Extensions;
 
 public static class InfrastructureServiceCollectionExtensions

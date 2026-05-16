@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.ResourceLogs;
+using OffceOs.Domain.Features.Agents;
 namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed class AgentWorkQueueService : IAgentWorkQueueService

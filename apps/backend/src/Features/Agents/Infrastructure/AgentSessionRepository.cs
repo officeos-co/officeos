@@ -1,3 +1,7 @@
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Common.ValueObjects;
 namespace OffceOs.Infrastructure.Features.Agents;
 
 internal sealed class AgentSessionRepository : IAgentSessionRepository

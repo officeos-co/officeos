@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Infrastructure.Common.Caching;
 namespace OffceOs.Application.Features.Agents;
 
 public static class AgentCacheKeys

@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Browser;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 public interface IBrowserService

@@ -1,3 +1,19 @@
+using OffceOs.Application.Features.AgentDefinitions;
+using OffceOs.Application.Features.AgentHarness;
+using OffceOs.Application.Features.AgentRoutines;
+using OffceOs.Application.Features.Agents;
+using OffceOs.Application.Features.Browser;
+using OffceOs.Application.Features.Channels;
+using OffceOs.Application.Features.Context;
+using OffceOs.Application.Features.ControlPlane;
+using OffceOs.Application.Features.Integrations;
+using OffceOs.Application.Features.Management;
+using OffceOs.Application.Features.Providers;
+using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Domain.Features.Channels;
+using OffceOs.Domain.Features.Context;
+using OffceOs.Domain.Features.Integrations;
+using OffceOs.Domain.Features.Management;
 namespace OffceOs.Extensions;
 
 public static class ApplicationServiceCollectionExtensions

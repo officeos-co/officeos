@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.ResourceLogs;
 namespace OffceOs.Application.Features.Agents;
 
 public sealed record AgentHealthResult(

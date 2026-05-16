@@ -1,3 +1,8 @@
+using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.Integrations;
+using OffceOs.Domain.Features.Management;
+using OffceOs.Domain.Common.ValueObjects;
 namespace OffceOs.Application.Features.Integrations;
 
 internal sealed class IntegrationDefinitionService : IIntegrationDefinitionService

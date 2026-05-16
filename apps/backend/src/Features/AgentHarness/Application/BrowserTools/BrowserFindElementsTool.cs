@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Browser;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed class BrowserFindElementsTool(IReadOnlyDictionary<string, BrowserToolDescriptor> descriptors, IBrowserService browser, IBrowserRuntimeClient runtime, Guid agentId)

@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.Primitives;
+
 namespace OffceOs.Domain.Features.AgentHarness;
 
 public sealed record AgentSandboxCreateRequest(

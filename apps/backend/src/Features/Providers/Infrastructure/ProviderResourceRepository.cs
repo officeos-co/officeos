@@ -1,3 +1,6 @@
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Features.Providers;
 namespace OffceOs.Infrastructure.Features.Providers;
 
 internal sealed class ProviderResourceRepository : IProviderResourceRepository

@@ -1,3 +1,5 @@
+using OffceOs.Configuration;
+
 namespace OffceOs.Infrastructure.Features.AgentHarness;
 
 internal sealed class S3AgentWorkspaceStore : IAgentWorkspaceStore

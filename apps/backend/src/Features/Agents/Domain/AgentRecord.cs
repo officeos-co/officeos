@@ -1,3 +1,7 @@
+using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.Channels;
+using OffceOs.Domain.Features.Context;
+using OffceOs.Domain.Features.Providers;
 namespace OffceOs.Domain.Features.Agents;
 
 public sealed class AgentRecord

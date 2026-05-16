@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.ControlPlane;
+
 namespace OffceOs.Application.Features.ControlPlane;
 
 public interface IControlPlaneResourceCatalogService

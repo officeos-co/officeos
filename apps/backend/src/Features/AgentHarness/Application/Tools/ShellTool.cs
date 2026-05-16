@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.Primitives;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>Execute a shell command in the agent's OS.</summary>

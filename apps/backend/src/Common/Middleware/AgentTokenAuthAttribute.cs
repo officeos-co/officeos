@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Agents;
+
 namespace OffceOs.Api.Common.Middleware;
 
 /// <summary>

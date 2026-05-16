@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.Primitives;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>Write a file after reading existing contents.</summary>

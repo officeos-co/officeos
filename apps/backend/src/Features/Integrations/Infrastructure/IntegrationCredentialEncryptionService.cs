@@ -1,3 +1,5 @@
+using OffceOs.Configuration;
+using OffceOs.Domain.Features.Integrations;
 namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationCredentialEncryptionService : IIntegrationCredentialEncryptionService

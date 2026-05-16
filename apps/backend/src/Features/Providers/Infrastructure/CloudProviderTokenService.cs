@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Providers;
+
 namespace OffceOs.Infrastructure.Features.Providers;
 
 internal sealed class CloudProviderTokenService : ICloudProviderTokenService

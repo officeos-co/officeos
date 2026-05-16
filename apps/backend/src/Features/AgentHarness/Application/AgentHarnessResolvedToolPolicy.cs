@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.AgentDefinitions;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed class AgentHarnessResolvedToolPolicy

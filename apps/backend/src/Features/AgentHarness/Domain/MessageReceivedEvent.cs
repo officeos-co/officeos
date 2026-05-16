@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common;
+using OffceOs.Domain.Features.Agents;
 namespace OffceOs.Domain.Features.AgentHarness;
 
 public sealed record MessageReceivedEvent(

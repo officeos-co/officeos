@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common;
+
 namespace OffceOs.Domain.Features.AgentHarness;
 
 public sealed record ConversationCompactedEvent(

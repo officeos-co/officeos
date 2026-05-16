@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.Agents;
 namespace OffceOs.Domain.Features.ResourceLogs;
 
 /// <summary>

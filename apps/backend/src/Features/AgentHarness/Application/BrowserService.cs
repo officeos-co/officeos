@@ -1,3 +1,5 @@
+using OffceOs.Application.Features.ResourceLogs;
+using OffceOs.Domain.Features.Browser;
 namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed class BrowserService : IBrowserService

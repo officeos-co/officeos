@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.Management;
+
 namespace OffceOs.Api.Common;
 
 public sealed class UserContext

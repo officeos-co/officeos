@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.AgentHarness;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>

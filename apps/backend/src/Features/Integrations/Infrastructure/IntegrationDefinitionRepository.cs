@@ -1,3 +1,6 @@
+using OffceOs.Database;
+using OffceOs.Database.Models;
+using OffceOs.Domain.Features.Integrations;
 namespace OffceOs.Infrastructure.Features.Integrations;
 
 internal sealed class IntegrationDefinitionRepository : IIntegrationDefinitionRepository

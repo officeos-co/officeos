@@ -1,3 +1,5 @@
+using OffceOs.Domain.Features.ResourceLogs;
+
 namespace OffceOs.Application.Features.ResourceLogs;
 
 internal sealed class ResourceLogWriterService : IResourceLogWriterService

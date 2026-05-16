@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.ValueObjects;
+
 namespace OffceOs.Domain.Features.Management;
 
 public sealed class WorkspaceMemberRecord

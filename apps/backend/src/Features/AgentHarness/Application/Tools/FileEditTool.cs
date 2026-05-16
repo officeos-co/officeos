@@ -1,3 +1,5 @@
+using OffceOs.Domain.Common.Primitives;
+
 namespace OffceOs.Application.Features.AgentHarness;
 
 /// <summary>Exact string replacement in a file.</summary>

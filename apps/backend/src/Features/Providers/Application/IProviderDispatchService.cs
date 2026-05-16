@@ -1,3 +1,5 @@
+using OffceOs.Infrastructure.Features.Providers;
+using OffceOs.Domain.Common.Primitives;
 namespace OffceOs.Application.Features.Providers;
 
 public interface IProviderDispatchService

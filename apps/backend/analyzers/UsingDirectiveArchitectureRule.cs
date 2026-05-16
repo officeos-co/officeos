@@ -31,13 +31,14 @@ internal sealed class UsingDirectiveArchitectureRule : IArchitectureRule
         var namespaceName = usingDirective.Name?.ToString();
 
         if (ArchitecturePaths.IsBackendSourceFile(filePath)
-            && !ArchitecturePaths.IsGlobalUsingsFile(filePath)
-            && !ArchitecturePaths.IsDatabaseMigrationFile(filePath))
+            && usingDirective.GlobalKeyword != default
+            && namespaceName is not null
+            && IsOffceOsNamespace(namespaceName))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 ArchitectureDiagnostics.GlobalUsingOnlyRule,
                 usingDirective.GetLocation(),
-                namespaceName ?? usingDirective.ToString()));
+                namespaceName));
         }
 
         if (!ArchitecturePaths.IsDomainFile(filePath) || namespaceName is null)
@@ -55,4 +56,8 @@ internal sealed class UsingDirectiveArchitectureRule : IArchitectureRule
             usingDirective.GetLocation(),
             forbiddenNamespace));
     }
+
+    private static bool IsOffceOsNamespace(string namespaceName) =>
+        namespaceName.Equals("OffceOs", StringComparison.Ordinal)
+        || namespaceName.StartsWith("OffceOs.", StringComparison.Ordinal);
 }

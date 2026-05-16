@@ -73,8 +73,8 @@ internal static class ArchitectureDiagnostics
 
     public static readonly DiagnosticDescriptor GlobalUsingOnlyRule = new(
         "EAOS009",
-        "Source imports must live in GlobalUsings.cs",
-        "Using directive '{0}' must be moved to src/GlobalUsings.cs",
+        "OffceOs namespaces must not be global imports",
+        "Global using directive '{0}' must be moved to the files that need it",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
