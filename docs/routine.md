@@ -1,5 +1,15 @@
 ```yaml
 apiVersion: officeos.io/v1
+kind: Credential
+metadata:
+  name: github
+spec:
+  provider: github
+  authKind: personal_access_token
+  credentials:
+    GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
+---
+apiVersion: officeos.io/v1
 kind: Routine
 metadata:
   name: daily-support-summary
@@ -14,6 +24,7 @@ spec:
   githubTriggers:
     - name: Pull request events
       repo: https://github.com/acme/platform.git
+      authRef: github
       events:
         - pull_request
       pollIntervalSeconds: 60
@@ -29,23 +40,24 @@ Required fields: `apiVersion`, `kind`, `metadata.name`, `spec.agentRef`, `spec.p
 
 `githubTriggers[].repo` accepts `https://github.com/owner/repo.git`, `https://github.com/owner/repo`, `git@github.com:owner/repo.git`, or `owner/repo`. Prefer the HTTPS clone URL form in manifests.
 
-GitHub trigger modes: `poll`, `webhook`. Polling is the default and uses the workspace GitHub OAuth credential. Webhook mode requires `secret` and a GitHub webhook that can reach the backend.
+GitHub trigger modes: `poll`, `webhook`. Polling is the default and requires `githubTriggers[].authRef` to point at a `Credential` resource. Webhook mode requires `secret` and a GitHub webhook that can reach the backend.
 
 Before using a polling GitHub trigger, connect GitHub for the workspace:
 
 ```bash
-officeos integration auth github
+officeos credential auth github
 ```
 
 Or define a GitHub token declaratively in the same manifest:
 
 ```yaml
 apiVersion: officeos.io/v1
-kind: Integration
+kind: Credential
 metadata:
   name: github
 spec:
-  builtin: true
+  provider: github
+  authKind: personal_access_token
   credentials:
     GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
 ---
@@ -59,6 +71,7 @@ spec:
   githubTriggers:
     - name: Pull request events
       repo: https://github.com/acme/platform.git
+      authRef: github
       events:
         - pull_request
       pollIntervalSeconds: 60

@@ -3,10 +3,10 @@
 import { loginCommand, whoamiCommand } from "../features/auth";
 import {
   configCommand,
+  credentialCommand,
   deleteCommand,
   describeCommand,
   getCommand,
-  integrationCommand,
   logsCommand,
   modelsCommand,
   providerCommand,
@@ -67,8 +67,8 @@ try {
     case "provider":
       await providerCommand(args);
       break;
-    case "integration":
-      await integrationCommand(args);
+    case "credential":
+      await credentialCommand(args);
       break;
     case "config":
       await configCommand(args);
@@ -103,6 +103,6 @@ function help(): void {
   print("  models [-o json|yaml|name]");
   print("  providers [-o json|yaml|name]");
   print("  provider auth codex [--no-browser]");
-  print("  integration auth github [--no-browser]");
+  print("  credential auth github [--name <credential>] [--no-browser]");
   print("  config get-contexts|current-context|use-context|set-context");
 }

@@ -178,6 +178,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
                             trigger.Name,
                             trigger.Repo,
                             trigger.Events,
+                            trigger.AuthRef,
                             trigger.Secret,
                             trigger.Mode,
                             trigger.PollIntervalSeconds)).ToList() ?? []),

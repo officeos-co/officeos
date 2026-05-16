@@ -77,6 +77,7 @@ public sealed class AgentRoutineTriggerRecord
         string name,
         string repository,
         IReadOnlyCollection<string> events,
+        string? authRef,
         string mode,
         TimeSpan pollInterval,
         string? encryptedSecret)
@@ -95,6 +96,7 @@ public sealed class AgentRoutineTriggerRecord
                 Owner = repositoryRef.Owner,
                 Repo = repositoryRef.Name,
                 Events = events.Select(e => e.Trim()).Where(e => e.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                AuthRef = string.IsNullOrWhiteSpace(authRef) ? null : authRef.Trim().ToLowerInvariant(),
                 Mode = GitHubRoutineTriggerModes.Normalize(mode),
                 PollIntervalSeconds = Math.Max(15, (int)pollInterval.TotalSeconds),
             }),
@@ -124,6 +126,7 @@ public sealed class GitHubRoutineTriggerConfig
     public string Owner { get; init; } = string.Empty;
     public string Repo { get; init; } = string.Empty;
     public IReadOnlyList<string> Events { get; init; } = [];
+    public string? AuthRef { get; init; }
     public string Mode { get; init; } = GitHubRoutineTriggerModes.Poll;
     public int PollIntervalSeconds { get; init; } = 60;
 }

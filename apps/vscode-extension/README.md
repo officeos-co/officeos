@@ -1,6 +1,6 @@
 # OfficeOS VS Code Extension
 
-Browse OfficeOS control-plane resources from a VS Code Activity Bar view.
+Browse OfficeOS control-plane resources from a VS Code Activity Bar view, including agents, routines, credentials, integrations, and providers.
 
 ## Development
 

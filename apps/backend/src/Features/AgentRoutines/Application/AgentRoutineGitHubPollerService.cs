@@ -41,21 +41,24 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
     internal sealed class AgentRoutineGitHubPollingService
     {
         private readonly IAgentRoutineRepository _agentRoutineRepository;
+        private readonly IAgentRoutineCredentialRepository _agentRoutineCredentialRepository;
         private readonly IAgentRoutineExecutionService _agentRoutineExecutionService;
-        private readonly IIntegrationDefinitionService _integrationDefinitionService;
+        private readonly CredentialProtector _credentialProtector;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<AgentRoutineGitHubPollingService> _logger;
 
         public AgentRoutineGitHubPollingService(
             IAgentRoutineRepository agentRoutineRepository,
+            IAgentRoutineCredentialRepository agentRoutineCredentialRepository,
             IAgentRoutineExecutionService executionService,
-            IIntegrationDefinitionService integrationDefinitionService,
+            CredentialProtector credentialProtector,
             IHttpClientFactory httpClientFactory,
             ILogger<AgentRoutineGitHubPollingService> logger)
         {
             _agentRoutineRepository = agentRoutineRepository;
+            _agentRoutineCredentialRepository = agentRoutineCredentialRepository;
             _agentRoutineExecutionService = executionService;
-            _integrationDefinitionService = integrationDefinitionService;
+            _credentialProtector = credentialProtector;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
@@ -101,16 +104,27 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
             if (cursor.LastPolledAt.HasValue && cursor.LastPolledAt.Value.Add(interval) > now)
                 return;
 
-            var credentials = await _integrationDefinitionService.GetDecryptedCredentialAsync("github", routine.OwnerId, routine.WorkspaceId, ct);
-            if (!credentials.TryGetValue("GITHUB_PERSONAL_ACCESS_TOKEN", out var token) || string.IsNullOrWhiteSpace(token))
+            var credential = await _agentRoutineCredentialRepository.GetByNameAsync(routine.WorkspaceId, config.AuthRef ?? string.Empty, ct);
+            if (credential is null)
             {
-                _logger.LogWarning("GitHub polling routine trigger {TriggerId} skipped because workspace {WorkspaceId} has no GitHub OAuth credential", trigger.Id, routine.WorkspaceId);
+                _logger.LogWarning("GitHub polling routine trigger {TriggerId} skipped because credential {AuthRef} was not found in workspace {WorkspaceId}", trigger.Id, config.AuthRef, routine.WorkspaceId);
                 cursor.LastPolledAt = now;
                 cursor.UpdatedAt = now;
                 await _agentRoutineRepository.UpsertPollCursorAsync(cursor, ct);
                 return;
             }
 
+            var credentials = _credentialProtector.Unprotect(credential.EncryptedSecret);
+            if (!credentials.TryGetValue("GITHUB_PERSONAL_ACCESS_TOKEN", out var token) || string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogWarning("GitHub polling routine trigger {TriggerId} skipped because credential {AuthRef} has no GitHub token", trigger.Id, config.AuthRef);
+                cursor.LastPolledAt = now;
+                cursor.UpdatedAt = now;
+                await _agentRoutineRepository.UpsertPollCursorAsync(cursor, ct);
+                return;
+            }
+
+            await _agentRoutineCredentialRepository.MarkUsedAsync(credential.Id, now, ct);
             var events = await FetchEventsAsync(config, configuredEvent, cursor.CursorAt, token, ct);
             var nextCursor = cursor.CursorAt;
             foreach (var item in events.OrderBy(item => item.UpdatedAt))
@@ -265,6 +279,7 @@ internal sealed class AgentRoutineGitHubPollerService : BackgroundService
             var config = DeserializeConfig(trigger.ConfigJson);
             return config.Mode.Equals(GitHubRoutineTriggerModes.Poll, StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrWhiteSpace(config.Repository)
+                && !string.IsNullOrWhiteSpace(config.AuthRef)
                 && config.Events.Count > 0;
         }
 

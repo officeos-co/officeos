@@ -15,6 +15,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     [
         DeclarativeResourceKindItem.Provider,
         DeclarativeResourceKindItem.Integration,
+        DeclarativeResourceKindItem.Credential,
         DeclarativeResourceKindItem.Channel,
         DeclarativeResourceKindItem.MemoryStore,
         DeclarativeResourceKindItem.Browser,
@@ -33,6 +34,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
     private readonly IChannelService _channelService;
     private readonly IIntegrationDefinitionRepository _integrationDefinitionRepository;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
+    private readonly IAgentRoutineCredentialRepository _agentRoutineCredentialRepository;
     private readonly IMemoryStoreRepository _memoryStoreRepository;
     private readonly IAgentRoutineService _agentRoutineService;
     private readonly AgentDefinitionParser _agentDefinitionParser;
@@ -52,6 +54,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         IChannelService channelService,
         IIntegrationDefinitionRepository integrationDefinitionRepository,
         IIntegrationDefinitionService integrationDefinitionService,
+        IAgentRoutineCredentialRepository agentRoutineCredentialRepository,
         IMemoryStoreRepository memoryStoreRepository,
         IAgentRoutineService agentRoutineService,
         IAgentLogService agentLogService,
@@ -71,6 +74,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         _channelService = channelService;
         _integrationDefinitionRepository = integrationDefinitionRepository;
         _integrationDefinitionService = integrationDefinitionService;
+        _agentRoutineCredentialRepository = agentRoutineCredentialRepository;
         _memoryStoreRepository = memoryStoreRepository;
         _agentRoutineService = agentRoutineService;
         _agentLogService = agentLogService;
@@ -115,6 +119,9 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     break;
                 case DeclarativeResourceKindItem.Integration:
                     changes.Add(await ApplyIntegrationAsync(resource, ownerId, workspaceId, ct));
+                    break;
+                case DeclarativeResourceKindItem.Credential:
+                    changes.Add(await ApplyCredentialAsync(resource, ownerId, workspaceId, ct));
                     break;
                 case DeclarativeResourceKindItem.Channel:
                     changes.Add(await ApplyChannelAsync(resource, ownerId, workspaceId, ct));
@@ -335,6 +342,16 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                 if (ResolveTransport(integration) != IntegrationTransportType.Stdio && string.IsNullOrWhiteSpace(integration.Url))
                     throw new InvalidOperationException("HTTP/SSE integrations require spec.url.");
                 break;
+            case DeclarativeResourceKindItem.Credential:
+                var credential = Spec<DeclarativeCredentialSpecItem>(resource);
+                if (string.IsNullOrWhiteSpace(credential.Provider))
+                    throw new InvalidOperationException("Credential spec.provider is required.");
+                if (credential.Credentials is null || !credential.Credentials.Values.Any(value => !string.IsNullOrWhiteSpace(value)))
+                    throw new InvalidOperationException("Credential spec.credentials is required.");
+                if (string.Equals(credential.Provider, "github", StringComparison.OrdinalIgnoreCase)
+                    && !credential.Credentials.ContainsKey("GITHUB_PERSONAL_ACCESS_TOKEN"))
+                    throw new InvalidOperationException("GitHub credentials require GITHUB_PERSONAL_ACCESS_TOKEN.");
+                break;
             case DeclarativeResourceKindItem.MemoryStore:
                 _ = Spec<DeclarativeMemoryStoreSpecItem>(resource);
                 break;
@@ -363,6 +380,16 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     && (routine.ApiTriggers?.Count ?? 0) == 0
                     && (routine.GitHubTriggers?.Count ?? 0) == 0)
                     throw new InvalidOperationException("Routine requires at least one trigger.");
+                foreach (var trigger in routine.GitHubTriggers ?? [])
+                {
+                    var mode = GitHubRoutineTriggerModes.Normalize(trigger.Mode);
+                    if (mode == GitHubRoutineTriggerModes.Poll)
+                    {
+                        if (string.IsNullOrWhiteSpace(trigger.AuthRef))
+                            throw new InvalidOperationException($"GitHub routine trigger '{trigger.Name}' requires authRef for polling mode.");
+                        await RequireResourceRefsAsync(resource, DeclarativeResourceKindItem.Credential, [trigger.AuthRef], resourceNames, ownerId, workspaceId, ct);
+                    }
+                }
                 break;
         }
     }
@@ -372,6 +399,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         var existingId = resource.Kind switch
         {
             DeclarativeResourceKindItem.Integration => await ExistingIntegrationIdAsync(resource, ownerId, workspaceId, ct),
+            DeclarativeResourceKindItem.Credential => await ExistingCredentialIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.Provider => await ExistingProviderIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.Channel => await ExistingChannelIdAsync(resource, workspaceId, ct),
             DeclarativeResourceKindItem.MemoryStore => await ExistingMemoryStoreIdAsync(resource, workspaceId, ct),
@@ -438,6 +466,29 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             ?? IntegrationDefinitionProvider.GetBuiltin(resource.Name);
 
         return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, action, integration?.Id.ToString(), $"{action}d integration.");
+    }
+
+    private async Task<DeclarativeResourceChangeItem> ApplyCredentialAsync(DeclarativeResourceDescriptorItem resource, Guid ownerId, Guid workspaceId, CancellationToken ct)
+    {
+        var protector = _credentialProtector ?? throw new InvalidOperationException("Credential protector is not configured.");
+        var spec = Spec<DeclarativeCredentialSpecItem>(resource);
+        var existing = await _agentRoutineCredentialRepository.GetByNameAsync(workspaceId, resource.Name, ct);
+        var now = DateTime.UtcNow;
+        var saved = await _agentRoutineCredentialRepository.UpsertAsync(new AgentRoutineCredentialRecord
+        {
+            Id = existing?.Id ?? ResourceId(workspaceId, DeclarativeResourceKindItem.Credential, resource.Name),
+            OwnerId = ownerId,
+            WorkspaceId = workspaceId,
+            Name = resource.Name,
+            Provider = spec.Provider.Trim().ToLowerInvariant(),
+            AuthKind = NormalizeCredentialAuthKind(spec),
+            EncryptedSecret = protector.Protect(NormalizeCredentialFields(spec.Credentials)),
+            CreatedAt = existing?.CreatedAt ?? now,
+            UpdatedAt = now,
+        }, ct);
+
+        var action = existing is null ? "create" : "update";
+        return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, action, saved.Id.ToString(), $"{action}d credential.");
     }
 
     private async Task<DeclarativeResourceChangeItem> ApplyChannelAsync(DeclarativeResourceDescriptorItem resource, Guid ownerId, Guid workspaceId, CancellationToken ct)
@@ -630,6 +681,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     trigger.Name,
                     trigger.Repo,
                     trigger.Events ?? [],
+                    trigger.AuthRef,
                     trigger.Secret,
                     trigger.Mode,
                     trigger.PollIntervalSeconds)).ToList() ?? []),
@@ -777,6 +829,9 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         => (IntegrationDefinitionProvider.GetBuiltin(resource.Name)
             ?? await _integrationDefinitionRepository.GetByNameAsync(ownerId, resource.Name, workspaceId, ct))?.Id;
 
+    private async Task<Guid?> ExistingCredentialIdAsync(DeclarativeResourceDescriptorItem resource, Guid workspaceId, CancellationToken ct)
+        => (await _agentRoutineCredentialRepository.GetByNameAsync(workspaceId, resource.Name, ct))?.Id;
+
     private async Task<Guid?> ExistingProviderIdAsync(DeclarativeResourceDescriptorItem resource, Guid workspaceId, CancellationToken ct)
         => _providerResourceRepository is null
             ? null
@@ -871,6 +926,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         {
             DeclarativeResourceKindItem.Provider => await ExistingProviderIdAsync(resource, workspaceId, ct) is not null,
             DeclarativeResourceKindItem.Integration => await ExistingIntegrationIdAsync(resource, ownerId, workspaceId, ct) is not null,
+            DeclarativeResourceKindItem.Credential => await ExistingCredentialIdAsync(resource, workspaceId, ct) is not null,
             DeclarativeResourceKindItem.Channel => await ExistingChannelIdAsync(resource, workspaceId, ct) is not null,
             DeclarativeResourceKindItem.MemoryStore => await ExistingMemoryStoreIdAsync(resource, workspaceId, ct) is not null,
             DeclarativeResourceKindItem.Browser => await ExistingBrowserIdAsync(resource, workspaceId, ct) is not null,
@@ -890,6 +946,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             "provider" => DeclarativeResourceKindItem.Provider,
             "channel" => DeclarativeResourceKindItem.Channel,
             "integration" => DeclarativeResourceKindItem.Integration,
+            "credential" => DeclarativeResourceKindItem.Credential,
             "memorystore" or "memory-store" or "memory_store" => DeclarativeResourceKindItem.MemoryStore,
             "browser" => DeclarativeResourceKindItem.Browser,
             "routine" => DeclarativeResourceKindItem.Routine,
@@ -993,6 +1050,23 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                 .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
 
+    private static string NormalizeCredentialAuthKind(DeclarativeCredentialSpecItem spec)
+    {
+        if (!string.IsNullOrWhiteSpace(spec.AuthKind))
+            return spec.AuthKind.Trim().ToLowerInvariant();
+
+        return string.Equals(spec.Provider, "github", StringComparison.OrdinalIgnoreCase)
+            ? AgentRoutineCredentialAuthKinds.PersonalAccessToken
+            : IntegrationCredentialAuthKinds.ApiKey;
+    }
+
+    private static Dictionary<string, string> NormalizeCredentialFields(Dictionary<string, string>? credentials)
+        => credentials is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : credentials
+                .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+
     private static IntegrationTransportType ResolveTransport(DeclarativeIntegrationSpecItem spec)
     {
         if (!string.IsNullOrWhiteSpace(spec.TransportType)
@@ -1040,6 +1114,7 @@ internal static class DeclarativeResourceKindItem
     public const string Agent = "Agent";
     public const string Channel = "Channel";
     public const string Integration = "Integration";
+    public const string Credential = "Credential";
     public const string MemoryStore = "MemoryStore";
     public const string Browser = "Browser";
     public const string Routine = "Routine";

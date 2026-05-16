@@ -53,6 +53,8 @@ internal sealed class AgentRoutineService : IAgentRoutineService
             var mode = GitHubRoutineTriggerModes.Normalize(trigger.Mode);
             if (mode == GitHubRoutineTriggerModes.Webhook && string.IsNullOrWhiteSpace(trigger.Secret))
                 throw new InvalidOperationException("GitHub webhook routine triggers require a secret.");
+            if (mode == GitHubRoutineTriggerModes.Poll && string.IsNullOrWhiteSpace(trigger.AuthRef))
+                throw new InvalidOperationException("GitHub polling routine triggers require auth_ref.");
 
             var encryptedSecret = string.IsNullOrWhiteSpace(trigger.Secret)
                 ? null
@@ -62,6 +64,7 @@ internal sealed class AgentRoutineService : IAgentRoutineService
                 trigger.Name,
                 trigger.Repo,
                 trigger.Events,
+                trigger.AuthRef,
                 mode,
                 TimeSpan.FromSeconds(trigger.PollIntervalSeconds ?? 60),
                 encryptedSecret));

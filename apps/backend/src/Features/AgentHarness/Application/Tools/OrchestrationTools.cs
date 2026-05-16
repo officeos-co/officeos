@@ -266,6 +266,7 @@ internal sealed class RoutineCreateTool : IAgentTool
                             name = new { type = "string" },
                             repo = new { type = "string", description = "GitHub repository URL, for example https://github.com/owner/repo.git" },
                             events = new { type = "array", items = new { type = "string" } },
+                            auth_ref = new { type = "string", description = "Credential resource name for polling mode" },
                             secret = new { type = "string", description = "Only required for mode=webhook" },
                             mode = new { type = "string", description = "poll or webhook; defaults to poll" },
                             poll_interval_seconds = new { type = "integer", description = "Polling interval in seconds; minimum 15" }
@@ -378,6 +379,7 @@ internal sealed class RoutineCreateTool : IAgentTool
                     trigger.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array
                         ? events.EnumerateArray().Select(item => item.GetString() ?? "").ToList()
                         : [],
+                    GetString(trigger, "auth_ref"),
                     GetString(trigger, "secret"),
                     GetString(trigger, "mode"),
                     trigger.TryGetProperty("poll_interval_seconds", out var interval) && interval.TryGetInt32(out var seconds)

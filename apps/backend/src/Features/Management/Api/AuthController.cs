@@ -7,6 +7,8 @@ public sealed class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IWorkspaceService _workspaceService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
+    private readonly IAgentRoutineCredentialRepository _agentRoutineCredentialRepository;
+    private readonly CredentialProtector _credentialProtector;
     private readonly FrontendConfig _frontendConfig;
     private readonly ILogger<AuthController> _logger;
 
@@ -14,12 +16,16 @@ public sealed class AuthController : ControllerBase
         IAuthService authService,
         IWorkspaceService workspaceService,
         IIntegrationDefinitionService integrationDefinitionService,
+        IAgentRoutineCredentialRepository agentRoutineCredentialRepository,
+        CredentialProtector credentialProtector,
         FrontendConfig frontendConfig,
         ILogger<AuthController> logger)
     {
         _authService = authService;
         _workspaceService = workspaceService;
         _integrationDefinitionService = integrationDefinitionService;
+        _agentRoutineCredentialRepository = agentRoutineCredentialRepository;
+        _credentialProtector = credentialProtector;
         _frontendConfig = frontendConfig;
         _logger = logger;
     }
@@ -89,6 +95,7 @@ public sealed class AuthController : ControllerBase
             returnTo = ValidateCallbackState(state);
             var result = await _authService.HandleGitHubCallbackAsync(code, ct: ct);
             await SaveIntegrationOAuthCredentialAsync("github", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
+            await SaveRoutineCredentialOAuthAsync("github", returnTo, result.UserId, result.Email, result.IntegrationCredentials, result.Scopes, result.ExpiresAtUtc, ct);
             SetSessionCookie(result.SessionToken);
 
             _logger.LogInformation("OAuth: GitHub login complete for {Email}, redirecting to {ReturnTo}", result.Email, returnTo);
@@ -191,7 +198,7 @@ public sealed class AuthController : ControllerBase
 
     private IActionResult RedirectWithError(string message, string? returnTo = null)
     {
-        var target = IsIntegrationReturn(returnTo)
+        var target = IsIntegrationReturn(returnTo) || IsCredentialReturn(returnTo)
             ? AppendQueryParameter(returnTo!, "oauthError", message)
             : $"/login?error={Uri.EscapeDataString(message)}";
         return Redirect(BuildFrontendRedirect(target));
@@ -230,6 +237,57 @@ public sealed class AuthController : ControllerBase
         var path = returnTo!.Split('?', '#')[0];
         return path.StartsWith("/integrations/", StringComparison.Ordinal)
             || string.Equals(path, "/integrations", StringComparison.Ordinal);
+    }
+
+    private async Task SaveRoutineCredentialOAuthAsync(
+        string provider,
+        string returnTo,
+        Guid userId,
+        string email,
+        Dictionary<string, string> credentials,
+        IReadOnlyList<string> scopes,
+        DateTime? expiresAtUtc,
+        CancellationToken ct)
+    {
+        if (!IsCredentialReturn(returnTo))
+            return;
+
+        var workspace = await _workspaceService.GetCurrentAsync(userId, ct);
+        var credentialName = CredentialNameFromReturn(returnTo) ?? provider;
+        var now = DateTime.UtcNow;
+        var existing = await _agentRoutineCredentialRepository.GetByNameAsync(workspace.Id, credentialName, ct);
+        await _agentRoutineCredentialRepository.UpsertAsync(new AgentRoutineCredentialRecord
+        {
+            Id = existing?.Id ?? Guid.NewGuid(),
+            OwnerId = userId,
+            WorkspaceId = workspace.Id,
+            Name = credentialName,
+            Provider = provider,
+            AuthKind = AgentRoutineCredentialAuthKinds.OAuth,
+            EncryptedSecret = _credentialProtector.Protect(credentials),
+            PublicMetadataJson = JsonSerializer.Serialize(new { provider, email }),
+            ScopesJson = JsonSerializer.Serialize(scopes),
+            ExpiresAtUtc = expiresAtUtc,
+            CreatedAt = existing?.CreatedAt ?? now,
+            UpdatedAt = now,
+        }, ct);
+    }
+
+    private static bool IsCredentialReturn(string? returnTo)
+    {
+        if (!IsSafeLocalPath(returnTo))
+            return false;
+
+        var path = returnTo!.Split('?', '#')[0];
+        return path.StartsWith("/credentials/", StringComparison.Ordinal)
+            || string.Equals(path, "/credentials", StringComparison.Ordinal);
+    }
+
+    private static string? CredentialNameFromReturn(string returnTo)
+    {
+        var path = returnTo.Split('?', '#')[0].Trim('/');
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length >= 2 && parts[0] == "credentials" ? parts[1] : null;
     }
 
     private static string AppendQueryParameter(string path, string name, string value)

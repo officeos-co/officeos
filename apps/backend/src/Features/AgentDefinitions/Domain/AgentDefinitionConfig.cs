@@ -52,6 +52,7 @@ public sealed record AgentRoutineGitHubTriggerConfig(
     string Name,
     string Repo,
     IReadOnlyList<string> Events,
+    string? AuthRef,
     string? Secret,
     string? Mode,
     int? PollIntervalSeconds);

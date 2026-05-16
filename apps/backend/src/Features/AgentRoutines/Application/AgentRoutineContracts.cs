@@ -37,6 +37,7 @@ public sealed record CreateGitHubRoutineTriggerRequest(
     string Name,
     string Repo,
     IReadOnlyList<string> Events,
+    string? AuthRef,
     string? Secret,
     string? Mode = null,
     int? PollIntervalSeconds = null);

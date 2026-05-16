@@ -214,6 +214,11 @@ internal sealed record DeclarativeIntegrationSpecItem(
     string? CredentialFieldsJson,
     Dictionary<string, string>? Credentials);
 
+internal sealed record DeclarativeCredentialSpecItem(
+    string Provider,
+    string? AuthKind,
+    Dictionary<string, string>? Credentials);
+
 internal sealed record DeclarativeMemoryStoreSpecItem(
     string? DisplayName,
     IReadOnlyList<DeclarativeMemoryStoreEntryItem>? Entries);
@@ -270,6 +275,7 @@ internal sealed record DeclarativeGitHubTriggerItem(
     string Name,
     string Repo,
     IReadOnlyList<string>? Events,
+    string? AuthRef,
     string? Secret,
     string? Mode,
     int? PollIntervalSeconds);

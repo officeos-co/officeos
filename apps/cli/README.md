@@ -29,7 +29,7 @@ officeos logs <kind/name> [--tail <n>] [--since <duration>] [--type <type>] [--s
 officeos models [-o json|yaml|name]
 officeos providers [-o json|yaml|name]
 officeos provider auth codex [--no-browser]
-officeos integration auth github [--no-browser]
+officeos credential auth github [--name <credential>] [--no-browser]
 ```
 
 ## Agent Messaging
@@ -45,10 +45,10 @@ officeos logs agent/fix-ci --tail 100
 ## GitHub OAuth
 
 ```bash
-officeos integration auth github
+officeos credential auth github
 ```
 
-This opens the dashboard-backed GitHub OAuth flow (`/api/auth/github`) and stores the GitHub OAuth credential for the selected OfficeOS workspace. GitHub polling routines use that workspace credential.
+This opens the dashboard-backed GitHub OAuth flow (`/api/auth/github`) and stores the GitHub OAuth credential as `credential/github` in the selected OfficeOS workspace. GitHub polling routines reference that credential with `authRef: github`.
 
 ## VS Code
 

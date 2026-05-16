@@ -23,6 +23,7 @@ const ResourceKinds = [
   { kind: "agents", aliases: "agent", description: "Agent resources" },
   { kind: "channels", aliases: "channel", description: "Channel connections" },
   { kind: "routines", aliases: "routine", description: "Agent routines" },
+  { kind: "credentials", aliases: "credential", description: "Routine credentials" },
   { kind: "browsers", aliases: "browser", description: "Browser resources" },
   { kind: "integrations", aliases: "integration", description: "Integration deployments" },
   {
@@ -36,6 +37,7 @@ const ResourceKinds = [
 
 const DeletableResourceKinds = [
   "routines",
+  "credentials",
   "channels",
   "integrations",
   "browsers",
@@ -199,14 +201,14 @@ export async function providerCommand(args: string[]): Promise<void> {
   }
 }
 
-export async function integrationCommand(args: string[]): Promise<void> {
-  const sub = requireArg(args[0], "Usage: officeos integration auth github");
+export async function credentialCommand(args: string[]): Promise<void> {
+  const sub = requireArg(args[0], "Usage: officeos credential auth github");
   switch (sub) {
     case "auth":
-      await integrationAuthCommand(args.slice(1));
+      await credentialAuthCommand(args.slice(1));
       break;
     default:
-      throw new Error(`Unknown integration command '${sub}'.`);
+      throw new Error(`Unknown credential command '${sub}'.`);
   }
 }
 
@@ -263,14 +265,15 @@ async function providerAuthCommand(args: string[]): Promise<void> {
   }
 }
 
-async function integrationAuthCommand(args: string[]): Promise<void> {
-  const integration = requireArg(args[0], "Usage: officeos integration auth github");
-  if (integration !== "github") {
-    throw new Error(`Unsupported integration auth target '${integration}'.`);
+async function credentialAuthCommand(args: string[]): Promise<void> {
+  const provider = requireArg(args[0], "Usage: officeos credential auth github");
+  if (provider !== "github") {
+    throw new Error(`Unsupported credential auth target '${provider}'.`);
   }
 
   const context = await requireContext();
-  const returnTo = readOption(args, "--return-to") ?? "/integrations";
+  const name = readOption(args, "--name") ?? "github";
+  const returnTo = readOption(args, "--return-to") ?? `/credentials/${encodeURIComponent(name)}`;
   const authUrl = new URL("/api/auth/github", context.apiUrl);
   authUrl.searchParams.set("returnTo", returnTo);
 
@@ -278,7 +281,7 @@ async function integrationAuthCommand(args: string[]): Promise<void> {
   if (!args.includes("--no-browser")) {
     await openBrowser(authUrl.toString()).catch(() => undefined);
   }
-  print("Complete the GitHub OAuth flow in the dashboard. The credential is saved to the selected workspace.");
+  print(`Complete the GitHub OAuth flow in the dashboard. The credential is saved as credential/${name}.`);
 }
 
 export async function configCommand(args: string[]): Promise<void> {

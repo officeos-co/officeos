@@ -29,6 +29,7 @@ export const ResourceKinds = [
   "agents",
   "channels",
   "routines",
+  "credentials",
   "browsers",
   "memorystores",
   "engines",

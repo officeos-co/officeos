@@ -111,6 +111,8 @@ Database/
   20260515153000_AddProviderResourceStatus.cs
   20260515164039_AddAgentRoutinePollCursors.cs
   20260515164039_AddAgentRoutinePollCursors.Designer.cs
+  20260516121839_AddAgentRoutineCredentials.cs
+  20260516121839_AddAgentRoutineCredentials.Designer.cs
   EaosDbContextModelSnapshot.cs
  Models/
   AgentChannelBindingEntity.cs
@@ -120,6 +122,7 @@ Database/
   AgentMemoryEntity.cs
   AgentPersonalityEntity.cs
   AgentRateLimitEntity.cs
+  AgentRoutineCredentialEntity.cs
   AgentRoutineEntity.cs
   AgentRoutinePollCursorEntity.cs
   AgentRoutineTriggerEntity.cs
@@ -251,6 +254,7 @@ Features/AgentHarness/
   PromptCacheInjector.cs
   S3AgentWorkspaceStore.cs
 Features/AgentRoutines/Api/
+ CredentialResourceController.cs
  RoutineResourceController.cs
  RoutineTriggerController.cs
 Features/AgentRoutines/Application/
@@ -262,215 +266,217 @@ Features/AgentRoutines/Application/
 Features/AgentRoutines/Domain/
  AgentRoutineFilter.cs
  AgentRoutineRecord.cs
+ IAgentRoutineCredentialRepository.cs
  IAgentRoutineRepository.cs
-Features/
- AgentRoutines/Infrastructure/AgentRoutineRepository.cs
- Agents/
-  Api/AgentResourceController.cs
-  Application/
-   AgentCacheKeys.cs
-   AgentHealthProjection.cs
-   AgentLifecycleContracts.cs
-   AgentLifecycleService.cs
-   AgentResourceContracts.cs
-   AgentResourceService.cs
-   AgentService.cs
-   AgentServiceContracts.cs
-   AgentSessionContracts.cs
-   AgentSessionService.cs
-  Domain/
-   AgentCreatedEvent.cs
-   AgentDefinitionRecord.cs
-   AgentDeletedEvent.cs
-   AgentFilter.cs
-   AgentPersonalityRecord.cs
-   AgentRateLimitRecord.cs
-   AgentRecord.cs
-   AgentResourceRecords.cs
-   AgentSessionContextFilter.cs
-   AgentSessionContextRecord.cs
-   AgentSessionFilter.cs
-   AgentSessionRecord.cs
-   AgentUpdatedEvent.cs
-   AgentWorkPurposeKinds.cs
-   IAgentDefinitionRepository.cs
-   IAgentPersonalityRepository.cs
-   IAgentRepository.cs
-   IAgentResourceRepository.cs
-   IAgentSessionContextRepository.cs
-   IAgentSessionRepository.cs
-  EventHandlers/
-   DeployAgentPodHandler.cs
-   InvalidateAgentCacheHandler.cs
-   RemoveAgentPodHandler.cs
-  Infrastructure/
-   AgentDefinitionRepository.cs
-   AgentPersonalityRepository.cs
-   AgentRepository.cs
-   AgentResourceRepository.cs
-   AgentSessionContextRepository.cs
-   AgentSessionRepository.cs
- Browser/
-  Api/BrowserResourceController.cs
-  Application/
-   BrowserResourceService.cs
-   IBrowserResourceService.cs
-  Domain/
-   BrowserResourceFilter.cs
-   BrowserResourceRecord.cs
-   BrowserRuntimeRecords.cs
-   BrowserSessionFilter.cs
-   BrowserSessionRecord.cs
-   IBrowserResourceRepository.cs
-   IBrowserSessionRepository.cs
-  Infrastructure/
-   AutoBrowserRuntimeClient.cs
-   BrowserResourceRepository.cs
-   BrowserSessionRepository.cs
- Channels/Api/
-  ChannelResourceController.cs
-  ChannelSidecarController.cs
- Channels/Application/
-  AgentChannelBinder.cs
-  ChannelGroupContextStore.cs
-  ChannelRoutingPolicy.cs
-  ChannelService.cs
- Channels/Domain/
-  AgentChannelBindingFilter.cs
-  AgentChannelBindingRecord.cs
-  ChannelBindingConfig.cs
-  ChannelConnectionFilter.cs
-  ChannelConnectionRecord.cs
-  ChannelCredsStoredEvent.cs
-  ChannelMessage.cs
-  ChannelMessageRoutedEvent.cs
-  ChannelReplyContext.cs
-  ChannelTypeDefinitions.cs
-  IChannelBroadcastService.cs
-  IChannelRepository.cs
- Channels/EventHandlers/
-  BroadcastToChannelsHandler.cs
-  SendTestMessageHandler.cs
- Channels/Infrastructure/
-  ChannelMicroserviceGateway.cs
-  ChannelRepository.cs
- Context/
-  Api/MemoryStoreResourceController.cs
-  Application/
-   AgentMemoryService.cs
-   IAgentMemoryService.cs
-   MemoryStoreService.cs
-  Domain/
-   AgentMemoryFilter.cs
-   AgentMemoryRecord.cs
-   IAgentMemoryRepository.cs
-   IMemoryStoreRepository.cs
-   IMemoryStoreService.cs
-   MemoryStoreRecords.cs
-  Infrastructure/
-   AgentMemoryRepository.cs
-   MemoryStoreRepository.cs
- Integrations/
-  Api/IntegrationResourceController.cs
-  Application/
-   IntegrationDefinitionService.cs
-   IntegrationDeploymentService.cs
-  Domain/
-   AgentIntegrationRecord.cs
-   IAgentIntegrationRepository.cs
-   IIntegrationClientManager.cs
-   IIntegrationCredentialEncryptionService.cs
-   IIntegrationCredentialRepository.cs
-   IIntegrationDefinitionRepository.cs
-   IIntegrationDefinitionService.cs
-   IIntegrationDeploymentRepository.cs
-   IIntegrationDeploymentService.cs
-   IntegrationCredentialAuthKinds.cs
-   IntegrationCredentialFilter.cs
-   IntegrationCredentialRecord.cs
-   IntegrationCredentialState.cs
-   IntegrationDefinitionProvider.cs
-   IntegrationDefinitionRecord.cs
-   IntegrationDeploymentFilter.cs
-   IntegrationDeploymentRecord.cs
-   IntegrationTransportType.cs
-  Infrastructure/
-   AgentIntegrationRepository.cs
-   IntegrationClientManager.cs
-   IntegrationCredentialEncryptionService.cs
-   IntegrationCredentialRepository.cs
-   IntegrationDefinitionRepository.cs
-   IntegrationDeploymentRepository.cs
- Management/Api/
-  AuthController.cs
-  ManagementDeviceAuthController.cs
- Management/Application/
-  AuthService.cs
-  CliAuthContracts.cs
-  CliAuthService.cs
-  WorkspaceService.cs
- Management/Domain/
-  DeviceCodeRecord.cs
-  IAuthService.cs
-  IDeviceCodeRepository.cs
-  ISessionRepository.cs
-  IUserRepository.cs
-  IWorkspaceMemberRepository.cs
-  IWorkspaceRepository.cs
-  IWorkspaceService.cs
-  SessionFilter.cs
-  SessionRecord.cs
-  SessionTokenHasher.cs
-  UserFilter.cs
-  UserRecord.cs
-  WorkspaceFilter.cs
-  WorkspaceMemberFilter.cs
-  WorkspaceMemberRecord.cs
-  WorkspaceRecord.cs
- Management/Infrastructure/
-  DeviceCodeRepository.cs
-  SessionRepository.cs
-  UserRepository.cs
-  WorkspaceMemberRepository.cs
-  WorkspaceRepository.cs
- Observability/
-  Api/ResourceLogController.cs
-  Application/
-   AgentLogContracts.cs
-   AgentLogProjections.cs
-   AgentLogService.cs
-  Domain/
-   AgentLogFilter.cs
-   AgentLogRecord.cs
-   AgentLogTopics.cs
-   IAgentLogRepository.cs
-  EventHandlers/
-   LogChannelInboundHandler.cs
-   TurnLoggingHandler.cs
-  Infrastructure/AgentLogRepository.cs
- Providers/
-  Api/ProviderResourceController.cs
-  Application/
-   IProviderDispatchService.cs
-   ProviderContracts.cs
-   ProviderDispatchService.cs
-   ProviderService.cs
-  Domain/
-   ApiFormat.cs
-   ICloudProviderTokenService.cs
-   IProviderResourceRepository.cs
-   ModelDefinition.cs
-   ProviderAuthKind.cs
-   ProviderAuthResult.cs
-   ProviderDefinition.cs
-   ProviderRegistry.cs
-   ProviderResourceRecord.cs
-  Infrastructure/
-   AnthropicTranslator.cs
-   CloudProviderTokenService.cs
-   LlmProviderDispatcher.cs
-   ProviderResourceRepository.cs
-   SmartRouter.cs
+Features/AgentRoutines/Infrastructure/
+ AgentRoutineCredentialRepository.cs
+ AgentRoutineRepository.cs
+Features/Agents/
+ Api/AgentResourceController.cs
+ Application/
+  AgentCacheKeys.cs
+  AgentHealthProjection.cs
+  AgentLifecycleContracts.cs
+  AgentLifecycleService.cs
+  AgentResourceContracts.cs
+  AgentResourceService.cs
+  AgentService.cs
+  AgentServiceContracts.cs
+  AgentSessionContracts.cs
+  AgentSessionService.cs
+ Domain/
+  AgentCreatedEvent.cs
+  AgentDefinitionRecord.cs
+  AgentDeletedEvent.cs
+  AgentFilter.cs
+  AgentPersonalityRecord.cs
+  AgentRateLimitRecord.cs
+  AgentRecord.cs
+  AgentResourceRecords.cs
+  AgentSessionContextFilter.cs
+  AgentSessionContextRecord.cs
+  AgentSessionFilter.cs
+  AgentSessionRecord.cs
+  AgentUpdatedEvent.cs
+  AgentWorkPurposeKinds.cs
+  IAgentDefinitionRepository.cs
+  IAgentPersonalityRepository.cs
+  IAgentRepository.cs
+  IAgentResourceRepository.cs
+  IAgentSessionContextRepository.cs
+  IAgentSessionRepository.cs
+ EventHandlers/
+  DeployAgentPodHandler.cs
+  InvalidateAgentCacheHandler.cs
+  RemoveAgentPodHandler.cs
+ Infrastructure/
+  AgentDefinitionRepository.cs
+  AgentPersonalityRepository.cs
+  AgentRepository.cs
+  AgentResourceRepository.cs
+  AgentSessionContextRepository.cs
+  AgentSessionRepository.cs
+Features/Browser/
+ Api/BrowserResourceController.cs
+ Application/
+  BrowserResourceService.cs
+  IBrowserResourceService.cs
+ Domain/
+  BrowserResourceFilter.cs
+  BrowserResourceRecord.cs
+  BrowserRuntimeRecords.cs
+  BrowserSessionFilter.cs
+  BrowserSessionRecord.cs
+  IBrowserResourceRepository.cs
+  IBrowserSessionRepository.cs
+ Infrastructure/
+  AutoBrowserRuntimeClient.cs
+  BrowserResourceRepository.cs
+  BrowserSessionRepository.cs
+Features/Channels/Api/
+ ChannelResourceController.cs
+ ChannelSidecarController.cs
+Features/Channels/Application/
+ AgentChannelBinder.cs
+ ChannelGroupContextStore.cs
+ ChannelRoutingPolicy.cs
+ ChannelService.cs
+Features/Channels/Domain/
+ AgentChannelBindingFilter.cs
+ AgentChannelBindingRecord.cs
+ ChannelBindingConfig.cs
+ ChannelConnectionFilter.cs
+ ChannelConnectionRecord.cs
+ ChannelCredsStoredEvent.cs
+ ChannelMessage.cs
+ ChannelMessageRoutedEvent.cs
+ ChannelReplyContext.cs
+ ChannelTypeDefinitions.cs
+ IChannelBroadcastService.cs
+ IChannelRepository.cs
+Features/Channels/EventHandlers/
+ BroadcastToChannelsHandler.cs
+ SendTestMessageHandler.cs
+Features/Channels/Infrastructure/
+ ChannelMicroserviceGateway.cs
+ ChannelRepository.cs
+Features/Context/
+ Api/MemoryStoreResourceController.cs
+ Application/
+  AgentMemoryService.cs
+  IAgentMemoryService.cs
+  MemoryStoreService.cs
+ Domain/
+  AgentMemoryFilter.cs
+  AgentMemoryRecord.cs
+  IAgentMemoryRepository.cs
+  IMemoryStoreRepository.cs
+  IMemoryStoreService.cs
+  MemoryStoreRecords.cs
+ Infrastructure/
+  AgentMemoryRepository.cs
+  MemoryStoreRepository.cs
+Features/Integrations/
+ Api/IntegrationResourceController.cs
+ Application/
+  IntegrationDefinitionService.cs
+  IntegrationDeploymentService.cs
+ Domain/
+  AgentIntegrationRecord.cs
+  IAgentIntegrationRepository.cs
+  IIntegrationClientManager.cs
+  IIntegrationCredentialEncryptionService.cs
+  IIntegrationCredentialRepository.cs
+  IIntegrationDefinitionRepository.cs
+  IIntegrationDefinitionService.cs
+  IIntegrationDeploymentRepository.cs
+  IIntegrationDeploymentService.cs
+  IntegrationCredentialAuthKinds.cs
+  IntegrationCredentialFilter.cs
+  IntegrationCredentialRecord.cs
+  IntegrationCredentialState.cs
+  IntegrationDefinitionProvider.cs
+  IntegrationDefinitionRecord.cs
+  IntegrationDeploymentFilter.cs
+  IntegrationDeploymentRecord.cs
+  IntegrationTransportType.cs
+ Infrastructure/
+  AgentIntegrationRepository.cs
+  IntegrationClientManager.cs
+  IntegrationCredentialEncryptionService.cs
+  IntegrationCredentialRepository.cs
+  IntegrationDefinitionRepository.cs
+  IntegrationDeploymentRepository.cs
+Features/Management/Api/
+ AuthController.cs
+ ManagementDeviceAuthController.cs
+Features/Management/Application/
+ AuthService.cs
+ CliAuthContracts.cs
+ CliAuthService.cs
+ WorkspaceService.cs
+Features/Management/Domain/
+ DeviceCodeRecord.cs
+ IAuthService.cs
+ IDeviceCodeRepository.cs
+ ISessionRepository.cs
+ IUserRepository.cs
+ IWorkspaceMemberRepository.cs
+ IWorkspaceRepository.cs
+ IWorkspaceService.cs
+ SessionFilter.cs
+ SessionRecord.cs
+ SessionTokenHasher.cs
+ UserFilter.cs
+ UserRecord.cs
+ WorkspaceFilter.cs
+ WorkspaceMemberFilter.cs
+ WorkspaceMemberRecord.cs
+ WorkspaceRecord.cs
+Features/Management/Infrastructure/
+ DeviceCodeRepository.cs
+ SessionRepository.cs
+ UserRepository.cs
+ WorkspaceMemberRepository.cs
+ WorkspaceRepository.cs
+Features/Observability/
+ Api/ResourceLogController.cs
+ Application/
+  AgentLogContracts.cs
+  AgentLogProjections.cs
+  AgentLogService.cs
+ Domain/
+  AgentLogFilter.cs
+  AgentLogRecord.cs
+  AgentLogTopics.cs
+  IAgentLogRepository.cs
+ EventHandlers/
+  LogChannelInboundHandler.cs
+  TurnLoggingHandler.cs
+ Infrastructure/AgentLogRepository.cs
+Features/Providers/
+ Api/ProviderResourceController.cs
+ Application/
+  IProviderDispatchService.cs
+  ProviderContracts.cs
+  ProviderDispatchService.cs
+  ProviderService.cs
+ Domain/
+  ApiFormat.cs
+  ICloudProviderTokenService.cs
+  IProviderResourceRepository.cs
+  ModelDefinition.cs
+  ProviderAuthKind.cs
+  ProviderAuthResult.cs
+  ProviderDefinition.cs
+  ProviderRegistry.cs
+  ProviderResourceRecord.cs
+ Infrastructure/
+  AnthropicTranslator.cs
+  CloudProviderTokenService.cs
+  LlmProviderDispatcher.cs
+  ProviderResourceRepository.cs
+  SmartRouter.cs
 GlobalUsings.cs
 obj/Debug/net9.0/
  .NETCoreApp,Version=v9.0.AssemblyAttributes.cs

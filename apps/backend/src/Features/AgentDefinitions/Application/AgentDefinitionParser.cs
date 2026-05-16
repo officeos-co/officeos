@@ -188,6 +188,7 @@ internal sealed class AgentDefinitionParser
                         RequireTrimmed(trigger.Name, "GitHub routine trigger name is required."),
                         GitHubRepositoryRecord.Parse(RequireTrimmed(trigger.Repo, "GitHub routine trigger repo is required.")).Url,
                         (trigger.Events ?? []).Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                        string.IsNullOrWhiteSpace(trigger.AuthRef) ? null : trigger.AuthRef.Trim(),
                         string.IsNullOrWhiteSpace(trigger.Secret) ? null : trigger.Secret.Trim(),
                         GitHubRoutineTriggerModes.Normalize(trigger.Mode),
                         trigger.PollIntervalSeconds))
@@ -204,6 +205,9 @@ internal sealed class AgentDefinitionParser
         {
             if (trigger.Events.Count == 0)
                 throw new InvalidOperationException($"GitHub routine trigger '{trigger.Name}' requires at least one event.");
+            if (GitHubRoutineTriggerModes.Normalize(trigger.Mode) == GitHubRoutineTriggerModes.Poll
+                && string.IsNullOrWhiteSpace(trigger.AuthRef))
+                throw new InvalidOperationException($"GitHub routine trigger '{trigger.Name}' requires auth_ref for polling mode.");
         }
 
         return new AgentDefinitionConfig(
@@ -370,6 +374,7 @@ internal sealed class AgentDefinitionParser
                     ["name"] = trigger.Name,
                     ["repo"] = trigger.Repo,
                     ["events"] = trigger.Events,
+                    ["auth_ref"] = trigger.AuthRef,
                     ["secret"] = trigger.Secret,
                     ["mode"] = trigger.Mode,
                     ["poll_interval_seconds"] = trigger.PollIntervalSeconds,

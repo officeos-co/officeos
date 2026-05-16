@@ -24,6 +24,7 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
     public DbSet<AgentPersonalityEntity> AgentPersonalities => Set<AgentPersonalityEntity>();
     public DbSet<AgentRoutineEntity> AgentRoutines => Set<AgentRoutineEntity>();
+    public DbSet<AgentRoutineCredentialEntity> AgentRoutineCredentials => Set<AgentRoutineCredentialEntity>();
     public DbSet<AgentRoutineTriggerEntity> AgentRoutineTriggers => Set<AgentRoutineTriggerEntity>();
     public DbSet<AgentRoutinePollCursorEntity> AgentRoutinePollCursors => Set<AgentRoutinePollCursorEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
@@ -234,6 +235,22 @@ public sealed class EaosDbContext : DbContext
             e.HasOne(r => r.Agent).WithMany()
                 .HasForeignKey(r => r.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentRoutineCredentialEntity>(e =>
+        {
+            e.ToTable("AgentRoutineCredentials");
+            e.HasKey(c => c.Id);
+            e.HasIndex(c => new { c.WorkspaceId, c.Name }).IsUnique();
+            e.HasIndex(c => c.OwnerId);
+            e.Property(c => c.Name).IsRequired().HasMaxLength(128);
+            e.Property(c => c.Provider).IsRequired().HasMaxLength(64);
+            e.Property(c => c.AuthKind).IsRequired().HasMaxLength(64);
+            e.Property(c => c.EncryptedSecret).HasColumnType("text").IsRequired();
+            e.Property(c => c.PublicMetadataJson).HasColumnType("jsonb");
+            e.Property(c => c.ScopesJson).HasColumnType("jsonb");
+            e.HasOne(c => c.Owner).WithMany().HasForeignKey(c => c.OwnerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentRoutineTriggerEntity>(e =>
