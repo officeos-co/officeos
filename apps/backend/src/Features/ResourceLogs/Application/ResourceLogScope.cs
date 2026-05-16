@@ -43,9 +43,6 @@ public sealed class ResourceLogScope
 
     public ResourceLogScope WithCorrelation(string? correlationId) => Copy(correlationId: correlationId);
 
-    public ResourceLogScope WithParent(string resourceKind, Guid resourceId) =>
-        Copy(parentResourceKind: resourceKind, parentResourceId: resourceId);
-
     public Task InfoAsync(string messageTemplate, CancellationToken ct = default) =>
         WriteAsync(ResourceLogType.System, ResourceLogSeverityKinds.Info, null, null, messageTemplate, [], ct);
 

@@ -139,9 +139,6 @@ public static class ProviderRegistry
     public static ProviderDefinition? Get(string slug) =>
         BySlug.GetValueOrDefault(slug);
 
-    public static ProviderDefinition? GetByModel(string modelId) =>
-        ProviderByModel.GetValueOrDefault(modelId);
-
     public static readonly IReadOnlyList<string> SupportedModels =
         All.Where(p => p.Models.Count > 0)
            .SelectMany(p => p.Models.Select(m => m.Id))
@@ -153,28 +150,6 @@ public static class ProviderRegistry
 
     public static bool IsCustomProvider(string providerSlug) =>
         providerSlug.Equals(CustomProviderSlug, StringComparison.OrdinalIgnoreCase);
-
-    public static int GetCostWeight(string modelId, int defaultWeight = 20) =>
-        ModelById.TryGetValue(modelId, out var m) ? m.CostWeight : defaultWeight;
-
-    public static long ToCredits(string model, long rawTokens) =>
-        rawTokens * GetCostWeight(model);
-
-    public static IReadOnlyDictionary<string, int> GetCostWeights() =>
-        ResourceProviders
-            .SelectMany(p => p.Models)
-            .ToDictionary(m => m.Id, m => m.CostWeight, StringComparer.OrdinalIgnoreCase);
-
-    public static string GetDisplayName(string modelId) =>
-        modelId.Equals("auto", StringComparison.OrdinalIgnoreCase)
-            ? "Auto (smart routing)"
-            : ModelById.TryGetValue(modelId, out var m) ? m.DisplayName : modelId;
-
-    public static IReadOnlyList<string> GetModelIds(string providerSlug) =>
-        BySlug.TryGetValue(providerSlug, out var p) ? p.Models.Select(m => m.Id).ToList() : [];
-
-    public static bool IsManagedCloudProvider(string providerSlug) =>
-        BySlug.TryGetValue(providerSlug, out var p) && p.ManagedCloudOnly;
 
     public static string? GetSmartRouteModel(string providerSlug, SmartRoutingTier tier) =>
         SmartRouteMap.GetValueOrDefault((providerSlug, tier));

@@ -11,9 +11,6 @@ internal sealed class AgentHarnessToolPermissionPolicy
         _agentHarnessToolPermissionConfig = agentHarnessToolPermissionConfig;
     }
 
-    public bool IsSelfManagementTool(IAgentTool tool)
-        => _agentHarnessToolPermissionConfig.SelfManagementToolNames.Contains(tool.Name);
-
     public bool AlwaysLoad(IAgentTool tool)
         => !ShouldDefer(tool);
 

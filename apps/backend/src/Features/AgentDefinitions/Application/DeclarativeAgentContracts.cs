@@ -1,7 +1,5 @@
 namespace OffceOs.Application.Features.AgentDefinitions;
 
-public sealed record DeclarativeManifestRequest(string Manifest);
-
 public sealed record DeclarativeManifestValidationResult(
     bool Valid,
     IReadOnlyList<DeclarativeValidationErrorItem> Errors,

@@ -251,24 +251,6 @@ internal sealed class IntegrationDefinitionService : IIntegrationDefinitionServi
             .ToList();
     }
 
-    private static IReadOnlyList<string> ParseScopes(string? scopesJson)
-    {
-        if (string.IsNullOrWhiteSpace(scopesJson))
-            return [];
-
-        try
-        {
-            var parsed = JsonSerializer.Deserialize<JsonElement>(scopesJson);
-            return parsed.ValueKind == JsonValueKind.Array
-                ? parsed.EnumerateArray().Select(s => s.GetString()).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).ToList()
-                : [];
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
     private static IntegrationDefinitionRecord CopyWithOauthConfigured(IntegrationDefinitionRecord server, bool configured) => new()
     {
         Id = server.Id,

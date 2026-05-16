@@ -15,11 +15,4 @@ public static class RunTargetExtensions
         _ => throw new ArgumentOutOfRangeException(nameof(target)),
     };
 
-    public static RunTarget? ToRunTarget(this string? value) => value switch
-    {
-        null => null,
-        "cloud" => RunTarget.Cloud,
-        "runner" => RunTarget.Runner,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), $"Unknown run target: {value}"),
-    };
 }

@@ -2,11 +2,6 @@ using OffceOs.Domain.Common.Primitives;
 
 namespace OffceOs.Domain.Features.AgentHarness;
 
-public sealed record AgentSandboxCreateRequest(
-    Guid AgentId,
-    IReadOnlyDictionary<string, string> Environment,
-    IReadOnlyDictionary<string, string> Metadata);
-
 public sealed record AgentSandboxDeployment(string SandboxId, string? ServiceUrl);
 
 public sealed record AgentSandboxCommandResult(string Output, int ExitCode);

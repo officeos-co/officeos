@@ -9,7 +9,7 @@ public static class AnthropicTranslator
 {
     /// <summary>
     /// Convert an OpenAI-format request body to an Anthropic Messages API body.
-    /// Preserves <c>cache_control</c> annotations added by <see cref="PromptCacheInjector"/>:
+/// Preserves <c>cache_control</c> annotations in the request body:
     /// system messages with array content are passed as-is to the Anthropic <c>system</c> field,
     /// and tool-level <c>cache_control</c> is preserved in translated tool definitions.
     /// </summary>

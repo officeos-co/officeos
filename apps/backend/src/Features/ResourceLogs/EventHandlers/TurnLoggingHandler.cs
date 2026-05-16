@@ -8,7 +8,6 @@ internal sealed class TurnLoggingHandler :
     INotificationHandler<TurnStartedEvent>,
     INotificationHandler<TurnCompletedEvent>,
     INotificationHandler<TurnDiagnosticEvent>,
-    INotificationHandler<PodConnectedEvent>,
     INotificationHandler<LlmCallCompletedEvent>,
     INotificationHandler<ToolCallStartedEvent>,
     INotificationHandler<ToolCallCompletedEvent>,
@@ -33,11 +32,6 @@ internal sealed class TurnLoggingHandler :
             ResourceLogRecord.System(e.AgentId,
                 $"Turn complete: {e.Iterations} iterations, {e.ToolCallCount} tool calls",
                 e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
-    }
-
-    public Task Handle(PodConnectedEvent e, CancellationToken ct)
-    {
-        return Task.CompletedTask;
     }
 
     public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)

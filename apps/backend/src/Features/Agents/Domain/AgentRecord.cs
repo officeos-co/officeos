@@ -60,20 +60,6 @@ public sealed class AgentRecord
     /// <summary>Whether this agent has a deployed pod.</summary>
     public bool HasPod => !string.IsNullOrEmpty(PodName);
 
-    /// <summary>Marks the agent as successfully deployed.</summary>
-    public void MarkDeployed(string podName, string serviceUrl)
-    {
-        PodName = podName;
-        ServiceUrl = serviceUrl;
-        Status = AgentStatus.Idle;
-    }
-
-    /// <summary>Marks the agent as failed to deploy.</summary>
-    public void MarkFailed()
-    {
-        Status = AgentStatus.Failed;
-    }
-
     // ── Factory ──────────────────────────────────────────────────────────────
 
     public static AgentRecord Create(string name, string provider, string? model, Guid? ownerId, string? prompt = null, Guid? workspaceId = null)

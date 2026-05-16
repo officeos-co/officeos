@@ -139,23 +139,6 @@ internal sealed class UserRepository : IUserRepository
         CurrentWorkspaceId = e.CurrentWorkspaceId,
     };
 
-    private static UserEntity ToUserEntity(UserRecord r) => new()
-    {
-        Id = r.Id,
-        Email = r.Email,
-        Name = r.Name,
-        AvatarUrl = r.AvatarUrl,
-        GoogleSubjectId = r.GoogleSubjectId,
-        GitHubSubjectId = r.GitHubSubjectId,
-        CreatedAt = r.CreatedAt,
-        LastLoginAt = r.LastLoginAt,
-        DisplayName = r.DisplayName,
-        Timezone = r.Timezone,
-        NotificationPrefsJson = r.NotificationPrefsJson,
-        Preferences = r.Preferences,
-        CurrentWorkspaceId = r.CurrentWorkspaceId,
-    };
-
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
     private static UserEntity? ResolveProviderUser(

@@ -1,7 +1,5 @@
 namespace OffceOs.Domain.Features.ResourceLogs;
 
-public sealed record GlobalResourceLogRow(ResourceLogRecord Log, string AgentName);
-
 public enum ResourceLogSort
 {
     TimeAscending,

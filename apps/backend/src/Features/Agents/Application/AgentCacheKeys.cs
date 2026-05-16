@@ -13,10 +13,6 @@ public static class AgentCacheKeys
     public static string Detail(AgentFilter filter)
         => $"agents:detail:id={filter.Id?.ToString() ?? "any"}:owner={filter.OwnerId?.ToString() ?? "any"}:workspace={filter.WorkspaceId?.ToString() ?? "any"}:deleted={filter.IncludeDeleted}";
 
-    public static string ResourceList(Guid userId, Guid workspaceId) => $"agents:dashboard:list:{userId}:workspace:{workspaceId}";
-
-    public static string ResourceDetail(Guid agentId, Guid userId, Guid workspaceId) => $"agents:dashboard:{agentId}:user:{userId}:workspace:{workspaceId}";
-
     public static async Task TrackListAsync(IDistributedCache cache, string cacheKey, CancellationToken ct)
     {
         var keys = await cache.GetJsonAsync<HashSet<string>>(ListIndexKey, ct) ?? [];

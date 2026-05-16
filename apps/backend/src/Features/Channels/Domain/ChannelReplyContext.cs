@@ -12,7 +12,7 @@ public sealed class ChannelReplyContext
 
     public void Set(string correlationId, string channelType, string platformId, string? threadId, Guid channelConnectionId)
     {
-        _pending[correlationId] = new Entry(channelType, platformId, threadId, channelConnectionId, DateTime.UtcNow);
+        _pending[correlationId] = new Entry(channelType, platformId, threadId, channelConnectionId);
     }
 
     public (string ChannelType, string PlatformId, string? ThreadId, Guid ChannelConnectionId)? Take(string correlationId)
@@ -24,7 +24,7 @@ public sealed class ChannelReplyContext
 
     public void SetInternal(string correlationId, Guid channelConnectionId, Guid sourceAgentId, Guid replyingAgentId)
     {
-        _internalPending[correlationId] = new InternalEntry(channelConnectionId, sourceAgentId, replyingAgentId, DateTime.UtcNow);
+        _internalPending[correlationId] = new InternalEntry(channelConnectionId, sourceAgentId, replyingAgentId);
     }
 
     public (Guid ChannelConnectionId, Guid SourceAgentId, Guid ReplyingAgentId)? TakeInternal(string correlationId)
@@ -34,23 +34,6 @@ public sealed class ChannelReplyContext
         return (entry.ChannelConnectionId, entry.SourceAgentId, entry.ReplyingAgentId);
     }
 
-    /// <summary>Remove entries older than the TTL. Called periodically.</summary>
-    public void Evict(TimeSpan ttl)
-    {
-        var cutoff = DateTime.UtcNow - ttl;
-        foreach (var kvp in _pending)
-        {
-            if (kvp.Value.CreatedAt < cutoff)
-                _pending.TryRemove(kvp.Key, out _);
-        }
-
-        foreach (var kvp in _internalPending)
-        {
-            if (kvp.Value.CreatedAt < cutoff)
-                _internalPending.TryRemove(kvp.Key, out _);
-        }
-    }
-
-    private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, Guid ChannelConnectionId, DateTime CreatedAt);
-    private sealed record InternalEntry(Guid ChannelConnectionId, Guid SourceAgentId, Guid ReplyingAgentId, DateTime CreatedAt);
+    private sealed record Entry(string ChannelType, string PlatformId, string? ThreadId, Guid ChannelConnectionId);
+    private sealed record InternalEntry(Guid ChannelConnectionId, Guid SourceAgentId, Guid ReplyingAgentId);
 }

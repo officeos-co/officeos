@@ -25,9 +25,6 @@ internal sealed class TurnEventPublisher
     public Task PublishTurnStartedAsync(Guid agentId, string correlationId, string userMessage, CancellationToken ct)
         => _publisher.Publish(new TurnStartedEvent(agentId, correlationId, userMessage), ct);
 
-    public Task PublishPodConnectedAsync(Guid agentId, string correlationId, int durationMs, CancellationToken ct)
-        => _publisher.Publish(new PodConnectedEvent(agentId, correlationId, durationMs), ct);
-
     public Task PublishDiagnosticAsync(Guid agentId, string correlationId, string message, int durationMs, CancellationToken ct)
         => _publisher.Publish(new TurnDiagnosticEvent(agentId, correlationId, message, durationMs), ct);
 

@@ -24,8 +24,6 @@ public sealed class AgentRoutineRecord
         };
     }
 
-    public void SetEnabled(bool enabled) => Enabled = enabled;
-
     public void MarkTriggered(DateTime triggeredAt)
     {
         LastTriggeredAt = triggeredAt;

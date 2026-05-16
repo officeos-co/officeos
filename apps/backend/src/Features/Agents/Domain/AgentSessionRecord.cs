@@ -25,10 +25,6 @@ public sealed class AgentSessionRecord
 
     public bool IsActive => Status == SessionStatus.Active;
 
-    /// <summary>Whether this session has exceeded the idle timeout.</summary>
-    public bool IsExpired(TimeSpan idleTimeout)
-        => DateTime.UtcNow - LastActivityAt > idleTimeout;
-
     // ── Factory ────────────────────────────────────────────────────────
 
     public static AgentSessionRecord Create(Guid agentId) => new()

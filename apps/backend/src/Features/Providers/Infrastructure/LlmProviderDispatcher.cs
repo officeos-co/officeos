@@ -24,10 +24,6 @@ public sealed class LlmProviderDispatcher
         _utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
     }
 
-    public bool IsSupported(string provider) =>
-        ProviderRegistry.Get(provider) is not null ||
-        ProviderRegistry.IsCustomProvider(provider);
-
     /// <summary>
     /// Dispatch a chat-completions request to the upstream provider.
     /// Returns a streaming <see cref="HttpResponseMessage"/> whose body
@@ -114,33 +110,6 @@ public sealed class LlmProviderDispatcher
         {
             return new AgentError(AgentErrorCategory.LlmCall, $"Unexpected LLM error: {ex.Message}", ex.ToString());
         }
-    }
-
-    public async Task<AgentResult<bool>> CheckModelAccessAsync(
-        string provider,
-        ProviderAuthResult auth,
-        string model,
-        CancellationToken ct)
-    {
-        using var document = JsonDocument.Parse(
-            """
-            {
-              "messages": [
-                {
-                  "role": "user",
-                  "content": "ping"
-                }
-              ],
-              "max_tokens": 1,
-              "stream": true
-            }
-            """);
-        var result = await DispatchAsync(provider, auth, model, document.RootElement, ct);
-        if (result.IsFailure)
-            return result.Error;
-
-        result.Value.Response.Dispose();
-        return true;
     }
 
     private async Task<AgentResult<LlmDispatchResponse>> DispatchOpenAiCompatAsync(

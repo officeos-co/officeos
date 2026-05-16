@@ -81,13 +81,4 @@ internal sealed class BrowserSessionRepository : IBrowserSessionRepository
         LastAccessedAt = e.LastAccessedAt,
     };
 
-    private static BrowserSessionEntity ToBrowserSessionEntity(BrowserSessionRecord r) => new()
-    {
-        Id = r.Id,
-        AgentId = r.AgentId,
-        RuntimeSessionId = r.RuntimeSessionId,
-        CookiesJson = r.CookiesJson,
-        CreatedAt = r.CreatedAt,
-        LastAccessedAt = r.LastAccessedAt,
-    };
 }

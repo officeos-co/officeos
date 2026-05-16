@@ -75,12 +75,4 @@ internal sealed class SessionRepository : ISessionRepository
         User = e.User is not null ? UserRepository.ToUserRecord(e.User) : null,
     };
 
-    private static SessionEntity ToSessionEntity(SessionRecord r) => new()
-    {
-        Id = r.Id,
-        UserId = r.UserId,
-        TokenHash = r.TokenHash,
-        ExpiresAt = r.ExpiresAt,
-        CreatedAt = r.CreatedAt,
-    };
 }
