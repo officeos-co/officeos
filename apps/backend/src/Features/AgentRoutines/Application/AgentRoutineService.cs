@@ -51,14 +51,9 @@ internal sealed class AgentRoutineService : IAgentRoutineService
                 throw new InvalidOperationException("GitHub routine triggers require at least one event.");
 
             var mode = GitHubRoutineTriggerModes.Normalize(trigger.Mode);
-            if (mode == GitHubRoutineTriggerModes.Webhook && string.IsNullOrWhiteSpace(trigger.Secret))
-                throw new InvalidOperationException("GitHub webhook routine triggers require a secret.");
             if (mode == GitHubRoutineTriggerModes.Poll && string.IsNullOrWhiteSpace(trigger.AuthRef))
                 throw new InvalidOperationException("GitHub polling routine triggers require auth_ref.");
 
-            var encryptedSecret = string.IsNullOrWhiteSpace(trigger.Secret)
-                ? null
-                : _credentialProtector.Protect(new Dictionary<string, string> { ["secret"] = trigger.Secret });
             routine.Triggers.Add(AgentRoutineTriggerRecord.CreateGitHub(
                 routine.Id,
                 trigger.Name,
@@ -67,7 +62,7 @@ internal sealed class AgentRoutineService : IAgentRoutineService
                 trigger.AuthRef,
                 mode,
                 TimeSpan.FromSeconds(trigger.PollIntervalSeconds ?? 60),
-                encryptedSecret));
+                null));
         }
 
         var saved = await _agentRoutineRepository.UpsertAsync(routine, ct);

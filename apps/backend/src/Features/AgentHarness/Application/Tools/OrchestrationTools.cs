@@ -267,7 +267,6 @@ internal sealed class RoutineCreateTool : IAgentTool
                             repo = new { type = "string", description = "GitHub repository URL, for example https://github.com/owner/repo.git" },
                             events = new { type = "array", items = new { type = "string" } },
                             auth_ref = new { type = "string", description = "Credential resource name for polling mode" },
-                            secret = new { type = "string", description = "Only required for mode=webhook" },
                             mode = new { type = "string", description = "poll or webhook; defaults to poll" },
                             poll_interval_seconds = new { type = "integer", description = "Polling interval in seconds; minimum 15" }
                         },

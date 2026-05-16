@@ -33,15 +33,12 @@ public sealed class RoutineTriggerController : ControllerBase
         if (!Request.Headers.TryGetValue("X-GitHub-Event", out var githubEvent) || string.IsNullOrWhiteSpace(githubEvent))
             return BadRequest(new { error = "Missing X-GitHub-Event header" });
 
-        if (!Request.Headers.TryGetValue("X-Hub-Signature-256", out var signature) || string.IsNullOrWhiteSpace(signature))
-            return Unauthorized();
-
         string payload;
         using (var reader = new StreamReader(Request.Body))
             payload = await reader.ReadToEndAsync(ct);
 
         var result = await executionService.ExecuteGitHubWebhookAsync(
-            new GitHubRoutineWebhookRequest(githubEvent.ToString(), signature.ToString(), payload),
+            new GitHubRoutineWebhookRequest(githubEvent.ToString(), payload),
             ct);
         return Ok(new { received = true, triggeredCount = result.TriggeredCount, routineIds = result.RoutineIds });
     }

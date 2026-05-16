@@ -106,10 +106,6 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
                     || !config.Events.Any(item => item.Equals(request.Event, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
-                var secret = UnprotectSecret(trigger.EncryptedSecret);
-                if (string.IsNullOrEmpty(secret) || !VerifyGitHubSignature(request.Payload, secret, request.Signature))
-                    continue;
-
                 await ExecuteAsync(routine, trigger, now, request.Payload, ct);
                 fired.Add(routine.Id);
                 changed = true;
@@ -193,27 +189,6 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
     {
         return JsonSerializer.Deserialize<GitHubRoutineTriggerConfig>(configJson)
             ?? new GitHubRoutineTriggerConfig();
-    }
-
-    private string? UnprotectSecret(string? encryptedSecret)
-    {
-        if (string.IsNullOrWhiteSpace(encryptedSecret))
-            return null;
-
-        return _credentialProtector.Unprotect(encryptedSecret).GetValueOrDefault("secret");
-    }
-
-    private static bool VerifyGitHubSignature(string payload, string secret, string signature)
-    {
-        const string prefix = "sha256=";
-        if (!signature.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
-        var expected = Encoding.UTF8.GetBytes($"{prefix}{Convert.ToHexString(hash).ToLowerInvariant()}");
-        var actual = Encoding.UTF8.GetBytes(signature.ToLowerInvariant());
-        return expected.Length == actual.Length && CryptographicOperations.FixedTimeEquals(expected, actual);
     }
 
     private static bool FixedTimeEquals(string expected, string actual)

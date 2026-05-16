@@ -36,8 +36,8 @@ public sealed class AgentRoutineEndToEndTests
                 [new CreateScheduleRoutineTriggerRequest("Weekday check", "*/5 * * * *")],
                 [new CreateApiRoutineTriggerRequest("Manual deployment hook")],
                 [
-                    new CreateGitHubRoutineTriggerRequest("Pull requests", "acme/platform", ["pull_request"], null, "github-secret", "webhook"),
-                    new CreateGitHubRoutineTriggerRequest("Pushes", "acme/platform", ["push"], null, "github-secret", "webhook")
+                    new CreateGitHubRoutineTriggerRequest("Pull requests", "acme/platform", ["pull_request"], null, null, "webhook"),
+                    new CreateGitHubRoutineTriggerRequest("Pushes", "acme/platform", ["push"], null, null, "webhook")
                 ]),
             ownerId,
             workspaceId);
@@ -137,15 +137,13 @@ public sealed class AgentRoutineEndToEndTests
                 "Review the pull request update.",
                 [],
                 [],
-                [new CreateGitHubRoutineTriggerRequest("PR events", "acme/platform", ["pull_request"], null, "github-secret", "webhook")]),
+                [new CreateGitHubRoutineTriggerRequest("PR events", "acme/platform", ["pull_request"], null, null, "webhook")]),
             ownerId,
             workspaceId);
 
         const string payload = """{"repository":{"full_name":"acme/platform"},"pull_request":{"number":42,"title":"Add routines"},"action":"opened"}""";
-        var invalid = await execution.ExecuteGitHubWebhookAsync(new GitHubRoutineWebhookRequest("pull_request", "sha256=invalid", payload));
-        var valid = await execution.ExecuteGitHubWebhookAsync(new GitHubRoutineWebhookRequest("pull_request", Sign(payload, "github-secret"), payload));
+        var valid = await execution.ExecuteGitHubWebhookAsync(new GitHubRoutineWebhookRequest("pull_request", payload));
 
-        Assert.Equal(0, invalid.TriggeredCount);
         Assert.Equal(1, valid.TriggeredCount);
         var sent = Assert.Single(logs.Messages);
         Assert.Equal(agentId, sent.AgentId);
@@ -213,13 +211,6 @@ public sealed class AgentRoutineEndToEndTests
             .UseInMemoryDatabase($"agent-routines-{Guid.NewGuid():N}")
             .Options;
         return new EaosDbContext(options);
-    }
-
-    private static string Sign(string payload, string secret)
-    {
-        using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(secret));
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
-        return $"sha256={Convert.ToHexString(hash).ToLowerInvariant()}";
     }
 
     private sealed class RecordingAgentLogService : IAgentLogService

@@ -40,7 +40,7 @@ Required fields: `apiVersion`, `kind`, `metadata.name`, `spec.agentRef`, `spec.p
 
 `githubTriggers[].repo` accepts `https://github.com/owner/repo.git`, `https://github.com/owner/repo`, `git@github.com:owner/repo.git`, or `owner/repo`. Prefer the HTTPS clone URL form in manifests.
 
-GitHub trigger modes: `poll`, `webhook`. Polling is the default and requires `githubTriggers[].authRef` to point at a `Credential` resource. Webhook mode requires `secret` and a GitHub webhook that can reach the backend.
+GitHub trigger modes: `poll`, `webhook`. Polling is the default and requires `githubTriggers[].authRef` to point at a `Credential` resource. Webhook mode requires a GitHub webhook that can reach the backend.
 
 Before using a polling GitHub trigger, connect GitHub for the workspace:
 

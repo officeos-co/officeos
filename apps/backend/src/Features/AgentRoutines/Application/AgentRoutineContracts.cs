@@ -58,5 +58,4 @@ public sealed record AgentRoutineExecutionResult(
 
 public sealed record GitHubRoutineWebhookRequest(
     string Event,
-    string Signature,
     string Payload);
