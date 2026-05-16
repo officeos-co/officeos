@@ -1,4 +1,4 @@
-namespace OffceOs.Api.Common;
+namespace OffceOs.Api.Features.ControlPlane;
 
 [ApiController]
 [Route("api/v1/resources")]
