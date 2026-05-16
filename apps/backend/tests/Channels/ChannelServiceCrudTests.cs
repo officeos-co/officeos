@@ -1,13 +1,10 @@
 using OffceOs.Application.Features.Channels;
 using OffceOs.Database.Models;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Channels;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
-using Microsoft.AspNetCore.DataProtection;
-using Xunit;
 
 namespace OffceOs.Tests.Channels;
 

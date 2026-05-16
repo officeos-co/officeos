@@ -1,0 +1,12 @@
+global using MediatR;
+global using Microsoft.AspNetCore.DataProtection;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Caching.Distributed;
+global using Microsoft.Extensions.DependencyInjection;
+global using System.Net;
+global using System.Net.Http.Json;
+global using System.Text;
+global using System.Text.Json;
+global using Xunit;

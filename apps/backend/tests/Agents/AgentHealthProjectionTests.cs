@@ -1,8 +1,6 @@
 using OffceOs.Application.Features.Agents;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.ResourceLogs;
-using Xunit;
 
 namespace OffceOs.Tests.Agents;
 

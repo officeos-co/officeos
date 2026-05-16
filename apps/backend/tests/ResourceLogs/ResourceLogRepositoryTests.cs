@@ -1,10 +1,8 @@
 using OffceOs.Database.Models;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.ResourceLogs;
 

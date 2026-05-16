@@ -1,6 +1,5 @@
 using OffceOs.Domain.Features.AgentHarness;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.Channels;
 

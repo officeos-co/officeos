@@ -8,7 +8,6 @@ using OffceOs.Domain.Features.Channels;
 using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Common.Primitives;
 using OffceOs.Application.Features.Channels;
-using OffceOs.Domain.Common.ValueObjects;
 namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed class AgentToolCatalogService : IAgentToolCatalogService

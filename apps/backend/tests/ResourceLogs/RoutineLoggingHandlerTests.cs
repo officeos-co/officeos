@@ -3,7 +3,6 @@ using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Domain.Features.AgentRoutines;
 using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.EventHandlers.Features.ResourceLogs;
-using Xunit;
 
 namespace OffceOs.Tests.ResourceLogs;
 

@@ -1,6 +1,5 @@
 using OffceOs.Application.Features.AgentDefinitions;
 using OffceOs.Domain.Features.AgentDefinitions;
-using Xunit;
 
 namespace OffceOs.Tests.AgentDefinitions;
 

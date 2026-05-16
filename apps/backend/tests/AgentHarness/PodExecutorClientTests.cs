@@ -1,8 +1,5 @@
-using System.Net;
-using System.Net.Http.Json;
 using OffceOs.Infrastructure.Features.AgentHarness;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.AgentHarness;
 

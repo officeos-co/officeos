@@ -1,10 +1,6 @@
-using System.Net;
-using System.Text.Json;
-using OffceOs.Configuration;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.Providers;
 

@@ -2,8 +2,6 @@ using OffceOs.Database;
 using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.Infrastructure.Features.ResourceLogs;
-using Microsoft.EntityFrameworkCore;
-using Xunit;
 
 namespace OffceOs.Tests.ResourceLogs;
 

@@ -1,9 +1,8 @@
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.AgentHarness;
+using OffceOs.Domain.Features.Channels;
 using OffceOs.Domain.Features.ResourceLogs;
 using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.Channels;
 

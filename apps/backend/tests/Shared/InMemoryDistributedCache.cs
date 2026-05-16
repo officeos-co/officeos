@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Distributed;
 
 namespace OffceOs.Tests.Shared;
 

@@ -1,6 +1,6 @@
 using OffceOs.Domain.Features.AgentDefinitions;
+using OffceOs.Domain.Features.AgentHarness;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.AgentRoutines;
 namespace OffceOs.Application.Features.AgentDefinitions;
 

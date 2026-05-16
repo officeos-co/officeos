@@ -2,8 +2,6 @@ using OffceOs.Application.Features.Providers;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
-using System.Text.Json;
-using Xunit;
 
 namespace OffceOs.Tests.Providers;
 

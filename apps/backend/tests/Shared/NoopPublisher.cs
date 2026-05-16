@@ -1,4 +1,3 @@
-using MediatR;
 
 namespace OffceOs.Tests.Shared;
 

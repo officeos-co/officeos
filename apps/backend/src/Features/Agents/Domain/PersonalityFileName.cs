@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Features.Agents;
 
 /// <summary>
 /// A validated personality file name from the known set, with composition ordering.

@@ -1,14 +1,8 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using OffceOs.Api.Common;
 using OffceOs.Api.Features.ControlPlane;
-using OffceOs.Application;
 using OffceOs.Application.Features.ControlPlane;
 using OffceOs.Domain.Features.ControlPlane;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Extensions;
-using Xunit;
 
 namespace OffceOs.Tests.Common;
 

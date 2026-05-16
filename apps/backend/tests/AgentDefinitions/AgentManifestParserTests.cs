@@ -1,8 +1,6 @@
 using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Channels;
 using OffceOs.Domain.Features.Providers;
-using Xunit;
 
 namespace OffceOs.Tests.AgentDefinitions;
 

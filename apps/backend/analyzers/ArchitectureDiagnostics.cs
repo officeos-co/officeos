@@ -95,6 +95,22 @@ internal static class ArchitectureDiagnostics
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor UnusedUsingDirectiveRule = new(
+        "EAOS012",
+        "Using directive must be used",
+        "Using directive '{0}' is not used by this file",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor ExternalLocalUsingDirectiveRule = new(
+        "EAOS013",
+        "External namespaces must be global imports",
+        "Using directive '{0}' must be moved to a GlobalUsings.cs file; source files may only import OffceOs namespaces locally",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly ImmutableArray<DiagnosticDescriptor> All = ImmutableArray.Create(
         DomainDtoTypeRule,
         BroadTypesFileRule,
@@ -106,5 +122,7 @@ internal static class ArchitectureDiagnostics
         ApiBoundaryRequestRule,
         GlobalUsingOnlyRule,
         DependencyFieldNamingRule,
-        ApplicationInterfaceFileRule);
+        ApplicationInterfaceFileRule,
+        UnusedUsingDirectiveRule,
+        ExternalLocalUsingDirectiveRule);
 }

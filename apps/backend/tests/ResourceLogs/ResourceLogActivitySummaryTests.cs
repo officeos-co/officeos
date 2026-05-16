@@ -1,16 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Application.Features.ResourceLogs;
 using OffceOs.Application.Features.ControlPlane;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.ControlPlane;
 using OffceOs.Domain.Features.ResourceLogs;
-using OffceOs.Infrastructure.Features.Agents;
+using OffceOs.Domain.Features.ControlPlane;
 using OffceOs.Infrastructure.Features.ResourceLogs;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.ResourceLogs;
 

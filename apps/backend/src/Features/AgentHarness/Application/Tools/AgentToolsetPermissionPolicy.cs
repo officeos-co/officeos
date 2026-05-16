@@ -1,5 +1,5 @@
 using OffceOs.Domain.Features.AgentDefinitions;
-using OffceOs.Domain.Common.ValueObjects;
+using OffceOs.Domain.Features.AgentHarness;
 namespace OffceOs.Application.Features.AgentHarness;
 
 internal sealed class AgentToolsetPermissionPolicy

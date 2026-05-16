@@ -8,9 +8,6 @@ using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Infrastructure.Features.ResourceLogs;
-using MediatR;
-using Microsoft.AspNetCore.DataProtection;
-using Xunit;
 
 namespace OffceOs.Tests.Shared;
 

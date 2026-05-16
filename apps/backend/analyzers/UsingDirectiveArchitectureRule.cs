@@ -41,6 +41,18 @@ internal sealed class UsingDirectiveArchitectureRule : IArchitectureRule
                 namespaceName));
         }
 
+        if ((ArchitecturePaths.IsBackendSourceFile(filePath) || ArchitecturePaths.IsBackendTestFile(filePath))
+            && !ArchitecturePaths.IsDatabaseMigrationFile(filePath)
+            && usingDirective.GlobalKeyword == default
+            && namespaceName is not null
+            && !IsOffceOsNamespace(namespaceName))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                ArchitectureDiagnostics.ExternalLocalUsingDirectiveRule,
+                usingDirective.GetLocation(),
+                namespaceName));
+        }
+
         if (!ArchitecturePaths.IsDomainFile(filePath) || namespaceName is null)
             return;
 

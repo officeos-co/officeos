@@ -1,6 +1,5 @@
 using OffceOs.Configuration;
 using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Common.ValueObjects;
 namespace OffceOs.Application.Features.Management;
 
 internal sealed class CliAuthService : ICliAuthService

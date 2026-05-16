@@ -1,10 +1,6 @@
 using OffceOs.Application.Features.Integrations;
-using OffceOs.Configuration;
-using OffceOs.Domain.Common.ValueObjects;
-using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Features.Management;
-using OffceOs.Infrastructure.Common.Security;
-using Microsoft.AspNetCore.DataProtection;
+using OffceOs.Domain.Features.Integrations;
 
 namespace OffceOs.Tests.Shared;
 

@@ -30,6 +30,9 @@ internal static class ArchitecturePaths
     public static bool IsBackendSourceFile(string filePath) =>
         filePath.Contains("/src/");
 
+    public static bool IsBackendTestFile(string filePath) =>
+        filePath.Contains("/tests/");
+
     public static bool IsGlobalUsingsFile(string filePath) =>
         filePath.EndsWith("/src/globalusings.cs", StringComparison.Ordinal);
 

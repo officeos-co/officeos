@@ -4,7 +4,6 @@ using OffceOs.Database.Models;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Infrastructure.Features.Management;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.Management;
 

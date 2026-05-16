@@ -7,7 +7,6 @@ using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.Agents;
 

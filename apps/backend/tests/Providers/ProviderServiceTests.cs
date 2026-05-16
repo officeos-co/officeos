@@ -1,10 +1,8 @@
-using Microsoft.AspNetCore.DataProtection;
 using OffceOs.Application.Features.Providers;
 using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Providers;
 using OffceOs.Tests.Shared;
-using Xunit;
 
 namespace OffceOs.Tests.Providers;
 

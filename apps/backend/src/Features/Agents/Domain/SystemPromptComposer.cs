@@ -1,8 +1,6 @@
-
-using OffceOs.Domain.Features.Agents;
 using OffceOs.Domain.Features.Context;
 
-namespace OffceOs.Domain.Common.Services;
+namespace OffceOs.Domain.Features.Agents;
 
 /// <summary>
 /// Pure domain service that composes the system prompt from domain models.
@@ -13,10 +11,6 @@ namespace OffceOs.Domain.Common.Services;
 /// </summary>
 public static class SystemPromptComposer
 {
-    /// <summary>
-    /// Composes the full system prompt from all available context.
-    /// Null sections are omitted.
-    /// </summary>
     /// <summary>
     /// Composes the system prompt from the agent aggregate — uses the agent's
     /// personality files, memories, and skill details directly.

@@ -39,6 +39,16 @@ internal static class NamingConvention
         "Exception",
         "Subscription",
         "Limit",
+        "Extensions",
+        "Expression",
+        "Usage",
+        "Composer",
+    ];
+
+    private static readonly string[] DomainValueObjectNames =
+    [
+        "Email",
+        "PersonalityFileName",
     ];
 
     private static readonly string[] DomainInterfaceSuffixes =
@@ -211,7 +221,8 @@ internal static class NamingConvention
             _ => [],
         };
 
-        return EndsWithAny(name, suffixes);
+        return EndsWithAny(name, suffixes)
+            || layer == "Domain" && DomainValueObjectNames.Contains(name);
     }
 
     public static bool EndsWithAny(string name, string[] suffixes) =>

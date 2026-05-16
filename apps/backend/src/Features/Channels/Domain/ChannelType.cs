@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Features.Channels;
 
 public enum ChannelType
 {

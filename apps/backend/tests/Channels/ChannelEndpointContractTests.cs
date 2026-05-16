@@ -1,14 +1,8 @@
 using OffceOs.Api.Features.Channels;
-using OffceOs.Application.Features.Channels;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Channels;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Tests.Shared;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
-using Xunit;
 
 namespace OffceOs.Tests.Channels;
 

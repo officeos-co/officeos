@@ -1,6 +1,5 @@
 using OffceOs.Application.Features.AgentDefinitions;
 using OffceOs.Application.Features.AgentHarness;
-using Xunit;
 
 namespace OffceOs.Tests.AgentHarness;
 

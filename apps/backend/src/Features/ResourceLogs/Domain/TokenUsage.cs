@@ -1,4 +1,4 @@
-namespace OffceOs.Domain.Common.ValueObjects;
+namespace OffceOs.Domain.Features.ResourceLogs;
 
 /// <summary>
 /// Captures token consumption and latency for a single LLM interaction.

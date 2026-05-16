@@ -2,7 +2,6 @@ using OffceOs.Domain.Features.AgentHarness;
 using OffceOs.Domain.Features.Channels;
 using OffceOs.Application.Features;
 using OffceOs.Application.Features.ResourceLogs;
-using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
 namespace OffceOs.EventHandlers.Features.Channels;
 

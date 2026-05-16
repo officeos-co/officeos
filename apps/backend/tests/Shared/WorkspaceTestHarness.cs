@@ -1,20 +1,15 @@
 using OffceOs.Application.Features.AgentDefinitions;
-using OffceOs.Application.Features.AgentHarness;
 using OffceOs.Application.Features.Agents;
-using OffceOs.Application.Features.Browser;
 using OffceOs.Application.Features.AgentRoutines;
 using OffceOs.Application.Features.Channels;
 using OffceOs.Application.Features.Integrations;
 using OffceOs.Application.Features.Management;
-using OffceOs.Application.Features.Providers;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Domain.Features.Agents;
-using OffceOs.Domain.Features.Browser;
 using OffceOs.Domain.Features.Channels;
 using OffceOs.Domain.Features.Integrations;
 using OffceOs.Domain.Features.Management;
-using OffceOs.Domain.Features.Providers;
 using OffceOs.Infrastructure.Common.Security;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.AgentRoutines;
@@ -23,9 +18,6 @@ using OffceOs.Infrastructure.Features.Channels;
 using OffceOs.Infrastructure.Features.Context;
 using OffceOs.Infrastructure.Features.Integrations;
 using OffceOs.Infrastructure.Features.Management;
-using OffceOs.Infrastructure.Features.Providers;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
 
 namespace OffceOs.Tests.Shared;
 
