@@ -16,6 +16,7 @@ export type ExecFileLike = (
 export interface OfficeOsCliOptions {
   extensionPath: string;
   configuredCliPath?: string;
+  workspaceFolders?: readonly string[];
   env?: NodeJS.ProcessEnv;
   execFile?: ExecFileLike;
 }
@@ -41,12 +42,14 @@ export type ResourceKind = string;
 export class OfficeOsCli {
   private readonly extensionPath: string;
   private readonly configuredCliPath?: string;
+  private readonly workspaceFolders: readonly string[];
   private readonly env?: NodeJS.ProcessEnv;
   private readonly execFile: ExecFileLike;
 
   constructor(options: OfficeOsCliOptions) {
     this.extensionPath = options.extensionPath;
     this.configuredCliPath = normalizeConfiguredPath(options.configuredCliPath);
+    this.workspaceFolders = options.workspaceFolders ?? [];
     this.env = options.env;
     this.execFile = options.execFile ?? defaultExecFile;
   }
@@ -130,7 +133,11 @@ export class OfficeOsCli {
         throw toCliError(error);
       }
 
-      const fallback = buildDevFallback(this.extensionPath);
+      const fallback = buildDevFallback(
+        this.extensionPath,
+        this.workspaceFolders,
+        this.env,
+      );
       if (!fallback) {
         throw toCliError(error);
       }
@@ -163,7 +170,10 @@ export class OfficeOsCli {
         return this.primaryInvocation();
       }
 
-      return buildDevFallback(this.extensionPath) ?? this.primaryInvocation();
+      return (
+        buildDevFallback(this.extensionPath, this.workspaceFolders, this.env) ??
+        this.primaryInvocation()
+      );
     }
   }
 
@@ -222,12 +232,56 @@ function arrayOfStrings(value: unknown): string[] {
 
 export function buildDevFallback(
   extensionPath: string,
+  workspaceFolders: readonly string[] = [],
+  env: NodeJS.ProcessEnv = process.env,
 ): CliInvocation | undefined {
-  const repoRoot = path.resolve(extensionPath, "../..");
-  const cliEntry = path.join(repoRoot, "apps", "cli", "src", "app", "main.ts");
-  return existsSync(cliEntry)
-    ? { file: "bun", argsPrefix: [cliEntry] }
-    : undefined;
+  for (const candidate of [
+    path.resolve(extensionPath, "../.."),
+    ...workspaceFolders,
+  ]) {
+    const cliEntry = path.join(candidate, "apps", "cli", "src", "app", "main.ts");
+    if (existsSync(cliEntry)) {
+      return { file: resolveBunExecutable(env), argsPrefix: [cliEntry] };
+    }
+  }
+
+  return undefined;
+}
+
+export function resolveBunExecutable(env: NodeJS.ProcessEnv = process.env): string {
+  const pathCandidate = findExecutableOnPath("bun", env.PATH);
+  if (pathCandidate) return pathCandidate;
+
+  for (const candidate of bunExecutableCandidates(env)) {
+    if (existsSync(candidate)) return candidate;
+  }
+
+  return "bun";
+}
+
+function findExecutableOnPath(
+  executable: string,
+  searchPath: string | undefined,
+): string | undefined {
+  if (!searchPath) return undefined;
+
+  for (const directory of searchPath.split(path.delimiter)) {
+    if (!directory) continue;
+
+    const candidate = path.join(directory, executable);
+    if (existsSync(candidate)) return candidate;
+  }
+
+  return undefined;
+}
+
+function bunExecutableCandidates(env: NodeJS.ProcessEnv): string[] {
+  return [
+    env.BUN_INSTALL ? path.join(env.BUN_INSTALL, "bin", "bun") : undefined,
+    env.HOME ? path.join(env.HOME, ".bun", "bin", "bun") : undefined,
+    "/opt/homebrew/bin/bun",
+    "/usr/local/bin/bun",
+  ].filter((candidate): candidate is string => Boolean(candidate));
 }
 
 export function resourceName(value: unknown): string {

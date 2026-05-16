@@ -27,6 +27,7 @@
   "main": "./out/src/extension.js",
   "scripts": {
     "compile": "tsc -p ./",
+    "package": "vsce package",
     "watch": "tsc -watch -p ./",
     "test": "npm run compile && node --test out/test/*.test.js"
   },
@@ -158,6 +159,7 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.6.3",
     "typescript": "^5.8.2"
   }
 }

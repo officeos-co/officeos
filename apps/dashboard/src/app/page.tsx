@@ -8,6 +8,7 @@ import {
   FileText,
   Globe2,
   HardDrive,
+  KeyRound,
   PlayCircle,
   Plug,
   RefreshCcw,
@@ -15,6 +16,7 @@ import {
   Server,
   Settings2,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import {
@@ -39,6 +41,7 @@ const iconByKind: Record<ResourceKind, ComponentType<{ className?: string }>> = 
   agents: Boxes,
   runs: PlayCircle,
   channels: Activity,
+  credentials: KeyRound,
   routines: Clock3,
   browsers: Globe2,
   memorystores: Database,
@@ -48,11 +51,13 @@ const iconByKind: Record<ResourceKind, ComponentType<{ className?: string }>> = 
 };
 
 export default function ResourceDashboardPage() {
+  const searchParams = useSearchParams();
+  const initialKind = parseResourceKind(searchParams.get("kind"));
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [selectedKind, setSelectedKind] = useState<ResourceKind>("agents");
+  const [selectedKind, setSelectedKind] = useState<ResourceKind>(initialKind ?? "agents");
   const [resources, setResources] = useState<Partial<Record<ResourceKind, ResourceValue[]>>>({});
-  const [selectedName, setSelectedName] = useState<string>("");
+  const [selectedName, setSelectedName] = useState<string>(searchParams.get("name") ?? "");
   const [details, setDetails] = useState<ResourceValue | null>(null);
   const [logs, setLogs] = useState("");
   const [query, setQuery] = useState("");
@@ -396,4 +401,9 @@ function resourceKey(resource: ResourceValue): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function parseResourceKind(value: string | null): ResourceKind | null {
+  if (!value) return null;
+  return ResourceCategories.some((category) => category.kind === value) ? value as ResourceKind : null;
 }

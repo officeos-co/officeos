@@ -6,6 +6,7 @@ import {
   OfficeOsCli,
   buildDevFallback,
   parseJsonOutput,
+  resolveBunExecutable,
   resourceName,
   singularKind,
 } from "../src/officeOsCli";
@@ -114,7 +115,7 @@ test("falls back to the repo Bun CLI in development when officeos is not install
   await cli.listResources("agents");
 
   assert.equal(calls[0]?.file, "officeos");
-  assert.equal(calls[1]?.file, "bun");
+  assert.equal(path.basename(calls[1]?.file ?? ""), "bun");
   assert.match(String(calls[1]?.args[0]), /apps\/cli\/src\/app\/main\.ts$/);
   assert.deepEqual(calls[1]?.args.slice(1), ["get", "agents", "-o", "json"]);
 });
@@ -166,11 +167,28 @@ test("sendAgentMessage shells out through the send command", async () => {
 test("buildDevFallback resolves the repository CLI entry from the extension path", () => {
   const fallback = buildDevFallback(path.resolve(process.cwd()));
 
-  assert.equal(fallback?.file, "bun");
+  assert.equal(path.basename(fallback?.file ?? ""), "bun");
   assert.match(
     String(fallback?.argsPrefix[0]),
     /apps\/cli\/src\/app\/main\.ts$/,
   );
+});
+
+test("buildDevFallback resolves the repository CLI entry from workspace folders", () => {
+  const fallback = buildDevFallback("/tmp/installed-extension", [
+    path.resolve(process.cwd(), "../.."),
+  ]);
+
+  assert.equal(path.basename(fallback?.file ?? ""), "bun");
+  assert.match(
+    String(fallback?.argsPrefix[0]),
+    /apps\/cli\/src\/app\/main\.ts$/,
+  );
+});
+
+test("resolveBunExecutable falls back to common macOS install paths", () => {
+  const fallback = resolveBunExecutable({ PATH: "/usr/bin:/bin" });
+  assert.equal(path.basename(fallback), "bun");
 });
 
 test("resource helpers prefer stable names and canonical singular kinds", () => {

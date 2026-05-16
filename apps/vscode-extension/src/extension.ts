@@ -183,6 +183,9 @@ function createCli(context: vscode.ExtensionContext): OfficeOsCli {
   return new OfficeOsCli({
     extensionPath: context.extensionPath,
     configuredCliPath,
+    workspaceFolders: vscode.workspace.workspaceFolders?.map(
+      (folder) => folder.uri.fsPath,
+    ),
   });
 }
 

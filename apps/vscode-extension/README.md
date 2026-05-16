@@ -9,7 +9,13 @@ npm install
 npm run compile
 ```
 
-Open this folder in VS Code and press `F5` to launch the Extension Development Host.
+Run `../../scripts/dev.bash` from this folder's parent repository to package and
+install the extension into the normal VS Code profile, then open the main
+workspace. Re-run the script whenever you want VS Code to pick up the latest
+extension build.
+
+Open this folder in VS Code and press `F5` only when you specifically need the
+Extension Development Host debugger.
 
 The extension uses the `officeos` CLI from `PATH`. In this repository it falls back to:
 
