@@ -172,7 +172,13 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         items.AddRange(channels.Select(channel => NewItem(
             DeclarativeResourceKindItem.Channel,
             channel.Id.ToString(),
-            new DeclarativeChannelSpecItem(channel.ChannelType.ToStorageString(), channel.DisplayName, channel.Enabled, null, null))));
+            new DeclarativeChannelSpecItem(
+                channel.ChannelType.ToStorageString(),
+                channel.DisplayName,
+                channel.Enabled,
+                null,
+                null,
+                ParseChannelPermissionPolicy(channel.ToolPermissionPolicyJson)))));
 
         var memoryStores = await _memoryStoreRepository.ListAsync(null, workspaceId, ct);
         foreach (var memoryStore in memoryStores)
@@ -330,6 +336,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                     && string.IsNullOrWhiteSpace(channel.Token)
                     && (channel.Credentials is null || !channel.Credentials.Values.Any(value => !string.IsNullOrWhiteSpace(value))))
                     throw new InvalidOperationException("Channel spec.token is required.");
+                ValidatePermissionPolicy(channel.PermissionPolicy);
                 break;
             case DeclarativeResourceKindItem.Integration:
                 var integration = Spec<DeclarativeIntegrationSpecItem>(resource);
@@ -512,6 +519,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
                 CreatedById = ownerId,
                 WorkspaceId = workspaceId,
                 EncryptedCreds = encryptedCreds,
+                ToolPermissionPolicyJson = SerializePermissionPolicy(spec.PermissionPolicy),
             }, ct);
             return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "create", created.Id.ToString(), "Created channel.");
         }
@@ -522,6 +530,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
             channel.Enabled = spec.Enabled ?? true;
             if (encryptedCreds is not null)
                 channel.EncryptedCreds = encryptedCreds;
+            channel.ToolPermissionPolicyJson = SerializePermissionPolicy(spec.PermissionPolicy);
         }, ct);
         return new DeclarativeResourceChangeItem(resource.Kind, resource.Name, "update", updated?.Id.ToString(), "Updated channel.");
     }
@@ -784,6 +793,37 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
         => policy is null
             ? new AgentToolPermissionConfig(AgentToolPermissionKinds.AlwaysAllow, null)
             : new AgentToolPermissionConfig(policy.Type, policy.Tools);
+
+    private static void ValidatePermissionPolicy(DeclarativePermissionPolicyItem? policy)
+    {
+        if (policy is null)
+            return;
+
+        var type = string.IsNullOrWhiteSpace(policy.Type) ? string.Empty : policy.Type.Trim().ToLowerInvariant();
+        if (type is not AgentToolPermissionKinds.AlwaysAllow
+            and not AgentToolPermissionKinds.AlwaysDeny
+            and not AgentToolPermissionKinds.AllowList
+            and not AgentToolPermissionKinds.DenyList)
+            throw new InvalidOperationException($"Permission policy type '{policy.Type}' is not supported.");
+
+        var tools = (policy.Tools ?? []).Where(tool => !string.IsNullOrWhiteSpace(tool)).ToList();
+        if (type is AgentToolPermissionKinds.AllowList or AgentToolPermissionKinds.DenyList && tools.Count == 0)
+            throw new InvalidOperationException($"Permission policy '{type}' requires at least one tool.");
+    }
+
+    private static string? SerializePermissionPolicy(DeclarativePermissionPolicyItem? policy)
+        => policy is null
+            ? null
+            : JsonSerializer.Serialize(new AgentToolPermissionConfig(policy.Type, policy.Tools), JsonOptions);
+
+    private static DeclarativePermissionPolicyItem? ParseChannelPermissionPolicy(string? policyJson)
+    {
+        if (string.IsNullOrWhiteSpace(policyJson))
+            return null;
+
+        var policy = JsonSerializer.Deserialize<AgentToolPermissionConfig>(policyJson, JsonOptions);
+        return policy is null ? null : new DeclarativePermissionPolicyItem(policy.Type, policy.Tools);
+    }
 
     private static IntegrationDefinitionRecord ToIntegrationDefinition(string name, DeclarativeIntegrationSpecItem spec)
         => new()

@@ -226,6 +226,7 @@ internal sealed class ChannelRepository : IChannelRepository
         CreatedById = e.CreatedById,
         WorkspaceId = e.WorkspaceId,
         EncryptedCreds = e.EncryptedCreds,
+        ToolPermissionPolicyJson = e.ToolPermissionPolicyJson,
     };
 
     private static ChannelConnectionEntity ToChannelConnectionEntity(ChannelConnectionRecord r) => new()
@@ -238,6 +239,7 @@ internal sealed class ChannelRepository : IChannelRepository
         CreatedById = r.CreatedById,
         WorkspaceId = r.WorkspaceId,
         EncryptedCreds = r.EncryptedCreds,
+        ToolPermissionPolicyJson = r.ToolPermissionPolicyJson,
     };
 
     private static void MapToChannelConnectionEntity(ChannelConnectionRecord r, ChannelConnectionEntity e)
@@ -248,6 +250,7 @@ internal sealed class ChannelRepository : IChannelRepository
         e.CreatedById = r.CreatedById;
         e.WorkspaceId = r.WorkspaceId;
         e.EncryptedCreds = r.EncryptedCreds;
+        e.ToolPermissionPolicyJson = r.ToolPermissionPolicyJson;
     }
 
     private static AgentChannelBindingRecord ToAgentChannelBindingRecord(AgentChannelBindingEntity e) => new()

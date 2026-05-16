@@ -125,9 +125,11 @@ internal sealed class ToolRegistryFactory
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
     private readonly IIntegrationClientManager _integrationClientManager;
     private readonly IChannelService _channelService;
+    private readonly IChannelRepository _channelRepository;
     private readonly IPublisher _publisher;
     private readonly TurnEventPublisher _turnEventPublisher;
     private readonly AgentHarnessToolPermissionPolicy _agentHarnessToolPermissionPolicy;
+    private readonly AgentHarnessToolPermissionResolver _agentHarnessToolPermissionResolver;
     private readonly ILogger<ToolRegistryFactory> _logger;
 
     public ToolRegistryFactory(
@@ -141,9 +143,11 @@ internal sealed class ToolRegistryFactory
         IIntegrationDefinitionService integrationDefinitionService,
         IIntegrationClientManager integrationClientManager,
         IChannelService channelService,
+        IChannelRepository channelRepository,
         IPublisher publisher,
         TurnEventPublisher turnEventPublisher,
         AgentHarnessToolPermissionPolicy agentHarnessToolPermissionPolicy,
+        AgentHarnessToolPermissionResolver agentHarnessToolPermissionResolver,
         ILogger<ToolRegistryFactory> logger)
     {
         _agentMemoryService = agentMemoryService;
@@ -156,9 +160,11 @@ internal sealed class ToolRegistryFactory
         _integrationDefinitionService = integrationDefinitionService;
         _integrationClientManager = integrationClientManager;
         _channelService = channelService;
+        _channelRepository = channelRepository;
         _publisher = publisher;
         _turnEventPublisher = turnEventPublisher;
         _agentHarnessToolPermissionPolicy = agentHarnessToolPermissionPolicy;
+        _agentHarnessToolPermissionResolver = agentHarnessToolPermissionResolver;
         _logger = logger;
     }
 
@@ -166,30 +172,7 @@ internal sealed class ToolRegistryFactory
     {
         var context = new ToolExecutionContext(request.AgentId, request.SandboxId, request.ServiceUrl, request.Sandbox);
         var integrationConnections = new List<IAsyncDisposable>();
-        var tools = new List<IAgentTool>
-        {
-            new ShellTool(context),
-            new FileReadTool(context),
-            new FileWriteTool(context),
-            new FileEditTool(context),
-            new ContentSearchTool(context),
-            new GlobSearchTool(context),
-            new MemoryStoreTool(_agentMemoryService, request.AgentId),
-            new MemoryRecallTool(_agentMemoryService, request.AgentId),
-            new MemoryForgetTool(_agentMemoryService, request.AgentId),
-            new AskUserQuestionTool(),
-            new TaskCreateTool(_agentTaskStore, request.AgentId),
-            new TaskListTool(_agentTaskStore, request.AgentId),
-            new TaskGetTool(_agentTaskStore, request.AgentId),
-            new TaskUpdateTool(_agentTaskStore, request.AgentId),
-            new RoutineCreateTool(_agentRoutineService, request.AgentId, request.OwnerId, request.WorkspaceId),
-            new RoutineListTool(_agentRoutineRepository, request.AgentId),
-            new RoutineDeleteTool(_agentRoutineRepository, request.AgentId),
-            new AgentSpawnTool(_publisher, request.AgentId, request.DefinitionId),
-            new InternalChannelSendTool(_channelService, request.AgentId),
-            new HttpRequestTool(),
-            new WebFetchTool(),
-        };
+        var tools = new List<IAgentTool>();
         var preloadedToolNames = new HashSet<string>(StringComparer.Ordinal);
 
         var definitionStart = Stopwatch.GetTimestamp();
@@ -203,6 +186,8 @@ internal sealed class ToolRegistryFactory
                 null,
                 request.Integrations.Select(integration => integration.Name).ToList())
             : _agentDefinitionParser.Parse(definition.ConfigJson);
+        var canSendInternalChannel = await CanSendInternalChannelAsync(request.AgentId, ct);
+        var permissions = _agentHarnessToolPermissionResolver.Resolve(definitionConfig, canSendInternalChannel);
         var toolsetPolicy = new AgentToolsetPermissionPolicy(definitionConfig, _agentHarnessToolPermissionPolicy);
         await _turnEventPublisher.PublishDiagnosticAsync(
             request.AgentId,
@@ -211,13 +196,23 @@ internal sealed class ToolRegistryFactory
             (int)Stopwatch.GetElapsedTime(definitionStart).TotalMilliseconds,
             ct);
 
-        await AddBrowserToolsAsync(request, tools, preloadedToolNames, ct);
+        AddBuiltinTools(request, context, tools, permissions);
+        if (permissions.Browser)
+            await AddBrowserToolsAsync(request, tools, preloadedToolNames, permissions, ct);
         await AddIntegrationToolsAsync(request, tools, integrationConnections, ct);
 
-        var denied = new Dictionary<string, string>(StringComparer.Ordinal);
+        var denied = permissions.DeniedBuiltinToolNames
+            .Concat(permissions.DeniedBrowserToolNames)
+            .Concat(permissions.DeniedChannelToolNames)
+            .ToDictionary(
+                toolName => toolName,
+                _ => "tool is not allowed by agent definition",
+                StringComparer.Ordinal);
         tools = tools.Where(tool =>
         {
-            var allowed = toolsetPolicy.IsAllowed(tool) || _agentHarnessToolPermissionPolicy.IsSelfManagementTool(tool);
+            var allowed = IsBuiltinTool(tool)
+                || IsBrowserTool(tool)
+                || toolsetPolicy.IsAllowed(tool);
             if (!allowed)
                 denied[tool.Name] = "tool is not allowed by agent definition";
             return allowed;
@@ -235,15 +230,89 @@ internal sealed class ToolRegistryFactory
         });
     }
 
+    private void AddBuiltinTools(
+        ToolRegistryRequest request,
+        ToolExecutionContext context,
+        List<IAgentTool> tools,
+        AgentHarnessResolvedToolPolicy permissions)
+    {
+        if (permissions.Shell)
+            tools.Add(new ShellTool(context));
+        if (permissions.FileRead)
+            tools.Add(new FileReadTool(context));
+        if (permissions.FileWrite)
+            tools.Add(new FileWriteTool(context));
+        if (permissions.FileEdit)
+            tools.Add(new FileEditTool(context));
+        if (permissions.ContentSearch)
+            tools.Add(new ContentSearchTool(context));
+        if (permissions.GlobSearch)
+            tools.Add(new GlobSearchTool(context));
+        if (permissions.MemoryStore)
+            tools.Add(new MemoryStoreTool(_agentMemoryService, request.AgentId));
+        if (permissions.MemoryRecall)
+            tools.Add(new MemoryRecallTool(_agentMemoryService, request.AgentId));
+        if (permissions.MemoryForget)
+            tools.Add(new MemoryForgetTool(_agentMemoryService, request.AgentId));
+        if (permissions.AskUserQuestion)
+            tools.Add(new AskUserQuestionTool());
+        if (permissions.TaskCreate)
+            tools.Add(new TaskCreateTool(_agentTaskStore, request.AgentId));
+        if (permissions.TaskList)
+            tools.Add(new TaskListTool(_agentTaskStore, request.AgentId));
+        if (permissions.TaskGet)
+            tools.Add(new TaskGetTool(_agentTaskStore, request.AgentId));
+        if (permissions.TaskUpdate)
+            tools.Add(new TaskUpdateTool(_agentTaskStore, request.AgentId));
+        if (permissions.RoutineCreate)
+            tools.Add(new RoutineCreateTool(_agentRoutineService, request.AgentId, request.OwnerId, request.WorkspaceId));
+        if (permissions.RoutineList)
+            tools.Add(new RoutineListTool(_agentRoutineRepository, request.AgentId));
+        if (permissions.RoutineDelete)
+            tools.Add(new RoutineDeleteTool(_agentRoutineRepository, request.AgentId));
+        if (permissions.AgentSpawn)
+            tools.Add(new AgentSpawnTool(_publisher, request.AgentId, request.DefinitionId));
+        if (permissions.InternalChannelSend)
+            tools.Add(new InternalChannelSendTool(_channelService, request.AgentId));
+        if (permissions.HttpRequest)
+            tools.Add(new HttpRequestTool());
+        if (permissions.WebFetch)
+            tools.Add(new WebFetchTool());
+    }
+
+    private async Task<bool> CanSendInternalChannelAsync(Guid agentId, CancellationToken ct)
+    {
+        var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
+        return bindings.Any(binding =>
+            binding.Enabled
+            && BindingAllowsSend(ChannelRoutingPolicy.ParseBindingConfig(binding.Config))
+            && _agentHarnessToolPermissionResolver.ChannelPolicyAllows(
+                binding.ChannelConnection?.ToolPermissionPolicyJson,
+                "internal_channel_send"));
+    }
+
+    private static bool BindingAllowsSend(ChannelBindingConfig? config)
+        => config?.CanSend ?? true;
+
+    private static bool IsBuiltinTool(IAgentTool tool)
+        => tool.Kind != AgentToolKind.Integration
+            && !tool.Name.StartsWith("browser__", StringComparison.Ordinal);
+
+    private static bool IsBrowserTool(IAgentTool tool)
+        => tool.Name.StartsWith("browser__", StringComparison.Ordinal);
+
     private async Task AddBrowserToolsAsync(
         ToolRegistryRequest request,
         List<IAgentTool> tools,
         HashSet<string> preloadedToolNames,
+        AgentHarnessResolvedToolPolicy permissions,
         CancellationToken ct)
     {
         try
         {
-            var browserTools = await _browserToolService.CreateForTurnAsync(request.AgentId, ct);
+            var browserTools = (await _browserToolService.CreateForTurnAsync(request.AgentId, ct))
+                .Where(tool => permissions.AllowsBrowser(tool.Name))
+                .ToList();
             tools.AddRange(browserTools);
             foreach (var tool in browserTools)
                 preloadedToolNames.Add(tool.Name);

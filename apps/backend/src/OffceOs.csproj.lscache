@@ -116,6 +116,8 @@ Database/
   20260515164039_AddAgentRoutinePollCursors.Designer.cs
   20260516121839_AddAgentRoutineCredentials.cs
   20260516121839_AddAgentRoutineCredentials.Designer.cs
+  20260516132233_AddChannelToolPermissionPolicy.cs
+  20260516132233_AddChannelToolPermissionPolicy.Designer.cs
   EaosDbContextModelSnapshot.cs
  Models/
   AgentChannelBindingEntity.cs
@@ -160,6 +162,7 @@ Features/AgentDefinitions/
   DeclarativeManifestParser.cs
  Domain/AgentDefinitionConfig.cs
 Features/AgentHarness/Application/
+ AgentHarnessResolvedToolPolicy.cs
  AgentHarnessService.cs
  AgentHarnessToolPermissionPolicy.cs
  AgentRuntimeCleanupService.cs

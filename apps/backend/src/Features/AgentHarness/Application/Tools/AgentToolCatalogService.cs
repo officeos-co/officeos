@@ -11,8 +11,10 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
     private readonly IChannelService _channelService;
+    private readonly IChannelRepository _channelRepository;
     private readonly IPublisher _publisher;
     private readonly AgentHarnessToolPermissionPolicy _agentHarnessToolPermissionPolicy;
+    private readonly AgentHarnessToolPermissionResolver _agentHarnessToolPermissionResolver;
 
     public AgentToolCatalogService(
         IAgentMemoryService memoryService,
@@ -24,8 +26,10 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
         IChannelService channelService,
+        IChannelRepository channelRepository,
         IPublisher publisher,
-        AgentHarnessToolPermissionPolicy agentHarnessToolPermissionPolicy)
+        AgentHarnessToolPermissionPolicy agentHarnessToolPermissionPolicy,
+        AgentHarnessToolPermissionResolver agentHarnessToolPermissionResolver)
     {
         _agentMemoryService = memoryService;
         _agentRoutineRepository = agentRoutineRepository;
@@ -36,54 +40,45 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
         _channelService = channelService;
+        _channelRepository = channelRepository;
         _publisher = publisher;
         _agentHarnessToolPermissionPolicy = agentHarnessToolPermissionPolicy;
+        _agentHarnessToolPermissionResolver = agentHarnessToolPermissionResolver;
     }
 
     public async Task<IReadOnlyList<AgentToolCatalogEntry>> ListAsync(Guid? agentId, CancellationToken ct = default)
     {
         var effectiveAgentId = agentId ?? Guid.Empty;
         var context = new ToolExecutionContext(effectiveAgentId, string.Empty, string.Empty, SchemaOnlyAgentSandbox.Instance);
-        var tools = new List<IAgentTool>
-        {
-            new ShellTool(context),
-            new FileReadTool(context),
-            new FileWriteTool(context),
-            new FileEditTool(context),
-            new ContentSearchTool(context),
-            new GlobSearchTool(context),
-            new MemoryStoreTool(_agentMemoryService, effectiveAgentId),
-            new MemoryRecallTool(_agentMemoryService, effectiveAgentId),
-            new MemoryForgetTool(_agentMemoryService, effectiveAgentId),
-            new AskUserQuestionTool(),
-            new TaskCreateTool(_agentTaskStore, effectiveAgentId),
-            new TaskListTool(_agentTaskStore, effectiveAgentId),
-            new TaskGetTool(_agentTaskStore, effectiveAgentId),
-            new TaskUpdateTool(_agentTaskStore, effectiveAgentId),
-            new RoutineCreateTool(_agentRoutineService, effectiveAgentId, null, null),
-            new RoutineListTool(_agentRoutineRepository, effectiveAgentId),
-            new RoutineDeleteTool(_agentRoutineRepository, effectiveAgentId),
-            new AgentSpawnTool(_publisher, effectiveAgentId, null),
-            new InternalChannelSendTool(_channelService, effectiveAgentId),
-            new HttpRequestTool(),
-            new WebFetchTool(),
-        };
-
-        tools.AddRange(await _browserToolService.CreateCatalogAsync(effectiveAgentId, ct));
+        var tools = new List<IAgentTool>();
 
         AgentToolsetPermissionPolicy? toolsetPolicy = null;
+        var permissions = AgentHarnessResolvedToolPolicy.AllowAll();
         if (agentId.HasValue)
         {
             var definition = await _agentDefinitionRepository.GetByAsync(
                 new AgentDefinitionFilter { AgentId = effectiveAgentId, ActiveOnly = true },
                 ct);
             if (definition is not null)
+            {
+                var definitionConfig = _agentDefinitionParser.Parse(definition.ConfigJson);
+                var canSendInternalChannel = await CanSendInternalChannelAsync(effectiveAgentId, ct);
+                permissions = _agentHarnessToolPermissionResolver.Resolve(definitionConfig, canSendInternalChannel);
                 toolsetPolicy = new AgentToolsetPermissionPolicy(
-                    _agentDefinitionParser.Parse(definition.ConfigJson),
+                    definitionConfig,
                     _agentHarnessToolPermissionPolicy);
-            if (toolsetPolicy is not null)
-                tools = tools.Where(tool => toolsetPolicy.IsAllowed(tool) || _agentHarnessToolPermissionPolicy.IsSelfManagementTool(tool)).ToList();
+            }
         }
+
+        AddBuiltinCatalogTools(effectiveAgentId, context, tools, permissions);
+        if (permissions.Browser)
+        {
+            tools.AddRange((await _browserToolService.CreateCatalogAsync(effectiveAgentId, ct))
+                .Where(tool => permissions.AllowsBrowser(tool.Name)));
+        }
+
+        if (toolsetPolicy is not null)
+            tools = tools.Where(tool => IsBuiltinTool(tool) || IsBrowserTool(tool) || toolsetPolicy.IsAllowed(tool)).ToList();
 
         var entries = tools.Select(ToEntry).ToList();
 
@@ -159,4 +154,75 @@ internal sealed class AgentToolCatalogService : IAgentToolCatalogService
 
     private static string Slug(string value)
         => new(value.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray());
+
+    private void AddBuiltinCatalogTools(
+        Guid effectiveAgentId,
+        ToolExecutionContext context,
+        List<IAgentTool> tools,
+        AgentHarnessResolvedToolPolicy permissions)
+    {
+        if (permissions.Shell)
+            tools.Add(new ShellTool(context));
+        if (permissions.FileRead)
+            tools.Add(new FileReadTool(context));
+        if (permissions.FileWrite)
+            tools.Add(new FileWriteTool(context));
+        if (permissions.FileEdit)
+            tools.Add(new FileEditTool(context));
+        if (permissions.ContentSearch)
+            tools.Add(new ContentSearchTool(context));
+        if (permissions.GlobSearch)
+            tools.Add(new GlobSearchTool(context));
+        if (permissions.MemoryStore)
+            tools.Add(new MemoryStoreTool(_agentMemoryService, effectiveAgentId));
+        if (permissions.MemoryRecall)
+            tools.Add(new MemoryRecallTool(_agentMemoryService, effectiveAgentId));
+        if (permissions.MemoryForget)
+            tools.Add(new MemoryForgetTool(_agentMemoryService, effectiveAgentId));
+        if (permissions.AskUserQuestion)
+            tools.Add(new AskUserQuestionTool());
+        if (permissions.TaskCreate)
+            tools.Add(new TaskCreateTool(_agentTaskStore, effectiveAgentId));
+        if (permissions.TaskList)
+            tools.Add(new TaskListTool(_agentTaskStore, effectiveAgentId));
+        if (permissions.TaskGet)
+            tools.Add(new TaskGetTool(_agentTaskStore, effectiveAgentId));
+        if (permissions.TaskUpdate)
+            tools.Add(new TaskUpdateTool(_agentTaskStore, effectiveAgentId));
+        if (permissions.RoutineCreate)
+            tools.Add(new RoutineCreateTool(_agentRoutineService, effectiveAgentId, null, null));
+        if (permissions.RoutineList)
+            tools.Add(new RoutineListTool(_agentRoutineRepository, effectiveAgentId));
+        if (permissions.RoutineDelete)
+            tools.Add(new RoutineDeleteTool(_agentRoutineRepository, effectiveAgentId));
+        if (permissions.AgentSpawn)
+            tools.Add(new AgentSpawnTool(_publisher, effectiveAgentId, null));
+        if (permissions.InternalChannelSend)
+            tools.Add(new InternalChannelSendTool(_channelService, effectiveAgentId));
+        if (permissions.HttpRequest)
+            tools.Add(new HttpRequestTool());
+        if (permissions.WebFetch)
+            tools.Add(new WebFetchTool());
+    }
+
+    private async Task<bool> CanSendInternalChannelAsync(Guid agentId, CancellationToken ct)
+    {
+        var bindings = await _channelRepository.ListBindingsAsync(agentId, ct);
+        return bindings.Any(binding =>
+            binding.Enabled
+            && BindingAllowsSend(ChannelRoutingPolicy.ParseBindingConfig(binding.Config))
+            && _agentHarnessToolPermissionResolver.ChannelPolicyAllows(
+                binding.ChannelConnection?.ToolPermissionPolicyJson,
+                "internal_channel_send"));
+    }
+
+    private static bool BindingAllowsSend(ChannelBindingConfig? config)
+        => config?.CanSend ?? true;
+
+    private static bool IsBuiltinTool(IAgentTool tool)
+        => tool.Kind != AgentToolKind.Integration
+            && !tool.Name.StartsWith("browser__", StringComparison.Ordinal);
+
+    private static bool IsBrowserTool(IAgentTool tool)
+        => tool.Name.StartsWith("browser__", StringComparison.Ordinal);
 }

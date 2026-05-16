@@ -189,7 +189,8 @@ internal sealed record DeclarativeChannelSpecItem(
     string? DisplayName,
     bool? Enabled,
     string? Token,
-    Dictionary<string, string>? Credentials);
+    Dictionary<string, string>? Credentials,
+    DeclarativePermissionPolicyItem? PermissionPolicy);
 
 internal sealed record DeclarativeProviderSpecItem(
     string Type,

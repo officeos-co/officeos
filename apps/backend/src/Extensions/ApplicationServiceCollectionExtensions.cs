@@ -29,6 +29,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ToolRegistryFactory>();
         services.AddScoped<ToolExecutionLoop>();
         services.AddScoped<AgentHarnessToolPermissionPolicy>();
+        services.AddScoped<AgentHarnessToolPermissionResolver>();
         services.AddScoped<IBrowserToolContextFactory, BrowserToolContextFactory>();
         services.AddScoped<IBrowserToolService, BrowserToolService>();
         services.AddScoped<IAgentToolCatalogService, AgentToolCatalogService>();

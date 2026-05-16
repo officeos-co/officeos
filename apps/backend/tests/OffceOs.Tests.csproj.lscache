@@ -59,6 +59,7 @@ AgentDefinitions/
  AgentDefinitionParserTests.cs
  AgentManifestParserTests.cs
 AgentHarness/
+ AgentHarnessToolPermissionResolverTests.cs
  DockerAgentSandboxTests.cs
  KubernetesAgentSandboxTests.cs
  PodExecutorClientTests.cs

@@ -26,6 +26,9 @@ public sealed class ChannelConnectionRecord
     /// <summary>Encrypted channel credentials JSON. Decrypted only when passed to the sidecar.</summary>
     public string? EncryptedCreds { get; set; }
 
+    /// <summary>Channel-owned tool permission policy JSON consumed by the agent harness.</summary>
+    public string? ToolPermissionPolicyJson { get; set; }
+
     public UserRecord? CreatedBy { get; init; }
 
     public IReadOnlyList<AgentChannelBindingRecord> Bindings { get; init; } = [];

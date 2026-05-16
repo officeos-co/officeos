@@ -203,6 +203,31 @@ public sealed class AgentManifestParserTests
     }
 
     [Fact]
+    public async Task Validate_accepts_channel_permission_policy()
+    {
+        var service = CreateValidationService();
+
+        var result = await service.ValidateAsync(
+            """
+            apiVersion: officeos.io/v1
+            kind: Channel
+            metadata:
+              name: internal-support
+            spec:
+              type: internal
+              permissionPolicy:
+                type: allow_list
+                tools:
+                  - internal_channel_send
+            """,
+            Guid.NewGuid(),
+            Guid.NewGuid());
+
+        Assert.True(result.Valid);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
     public async Task Validate_accepts_dispatch_only_provider_with_pinned_models()
     {
         var service = CreateValidationService();

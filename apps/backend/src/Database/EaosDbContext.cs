@@ -126,6 +126,7 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(c => new { c.CreatedById, c.WorkspaceId });
             e.Property(c => c.ChannelType).IsRequired().HasMaxLength(32);
             e.Property(c => c.DisplayName).IsRequired().HasMaxLength(200);
+            e.Property(c => c.ToolPermissionPolicyJson).HasColumnType("jsonb");
             e.HasOne(c => c.CreatedBy).WithMany().HasForeignKey(c => c.CreatedById);
             e.HasOne(c => c.Workspace).WithMany().HasForeignKey(c => c.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
